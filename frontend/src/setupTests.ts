@@ -169,3 +169,18 @@ const storageMock = () => {
 
 Object.defineProperty(window, 'sessionStorage', { value: storageMock() });
 Object.defineProperty(window, 'localStorage', { value: storageMock() });
+
+// Mock fetch for runtime configuration
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({
+      apiUrl: 'http://localhost:5000',
+      useMockAuth: true,
+      azureClientId: 'mock-client-id',
+      azureAuthority: 'https://login.microsoftonline.com/mock-tenant-id'
+    }),
+  })
+) as jest.Mock;
+
