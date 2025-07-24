@@ -3,7 +3,9 @@ import {
   BarChart3,
   Building2,
   Folder,
-  Plus
+  Plus,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -171,7 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 
           {/* User Profile */}
           <div className={`border-t border-gray-200 ${isCollapsed ? 'p-2' : 'p-4'}`}>
-            <div className={`flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
               <div className="relative">
                 <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">OK</span>
@@ -180,8 +182,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                   <span className="text-white text-xs">3</span>
                 </div>
               </div>
+              
+              {/* Collapse/Expand Button - only show on desktop */}
+              {!isCollapsed && (
+                <button
+                  type="button"
+                  className="hidden md:flex p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+                  onClick={onToggleCollapse}
+                  title="Collapse sidebar"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Collapsed state fold button */}
+          {isCollapsed && (
+            <div className="border-t border-gray-200 p-2">
+              <button
+                type="button"
+                className="hidden md:flex w-full justify-center p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+                onClick={onToggleCollapse}
+                title="Expand sidebar"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

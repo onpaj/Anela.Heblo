@@ -78,7 +78,9 @@ The frontend follows a Tailwind CSS-based design system with:
 - **Sidebar**: 
   - **Expanded**: `w-64` (256px) with full navigation and text labels
   - **Collapsed**: `w-16` (64px) with icons only and tooltips
-  - **Toggle**: Via button in TopBar using `PanelLeftClose`/`PanelLeftOpen` icons
+  - **Toggle**: Via button in sidebar bottom (next to user profile)
+  - **Button location**: Bottom of sidebar - right side when expanded, center when collapsed
+  - **Icons**: `PanelLeftClose` (collapse) / `PanelLeftOpen` (expand)
   - **Animation**: Smooth `transition-all duration-300` for width changes
   - **Content adaptation**: Main content adapts with `md:pl-64` or `md:pl-16`
 - **Colors**: Gray-based palette with indigo accents, emerald success states

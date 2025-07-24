@@ -25,8 +25,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Top bar */}
         <TopBar 
           onMenuClick={() => setSidebarOpen(true)}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-          sidebarCollapsed={sidebarCollapsed}
         />
         
         {/* Page content */}

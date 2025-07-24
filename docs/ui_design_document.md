@@ -35,7 +35,10 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
 - **Šířka:** `w-64` (rozbalený), `w-16` (složený)
 - **Pozadí:** `bg-white`, `border-r border-gray-200`, `shadow-sm`
 - **Skládání/rozbalování:**
-  - Ovládá se pomocí toggle tlačítka v TopBar (ikony `PanelLeftClose`/`PanelLeftOpen`)
+  - Ovládá se pomocí toggle tlačítka na spodku sidebaru (ikony `PanelLeftClose`/`PanelLeftOpen`)
+  - **Umístění tlačítka**: Ve spodní části sidebaru vedle uživatelského profilu
+  - **Rozbalený stav**: Tlačítko vpravo od avatara (`PanelLeftClose`)
+  - **Složený stav**: Tlačítko uprostřed pod avatarem (`PanelLeftOpen`)
   - Plynulé animace pomocí `transition-all duration-300`
   - Ve složeném stavu: pouze ikony, tooltip na hover
   - V rozbaleném stavu: ikony + text
@@ -53,16 +56,15 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
 ### 3.3 Topbar
 
 - Obsahuje vyhledávání, **Lucide React ikony** pro akce, uživatelský avatar
-- **Layout:** Levá strana (menu + sidebar toggle), pravá strana (search + akce)
+- **Layout:** Levá strana (mobile menu), pravá strana (search + akce)
 - Pozadí `white`, border bottom `border-b border-gray-200`, `shadow-sm`
 - **Ikony a prvky:**
   - **Mobile menu**: `Menu` ikona (`h-6 w-6`), pouze na mobilech
-  - **Sidebar toggle**: `PanelLeftClose`/`PanelLeftOpen` (`h-5 w-5`), pouze na desktop
   - **Search**: Input s `Search` ikonou (`h-4 w-4`) a dropdown (`ChevronDown`)
   - **Settings**: `Settings` ikona (`h-5 w-5`)
   - **CTA button**: Rose tlačítko s `Plus` a `ChevronDown` ikonami (`h-4 w-4`)
 - **Responsivita:** 
-  - Desktop: sidebar toggle + full search bar
+  - Desktop: full search bar a akční tlačítka
   - Mobile: hamburger menu + search ikona
 
 ---
