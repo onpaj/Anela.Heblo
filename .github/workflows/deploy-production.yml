@@ -1,0 +1,293 @@
+name: 🚀 Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (emergency deployment)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: anela-heblo
+  AZURE_WEBAPP_NAME: anela-heblo
+
+jobs:
+  # Ensure CI Passed
+  verify-ci:
+    name: ✅ Verify CI Status
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ✅ Wait for CI to complete
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: '✅ Quality Gate'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+  # Generate Version
+  version:
+    name: 🔖 Generate Version
+    runs-on: ubuntu-latest
+    needs: [verify-ci]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔖 Generate semantic version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # If triggered by tag, use the tag as version
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$VERSION" >> $GITHUB_OUTPUT
+            echo "📌 Using tag version: $VERSION"
+          else
+            # Generate version based on conventional commits
+            # This is a simplified version - in real scenario, use semantic-release or similar
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            COMMIT_COUNT=$(git rev-list $LAST_TAG..HEAD --count)
+            
+            if [ $COMMIT_COUNT -eq 0 ]; then
+              VERSION=$LAST_TAG
+            else
+              # Simple versioning - increment patch version
+              VERSION_NUMBER=${LAST_TAG#v}
+              IFS='.' read -ra VERSION_PARTS <<< "$VERSION_NUMBER"
+              PATCH=$((${VERSION_PARTS[2]} + 1))
+              VERSION="v${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$PATCH"
+            fi
+            
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$VERSION" >> $GITHUB_OUTPUT
+            echo "🔢 Generated version: $VERSION"
+          fi
+
+  # Build and Push Docker Image
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [version]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 📝 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.version.outputs.version }}
+            type=sha,prefix={{branch}}-
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_API_URL=https://anela-heblo.azurewebsites.net
+            REACT_APP_USE_MOCK_AUTH=false
+
+      - name: 🔖 Create Git Tag
+        if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.version.outputs.tag }}
+          git push origin ${{ needs.version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Deploy to Azure Web App
+  deploy-azure:
+    name: 🚀 Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: [build-and-push, version]
+    environment:
+      name: production
+      url: https://anela-heblo.azurewebsites.net
+    steps:
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
+
+      - name: 🚀 Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ needs.build-and-push.outputs.image-tag }}
+
+      - name: 🔧 Configure App Settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group rg-anela-heblo-prod \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Production \
+              REACT_APP_USE_MOCK_AUTH=false \
+              WEBSITES_PORT=80 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              APP_VERSION=${{ needs.version.outputs.version }}
+
+  # Smoke Tests
+  smoke-tests:
+    name: 💨 Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-azure]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 💨 Run smoke tests
+        run: |
+          echo "🧪 Running production smoke tests..."
+          
+          BASE_URL="https://anela-heblo.azurewebsites.net"
+          
+          # Test 1: Health check
+          echo "🏥 Testing health endpoint..."
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL/health)
+          if [ "$HEALTH_STATUS" != "200" ]; then
+            echo "❌ Health check failed: $HEALTH_STATUS"
+            exit 1
+          fi
+          echo "✅ Health check passed"
+          
+          # Test 2: Main page loads
+          echo "🌐 Testing main page..."
+          MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL/)
+          if [ "$MAIN_STATUS" != "200" ]; then
+            echo "❌ Main page failed: $MAIN_STATUS"
+            exit 1
+          fi
+          echo "✅ Main page loads"
+          
+          # Test 3: API endpoint responds (may require auth)
+          echo "🔌 Testing API endpoint..."
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL/WeatherForecast)
+          if [ "$API_STATUS" != "200" ] && [ "$API_STATUS" != "401" ]; then
+            echo "❌ API endpoint failed: $API_STATUS"
+            exit 1
+          fi
+          echo "✅ API endpoint responds (status: $API_STATUS)"
+          
+          echo "🎉 All smoke tests passed!"
+
+  # Create GitHub Release
+  create-release:
+    name: 📦 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [smoke-tests, version, build-and-push]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📝 Generate changelog
+        id: changelog
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${{ needs.version.outputs.tag }}^)
+          else
+            PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          fi
+          
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## Changes since $PREVIOUS_TAG" > CHANGELOG.md
+            git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          else
+            echo "## Initial Release" > CHANGELOG.md
+            echo "- First production deployment" >> CHANGELOG.md
+          fi
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 📦 Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          release_name: Release ${{ needs.version.outputs.version }}
+          body: |
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Deployment Info
+            - **Environment:** Production
+            - **URL:** https://anela-heblo.azurewebsites.net
+            - **Docker Image:** `${{ needs.build-and-push.outputs.image-tag }}`
+            - **Deployed at:** ${{ github.event.head_commit.timestamp }}
+          draft: false
+          prerelease: false
+
+  # Notification
+  notify:
+    name: 📢 Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-azure, smoke-tests, create-release, version]
+    if: always()
+    steps:
+      - name: 📢 Production Deployment Summary
+        run: |
+          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ needs.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://anela-heblo.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.smoke-tests.result }}" = "success" ]; then
+            echo "✅ **Status:** Deployment successful" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **Production is live!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "🚨 **Production deployment needs attention!**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release:** [View on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY

@@ -333,6 +333,44 @@ await emailInput.fill(credentials.email); // Never hardcoded
 - **Manual commit control** - All commits are made manually by the developer
 - This ensures full control over commit timing, messages, and change grouping
 
+## Code Quality & Formatting Rules
+
+### .NET Backend Code Standards
+
+**MANDATORY**: All C# code MUST follow .NET formatting standards and pass `dotnet format` validation:
+
+- **Indentation**: 4 spaces for C# code (never tabs)
+- **Line endings**: Use proper line breaks and spacing
+- **Brace style**: Allman style (opening braces on new line)
+- **Method spacing**: Proper spacing between methods and classes
+- **Using statements**: Organized and deduplicated
+- **Null checks**: Use modern null-conditional operators where appropriate
+
+**Automatic formatting enforcement:**
+- Before any commit, run `dotnet format` to fix formatting issues
+- CI/CD pipeline validates code formatting and fails on violations
+- All generated code must pass formatting validation
+
+**Code generation requirements:**
+- Generate code that inherently follows .NET formatting standards
+- Use consistent indentation and spacing from the start
+- Follow established patterns in existing codebase
+- Never generate code that requires post-generation formatting fixes
+
+### Frontend Code Standards
+
+**React/TypeScript formatting:**
+- Use Prettier for consistent formatting
+- 2 spaces indentation for TypeScript/JSX
+- Semicolons required
+- Single quotes for strings
+- Trailing commas in objects/arrays
+
+**Enforcement:**
+- Run `npm run lint` before commits
+- ESLint and Prettier configurations must be respected
+- Generated components follow existing code patterns
+
 ## Important Notes
 
 - This is a **solo developer project** with AI-assisted PR reviews

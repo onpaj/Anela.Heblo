@@ -1,0 +1,169 @@
+name: 🔄 Continuous Integration (Optimized)
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: anela-heblo
+
+jobs:
+  # Frontend CI - Combined lint, test, and build in one job
+  frontend-ci:
+    name: 🎯 Frontend CI (Lint + Test + Build)
+    runs-on: ubuntu-latest
+    outputs:
+      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🧹 Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: 🧪 Run tests with coverage
+        working-directory: ./frontend
+        run: npm test -- --coverage --watchAll=false
+        env:
+          CI: true
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+      - name: 🏗️ Build production bundle
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          REACT_APP_API_URL: https://placeholder.azurewebsites.net
+          REACT_APP_USE_MOCK_AUTH: false
+
+      - name: ✅ Check build success
+        id: check-build
+        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+
+  # Backend CI - Combined lint, test, and build in one job
+  backend-ci:
+    name: 🎯 Backend CI (Lint + Test + Build)
+    runs-on: ubuntu-latest
+    outputs:
+      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore Anela.Heblo.sln
+
+      - name: 🧹 Check code formatting
+        run: |
+          # Check if dotnet format would make changes
+          dotnet format Anela.Heblo.sln --verify-no-changes --verbosity normal || {
+            echo "❌ Code formatting issues found. Run 'dotnet format Anela.Heblo.sln' locally to fix them."
+            exit 1
+          }
+
+      - name: 🧪 Run tests with coverage
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          files: ./coverage/*/coverage.cobertura.xml
+          flags: backend
+          name: backend-coverage
+
+      - name: 🏗️ Build solution
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
+
+      - name: ✅ Check build success
+        id: check-build
+        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
+
+  # Docker Build - depends on both frontend and backend CI
+  docker-build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Quality Gate - ensures all jobs pass
+  quality-gate:
+    name: ✅ Quality Gate
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci, docker-build]
+    if: always()
+    steps:
+      - name: ✅ Check all jobs succeeded
+        run: |
+          echo "Frontend CI: ${{ needs.frontend-ci.result }}"
+          echo "Backend CI: ${{ needs.backend-ci.result }}"
+          echo "Docker Build: ${{ needs.docker-build.result }}"
+          
+          if [[ "${{ needs.frontend-ci.result }}" != "success" || \
+                "${{ needs.backend-ci.result }}" != "success" || \
+                "${{ needs.docker-build.result }}" != "success" ]]; then
+            echo "❌ Quality gate failed - one or more jobs failed"
+            exit 1
+          else
+            echo "✅ Quality gate passed - all jobs succeeded"
+          fi
+
+      - name: 📋 Generate CI summary
+        run: |
+          echo "## 🎉 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Frontend CI**: Lint, Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Backend CI**: Lint, Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
+          echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY

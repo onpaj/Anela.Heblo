@@ -46,16 +46,16 @@ public class Program
         });
 
         builder.Services.AddControllers();
-        
+
         // Add health checks
         builder.Services.AddHealthChecks();
-        
+
         // Add SPA static files support
         builder.Services.AddSpaStaticFiles(configuration =>
         {
             configuration.RootPath = "wwwroot";
         });
-        
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -81,7 +81,7 @@ public class Program
 
         // Serve static files from wwwroot
         app.UseStaticFiles();
-        
+
         // If not in development, also use SPA static files
         if (!app.Environment.IsDevelopment())
         {
@@ -89,7 +89,7 @@ public class Program
         }
 
         app.MapControllers();
-        
+
         // Map health check endpoint
         app.MapHealthChecks("/health");
 
