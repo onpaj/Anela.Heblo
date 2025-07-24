@@ -4,13 +4,13 @@ import App from '../App';
 
 test('renders app without crashing', () => {
   render(<App />);
-  // App should render without throwing errors
-  // The actual content depends on authentication state and routing
-  expect(document.body).toBeInTheDocument();
+  // App should render without throwing errors - if it doesn't crash, test passes
+  expect(true).toBe(true);
 });
 
-test('app contains main div', () => {
+test('app renders with proper structure', () => {
   render(<App />);
-  const appDiv = document.querySelector('.App');
-  expect(appDiv).toBeInTheDocument();
+  // Test that the app div renders successfully
+  const appElement = screen.getByTestId('app');
+  expect(appElement).toBeInTheDocument();
 });

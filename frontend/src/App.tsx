@@ -13,7 +13,7 @@ const msalInstance = new PublicClientApplication(msalConfig);
 
 function App() {
   return (
-    <div className="App">
+    <div className="App" data-testid="app">
       <MsalProvider instance={msalInstance}>
         <Router>
           <AuthGuard>
