@@ -111,7 +111,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# Note: React apps need their public directory, so we don't ignore it globally
 
 # Storybook build outputs
 .out
