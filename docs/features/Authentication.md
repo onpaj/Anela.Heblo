@@ -100,7 +100,46 @@ Tyto údaje jsou používány k identifikaci, zobrazení ve frontend UI a k auto
 
 ---
 
-## 7. Shrnutí
+## 7. Vývojové prostředí a testování
+
+### 7.1 Mock Authentication pro lokální vývoj
+
+Pro zjednodušení lokálního vývoje aplikace podporuje mock authentication:
+
+**Konfigurace:**
+- Nastavení `"UseMockAuth": true` v `appsettings.Development.json`
+- Mock handler automaticky vytvoří fake přihlášeného uživatele
+- Žádné skutečné Entra ID credentials nejsou potřeba
+
+**Mock uživatel obsahuje:**
+- User ID: `mock-user-id`
+- Jméno: `Mock User`
+- Email: `mock@anela-heblo.com`
+- Claims: oid, tid, roles (standardní Entra ID claims)
+
+**Použití:**
+```json
+{
+  "UseMockAuth": true,
+  "ASPNETCORE_ENVIRONMENT": "Development"
+}
+```
+
+### 7.2 Integration Testing
+
+**Test infrastruktura:**
+- `Microsoft.AspNetCore.Mvc.Testing` pro integration tests
+- `MockAuthenticationHandler` pro simulaci přihlášeného uživatele
+- Testy ověřują funkčnost API bez skutečné authentication
+
+**Spuštění testů:**
+```bash
+dotnet test  # Spustí všechny testy včetně mock authentication
+```
+
+**Test projekt:** `backend/test/Anela.Heblo.Tests/`
+
+## 8. Shrnutí
 
 | Oblast                  | Přístup                                   |
 |--------------------------|-------------------------------------------|
@@ -113,5 +152,7 @@ Tyto údaje jsou používány k identifikaci, zobrazení ve frontend UI a k auto
 | Validace tokenu          | Pomocí knihovny (ne manuálně)             |
 | Ochrana endpointů        | Výchozí stav `[Authorize]`                |
 | Hostování                | `heblo.pajgrt.cz`, SPA jako statické soubory |
+| **Vývojové prostředí**   | **Mock Authentication (`UseMockAuth: true`)** |
+| **Testing**              | **Integration tests s mock authentication** |
 
 ---

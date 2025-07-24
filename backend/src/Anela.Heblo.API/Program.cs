@@ -31,6 +31,19 @@ public class Program
                 .AddInMemoryTokenCaches();
         }
 
+        // Add CORS
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
+
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -48,6 +61,9 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+
+        // Use CORS
+        app.UseCors("AllowFrontend");
 
         app.UseAuthorization();
 

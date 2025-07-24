@@ -57,12 +57,12 @@ Based on the infrastructure document, the intended structure will be:
 Since this is currently documentation-only, these are the expected commands based on the architecture:
 
 **Backend (.NET 8)**:
-- `dotnet build` - Build the solution (automatically generates TypeScript client for frontend in Debug mode)
-- `dotnet test` - Run unit tests
+- `dotnet build` - Build the solution
+- `dotnet test` - Run unit and integration tests (includes mock authentication tests)
 - `dotnet ef migrations add <name>` - Create new migration
 - `dotnet ef database update` - Apply migrations
-- `dotnet run` - Start development server
-- `dotnet build --target GenerateFrontendClientManual` - Manually generate TypeScript client for frontend
+- `dotnet run` - Start development server with mock authentication (if UseMockAuth=true)
+- `dotnet msbuild -t:GenerateFrontendClientManual` - Manually generate TypeScript client for frontend
 
 **Frontend (Standalone React)**:
 - `npm install` - Install dependencies
@@ -73,11 +73,20 @@ Since this is currently documentation-only, these are the expected commands base
 - `npx playwright test` - Run end-to-end tests (when configured)
 - `npx playwright codegen localhost:3000` - Generate test code by recording interactions
 
-**Authentication Setup** (Required for local development):
-1. Copy `frontend/.env.example` to `frontend/.env`
-2. Fill in actual Microsoft Entra ID credentials (client ID, tenant ID)
-3. The `.env` file is gitignored and contains sensitive data - never commit it
-4. Contact project owner for actual credential values
+**Authentication Setup**:
+
+**For Local Development (Mock Mode)**:
+1. Set `"UseMockAuth": true` in `backend/src/Anela.Heblo.API/appsettings.Development.json`
+2. Mock authentication automatically provides a "Mock User" with standard claims
+3. No real Microsoft Entra ID credentials needed for development
+4. API accepts all requests as authenticated with mock user data
+
+**For Production/Real Authentication**:
+1. Set `"UseMockAuth": false` in configuration
+2. Copy `frontend/.env.example` to `frontend/.env`
+3. Fill in actual Microsoft Entra ID credentials (client ID, tenant ID)
+4. The `.env` file is gitignored and contains sensitive data - never commit it
+5. Contact project owner for actual credential values
 
 **Docker**:
 - `docker-compose up` - Start local development environment
@@ -134,12 +143,32 @@ const WeatherComponent = () => {
 - **Transport Sync**: Confirm EANs and update Shoptet stock
 - **Batch Planning**: Periodic manufacturing evaluation
 
+## Testing Strategy
+
+**Backend Testing**:
+- Integration tests using `Microsoft.AspNetCore.Mvc.Testing`
+- Mock authentication for development testing (`UseMockAuth: true`)
+- Test project: `backend/test/Anela.Heblo.Tests/`
+- Run with: `dotnet test`
+
+**Mock Authentication Testing**:
+- `MockAuthenticationHandler` provides fake authenticated user
+- Claims include: user ID, name, email, Entra ID specific claims (oid, tid, roles)
+- Integration tests verify API endpoints work without real authentication
+- Automatic test server configuration with mock auth enabled
+
+**Frontend Testing**:
+- Playwright for E2E testing and UI validation
+- Port 3000 reserved for development and Playwright testing
+- Component testing with React Testing Library
+
 ## Environment Configuration
 
 - Uses `.env` files for shared configuration
 - Frontend variables prefixed with `REACT_APP_`
 - Backend uses `appsettings.{Environment}.json` + environment variables
 - Database migrations applied manually (not automated in CI/CD)
+- **Mock Authentication**: Set `"UseMockAuth": true` in `appsettings.Development.json` for local development
 
 ## Port Configuration
 

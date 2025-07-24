@@ -6,7 +6,7 @@ const WeatherTest: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiClient] = useState(() => new ApiClient(process.env.REACT_APP_API_URL));
+  const [apiClient] = useState(() => new ApiClient(process.env.REACT_APP_API_BASE_URL));
 
   const fetchWeatherData = useCallback(async () => {
     setLoading(true);
