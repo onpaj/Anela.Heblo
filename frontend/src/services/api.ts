@@ -1,6 +1,10 @@
 // API configuration and client setup
 // This will be replaced with OpenAPI generated client later
 
+// Port configuration:
+// Development: 3000 (frontend) -> 5000 (backend)
+// Test environment: 44329 (frontend) -> 44388 (backend)
+// Production: 44330 (frontend) -> 44389 (backend)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export class ApiClient {

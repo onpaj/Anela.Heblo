@@ -38,12 +38,31 @@
 - Frontend uses variables prefixed with `REACT_APP_`.
 - Backend uses `appsettings.{Environment}.json` + environment variables.
 
+### Port Configuration:
+
+| Environment | Frontend Port | Backend Port |
+|-------------|---------------|--------------|
+| Development | 3000 | 5000 |
+| Test | 44329 | 44388 |
+| Production | 44330 | 44389 |
+
 ### Example `.env`:
 
 ```
+# Development
 ASPNETCORE_ENVIRONMENT=Development
 REACT_APP_API_URL=http://localhost:5000
 API_BASE_URL=http://localhost:5000
+
+# Test Environment
+ASPNETCORE_ENVIRONMENT=Test
+REACT_APP_API_URL=http://localhost:44388
+API_BASE_URL=http://localhost:44388
+
+# Production
+ASPNETCORE_ENVIRONMENT=Production
+REACT_APP_API_URL=http://localhost:44389
+API_BASE_URL=http://localhost:44389
 ```
 
 ---
@@ -63,9 +82,12 @@ API_BASE_URL=http://localhost:5000
   - Frontend: Standalone React dev server (`npm start`) with hot reload on localhost:3000
   - Backend: ASP.NET Core dev server (`dotnet run`) on localhost:5000
   - CORS configured for cross-origin requests between frontend and backend
+- **Test Environment**:
+  - Frontend: React dev server on localhost:44329
+  - Backend: ASP.NET Core on localhost:44388
 - **Production**: 
-  - Frontend: Static files built via `npm run build`, served by web server or CDN
-  - Backend: Separate Docker container with ASP.NET Core API
+  - Frontend: Static files on localhost:44330
+  - Backend: ASP.NET Core API on localhost:44389
   - Two separate deployments but coordinated via CI/CD
 - All Docker images are pushed to **Docker Hub**.
 - Deployment is implemented via GitHub Actions (defined later).

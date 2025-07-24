@@ -92,13 +92,26 @@ The frontend follows a Tailwind CSS-based design system with:
 - Backend uses `appsettings.{Environment}.json` + environment variables
 - Database migrations applied manually (not automated in CI/CD)
 
+## Port Configuration
+
+| Environment | Frontend Port | Backend Port |
+|-------------|---------------|--------------|
+| Development | 3000 | 5000 |
+| Test | 44329 | 44388 |
+| Production | 44330 | 44389 |
+
 ## Deployment Strategy
 
 - **Development**: 
   - Frontend: Standalone React dev server (`npm start`) with hot reload (localhost:3000)
   - Backend: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
   - CORS configured to allow frontend-backend communication
-- **Production**: Static files served by web server (Nginx/Apache) or CDN, backend as separate service
+- **Test Environment**:
+  - Frontend: localhost:44329
+  - Backend: localhost:44388
+- **Production Environment**:
+  - Frontend: localhost:44330  
+  - Backend: localhost:44389
 - **Current**: Docker on-premises (Synology NAS)
 - **Future**: Azure App Service / Container Apps
 - **Versioning**: Semantic versioning with conventional commits
