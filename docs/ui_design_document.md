@@ -1,10 +1,14 @@
 ## 1. Úvod
 
-Tento dokument definuje návrhová pravidla a vizuální specifikace pro frontend business aplikaci inspirovanou reálným UI stylem (viz přiložený referenční obrázek) a založenou na utility přístupu Tailwind CSS. Výsledkem není implementace, ale normativní referenční dokument, který slouží jako zdroj pravdy pro návrh, revize a další vývoj UI.
+Tento dokument definuje návrhová pravidla a vizuální specifikace pro frontend business aplikaci inspirovanou reálným UI stylem a založenou na utility přístupu Tailwind CSS s **Lucide React** ikonami. Výsledkem není implementace, ale normativní referenční dokument, který slouží jako zdroj pravdy pro návrh, revize a další vývoj UI.
 
 Aplikace je určena pro interní správu dat a obsahuje typické prvky jako jsou tabulky, filtrace, přehledy, formuláře, stavy a interakce.
 
 Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v celé aplikaci.
+
+### Ikony
+- **Knihovna**: Lucide React pro moderní, konzistentní a dostupné ikony
+- **Standardní velikosti**: `h-4 w-4` (malé), `h-5 w-5` (střední), `h-6 w-6` (velké)
 
 ---
 
@@ -30,7 +34,7 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
 - **Pozice:** vlevo, `fixed`, výška `100vh`, šířka `w-64`
 - **Pozadí:** `bg-white`, `border-r border-gray-200`
 - **Navigační prvky:**
-  - Ikona + název sekce (volitelně stavová bublina)
+  - **Ikony**: Lucide React ikony (velikost `h-5 w-5`) + název sekce
   - Aktivní položka: `bg-gray-100`, `text-indigo-600`, `border-l-4 border-indigo-600`
   - Hover efekt: `bg-gray-50`
 - **Responsivita:**
@@ -39,9 +43,10 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
 
 ### 3.3 Topbar
 
-- Obsahuje vyhledávání, ikony akcí, uživatelský avatar
+- Obsahuje vyhledávání, **Lucide React ikony** pro akce, uživatelský avatar
 - Zarovnání do pravé části pomocí `flex justify-end`
 - Pozadí `white`, border bottom `border-b border-gray-200`
+- **Ikony**: Menu (`h-6 w-6`), Search (`h-4 w-4`), User (`h-4 w-4`)
 
 ---
 

@@ -15,3 +15,48 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Custom design system classes per UI design document */
+.bg-base {
+  @apply bg-gray-50;
+}
+
+.bg-sidebar {
+  @apply bg-white;
+}
+
+.text-main {
+  @apply text-gray-900;
+}
+
+.text-sub {
+  @apply text-gray-500;
+}
+
+.accent {
+  @apply text-indigo-600;
+}
+
+.success {
+  @apply text-emerald-500;
+}
+
+.error {
+  @apply text-rose-500;
+}
+
+.border {
+  @apply border-gray-200;
+}
+
+.cta {
+  @apply bg-rose-400;
+}
+
+.hover {
+  @apply bg-gray-100;
+}
+
+.icon-muted {
+  @apply text-gray-400;
+}

@@ -6,6 +6,7 @@ Standalone React PWA aplikace pro kosmetickou společnost Anela Heblo.
 
 - **Framework**: React 18 s TypeScript
 - **Styling**: Tailwind CSS podle UI design document
+- **Icons**: Lucide React (pro konzistentní a moderní ikony)
 - **Routing**: React Router DOM
 - **Internationalization**: i18next (primárně česky)
 - **Authentication**: MSAL pro MS Entra ID

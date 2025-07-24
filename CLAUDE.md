@@ -73,6 +73,7 @@ Since this is currently documentation-only, these are the expected commands base
 The frontend follows a Tailwind CSS-based design system with:
 - **Layout**: Sidebar navigation (`w-64`) + main content area
 - **Colors**: Gray-based palette with indigo accents, emerald success states
+- **Icons**: Lucide React for consistent, modern iconography
 - **Typography**: System fonts with defined hierarchy (XL headings to XS captions)
 - **Components**: Consistent buttons, forms, tables with hover states
 - **Responsiveness**: Mobile-first approach with sidebar collapsing on `md:` breakpoint

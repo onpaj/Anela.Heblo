@@ -10,7 +10,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-base">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
@@ -20,8 +20,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
         
         {/* Page content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
+        <main className="flex-1 relative overflow-hidden">
+          <div className="h-full px-4 sm:px-6 lg:px-8 py-8 bg-gray-50">
+            <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              {children}
+            </div>
+          </div>
         </main>
       </div>
     </div>
