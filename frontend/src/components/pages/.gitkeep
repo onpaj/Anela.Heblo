@@ -1,0 +1,6 @@
+# This directory will contain page components
+# - CatalogPage.tsx
+# - ManufacturePage.tsx
+# - PurchasePage.tsx
+# - TransportPage.tsx
+# - InvoicesPage.tsx
