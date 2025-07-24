@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.API", "backend\src\Anela.Heblo.API\Anela.Heblo.API.csproj", "{C121FE72-651D-4668-A2F9-D8C302B5A09F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{AF9F0ADE-F207-48FB-B82C-1F2DBC866114}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{87237941-D198-446F-919C-467E4968E85F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{23FE24B3-CD9D-4576-A7C8-85D5B012F43D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{87237941-D198-446F-919C-467E4968E85F} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
+		{C121FE72-651D-4668-A2F9-D8C302B5A09F} = {87237941-D198-446F-919C-467E4968E85F}
+		{23FE24B3-CD9D-4576-A7C8-85D5B012F43D} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
+	EndGlobalSection
+EndGlobal

@@ -107,6 +107,13 @@ The frontend follows a Tailwind CSS-based design system with:
 
 This ensures documentation stays synchronized with actual implementation and architectural decisions.
 
+## Git Workflow Rules
+
+- **NO automatic commits** - Claude Code should never create git commits automatically
+- **Auto-accept file changes** - Claude Code can automatically stage and accept file modifications
+- **Manual commit control** - All commits are made manually by the developer
+- This ensures full control over commit timing, messages, and change grouping
+
 ## Important Notes
 
 - This is a **solo developer project** with AI-assisted PR reviews

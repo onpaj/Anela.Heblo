@@ -1,0 +1,6 @@
+@Anela.Heblo.API_HostAddress = http://localhost:44389
+
+GET {{Anela.Heblo.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
