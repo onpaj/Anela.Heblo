@@ -4,6 +4,7 @@ import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/pages/Dashboard';
+import AuthGuard from './components/auth/AuthGuard';
 import { msalConfig } from './auth/msalConfig';
 import './i18n';
 
@@ -15,9 +16,11 @@ function App() {
     <div className="App">
       <MsalProvider instance={msalInstance}>
         <Router>
-          <Layout>
-            <Dashboard />
-          </Layout>
+          <AuthGuard>
+            <Layout>
+              <Dashboard />
+            </Layout>
+          </AuthGuard>
         </Router>
       </MsalProvider>
     </div>

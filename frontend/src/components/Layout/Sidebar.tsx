@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { 
-  BarChart3,
-  Building2,
-  Folder,
-  Plus,
+  LayoutDashboard,
+  FileText,
+  DollarSign,
+  Truck,
+  Factory,
+  ShoppingCart,
+  Settings,
+  ChevronDown,
+  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
@@ -17,24 +22,87 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse }) => {
-  const [activeItem, setActiveItem] = useState('home');
+  const [activeItem, setActiveItem] = useState('dashboard');
+  const [expandedSections, setExpandedSections] = useState<string[]>(['logistika']);
 
-  // Navigation items matching the design template
-  const directoryItems = [
-    { id: 'journal', name: 'Journal', href: '/journal', icon: BarChart3 },
-    { id: 'local-business', name: 'Local Business', href: '/', icon: Building2, active: true },
+  // Navigation sections following design system
+  const navigationSections = [
+    {
+      id: 'dashboard',
+      name: 'Dashboard',
+      href: '/',
+      icon: LayoutDashboard,
+      type: 'single' as const
+    },
+    {
+      id: 'faktury',
+      name: 'Faktury',
+      icon: FileText,
+      type: 'section' as const,
+      items: [
+        { id: 'import-shoptet', name: 'Import Shoptet', href: '/faktury/import' }
+      ]
+    },
+    {
+      id: 'finance',
+      name: 'Finance',
+      icon: DollarSign,
+      type: 'section' as const,
+      items: [
+        { id: 'comgate', name: 'Comgate', href: '/finance/comgate' }
+      ]
+    },
+    {
+      id: 'logistika',
+      name: 'Logistika',
+      icon: Truck,
+      type: 'section' as const,
+      items: [
+        { id: 'zavozy', name: 'Závozy', href: '/logistika/zavozy' },
+        { id: 'prijem-boxu', name: 'Příjem boxů', href: '/logistika/prijem' },
+        { id: 'zasoby', name: 'Zásoby', href: '/logistika/zasoby' }
+      ]
+    },
+    {
+      id: 'vyroba',
+      name: 'Výroba',
+      icon: Factory,
+      type: 'section' as const,
+      items: [
+        { id: 'zasoby-vyrobku', name: 'Zásoby výrobků', href: '/vyroba/zasoby' },
+        { id: 'trojclenka', name: 'Trojčlenka', href: '/vyroba/trojclenka' },
+        { id: 'inventura', name: 'Inventura', href: '/vyroba/inventura' },
+        { id: 'planovani', name: 'Plánování', href: '/vyroba/planovani' }
+      ]
+    },
+    {
+      id: 'nakup',
+      name: 'Nákup',
+      icon: ShoppingCart,
+      type: 'section' as const,
+      items: [
+        { id: 'material-zbozi', name: 'Materiál a zboží', href: '/nakup/material' }
+      ]
+    },
+    {
+      id: 'automatizace',
+      name: 'Automatizace',
+      icon: Settings,
+      type: 'section' as const,
+      items: [
+        { id: 'joby', name: 'Joby', href: '/automatizace/joby' },
+        { id: 'hangfire', name: 'Hangfire', href: '/automatizace/hangfire' }
+      ]
+    }
   ];
 
-  const pageItems = [
-    { id: 'home', name: 'Home', href: '/' },
-    { id: 'about', name: 'About Us', href: '/about' },
-    { id: 'advertise', name: 'Advertise with Us', href: '/advertise' },
-    { id: 'faq', name: 'FAQ', href: '/faq' },
-    { id: 'privacy', name: 'Privacy', href: '/privacy' },
-    { id: 'terms', name: 'Terms of Use', href: '/terms' },
-    { id: 'contact', name: 'Contact', href: '/contact' },
-    { id: 'add-page', name: 'Add Page', href: '/add-page' },
-  ];
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => 
+      prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
 
   return (
     <>
@@ -59,117 +127,133 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
           <div className={`flex items-center h-16 border-b border-gray-200 ${isCollapsed ? 'px-3 justify-center' : 'px-6'}`}>
             <div className="flex items-center">
               <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
+                <span className="text-white font-bold text-sm">AH</span>
               </div>
               {!isCollapsed && (
-                <span className="ml-3 text-base font-medium text-gray-900">Site Manager</span>
+                <span className="ml-3 text-base font-medium text-gray-900">Anela Heblo</span>
               )}
             </div>
           </div>
 
           {/* Navigation */}
           <nav className={`flex-1 py-4 ${isCollapsed ? 'px-2' : 'px-3'}`}>
-            {/* Directories Section */}
-            {!isCollapsed && (
-              <div className="mb-8">
-                <div className="flex items-center px-3 mb-3">
-                  <Folder className="h-4 w-4 text-gray-400 mr-2" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Directories
-                  </h3>
-                </div>
-                <div className="space-y-1">
-                  {directoryItems.map((item) => {
-                    const IconComponent = item.icon;
-                    const isActive = item.active || activeItem === item.id;
-                    return (
-                      <a
-                        key={item.id}
-                        href={item.href}
-                        onClick={() => setActiveItem(item.id)}
+            <div className="space-y-1">
+              {navigationSections.map((section) => {
+                const IconComponent = section.icon;
+                const isExpanded = expandedSections.includes(section.id);
+                const isActive = activeItem === section.id;
+                
+                if (section.type === 'single') {
+                  // Single item (Dashboard)
+                  return (
+                    <div key={section.id}>
+                      {!isCollapsed ? (
+                        <a
+                          href={section.href}
+                          onClick={() => setActiveItem(section.id)}
+                          className={`
+                            flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
+                            ${isActive 
+                              ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700' 
+                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }
+                          `}
+                        >
+                          <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                          {section.name}
+                        </a>
+                      ) : (
+                        <a
+                          href={section.href}
+                          onClick={() => setActiveItem(section.id)}
+                          className={`
+                            flex items-center justify-center p-2 rounded-md transition-colors duration-300
+                            ${isActive 
+                              ? 'bg-indigo-50 text-indigo-700' 
+                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }
+                          `}
+                          title={section.name}
+                        >
+                          <IconComponent className={`h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                }
+                
+                // Collapsible section
+                return (
+                  <div key={section.id}>
+                    {!isCollapsed ? (
+                      <>
+                        {/* Section header */}
+                        <button
+                          onClick={() => toggleSection(section.id)}
+                          className={`
+                            w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
+                            ${isActive 
+                              ? 'bg-indigo-50 text-indigo-700' 
+                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center">
+                            <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                            {section.name}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                          )}
+                        </button>
+                        
+                        {/* Sub-items */}
+                        {isExpanded && section.items && (
+                          <div className="ml-8 mt-1 space-y-1">
+                            {section.items.map((subItem) => {
+                              const isSubActive = activeItem === subItem.id;
+                              return (
+                                <a
+                                  key={subItem.id}
+                                  href={subItem.href}
+                                  onClick={() => setActiveItem(subItem.id)}
+                                  className={`
+                                    block px-3 py-2 text-sm rounded-md transition-colors duration-300
+                                    ${isSubActive 
+                                      ? 'bg-gray-100 text-gray-900 font-medium' 
+                                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                    }
+                                  `}
+                                >
+                                  {subItem.name}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // Collapsed state - just the icon
+                      <button
+                        onClick={() => toggleSection(section.id)}
                         className={`
-                          flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200
+                          flex items-center justify-center p-2 rounded-md transition-colors duration-300
                           ${isActive 
-                            ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700' 
+                            ? 'bg-indigo-50 text-indigo-700' 
                             : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                           }
                         `}
+                        title={section.name}
                       >
-                        <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
-                        {item.name}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Collapsed Directory Icons */}
-            {isCollapsed && (
-              <div className="mb-8 space-y-2">
-                {directoryItems.map((item) => {
-                  const IconComponent = item.icon;
-                  const isActive = item.active || activeItem === item.id;
-                  return (
-                    <a
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => setActiveItem(item.id)}
-                      className={`
-                        flex items-center justify-center p-2 rounded-md transition-colors duration-200 group relative
-                        ${isActive 
-                          ? 'bg-indigo-50 text-indigo-700' 
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }
-                      `}
-                      title={item.name}
-                    >
-                      <IconComponent className={`h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
-                    </a>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Pages Section */}
-            {!isCollapsed && (
-              <div>
-                <div className="flex items-center px-3 mb-3">
-                  <Folder className="h-4 w-4 text-gray-400 mr-2" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Pages
-                  </h3>
-                </div>
-                <div className="space-y-1">
-                  {pageItems.map((item) => {
-                    const isActive = activeItem === item.id;
-                    return (
-                      <a
-                        key={item.id}
-                        href={item.href}
-                        onClick={() => setActiveItem(item.id)}
-                        className={`
-                          flex items-center px-3 py-2 text-sm rounded-md transition-colors duration-200
-                          ${isActive 
-                            ? 'bg-gray-100 text-gray-900' 
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }
-                        `}
-                      >
-                        <div className="w-8 h-5 flex items-center">
-                          {item.id === 'add-page' ? (
-                            <Plus className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                          )}
-                        </div>
-                        {item.name}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                        <IconComponent className={`h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </nav>
 
           {/* User Profile */}

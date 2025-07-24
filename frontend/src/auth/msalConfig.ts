@@ -5,8 +5,8 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: process.env.REACT_APP_AZURE_CLIENT_ID!,
     authority: process.env.REACT_APP_AZURE_AUTHORITY!,
-    redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
-    postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
+    redirectUri: window.location.origin,
+    postLogoutRedirectUri: window.location.origin,
     clientCapabilities: ['CP1'] // This lets the resource owner know that this client is capable of handling claims challenges.
   },
   cache: {

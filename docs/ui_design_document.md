@@ -40,14 +40,18 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
   - **Rozbalený stav**: Tlačítko vpravo od avatara (`PanelLeftClose`)
   - **Složený stav**: Tlačítko uprostřed pod avatarem (`PanelLeftOpen`)
   - Plynulé animace pomocí `transition-all duration-300`
-  - Ve složeném stavu: pouze ikony, tooltip na hover
+  - Ve složeném stavu: pouze ikony, tooltip na hover (`title` atribut)
   - V rozbaleném stavu: ikony + text
 - **Navigační prvky:**
   - **Ikony**: Lucide React ikony (velikost `h-5 w-5`) + název sekce
-  - Aktivní položka: `bg-indigo-50`, `text-indigo-700`, `border-r-2 border-indigo-700`
-  - Hover efekt: `bg-gray-50`
-  - **Rozbalený:** Standardní layout s kategoriemi "Directories" a "Pages"
-  - **Složený:** Pouze ikony v centrované pozici s tooltips (`title` atribut)
+  - **Hierarchická struktura**: Podporuje kategorie/sekce s možností collapsible funkcionalitě
+  - **Aktivní položka**: `bg-indigo-50`, `text-indigo-700`, `border-r-2 border-indigo-700`
+  - **Hover efekt**: `bg-gray-50`
+  - **Accordion styl**: Více sekcí může být otevřeno současně (multi-expand)
+  - **Collapsible sekce**: Podpora pro rozbalování/skládání sekcí s sub-položkami
+  - **Indikátor rozbalení**: Šipka vpravo (dolů/vpravo) pro collapsible sekce
+  - **Sub-položky**: Zarovnané pod hlavní sekcí, bez ikon, pouze text
+  - **Komponenty**: Vhodné použití `Accordion`, `Disclosure` nebo `HeadlessUI` komponent
 - **Responsivita:**
   - Zobrazit jako `hidden` pod `md:` breakpointem
   - Na mobilech: přepínatelné přes hamburger menu jako `overlay`
@@ -86,6 +90,14 @@ Barevná paleta je inspirovaná TailwindUI business dashboardem a využívá jem
 | `cta`        | `bg-rose-400`      | Hlavní akční tlačítko               |
 | `hover`      | `bg-gray-100`      | Hover efekty, aktivní řádky         |
 | `icon-muted` | `text-gray-400`    | Sekundární ikony                    |
+
+### 4.1 Accent Colors
+
+Aplikace podporuje flexibilní accent barvy pro různé sekce:
+- **Růžová (Rose)**: Hlavní CTA a důležité akce
+- **Indigo**: Sekundární akce a odkazy
+- **Emerald**: Pozitivní stavy a úspěchy
+- **Orange/Amber**: Varování a upozornění
 
 Barvy jsou vybírány ze standardní Tailwind CSS palety (v4) a zajišťují dostatečný kontrast a čitelnost. Jsou připravené pro případné rozšíření o `dark mode` varianty.
 
@@ -177,25 +189,98 @@ Tabulky jsou určeny pro přehledné zobrazení řádkových dat. Inspirací je 
 
 ## 10. Ikony a ilustrace
 
-- Ikony používáme z knihovny [**Heroicons**](https://heroicons.com/) nebo [**Lucide**](https://lucide.dev/) (outline styl)
-- Ikony mají výchozí velikost `w-5 h-5`, barevnost `text-gray-400`
-- Ikony uvnitř tlačítek: zarovnat pomocí `-ml-1 mr-2` nebo `ml-2 -mr-1`
+### 10.1 Standardy ikon
+
+- **Primární knihovna**: [**Lucide React**](https://lucide.dev/) pro moderní, konzistentní ikony
+- **Fallback**: [**Heroicons**](https://heroicons.com/) (outline styl) jako alternativa
+- **Výchozí velikosti**: `h-4 w-4` (malé), `h-5 w-5` (střední), `h-6 w-6` (velké)
+- **Barevnost**: `text-gray-400` (muted), `text-gray-600` (active)
+
+### 10.2 Ikony v navigaci
+
+- **Velikost v sidebaru**: `h-5 w-5` pro všechny navigační ikony
+- **Sémantické ikony**: Ikony musí odpovídat významu sekce/funkce
+- **Tooltips**: Ve složené navigaci vždy použít `title` atribut pro popis
+- **Zarovnání**: Ikony uvnitř tlačítek zarovnat pomocí `-ml-1 mr-2` nebo `ml-2 -mr-1`
+
+### 10.3 Indikátory a ovládací prvky
+
+- **Collapse/Expand**: `PanelLeftClose` / `PanelLeftOpen`
+- **Dropdown**: `ChevronDown` / `ChevronUp` s `transition-transform` animací
+- **Loading states**: Kombinace s `animate-spin` nebo `animate-pulse`
+- **User actions**: `LogIn`, `LogOut`, `User` pro autentizaci
+
+### 10.4 Illustrations
+
 - Ilustrace nejsou zatím používány (volitelné)
+- Preferovat funkční ikony před dekorativními prvky
 
 ---
 
 ## 11. Animace a přechody
 
-- Přechody se používají na:
-  - tlačítka: `transition-colors duration-150`
-  - tabulky (hover): `transition-background`
-  - menu, dropdown: `transition ease-out duration-100`
-- Animace jsou vždy funkční, ne dekorativní
-- Základní efekt: plynulá změna barvy, pozadí nebo opacity
+### 11.1 Základní přechody
+
+- **Tlačítka**: `transition-colors duration-150` nebo `transition-colors duration-200`
+- **Tabulky (hover)**: `transition-background`
+- **Menu, dropdown**: `transition ease-out duration-100`
+
+### 11.2 Specifické animace
+
+- **Sidebar collapse/expand**: `transition-all duration-300 ease-in-out`
+- **Loading states**: `animate-spin` pro spinnery, `animate-pulse` pro placeholder stavy
+- **Dropdown šipky**: `transition-transform` s `rotate-180` pro otočení
+- **User menu**: Kombinace `bottom-full` pozice s `mb-2` pro vyskakovací menu
+
+### 11.3 Zásady animací
+
+- **Funkční účel**: Animace vždy slouží k lepšímu pochopení změn stavu
+- **Konzistentní timing**: Používat standardní duration hodnoty (100ms, 150ms, 200ms, 300ms)
+- **Plynulost**: Základní efekt je plynulá změna barvy, pozadí, pozice nebo opacity
+- **Performance**: Preferovat `transform` a `opacity` před animacemi layout vlastností
+
+### 11.4 Loading stavy
+
+- **Autentizace**: Spinner s českou lokalizací ("Přihlašování...", "Kontrola přihlášení...")
+- **User avatar**: `animate-pulse` na placeholder během načítání
+- **Konsistentní indikátory**: Jednotný vzhled loading stavů napříč aplikací
 
 ---
 
-## 12. Appendix – referenční odkazy
+## 12. Autentizace a uživatelské rozhraní
+
+### 12.1 AuthGuard pattern
+
+- **Ochrana aplikace**: Celá aplikace je chráněná authentizačním guardem
+- **Automatické přesměrování**: Nepřihlášení uživatelé jsou automaticky přesměrováni na Microsoft login
+- **Loading stavy**: Zobrazení loading indikátorů během ověřování s českými texty
+- **Centralizované**: Jeden vstupní bod pro kontrolu autentizace
+
+### 12.2 User Profile komponenta
+
+- **Dual mode**: Podporuje compact (složený sidebar) a expanded (rozbalený sidebar) režim  
+- **Avatar**: Circular avatar s iniciálami uživatele, `bg-indigo-600` pozadí
+- **Role badges**: Zobrazení uživatelských rolí jako `bg-indigo-100 text-indigo-800` značky
+- **Dropdown menu**: Vyskakovací menu s uživatelskými údaji a logout funkcí
+- **Responsive**: Přizpůsobuje se kontextu (sidebar collapsed/expanded)
+
+### 12.3 Lokalizace
+
+- **Čeština jako primární**: Všechny UI texty v českém jazyce
+- **Loading stavy**: "Přihlašování...", "Kontrola přihlášení..."
+- **i18next framework**: Připraveno pro rozšíření o další jazyky
+- **Konzistentní terminologie**: Jednotná terminologie napříč aplikací
+
+### 12.4 Accessibility patterns
+
+- **Focus states**: Všechny interaktivní prvky mají viditelný `:focus` styl
+- **Keyboard navigation**: Support pro ovládání klávesnicí
+- **Screen reader support**: Správné ARIA labely a strukturování
+- **Tooltips**: Informativní tooltips pro collapsed stavy
+
+---
+
+## 13. Appendix – referenční odkazy
 
 - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
 - Heroicons: [https://heroicons.com](https://heroicons.com)
