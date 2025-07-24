@@ -9,7 +9,7 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 ## Architecture Summary
 
 **Stack**: Monorepo (.NET 8 + React), Docker-based deployment
-- **Frontend**: React PWA with i18next localization, MSAL (MS Entra ID) authentication
+- **Frontend**: Standalone React PWA with i18next localization, MSAL (MS Entra ID) authentication, hot reload support
 - **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (OIDC) with claims-based roles
@@ -26,12 +26,14 @@ Based on the infrastructure document, the intended structure will be:
 │   ├── test/        # Unit/integration tests
 │   ├── migrations/  # EF Core database migrations
 │   └── scripts/     # Utility scripts
-├── frontend/        # React PWA
+├── frontend/        # Standalone React PWA
+│   ├── public/      # Static assets
 │   ├── src/
 │   │   ├── components/
 │   │   ├── pages/
 │   │   └── services/    # OpenAPI client (generated)
-│   └── test/        # Frontend tests
+│   ├── test/        # Frontend tests
+│   └── package.json # Node.js dependencies
 ├── .github/         # GitHub Actions workflows
 └── docker-compose.yml
 ```
@@ -55,11 +57,11 @@ Since this is currently documentation-only, these are the expected commands base
 - `dotnet ef database update` - Apply migrations
 - `dotnet run` - Start development server
 
-**Frontend (React)**:
+**Frontend (Standalone React)**:
 - `npm install` - Install dependencies
-- `npm start` - Start development server (self-hosted with hot reload)
+- `npm start` - Start development server with hot reload (typically localhost:3000)
 - `npm test` - Run tests with Jest/React Testing Library
-- `npm run build` - Build static files for production (embedded in backend Docker image)
+- `npm run build` - Build static files for production deployment
 - `npm run lint` - Run linter
 
 **Docker**:
@@ -92,14 +94,42 @@ The frontend follows a Tailwind CSS-based design system with:
 
 ## Deployment Strategy
 
-- **Development**: Frontend self-hosted (`npm start`) for hot reload, backend via `dotnet run`
-- **Production**: Single Docker image with backend serving frontend static files
+- **Development**: 
+  - Frontend: Standalone React dev server (`npm start`) with hot reload (localhost:3000)
+  - Backend: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
+  - CORS configured to allow frontend-backend communication
+- **Production**: Static files served by web server (Nginx/Apache) or CDN, backend as separate service
 - **Current**: Docker on-premises (Synology NAS)
 - **Future**: Azure App Service / Container Apps
 - **Versioning**: Semantic versioning with conventional commits
 - **CI/CD**: GitHub Actions with feature branch testing, main branch auto-deploy
 
-## Documentation Requirements
+## Design Document Alignment Rules
+
+**MANDATORY**: All implementation work MUST align with the application design documents in `/docs`. Before making ANY changes to code, architecture, or design, Claude Code MUST:
+
+### 1. Consultation Requirements
+
+**Before ANY implementation work:**
+- Read and understand relevant design documents from `/docs`
+- Verify proposed changes align with documented architecture
+- If conflicts arise, ask for clarification rather than making assumptions
+
+**Required documents for different change types:**
+
+- **Backend/API changes**: Consult `docs/📘 Architecture Documentation – MVP Work.md` for module definitions and data flow
+- **Infrastructure/deployment changes**: Consult `docs/application_infrastructure.md` for deployment strategy and CI/CD rules  
+- **Frontend/UI changes**: Consult `docs/ui_design_document.md` for design system, colors, typography, and component specifications
+- **Any architectural decisions**: Consult ALL documents to ensure consistency
+
+### 2. Alignment Verification
+
+Before implementing, Claude Code MUST:
+- Explicitly state which design document(s) were consulted
+- Confirm the implementation follows documented patterns
+- Identify any deviations and justify them or seek approval
+
+### 3. Documentation Updates
 
 **CRITICAL**: Whenever architectural changes are agreed upon, the following documentation must be updated immediately:
 - `docs/📘 Architecture Documentation – MVP Work.md` - Core architecture and module definitions
@@ -108,6 +138,12 @@ The frontend follows a Tailwind CSS-based design system with:
 - `CLAUDE.md` - This file for future Claude Code instances
 
 This ensures documentation stays synchronized with actual implementation and architectural decisions.
+
+### 4. Enforcement
+
+- **NO implementation without consultation** - All code changes must reference appropriate design documents
+- **NO architectural deviations without approval** - Stay within documented patterns unless explicitly asked to change them
+- **Documentation-first approach** - When in doubt, follow the documentation; ask for updates if needed
 
 ## Git Workflow Rules
 

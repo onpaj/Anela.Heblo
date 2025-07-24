@@ -15,14 +15,15 @@
 │   ├── scripts/   # Utility scripts (e.g. DB tools, backups)
 │   └── Dockerfile
 │
-├── frontend/      # Frontend – React app
-│   ├── public/
+├── frontend/      # Standalone React PWA
+│   ├── public/     # Static assets (index.html, favicon, etc.)
 │   ├── src/
 │   │   ├── components/
 │   │   ├── pages/
 │   │   ├── services/    # OpenAPI client (generated)
 │   │   └── ...
-│   └── test/       # Frontend tests (Jest, React Testing Library)
+│   ├── test/       # Frontend tests (Jest, React Testing Library)
+│   └── package.json # Node.js dependencies and scripts
 │
 ├── .github/        # GitHub Actions workflows
 ├── .env            # Dev environment variables
@@ -56,12 +57,16 @@ API_BASE_URL=http://localhost:5000
   - Merge allowed only if CI succeeds.
   - Automatic deployment to production environment (NAS, future Azure).
 
-### Docker Image Strategy:
+### Deployment Architecture:
 
-- **Development**: Frontend runs via `npm start` (self-hosted with hot reload), backend via `dotnet run`
-- **Production**: Single Docker image containing:
-  - ASP.NET Core backend
-  - React frontend built as static files served by backend
+- **Development**: 
+  - Frontend: Standalone React dev server (`npm start`) with hot reload on localhost:3000
+  - Backend: ASP.NET Core dev server (`dotnet run`) on localhost:5000
+  - CORS configured for cross-origin requests between frontend and backend
+- **Production**: 
+  - Frontend: Static files built via `npm run build`, served by web server or CDN
+  - Backend: Separate Docker container with ASP.NET Core API
+  - Two separate deployments but coordinated via CI/CD
 - All Docker images are pushed to **Docker Hub**.
 - Deployment is implemented via GitHub Actions (defined later).
 - `.env`-based secrets are used for now.
