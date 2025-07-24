@@ -7,6 +7,23 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{87237941-D198-446F-919C-467E4968E85F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{23FE24B3-CD9D-4576-A7C8-85D5B012F43D}"
+	ProjectSection(SolutionItems) = preProject
+		backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.dgspec.json = backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.dgspec.json
+		backend\test\Anela.Heblo.Tests\obj\project.nuget.cache = backend\test\Anela.Heblo.Tests\obj\project.nuget.cache
+		backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.g.props = backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.g.props
+		backend\test\Anela.Heblo.Tests\obj\project.assets.json = backend\test\Anela.Heblo.Tests\obj\project.assets.json
+		backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.g.targets = backend\test\Anela.Heblo.Tests\obj\Anela.Heblo.Tests.csproj.nuget.g.targets
+		backend\test\Anela.Heblo.Tests\UnitTest1.cs = backend\test\Anela.Heblo.Tests\UnitTest1.cs
+		backend\test\Anela.Heblo.Tests\Anela.Heblo.Tests.csproj = backend\test\Anela.Heblo.Tests\Anela.Heblo.Tests.csproj
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Tests", "backend\test\Anela.Heblo.Tests\Anela.Heblo.Tests.csproj", "{ED08A4A5-077F-41CC-AEDE-5099FB71A248}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Domain", "backend\src\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj", "{13DB929A-2204-43EA-A6FA-A43234A79111}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Infrastructure", "backend\src\Anela.Heblo.Infrastructure\Anela.Heblo.Infrastructure.csproj", "{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Application", "backend\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj", "{1770C46A-5193-4A98-BC9C-9D5244AA32F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,10 +35,30 @@ Global
 		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C121FE72-651D-4668-A2F9-D8C302B5A09F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED08A4A5-077F-41CC-AEDE-5099FB71A248}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED08A4A5-077F-41CC-AEDE-5099FB71A248}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED08A4A5-077F-41CC-AEDE-5099FB71A248}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED08A4A5-077F-41CC-AEDE-5099FB71A248}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13DB929A-2204-43EA-A6FA-A43234A79111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13DB929A-2204-43EA-A6FA-A43234A79111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13DB929A-2204-43EA-A6FA-A43234A79111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13DB929A-2204-43EA-A6FA-A43234A79111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1770C46A-5193-4A98-BC9C-9D5244AA32F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1770C46A-5193-4A98-BC9C-9D5244AA32F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1770C46A-5193-4A98-BC9C-9D5244AA32F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1770C46A-5193-4A98-BC9C-9D5244AA32F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{87237941-D198-446F-919C-467E4968E85F} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
 		{C121FE72-651D-4668-A2F9-D8C302B5A09F} = {87237941-D198-446F-919C-467E4968E85F}
 		{23FE24B3-CD9D-4576-A7C8-85D5B012F43D} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
+		{ED08A4A5-077F-41CC-AEDE-5099FB71A248} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
+		{13DB929A-2204-43EA-A6FA-A43234A79111} = {87237941-D198-446F-919C-467E4968E85F}
+		{A6FC4804-EC3A-4EA9-8BE0-DCB594A67F6B} = {87237941-D198-446F-919C-467E4968E85F}
+		{1770C46A-5193-4A98-BC9C-9D5244AA32F0} = {87237941-D198-446F-919C-467E4968E85F}
 	EndGlobalSection
 EndGlobal

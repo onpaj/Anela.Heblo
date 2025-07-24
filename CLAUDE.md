@@ -57,14 +57,14 @@ Since this is currently documentation-only, these are the expected commands base
 
 **Frontend (React)**:
 - `npm install` - Install dependencies
-- `npm start` - Start development server
+- `npm start` - Start development server (self-hosted with hot reload)
 - `npm test` - Run tests with Jest/React Testing Library
-- `npm run build` - Build for production
+- `npm run build` - Build static files for production (embedded in backend Docker image)
 - `npm run lint` - Run linter
 
 **Docker**:
 - `docker-compose up` - Start local development environment
-- `docker build -t anela-heblo .` - Build production image
+- `docker build -t anela-heblo .` - Build production image (includes frontend static files)
 
 ## UI Design System
 
@@ -92,6 +92,8 @@ The frontend follows a Tailwind CSS-based design system with:
 
 ## Deployment Strategy
 
+- **Development**: Frontend self-hosted (`npm start`) for hot reload, backend via `dotnet run`
+- **Production**: Single Docker image with backend serving frontend static files
 - **Current**: Docker on-premises (Synology NAS)
 - **Future**: Azure App Service / Container Apps
 - **Versioning**: Semantic versioning with conventional commits

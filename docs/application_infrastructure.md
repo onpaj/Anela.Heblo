@@ -22,8 +22,7 @@
 │   │   ├── pages/
 │   │   ├── services/    # OpenAPI client (generated)
 │   │   └── ...
-│   ├── test/       # Frontend tests (Jest, React Testing Library)
-│   └── Dockerfile
+│   └── test/       # Frontend tests (Jest, React Testing Library)
 │
 ├── .github/        # GitHub Actions workflows
 ├── .env            # Dev environment variables
@@ -57,8 +56,12 @@ API_BASE_URL=http://localhost:5000
   - Merge allowed only if CI succeeds.
   - Automatic deployment to production environment (NAS, future Azure).
 
-### Notes:
+### Docker Image Strategy:
 
+- **Development**: Frontend runs via `npm start` (self-hosted with hot reload), backend via `dotnet run`
+- **Production**: Single Docker image containing:
+  - ASP.NET Core backend
+  - React frontend built as static files served by backend
 - All Docker images are pushed to **Docker Hub**.
 - Deployment is implemented via GitHub Actions (defined later).
 - `.env`-based secrets are used for now.
