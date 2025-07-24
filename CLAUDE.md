@@ -1,0 +1,117 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a documentation repository for "Anela Heblo" - a cosmetics company workspace application. The repository contains comprehensive architecture documentation and design specifications for a full-stack web application that will be built later.
+
+## Architecture Summary
+
+**Stack**: Monorepo (.NET 8 + React), Docker-based deployment
+- **Frontend**: React PWA with i18next localization, MSAL (MS Entra ID) authentication
+- **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs
+- **Database**: PostgreSQL with EF Core migrations
+- **Authentication**: MS Entra ID (OIDC) with claims-based roles
+- **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
+- **Deployment**: Docker containers, GitHub Actions CI/CD
+
+## Repository Structure (Planned)
+
+Based on the infrastructure document, the intended structure will be:
+```
+/                    # Monorepo root
+├── backend/         # ASP.NET Core application
+│   ├── src/         # Application code (Api, Domain, Infrastructure)
+│   ├── test/        # Unit/integration tests
+│   ├── migrations/  # EF Core database migrations
+│   └── scripts/     # Utility scripts
+├── frontend/        # React PWA
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── services/    # OpenAPI client (generated)
+│   └── test/        # Frontend tests
+├── .github/         # GitHub Actions workflows
+└── docker-compose.yml
+```
+
+## Core Modules
+
+1. **Catalog Module**: Unifies product/material data from Shoptet (products) and ABRA (materials)
+2. **Manufacture Module**: 2-step production workflow (Materials → Semi-products → Products)  
+3. **Purchase Module**: Material shortage detection with supplier/pricing history
+4. **Transport Module**: Box-level packaging tracking with EAN codes
+5. **Invoice Automation**: Automated Shoptet invoice scraping → ABRA Flexi integration
+
+## Development Commands (When Implemented)
+
+Since this is currently documentation-only, these are the expected commands based on the architecture:
+
+**Backend (.NET 8)**:
+- `dotnet build` - Build the solution
+- `dotnet test` - Run unit tests
+- `dotnet ef migrations add <name>` - Create new migration
+- `dotnet ef database update` - Apply migrations
+- `dotnet run` - Start development server
+
+**Frontend (React)**:
+- `npm install` - Install dependencies
+- `npm start` - Start development server
+- `npm test` - Run tests with Jest/React Testing Library
+- `npm run build` - Build for production
+- `npm run lint` - Run linter
+
+**Docker**:
+- `docker-compose up` - Start local development environment
+- `docker build -t anela-heblo .` - Build production image
+
+## UI Design System
+
+The frontend follows a Tailwind CSS-based design system with:
+- **Layout**: Sidebar navigation (`w-64`) + main content area
+- **Colors**: Gray-based palette with indigo accents, emerald success states
+- **Typography**: System fonts with defined hierarchy (XL headings to XS captions)
+- **Components**: Consistent buttons, forms, tables with hover states
+- **Responsiveness**: Mobile-first approach with sidebar collapsing on `md:` breakpoint
+- **Localization**: Czech language primary, i18next framework
+
+## Background Jobs (Hangfire)
+
+- **Stock Sync**: Refresh catalog every 10 minutes
+- **Invoice Sync**: Pull Shoptet invoices → push to ABRA
+- **Transport Sync**: Confirm EANs and update Shoptet stock
+- **Batch Planning**: Periodic manufacturing evaluation
+
+## Environment Configuration
+
+- Uses `.env` files for shared configuration
+- Frontend variables prefixed with `REACT_APP_`
+- Backend uses `appsettings.{Environment}.json` + environment variables
+- Database migrations applied manually (not automated in CI/CD)
+
+## Deployment Strategy
+
+- **Current**: Docker on-premises (Synology NAS)
+- **Future**: Azure App Service / Container Apps
+- **Versioning**: Semantic versioning with conventional commits
+- **CI/CD**: GitHub Actions with feature branch testing, main branch auto-deploy
+
+## Documentation Requirements
+
+**CRITICAL**: Whenever architectural changes are agreed upon, the following documentation must be updated immediately:
+- `docs/📘 Architecture Documentation – MVP Work.md` - Core architecture and module definitions
+- `docs/application_infrastructure.md` - Infrastructure, deployment, and CI/CD details  
+- `docs/ui_design_document.md` - UI/UX specifications and design system
+- `CLAUDE.md` - This file for future Claude Code instances
+
+This ensures documentation stays synchronized with actual implementation and architectural decisions.
+
+## Important Notes
+
+- This is a **solo developer project** with AI-assisted PR reviews
+- Database migrations are **manual** - not part of automated deployment  
+- EF Core is used for database access and migrations
+- OpenAPI client generation for frontend (post-build step)
+- All Docker images pushed to Docker Hub
+- Observability via Application Insights
