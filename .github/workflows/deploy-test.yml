@@ -50,7 +50,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch,suffix=-test
-            type=sha,prefix=test-{{branch}}-
+            type=sha,prefix=test-sha-
             type=raw,value=test-latest
 
       - name: 🏗️ Build and push Docker image
