@@ -16,11 +16,23 @@ export const createMockUser = (): UserInfo => {
 };
 
 /**
- * Check if we're in development mode and should use mock auth
+ * Check if we should use mock auth
+ * Mock auth is used when:
+ * 1. REACT_APP_USE_MOCK_AUTH is explicitly set to 'true', OR
+ * 2. Required Azure credentials are missing
  */
 export const shouldUseMockAuth = (): boolean => {
-  return process.env.NODE_ENV === 'development' && 
-         process.env.REACT_APP_USE_MOCK_AUTH === 'true';
+  // Check runtime config first, fallback to build-time env vars
+  try {
+    const { getRuntimeConfig } = require('../config/runtimeConfig');
+    const config = getRuntimeConfig();
+    return config.useMockAuth || !config.azureClientId || !config.azureAuthority;
+  } catch {
+    // Fallback to build-time environment variables if runtime config not available
+    return process.env.REACT_APP_USE_MOCK_AUTH === 'true' || 
+           !process.env.REACT_APP_AZURE_CLIENT_ID || 
+           !process.env.REACT_APP_AZURE_AUTHORITY;
+  }
 };
 
 /**

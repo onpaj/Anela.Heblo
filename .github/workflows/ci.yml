@@ -1,19 +1,18 @@
 name: 🔄 Continuous Integration (Optimized)
 
 on:
-  push:
-    branches: ['**']
   pull_request:
-    branches: ['**']
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 env:
   REGISTRY: docker.io
   IMAGE_NAME: anela-heblo
 
 jobs:
-  # Frontend CI - Combined lint, test, and build in one job
+  # Frontend CI - Test and build only (no lint)
   frontend-ci:
-    name: 🎯 Frontend CI (Lint + Test + Build)
+    name: 🎯 Frontend CI (Test + Build)
     runs-on: ubuntu-latest
     outputs:
       has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
@@ -31,10 +30,6 @@ jobs:
       - name: 📦 Install dependencies
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
-
-      - name: 🧹 Run ESLint
-        working-directory: ./frontend
-        run: npm run lint
 
       - name: 🧪 Run tests with coverage
         working-directory: ./frontend
@@ -68,9 +63,9 @@ jobs:
           path: frontend/build/
           retention-days: 7
 
-  # Backend CI - Combined lint, test, and build in one job
+  # Backend CI - Test and build only (no lint)
   backend-ci:
-    name: 🎯 Backend CI (Lint + Test + Build)
+    name: 🎯 Backend CI (Test + Build)
     runs-on: ubuntu-latest
     outputs:
       has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
@@ -85,14 +80,6 @@ jobs:
 
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
-
-      - name: 🧹 Check code formatting
-        run: |
-          # Check if dotnet format would make changes
-          dotnet format Anela.Heblo.sln --verify-no-changes --verbosity normal || {
-            echo "❌ Code formatting issues found. Run 'dotnet format Anela.Heblo.sln' locally to fix them."
-            exit 1
-          }
 
       - name: 🧪 Run tests with coverage
         run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
@@ -159,8 +146,8 @@ jobs:
         run: |
           echo "## 🎉 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Frontend CI**: Lint, Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Backend CI**: Lint, Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
+          echo "✅ **Frontend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Backend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
           echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

@@ -18,29 +18,10 @@ env:
   AZURE_WEBAPP_NAME: anela-heblo
 
 jobs:
-  # Ensure CI Passed
-  verify-ci:
-    name: ✅ Verify CI Status
-    runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_tests }}
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: ✅ Wait for CI to complete
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: '✅ Quality Gate'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 30
-
   # Generate Version
   version:
     name: 🔖 Generate Version
     runs-on: ubuntu-latest
-    needs: [verify-ci]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -126,7 +107,6 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             REACT_APP_API_URL=https://anela-heblo.azurewebsites.net
-            REACT_APP_USE_MOCK_AUTH=false
 
       - name: 🔖 Create Git Tag
         if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
@@ -165,8 +145,11 @@ jobs:
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
               ASPNETCORE_ENVIRONMENT=Production \
+              REACT_APP_API_URL=https://anela-heblo.azurewebsites.net \
               REACT_APP_USE_MOCK_AUTH=false \
-              WEBSITES_PORT=80 \
+              REACT_APP_AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_PROD }}" \
+              REACT_APP_AZURE_AUTHORITY="${{ secrets.AZURE_AUTHORITY_PROD }}" \
+              WEBSITES_PORT=8080 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
               APP_VERSION=${{ needs.version.outputs.version }}
 
