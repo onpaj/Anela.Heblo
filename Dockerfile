@@ -5,11 +5,9 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
-# Accept build arguments for React environment variables
+# Accept build arguments for React environment variables (non-secret only)
 ARG REACT_APP_API_URL=http://localhost:5000
-ARG REACT_APP_USE_MOCK_AUTH=true
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_USE_MOCK_AUTH=$REACT_APP_USE_MOCK_AUTH
 
 # Copy package files and install all dependencies (needed for build)
 COPY frontend/package*.json ./
@@ -51,7 +49,7 @@ COPY --from=backend-build /app/publish ./
 COPY --from=frontend-build /app/frontend/build ./wwwroot
 
 # Configure ASP.NET Core
-ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Create non-root user for security
@@ -61,10 +59,10 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Start the application
 ENTRYPOINT ["dotnet", "Anela.Heblo.API.dll"]
