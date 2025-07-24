@@ -14,6 +14,7 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (OIDC) with claims-based roles
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
+- **Testing**: Playwright for both E2E testing and Shoptet integration automation
 - **Deployment**: Docker containers, GitHub Actions CI/CD
 
 ## Repository Structure (Planned)
@@ -63,6 +64,8 @@ Since this is currently documentation-only, these are the expected commands base
 - `npm test` - Run tests with Jest/React Testing Library
 - `npm run build` - Build static files for production deployment
 - `npm run lint` - Run linter
+- `npx playwright test` - Run end-to-end tests (when configured)
+- `npx playwright codegen` - Generate test code by recording interactions
 
 **Docker**:
 - `docker-compose up` - Start local development environment
@@ -71,7 +74,13 @@ Since this is currently documentation-only, these are the expected commands base
 ## UI Design System
 
 The frontend follows a Tailwind CSS-based design system with:
-- **Layout**: Sidebar navigation (`w-64`) + main content area
+- **Layout**: Foldable sidebar navigation + main content area
+- **Sidebar**: 
+  - **Expanded**: `w-64` (256px) with full navigation and text labels
+  - **Collapsed**: `w-16` (64px) with icons only and tooltips
+  - **Toggle**: Via button in TopBar using `PanelLeftClose`/`PanelLeftOpen` icons
+  - **Animation**: Smooth `transition-all duration-300` for width changes
+  - **Content adaptation**: Main content adapts with `md:pl-64` or `md:pl-16`
 - **Colors**: Gray-based palette with indigo accents, emerald success states
 - **Icons**: Lucide React for consistent, modern iconography
 - **Typography**: System fonts with defined hierarchy (XL headings to XS captions)
@@ -158,6 +167,50 @@ This ensures documentation stays synchronized with actual implementation and arc
 - **NO implementation without consultation** - All code changes must reference appropriate design documents
 - **NO architectural deviations without approval** - Stay within documented patterns unless explicitly asked to change them
 - **Documentation-first approach** - When in doubt, follow the documentation; ask for updates if needed
+
+## Frontend Development & Testing Rules
+
+### Playwright Integration
+
+**MANDATORY**: When developing, testing, or iterating on frontend components, Claude Code MUST use Playwright for:
+
+1. **Visual Testing & Validation**:
+   - Use `npx playwright codegen localhost:3000` to record user interactions
+   - Verify UI changes work correctly across different screen sizes
+   - Test responsive behavior (mobile, tablet, desktop breakpoints)
+   - Validate component states (hover, active, disabled, etc.)
+
+2. **Interactive Development**:
+   - Test complex user flows (sidebar collapse/expand, form submissions, navigation)
+   - Verify accessibility features (keyboard navigation, screen reader compatibility)
+   - Validate cross-browser compatibility when needed
+
+3. **Regression Testing**:
+   - After significant UI changes, run tests to ensure existing functionality still works
+   - Test component interactions and state management
+   - Verify responsive design adaptations
+
+4. **When to Use Playwright**:
+   - **Required**: Major layout changes, new component implementations
+   - **Required**: Responsive design updates or sidebar behavior changes  
+   - **Required**: Form interactions, navigation flows, or state-dependent UI
+   - **Optional**: Minor styling tweaks or text changes
+
+5. **Playwright Commands**:
+   - `npx playwright install` - Install browsers (run once)
+   - `npx playwright codegen localhost:3000` - Record interactions for testing
+   - `npx playwright test` - Run existing test suite
+   - `npx playwright test --headed` - Run tests with visible browser
+   - `npx playwright show-report` - View test results
+
+### Development Workflow
+
+1. **Make UI changes** to React components
+2. **Start dev server** with `npm start`
+3. **Use Playwright** to record and validate interactions
+4. **Test responsive behavior** across breakpoints
+5. **Verify accessibility** and keyboard navigation
+6. **Run build** to ensure no compilation errors
 
 ## Git Workflow Rules
 

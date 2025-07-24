@@ -31,22 +31,39 @@ Cílem je sjednotit vzhled a chování všech komponent a zajistit konzistenci v
 
 ### 3.2 Sidebar
 
-- **Pozice:** vlevo, `fixed`, výška `100vh`, šířka `w-64`
-- **Pozadí:** `bg-white`, `border-r border-gray-200`
+- **Pozice:** vlevo, `fixed`, výška `100vh`
+- **Šířka:** `w-64` (rozbalený), `w-16` (složený)
+- **Pozadí:** `bg-white`, `border-r border-gray-200`, `shadow-sm`
+- **Skládání/rozbalování:**
+  - Ovládá se pomocí toggle tlačítka v TopBar (ikony `PanelLeftClose`/`PanelLeftOpen`)
+  - Plynulé animace pomocí `transition-all duration-300`
+  - Ve složeném stavu: pouze ikony, tooltip na hover
+  - V rozbaleném stavu: ikony + text
 - **Navigační prvky:**
   - **Ikony**: Lucide React ikony (velikost `h-5 w-5`) + název sekce
-  - Aktivní položka: `bg-gray-100`, `text-indigo-600`, `border-l-4 border-indigo-600`
+  - Aktivní položka: `bg-indigo-50`, `text-indigo-700`, `border-r-2 border-indigo-700`
   - Hover efekt: `bg-gray-50`
+  - **Rozbalený:** Standardní layout s kategoriemi "Directories" a "Pages"
+  - **Složený:** Pouze ikony v centrované pozici s tooltips (`title` atribut)
 - **Responsivita:**
   - Zobrazit jako `hidden` pod `md:` breakpointem
   - Na mobilech: přepínatelné přes hamburger menu jako `overlay`
+  - Skládání funguje pouze na desktop (`md:` a výše)
 
 ### 3.3 Topbar
 
 - Obsahuje vyhledávání, **Lucide React ikony** pro akce, uživatelský avatar
-- Zarovnání do pravé části pomocí `flex justify-end`
-- Pozadí `white`, border bottom `border-b border-gray-200`
-- **Ikony**: Menu (`h-6 w-6`), Search (`h-4 w-4`), User (`h-4 w-4`)
+- **Layout:** Levá strana (menu + sidebar toggle), pravá strana (search + akce)
+- Pozadí `white`, border bottom `border-b border-gray-200`, `shadow-sm`
+- **Ikony a prvky:**
+  - **Mobile menu**: `Menu` ikona (`h-6 w-6`), pouze na mobilech
+  - **Sidebar toggle**: `PanelLeftClose`/`PanelLeftOpen` (`h-5 w-5`), pouze na desktop
+  - **Search**: Input s `Search` ikonou (`h-4 w-4`) a dropdown (`ChevronDown`)
+  - **Settings**: `Settings` ikona (`h-5 w-5`)
+  - **CTA button**: Rose tlačítko s `Plus` a `ChevronDown` ikonami (`h-4 w-4`)
+- **Responsivita:** 
+  - Desktop: sidebar toggle + full search bar
+  - Mobile: hamburger menu + search ikona
 
 ---
 

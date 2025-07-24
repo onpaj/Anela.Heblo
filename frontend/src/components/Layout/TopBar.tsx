@@ -1,24 +1,43 @@
 import React from 'react';
-import { Menu, Search, Settings, Plus, ChevronDown } from 'lucide-react';
+import { Menu, Search, Settings, Plus, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface TopBarProps {
   onMenuClick: () => void;
+  onToggleSidebar: () => void;
+  sidebarCollapsed: boolean;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
+const TopBar: React.FC<TopBarProps> = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }) => {
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
       <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
-          onClick={onMenuClick}
-        >
-          <span className="sr-only">Open menu</span>
-          <Menu className="h-6 w-6" />
-        </button>
+        {/* Left side - Menu and sidebar toggle */}
+        <div className="flex items-center space-x-2">
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+            onClick={onMenuClick}
+          >
+            <span className="sr-only">Open menu</span>
+            <Menu className="h-6 w-6" />
+          </button>
+
+          {/* Desktop sidebar toggle */}
+          <button
+            type="button"
+            className="hidden md:flex p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+            onClick={onToggleSidebar}
+          >
+            <span className="sr-only">Toggle sidebar</span>
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
+          </button>
+        </div>
 
         {/* Right side - Search and actions */}
         <div className="flex items-center space-x-4 ml-auto">
