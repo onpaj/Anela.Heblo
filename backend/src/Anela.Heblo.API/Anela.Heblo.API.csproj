@@ -44,9 +44,9 @@
         <Message Text="Frontend API client generation completed." Importance="high" />
     </Target>
     
-    <!-- Disabled automatic PostBuild event (use GenerateFrontendClientManual instead) -->
+    <!-- Disabled automatic PostBuild event due to file conflicts -->
     <Target Name="GenerateFrontendClient" AfterTargets="Build" Condition="false">
-        <Message Text="Automatic client generation is disabled. Use 'dotnet build --target GenerateFrontendClientManual' to generate manually." Importance="high" />
+        <Message Text="Automatic client generation is disabled due to build conflicts. Use 'dotnet msbuild -t:GenerateFrontendClientManual' instead." Importance="high" />
     </Target>
 
 </Project>
