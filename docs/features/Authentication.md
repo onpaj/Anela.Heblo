@@ -20,12 +20,24 @@ Tento dokument definuje, jakým způsobem aplikace Heblo implementuje autentizac
 
 ### 2.1 Lidský uživatel (React SPA)
 
-- Aplikace používá standardní knihovnu pro přihlášení (např. MSAL).
-- Přihlášení probíhá pomocí popup okna.
-- Použitý flow: Authorization Code s PKCE.
+- Aplikace používá standardní knihovnu pro přihlášení (MSAL).
+- Přihlášení probíhá pomocí redirect flow (Authorization Code s PKCE).
 - Po přihlášení získává frontend access token pro backend API.
 - Token se předává pomocí HTTP hlavičky `Authorization` (Bearer).
 - React SPA je registrováno jako samostatná **public client** aplikace v Entra ID.
+
+#### UI/UX specifikace pro přihlášení:
+
+**Anonymní uživatel:**
+- Na spodní části sidebaru se zobrazuje login tlačítko
+- Kliknutí na tlačítko spustí autentizaci přes Microsoft Entra ID
+- Autentizace probíhá pomocí redirect flow (přesměrování na login.microsoftonline.com)
+
+**Přihlášený uživatel:**
+- Místo login tlačítka se zobrazují uživatelské iniciály (např. "OP" pro Ondrej Pajgrt)
+- Při rozšířeném sidebaru se navíc zobrazuje jméno uživatele a email
+- Kliknutí na uživatelský profil otevře menu s možností odhlášení
+- Uživatelské informace jsou ukládány do session storage pro persistenci napříč reloady
 
 ### 2.2 Robotický uživatel (non-human)
 
@@ -94,7 +106,7 @@ Tyto údaje jsou používány k identifikaci, zobrazení ve frontend UI a k auto
 |--------------------------|-------------------------------------------|
 | Autentizace              | Microsoft Entra ID                        |
 | Tokeny                   | JWT (Bearer)                              |
-| Frontend login           | Authorization Code flow s PKCE (popup)   |
+| Frontend login           | Authorization Code flow s PKCE (redirect)|
 | Robotické účty           | Client Credentials flow                   |
 | Role                     | admin, robot                              |
 | Autorizace               | Role-based + Policy-based                 |

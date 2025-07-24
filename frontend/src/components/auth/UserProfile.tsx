@@ -7,9 +7,10 @@ interface UserProfileProps {
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
-  const { isAuthenticated, login, logout, getUserInfo, inProgress } = useAuth();
+  const { isAuthenticated, login, logout, getUserInfo, getStoredUserInfo, inProgress } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const userInfo = getUserInfo();
+  const storedUserInfo = getStoredUserInfo();
 
   const handleLogin = async () => {
     try {
@@ -90,8 +91,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
             <div className="px-4 py-2 border-b border-gray-100">
               <p className="text-sm font-medium text-gray-900">{userInfo?.name}</p>
               <p className="text-xs text-gray-500">{userInfo?.email}</p>
+              {storedUserInfo?.lastLogin && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Last login: {new Date(storedUserInfo.lastLogin).toLocaleString()}
+                </p>
+              )}
               {userInfo?.roles && userInfo.roles.length > 0 && (
-                <div className="mt-1">
+                <div className="mt-2">
                   {userInfo.roles.map((role) => (
                     <span
                       key={role}
@@ -144,12 +150,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
 
       {/* User Menu */}
       {showMenu && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
           <div className="px-4 py-2 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-900">{userInfo?.name}</p>
             <p className="text-xs text-gray-500">{userInfo?.email}</p>
+            {storedUserInfo?.lastLogin && (
+              <p className="text-xs text-gray-400 mt-1">
+                Last login: {new Date(storedUserInfo.lastLogin).toLocaleString()}
+              </p>
+            )}
             {userInfo?.roles && userInfo.roles.length > 0 && (
-              <div className="mt-1">
+              <div className="mt-2">
                 {userInfo.roles.map((role) => (
                   <span
                     key={role}

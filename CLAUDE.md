@@ -222,6 +222,43 @@ This ensures documentation stays synchronized with actual implementation and arc
 5. **Verify accessibility** and keyboard navigation
 6. **Run build** to ensure no compilation errors
 
+## Security Rules for Credentials & Secrets
+
+### CRITICAL: Credentials Security
+
+**NEVER commit credentials to source control:**
+- ❌ No real passwords, API keys, or tokens in any committed files
+- ❌ No hardcoded credentials in test files
+- ❌ No authentication secrets in configuration files
+
+**Required approach for test credentials:**
+- ✅ Use local `.env.test` files (always gitignored)
+- ✅ Load credentials via secure utility functions like `loadTestCredentials()`
+- ✅ Provide clear setup instructions for local credential files
+- ✅ Exit with error if credentials file is missing
+
+**Test credentials setup:**
+```bash
+# Create local file (NEVER commit):
+frontend/test/auth/.env.test
+
+# Content:
+TEST_EMAIL=your_email@domain.com
+TEST_PASSWORD=your_password
+```
+
+**Example secure credential loading:**
+```javascript
+const { loadTestCredentials } = require('./test-credentials');
+const credentials = loadTestCredentials(); // Safe local loading
+await emailInput.fill(credentials.email); // Never hardcoded
+```
+
+### Enforcement
+- All credential files are in `.gitignore`
+- Tests fail if credentials are missing
+- Code review must catch any hardcoded secrets
+
 ## Git Workflow Rules
 
 - **NO automatic commits** - Claude Code should never create git commits automatically

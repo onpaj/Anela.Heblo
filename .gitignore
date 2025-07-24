@@ -54,6 +54,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Test credentials (NEVER commit)
+**/.env.test
+**/test-credentials.*
+frontend/test/auth/.env.test
+
 # Database
 *.db
 *.sqlite
@@ -115,3 +120,9 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Playwright testing
+frontend/playwright-screenshots/
+frontend/*.png
+frontend/step*.png
+frontend/error*.png
