@@ -65,6 +65,7 @@ public class Program
         // Use CORS
         app.UseCors("AllowFrontend");
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
 
