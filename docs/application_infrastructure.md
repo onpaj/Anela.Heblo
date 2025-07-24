@@ -9,7 +9,12 @@
 ```
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
-│   ├── src/       # Application code (Api, Domain, Infrastructure)
+│   ├── src/       # Application code
+│   │   ├── Anela.Heblo.API/           # Main API project
+│   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
+│   │   ├── Anela.Heblo.Application/   # Application layer
+│   │   ├── Anela.Heblo.Domain/        # Domain models
+│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer
 │   ├── test/      # Unit/integration tests for backend
 │   ├── migrations/ # EF Core database migrations
 │   ├── scripts/   # Utility scripts (e.g. DB tools, backups)
@@ -129,12 +134,23 @@ API_BASE_URL=http://localhost:44389
 
 ---
 
-## 7. 🔧 OpenAPI Client
+## 7. 🔧 OpenAPI Client Generation
 
-- API client is generated from OpenAPI definition.
-- Output is stored in `frontend/src/services`.
-- Generation is handled as **post-build step**.
-- It is recommended not to commit the generated client (unless CI generation is not feasible).
+### Backend C# Client
+
+- **Location**: `backend/src/Anela.Heblo.API.Client/`
+- **Auto-generation**: PostBuild event in API project (Debug mode only)
+- **Tool**: NSwag with System.Text.Json
+- **Output**: `Generated/AnelaHebloApiClient.cs`
+- **Manual Generation**: Scripts available (`generate-client.ps1`, `generate-client.sh`)
+
+### Frontend TypeScript Client
+
+- **Location**: `frontend/src/services/generated/api-client.ts`
+- **Auto-generation**: Via backend PostBuild event or frontend prebuild script
+- **Tool**: NSwag with Fetch API template
+- **Manual Generation**: `npm run generate-client` in frontend directory
+- **Build Integration**: Automatically generated before frontend build (`prebuild` script)
 
 ---
 

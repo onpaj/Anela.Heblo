@@ -15,6 +15,7 @@
         <PackageReference Include="Microsoft.Identity.Web.GraphServiceClient" Version="2.15.2"/>
         <PackageReference Include="Microsoft.Identity.Web.DownstreamApi" Version="2.15.2"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
+        <PackageReference Include="NSwag.AspNetCore" Version="14.1.0"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -22,5 +23,30 @@
         <Link>.dockerignore</Link>
       </Content>
     </ItemGroup>
+
+    <!-- NSwag tool for OpenAPI client generation -->
+    <ItemGroup>
+        <PackageReference Include="NSwag.MSBuild" Version="14.1.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <!-- Manual target to generate TypeScript client for frontend -->
+    <Target Name="GenerateFrontendClientManual">
+        <Message Text="Generating TypeScript API client for frontend..." Importance="high" />
+        
+        <!-- Generate TypeScript client directly from NSwag configuration -->
+        <Exec Command="dotnet nswag run nswag.frontend.json" 
+              ContinueOnError="true" 
+              WorkingDirectory="$(MSBuildThisFileDirectory)" />
+              
+        <Message Text="Frontend API client generation completed." Importance="high" />
+    </Target>
+    
+    <!-- Disabled automatic PostBuild event (use GenerateFrontendClientManual instead) -->
+    <Target Name="GenerateFrontendClient" AfterTargets="Build" Condition="false">
+        <Message Text="Automatic client generation is disabled. Use 'dotnet build --target GenerateFrontendClientManual' to generate manually." Importance="high" />
+    </Target>
 
 </Project>

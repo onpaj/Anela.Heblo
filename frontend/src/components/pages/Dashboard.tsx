@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ApiTestComponent from '../test/ApiTestComponent';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('listings');
@@ -128,6 +129,12 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Local Business</h1>
+      </div>
+
+      {/* API Test Component */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">API Test</h2>
+        <ApiTestComponent />
       </div>
 
       {/* Tabs */}

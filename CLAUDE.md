@@ -23,7 +23,12 @@ Based on the infrastructure document, the intended structure will be:
 ```
 /                    # Monorepo root
 ├── backend/         # ASP.NET Core application
-│   ├── src/         # Application code (Api, Domain, Infrastructure)
+│   ├── src/         # Application code (Api, Domain, Infrastructure, API.Client)
+│   │   ├── Anela.Heblo.API/           # Main API project
+│   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
+│   │   ├── Anela.Heblo.Application/   # Application layer
+│   │   ├── Anela.Heblo.Domain/        # Domain models
+│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer
 │   ├── test/        # Unit/integration tests
 │   ├── migrations/  # EF Core database migrations
 │   └── scripts/     # Utility scripts
@@ -52,11 +57,12 @@ Based on the infrastructure document, the intended structure will be:
 Since this is currently documentation-only, these are the expected commands based on the architecture:
 
 **Backend (.NET 8)**:
-- `dotnet build` - Build the solution
+- `dotnet build` - Build the solution (automatically generates TypeScript client for frontend in Debug mode)
 - `dotnet test` - Run unit tests
 - `dotnet ef migrations add <name>` - Create new migration
 - `dotnet ef database update` - Apply migrations
 - `dotnet run` - Start development server
+- `dotnet build --target GenerateFrontendClientManual` - Manually generate TypeScript client for frontend
 
 **Frontend (Standalone React)**:
 - `npm install` - Install dependencies
@@ -95,6 +101,31 @@ The frontend follows a Tailwind CSS-based design system with:
 - **Components**: Consistent buttons, forms, tables with hover states
 - **Responsiveness**: Mobile-first approach with sidebar collapsing on `md:` breakpoint
 - **Localization**: Czech language primary, i18next framework
+
+## OpenAPI Client Generation
+
+The backend automatically generates a TypeScript client for the React frontend:
+
+- **Source**: API project PostBuild event in Debug mode
+- **Configuration**: `backend/src/Anela.Heblo.API/nswag.frontend.json`
+- **Output**: `frontend/src/api/generated/api-client.ts`
+- **Tool**: NSwag with Fetch API template
+- **Integration**: TanStack Query for data fetching and caching
+- **Usage**: React hooks in `frontend/src/api/hooks.ts`
+
+### Example Usage:
+```typescript
+import { useWeatherQuery } from '../api/hooks';
+
+const WeatherComponent = () => {
+  const { data, isLoading, error } = useWeatherQuery();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  
+  return <div>{/* Render weather data */}</div>;
+};
+```
 
 ## Background Jobs (Hangfire)
 
