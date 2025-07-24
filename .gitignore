@@ -126,3 +126,10 @@ frontend/playwright-screenshots/
 frontend/*.png
 frontend/step*.png
 frontend/error*.png
+
+# Test results and coverage
+TestResults/
+test-results/
+*.trx
+*.coverage
+*.coveragexml

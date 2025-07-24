@@ -1,12 +1,18 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { isAuthenticated, inProgress, login } = useAuth();
+  // Use mock auth in development if enabled
+  const realAuth = useAuth();
+  const mockAuth = useMockAuth();
+  
+  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
+  const { isAuthenticated, inProgress, login } = auth;
 
   useEffect(() => {
     // If not authenticated and not in progress, trigger login

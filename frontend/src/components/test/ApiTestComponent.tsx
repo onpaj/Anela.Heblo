@@ -1,8 +1,26 @@
-import React from 'react';
-import { useWeatherQuery, handleApiError } from '../../api/hooks';
+import React, { useState, useEffect } from 'react';
+import { ApiClient, WeatherForecast } from '../../api/generated/api-client';
 
 const ApiTestComponent: React.FC = () => {
-  const { data, isLoading, error } = useWeatherQuery();
+  const [data, setData] = useState<WeatherForecast[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const apiClient = new ApiClient(process.env.REACT_APP_API_URL);
+        const weatherData = await apiClient.weatherForecast();
+        setData(weatherData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   if (isLoading) {
     return (
@@ -15,7 +33,7 @@ const ApiTestComponent: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded">
-        <p className="text-red-700">Error: {handleApiError(error)}</p>
+        <p className="text-red-700">Error: {error}</p>
       </div>
     );
   }
@@ -25,7 +43,7 @@ const ApiTestComponent: React.FC = () => {
       <h3 className="text-lg font-semibold text-green-800 mb-2">Weather Data</h3>
       {data && data.length > 0 ? (
         <ul className="space-y-2">
-          {data.map((forecast, index) => (
+          {data.map((forecast: WeatherForecast, index: number) => (
             <li key={index} className="text-green-700">
               {forecast.date}: {forecast.temperatureC}°C - {forecast.summary}
             </li>

@@ -8,7 +8,6 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-[RequiredScope(RequiredScopesConfigurationKey = "AzureAd:Scopes")]
 public class WeatherForecastController : ControllerBase
 {
     private static readonly string[] Summaries = new[]
@@ -17,20 +16,36 @@ public class WeatherForecastController : ControllerBase
     };
 
     private readonly ILogger<WeatherForecastController> _logger;
-
-    private readonly GraphServiceClient _graphServiceClient;
+    private readonly GraphServiceClient? _graphServiceClient;
+    private readonly IConfiguration _configuration;
 
     public WeatherForecastController(ILogger<WeatherForecastController> logger,
-        GraphServiceClient graphServiceClient)
+        IConfiguration configuration,
+        GraphServiceClient? graphServiceClient = null)
     {
         _logger = logger;
+        _configuration = configuration;
         _graphServiceClient = graphServiceClient;
     }
 
     [HttpGet(Name = "GetWeatherForecast")]
     public async Task<IEnumerable<WeatherForecast>> Get()
     {
-        var user = await _graphServiceClient.Me.GetAsync();
+        string? userName = "Unknown User";
+        
+        if (_configuration.GetValue<bool>("UseMockAuth"))
+        {
+            // Mock mode - get user from claims
+            userName = User.Identity?.Name ?? "Mock User";
+        }
+        else if (_graphServiceClient != null)
+        {
+            // Real mode - get user from Graph API
+            var user = await _graphServiceClient.Me.GetAsync();
+            userName = user?.DisplayName ?? User.Identity?.Name ?? "Unknown User";
+        }
+
+        _logger.LogInformation("Weather forecast requested by user: {UserName}", userName);
 
         return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {

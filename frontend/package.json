@@ -29,10 +29,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "PORT=3000 react-scripts start",
+    "start": "PORT=3000 REACT_APP_API_URL=https://localhost:44390 REACT_APP_USE_MOCK_AUTH=true react-scripts start",
     "start:test": "PORT=44329 REACT_APP_API_URL=http://localhost:44388 react-scripts start",
     "start:prod": "PORT=44330 REACT_APP_API_URL=http://localhost:44389 react-scripts start",
-    "build": "react-scripts build",
+    "build": "REACT_APP_API_URL=https://localhost:44390 react-scripts build",
     "build:test": "REACT_APP_API_URL=http://localhost:44388 react-scripts build",
     "build:prod": "REACT_APP_API_URL=http://localhost:44389 react-scripts build",
     "test": "react-scripts test",

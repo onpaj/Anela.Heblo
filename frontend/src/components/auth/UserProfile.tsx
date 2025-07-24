@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { User, LogIn, LogOut, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
+import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
 
 interface UserProfileProps {
   compact?: boolean;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
-  const { isAuthenticated, login, logout, getUserInfo, getStoredUserInfo, inProgress } = useAuth();
+  // Use mock auth in development if enabled
+  const realAuth = useAuth();
+  const mockAuth = useMockAuth();
+  
+  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
+  const { isAuthenticated, login, logout, getUserInfo, getStoredUserInfo, inProgress } = auth;
+  
   const [showMenu, setShowMenu] = useState(false);
   const userInfo = getUserInfo();
   const storedUserInfo = getStoredUserInfo();
