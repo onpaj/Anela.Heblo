@@ -1,6 +1,6 @@
 # 📘 Application Infrastructure Design Document
 
-> **Stack**: Monorepo (`.NET 8` + `React`), Docker-based deployment (on-prem Synology NAS, future Azure), GitHub + GitHub Actions, EF Core, Docker Hub.
+> **Stack**: Monorepo (`.NET 8` + `React`), Single Docker image deployment, Azure Web App for Containers, GitHub + GitHub Actions, EF Core, Docker Hub.
 
 ---
 
@@ -10,17 +10,16 @@
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Main API project
+│   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
 │   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   │   ├── Anela.Heblo.Application/   # Application layer
 │   │   ├── Anela.Heblo.Domain/        # Domain models
 │   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer
 │   ├── test/      # Unit/integration tests for backend
 │   ├── migrations/ # EF Core database migrations
-│   ├── scripts/   # Utility scripts (e.g. DB tools, backups)
-│   └── Dockerfile
+│   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
-├── frontend/      # Standalone React PWA
+├── frontend/      # React PWA (builds into backend wwwroot)
 │   ├── public/     # Static assets (index.html, favicon, etc.)
 │   ├── src/
 │   │   ├── components/
@@ -32,7 +31,9 @@
 │
 ├── .github/        # GitHub Actions workflows
 ├── .env            # Dev environment variables
-└── docker-compose.yml # For local dev/test if needed
+├── Dockerfile      # Single image for backend + frontend
+├── docker-compose.yml # For local dev/test if needed
+└── .dockerignore   # Docker build optimization
 ```
 
 ---
@@ -45,62 +46,118 @@
 
 ### Port Configuration:
 
-| Environment | Frontend Port | Backend Port |
-|-------------|---------------|--------------|
-| Development | 3000 | 5000 |
-| Test | 44329 | 44388 |
-| Production | 44330 | 44389 |
+| Environment | Application Port | Azure Web App | Note |
+|-------------|------------------|---------------|------|
+| Development | 3000 (frontend), 5000 (backend) | - | Separate dev servers |
+| Test | 80 | https://anela-heblo-test.azurewebsites.net | Single container |
+| Production | 80 | https://anela-heblo.azurewebsites.net | Single container |
 
 ### Example `.env`:
 
 ```
-# Development
+# Development (separate servers)
 ASPNETCORE_ENVIRONMENT=Development
-REACT_APP_API_URL=http://localhost:5000
-API_BASE_URL=http://localhost:5000
+REACT_APP_API_BASE_URL=https://localhost:44390
+REACT_APP_USE_MOCK_AUTH=true
 
-# Test Environment
+# Test Environment (single container)
 ASPNETCORE_ENVIRONMENT=Test
-REACT_APP_API_URL=http://localhost:44388
-API_BASE_URL=http://localhost:44388
+REACT_APP_API_BASE_URL=https://anela-heblo-test.azurewebsites.net
+REACT_APP_USE_MOCK_AUTH=true
 
-# Production
+# Production (single container)
 ASPNETCORE_ENVIRONMENT=Production
-REACT_APP_API_URL=http://localhost:44389
-API_BASE_URL=http://localhost:44389
+REACT_APP_API_BASE_URL=https://anela-heblo.azurewebsites.net
+REACT_APP_USE_MOCK_AUTH=false
 ```
 
 ---
 
 ## 3. 🔁 CI/CD Rules & Workflow
 
-- **CI runs on all branches**: build, lint, tests.
+- **CI runs on all branches**: build, lint, tests, Docker image build.
 - **Feature branches**:
   - Optional deployment to `test` environment via GitHub Actions manual trigger.
 - **Main branch**:
   - Merge allowed only if CI succeeds.
-  - Automatic deployment to production environment (NAS, future Azure).
+  - Automatic deployment to production Azure Web App for Containers.
 
 ### Deployment Architecture:
 
-- **Development**: 
-  - Frontend: Standalone React dev server (`npm start`) with hot reload on localhost:3000
-  - Backend: ASP.NET Core dev server (`dotnet run`) on localhost:5000
-  - CORS configured for cross-origin requests between frontend and backend
+- **Development/Debug**: 
+  - **Frontend**: Standalone React dev server (`npm start`) with **hot reload** (localhost:3000)
+  - **Backend**: ASP.NET Core dev server (`dotnet run`) (localhost:44390)
+  - **Architecture**: **Separate servers** to preserve hot reload functionality for development
+  - **CORS**: Configured for cross-origin requests between frontend and backend
+  - **Authentication**: Mock authentication enabled for both frontend and backend
+  - **Why separate**: Hot reload requires React dev server - single container would disable this critical development feature
 - **Test Environment**:
-  - Frontend: React dev server on localhost:44329
-  - Backend: ASP.NET Core on localhost:44388
+  - **Single Docker container** hosted on **Azure Web App for Containers**
+  - Container serves both React static files and ASP.NET Core API
+  - URL: `https://anela-heblo-test.azurewebsites.net`
+  - Mock authentication enabled
 - **Production**: 
-  - Frontend: Static files on localhost:44330
-  - Backend: ASP.NET Core API on localhost:44389
-  - Two separate deployments but coordinated via CI/CD
-- All Docker images are pushed to **Docker Hub**.
-- Deployment is implemented via GitHub Actions (defined later).
-- `.env`-based secrets are used for now.
+  - **Single Docker container** hosted on **Azure Web App for Containers**
+  - Container serves both React static files and ASP.NET Core API
+  - URL: `https://anela-heblo.azurewebsites.net`
+  - Real Microsoft Entra ID authentication
+- Docker images are pushed to **Docker Hub** with semantic versioning tags.
+- Deployment implemented via **GitHub Actions** to Azure Web App for Containers.
+- Environment-specific configuration via Azure App Settings.
 
 ---
 
-## 4. 🗃️ Database Versioning
+## 4. 🐳 Docker Build Strategy
+
+### Single Image Architecture:
+- **Base Image**: `mcr.microsoft.com/dotnet/aspnet:8.0` (production) / `mcr.microsoft.com/dotnet/sdk:8.0` (build)
+- **Multi-stage build**:
+  1. **Frontend Build Stage**: Node.js to build React app (`npm run build`)
+  2. **Backend Build Stage**: .NET SDK to build ASP.NET Core app
+  3. **Runtime Stage**: Copy built React files to `wwwroot/` and ASP.NET Core binaries
+- **Final Container**: ASP.NET Core serves React static files + API endpoints
+- **Port**: Container exposes port `80` (internal), Azure maps to `443` (HTTPS)
+
+### Build Process:
+```dockerfile
+# Multi-stage Dockerfile example structure:
+FROM node:18 AS frontend-build
+# Build React app -> /app/build/
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build  
+# Build .NET app -> /app/publish/
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Copy React build to wwwroot/
+# Copy .NET app
+# Configure to serve static files + API
+```
+
+### Static File Serving (Test/Production only):
+- **Development**: NOT used - React dev server handles all frontend serving with hot reload
+- **Test/Production**: ASP.NET Core configured with `app.UseStaticFiles()` and `app.UseSpaStaticFiles()`
+- React Router handled via fallback to `index.html`
+- API routes prefixed (e.g., `/api/*`, `/WeatherForecast`)
+- Frontend routes handled by React Router
+
+### Development vs Production Architecture:
+```
+Development:           Production/Test:
+┌─────────────┐       ┌─────────────────────┐
+│React Dev    │       │Single Container     │
+│Server :3000 │ CORS  │┌─────────┬─────────┐│
+│(Hot Reload) │◄─────►││React    │ASP.NET  ││
+└─────────────┘       ││Static   │Core API ││
+                      ││Files    │:80      ││
+┌─────────────┐       │└─────────┴─────────┘│
+│ASP.NET Core │       │Azure Web App        │
+│API :44390   │       └─────────────────────┘
+└─────────────┘
+```
+
+---
+
+## 5. 🗃️ Database Versioning
 
 - Database migrations are managed via **EF Core**.
 - Migrations are stored in `backend/migrations`.
@@ -109,7 +166,43 @@ API_BASE_URL=http://localhost:44389
 
 ---
 
-## 5. 🌿 Branching Strategy
+## 6. 🚀 Azure Web App for Containers Deployment
+
+### Infrastructure:
+- **Service**: Azure Web App for Containers (Linux)
+- **Resource Group**: `rg-anela-heblo-{environment}`
+- **App Service Plan**: Basic B1 (Test) / Standard S1 (Production)
+- **Container Registry**: Docker Hub (public registry)
+- **Database**: Azure Database for PostgreSQL (shared or separate per environment)
+
+### Configuration:
+- **Application Settings**: Environment variables injected via Azure Portal/ARM templates
+- **Continuous Deployment**: Webhook from Docker Hub or GitHub Actions push
+- **SSL/TLS**: Managed certificate via Azure (free for *.azurewebsites.net)
+- **Custom Domain**: Optional for production (requires paid SSL certificate)
+
+### Environment-Specific Settings:
+```json
+// Test Environment
+{
+  "ASPNETCORE_ENVIRONMENT": "Test",
+  "ConnectionStrings__DefaultConnection": "postgresql://...",
+  "REACT_APP_USE_MOCK_AUTH": "true"
+}
+
+// Production Environment  
+{
+  "ASPNETCORE_ENVIRONMENT": "Production",
+  "ConnectionStrings__DefaultConnection": "postgresql://...",
+  "AzureAd__ClientId": "xxx",
+  "AzureAd__TenantId": "xxx",
+  "REACT_APP_USE_MOCK_AUTH": "false"
+}
+```
+
+---
+
+## 7. 🌿 Branching Strategy
 
 - **Main branch** is the releasable production code.
 - **Feature branches**: `feature/*`
@@ -121,7 +214,7 @@ API_BASE_URL=http://localhost:44389
 
 ---
 
-## 6. 🔖 Project Versioning
+## 8. 🔖 Project Versioning
 
 - Follows **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 - Version bump is done automatically based on **conventional commit messages**
@@ -134,7 +227,7 @@ API_BASE_URL=http://localhost:44389
 
 ---
 
-## 7. 🔧 OpenAPI Client Generation
+## 9. 🔧 OpenAPI Client Generation
 
 ### Backend C# Client
 
@@ -154,7 +247,7 @@ API_BASE_URL=http://localhost:44389
 
 ---
 
-## 8. 🧠 AI Review Agent
+## 10. 🧠 AI Review Agent
 
 - Since the project is developed by a single developer:
   - PR review is handled by an **AI agent**.
@@ -164,12 +257,15 @@ API_BASE_URL=http://localhost:44389
 
 ## ✅ Summary
 
-This document defines the project’s infrastructure practices and expectations:
+This document defines the project's infrastructure practices and expectations:
 
-- Clean monorepo layout
-- Clearly separated `test` and `production` environments
-- Consistent versioning and release triggers
-- GitHub Actions-based automation with optional test deploys
-- Manual database management
-- AI-assisted code reviews
+- **Monorepo layout** with hybrid deployment strategy
+- **Development**: Separate servers (React dev server + ASP.NET Core) for **hot reload**
+- **Test/Production**: Single Docker container on **Azure Web App for Containers**
+- **Environment separation**: Development (separate for hot reload) vs Test/Production (single container)
+- **Consistent versioning** and automated release triggers
+- **GitHub Actions CI/CD** with Docker Hub registry and Azure deployment
+- **Mock authentication** for development and test environments
+- **Manual database management** with EF Core migrations
+- **AI-assisted code reviews** for solo developer workflow
 

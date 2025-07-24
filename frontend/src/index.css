@@ -1,62 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  @apply text-neutral-slate bg-background-neutral;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New',
     monospace;
 }
 
-/* Custom design system classes per UI design document */
-.bg-base {
-  @apply bg-gray-50;
-}
-
-.bg-sidebar {
-  @apply bg-white;
-}
-
-.text-main {
-  @apply text-gray-900;
-}
-
-.text-sub {
-  @apply text-gray-500;
-}
-
-.accent {
-  @apply text-indigo-600;
-}
-
-.success {
-  @apply text-emerald-500;
-}
-
-.error {
-  @apply text-rose-500;
-}
-
-.border {
-  @apply border-gray-200;
-}
-
-.cta {
-  @apply bg-rose-400;
-}
-
-.hover {
-  @apply bg-gray-100;
-}
-
-.icon-muted {
-  @apply text-gray-400;
+/* Design system classes based on styleguide */
+@layer components {
+  /* Button styles */
+  .btn-primary {
+    @apply bg-primary-blue hover:bg-accent-blue-bright active:bg-accent-blue-bright/90 text-white px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-150 ease-in-out;
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent text-primary-blue border border-border-light hover:bg-secondary-blue-pale px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-150;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-neutral-gray hover:bg-secondary-blue-pale px-4 py-2 rounded-md font-semibold text-sm transition-all duration-150;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-primary-white border border-border-light rounded-xl shadow-soft hover:shadow-hover p-6 transition-shadow duration-200;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply w-full bg-primary-white border border-border-light rounded-lg px-4 py-3 text-sm text-neutral-slate placeholder-neutral-gray focus:outline-none focus:border-primary-blue focus:ring-2 focus:ring-primary transition-colors duration-150;
+  }
+  
+  .input-error {
+    @apply border-error focus:border-error focus:ring-error/10;
+  }
+  
+  /* Badge styles */
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success;
+  }
+  
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning;
+  }
+  
+  .badge-error {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error/10 text-error;
+  }
+  
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info;
+  }
+  
+  .badge-neutral {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
+  }
+  
+  /* Typography */
+  .text-display {
+    @apply text-2xl font-bold text-neutral-slate;
+  }
+  
+  .text-h1 {
+    @apply text-xl font-bold text-neutral-slate;
+  }
+  
+  .text-h2 {
+    @apply text-lg font-semibold text-neutral-slate;
+  }
+  
+  .text-h3 {
+    @apply text-base font-semibold text-neutral-slate;
+  }
+  
+  .text-h4 {
+    @apply text-sm font-medium text-neutral-slate;
+  }
+  
+  .text-body-large {
+    @apply text-base font-normal text-neutral-slate;
+  }
+  
+  .text-body {
+    @apply text-sm font-normal text-neutral-slate;
+  }
+  
+  .text-body-small {
+    @apply text-xs font-medium text-neutral-gray;
+  }
 }

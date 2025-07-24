@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Abstractions;
 using Microsoft.Identity.Web.Resource;
+using Microsoft.Extensions.FileProviders;
 using Anela.Heblo.API.Authentication;
 
 namespace Anela.Heblo.API;
@@ -45,6 +46,16 @@ public class Program
         });
 
         builder.Services.AddControllers();
+        
+        // Add health checks
+        builder.Services.AddHealthChecks();
+        
+        // Add SPA static files support
+        builder.Services.AddSpaStaticFiles(configuration =>
+        {
+            configuration.RootPath = "wwwroot";
+        });
+        
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -68,8 +79,38 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Serve static files from wwwroot
+        app.UseStaticFiles();
+        
+        // If not in development, also use SPA static files
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseSpaStaticFiles();
+        }
 
         app.MapControllers();
+        
+        // Map health check endpoint
+        app.MapHealthChecks("/health");
+
+        // SPA fallback - must be after MapControllers
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseSpa(spa =>
+            {
+                spa.Options.SourcePath = "wwwroot";
+                spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions
+                {
+                    OnPrepareResponse = context =>
+                    {
+                        // Prevent caching of index.html
+                        context.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                        context.Context.Response.Headers.Append("Pragma", "no-cache");
+                        context.Context.Response.Headers.Append("Expires", "0");
+                    }
+                };
+            });
+        }
 
         app.Run();
     }

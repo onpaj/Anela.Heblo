@@ -13,7 +13,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+          className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary"
           onClick={onMenuClick}
         >
           <span className="sr-only">Open menu</span>
@@ -28,7 +28,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
               <input
                 type="text"
                 placeholder="Search"
-                className="w-80 px-4 py-2 pl-10 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="input w-80 pl-10"
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-4 w-4 text-gray-400" />
@@ -40,18 +40,18 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
           </div>
 
           {/* Settings button */}
-          <button className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-colors">
+          <button className="p-2 text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale rounded-md transition-colors">
             <Settings className="h-5 w-5" />
           </button>
 
           {/* Add button */}
-          <button className="flex items-center px-4 py-2 bg-rose-400 text-white text-sm font-medium rounded-md hover:bg-rose-500 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
+          <button className="btn-primary flex items-center focus:ring-2 focus:ring-primary focus:ring-offset-2">
             <Plus className="h-4 w-4 mr-1" />
             <ChevronDown className="h-4 w-4 ml-1" />
           </button>
 
           {/* Mobile search button */}
-          <button className="sm:hidden p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md">
+          <button className="sm:hidden p-2 text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale rounded-md transition-colors">
             <Search className="h-5 w-5" />
           </button>
         </div>

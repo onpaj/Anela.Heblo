@@ -80,13 +80,13 @@ const Dashboard: React.FC = () => {
   const getStatusBadge = (status: string) => {
     if (status === 'published') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+        <span className="badge-success">
           Published
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+      <span className="badge-neutral">
         Draft
       </span>
     );
@@ -128,12 +128,12 @@ const Dashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Local Business</h1>
+        <h1 className="text-h1">Local Business</h1>
       </div>
 
       {/* API Test Component */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">API Test</h2>
+        <h2 className="text-h3 mb-4">API Test</h2>
         <ApiTestComponent />
       </div>
 
@@ -144,8 +144,8 @@ const Dashboard: React.FC = () => {
             onClick={() => setActiveTab('listings')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'listings'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-blue text-primary-blue'
+                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
             }`}
           >
             Listings
@@ -154,8 +154,8 @@ const Dashboard: React.FC = () => {
             onClick={() => setActiveTab('categories')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'categories'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-blue text-primary-blue'
+                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
             }`}
           >
             Categories
@@ -164,8 +164,8 @@ const Dashboard: React.FC = () => {
             onClick={() => setActiveTab('custom-fields')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'custom-fields'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-blue text-primary-blue'
+                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
             }`}
           >
             Custom Fields
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         {/* Total Businesses */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="card">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
@@ -186,14 +186,14 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">4,307</p>
-              <p className="text-sm text-gray-500">Local Businesses</p>
+              <p className="text-2xl font-bold text-neutral-slate">4,307</p>
+              <p className="text-body-small">Local Businesses</p>
             </div>
           </div>
         </div>
 
         {/* Verification Required */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="card">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-rose-100 rounded flex items-center justify-center">
@@ -203,14 +203,14 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">91</p>
-              <p className="text-sm text-gray-500">Verification Required</p>
+              <p className="text-2xl font-bold text-neutral-slate">91</p>
+              <p className="text-body-small">Verification Required</p>
             </div>
           </div>
         </div>
 
         {/* Published */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="card">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-emerald-100 rounded flex items-center justify-center">
@@ -220,20 +220,20 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">67%</p>
-              <p className="text-sm text-gray-500">Published</p>
+              <p className="text-2xl font-bold text-neutral-slate">67%</p>
+              <p className="text-body-small">Published</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Chart placeholder */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
+      <div className="card mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Activity Overview</h3>
+          <h3 className="text-h3">Activity Overview</h3>
           <div className="flex items-center space-x-4">
             <button className="text-sm text-gray-500 hover:text-gray-700">← August</button>
-            <span className="text-sm font-medium text-gray-900">September 2018</span>
+            <span className="text-body font-medium text-neutral-slate">September 2018</span>
             <button className="text-sm text-gray-500 hover:text-gray-700">October →</button>
           </div>
         </div>
@@ -250,17 +250,17 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="mt-4 text-center">
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+          <span className="badge-success">
             39 published
           </span>
         </div>
       </div>
 
       {/* Business List Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="card p-0 overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-lg font-medium text-gray-900 mb-2 sm:mb-0">Business</h3>
+            <h3 className="text-h3 mb-2 sm:mb-0">Business</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-500">Status/Modified</span>
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,20 +272,20 @@ const Dashboard: React.FC = () => {
 
         <div className="divide-y divide-gray-200">
           {mockBusinesses.map((business) => (
-            <div key={business.id} className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors">
+            <div key={business.id} className="px-4 sm:px-6 py-4 hover:bg-secondary-blue-pale/30 transition-colors">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                 {/* Business Info */}
                 <div className="flex items-center space-x-4 flex-1">
                   <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-2">
-                      <h4 className="font-medium text-gray-900 truncate">{business.name}</h4>
+                      <h4 className="font-medium text-neutral-slate truncate">{business.name}</h4>
                       <span className="w-5 h-5 bg-gray-600 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
                         S
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{business.category}</p>
-                    <p className="text-xs text-gray-400">{business.lastUpdate}</p>
+                    <p className="text-body text-neutral-gray truncate">{business.category}</p>
+                    <p className="text-caption text-gray-400">{business.lastUpdate}</p>
                   </div>
                 </div>
 
@@ -301,21 +301,21 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center space-x-1">
                       {getRatingStars(business.rating)}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{business.reviews} reviews</p>
+                    <p className="text-caption text-gray-500 mt-1">{business.reviews} reviews</p>
                   </div>
 
                   {/* Views */}
                   <div className="text-center min-w-0">
-                    <p className="font-medium text-gray-900">{business.views}</p>
-                    <p className="text-xs text-emerald-600">{business.viewsChange}</p>
-                    <p className="text-xs text-gray-500">Total views</p>
+                    <p className="font-medium text-neutral-slate">{business.views}</p>
+                    <p className="text-xs text-success">{business.viewsChange}</p>
+                    <p className="text-body-small text-neutral-gray">Total views</p>
                   </div>
 
                   {/* Actions - Hidden on small screens */}
                   <div className="text-center min-w-0 hidden md:block">
-                    <p className="font-medium text-gray-900">{business.actions}</p>
-                    <p className="text-xs text-rose-600">{business.actionsChange}</p>
-                    <p className="text-xs text-gray-500">Total actions</p>
+                    <p className="font-medium text-neutral-slate">{business.actions}</p>
+                    <p className="text-xs text-error">{business.actionsChange}</p>
+                    <p className="text-body-small text-neutral-gray">Total actions</p>
                   </div>
 
                   {/* Menu */}

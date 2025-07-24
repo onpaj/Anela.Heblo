@@ -8,14 +8,14 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 
 ## Architecture Summary
 
-**Stack**: Monorepo (.NET 8 + React), Docker-based deployment
-- **Frontend**: Standalone React PWA with i18next localization, MSAL (MS Entra ID) authentication, hot reload support
-- **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs
+**Stack**: Monorepo (.NET 8 + React), Single Docker image deployment, Azure Web App for Containers
+- **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
+- **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs, serves React static files
 - **Database**: PostgreSQL with EF Core migrations
-- **Authentication**: MS Entra ID (OIDC) with claims-based roles
+- **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
 - **Testing**: Playwright for both E2E testing and Shoptet integration automation
-- **Deployment**: Docker containers, GitHub Actions CI/CD
+- **Deployment**: Single Docker container to Azure Web App for Containers, GitHub Actions CI/CD
 
 ## Repository Structure (Planned)
 
@@ -89,8 +89,10 @@ Since this is currently documentation-only, these are the expected commands base
 5. Contact project owner for actual credential values
 
 **Docker**:
-- `docker-compose up` - Start local development environment
-- `docker build -t anela-heblo .` - Build production image (includes frontend static files)
+- `docker-compose up` - Start local development environment (if needed)
+- `docker build -t anela-heblo .` - Build single production image (multi-stage: frontend build + backend + static files)
+- **Development**: Separate React dev server (hot reload) + ASP.NET Core API server
+- **Production**: Single container serves both React static files and ASP.NET Core API
 
 ## UI Design System
 
@@ -172,27 +174,32 @@ const WeatherComponent = () => {
 
 ## Port Configuration
 
-| Environment | Frontend Port | Backend Port | Usage |
-|-------------|---------------|--------------|-------|
-| Development | 3000 | 5000 | Internal development, Playwright testing |
-| Manual Debug | 3001 | 5000 | VS Code launch.json manual debugging |
-| Test | 44329 | 44388 | Test environment |
-| Production | 44330 | 44389 | Production environment |
+| Environment | Application Port | Azure Web App | Usage |
+|-------------|------------------|---------------|-------|
+| Development | 3000 (frontend), 44390 (backend) | - | Separate dev servers, Playwright testing |
+| Manual Debug | 3001 (frontend), 44390 (backend) | - | VS Code launch.json debugging |
+| Test | 80 → 443 | https://anela-heblo-test.azurewebsites.net | Single container |
+| Production | 80 → 443 | https://anela-heblo.azurewebsites.net | Single container |
 
 ## Deployment Strategy
 
-- **Development**: 
-  - Frontend: Standalone React dev server (`npm start`) with hot reload (localhost:3000)
-  - Backend: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
-  - CORS configured to allow frontend-backend communication
+- **Development/Debug**: 
+  - **Frontend**: Standalone React dev server (`npm start`) with **hot reload** (localhost:3000)
+  - **Backend**: ASP.NET Core dev server (`dotnet run`) (https://localhost:44390)
+  - **Architecture**: **Separate servers** to preserve hot reload functionality for development
+  - **CORS**: Configured to allow frontend-backend communication
+  - **Authentication**: Mock authentication enabled for both frontend and backend
+  - **Why separate**: Hot reload is critical for development - single container would disable this feature
 - **Test Environment**:
-  - Frontend: localhost:44329
-  - Backend: localhost:44388
+  - **Single Docker container** on Azure Web App for Containers
+  - Container serves both React static files and ASP.NET Core API
+  - Mock authentication enabled
+  - URL: https://anela-heblo-test.azurewebsites.net
 - **Production Environment**:
-  - Frontend: localhost:44330  
-  - Backend: localhost:44389
-- **Current**: Docker on-premises (Synology NAS)
-- **Future**: Azure App Service / Container Apps
+  - **Single Docker container** on Azure Web App for Containers
+  - Container serves both React static files and ASP.NET Core API
+  - Real Microsoft Entra ID authentication
+  - URL: https://anela-heblo.azurewebsites.net
 - **Versioning**: Semantic versioning with conventional commits
 - **CI/CD**: GitHub Actions with feature branch testing, main branch auto-deploy
 

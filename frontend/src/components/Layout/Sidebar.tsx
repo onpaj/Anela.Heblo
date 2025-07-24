@@ -126,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
           {/* Logo */}
           <div className={`flex items-center h-16 border-b border-gray-200 ${isCollapsed ? 'px-3 justify-center' : 'px-6'}`}>
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">AH</span>
               </div>
               {!isCollapsed && (
@@ -154,12 +154,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                           className={`
                             flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${isActive 
-                              ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700' 
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-secondary-blue-pale text-primary-blue border-r-2 border-primary-blue' 
+                              : 'text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate'
                             }
                           `}
                         >
-                          <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                          <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
                           {section.name}
                         </a>
                       ) : (
@@ -169,13 +169,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                           className={`
                             flex items-center justify-center p-2 rounded-md transition-colors duration-300
                             ${isActive 
-                              ? 'bg-indigo-50 text-indigo-700' 
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-secondary-blue-pale text-primary-blue' 
+                              : 'text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate'
                             }
                           `}
                           title={section.name}
                         >
-                          <IconComponent className={`h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                          <IconComponent className={`h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
                         </a>
                       )}
                     </div>
@@ -193,13 +193,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                           className={`
                             w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${isActive 
-                              ? 'bg-indigo-50 text-indigo-700' 
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-secondary-blue-pale text-primary-blue' 
+                              : 'text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate'
                             }
                           `}
                         >
                           <div className="flex items-center">
-                            <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                            <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
                             {section.name}
                           </div>
                           {isExpanded ? (
@@ -222,8 +222,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                                   className={`
                                     block px-3 py-2 text-sm rounded-md transition-colors duration-300
                                     ${isSubActive 
-                                      ? 'bg-gray-100 text-gray-900 font-medium' 
-                                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                      ? 'bg-secondary-blue-pale text-primary-blue font-medium' 
+                                      : 'text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate'
                                     }
                                   `}
                                 >
@@ -241,13 +241,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                         className={`
                           flex items-center justify-center p-2 rounded-md transition-colors duration-300
                           ${isActive 
-                            ? 'bg-indigo-50 text-indigo-700' 
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-brand-beige text-brand' 
+                            : 'text-charcoal hover:bg-brand/5 hover:text-charcoal'
                           }
                         `}
                         title={section.name}
                       >
-                        <IconComponent className={`h-5 w-5 ${isActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+                        <IconComponent className={`h-5 w-5 ${isActive ? 'text-brand' : 'text-gray-400'}`} />
                       </button>
                     )}
                   </div>
@@ -271,7 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                 {/* Collapse/Expand Button - only show on desktop */}
                 <button
                   type="button"
-                  className="hidden md:flex p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors flex-shrink-0"
+                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
                   onClick={onToggleCollapse}
                   title="Collapse sidebar"
                 >
@@ -286,7 +286,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
             <div className="border-t border-gray-200 p-2">
               <button
                 type="button"
-                className="hidden md:flex w-full justify-center p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+                className="hidden md:flex w-full justify-center p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                 onClick={onToggleCollapse}
                 title="Expand sidebar"
               >
