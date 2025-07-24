@@ -125,7 +125,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_BASE_URL=https://anela-heblo.azurewebsites.net
+            REACT_APP_API_URL=https://anela-heblo.azurewebsites.net
             REACT_APP_USE_MOCK_AUTH=false
 
       - name: 🔖 Create Git Tag

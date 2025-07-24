@@ -109,7 +109,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_BASE_URL=https://anela-heblo-test.azurewebsites.net
+            REACT_APP_API_URL=https://anela-heblo-test.azurewebsites.net
             REACT_APP_USE_MOCK_AUTH=true
 
   # Deploy to Azure Web App

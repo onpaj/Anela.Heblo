@@ -90,7 +90,7 @@ jobs:
       - name: 🏗️ Build production bundle
         run: npm run build
         env:
-          REACT_APP_API_BASE_URL: https://placeholder.azurewebsites.net
+          REACT_APP_API_URL: https://placeholder.azurewebsites.net
           REACT_APP_USE_MOCK_AUTH: false
 
       - name: 📤 Upload build artifacts
