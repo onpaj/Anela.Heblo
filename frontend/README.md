@@ -41,11 +41,22 @@ npm run lint
 
 ## Konfigurace
 
-Zkopírujte `.env.example` do `.env` a nastavte správné hodnoty:
+### Autentizace (povinné pro lokální vývoj)
 
+1. Zkopírujte `.env.example` do `.env`:
 ```bash
 cp .env.example .env
 ```
+
+2. Vyplňte skutečné hodnoty Microsoft Entra ID:
+   - `REACT_APP_AZURE_CLIENT_ID` - Client ID aplikace v Entra ID
+   - `REACT_APP_AZURE_TENANT_ID` - Tenant ID organizace
+   - Pro získání hodnot kontaktujte vlastníka projektu
+
+3. **DŮLEŽITÉ**: Soubor `.env` obsahuje citlivé údaje a NESMÍ být commitován do gitu (je v .gitignore)
+
+### Bez autentizace
+Aplikace nebude fungovat správně bez validních přihlašovacích údajů pro Microsoft Entra ID.
 
 ## Struktura projektu
 

@@ -60,12 +60,18 @@ Since this is currently documentation-only, these are the expected commands base
 
 **Frontend (Standalone React)**:
 - `npm install` - Install dependencies
-- `npm start` - Start development server with hot reload (typically localhost:3000)
+- `npm start` - Start development server with hot reload (localhost:3000)
 - `npm test` - Run tests with Jest/React Testing Library
 - `npm run build` - Build static files for production deployment
 - `npm run lint` - Run linter
 - `npx playwright test` - Run end-to-end tests (when configured)
-- `npx playwright codegen` - Generate test code by recording interactions
+- `npx playwright codegen localhost:3000` - Generate test code by recording interactions
+
+**Authentication Setup** (Required for local development):
+1. Copy `frontend/.env.example` to `frontend/.env`
+2. Fill in actual Microsoft Entra ID credentials (client ID, tenant ID)
+3. The `.env` file is gitignored and contains sensitive data - never commit it
+4. Contact project owner for actual credential values
 
 **Docker**:
 - `docker-compose up` - Start local development environment
@@ -106,11 +112,12 @@ The frontend follows a Tailwind CSS-based design system with:
 
 ## Port Configuration
 
-| Environment | Frontend Port | Backend Port |
-|-------------|---------------|--------------|
-| Development | 3000 | 5000 |
-| Test | 44329 | 44388 |
-| Production | 44330 | 44389 |
+| Environment | Frontend Port | Backend Port | Usage |
+|-------------|---------------|--------------|-------|
+| Development | 3000 | 5000 | Internal development, Playwright testing |
+| Manual Debug | 3001 | 5000 | VS Code launch.json manual debugging |
+| Test | 44329 | 44388 | Test environment |
+| Production | 44330 | 44389 | Production environment |
 
 ## Deployment Strategy
 
@@ -178,6 +185,7 @@ This ensures documentation stays synchronized with actual implementation and arc
 
 1. **Visual Testing & Validation**:
    - Use `npx playwright codegen localhost:3000` to record user interactions
+   - Port 3000 is reserved for internal development and Playwright testing
    - Verify UI changes work correctly across different screen sizes
    - Test responsive behavior (mobile, tablet, desktop breakpoints)
    - Validate component states (hover, active, disabled, etc.)
