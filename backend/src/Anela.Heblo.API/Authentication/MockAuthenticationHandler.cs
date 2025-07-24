@@ -1,0 +1,44 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+
+namespace Anela.Heblo.API.Authentication;
+
+public class MockAuthenticationSchemeOptions : AuthenticationSchemeOptions
+{
+}
+
+public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticationSchemeOptions>
+{
+    public MockAuthenticationHandler(IOptionsMonitor<MockAuthenticationSchemeOptions> options,
+        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
+        : base(options, logger, encoder, clock)
+    {
+    }
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "mock-user-id"),
+            new Claim(ClaimTypes.Name, "Mock User"),
+            new Claim(ClaimTypes.Email, "mock@anela-heblo.com"),
+            new Claim("preferred_username", "mock@anela-heblo.com"),
+            new Claim("name", "Mock User"),
+            new Claim("given_name", "Mock"),
+            new Claim("family_name", "User"),
+            // Add Entra ID specific claims
+            new Claim("oid", "00000000-0000-0000-0000-000000000000"), // Object ID
+            new Claim("tid", "11111111-1111-1111-1111-111111111111"), // Tenant ID
+            new Claim("roles", "User"), // Add roles as needed
+            new Claim("scp", "access_as_user") // Scopes
+        };
+
+        var identity = new ClaimsIdentity(claims, "Mock");
+        var principal = new ClaimsPrincipal(identity);
+        var ticket = new AuthenticationTicket(principal, "Mock");
+
+        return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+}
