@@ -15,9 +15,6 @@ jobs:
   frontend-lint:
     name: 🧹 Frontend Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -30,17 +27,16 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 📦 Install dependencies
+        working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
       - name: 🧹 Run ESLint
+        working-directory: ./frontend
         run: npm run lint
 
   frontend-test:
     name: 🧪 Frontend Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -53,9 +49,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 📦 Install dependencies
+        working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
       - name: 🧪 Run tests
+        working-directory: ./frontend
         run: npm test -- --coverage --watchAll=false
         env:
           CI: true
@@ -70,12 +68,18 @@ jobs:
   frontend-build:
     name: 🏗️ Frontend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+
+      - name: 🔍 Debug - Check repository structure
+        run: |
+          echo "Root directory contents:"
+          ls -la
+          echo "Frontend directory exists:"
+          ls -la frontend/ | head -10
+          echo "Frontend public directory:"
+          ls -la frontend/public/ || echo "Frontend public not found"
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -85,9 +89,22 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 📦 Install dependencies
+        working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
+      - name: 🔍 Debug - Check file structure
+        working-directory: ./frontend
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Public directory contents:"
+          ls -la public/ || echo "Public directory not found"
+          echo "Package.json location:"
+          ls -la package.json || echo "Package.json not found"
+
       - name: 🏗️ Build production bundle
+        working-directory: ./frontend
         run: npm run build
         env:
           REACT_APP_API_URL: https://placeholder.azurewebsites.net
