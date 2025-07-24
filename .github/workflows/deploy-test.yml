@@ -1,0 +1,208 @@
+name: 🧪 Deploy to Test Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: string
+      force_deploy:
+        description: 'Force deployment even if CI fails'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: anela-heblo
+  AZURE_WEBAPP_NAME: anela-heblo-test
+
+jobs:
+  # Check CI Status
+  check-ci:
+    name: 🔍 Check CI Status
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.force_deploy }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: 🔍 Get latest CI run for branch
+        id: ci-status
+        run: |
+          # Get the latest CI workflow run for the specified branch
+          CI_RUN=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=${{ inputs.branch }}&per_page=1" \
+            --jq '.workflow_runs[0]')
+          
+          if [ "$CI_RUN" = "null" ]; then
+            echo "❌ No CI runs found for branch ${{ inputs.branch }}"
+            exit 1
+          fi
+          
+          CI_STATUS=$(echo "$CI_RUN" | jq -r '.conclusion')
+          CI_URL=$(echo "$CI_RUN" | jq -r '.html_url')
+          
+          echo "ci_status=$CI_STATUS" >> $GITHUB_OUTPUT
+          echo "ci_url=$CI_URL" >> $GITHUB_OUTPUT
+          
+          if [ "$CI_STATUS" != "success" ]; then
+            echo "❌ Latest CI run failed with status: $CI_STATUS"
+            echo "CI Run: $CI_URL"
+            exit 1
+          fi
+          
+          echo "✅ Latest CI run succeeded"
+          echo "CI Run: $CI_URL"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # Build and Push Docker Image
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [check-ci]
+    if: always() && (needs.check-ci.result == 'success' || needs.check-ci.result == 'skipped')
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 📝 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=-test
+            type=sha,prefix=test-{{branch}}-
+            type=raw,value=test-latest
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_API_BASE_URL=https://anela-heblo-test.azurewebsites.net
+            REACT_APP_USE_MOCK_AUTH=true
+
+  # Deploy to Azure Web App
+  deploy-azure:
+    name: 🚀 Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment:
+      name: test
+      url: https://anela-heblo-test.azurewebsites.net
+    steps:
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
+
+      - name: 🚀 Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ needs.build-and-push.outputs.image-tag }}
+
+      - name: 🔧 Configure App Settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group rg-anela-heblo-test \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Test \
+              REACT_APP_USE_MOCK_AUTH=true \
+              WEBSITES_PORT=80 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+
+  # Health Check
+  health-check:
+    name: 🏥 Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-azure]
+    steps:
+      - name: 🏥 Wait for deployment and check health
+        run: |
+          echo "⏱️ Waiting for deployment to complete..."
+          sleep 30
+          
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS"
+            
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://anela-heblo-test.azurewebsites.net/health || echo "000")
+            
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Health check passed!"
+              echo "🌐 Application is available at: https://anela-heblo-test.azurewebsites.net"
+              exit 0
+            fi
+            
+            echo "❌ Health check failed with status: $HTTP_STATUS"
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "💥 Health check failed after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            
+            echo "⏱️ Waiting 30 seconds before retry..."
+            sleep 30
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+  # Notification
+  notify:
+    name: 📢 Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-azure, health-check]
+    if: always()
+    steps:
+      - name: 📢 Deployment Summary
+        run: |
+          echo "## 🧪 Test Environment Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ inputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Test" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://anela-heblo-test.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.health-check.result }}" = "success" ]; then
+            echo "✅ **Status:** Deployment successful" >> $GITHUB_STEP_SUMMARY
+            echo "🌐 **Application is now available**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Docker Image:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY

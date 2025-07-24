@@ -1,0 +1,288 @@
+name: 🔄 Continuous Integration
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: anela-heblo
+
+jobs:
+  # Frontend CI Jobs
+  frontend-lint:
+    name: 🧹 Frontend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: 🧹 Run ESLint
+        run: npm run lint
+
+  frontend-test:
+    name: 🧪 Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: 🧪 Run tests
+        run: npm test -- --coverage --watchAll=false
+        env:
+          CI: true
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  frontend-build:
+    name: 🏗️ Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: 🏗️ Build production bundle
+        run: npm run build
+        env:
+          REACT_APP_API_BASE_URL: https://placeholder.azurewebsites.net
+          REACT_APP_USE_MOCK_AUTH: false
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+
+  # Backend CI Jobs
+  backend-lint:
+    name: 🧹 Backend Lint & Format Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore
+
+      - name: 🧹 Check code formatting
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+
+  backend-test:
+    name: 🧪 Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore
+
+      - name: 🧪 Run tests with coverage
+        run: dotnet test --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/*/coverage.cobertura.xml
+          flags: backend
+          name: backend-coverage
+
+  backend-build:
+    name: 🏗️ Backend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore
+
+      - name: 🏗️ Build solution
+        run: dotnet build --configuration Release --no-restore
+
+  # Playwright E2E Tests
+  playwright-tests:
+    name: 🎭 Playwright E2E Tests
+    runs-on: ubuntu-latest
+    needs: [frontend-build, backend-build]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Install frontend dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: ./frontend
+
+      - name: 📦 Install Playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: ./frontend
+
+      - name: 📦 Restore backend dependencies
+        run: dotnet restore
+        working-directory: ./backend
+
+      - name: 🚀 Start backend for testing
+        run: |
+          dotnet run --project backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj &
+          sleep 10
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: https://localhost:44390
+
+      - name: 🚀 Start frontend for testing
+        run: |
+          npm start &
+          sleep 15
+        working-directory: ./frontend
+        env:
+          PORT: 3000
+          REACT_APP_API_BASE_URL: https://localhost:44390
+          REACT_APP_USE_MOCK_AUTH: true
+
+      - name: 🎭 Run Playwright tests
+        run: npx playwright test
+        working-directory: ./frontend
+
+      - name: 📤 Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # Docker Build
+  docker-build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: [frontend-build, backend-build]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Quality Gate
+  quality-gate:
+    name: ✅ Quality Gate
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, frontend-test, frontend-build, backend-lint, backend-test, backend-build, playwright-tests, docker-build]
+    if: always()
+    steps:
+      - name: ✅ Check all jobs succeeded
+        run: |
+          echo "Frontend Lint: ${{ needs.frontend-lint.result }}"
+          echo "Frontend Test: ${{ needs.frontend-test.result }}"
+          echo "Frontend Build: ${{ needs.frontend-build.result }}"
+          echo "Backend Lint: ${{ needs.backend-lint.result }}"
+          echo "Backend Test: ${{ needs.backend-test.result }}"
+          echo "Backend Build: ${{ needs.backend-build.result }}"
+          echo "Playwright Tests: ${{ needs.playwright-tests.result }}"
+          echo "Docker Build: ${{ needs.docker-build.result }}"
+          
+          if [[ "${{ needs.frontend-lint.result }}" != "success" || \
+                "${{ needs.frontend-test.result }}" != "success" || \
+                "${{ needs.frontend-build.result }}" != "success" || \
+                "${{ needs.backend-lint.result }}" != "success" || \
+                "${{ needs.backend-test.result }}" != "success" || \
+                "${{ needs.backend-build.result }}" != "success" || \
+                "${{ needs.playwright-tests.result }}" != "success" || \
+                "${{ needs.docker-build.result }}" != "success" ]]; then
+            echo "❌ Quality gate failed - one or more jobs failed"
+            exit 1
+          else
+            echo "✅ Quality gate passed - all jobs succeeded"
+          fi
