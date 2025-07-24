@@ -12,6 +12,10 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: write
+  packages: write
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: anela-heblo
