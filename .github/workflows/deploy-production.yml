@@ -172,8 +172,8 @@ jobs:
           az webapp config container set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
-            --docker-custom-image-name "$DOCKER_IMAGE" \
-            --docker-registry-server-url https://index.docker.io/v1/
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/
             
           echo "✅ Container deployment completed"
           

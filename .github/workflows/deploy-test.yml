@@ -17,7 +17,7 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: heblo
-  AZURE_WEBAPP_NAME: heblo-test
+  AZURE_WEBAPP_NAME: heblo
 
 jobs:
   # Build and Push Docker Image
@@ -64,7 +64,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://heblo-test.azurewebsites.net
+            REACT_APP_API_URL=https://heblo.azurewebsites.net
 
   # Deploy to Azure Web App
   deploy-azure:
@@ -75,7 +75,7 @@ jobs:
       webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     environment:
       name: test
-      url: https://heblo-test.azurewebsites.net
+      url: https://heblo.azurewebsites.net
     steps:
       - name: 🔐 Azure Login
         uses: azure/login@v1
@@ -85,20 +85,9 @@ jobs:
       - name: 🚀 Deploy to Azure Web App
         id: deploy
         run: |
-          # Get the actual test web app name
-          ACTUAL_WEBAPP_NAME=$(az webapp list \
-            --resource-group rgHeblo \
-            --query "[?contains(name, 'heblo') && contains(name, 'test')].name" \
-            -o tsv | head -1)
-          
-          if [ -z "$ACTUAL_WEBAPP_NAME" ]; then
-            echo "❌ No test web app found in resource group rgHeblo"
-            echo "Available web apps:"
-            az webapp list --resource-group rgHeblo --query "[].name" -o table
-            exit 1
-          fi
-          
-          echo "🎯 Found test web app: $ACTUAL_WEBAPP_NAME"
+          # Use the main web app for test deployments
+          ACTUAL_WEBAPP_NAME="heblo"
+          echo "🎯 Using web app: $ACTUAL_WEBAPP_NAME"
           
           # Deploy container to the web app
           echo "🐳 Setting Docker container..."
@@ -116,8 +105,8 @@ jobs:
           az webapp config container set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
-            --docker-custom-image-name "$DOCKER_IMAGE" \
-            --docker-registry-server-url https://index.docker.io/v1/
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/
             
           echo "✅ Container deployment completed"
           

@@ -59,8 +59,9 @@ export const fetchRuntimeConfig = async (): Promise<RuntimeConfig> => {
     console.error('Failed to fetch runtime config, falling back to build-time environment variables:', error);
     
     // Fallback to build-time environment variables if runtime config fails
+    // In production, always use current origin to avoid hardcoded development URLs
     cachedConfig = {
-      apiUrl: process.env.REACT_APP_API_URL || window.location.origin,
+      apiUrl: window.location.origin,
       useMockAuth: process.env.REACT_APP_USE_MOCK_AUTH === 'true' || 
                    !process.env.REACT_APP_AZURE_CLIENT_ID || 
                    !process.env.REACT_APP_AZURE_AUTHORITY,

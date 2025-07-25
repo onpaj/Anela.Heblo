@@ -20,12 +20,20 @@ public class ConfigController : ControllerBase
     [HttpGet("client")]
     public IActionResult GetClientConfig()
     {
+        // For production environments, mock auth should be disabled by default
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Development";
+        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        
+        // Use backend configuration for mock auth decision, with environment-based defaults
+        var useMockAuth = _configuration.GetValue<bool>("UseMockAuth", !isProduction);
+        
         var config = new
         {
             ApiUrl = _configuration["REACT_APP_API_URL"] ?? Request.Scheme + "://" + Request.Host,
-            UseMockAuth = bool.Parse(_configuration["REACT_APP_USE_MOCK_AUTH"] ?? "true"),
+            UseMockAuth = useMockAuth,
             AzureClientId = _configuration["REACT_APP_AZURE_CLIENT_ID"] ?? "",
-            AzureAuthority = _configuration["REACT_APP_AZURE_AUTHORITY"] ?? ""
+            AzureAuthority = _configuration["REACT_APP_AZURE_AUTHORITY"] ?? "",
+            Environment = environment
         };
 
         return Ok(config);

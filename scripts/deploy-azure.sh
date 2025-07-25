@@ -25,10 +25,10 @@ if [ "$ENVIRONMENT" = "production" ]; then
     API_URL="https://heblo.azurewebsites.net"
     USE_MOCK_AUTH="false"
 elif [ "$ENVIRONMENT" = "test" ]; then
-    WEBAPP_NAME="heblo-test"
+    WEBAPP_NAME="heblo"  # Same web app for both environments
     SKU="B1"  # Same as production for consistency
     DOCKER_TAG="test-latest"
-    API_URL="https://heblo-test.azurewebsites.net"
+    API_URL="https://heblo.azurewebsites.net"
     USE_MOCK_AUTH="true"
 else
     echo "❌ Invalid environment. Use 'test' or 'production'"
@@ -134,8 +134,8 @@ az webapp config set \
 az webapp config container set \
     --name $WEBAPP_NAME \
     --resource-group $RESOURCE_GROUP \
-    --docker-custom-image-name $DOCKER_IMAGE \
-    --docker-registry-server-url https://index.docker.io/v1/
+    --container-image-name $DOCKER_IMAGE \
+    --container-registry-url https://index.docker.io/v1/
 
 echo "✅ Container configured"
 

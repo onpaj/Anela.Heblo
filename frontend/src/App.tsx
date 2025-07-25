@@ -5,6 +5,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import Layout from './components/Layout/Layout';
 import WeatherTest from './components/pages/WeatherTest';
 import AuthGuard from './components/auth/AuthGuard';
+import { StatusBar } from './components/StatusBar';
 import { fetchRuntimeConfig, RuntimeConfig } from './config/runtimeConfig';
 import './i18n';
 
@@ -81,13 +82,16 @@ function App() {
   }
 
   return (
-    <div className="App" data-testid="app">
+    <div className="App min-h-screen flex flex-col" data-testid="app">
       <MsalProvider instance={msalInstance}>
         <Router>
           <AuthGuard>
-            <Layout>
-              <WeatherTest />
-            </Layout>
+            <div className="flex-1 flex flex-col">
+              <Layout>
+                <WeatherTest />
+              </Layout>
+              <StatusBar />
+            </div>
           </AuthGuard>
         </Router>
       </MsalProvider>
