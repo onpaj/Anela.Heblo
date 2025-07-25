@@ -108,10 +108,11 @@ Pro zjednodušení lokálního vývoje a testování aplikace implementuje **cen
 
 #### 7.1.1 Backend Mock Authentication
 
-**Automatická aktivace:**
-- Automaticky aktivní v prostředích: `Development`, `Automation`, `Test`
-- Lze explicitně nastavit pomocí `"UseMockAuth": true` v konfiguraci
-- V `Production` prostředí je vždy zakázáno
+**Aktivace řízená environment variable:**
+- **Jedné řízeno pomocí `"UseMockAuth": true/false` v konfiguraci**
+- **Nezávisí na konkrétním prostředí** (`Development`, `Production`, atd.)
+- **Výchozí hodnota**: `false` - reálná authentication je default
+- **Explicitně zapnuto**: `"UseMockAuth": true` - mock authentication aktivní
 
 **Implementace:**
 - `MockAuthenticationHandler` (`backend/src/Anela.Heblo.API/Authentication/MockAuthenticationHandler.cs`)
@@ -155,9 +156,11 @@ export const mockAuthService = {
 4. Backend vrací standardní authenticated response
 
 **Aktivace mock mode:**
-- Automaticky aktivní když `REACT_APP_USE_MOCK_AUTH=true`
-- Detekce probíhá v `frontend/src/auth/authConfig.ts`
-- Přepíná mezi MSAL a mock authentication services
+- **Jediný rozhodující faktor**: `REACT_APP_USE_MOCK_AUTH=true/false`
+- **Nezávisí na prostředí** - lze použít v development, test i production
+- **Výchozí hodnota**: `false` - reálná authentication je default
+- **Detekce probíhá v `frontend/src/config/runtimeConfig.ts`**
+- **Přepíná mezi MSAL a mock authentication services**
 
 #### 7.1.3 API Client Integration
 
@@ -202,31 +205,37 @@ dotnet test  # Spustí všechny testy včetně mock authentication
 - ✅ Health endpoints jsou dostupné
 - ✅ Mock authentication funguje správně
 
-### 7.3 Prostředí a konfigurace
+### 7.3 Konfigurace mock authentication
 
-**Development (localhost:3000 + localhost:5000):**
+**Mock authentication zapnutý** (development, testing, demo):
 ```json
+Backend (appsettings.json):
 {
-  "UseMockAuth": true,
-  "ASPNETCORE_ENVIRONMENT": "Development"
+  "UseMockAuth": true
 }
+
+Frontend (.env):
+REACT_APP_USE_MOCK_AUTH=true
 ```
 
-**Automation/Testing (localhost:3001 + localhost:5001):**
+**Real authentication zapnutý** (production, staging):
 ```json
+Backend (appsettings.json):
 {
-  "UseMockAuth": true,
-  "ASPNETCORE_ENVIRONMENT": "Automation"
+  "UseMockAuth": false
 }
+
+Frontend (.env):
+REACT_APP_USE_MOCK_AUTH=false
+REACT_APP_AZURE_CLIENT_ID=your-client-id
+REACT_APP_AZURE_AUTHORITY=https://login.microsoftonline.com/your-tenant-id
 ```
 
-**Production:**
-```json
-{
-  "UseMockAuth": false,
-  "ASPNETCORE_ENVIRONMENT": "Production"
-}
-```
+**DŮLEŽITÉ**: 
+- **Environment (`Development`, `Production`, `Automation`) NEROZHODUJE** o mock authentication
+- **Pouze `UseMockAuth` environment variable řídí chování**
+- **Lze použít mock authentication i v production prostředí** (pro demo účely)
+- **Výchozí hodnota je `false`** - real authentication je default
 
 ## 8. Shrnutí
 
@@ -241,12 +250,14 @@ dotnet test  # Spustí všechny testy včetně mock authentication
 | **Validace tokenu**              | Pomocí knihovny (ne manuálně)                   |
 | **Ochrana endpointů**            | Výchozí stav `[Authorize]`                      |
 | **Hostování**                    | `heblo.pajgrt.cz`, SPA jako statické soubory   |
-| **Mock Authentication**          | **Centralizované řešení pro dev/test**          |
+| **Mock Authentication**          | **Centralizované řešení řízené `UseMockAuth` variable** |
+| **Mock aktivace**                | **Pouze `UseMockAuth=true/false` rozhoduje** |
+| **Mock nezávisí na prostředí**   | **Lze použít v Development, Test, Production** |
 | **Backend Mock**                 | **MockAuthenticationHandler - akceptuje jakýkoliv Bearer token** |
 | **Frontend Mock**                | **mockAuth.ts - generuje fake Bearer token**    |
 | **API Integration**              | **Centralizované v api/client.ts**              |
 | **Testing**                      | **ApplicationStartupTests + mock authentication** |
-| **Prostředí s mock auth**        | **Development, Automation, Test**                |
+| **Výchozí hodnota**              | **`UseMockAuth=false` - real auth je default**  |
 | **Mock token flow**              | **Frontend → fake Bearer token → Backend akceptuje** |
 
 ---

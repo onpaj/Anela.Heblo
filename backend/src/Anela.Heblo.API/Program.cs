@@ -68,30 +68,19 @@ public class Program
         }
 
         // Add services to the container.
-        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth");
-        
-        // Only use mock auth if explicitly configured or in specific development environments
-        if (builder.Environment.EnvironmentName == "Development" || 
-            builder.Environment.EnvironmentName == "Automation" ||
-            builder.Environment.EnvironmentName == "Test")
-        {
-            useMockAuth = true;
-        }
-        
-        // In Production environment, NEVER use mock auth unless explicitly forced
-        if (builder.Environment.EnvironmentName == "Production")
-        {
-            useMockAuth = false;
-        }
+        // Mock authentication is ONLY controlled by UseMockAuth configuration variable
+        // Environment name does NOT influence authentication mode (per updated specification)
+        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth", defaultValue: false);
 
         // Log authentication mode for debugging
         Console.WriteLine($"🔐 Environment: {builder.Environment.EnvironmentName}");
-        Console.WriteLine($"🔐 Using Mock Authentication: {useMockAuth}");
+        Console.WriteLine($"🔐 UseMockAuth configuration: {useMockAuth}");
+        Console.WriteLine($"🔐 Authentication mode determined ONLY by UseMockAuth variable (not environment)");
                          
         if (useMockAuth)
         {
-            // Mock authentication for development and automation
-            Console.WriteLine("🔓 Configuring Mock Authentication for development/testing");
+            // Mock authentication - can be used in any environment when UseMockAuth=true
+            Console.WriteLine("🔓 Configuring Mock Authentication (UseMockAuth=true)");
             builder.Services.AddAuthentication("Mock")
                 .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
             builder.Services.AddAuthorization();
@@ -102,7 +91,7 @@ public class Program
         else
         {
             // Real Microsoft Identity authentication
-            Console.WriteLine("🔒 Configuring Microsoft Identity Authentication for production");
+            Console.WriteLine("🔒 Configuring Microsoft Identity Authentication (UseMockAuth=false)");
             
             // Configure JWT Bearer to accept Microsoft Graph tokens
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -114,6 +103,11 @@ public class Program
                     // Use v1.0 endpoint to match the token issuer
                     options.Authority = $"https://login.microsoftonline.com/{tenantId}";
                     options.MetadataAddress = $"https://login.microsoftonline.com/{tenantId}/.well-known/openid_configuration";
+                    
+                    // Enable automatic retrieval of signing keys from metadata endpoint
+                    options.RequireHttpsMetadata = true;
+                    options.SaveToken = false;
+                    options.IncludeErrorDetails = true;
                     
                     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                     {
@@ -134,7 +128,10 @@ public class Program
                         RequireSignedTokens = true,
                         ClockSkew = TimeSpan.FromMinutes(5),
                         NameClaimType = "name",
-                        RoleClaimType = "roles"
+                        RoleClaimType = "roles",
+                        // Explicitly enable automatic key retrieval
+                        RequireExpirationTime = true,
+                        ValidateTokenReplay = false
                     };
                     
                     // Enable PII logging temporarily for debugging
@@ -144,6 +141,26 @@ public class Program
                     Console.WriteLine($"🔑 JWT Metadata: {options.MetadataAddress}");
                     Console.WriteLine($"🔑 Valid Audiences: {string.Join(", ", options.TokenValidationParameters.ValidAudiences)}");
                     Console.WriteLine($"🔑 Valid Issuers: {string.Join(", ", options.TokenValidationParameters.ValidIssuers)}");
+                    
+                    // Test metadata endpoint accessibility during startup
+                    try
+                    {
+                        using var httpClient = new HttpClient();
+                        var metadataResponse = httpClient.GetAsync(options.MetadataAddress).Result;
+                        Console.WriteLine($"🔑 Metadata endpoint status: {metadataResponse.StatusCode}");
+                        if (!metadataResponse.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"❌ Failed to access metadata endpoint: {options.MetadataAddress}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"✅ Successfully accessed metadata endpoint");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"❌ Error accessing metadata endpoint: {ex.Message}");
+                    }
                     
                     // Log token validation details for debugging
                     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents

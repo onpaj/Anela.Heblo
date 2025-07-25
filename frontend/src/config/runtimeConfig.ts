@@ -25,7 +25,7 @@ const validateEnvironmentVariables = (): string[] => {
     warnings.push('REACT_APP_API_URL not set - using window.location.origin as fallback');
   }
 
-  // Authentication variables - only critical if not using mock auth
+  // Authentication variables - check if required for real auth
   const useMockAuth = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
   
   if (!useMockAuth) {
@@ -36,6 +36,8 @@ const validateEnvironmentVariables = (): string[] => {
     if (!process.env.REACT_APP_AZURE_AUTHORITY) {
       errors.push('REACT_APP_AZURE_AUTHORITY is required for real authentication but not set');
     }
+  } else {
+    console.log('🧪 Mock authentication explicitly enabled via REACT_APP_USE_MOCK_AUTH=true');
   }
 
   // Log warnings
@@ -48,7 +50,10 @@ const validateEnvironmentVariables = (): string[] => {
   if (errors.length > 0) {
     console.error('❌ Configuration errors:');
     errors.forEach(error => console.error(`   - ${error}`));
-    console.error('   🔄 Falling back to mock authentication mode');
+    if (!useMockAuth) {
+      console.error('   💥 Real authentication requested but configuration is invalid');
+      console.error('   🔧 Set REACT_APP_USE_MOCK_AUTH=true to use mock authentication instead');
+    }
   }
 
   return errors;
@@ -69,10 +74,13 @@ export const loadConfig = (): Config => {
   const configErrors = validateEnvironmentVariables();
 
   // Determine if we should use mock auth
-  const shouldUseMock = process.env.REACT_APP_USE_MOCK_AUTH === 'true' || 
-                       !process.env.REACT_APP_AZURE_CLIENT_ID || 
-                       !process.env.REACT_APP_AZURE_AUTHORITY ||
-                       configErrors.length > 0;
+  // According to updated specification: ONLY REACT_APP_USE_MOCK_AUTH decides
+  const shouldUseMock = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
+
+  // If there are config errors and mock auth is not enabled, throw error
+  if (configErrors.length > 0 && !shouldUseMock) {
+    throw new Error(`Configuration errors found and mock authentication is disabled. ${configErrors.join(', ')}`);
+  }
 
   // Use build-time environment variables set during Docker build
   cachedConfig = {
