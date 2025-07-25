@@ -360,6 +360,10 @@ This ensures documentation stays synchronized with actual implementation and arc
 5. **Test responsive behavior** across breakpoints
 6. **Verify accessibility** and keyboard navigation
 7. **Run build** to ensure no compilation errors
+8. **Stick with dev best practices (YAGNI, SOLID, KISS, DRY)**
+9. **Keep code clean and readable - follow established patterns
+10. **Do not hesitate to ask for clarification** if unsure about implementation details or design decisions
+11. **Do not hesitate to propose refactoring** if you see opportunities for improvement
 
 ## Security Rules for Credentials & Secrets
 

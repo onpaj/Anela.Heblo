@@ -29,6 +29,10 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="../Anela.Heblo.Domain/Anela.Heblo.Domain.csproj" />
+    </ItemGroup>
+
     <!-- NSwag tool for OpenAPI client generation -->
     <ItemGroup>
         <PackageReference Include="NSwag.MSBuild" Version="14.1.0">
