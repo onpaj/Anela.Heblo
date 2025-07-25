@@ -21,10 +21,20 @@ public class ConfigurationController : ControllerBase
     {
         try
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            // Priority order for version:
+            // 1. APP_VERSION (set by CI/CD pipeline with GitVersion)
+            // 2. Assembly informational version
+            // 3. Assembly version
+            // 4. Fallback to 1.0.0
+            var version = Environment.GetEnvironmentVariable("APP_VERSION");
+            
+            if (string.IsNullOrEmpty(version))
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                          ?? assembly.GetName().Version?.ToString()
                          ?? "1.0.0";
+            }
 
             var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
             var useMockAuth = _configuration.GetValue<bool>("UseMockAuth", false);

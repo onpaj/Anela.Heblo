@@ -35,7 +35,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔖 Generate semantic version
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v1.1.1
+        with:
+          versionSpec: '5.x'
+
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v1.1.1
+        with:
+          useConfigFile: true
+
+      - name: 🔖 Set version outputs
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -45,24 +56,13 @@ jobs:
             echo "tag=$VERSION" >> $GITHUB_OUTPUT
             echo "📌 Using tag version: $VERSION"
           else
-            # Generate version based on conventional commits
-            # This is a simplified version - in real scenario, use semantic-release or similar
-            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            COMMIT_COUNT=$(git rev-list $LAST_TAG..HEAD --count)
-            
-            if [ $COMMIT_COUNT -eq 0 ]; then
-              VERSION=$LAST_TAG
-            else
-              # Simple versioning - increment patch version
-              VERSION_NUMBER=${LAST_TAG#v}
-              IFS='.' read -ra VERSION_PARTS <<< "$VERSION_NUMBER"
-              PATCH=$((${VERSION_PARTS[2]} + 1))
-              VERSION="v${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$PATCH"
-            fi
-            
+            # Use GitVersion generated version
+            VERSION="v${{ steps.gitversion.outputs.semVer }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "tag=$VERSION" >> $GITHUB_OUTPUT
-            echo "🔢 Generated version: $VERSION"
+            echo "🔢 GitVersion generated: $VERSION"
+            echo "🔢 Full version info: ${{ steps.gitversion.outputs.fullSemVer }}"
+            echo "🔢 Informational version: ${{ steps.gitversion.outputs.informationalVersion }}"
           fi
 
   # Build and Push Docker Image

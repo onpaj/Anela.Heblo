@@ -163,6 +163,12 @@ const WeatherComponent = () => {
 - Playwright for E2E testing and UI validation
 - Port 3000 reserved for development and Playwright testing
 - Component testing with React Testing Library
+- Every time youre about to run playwright tests on local machine, do exactly:
+  - kill all processes on port 3001 and 5001
+  - run server and frontent in background. Dont wait for them, wait just 5 sec and continue with nex step
+  - run ui tests (30 sec timeout each)
+  - wait for tests to complete
+  - kill server and frontend process
 
 ## Environment Configuration
 
@@ -174,18 +180,18 @@ const WeatherComponent = () => {
 
 ## Port Configuration
 
-| Environment | Application Port | Azure Web App | Usage |
-|-------------|------------------|---------------|-------|
-| Development | 3000 (frontend), 44390 (backend) | - | Separate dev servers, Playwright testing |
-| Manual Debug | 3001 (frontend), 44390 (backend) | - | VS Code launch.json debugging |
-| Test | 80 → 443 | https://anela-heblo-test.azurewebsites.net | Single container |
-| Production | 80 → 443 | https://heblo.anela.cz | Single container |
+| Environment | Frontend Port | Backend Port | Container Port | Azure URL | Deployment Type |
+|-------------|---------------|--------------|----------------|-----------|-----------------|
+| **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
+| **Local Automation/Playwright** | 3001 | 5001 | - | - | Separate servers (testing) |
+| **Test Environment** | 8080 | 5000 | 8080 | https://heblo-test.azurewebsites.net | Single container |
+| **Production** | 8080 | 5000 | 8080 | https://heblo.anela.cz | Single container |
 
 ## Deployment Strategy
 
 - **Development/Debug**: 
   - **Frontend**: Standalone React dev server (`npm start`) with **hot reload** (localhost:3000)
-  - **Backend**: ASP.NET Core dev server (`dotnet run`) (https://localhost:44390)
+  - **Backend**: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
   - **Architecture**: **Separate servers** to preserve hot reload functionality for development
   - **CORS**: Configured to allow frontend-backend communication
   - **Authentication**: Mock authentication enabled for both frontend and backend
@@ -194,7 +200,7 @@ const WeatherComponent = () => {
   - **Single Docker container** on Azure Web App for Containers
   - Container serves both React static files and ASP.NET Core API
   - Mock authentication enabled
-  - URL: https://anela-heblo-test.azurewebsites.net
+  - URL: https://heblo-test.azurewebsites.net
 - **Production Environment**:
   - **Single Docker container** on Azure Web App for Containers
   - Container serves both React static files and ASP.NET Core API
@@ -278,6 +284,7 @@ This ensures documentation stays synchronized with actual implementation and arc
 4. **Port Isolation**:
    - **Development**: Frontend 3000 → Backend 5000
    - **Automation/Testing**: Frontend 3001 → Backend 5001
+   - **Test Environment**: Single container on port 8080
    - **Production**: Single container on port 8080
 
 5. **Visual Testing & Validation**:
