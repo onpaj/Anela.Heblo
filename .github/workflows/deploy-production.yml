@@ -110,7 +110,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://heblo.azurewebsites.net
+            REACT_APP_API_URL=https://heblo.anela.cz
 
       - name: 🔖 Create Git Tag
         if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
@@ -268,7 +268,7 @@ jobs:
             --name $ACTUAL_WEBAPP_NAME \
             --settings \
               ASPNETCORE_ENVIRONMENT=Production \
-              REACT_APP_API_URL=https://$WEBAPP_HOSTNAME \
+              REACT_APP_API_URL=https://heblo.anela.cz \
               REACT_APP_USE_MOCK_AUTH=false \
               WEBSITES_PORT=8080 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \

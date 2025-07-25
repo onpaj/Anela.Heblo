@@ -126,6 +126,8 @@ frontend/playwright-screenshots/
 frontend/*.png
 frontend/step*.png
 frontend/error*.png
+frontend/test-results/
+frontend/playwright-report/
 
 # Test results and coverage
 TestResults/
