@@ -45,7 +45,7 @@ WORKDIR /app
 # Copy published backend
 COPY --from=backend-build /app/publish ./
 
-# Copy built React frontend to wwwroot
+# Copy built React frontend to wwwroot (ASP.NET Core serves static files)
 COPY --from=frontend-build /app/frontend/build ./wwwroot
 
 # Configure ASP.NET Core

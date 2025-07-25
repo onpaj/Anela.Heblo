@@ -78,7 +78,7 @@ jobs:
       url: https://heblo.azurewebsites.net
     steps:
       - name: 🔐 Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
 
@@ -95,18 +95,54 @@ jobs:
           DOCKER_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
           echo "📍 Using Docker image: $DOCKER_IMAGE"
           
-          # Force container mode
+          # Configure container deployment using modern approach
+          echo "🔧 Configuring Web App for Container deployment..."
+          
+          # Set the container image directly via config
           az webapp config set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
-            --linux-fx-version "DOCKER|$DOCKER_IMAGE"
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
+            --output none
           
-          # Set container configuration
+          # Configure container registry settings
           az webapp config container set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
             --container-image-name "$DOCKER_IMAGE" \
-            --container-registry-url https://index.docker.io/v1/
+            --container-registry-url https://index.docker.io/v1/ \
+            --output none
+          
+          # Restart web app to ensure container configuration is applied
+          echo "🔄 Restarting web app to apply container configuration..."
+          az webapp restart \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --output none
+          
+          # Wait for restart to complete
+          echo "⏱️ Waiting for restart to complete..."
+          sleep 15
+          
+          # Verify container configuration
+          echo "🔍 Verifying container configuration..."
+          WEBAPP_CONFIG=$(az webapp config show \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query '{linuxFxVersion: linuxFxVersion}' \
+            --output json)
+          
+          LINUX_FX_VERSION=$(echo $WEBAPP_CONFIG | jq -r '.linuxFxVersion')
+          echo "📋 Container Configuration: $LINUX_FX_VERSION"
+          
+          if [[ "$LINUX_FX_VERSION" == DOCKER* ]]; then
+            echo "✅ Container mode successfully configured"
+          else
+            echo "❌ Error: Container mode not properly set"
+            echo "Expected: DOCKER|$DOCKER_IMAGE"
+            echo "Actual: $LINUX_FX_VERSION"
+            exit 1
+          fi
             
           echo "✅ Container deployment completed"
           
@@ -114,7 +150,8 @@ jobs:
           WEBAPP_HOSTNAME=$(az webapp show \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
-            --query "defaultHostName" -o tsv)
+            --query "defaultHostName" \
+            --output tsv)
           
           # Store for later steps
           echo "ACTUAL_WEBAPP_NAME=$ACTUAL_WEBAPP_NAME" >> $GITHUB_ENV

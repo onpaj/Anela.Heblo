@@ -82,16 +82,13 @@ function App() {
   }
 
   return (
-    <div className="App min-h-screen flex flex-col" data-testid="app">
+    <div className="App min-h-screen" data-testid="app">
       <MsalProvider instance={msalInstance}>
         <Router>
           <AuthGuard>
-            <div className="flex-1 flex flex-col">
-              <Layout>
-                <WeatherTest />
-              </Layout>
-              <StatusBar />
-            </div>
+            <Layout statusBar={<StatusBar />}>
+              <WeatherTest />
+            </Layout>
           </AuthGuard>
         </Router>
       </MsalProvider>

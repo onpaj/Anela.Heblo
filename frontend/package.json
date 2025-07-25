@@ -29,13 +29,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "PORT=3000 REACT_APP_API_URL=https://localhost:44390 REACT_APP_USE_MOCK_AUTH=true react-scripts start",
-    "start:test": "PORT=44329 REACT_APP_API_URL=http://localhost:44388 react-scripts start",
-    "start:prod": "PORT=44330 REACT_APP_API_URL=http://localhost:44389 react-scripts start",
-    "build": "REACT_APP_API_URL=https://localhost:44390 react-scripts build",
-    "build:test": "REACT_APP_API_URL=http://localhost:44388 react-scripts build",
-    "build:prod": "REACT_APP_API_URL=http://localhost:44389 react-scripts build",
+    "start": "PORT=3000 REACT_APP_API_URL=http://localhost:5000 REACT_APP_USE_MOCK_AUTH=true react-scripts start",
+    "start:automation": "PORT=3001 REACT_APP_API_URL=http://localhost:5001 REACT_APP_USE_MOCK_AUTH=true react-scripts start",
+    "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:playwright": "npx playwright test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx"
   },

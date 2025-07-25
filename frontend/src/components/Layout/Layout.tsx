@@ -4,9 +4,10 @@ import TopBar from './TopBar';
 
 interface LayoutProps {
   children: React.ReactNode;
+  statusBar?: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -36,6 +37,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </main>
       </div>
+      
+      {/* Status bar with sidebar state */}
+      {statusBar && React.cloneElement(statusBar as React.ReactElement, { sidebarCollapsed })}
     </div>
   );
 };

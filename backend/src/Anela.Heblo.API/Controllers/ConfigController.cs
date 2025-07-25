@@ -23,9 +23,11 @@ public class ConfigController : ControllerBase
         // For production environments, mock auth should be disabled by default
         var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Development";
         var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        var isAutomation = environment.Equals("Automation", StringComparison.OrdinalIgnoreCase);
         
         // Use backend configuration for mock auth decision, with environment-based defaults
-        var useMockAuth = _configuration.GetValue<bool>("UseMockAuth", !isProduction);
+        // Mock auth is enabled for Development, Automation, or when explicitly configured
+        var useMockAuth = _configuration.GetValue<bool>("UseMockAuth", !isProduction || isAutomation);
         
         var config = new
         {

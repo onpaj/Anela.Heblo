@@ -246,48 +246,98 @@ This ensures documentation stays synchronized with actual implementation and arc
 
 ## Frontend Development & Testing Rules
 
-### Playwright Integration
+### Playwright Integration with Automation Environment
 
-**MANDATORY**: When developing, testing, or iterating on frontend components, Claude Code MUST use Playwright for:
+**MANDATORY**: When running Playwright tests, Claude Code MUST ALWAYS use the "automation" environment:
 
-1. **Visual Testing & Validation**:
-   - Use `npx playwright codegen localhost:3000` to record user interactions
-   - Port 3000 is reserved for internal development and Playwright testing
+1. **Automation Environment Configuration**:
+   - **Backend**: Port 5001 with `ASPNETCORE_ENVIRONMENT=Automation`
+   - **Frontend**: Port 3001 with automation-specific configuration
+   - **Mock Authentication**: ALWAYS enabled in automation environment (never validate real Azure AD)
+   - **Configuration Files**: Use `appsettings.Automation.json` for backend settings
+   - **CRITICAL**: Backend Program.cs must recognize "Automation" environment and use mock auth handlers
+
+2. **Required Startup Process**:
+   - **Backend**: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation`
+   - **Frontend**: `cd frontend && npm run start:automation`
+   - **Test URL**: Always use `http://localhost:3001` for Playwright tests
+   - **API URL**: Automation frontend connects to `http://localhost:5001`
+
+3. **Automation Scripts Available**:
+   - `./scripts/start-automation-backend.sh` - Start backend on port 5001
+   - `./scripts/start-automation-frontend.sh` - Start frontend on port 3001  
+   - `./scripts/run-playwright-tests.sh` - Complete test runner with environment setup
+
+4. **Port Isolation**:
+   - **Development**: Frontend 3000 → Backend 5000
+   - **Automation/Testing**: Frontend 3001 → Backend 5001
+   - **Production**: Single container on port 8080
+
+5. **Visual Testing & Validation**:
+   - Use `npx playwright codegen localhost:3001` to record user interactions
+   - Port 3001 is reserved for Playwright testing in automation environment
    - Verify UI changes work correctly across different screen sizes
    - Test responsive behavior (mobile, tablet, desktop breakpoints)
    - Validate component states (hover, active, disabled, etc.)
 
-2. **Interactive Development**:
+6. **Interactive Development**:
    - Test complex user flows (sidebar collapse/expand, form submissions, navigation)
    - Verify accessibility features (keyboard navigation, screen reader compatibility)
    - Validate cross-browser compatibility when needed
 
-3. **Regression Testing**:
+7. **Regression Testing**:
    - After significant UI changes, run tests to ensure existing functionality still works
    - Test component interactions and state management
    - Verify responsive design adaptations
 
-4. **When to Use Playwright**:
+8. **When to Use Playwright**:
    - **Required**: Major layout changes, new component implementations
    - **Required**: Responsive design updates or sidebar behavior changes  
    - **Required**: Form interactions, navigation flows, or state-dependent UI
    - **Optional**: Minor styling tweaks or text changes
 
-5. **Playwright Commands**:
+9. **Playwright Commands (Automation Environment)**:
    - `npx playwright install` - Install browsers (run once)
-   - `npx playwright codegen localhost:3000` - Record interactions for testing
-   - `npx playwright test` - Run existing test suite
+   - `npx playwright codegen localhost:3001` - Record interactions for testing
+   - `./scripts/run-playwright-tests.sh` - Run complete test suite with environment setup
    - `npx playwright test --headed` - Run tests with visible browser
    - `npx playwright show-report` - View test results
+
+10. **Test Organization Structure**:
+    - **UI/Layout Tests**: `/frontend/test/ui/layout/{component}/`
+      - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
+      - `statusbar/` - Status bar positioning, content, responsiveness
+      - `auth/` - Authentication flows, login/logout UI behavior
+      - `topbar/` - Top navigation, menu interactions
+      - `general/` - Overall layout, responsive design, page structure
+    - **Component Tests**: `/frontend/test/components/`
+    - **Integration Tests**: `/frontend/test/integration/`
+    - **E2E Tests**: `/frontend/test/e2e/`
+
+11. **CRITICAL: Background Process Management**:
+    - **ALWAYS run servers in background**: Use `&` at end of commands
+    - **Backend**: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation &`
+    - **Frontend**: `cd frontend && npm run start:automation &`
+    - **Store PIDs**: Capture process IDs for cleanup: `BACKEND_PID=$!` and `FRONTEND_PID=$!`
+    - **MANDATORY Cleanup**: After tests, kill background processes: `kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true`
+    - **Port cleanup**: Also kill by port: `lsof -ti:3001 | xargs kill -9 2>/dev/null || true`
+    - **Never wait for servers to finish**: They run indefinitely, use background execution
+    - **CRITICAL: Never wait after cleanup**: Command must end immediately after killing processes, no waiting!
+    - **PROBLEM**: If tests hang or wait after completion, interrupt immediately
+    - **SOLUTION**: Use `timeout` or ensure command structure ends properly: `command && cleanup || true`
 
 ### Development Workflow
 
 1. **Make UI changes** to React components
-2. **Start dev server** with `npm start`
-3. **Use Playwright** to record and validate interactions
-4. **Test responsive behavior** across breakpoints
-5. **Verify accessibility** and keyboard navigation
-6. **Run build** to ensure no compilation errors
+2. **Start dev server** with `npm start` (development - port 3000)
+3. **For Playwright testing**: Always use automation environment:
+   - Start backend: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation`
+   - Start frontend: `cd frontend && npm run start:automation`
+   - Run tests: `./scripts/run-playwright-tests.sh` or `npx playwright test`
+4. **Use Playwright** to record and validate interactions on `localhost:3001`
+5. **Test responsive behavior** across breakpoints
+6. **Verify accessibility** and keyboard navigation
+7. **Run build** to ensure no compilation errors
 
 ## Security Rules for Credentials & Secrets
 

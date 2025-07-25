@@ -49,14 +49,15 @@
 | Environment | Frontend Port | Backend Port | Container Port | Azure URL | Deployment Type |
 |-------------|---------------|--------------|----------------|-----------|-----------------|
 | **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
-| **Local Docker** | - | - | 8080 | http://localhost:8080 | Single container |
-| **Test Environment** | - | - | 8080 | https://heblo-test.azurewebsites.net | Azure Web App Container |
-| **Production** | - | - | 8080 | https://heblo.azurewebsites.net | Azure Web App Container |
+| **Local Automation/Playwright** | 3001 | 5001 | - | - | Separate servers (testing) |
+| **Test Environment** | 8080 | 5000 | 8080 | https://heblo-test.azurewebsites.net | Single container |
+| **Production** | 8080 | 5000 | 8080 | https://heblo.azurewebsites.net | Single container |
 
 #### Port Details:
 
 - **Local Development**: Frontend dev server (3000) → Backend dev server (5000)
-- **Container Environments**: Single container serving both frontend static files + backend API on port 8080
+- **Local Automation**: Frontend dev server (3001) → Backend dev server (5001) for Playwright testing
+- **Container Environments**: Single container with ASP.NET Core on port 8080 serving both frontend static files and API endpoints
 - **Azure Web Apps**: Container port 8080 mapped to standard HTTPS (443) via Azure Load Balancer
 
 ### Environment Variables Configuration:
@@ -69,11 +70,11 @@ REACT_APP_API_URL=http://localhost:5000
 REACT_APP_USE_MOCK_AUTH=true
 ```
 
-#### **Local Docker (.env.docker):**
+#### **Local Automation/Playwright (.env.automation):**
 ```bash
-# Single container on port 8080
+# Backend runs on port 5001, frontend on 3001 for testing isolation
 ASPNETCORE_ENVIRONMENT=Development
-REACT_APP_API_URL=http://localhost:8080
+REACT_APP_API_URL=http://localhost:5001
 REACT_APP_USE_MOCK_AUTH=true
 ```
 
@@ -104,20 +105,20 @@ WEBSITES_PORT=8080
 - **Backend CORS**: Allow `http://localhost:3000`
 - **API Calls**: `http://localhost:3000` → `http://localhost:5000`
 
-**Local Docker:**
-- **Origin**: `http://localhost:8080`
-- **CORS**: Not needed (same origin)
-- **API Calls**: Internal within container
+**Local Automation/Playwright:**
+- **Frontend Origin**: `http://localhost:3001`
+- **Backend CORS**: Allow `http://localhost:3001`
+- **API Calls**: `http://localhost:3001` → `http://localhost:5001`
 
 **Azure Test Environment:**
 - **Origin**: `https://heblo-test.azurewebsites.net` (actual URL may vary with Azure suffix)
-- **CORS**: Not needed (same origin)
-- **API Calls**: Internal within container
+- **CORS**: Not needed (same origin - ASP.NET Core serves both static files and API)
+- **API Calls**: Internal within ASP.NET Core application
 
 **Azure Production:**
 - **Origin**: `https://heblo.azurewebsites.net` (actual URL may vary with Azure suffix)
-- **CORS**: Not needed (same origin)
-- **API Calls**: Internal within container
+- **CORS**: Not needed (same origin - ASP.NET Core serves both static files and API)
+- **API Calls**: Internal within ASP.NET Core application
 
 #### Azure AD Redirect URI Configuration:
 
@@ -127,9 +128,9 @@ Configure these redirect URIs in Azure Portal → App registrations → Your app
 - `http://localhost:3000` (for React dev server)
 - `http://localhost:3000/auth/callback` (if using callback route)
 
-**Local Docker:**
-- `http://localhost:8080`
-- `http://localhost:8080/auth/callback`
+**Local Automation/Playwright:**
+- `http://localhost:3001` (for React dev server during testing)
+- `http://localhost:3001/auth/callback` (if using callback route)
 
 **Azure Test Environment:**
 - `https://heblo-test.azurewebsites.net`
@@ -324,7 +325,25 @@ Development:           Production/Test:
 
 ---
 
-## 9. 🔧 OpenAPI Client Generation
+## 9. 🧪 Test Organization Structure
+
+**Frontend tests are organized by purpose and scope:**
+
+- **UI/Layout Tests**: `/frontend/test/ui/layout/{component}/`
+  - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
+  - `statusbar/` - Status bar positioning, content, responsiveness  
+  - `auth/` - Authentication flows, login/logout UI behavior
+  - `topbar/` - Top navigation, menu interactions
+  - `general/` - Overall layout, responsive design, page structure
+- **Component Tests**: `/frontend/test/components/` - Individual React component testing
+- **Integration Tests**: `/frontend/test/integration/` - Component interaction testing
+- **E2E Tests**: `/frontend/test/e2e/` - Full user journey testing
+
+**Test Environment**: All Playwright tests MUST use automation environment (ports 3001/5001) with mock authentication.
+
+---
+
+## 10. 🔧 OpenAPI Client Generation
 
 ### Backend C# Client
 

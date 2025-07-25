@@ -12,8 +12,8 @@ const msalConfig = {
   auth: {
     clientId: 'mock-client-id',
     authority: 'https://login.microsoftonline.com/mock-tenant-id',
-    redirectUri: window.location.origin,
-    postLogoutRedirectUri: window.location.origin,
+    redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001',
+    postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001',
     clientCapabilities: ['CP1']
   },
   cache: {

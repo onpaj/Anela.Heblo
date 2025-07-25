@@ -3,9 +3,10 @@ import { getRuntimeConfig } from '../config/runtimeConfig';
 
 interface StatusBarProps {
   className?: string;
+  sidebarCollapsed?: boolean;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ className = '' }) => {
+export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCollapsed = false }) => {
   const [appInfo, setAppInfo] = useState<{
     version: string;
     environment: string;
@@ -46,40 +47,31 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '' }) => {
   const getEnvironmentColor = (env: string) => {
     switch (env.toLowerCase()) {
       case 'production':
-        return 'text-green-600 bg-green-50';
+        return 'text-gray-600 bg-gray-100'; // Default background, primary text color
       case 'test':
-        return 'text-yellow-600 bg-yellow-50';
-      default:
-        return 'text-blue-600 bg-blue-50';
+        return 'text-white bg-green-600'; // Green background, white text
+      default: // Development
+        return 'text-black bg-red-600'; // Red background, black text
     }
   };
 
   const getAuthTypeColor = (mockAuth: boolean) => {
     return mockAuth 
-      ? 'text-orange-600 bg-orange-50' 
-      : 'text-green-600 bg-green-50';
+      ? 'text-black bg-yellow-500 px-2 py-0.5 rounded text-xs' // Warning colors for Mock Auth badge
+      : 'text-gray-600'; // Normal text for Azure AD
   };
 
   return (
-    <div className={`bg-gray-50 border-t border-gray-200 px-4 py-2 text-xs text-gray-600 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <span className="font-medium">
-            Anela Heblo v{appInfo.version}
-          </span>
-          
-          <span className={`px-2 py-1 rounded-full font-medium ${getEnvironmentColor(appInfo.environment)}`}>
-            {appInfo.environment}
-          </span>
-          
-          <span className={`px-2 py-1 rounded-full font-medium ${getAuthTypeColor(appInfo.mockAuth)}`}>
-            {appInfo.mockAuth ? 'Mock Auth' : 'Azure AD'}
-          </span>
-        </div>
-        
-        <div className="text-right text-gray-500">
-          <span>API: {new URL(appInfo.apiUrl).host}</span>
-        </div>
+    <div className={`fixed bottom-0 right-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 py-1 z-10 transition-all duration-300 h-6 ${sidebarCollapsed ? 'left-16' : 'left-64'} ${className}`}>
+      <div className="flex items-center space-x-4">
+        <span>Anela Heblo v{appInfo.version}</span>
+        <span className={`px-2 py-0.5 rounded text-xs ${getEnvironmentColor(appInfo.environment)}`}>
+          {appInfo.environment}
+        </span>
+        <span className={getAuthTypeColor(appInfo.mockAuth)}>
+          {appInfo.mockAuth ? 'Mock Auth' : 'Azure AD'}
+        </span>
+        <span>API: {new URL(appInfo.apiUrl).host}</span>
       </div>
     </div>
   );

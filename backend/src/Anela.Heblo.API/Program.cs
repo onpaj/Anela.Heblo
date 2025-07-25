@@ -15,9 +15,13 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("UseMockAuth"))
+        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth") || 
+                         builder.Environment.IsDevelopment() || 
+                         builder.Environment.EnvironmentName == "Automation";
+                         
+        if (useMockAuth)
         {
-            // Mock authentication for development
+            // Mock authentication for development and automation
             builder.Services.AddAuthentication("Mock")
                 .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
             builder.Services.AddAuthorization();
