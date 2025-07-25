@@ -102,14 +102,21 @@ Tyto údaje jsou používány k identifikaci, zobrazení ve frontend UI a k auto
 
 ## 7. Vývojové prostředí a testování
 
-### 7.1 Mock Authentication pro lokální vývoj
+### 7.1 Mock Authentication – Centralizované řešení
 
-Pro zjednodušení lokálního vývoje aplikace podporuje mock authentication:
+Pro zjednodušení lokálního vývoje a testování aplikace implementuje **centralizované mock authentication** na obou stranách:
 
-**Konfigurace:**
-- Nastavení `"UseMockAuth": true` v `appsettings.Development.json`
-- Mock handler automaticky vytvoří fake přihlášeného uživatele
-- Žádné skutečné Entra ID credentials nejsou potřeba
+#### 7.1.1 Backend Mock Authentication
+
+**Automatická aktivace:**
+- Automaticky aktivní v prostředích: `Development`, `Automation`, `Test`
+- Lze explicitně nastavit pomocí `"UseMockAuth": true` v konfiguraci
+- V `Production` prostředí je vždy zakázáno
+
+**Implementace:**
+- `MockAuthenticationHandler` (`backend/src/Anela.Heblo.API/Authentication/MockAuthenticationHandler.cs`)
+- Automaticky akceptuje jakýkoliv Bearer token bez validace
+- Vytváří standardní `ClaimsPrincipal` s mock daty
 
 **Mock uživatel obsahuje:**
 - User ID: `mock-user-id`
@@ -117,20 +124,69 @@ Pro zjednodušení lokálního vývoje aplikace podporuje mock authentication:
 - Email: `mock@anela-heblo.com`
 - Claims: oid, tid, roles (standardní Entra ID claims)
 
-**Použití:**
-```json
-{
-  "UseMockAuth": true,
-  "ASPNETCORE_ENVIRONMENT": "Development"
-}
+**Služby registrované pro mock mode:**
+- `NoOpTelemetryService` místo `TelemetryService`
+- `null` GraphServiceClient pro controllers, které vyžadují Microsoft Graph
+- Všechny API endpointy fungují bez skutečné authentication
+
+#### 7.1.2 Frontend Mock Authentication
+
+**Centralizované řešení:**
+- Mock authentication je implementováno v `frontend/src/auth/mockAuth.ts`
+- **Nikdy** se neřeší v jednotlivých komponentách
+- Jednotné místo pro všechny mock authentication operace
+
+**Implementace mock authentication:**
+```typescript
+// frontend/src/auth/mockAuth.ts
+export const mockAuthService = {
+  login: () => Promise<AuthResult>,
+  logout: () => void,
+  getUser: () => MockUser | null,
+  isAuthenticated: () => boolean,
+  getAccessToken: () => string // Vrací fake Bearer token
+};
 ```
+
+**Bearer Token Flow v mock režimu:**
+1. Frontend vygeneruje fake Bearer token (např. `"mock-bearer-token"`)
+2. Token se přikládá do všech API volání v `Authorization` hlavičce
+3. Backend `MockAuthenticationHandler` token akceptuje bez validace
+4. Backend vrací standardní authenticated response
+
+**Aktivace mock mode:**
+- Automaticky aktivní když `REACT_APP_USE_MOCK_AUTH=true`
+- Detekce probíhá v `frontend/src/auth/authConfig.ts`
+- Přepíná mezi MSAL a mock authentication services
+
+#### 7.1.3 API Client Integration
+
+**Centralizované použití:**
+```typescript
+// frontend/src/api/client.ts
+const getAuthHeader = async () => {
+  if (useMockAuth) {
+    return `Bearer ${mockAuthService.getAccessToken()}`;
+  } else {
+    const token = await msalInstance.acquireTokenSilent(...);
+    return `Bearer ${token.accessToken}`;
+  }
+};
+```
+
+**Výhody centralizovaného přístupu:**
+- ✅ Komponenty nemusí vědět o mock vs real authentication
+- ✅ Jediné místo pro změny mock behavior
+- ✅ Konzistentní API volání napříč celou aplikací
+- ✅ Snadné přepínání mezi mock a real authentication
 
 ### 7.2 Integration Testing
 
 **Test infrastruktura:**
 - `Microsoft.AspNetCore.Mvc.Testing` pro integration tests
-- `MockAuthenticationHandler` pro simulaci přihlášeného uživatele
-- Testy ověřują funkčnost API bez skutečné authentication
+- `MockAuthenticationHandler` automaticky aktivní v test prostředí
+- Testy ověřují funkčnost API bez skutečné authentication
+- Testy kontrolují startup aplikace a dependency injection
 
 **Spuštění testů:**
 ```bash
@@ -139,20 +195,58 @@ dotnet test  # Spustí všechny testy včetně mock authentication
 
 **Test projekt:** `backend/test/Anela.Heblo.Tests/`
 
+**ApplicationStartupTests ověřují:**
+- ✅ Aplikace startuje úspěšně
+- ✅ Všechny services jsou správně zaregistrované
+- ✅ Controllers jsou resolvable s dependencies
+- ✅ Health endpoints jsou dostupné
+- ✅ Mock authentication funguje správně
+
+### 7.3 Prostředí a konfigurace
+
+**Development (localhost:3000 + localhost:5000):**
+```json
+{
+  "UseMockAuth": true,
+  "ASPNETCORE_ENVIRONMENT": "Development"
+}
+```
+
+**Automation/Testing (localhost:3001 + localhost:5001):**
+```json
+{
+  "UseMockAuth": true,
+  "ASPNETCORE_ENVIRONMENT": "Automation"
+}
+```
+
+**Production:**
+```json
+{
+  "UseMockAuth": false,
+  "ASPNETCORE_ENVIRONMENT": "Production"
+}
+```
+
 ## 8. Shrnutí
 
-| Oblast                  | Přístup                                   |
-|--------------------------|-------------------------------------------|
-| Autentizace              | Microsoft Entra ID                        |
-| Tokeny                   | JWT (Bearer)                              |
-| Frontend login           | Authorization Code flow s PKCE (redirect)|
-| Robotické účty           | Client Credentials flow                   |
-| Role                     | admin, robot                              |
-| Autorizace               | Role-based + Policy-based                 |
-| Validace tokenu          | Pomocí knihovny (ne manuálně)             |
-| Ochrana endpointů        | Výchozí stav `[Authorize]`                |
-| Hostování                | `heblo.pajgrt.cz`, SPA jako statické soubory |
-| **Vývojové prostředí**   | **Mock Authentication (`UseMockAuth: true`)** |
-| **Testing**              | **Integration tests s mock authentication** |
+| Oblast                           | Přístup                                          |
+|----------------------------------|--------------------------------------------------|
+| **Produkční autentizace**        | Microsoft Entra ID                               |
+| **Tokeny**                       | JWT Bearer tokens                                |
+| **Frontend login**               | Authorization Code flow s PKCE (redirect)       |
+| **Robotické účty**               | Client Credentials flow                          |
+| **Role**                         | admin, robot                                     |
+| **Autorizace**                   | Role-based + Policy-based                       |
+| **Validace tokenu**              | Pomocí knihovny (ne manuálně)                   |
+| **Ochrana endpointů**            | Výchozí stav `[Authorize]`                      |
+| **Hostování**                    | `heblo.pajgrt.cz`, SPA jako statické soubory   |
+| **Mock Authentication**          | **Centralizované řešení pro dev/test**          |
+| **Backend Mock**                 | **MockAuthenticationHandler - akceptuje jakýkoliv Bearer token** |
+| **Frontend Mock**                | **mockAuth.ts - generuje fake Bearer token**    |
+| **API Integration**              | **Centralizované v api/client.ts**              |
+| **Testing**                      | **ApplicationStartupTests + mock authentication** |
+| **Prostředí s mock auth**        | **Development, Automation, Test**                |
+| **Mock token flow**              | **Frontend → fake Bearer token → Backend akceptuje** |
 
 ---

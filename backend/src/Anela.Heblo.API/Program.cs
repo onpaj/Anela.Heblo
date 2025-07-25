@@ -50,7 +50,8 @@ public class Program
         
         // Only use mock auth if explicitly configured or in specific development environments
         if (builder.Environment.EnvironmentName == "Development" || 
-            builder.Environment.EnvironmentName == "Automation")
+            builder.Environment.EnvironmentName == "Automation" ||
+            builder.Environment.EnvironmentName == "Test")
         {
             useMockAuth = true;
         }
@@ -72,6 +73,9 @@ public class Program
             builder.Services.AddAuthentication("Mock")
                 .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
             builder.Services.AddAuthorization();
+            
+            // Register a null GraphServiceClient for mock authentication
+            builder.Services.AddSingleton<Microsoft.Graph.GraphServiceClient>(provider => null!);
         }
         else
         {
@@ -99,8 +103,15 @@ public class Program
 
         builder.Services.AddControllers();
         
-        // Register telemetry service
-        builder.Services.AddSingleton<ITelemetryService, TelemetryService>();
+        // Register telemetry service - conditionally based on Application Insights configuration
+        if (!string.IsNullOrEmpty(appInsightsConnectionString))
+        {
+            builder.Services.AddSingleton<ITelemetryService, TelemetryService>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<ITelemetryService, NoOpTelemetryService>();
+        }
 
         // Add health checks
         var healthChecksBuilder = builder.Services.AddHealthChecks();

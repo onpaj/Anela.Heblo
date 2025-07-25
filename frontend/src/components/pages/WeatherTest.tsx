@@ -2,28 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { WeatherForecast } from '../../api/generated/api-client';
 import { getAuthenticatedApiClient } from '../../api/client';
 import { RefreshCw } from 'lucide-react';
-import { useAuth } from '../../auth/useAuth';
-import { useMockAuth } from '../../auth/mockAuth';
-import { shouldUseMockAuth } from '../../config/runtimeConfig';
 
 const WeatherTest: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Always call both hooks, then choose which one to use
-  const realAuth = useAuth();
-  const mockAuth = useMockAuth();
-  
-  // Select the appropriate auth based on configuration
-  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
 
   const fetchWeatherData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const apiClient = getAuthenticatedApiClient(auth.getAccessToken);
+      const apiClient = getAuthenticatedApiClient();
       const data = await apiClient.weatherForecast();
       setWeatherData(data);
     } catch (err) {
@@ -31,7 +21,7 @@ const WeatherTest: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [auth]);
+  }, []);
 
   useEffect(() => {
     fetchWeatherData();

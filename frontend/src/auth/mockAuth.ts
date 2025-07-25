@@ -2,14 +2,26 @@ import { useState, useEffect } from 'react';
 import { UserInfo } from './useAuth';
 import { StoredUserInfo, UserStorage } from './userStorage';
 
+// Types for the centralized mock auth service
+interface AuthResult {
+  success: boolean;
+  user?: UserInfo;
+  error?: string;
+}
+
+interface MockUser extends UserInfo {
+  id: string;
+}
+
 /**
  * Mock authentication for development testing
  * This simulates a successful login without using real credentials
  */
-export const createMockUser = (): UserInfo => {
+export const createMockUser = (): MockUser => {
   return {
+    id: 'mock-user-id',
     name: 'Mock User',
-    email: 'mock.user@example.com',
+    email: 'mock@anela-heblo.com',
     initials: 'MU',
     roles: ['admin'],
   };
@@ -43,7 +55,65 @@ export const mockLoginDelay = (): Promise<void> => {
 };
 
 // Mock user data for development
-const MOCK_USER: UserInfo = createMockUser();
+const MOCK_USER: MockUser = createMockUser();
+
+/**
+ * Centralized Mock Authentication Service
+ * According to documentation specification (Authentication.md section 7.1.2)
+ */
+export const mockAuthService = {
+  /**
+   * Mock login - simulates successful authentication
+   */
+  login: async (): Promise<AuthResult> => {
+    try {
+      await mockLoginDelay();
+      
+      UserStorage.setUserInfo(MOCK_USER);
+      
+      return {
+        success: true,
+        user: MOCK_USER
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed'
+      };
+    }
+  },
+
+  /**
+   * Mock logout - clears user data
+   */
+  logout: (): void => {
+    UserStorage.clearUserInfo();
+  },
+
+  /**
+   * Get current mock user
+   */
+  getUser: (): MockUser | null => {
+    const stored = UserStorage.getUserInfo();
+    return stored ? MOCK_USER : null;
+  },
+
+  /**
+   * Check if user is authenticated (has stored user info)
+   */
+  isAuthenticated: (): boolean => {
+    const stored = UserStorage.getUserInfo();
+    return stored !== null;
+  },
+
+  /**
+   * Get fake Bearer token for API calls
+   * Returns consistent token for mock authentication
+   */
+  getAccessToken: (): string => {
+    return 'mock-bearer-token';
+  }
+};
 
 export const useMockAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);

@@ -213,3 +213,78 @@ public class TelemetryService : ITelemetryService
             productId, oldQuantity, newQuantity, updateReason);
     }
 }
+
+/// <summary>
+/// No-operation implementation of ITelemetryService for development environments 
+/// where Application Insights is not configured
+/// </summary>
+public class NoOpTelemetryService : ITelemetryService
+{
+    private readonly ILogger<NoOpTelemetryService> _logger;
+
+    public NoOpTelemetryService(ILogger<NoOpTelemetryService> logger)
+    {
+        _logger = logger;
+    }
+
+    public void TrackBusinessEvent(string eventName, Dictionary<string, string>? properties = null, Dictionary<string, double>? metrics = null)
+    {
+        _logger.LogDebug("NoOp: TrackBusinessEvent - {EventName}", eventName);
+    }
+
+    public void TrackException(Exception exception, Dictionary<string, string>? properties = null)
+    {
+        _logger.LogError(exception, "NoOp: TrackException");
+    }
+
+    public void TrackMetric(string metricName, double value, Dictionary<string, string>? properties = null)
+    {
+        _logger.LogDebug("NoOp: TrackMetric - {MetricName} = {Value}", metricName, value);
+    }
+
+    public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
+    {
+        _logger.LogDebug("NoOp: TrackDependency - {DependencyName} - {CommandName} - Success: {Success}", 
+            dependencyName, commandName, success);
+    }
+
+    public void TrackInvoiceImport(string invoiceId, bool success, string? error = null)
+    {
+        _logger.LogDebug("NoOp: TrackInvoiceImport - {InvoiceId}, Success: {Success}", invoiceId, success);
+        if (!success && !string.IsNullOrEmpty(error))
+        {
+            _logger.LogError("Invoice import failed for {InvoiceId}: {Error}", invoiceId, error);
+        }
+    }
+
+    public void TrackPaymentImport(string paymentId, bool success, string? error = null)
+    {
+        _logger.LogDebug("NoOp: TrackPaymentImport - {PaymentId}, Success: {Success}", paymentId, success);
+        if (!success && !string.IsNullOrEmpty(error))
+        {
+            _logger.LogError("Payment import failed for {PaymentId}: {Error}", paymentId, error);
+        }
+    }
+
+    public void TrackCatalogSync(int itemsProcessed, TimeSpan duration, bool success, string? error = null)
+    {
+        _logger.LogDebug("NoOp: TrackCatalogSync - Items: {ItemsProcessed}, Duration: {Duration}, Success: {Success}", 
+            itemsProcessed, duration, success);
+        if (!success && !string.IsNullOrEmpty(error))
+        {
+            _logger.LogError("Catalog sync failed after processing {ItemsProcessed} items: {Error}", 
+                itemsProcessed, error);
+        }
+    }
+
+    public void TrackOrderProcessing(string orderId, string status, Dictionary<string, string>? additionalProperties = null)
+    {
+        _logger.LogDebug("NoOp: TrackOrderProcessing - {OrderId}, Status: {Status}", orderId, status);
+    }
+
+    public void TrackInventoryUpdate(string productId, int oldQuantity, int newQuantity, string updateReason)
+    {
+        _logger.LogDebug("NoOp: TrackInventoryUpdate - {ProductId}: {OldQuantity} -> {NewQuantity} ({Reason})", 
+            productId, oldQuantity, newQuantity, updateReason);
+    }
+}

@@ -1,4 +1,19 @@
 import { Configuration } from '@azure/msal-browser';
+import { shouldUseMockAuth } from './mockAuth';
+
+/**
+ * Authentication Configuration
+ * Detects whether to use mock or real authentication according to documentation
+ * (Authentication.md section 7.1.3)
+ */
+
+/**
+ * Check if we should use mock authentication
+ * Detekce probíhá v frontend/src/auth/authConfig.ts
+ */
+export const useMockAuth = (): boolean => {
+  return shouldUseMockAuth();
+};
 
 // MSAL configuration for MS Entra ID authentication
 // These values should be set via environment variables
