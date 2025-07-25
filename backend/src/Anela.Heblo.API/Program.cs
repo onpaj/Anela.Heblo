@@ -1,14 +1,9 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Identity.Web;
-using Microsoft.Identity.Abstractions;
-using Microsoft.Identity.Web.Resource;
 using Microsoft.Extensions.FileProviders;
-using Anela.Heblo.API.Authentication;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Anela.Heblo.API.Services;
+using Anela.Heblo.API.Extensions;
 
 namespace Anela.Heblo.API;
 
@@ -67,130 +62,8 @@ public class Program
             builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
         }
 
-        // Add services to the container.
-        // Mock authentication is ONLY controlled by UseMockAuth configuration variable
-        // Environment name does NOT influence authentication mode (per updated specification)
-        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth", defaultValue: false);
-
-        // Log authentication mode for debugging
-        Console.WriteLine($"🔐 Environment: {builder.Environment.EnvironmentName}");
-        Console.WriteLine($"🔐 UseMockAuth configuration: {useMockAuth}");
-        Console.WriteLine($"🔐 Authentication mode determined ONLY by UseMockAuth variable (not environment)");
-                         
-        if (useMockAuth)
-        {
-            // Mock authentication - can be used in any environment when UseMockAuth=true
-            Console.WriteLine("🔓 Configuring Mock Authentication (UseMockAuth=true)");
-            builder.Services.AddAuthentication("Mock")
-                .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
-            builder.Services.AddAuthorization();
-            
-            // Register a null GraphServiceClient for mock authentication
-            builder.Services.AddSingleton<Microsoft.Graph.GraphServiceClient>(provider => null!);
-        }
-        else
-        {
-            // Real Microsoft Identity authentication
-            Console.WriteLine("🔒 Configuring Microsoft Identity Authentication (UseMockAuth=false)");
-            
-            // Configure JWT Bearer to accept Microsoft Graph tokens
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-                {
-                    var azureAdConfig = builder.Configuration.GetSection("AzureAd");
-                    var tenantId = azureAdConfig["TenantId"];
-                    
-                    // Use v1.0 endpoint to match the token issuer
-                    options.Authority = $"https://login.microsoftonline.com/{tenantId}";
-                    options.MetadataAddress = $"https://login.microsoftonline.com/{tenantId}/.well-known/openid_configuration";
-                    
-                    // Enable automatic retrieval of signing keys from metadata endpoint
-                    options.RequireHttpsMetadata = true;
-                    options.SaveToken = false;
-                    options.IncludeErrorDetails = true;
-                    
-                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-                    {
-                        ValidAudiences = new[]
-                        {
-                            "00000003-0000-0000-c000-000000000000", // Microsoft Graph
-                            azureAdConfig["ClientId"] ?? "" // Also accept tokens for our app
-                        },
-                        ValidIssuers = new[]
-                        {
-                            $"https://sts.windows.net/{tenantId}/", // v1.0 issuer (matches your token)
-                            $"https://login.microsoftonline.com/{tenantId}/v2.0" // v2.0 issuer (fallback)
-                        },
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        RequireSignedTokens = true,
-                        ClockSkew = TimeSpan.FromMinutes(5),
-                        NameClaimType = "name",
-                        RoleClaimType = "roles",
-                        // Explicitly enable automatic key retrieval
-                        RequireExpirationTime = true,
-                        ValidateTokenReplay = false
-                    };
-                    
-                    // Enable PII logging temporarily for debugging
-                    Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test";
-                    
-                    Console.WriteLine($"🔑 JWT Authority: {options.Authority}");
-                    Console.WriteLine($"🔑 JWT Metadata: {options.MetadataAddress}");
-                    Console.WriteLine($"🔑 Valid Audiences: {string.Join(", ", options.TokenValidationParameters.ValidAudiences)}");
-                    Console.WriteLine($"🔑 Valid Issuers: {string.Join(", ", options.TokenValidationParameters.ValidIssuers)}");
-                    
-                    // Test metadata endpoint accessibility during startup
-                    try
-                    {
-                        using var httpClient = new HttpClient();
-                        var metadataResponse = httpClient.GetAsync(options.MetadataAddress).Result;
-                        Console.WriteLine($"🔑 Metadata endpoint status: {metadataResponse.StatusCode}");
-                        if (!metadataResponse.IsSuccessStatusCode)
-                        {
-                            Console.WriteLine($"❌ Failed to access metadata endpoint: {options.MetadataAddress}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"✅ Successfully accessed metadata endpoint");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"❌ Error accessing metadata endpoint: {ex.Message}");
-                    }
-                    
-                    // Log token validation details for debugging
-                    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-                    {
-                        OnAuthenticationFailed = context =>
-                        {
-                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                            logger.LogError("JWT Authentication failed: {Error} | Path: {Path} | UserAgent: {UserAgent}", 
-                                context.Exception.Message, 
-                                context.Request.Path,
-                                context.Request.Headers.UserAgent.FirstOrDefault());
-                            return Task.CompletedTask;
-                        },
-                        OnTokenValidated = context =>
-                        {
-                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                            var audience = context.Principal?.FindFirst("aud")?.Value ?? "unknown";
-                            var issuer = context.Principal?.FindFirst("iss")?.Value ?? "unknown";
-                            var userName = context.Principal?.FindFirst("name")?.Value ?? "unknown";
-                            
-                            logger.LogInformation("JWT Token validated successfully | User: {UserName} | Audience: {Audience} | Issuer: {Issuer} | Path: {Path}",
-                                userName, audience, issuer, context.Request.Path);
-                            return Task.CompletedTask;
-                        }
-                    };
-                });
-
-            // Still add Microsoft Graph support for downstream API calls
-            builder.Services.AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"));
-        }
+        // Configure authentication using extension method
+        builder.Services.ConfigureAuthentication(builder);
 
         // Add CORS
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
