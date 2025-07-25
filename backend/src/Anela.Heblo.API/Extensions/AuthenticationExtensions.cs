@@ -23,7 +23,7 @@ public static class AuthenticationExtensions
         Console.WriteLine($"🔐 Environment: {builder.Environment.EnvironmentName}");
         Console.WriteLine($"🔐 UseMockAuth configuration: {useMockAuth}");
         Console.WriteLine($"🔐 BypassJwtValidation configuration: {bypassJwtValidation}");
-        
+
         // If bypass is enabled, just use mock auth - no JWT validation at all
         if (bypassJwtValidation)
         {
@@ -51,7 +51,7 @@ public static class AuthenticationExtensions
         services.AddAuthentication("Mock")
             .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
         services.AddAuthorization();
-        
+
         // Register a null GraphServiceClient for mock authentication
         services.AddSingleton<Microsoft.Graph.GraphServiceClient?>(provider => null);
     }
@@ -60,7 +60,7 @@ public static class AuthenticationExtensions
     {
         // Real Microsoft Identity authentication
         Console.WriteLine("🔒 Configuring Microsoft Identity Authentication (UseMockAuth=false)");
-        
+
         if (bypassJwtValidation)
         {
             Console.WriteLine("🔓 BypassJwtValidation=true - Using Mock Authentication instead of broken JWT validation");

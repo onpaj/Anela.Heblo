@@ -1,4 +1,4 @@
-namespace Anela.Heblo.API;
+namespace Anela.Heblo.Domain.Entities;
 
 public class WeatherForecast
 {

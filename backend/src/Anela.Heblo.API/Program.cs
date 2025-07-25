@@ -2,8 +2,10 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.API.Services;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.Application.Interfaces;
+using Anela.Heblo.Application.Services;
+using Anela.Heblo.Infrastructure.Services;
 
 namespace Anela.Heblo.API;
 
@@ -16,12 +18,12 @@ public class Program
         // Configure logging first
         builder.Logging.ClearProviders();
         builder.Logging.AddConsole(); // Always add console logging for container stdout
-        
+
         // Add Application Insights
-        var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"] 
+        var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"]
                                         ?? builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]
                                         ?? builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-        
+
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
             builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
@@ -36,13 +38,13 @@ public class Program
                 EnableAppServicesHeartbeatTelemetryModule = true,
                 DeveloperMode = builder.Environment.IsDevelopment()
             });
-            
+
             // Add logging to Application Insights
             builder.Logging.AddApplicationInsights(
                 configureTelemetryConfiguration: (config) => config.ConnectionString = appInsightsConnectionString,
                 configureApplicationInsightsLoggerOptions: (options) => { }
             );
-            
+
             Console.WriteLine($"📊 Application Insights configured for {builder.Environment.EnvironmentName}");
             Console.WriteLine($"📊 Connection String: {appInsightsConnectionString[..20]}...");
         }
@@ -51,10 +53,10 @@ public class Program
             Console.WriteLine("⚠️ Application Insights not configured - missing ConnectionString");
             Console.WriteLine("⚠️ Checked: ApplicationInsights:ConnectionString, APPINSIGHTS_INSTRUMENTATIONKEY, APPLICATIONINSIGHTS_CONNECTION_STRING");
         }
-        
+
         // Configure logging levels
         builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
-        
+
         // Add structured logging for better Application Insights experience  
         if (builder.Environment.IsProduction())
         {
@@ -79,27 +81,34 @@ public class Program
         });
 
         builder.Services.AddControllers();
-        
+
+        // Register HttpContextAccessor for user service
+        builder.Services.AddHttpContextAccessor();
+
+        // Register Application Services
+        builder.Services.AddScoped<IWeatherService, WeatherService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+
         // Register telemetry service - conditionally based on Application Insights configuration
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
-            builder.Services.AddSingleton<ITelemetryService, TelemetryService>();
+            builder.Services.AddSingleton<ITelemetryService, Anela.Heblo.Infrastructure.Services.TelemetryService>();
         }
         else
         {
-            builder.Services.AddSingleton<ITelemetryService, NoOpTelemetryService>();
+            builder.Services.AddSingleton<ITelemetryService, Anela.Heblo.Infrastructure.Services.NoOpTelemetryService>();
         }
 
         // Add health checks
         var healthChecksBuilder = builder.Services.AddHealthChecks();
-        
+
         // Add database health check if connection string exists
         var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
         if (!string.IsNullOrEmpty(dbConnectionString))
         {
             healthChecksBuilder.AddNpgSql(dbConnectionString, name: "database", tags: new[] { "db", "postgresql" });
         }
-        
+
         // Application Insights telemetry is automatically integrated via AddApplicationInsightsTelemetry
 
         // Add SPA static files support

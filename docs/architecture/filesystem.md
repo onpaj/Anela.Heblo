@@ -46,6 +46,8 @@ This document defines the project's directory structure and filesystem organizat
 ├── docker-compose.yml # For local dev/test if needed
 └── .dockerignore   # Docker build optimization
 ```
+- **Files should be kept in layers together by features (vertical slices), not by type (horizontal slices)**
+  - **Example**: `backend/src/Anela.Heblo.Application/UserManagement including both interface and service implementation`
 
 ---
 
@@ -97,6 +99,8 @@ This document defines the project's directory structure and filesystem organizat
 - **Tool**: NSwag with System.Text.Json
 - **Output**: `Generated/AnelaHebloApiClient.cs`
 - **Manual Generation**: Scripts available (`generate-client.ps1`, `generate-client.sh`)
+
+  
 
 ### Frontend TypeScript Client
 

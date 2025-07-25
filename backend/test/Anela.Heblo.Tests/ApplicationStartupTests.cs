@@ -5,7 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Anela.Heblo.API;
-using Anela.Heblo.API.Services;
+using Anela.Heblo.Application.Interfaces;
+using Anela.Heblo.Infrastructure.Services;
 using Anela.Heblo.API.Controllers;
 using Xunit.Abstractions;
 
@@ -41,7 +42,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
     {
         // Arrange & Act
         using var client = _factory.CreateClient();
-        
+
         // Assert - If we get here, the application started successfully
         Assert.NotNull(client);
         _output.WriteLine("✅ Application started successfully");
@@ -53,7 +54,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
-        
+
         // Get all controller types
         var controllerTypes = typeof(Program).Assembly
             .GetTypes()
@@ -61,7 +62,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
             .ToList();
 
         _output.WriteLine($"Found {controllerTypes.Count} controller types:");
-        
+
         // Act & Assert
         foreach (var controllerType in controllerTypes)
         {
@@ -71,15 +72,15 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                 var constructors = controllerType.GetConstructors();
                 var constructor = constructors.OrderBy(c => c.GetParameters().Length).First();
                 var parameters = constructor.GetParameters();
-                
+
                 var args = new object[parameters.Length];
                 for (int i = 0; i < parameters.Length; i++)
                 {
                     var paramType = parameters[i].ParameterType;
                     var paramInfo = parameters[i];
-                    
+
                     // Handle optional parameters or nullable types
-                    if (paramInfo.HasDefaultValue || 
+                    if (paramInfo.HasDefaultValue ||
                         (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>)) ||
                         paramType.Name.EndsWith("?"))
                     {
@@ -90,7 +91,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                         args[i] = serviceProvider.GetRequiredService(paramType);
                     }
                 }
-                
+
                 var controller = Activator.CreateInstance(controllerType, args);
                 Assert.NotNull(controller);
                 _output.WriteLine($"✅ Successfully resolved {controllerType.Name}");
@@ -146,7 +147,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
 
         // Assert
         Assert.NotNull(telemetryService);
-        
+
         // In test environment (no Application Insights), should use NoOpTelemetryService
         Assert.IsType<NoOpTelemetryService>(telemetryService);
         _output.WriteLine("✅ NoOpTelemetryService is correctly registered for test environment");
@@ -166,13 +167,13 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         // /health and /health/ready might fail if database is not available, which is expected in test environment
         var healthResponse = await client.GetAsync("/health");
         _output.WriteLine($"ℹ️ /health returned status: {healthResponse.StatusCode}");
-        
+
         var readyResponse = await client.GetAsync("/health/ready");
         _output.WriteLine($"ℹ️ /health/ready returned status: {readyResponse.StatusCode}");
-        
+
         // In test environment, we expect database to be unavailable, so 503 is acceptable
         // The important thing is that the endpoints are responding and not throwing exceptions
-        Assert.True(healthResponse.StatusCode == System.Net.HttpStatusCode.OK || 
+        Assert.True(healthResponse.StatusCode == System.Net.HttpStatusCode.OK ||
                    healthResponse.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable,
                    $"Health endpoint returned unexpected status: {healthResponse.StatusCode}");
     }
@@ -220,7 +221,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         Assert.NotNull(hostEnvironment);
         _output.WriteLine($"✅ Environment: {hostEnvironment.EnvironmentName}");
-        
+
         // In test environment, mock auth should be enabled
         // This is verified by the fact that the application starts without real Azure AD configuration
         _output.WriteLine("✅ Mock authentication is working (application started without Azure AD config)");

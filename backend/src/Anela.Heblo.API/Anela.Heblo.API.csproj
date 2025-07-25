@@ -30,7 +30,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../Anela.Heblo.Domain/Anela.Heblo.Domain.csproj" />
+        <ProjectReference Include="../Anela.Heblo.Application/Anela.Heblo.Application.csproj" />
+        <ProjectReference Include="../Anela.Heblo.Infrastructure/Anela.Heblo.Infrastructure.csproj" />
     </ItemGroup>
 
     <!-- NSwag tool for OpenAPI client generation -->
