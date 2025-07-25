@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ApiClient, WeatherForecast } from '../../api/generated/api-client';
+import { WeatherForecast } from '../../api/generated/api-client';
+import { getApiClient } from '../../api/client';
 import { RefreshCw } from 'lucide-react';
 
 const WeatherTest: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiClient] = useState(() => new ApiClient(process.env.REACT_APP_API_BASE_URL));
 
   const fetchWeatherData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
+      const apiClient = getApiClient();
       const data = await apiClient.weatherForecast();
       setWeatherData(data);
     } catch (err) {
@@ -20,7 +21,7 @@ const WeatherTest: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiClient]);
+  }, []);
 
   useEffect(() => {
     fetchWeatherData();

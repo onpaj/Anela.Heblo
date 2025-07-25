@@ -23,7 +23,7 @@ if (fs.existsSync(OUTPUT_FILE)) {
 // Check if API is running
 console.log('🌐 Checking if API is accessible...');
 try {
-  execSync('curl -f -s "http://localhost:5000/swagger/v1/swagger.json" > /dev/null', { 
+  execSync('curl -f -s "http://localhost:8080/swagger/v1/swagger.json" > /dev/null', { 
     stdio: 'pipe',
     timeout: 3000 
   });
@@ -54,7 +54,7 @@ try {
 //----------------------
 
 export class AnelaHebloApiClient {
-  constructor(private baseUrl: string = 'http://localhost:5000') {}
+  constructor(private baseUrl: string = 'http://localhost:8080') {}
   
   // Placeholder - will be replaced when API client is generated
 }

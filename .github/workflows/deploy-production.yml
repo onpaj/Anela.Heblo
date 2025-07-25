@@ -158,10 +158,14 @@ jobs:
           
           # Deploy container to the web app
           echo "🐳 Setting Docker container..."
+          # Extract first Docker image tag (in case of multiple tags)
+          DOCKER_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
+          echo "📍 Using Docker image: $DOCKER_IMAGE"
+          
           az webapp config container set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \
-            --docker-custom-image-name ${{ needs.build-and-push.outputs.image-tag }} \
+            --docker-custom-image-name "$DOCKER_IMAGE" \
             --docker-registry-server-url https://index.docker.io/v1/
             
           echo "✅ Container deployment completed"

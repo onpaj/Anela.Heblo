@@ -46,30 +46,108 @@
 
 ### Port Configuration:
 
-| Environment | Application Port | Azure Web App | Note |
-|-------------|------------------|---------------|------|
-| Development | 3000 (frontend), 44390 (backend) | - | Separate dev servers |
-| Test | 80 | https://anela-heblo-test.azurewebsites.net | Single container |
-| Production | 80 | https://anela-heblo.azurewebsites.net | Single container |
+| Environment | Frontend Port | Backend Port | Container Port | Azure URL | Deployment Type |
+|-------------|---------------|--------------|----------------|-----------|-----------------|
+| **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
+| **Local Docker** | - | - | 8080 | http://localhost:8080 | Single container |
+| **Test Environment** | - | - | 8080 | https://heblo-test.azurewebsites.net | Azure Web App Container |
+| **Production** | - | - | 8080 | https://heblo.azurewebsites.net | Azure Web App Container |
 
-### Example `.env`:
+#### Port Details:
 
-```
-# Development (separate servers)
+- **Local Development**: Frontend dev server (3000) → Backend dev server (5000)
+- **Container Environments**: Single container serving both frontend static files + backend API on port 8080
+- **Azure Web Apps**: Container port 8080 mapped to standard HTTPS (443) via Azure Load Balancer
+
+### Environment Variables Configuration:
+
+#### **Local Development (.env.local):**
+```bash
+# Backend runs on port 5000, frontend on 3000
 ASPNETCORE_ENVIRONMENT=Development
-REACT_APP_API_BASE_URL=https://localhost:44390
+REACT_APP_API_URL=http://localhost:5000
 REACT_APP_USE_MOCK_AUTH=true
-
-# Test Environment (single container)
-ASPNETCORE_ENVIRONMENT=Test
-REACT_APP_API_BASE_URL=https://anela-heblo-test.azurewebsites.net
-REACT_APP_USE_MOCK_AUTH=true
-
-# Production (single container)
-ASPNETCORE_ENVIRONMENT=Production
-REACT_APP_API_BASE_URL=https://anela-heblo.azurewebsites.net
-REACT_APP_USE_MOCK_AUTH=false
 ```
+
+#### **Local Docker (.env.docker):**
+```bash
+# Single container on port 8080
+ASPNETCORE_ENVIRONMENT=Development
+REACT_APP_API_URL=http://localhost:8080
+REACT_APP_USE_MOCK_AUTH=true
+```
+
+#### **Azure Test Environment (Azure App Settings):**
+```bash
+ASPNETCORE_ENVIRONMENT=Test
+REACT_APP_API_URL=https://heblo-test.azurewebsites.net
+REACT_APP_USE_MOCK_AUTH=true
+WEBSITES_PORT=8080
+```
+
+#### **Azure Production Environment (Azure App Settings):**
+```bash
+ASPNETCORE_ENVIRONMENT=Production
+REACT_APP_API_URL=https://heblo.azurewebsites.net
+REACT_APP_USE_MOCK_AUTH=false
+REACT_APP_AZURE_CLIENT_ID=[SET_VIA_SECRETS]
+REACT_APP_AZURE_AUTHORITY=[SET_VIA_SECRETS]
+WEBSITES_PORT=8080
+```
+
+### CORS and Azure AD Redirect URI Configuration
+
+#### CORS Policy Configuration:
+
+**Local Development:**
+- **Frontend Origin**: `http://localhost:3000`
+- **Backend CORS**: Allow `http://localhost:3000`
+- **API Calls**: `http://localhost:3000` → `http://localhost:5000`
+
+**Local Docker:**
+- **Origin**: `http://localhost:8080`
+- **CORS**: Not needed (same origin)
+- **API Calls**: Internal within container
+
+**Azure Test Environment:**
+- **Origin**: `https://heblo-test.azurewebsites.net` (actual URL may vary with Azure suffix)
+- **CORS**: Not needed (same origin)
+- **API Calls**: Internal within container
+
+**Azure Production:**
+- **Origin**: `https://heblo.azurewebsites.net` (actual URL may vary with Azure suffix)
+- **CORS**: Not needed (same origin)
+- **API Calls**: Internal within container
+
+#### Azure AD Redirect URI Configuration:
+
+Configure these redirect URIs in Azure Portal → App registrations → Your app → Authentication:
+
+**Local Development:**
+- `http://localhost:3000` (for React dev server)
+- `http://localhost:3000/auth/callback` (if using callback route)
+
+**Local Docker:**
+- `http://localhost:8080`
+- `http://localhost:8080/auth/callback`
+
+**Azure Test Environment:**
+- `https://heblo-test.azurewebsites.net`
+- `https://heblo-test.azurewebsites.net/auth/callback`
+- **Note**: Update with actual Azure-generated URL (e.g., `https://heblo-test-xyz123.azurewebsites.net`)
+
+**Azure Production:**
+- `https://heblo.azurewebsites.net`
+- `https://heblo.azurewebsites.net/auth/callback`
+- **Note**: Update with actual Azure-generated URL (e.g., `https://heblo-xyz123.azurewebsites.net`)
+
+#### Implementation Notes:
+
+1. **Single Origin Strategy**: Container environments use same origin for frontend and backend, eliminating CORS issues
+2. **Development CORS**: Only needed for local development with separate servers
+3. **Dynamic URLs**: Azure may append random suffixes to web app names - update redirect URIs accordingly
+4. **HTTPS Required**: Azure AD requires HTTPS for production redirect URIs
+5. **Callback Routes**: Optional - MSAL can handle auth without explicit callback routes
 
 ---
 
@@ -86,18 +164,33 @@ REACT_APP_USE_MOCK_AUTH=false
 
 - **Development/Debug**: 
   - **Frontend**: Standalone React dev server (`npm start`) with **hot reload** (localhost:3000)
-  - **Backend**: ASP.NET Core dev server (`dotnet run`) (localhost:44390)
+  - **Backend**: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
   - **Architecture**: **Separate servers** to preserve hot reload functionality for development
   - **CORS**: Configured for cross-origin requests between frontend and backend
   - **Authentication**: Mock authentication enabled for both frontend and backend
   - **Why separate**: Hot reload requires React dev server - single container would disable this critical development feature
-- **Test Environment**:
-  - **Single Docker container** hosted on **Azure Web App for Containers**
+
+- **Local Docker Testing**:
+  - **Single Docker container** running on port 8080
   - Container serves both React static files and ASP.NET Core API
-  - URL: `https://anela-heblo-test.azurewebsites.net`
-  - Mock authentication enabled
-- **Production**: 
+  - URL: `http://localhost:8080`
+  - Used for testing production-like environment locally
+
+- **Azure Test Environment**:
   - **Single Docker container** hosted on **Azure Web App for Containers**
+  - **Resource Group**: `rgHeblo`
+  - **Web App**: `heblo-test` (Azure may append random suffix)
+  - **URL**: `https://heblo-test.azurewebsites.net` (actual URL may vary)
+  - **Container Port**: 8080
+  - **Authentication**: Mock authentication enabled
+
+- **Azure Production Environment**: 
+  - **Single Docker container** hosted on **Azure Web App for Containers**
+  - **Resource Group**: `rgHeblo` (shared with test)
+  - **Web App**: `heblo` (Azure may append random suffix)
+  - **URL**: `https://heblo.azurewebsites.net` (actual URL may vary)
+  - **Container Port**: 8080
+  - **Authentication**: Azure AD (Microsoft Entra ID)
   - Container serves both React static files and ASP.NET Core API
   - URL: `https://anela-heblo.azurewebsites.net`
   - Real Microsoft Entra ID authentication

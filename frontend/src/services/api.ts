@@ -2,10 +2,9 @@
 // This will be replaced with OpenAPI generated client later
 
 // Port configuration:
-// Development: 3000 (frontend) -> 5000 (backend)
-// Test environment: 44329 (frontend) -> 44388 (backend)
-// Production: 44330 (frontend) -> 44389 (backend)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Development: 3000 (frontend) -> 8080 (backend in container) OR 5000 (backend direct)
+// Production: Container runs on 8080, served via Azure Web App
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 export class ApiClient {
   private baseUrl: string;

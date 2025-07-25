@@ -26,13 +26,13 @@ try {
   // Check if API is accessible
   console.log('🌐 Checking API accessibility...');
   try {
-    execSync('curl -s "http://localhost:5000/swagger/v1/swagger.json" > /dev/null', { 
+    execSync('curl -s "http://localhost:8080/swagger/v1/swagger.json" > /dev/null', { 
       stdio: 'pipe',
       timeout: 5000 
     });
     console.log('✅ API is accessible');
   } catch (error) {
-    console.warn('⚠️  Warning: API might not be running on localhost:5000');
+    console.warn('⚠️  Warning: API might not be running on localhost:8080');
     console.log('   Make sure the backend API is running before generating the client');
     console.log('   You can start it with: cd ../backend/src/Anela.Heblo.API && dotnet run');
   }
@@ -84,7 +84,7 @@ try {
     console.error('❌ Failed to generate API client:', error.message);
     console.log('\n💡 Troubleshooting:');
     console.log('   1. Make sure NSwag is installed: dotnet tool install -g NSwag.ConsoleCore');
-    console.log('   2. Ensure the backend API is running on localhost:5000');
+    console.log('   2. Ensure the backend API is running on localhost:8080');
     console.log('   3. Check that the API exposes Swagger at /swagger/v1/swagger.json');
     process.exit(1);
   }

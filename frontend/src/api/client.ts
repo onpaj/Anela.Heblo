@@ -1,14 +1,29 @@
 // API client configuration and TanStack Query integration
 import { ApiClient } from './generated/api-client';
+import { getRuntimeConfig } from '../config/runtimeConfig';
 
-// Create API client instance
-const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-export const apiClient = new ApiClient(apiBaseUrl);
+// Create API client instance with runtime configuration
+let apiClient: ApiClient;
+
+export const getApiClient = (): ApiClient => {
+  if (!apiClient) {
+    // This will be called after runtime config is loaded
+    const config = getRuntimeConfig();
+    apiClient = new ApiClient(config.apiUrl);
+  }
+  return apiClient;
+};
+
+// Legacy export for backward compatibility
+export { getApiClient as apiClient };
 
 // API client configuration
-export const API_CONFIG = {
-  baseUrl: apiBaseUrl,
-  timeout: 30000, // 30 seconds
+export const getApiConfig = () => {
+  const config = getRuntimeConfig();
+  return {
+    baseUrl: config.apiUrl,
+    timeout: 30000, // 30 seconds
+  };
 };
 
 // Query keys for TanStack Query

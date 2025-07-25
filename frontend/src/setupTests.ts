@@ -176,7 +176,7 @@ global.fetch = jest.fn(() =>
     ok: true,
     status: 200,
     json: () => Promise.resolve({
-      apiUrl: 'http://localhost:5000',
+      apiUrl: 'http://localhost:8080',
       useMockAuth: true,
       azureClientId: 'mock-client-id',
       azureAuthority: 'https://login.microsoftonline.com/mock-tenant-id'

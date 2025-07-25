@@ -6,7 +6,7 @@ FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
 # Accept build arguments for React environment variables (non-secret only)
-ARG REACT_APP_API_URL=http://localhost:5000
+ARG REACT_APP_API_URL=http://localhost:8080
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 # Copy package files and install all dependencies (needed for build)

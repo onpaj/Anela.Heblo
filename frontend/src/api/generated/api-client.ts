@@ -16,7 +16,7 @@ export class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || 'http://localhost:5000';
+    this.baseUrl = baseUrl || 'http://localhost:8080';
   }
 
   async weatherForecast(): Promise<WeatherForecast[]> {

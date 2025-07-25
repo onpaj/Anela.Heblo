@@ -18,7 +18,7 @@ Standalone React PWA aplikace pro kosmetickou společnost Anela Heblo.
 # Instalace závislostí
 npm install
 
-# Development (localhost:3000 -> backend localhost:5000)
+# Development (localhost:3000 -> backend localhost:8080)
 npm start
 
 # Test environment (localhost:44329 -> backend localhost:44388)
