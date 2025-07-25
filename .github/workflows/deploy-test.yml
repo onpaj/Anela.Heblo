@@ -64,7 +64,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://heblo.azurewebsites.net
+            REACT_APP_API_URL=https://heblo.anela.cz
 
   # Deploy to Azure Web App
   deploy-azure:
@@ -75,7 +75,7 @@ jobs:
       webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     environment:
       name: test
-      url: https://heblo.azurewebsites.net
+      url: https://heblo.anela.cz
     steps:
       - name: 🔐 Azure Login
         uses: azure/login@v2

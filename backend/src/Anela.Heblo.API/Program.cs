@@ -81,11 +81,56 @@ public class Program
         {
             // Real Microsoft Identity authentication
             Console.WriteLine("🔒 Configuring Microsoft Identity Authentication for production");
+            
+            // Configure JWT Bearer to accept Microsoft Graph tokens
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
-                .EnableTokenAcquisitionToCallDownstreamApi()
-                .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
-                .AddInMemoryTokenCaches();
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+                {
+                    var azureAdConfig = builder.Configuration.GetSection("AzureAd");
+                    var tenantId = azureAdConfig["TenantId"];
+                    
+                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidAudiences = new[]
+                        {
+                            "00000003-0000-0000-c000-000000000000", // Microsoft Graph
+                            azureAdConfig["ClientId"] // Also accept tokens for our app
+                        },
+                        ValidIssuers = new[]
+                        {
+                            $"https://login.microsoftonline.com/{tenantId}/v2.0",
+                            $"https://sts.windows.net/{tenantId}/"
+                        },
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ClockSkew = TimeSpan.FromMinutes(5)
+                    };
+                    
+                    // Log token validation details for debugging
+                    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                    {
+                        OnAuthenticationFailed = context =>
+                        {
+                            Console.WriteLine($"❌ JWT Authentication failed: {context.Exception.Message}");
+                            return Task.CompletedTask;
+                        },
+                        OnTokenValidated = context =>
+                        {
+                            Console.WriteLine("✅ JWT Token validated successfully");
+                            var audience = context.Principal?.FindFirst("aud")?.Value;
+                            var issuer = context.Principal?.FindFirst("iss")?.Value;
+                            Console.WriteLine($"   Audience: {audience}");
+                            Console.WriteLine($"   Issuer: {issuer}");
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+
+            // Still add Microsoft Graph support for downstream API calls
+            builder.Services.AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"));
         }
 
         // Add CORS
