@@ -20,6 +20,8 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        console.log('🚀 Initializing Anela Heblo application...');
+        
         // Load configuration from environment variables
         const appConfig = loadConfig();
         setConfig(appConfig);
@@ -43,15 +45,18 @@ function App() {
         };
 
         // Create MSAL instance with app configuration
+        console.log('📱 Creating MSAL instance...');
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
 
         // Set global token provider for API client
         if (!appConfig.useMockAuth) {
+          console.log('🔐 Setting up real authentication token provider');
           setGlobalTokenProvider(async () => {
             try {
               const accounts = instance.getAllAccounts();
               if (accounts.length === 0) {
+                console.warn('No accounts found in MSAL instance');
                 return null;
               }
               
@@ -61,17 +66,36 @@ function App() {
                 account: account,
               });
               
+              console.log('✅ Token acquired successfully');
               return response.accessToken;
             } catch (error) {
-              console.error('Failed to acquire token in global provider:', error);
+              console.error('❌ Failed to acquire token in global provider:', error);
               return null;
             }
           });
+        } else {
+          console.log('🧪 Using mock authentication - no token provider needed');
         }
+
+        console.log('✅ Application initialized successfully');
         
       } catch (err) {
-        console.error('Failed to initialize app:', err);
-        setError('Failed to load application configuration');
+        console.error('❌ Critical error during app initialization:', err);
+        
+        // Provide more specific error messages
+        if (err instanceof Error) {
+          if (err.message.includes('ClientConfigurationError')) {
+            setError('Invalid Azure AD configuration. Check REACT_APP_AZURE_CLIENT_ID and REACT_APP_AZURE_AUTHORITY environment variables.');
+          } else if (err.message.includes('network')) {
+            setError('Network error during initialization. Check API connectivity.');
+          } else {
+            setError(`Initialization failed: ${err.message}`);
+          }
+        } else {
+          setError('Unknown error during application initialization');
+        }
+        
+        console.error('🔄 Consider checking environment variables or falling back to mock mode');
       } finally {
         setLoading(false);
       }
@@ -93,14 +117,42 @@ function App() {
 
   if (error || !config || !msalInstance) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">
-            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="text-red-600 mb-4">
+              <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
+            <h1 className="text-xl font-semibold text-gray-900 mb-4">
+              Application Initialization Failed
+            </h1>
+            
+            <p className="text-gray-600 mb-6">
+              {error || 'Failed to initialize application'}
+            </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
+              <h3 className="text-sm font-medium text-yellow-800 mb-2">
+                Troubleshooting Tips:
+              </h3>
+              <ul className="text-xs text-yellow-700 space-y-1">
+                <li>• Check browser console for detailed error logs</li>
+                <li>• Verify environment variables are set correctly</li>
+                <li>• For local development, set REACT_APP_USE_MOCK_AUTH=true</li>
+                <li>• Ensure API backend is running and accessible</li>
+              </ul>
+            </div>
+            
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
-          <p className="text-gray-600">{error || 'Failed to initialize application'}</p>
         </div>
       </div>
     );

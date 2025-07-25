@@ -25,19 +25,27 @@ const getAuthHeader = async (): Promise<string | null> => {
   if (shouldUseMockAuth()) {
     // Mock authentication - use mockAuthService
     const token = mockAuthService.getAccessToken();
+    console.log('🧪 Using mock authentication token for API call');
     return `Bearer ${token}`;
   } else {
     // Real authentication - use global token provider
     if (!globalTokenProvider) {
-      console.warn('Global token provider not set. Make sure App component initialized MSAL.');
+      console.error('❌ Global token provider not set. Make sure App component initialized MSAL.');
       return null;
     }
     
     try {
+      console.log('🔐 Acquiring real authentication token...');
       const token = await globalTokenProvider();
-      return token ? `Bearer ${token}` : null;
+      if (token) {
+        console.log('✅ Real authentication token acquired successfully');
+        return `Bearer ${token}`;
+      } else {
+        console.warn('⚠️  No authentication token available - user may need to login');
+        return null;
+      }
     } catch (error) {
-      console.error('Failed to acquire token:', error);
+      console.error('❌ Failed to acquire authentication token:', error);
       return null;
     }
   }
@@ -49,6 +57,7 @@ let apiClient: ApiClient;
 export const getApiClient = (): ApiClient => {
   if (!apiClient) {
     const config = getConfig();
+    console.log(`🌐 Creating API client with base URL: ${config.apiUrl}`);
     apiClient = new ApiClient(config.apiUrl);
   }
   return apiClient;

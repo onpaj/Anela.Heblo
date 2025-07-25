@@ -111,7 +111,9 @@ export const mockAuthService = {
    * Returns consistent token for mock authentication
    */
   getAccessToken: (): string => {
-    return 'mock-bearer-token';
+    const token = 'mock-bearer-token';
+    console.log('🎭 Mock auth service providing fake token for API call');
+    return token;
   }
 };
 
