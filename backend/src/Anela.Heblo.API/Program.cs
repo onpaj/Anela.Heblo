@@ -112,11 +112,7 @@ public class Program
             healthChecksBuilder.AddNpgSql(dbConnectionString, name: "database", tags: new[] { "db", "postgresql" });
         }
         
-        // Add Application Insights health check
-        if (!string.IsNullOrEmpty(appInsightsConnectionString))
-        {
-            healthChecksBuilder.AddApplicationInsightsPublisher();
-        }
+        // Application Insights telemetry is automatically integrated via AddApplicationInsightsTelemetry
 
         // Add SPA static files support
         builder.Services.AddSpaStaticFiles(configuration =>

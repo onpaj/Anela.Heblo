@@ -258,10 +258,12 @@ Tento dokument definuje kompletní observability strategii pro Heblo aplikaci, k
 1. **Add NuGet Packages** (✅ Completed):
    ```xml
    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0"/>
-   <PackageReference Include="Microsoft.ApplicationInsights.EntityFrameworkCore" Version="2.22.0"/>
    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1"/>
    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1"/>
+   <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0"/>
    ```
+   
+   **Note**: The EntityFrameworkCore-specific Application Insights package doesn't exist. EF Core telemetry is automatically captured by the main Application Insights SDK.
 
 2. **Program.cs Configuration** (✅ Completed):
    - Application Insights telemetry with automatic instrumentation

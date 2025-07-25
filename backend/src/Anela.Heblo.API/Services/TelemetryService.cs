@@ -87,7 +87,8 @@ public class TelemetryService : ITelemetryService
 
     public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
     {
-        _telemetryClient.TrackDependency(dependencyName, commandName, startTime, duration, success);
+        var dependency = new DependencyTelemetry(dependencyName, commandName, startTime, duration, success);
+        _telemetryClient.TrackDependency(dependency);
         _logger.LogInformation("Dependency tracked: {DependencyName} - {CommandName} - Success: {Success}", 
             dependencyName, commandName, success);
     }
