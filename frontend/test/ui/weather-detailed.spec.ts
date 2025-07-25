@@ -31,7 +31,7 @@ test.describe('Weather API Detailed Debug', () => {
     });
 
     // Navigate to page
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for component to load and make initial API call

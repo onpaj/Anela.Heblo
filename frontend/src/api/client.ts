@@ -14,6 +14,12 @@ export const getApiClient = (): ApiClient => {
   return apiClient;
 };
 
+// Create an authenticated API client with token provider
+export const getAuthenticatedApiClient = (getAccessToken: () => Promise<string | null>): ApiClient => {
+  const config = getRuntimeConfig();
+  return new ApiClient(config.apiUrl, getAccessToken);
+};
+
 // Legacy export for backward compatibility
 export { getApiClient as apiClient };
 

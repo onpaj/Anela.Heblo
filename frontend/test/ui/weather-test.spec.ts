@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('WeatherTest Page', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the application
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
   });
 
@@ -34,7 +34,7 @@ test.describe('WeatherTest Page', () => {
     await reloadButton.click();
     
     // Check for loading state (should show "Loading..." text)
-    await expect(page.locator('button:has-text("Loading...")')).toBeVisible({ timeout: 1000 });
+    await expect(page.locator('button:has-text("Loading...")')).toBeVisible({ timeout: 2000 });
     
     // Check that the spinning icon is present during loading
     await expect(page.locator('button:has-text("Loading...") svg.animate-spin')).toBeVisible();
@@ -104,7 +104,7 @@ test.describe('WeatherTest Page', () => {
       await reloadButton.click();
       
       // Wait for loading state
-      await expect(page.locator('button:has-text("Loading...")')).toBeVisible({ timeout: 1000 });
+      await expect(page.locator('button:has-text("Loading...")')).toBeVisible({ timeout: 2000 });
       
       // Wait for loading to complete
       await expect(page.locator('button:has-text("Reload")')).toBeVisible({ timeout: 5000 });

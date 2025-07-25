@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('StatusBar Layout Integration', () => {
   test('should not overlap with application content and respect sidebar state', async ({ page }) => {
-    // Navigate to the app on automation port
-    await page.goto('http://localhost:3001');
+    // Navigate to the app (uses baseURL from config)
+    await page.goto('/');
     
     // Wait for the app to load completely
     await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
@@ -49,15 +49,11 @@ test.describe('StatusBar Layout Integration', () => {
   });
 
   test('should adapt to collapsed sidebar state', async ({ page }) => {
-    await page.goto('http://localhost:3001');
+    await page.goto('/');
     await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
     
-    // Find and click the sidebar toggle button
-    const toggleButton = page.locator('[data-testid="sidebar-toggle"]').or(
-      page.locator('button').filter({ hasText: /collapse|expand/i })
-    ).or(
-      page.locator('button svg').first()
-    );
+    // Find and click the sidebar toggle button (PanelLeftClose icon in expanded sidebar)
+    const toggleButton = page.locator('button[title="Collapse sidebar"]');
     
     // If toggle button exists, click it to collapse sidebar
     if (await toggleButton.count() > 0) {
@@ -68,8 +64,8 @@ test.describe('StatusBar Layout Integration', () => {
       
       const statusBar = page.locator('.bg-gray-100');
       
-      // Status bar should adapt to collapsed sidebar
-      await expect(statusBar).toHaveClass(/left-16/);
+      // Status bar should adapt to collapsed sidebar (may take time for animation)
+      await expect(statusBar).toHaveClass(/left-16/, { timeout: 10000 });
       
       // Take screenshot of collapsed state
       await page.screenshot({ 
@@ -80,7 +76,7 @@ test.describe('StatusBar Layout Integration', () => {
   });
 
   test('should remain visible during scrolling', async ({ page }) => {
-    await page.goto('http://localhost:3001');
+    await page.goto('/');
     await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
     
     // Add some content to make page scrollable

@@ -35,8 +35,8 @@ test.describe('Weather API Debug', () => {
       }
     });
 
-    // Navigate to the application
-    await page.goto('http://localhost:3000');
+    // Navigate to the application (uses baseURL from config)
+    await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait a bit for initial API calls
@@ -103,7 +103,7 @@ test.describe('Weather API Debug', () => {
   });
 
   test('should check API configuration', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     console.log('Checking API configuration...');
     

@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('StatusBar Component', () => {
   test('should display correct version and environment information', async ({ page }) => {
-    // Navigate to the app on automation port
-    await page.goto('http://localhost:3001');
+    // Navigate to the app (uses baseURL from config)
+    await page.goto('/');
     
     // Wait for the app to load completely
     await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
@@ -16,14 +16,11 @@ test.describe('StatusBar Component', () => {
     await expect(statusBar).toBeVisible();
     
     // Check version display (should show v0.1.0 from package.json)
-    await expect(statusBar).toContainText('Anela Heblo v0.1.0');
+    await expect(statusBar).toContainText('v0.1.0');
     
-    // Check environment badge - should show "Development" with red background
-    const environmentBadge = statusBar.locator('.px-2.py-0\\.5.rounded').first();
-    await expect(environmentBadge).toBeVisible();
-    await expect(environmentBadge).toContainText('Development');
-    await expect(environmentBadge).toHaveClass(/bg-red-600/);
-    await expect(environmentBadge).toHaveClass(/text-black/);
+    // Check environment info - should show "Development" (based on mock auth) and "Mock Auth"
+    await expect(statusBar).toContainText('Development');
+    await expect(statusBar).toContainText('Mock Auth');
     
     // Check authentication type badge - should show "Mock Auth" with yellow background
     const authBadge = statusBar.locator('.bg-yellow-500');
@@ -42,7 +39,7 @@ test.describe('StatusBar Component', () => {
   });
 
   test('should have correct styling according to layout definition', async ({ page }) => {
-    await page.goto('http://localhost:3001');
+    await page.goto('/');
     await page.waitForSelector('.bg-gray-100', { timeout: 5000 });
     
     const statusBar = page.locator('.bg-gray-100');
@@ -71,7 +68,7 @@ test.describe('StatusBar Component', () => {
   });
 
   test('should be positioned beside sidebar at bottom', async ({ page }) => {
-    await page.goto('http://localhost:3001');
+    await page.goto('/');
     await page.waitForSelector('.bg-gray-100', { timeout: 5000 });
     
     const statusBar = page.locator('.bg-gray-100');

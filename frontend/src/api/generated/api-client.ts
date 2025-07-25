@@ -14,13 +14,39 @@ export interface WeatherForecast {
 
 export class ApiClient {
   private baseUrl: string;
+  private getAccessToken?: () => Promise<string | null>;
 
-  constructor(baseUrl?: string) {
+  constructor(baseUrl?: string, getAccessToken?: () => Promise<string | null>) {
     this.baseUrl = baseUrl || 'http://localhost:8080';
+    this.getAccessToken = getAccessToken;
+  }
+
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (this.getAccessToken) {
+      try {
+        const token = await this.getAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.warn('Failed to get access token:', error);
+      }
+    }
+
+    return headers;
   }
 
   async weatherForecast(): Promise<WeatherForecast[]> {
-    const response = await fetch(`${this.baseUrl}/WeatherForecast`);
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/WeatherForecast`, {
+      method: 'GET',
+      headers,
+    });
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
