@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Anela.Heblo.API;
-using Anela.Heblo.API.Controllers;
 using Anela.Heblo.API.Services;
 using Xunit.Abstractions;
 
@@ -101,8 +100,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         var requiredServices = new[]
         {
             typeof(ITelemetryService),
-            typeof(ILogger<WeatherForecastController>),
-            typeof(ILogger<ConfigController>)
+            typeof(ILogger<WeatherForecastController>)
         };
 
         // Act & Assert
@@ -191,25 +189,8 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
             _output.WriteLine($"⚠️ WeatherForecast endpoint test failed: {ex.Message}");
         }
 
-        // Act & Assert - Test Config endpoint
-        try
-        {
-            var configResponse = await client.GetAsync("/config");
-            if (configResponse.IsSuccessStatusCode)
-            {
-                var configContent = await configResponse.Content.ReadAsStringAsync();
-                Assert.NotEmpty(configContent);
-                _output.WriteLine("✅ Config controller responds successfully");
-            }
-            else
-            {
-                _output.WriteLine($"⚠️ Config endpoint returned {configResponse.StatusCode}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"⚠️ Config endpoint test failed: {ex.Message}");
-        }
+        // Config controller was removed as it's no longer needed
+        // Frontend now uses build-time environment variables instead of runtime config
     }
 
     [Fact]

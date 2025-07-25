@@ -6,11 +6,13 @@ import Layout from './components/Layout/Layout';
 import WeatherTest from './components/pages/WeatherTest';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
-import { fetchRuntimeConfig, RuntimeConfig } from './config/runtimeConfig';
+import { loadConfig, Config } from './config/runtimeConfig';
+import { setGlobalTokenProvider } from './api/client';
+import { apiRequest } from './auth/msalConfig';
 import './i18n';
 
 function App() {
-  const [config, setConfig] = useState<RuntimeConfig | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
   const [msalInstance, setMsalInstance] = useState<PublicClientApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,15 +20,15 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Fetch runtime configuration
-        const runtimeConfig = await fetchRuntimeConfig();
-        setConfig(runtimeConfig);
+        // Load configuration from environment variables
+        const appConfig = loadConfig();
+        setConfig(appConfig);
 
-        // Create MSAL configuration with runtime values
+        // Create MSAL configuration with app configuration
         const msalConfig = {
           auth: {
-            clientId: runtimeConfig.azureClientId || 'mock-client-id',
-            authority: runtimeConfig.azureAuthority || 'https://login.microsoftonline.com/mock-tenant-id',
+            clientId: appConfig.azureClientId || 'mock-client-id',
+            authority: appConfig.azureAuthority || 'https://login.microsoftonline.com/mock-tenant-id',
             redirectUri: window.location.origin,
             postLogoutRedirectUri: window.location.origin,
             clientCapabilities: ['CP1']
@@ -40,9 +42,32 @@ function App() {
           }
         };
 
-        // Create MSAL instance with runtime configuration
+        // Create MSAL instance with app configuration
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
+
+        // Set global token provider for API client
+        if (!appConfig.useMockAuth) {
+          setGlobalTokenProvider(async () => {
+            try {
+              const accounts = instance.getAllAccounts();
+              if (accounts.length === 0) {
+                return null;
+              }
+              
+              const account = accounts[0];
+              const response = await instance.acquireTokenSilent({
+                ...apiRequest,
+                account: account,
+              });
+              
+              return response.accessToken;
+            } catch (error) {
+              console.error('Failed to acquire token in global provider:', error);
+              return null;
+            }
+          });
+        }
         
       } catch (err) {
         console.error('Failed to initialize app:', err);
@@ -60,7 +85,7 @@ function App() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading application configuration...</p>
+          <p className="text-gray-600">Initializing application...</p>
         </div>
       </div>
     );

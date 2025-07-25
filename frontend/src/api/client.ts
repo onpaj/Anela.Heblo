@@ -1,7 +1,21 @@
 // API client configuration and TanStack Query integration
 import { ApiClient } from './generated/api-client';
-import { getRuntimeConfig, shouldUseMockAuth } from '../config/runtimeConfig';
+import { getConfig, shouldUseMockAuth } from '../config/runtimeConfig';
 import { mockAuthService } from '../auth/mockAuth';
+
+/**
+ * Global token provider for API client
+ * This will be set by the App component after MSAL is initialized
+ */
+let globalTokenProvider: (() => Promise<string | null>) | null = null;
+
+/**
+ * Set the global token provider
+ * This should be called from App component after MSAL initialization
+ */
+export const setGlobalTokenProvider = (provider: () => Promise<string | null>) => {
+  globalTokenProvider = provider;
+};
 
 /**
  * Centralized authentication header provider
@@ -13,12 +27,19 @@ const getAuthHeader = async (): Promise<string | null> => {
     const token = mockAuthService.getAccessToken();
     return `Bearer ${token}`;
   } else {
-    // Real authentication - use MSAL (to be implemented)
-    // const token = await msalInstance.acquireTokenSilent(...);
-    // return `Bearer ${token.accessToken}`;
+    // Real authentication - use global token provider
+    if (!globalTokenProvider) {
+      console.warn('Global token provider not set. Make sure App component initialized MSAL.');
+      return null;
+    }
     
-    // For now, return null as fallback until real auth is implemented
-    return null;
+    try {
+      const token = await globalTokenProvider();
+      return token ? `Bearer ${token}` : null;
+    } catch (error) {
+      console.error('Failed to acquire token:', error);
+      return null;
+    }
   }
 };
 
@@ -27,8 +48,7 @@ let apiClient: ApiClient;
 
 export const getApiClient = (): ApiClient => {
   if (!apiClient) {
-    // This will be called after runtime config is loaded
-    const config = getRuntimeConfig();
+    const config = getConfig();
     apiClient = new ApiClient(config.apiUrl);
   }
   return apiClient;
@@ -36,7 +56,7 @@ export const getApiClient = (): ApiClient => {
 
 // Create an authenticated API client that uses centralized auth header provider
 export const getAuthenticatedApiClient = (): ApiClient => {
-  const config = getRuntimeConfig();
+  const config = getConfig();
   
   // Token provider that uses centralized getAuthHeader function
   const tokenProvider = async (): Promise<string | null> => {
@@ -50,7 +70,7 @@ export const getAuthenticatedApiClient = (): ApiClient => {
 
 // Create an authenticated API client with custom token provider (for advanced scenarios)
 export const getAuthenticatedApiClientWithProvider = (getAccessToken: () => Promise<string | null>): ApiClient => {
-  const config = getRuntimeConfig();
+  const config = getConfig();
   return new ApiClient(config.apiUrl, getAccessToken);
 };
 
@@ -59,7 +79,7 @@ export { getApiClient as apiClient };
 
 // API client configuration
 export const getApiConfig = () => {
-  const config = getRuntimeConfig();
+  const config = getConfig();
   return {
     baseUrl: config.apiUrl,
     timeout: 30000, // 30 seconds
