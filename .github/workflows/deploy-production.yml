@@ -159,16 +159,16 @@ jobs:
           # Deploy container to the web app
           echo "🐳 Setting Docker container..."
           
-          # Build Docker image name manually as fallback (use hardcoded for testing)
-          DOCKER_IMAGE="remiiik/heblo:latest"
+          # Build Docker image name with specific version
+          DOCKER_IMAGE="remiiik/heblo:${{ needs.version.outputs.version }}"
           
-          # Try to use build output first, fallback to manual
-          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
+          # Try to use build output first, fallback to versioned image
+          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | grep -E "remiiik/heblo:v[0-9]+\.[0-9]+\.[0-9]+" | head -1)
           if [ -n "$BUILD_OUTPUT_IMAGE" ]; then
             DOCKER_IMAGE="$BUILD_OUTPUT_IMAGE"
             echo "📍 Using build output image: $DOCKER_IMAGE"
           else
-            echo "⚠️ Build output empty, using manual image: $DOCKER_IMAGE"
+            echo "⚠️ Build output empty, using versioned image: $DOCKER_IMAGE"
           fi
           
           # Validate Docker image is set

@@ -179,7 +179,7 @@ const WeatherComponent = () => {
 | Development | 3000 (frontend), 44390 (backend) | - | Separate dev servers, Playwright testing |
 | Manual Debug | 3001 (frontend), 44390 (backend) | - | VS Code launch.json debugging |
 | Test | 80 → 443 | https://anela-heblo-test.azurewebsites.net | Single container |
-| Production | 80 → 443 | https://anela-heblo.azurewebsites.net | Single container |
+| Production | 80 → 443 | https://heblo.anela.cz | Single container |
 
 ## Deployment Strategy
 
@@ -199,7 +199,7 @@ const WeatherComponent = () => {
   - **Single Docker container** on Azure Web App for Containers
   - Container serves both React static files and ASP.NET Core API
   - Real Microsoft Entra ID authentication
-  - URL: https://anela-heblo.azurewebsites.net
+  - URL: https://heblo.anela.cz
 - **Versioning**: Semantic versioning with conventional commits
 - **CI/CD**: GitHub Actions with feature branch testing, main branch auto-deploy
 

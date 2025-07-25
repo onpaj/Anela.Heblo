@@ -5,6 +5,10 @@ using Microsoft.Identity.Abstractions;
 using Microsoft.Identity.Web.Resource;
 using Microsoft.Extensions.FileProviders;
 using Anela.Heblo.API.Authentication;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
+using Anela.Heblo.API.Services;
 
 namespace Anela.Heblo.API;
 
@@ -13,6 +17,33 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        // Add Application Insights
+        var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+        if (!string.IsNullOrEmpty(appInsightsConnectionString))
+        {
+            builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
+            {
+                ConnectionString = appInsightsConnectionString,
+                EnableAdaptiveSampling = true,
+                EnableQuickPulseMetricStream = true,
+                EnableDependencyTrackingTelemetryModule = true,
+                EnablePerformanceCounterCollectionModule = true,
+                EnableRequestTrackingTelemetryModule = true,
+                EnableEventCounterCollectionModule = true,
+                EnableAppServicesHeartbeatTelemetryModule = true,
+                DeveloperMode = builder.Environment.IsDevelopment()
+            });
+            
+            // Add logging to Application Insights
+            builder.Logging.AddApplicationInsights();
+            
+            Console.WriteLine($"📊 Application Insights configured for {builder.Environment.EnvironmentName}");
+        }
+        else
+        {
+            Console.WriteLine("⚠️ Application Insights not configured - missing ConnectionString");
+        }
 
         // Add services to the container.
         var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth");
@@ -67,9 +98,25 @@ public class Program
         });
 
         builder.Services.AddControllers();
+        
+        // Register telemetry service
+        builder.Services.AddSingleton<ITelemetryService, TelemetryService>();
 
         // Add health checks
-        builder.Services.AddHealthChecks();
+        var healthChecksBuilder = builder.Services.AddHealthChecks();
+        
+        // Add database health check if connection string exists
+        var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        if (!string.IsNullOrEmpty(dbConnectionString))
+        {
+            healthChecksBuilder.AddNpgSql(dbConnectionString, name: "database", tags: new[] { "db", "postgresql" });
+        }
+        
+        // Add Application Insights health check
+        if (!string.IsNullOrEmpty(appInsightsConnectionString))
+        {
+            healthChecksBuilder.AddApplicationInsightsPublisher();
+        }
 
         // Add SPA static files support
         builder.Services.AddSpaStaticFiles(configuration =>
@@ -111,8 +158,18 @@ public class Program
 
         app.MapControllers();
 
-        // Map health check endpoint
+        // Map health check endpoints
         app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("db"),
+            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+        });
+        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            Predicate = _ => false,  // Only app liveness, no dependencies
+            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+        });
 
         // SPA fallback - must be after MapControllers
         if (!app.Environment.IsDevelopment())

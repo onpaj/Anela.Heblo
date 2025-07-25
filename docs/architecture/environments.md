@@ -17,7 +17,7 @@ This document defines all environment configurations, port mappings, deployment 
 | **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
 | **Local Automation/Playwright** | 3001 | 5001 | - | - | Separate servers (testing) |
 | **Test Environment** | 8080 | 5000 | 8080 | https://heblo-test.azurewebsites.net | Single container |
-| **Production** | 8080 | 5000 | 8080 | https://heblo.azurewebsites.net | Single container |
+| **Production** | 8080 | 5000 | 8080 | https://heblo.anela.cz | Single container |
 
 #### Port Details:
 
@@ -55,7 +55,7 @@ WEBSITES_PORT=8080
 #### **Azure Production Environment (Azure App Settings):**
 ```bash
 ASPNETCORE_ENVIRONMENT=Production
-REACT_APP_API_URL=https://heblo.azurewebsites.net
+REACT_APP_API_URL=https://heblo.anela.cz
 REACT_APP_USE_MOCK_AUTH=false
 REACT_APP_AZURE_CLIENT_ID=[SET_VIA_SECRETS]
 REACT_APP_AZURE_AUTHORITY=[SET_VIA_SECRETS]
@@ -84,7 +84,7 @@ WEBSITES_PORT=8080
 - **API Calls**: Internal within ASP.NET Core application
 
 **Azure Production:**
-- **Origin**: `https://heblo.azurewebsites.net` (actual URL may vary with Azure suffix)
+- **Origin**: `https://heblo.anela.cz` (custom domain)
 - **CORS**: Not needed (same origin - ASP.NET Core serves both static files and API)
 - **API Calls**: Internal within ASP.NET Core application
 
@@ -106,9 +106,9 @@ Configure these redirect URIs in Azure Portal → App registrations → Your app
 - **Note**: Update with actual Azure-generated URL (e.g., `https://heblo-test-xyz123.azurewebsites.net`)
 
 **Azure Production:**
-- `https://heblo.azurewebsites.net`
-- `https://heblo.azurewebsites.net/auth/callback`
-- **Note**: Update with actual Azure-generated URL (e.g., `https://heblo-xyz123.azurewebsites.net`)
+- `https://heblo.anela.cz`
+- `https://heblo.anela.cz/auth/callback`
+- **Note**: Custom domain configured in Azure
 
 ### Implementation Notes:
 
@@ -147,12 +147,11 @@ Configure these redirect URIs in Azure Portal → App registrations → Your app
 **Azure Production Environment**: 
 - **Single Docker container** hosted on **Azure Web App for Containers**
 - **Resource Group**: `rgHeblo` (shared with test)
-- **Web App**: `heblo` (Azure may append random suffix)
-- **URL**: `https://heblo.azurewebsites.net` (actual URL may vary)
+- **Web App**: `heblo` with custom domain `heblo.anela.cz`
+- **URL**: `https://heblo.anela.cz` (custom domain)
 - **Container Port**: 8080
 - **Authentication**: Azure AD (Microsoft Entra ID)
 - Container serves both React static files and ASP.NET Core API
-- URL: `https://anela-heblo.azurewebsites.net`
 - Real Microsoft Entra ID authentication
 
 ---
@@ -209,7 +208,7 @@ Configured automatically during deployment:
 
 **Production Environment:**
 - `ASPNETCORE_ENVIRONMENT=Production`
-- `REACT_APP_API_URL=https://anela-heblo.azurewebsites.net`
+- `REACT_APP_API_URL=https://heblo.anela.cz`
 - `REACT_APP_USE_MOCK_AUTH=false`
 - `REACT_APP_AZURE_CLIENT_ID` (from secret)
 - `REACT_APP_AZURE_AUTHORITY` (from secret)

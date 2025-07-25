@@ -33,6 +33,7 @@
 - Deployment implemented via **GitHub Actions** to Azure Web App for Containers.
 - Environment-specific configuration via Azure App Settings.
 - **CI validation removed**: Deployment workflows no longer wait for CI to pass (as of current implementation).
+- **Container versioning**: Production deployments use **specific version tags** (e.g., `v1.2.3`) instead of `latest` tag for reliable, traceable deployments.
 
 ---
 
@@ -119,10 +120,18 @@ Development:           Production/Test:
 - Version bump is done automatically based on **conventional commit messages**
   - e.g. `feat:`, `fix:`, `chore:`, etc.
 - Version is included in:
-  - Docker image tags
+  - Docker image tags (both versioned and `latest`)
   - `AssemblyInfo.cs`
   - `package.json`
 - Tagging `vX.Y.Z` on `main` triggers production release
+
+### Container Tag Strategy:
+- **Production deployments**: Use **specific version tags** (e.g., `remiiik/heblo:v1.2.3`)
+  - Ensures reliable, reproducible deployments
+  - Prevents issues with stale `latest` tags
+  - Enables easy rollback to previous versions
+- **Development/Test**: May use `latest` for convenience
+- **Fallback mechanism**: Deployment workflow falls back to versioned tag if build output is unavailable
 
 ---
 
