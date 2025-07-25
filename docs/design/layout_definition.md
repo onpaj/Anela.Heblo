@@ -109,14 +109,16 @@ This document defines the complete layout structure and positioning of UI elemen
   - Never overlaps application content
   - Main content has NO bottom padding (status bar doesn't interfere)
 - **Content** (from left to right as shown in image):
-  - **App name and version**: "Anela Heblo v0.1.0"
+  - **Version**: "v0.1.0"
   - **Environment**: "Development"
-  - **Auth mode**: "Mock Auth" ()
+  - **Auth mode**: "Mock Auth" in case of mock authentication, otherwise empty
   - **API endpoint**: "API: localhost:5001"
 - **Visual Design**:
   - Background: Light gray/white `bg-gray-100 border-t border-gray-200`
   - Text: Small, subdued `text-xs text-gray-600`
   - Padding: `px-4 py-1` (16px horizontal, 4px vertical)
+  - Data in status bar should be aligned to the right
+  - Items in status bar should be visually separated by `|` or similar
 - ** Color scheme**:
   - **Development**: red background, black text
   - **Test**: green background, white text

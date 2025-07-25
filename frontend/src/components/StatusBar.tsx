@@ -63,14 +63,21 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
 
   return (
     <div className={`fixed bottom-0 right-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 py-1 z-10 transition-all duration-300 h-6 ${sidebarCollapsed ? 'left-16' : 'left-64'} ${className}`}>
-      <div className="flex items-center space-x-4">
-        <span>Anela Heblo v{appInfo.version}</span>
+      <div className="flex items-center justify-end space-x-1">
+        <span>v{appInfo.version}</span>
+        <span>|</span>
         <span className={`px-2 py-0.5 rounded text-xs ${getEnvironmentColor(appInfo.environment)}`}>
           {appInfo.environment}
         </span>
-        <span className={getAuthTypeColor(appInfo.mockAuth)}>
-          {appInfo.mockAuth ? 'Mock Auth' : 'Azure AD'}
-        </span>
+        {appInfo.mockAuth && (
+          <>
+            <span>|</span>
+            <span className={getAuthTypeColor(appInfo.mockAuth)}>
+              Mock Auth
+            </span>
+          </>
+        )}
+        <span>|</span>
         <span>API: {new URL(appInfo.apiUrl).host}</span>
       </div>
     </div>
