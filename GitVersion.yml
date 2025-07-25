@@ -1,14 +1,4 @@
 mode: ContinuousDeployment
 branches:
   main:
-    mode: ContinuousDeployment
-    label: ''
     increment: Patch
-  feature:
-    mode: ContinuousDeployment  
-    label: useBranchName
-    increment: Inherit
-  pull-request:
-    mode: ContinuousDeployment
-    label: PullRequest
-    increment: Inherit
