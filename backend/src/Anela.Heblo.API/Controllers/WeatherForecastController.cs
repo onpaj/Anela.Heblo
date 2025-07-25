@@ -40,9 +40,21 @@ public class WeatherForecastController : ControllerBase
         }
         else if (_graphServiceClient != null)
         {
-            // Real mode - get user from Graph API
-            var user = await _graphServiceClient.Me.GetAsync();
-            userName = user?.DisplayName ?? User.Identity?.Name ?? "Unknown User";
+            try
+            {
+                // Real mode - get user from Graph API
+                var user = await _graphServiceClient.Me.GetAsync();
+                userName = user?.DisplayName ?? User.Identity?.Name ?? "Unknown User";
+            }
+            catch (Exception ex)
+            {
+                // If Graph API fails (e.g., consent required), fallback to JWT claims
+                _logger.LogWarning("Failed to get user from Graph API: {Error}. Using fallback.", ex.Message);
+                userName = User.FindFirst("name")?.Value ?? 
+                          User.FindFirst("preferred_username")?.Value ?? 
+                          User.Identity?.Name ?? 
+                          "Authenticated User";
+            }
         }
 
         _logger.LogInformation("Weather forecast requested by user: {UserName}", userName);

@@ -36,7 +36,8 @@ export const graphConfig = {
 };
 
 // API scopes for backend
-// Use standard scopes that don't require custom API registration
+// Request token specifically for our backend API
 export const apiRequest: PopupRequest = {
-  scopes: ['User.Read', 'openid', 'profile'],
+  scopes: [`api://${process.env.REACT_APP_AZURE_BACKEND_CLIENT_ID}/.default`], // Backend API scope
+  prompt: 'consent', // Force consent flow to ensure user grants permission
 };

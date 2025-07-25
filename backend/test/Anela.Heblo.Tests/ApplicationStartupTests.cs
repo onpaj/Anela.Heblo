@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Anela.Heblo.API;
 using Anela.Heblo.API.Services;
+using Anela.Heblo.API.Controllers;
 using Xunit.Abstractions;
 
 namespace Anela.Heblo.Tests;
@@ -74,7 +75,20 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                 var args = new object[parameters.Length];
                 for (int i = 0; i < parameters.Length; i++)
                 {
-                    args[i] = serviceProvider.GetRequiredService(parameters[i].ParameterType);
+                    var paramType = parameters[i].ParameterType;
+                    var paramInfo = parameters[i];
+                    
+                    // Handle optional parameters or nullable types
+                    if (paramInfo.HasDefaultValue || 
+                        (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>)) ||
+                        paramType.Name.EndsWith("?"))
+                    {
+                        args[i] = serviceProvider.GetService(paramType) ?? paramInfo.DefaultValue;
+                    }
+                    else
+                    {
+                        args[i] = serviceProvider.GetRequiredService(paramType);
+                    }
                 }
                 
                 var controller = Activator.CreateInstance(controllerType, args);

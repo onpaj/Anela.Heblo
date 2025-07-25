@@ -5,6 +5,10 @@
 *.swo
 *~
 
+# Test secrets (never commit real tokens!)
+**/test-secrets.json
+TEST_MICROSOFT_TOKEN
+
 # OS generated files
 .DS_Store
 .DS_Store?
