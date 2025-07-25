@@ -201,7 +201,7 @@ const WeatherComponent = () => {
   - Real Microsoft Entra ID authentication
   - URL: https://heblo.anela.cz
 - **Versioning**: Semantic versioning with conventional commits
-- **CI/CD**: GitHub Actions with feature branch testing, main branch auto-deploy
+- **CI/CD**: GitHub Actions with unit tests, Playwright UI tests, Docker builds, feature branch testing, main branch auto-deploy
 
 ## Design Document Alignment Rules
 
@@ -254,6 +254,8 @@ This ensures documentation stays synchronized with actual implementation and arc
 ### Playwright Integration with Automation Environment
 
 **MANDATORY**: When running Playwright tests, Claude Code MUST ALWAYS use the "automation" environment:
+
+**CI/CD Integration**: Playwright tests are automatically executed in the GitHub Actions CI pipeline for all pull requests, ensuring UI functionality is validated before merge.
 
 1. **Automation Environment Configuration**:
    - **Backend**: Port 5001 with `ASPNETCORE_ENVIRONMENT=Automation`
@@ -308,7 +310,15 @@ This ensures documentation stays synchronized with actual implementation and arc
    - `npx playwright test --headed` - Run tests with visible browser
    - `npx playwright show-report` - View test results
 
-10. **Test Organization Structure**:
+10. **VS Code Launch Configurations**:
+    - **"Launch Automation Environment"** - Starts both backend (port 5001) and frontend (port 3001) for testing
+    - **"Run All UI Tests (Playwright)"** - Executes all Playwright tests (requires automation environment)
+    - **"Run UI Tests (Headed)"** - Runs tests with visible browser for debugging
+    - **"Run UI Tests (Debug)"** - Runs tests in debug mode with Playwright inspector
+    
+    **Usage**: First run "Launch Automation Environment", then run any of the test configurations.
+
+11. **Test Organization Structure**:
     - **UI/Layout Tests**: `/frontend/test/ui/layout/{component}/`
       - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
       - `statusbar/` - Status bar positioning, content, responsiveness
@@ -319,7 +329,7 @@ This ensures documentation stays synchronized with actual implementation and arc
     - **Integration Tests**: `/frontend/test/integration/`
     - **E2E Tests**: `/frontend/test/e2e/`
 
-11. **CRITICAL: Background Process Management**:
+12. **CRITICAL: Background Process Management**:
     - **ALWAYS run servers in background**: Use `&` at end of commands
     - **Backend**: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation &`
     - **Frontend**: `cd frontend && npm run start:automation &`

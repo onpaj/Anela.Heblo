@@ -19,11 +19,11 @@
 
 ## 3. 🔁 CI/CD Rules & Workflow
 
-- **CI runs on all branches**: build, lint, tests, Docker image build.
+- **CI runs on all branches**: build, unit tests, UI tests (Playwright), Docker image build.
 - **Feature branches**:
   - Optional deployment to `test` environment via GitHub Actions manual trigger.
 - **Main branch**:
-  - Merge allowed only if CI succeeds.
+  - Merge allowed only if CI succeeds (including Playwright tests).
   - Automatic deployment to production Azure Web App for Containers.
 
 ### Deployment Architecture:

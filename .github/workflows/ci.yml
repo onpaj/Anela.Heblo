@@ -99,6 +99,104 @@ jobs:
         id: check-build
         run: echo "has-artifact=true" >> $GITHUB_OUTPUT
 
+  # UI Tests with Playwright - runs in parallel with docker build
+  playwright-tests:
+    name: 🎭 UI Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Restore .NET dependencies
+        run: dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
+
+      - name: 📦 Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 🚀 Start automation backend
+        run: |
+          cd backend/src/Anela.Heblo.API
+          ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation &
+          echo "BACKEND_PID=$!" >> $GITHUB_ENV
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+
+      - name: ⏳ Wait for backend to start
+        run: |
+          echo "Waiting for backend to start on port 5001..."
+          timeout 60 bash -c 'until curl -f http://localhost:5001/health > /dev/null 2>&1; do sleep 2; done'
+          echo "Backend is ready!"
+
+      - name: 🚀 Start automation frontend
+        working-directory: ./frontend
+        run: |
+          npm run start:automation &
+          echo "FRONTEND_PID=$!" >> $GITHUB_ENV
+        env:
+          REACT_APP_API_URL: http://localhost:5001
+          REACT_APP_USE_MOCK_AUTH: true
+
+      - name: ⏳ Wait for frontend to start
+        run: |
+          echo "Waiting for frontend to start on port 3001..."
+          timeout 60 bash -c 'until curl -f http://localhost:3001 > /dev/null 2>&1; do sleep 2; done'
+          echo "Frontend is ready!"
+
+      - name: 🧪 Run Playwright tests
+        working-directory: ./frontend
+        run: npx playwright test
+        env:
+          CI: true
+
+      - name: 📤 Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: 📤 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: 🧹 Cleanup processes
+        if: always()
+        run: |
+          echo "Cleaning up background processes..."
+          if [ ! -z "$BACKEND_PID" ]; then
+            kill $BACKEND_PID 2>/dev/null || true
+          fi
+          if [ ! -z "$FRONTEND_PID" ]; then
+            kill $FRONTEND_PID 2>/dev/null || true
+          fi
+          # Kill any remaining processes on the test ports
+          lsof -ti:5001 | xargs kill -9 2>/dev/null || true
+          lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+          echo "Cleanup completed"
+
   # Docker Build - depends on both frontend and backend CI
   docker-build:
     name: 🐳 Docker Build
@@ -124,17 +222,19 @@ jobs:
   quality-gate:
     name: ✅ Quality Gate
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci, docker-build]
+    needs: [frontend-ci, backend-ci, playwright-tests, docker-build]
     if: always()
     steps:
       - name: ✅ Check all jobs succeeded
         run: |
           echo "Frontend CI: ${{ needs.frontend-ci.result }}"
           echo "Backend CI: ${{ needs.backend-ci.result }}"
+          echo "Playwright Tests: ${{ needs.playwright-tests.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
           
           if [[ "${{ needs.frontend-ci.result }}" != "success" || \
                 "${{ needs.backend-ci.result }}" != "success" || \
+                "${{ needs.playwright-tests.result }}" != "success" || \
                 "${{ needs.docker-build.result }}" != "success" ]]; then
             echo "❌ Quality gate failed - one or more jobs failed"
             exit 1
@@ -148,6 +248,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Frontend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Backend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
+          echo "✅ **UI Tests**: Playwright tests passed successfully" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
