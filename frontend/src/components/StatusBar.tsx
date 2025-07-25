@@ -18,10 +18,27 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
     const loadAppInfo = async () => {
       try {
         const config = getRuntimeConfig();
-        const packageJson = require('../../package.json');
         
+        // Try to fetch configuration from backend API
+        try {
+          const response = await fetch(`${config.apiUrl}/configuration`);
+          if (response.ok) {
+            const backendConfig = await response.json();
+            setAppInfo({
+              version: backendConfig.version,
+              environment: backendConfig.environment,
+              apiUrl: config.apiUrl,
+              mockAuth: backendConfig.useMockAuth
+            });
+            return;
+          }
+        } catch (apiError) {
+          console.warn('Could not load configuration from backend API:', apiError);
+        }
+        
+        // Fallback to frontend-only configuration
         setAppInfo({
-          version: packageJson.version,
+          version: process.env.REACT_APP_VERSION || '0.1.0',
           environment: config.useMockAuth ? 'Development' : 'Production',
           apiUrl: config.apiUrl,
           mockAuth: config.useMockAuth
