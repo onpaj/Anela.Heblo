@@ -9,7 +9,7 @@ set -e  # Exit on any error
 # Configuration
 ENVIRONMENT=${1:-"test"}
 APP_NAME="heblo"
-DOCKER_USERNAME="your-docker-username"  # Replace with actual Docker Hub username
+DOCKER_USERNAME="remiiik"  # Replace with actual Docker Hub username
 IMAGE_NAME="heblo"
 
 # Environment-specific configuration

@@ -71,6 +71,8 @@ jobs:
     name: 🚀 Deploy to Azure
     runs-on: ubuntu-latest
     needs: [build-and-push]
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     environment:
       name: test
       url: https://heblo-test.azurewebsites.net
@@ -81,22 +83,56 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
 
       - name: 🚀 Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          images: ${{ needs.build-and-push.outputs.image-tag }}
+        id: deploy
+        run: |
+          # Get the actual test web app name
+          ACTUAL_WEBAPP_NAME=$(az webapp list \
+            --resource-group rgHeblo \
+            --query "[?contains(name, 'heblo') && contains(name, 'test')].name" \
+            -o tsv | head -1)
+          
+          if [ -z "$ACTUAL_WEBAPP_NAME" ]; then
+            echo "❌ No test web app found in resource group rgHeblo"
+            echo "Available web apps:"
+            az webapp list --resource-group rgHeblo --query "[].name" -o table
+            exit 1
+          fi
+          
+          echo "🎯 Found test web app: $ACTUAL_WEBAPP_NAME"
+          
+          # Deploy container to the web app
+          echo "🐳 Setting Docker container..."
+          az webapp config container set \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --docker-custom-image-name ${{ needs.build-and-push.outputs.image-tag }} \
+            --docker-registry-server-url https://index.docker.io/v1/
+            
+          echo "✅ Container deployment completed"
+          
+          # Get hostname for output
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" -o tsv)
+          
+          # Store for later steps
+          echo "ACTUAL_WEBAPP_NAME=$ACTUAL_WEBAPP_NAME" >> $GITHUB_ENV
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
 
       - name: 🔧 Configure App Settings
         run: |
           az webapp config appsettings set \
             --resource-group rgHeblo \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --name $ACTUAL_WEBAPP_NAME \
             --settings \
               ASPNETCORE_ENVIRONMENT=Test \
-              REACT_APP_API_URL=https://heblo-test.azurewebsites.net \
+              REACT_APP_API_URL=https://${{ steps.deploy.outputs.hostname }} \
               REACT_APP_USE_MOCK_AUTH=true \
               WEBSITES_PORT=8080 \
-              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false
 
   # Health Check
   health-check:
@@ -115,11 +151,11 @@ jobs:
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS"
             
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://heblo-test.azurewebsites.net/health || echo "000")
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ needs.deploy-azure.outputs.webapp-hostname }}/health || echo "000")
             
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "✅ Health check passed!"
-              echo "🌐 Application is available at: https://heblo-test.azurewebsites.net"
+              echo "🌐 Application is available at: https://${{ needs.deploy-azure.outputs.webapp-hostname }}"
               exit 0
             fi
             
@@ -148,7 +184,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ inputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** Test" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://heblo-test.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://${{ needs.deploy-azure.outputs.webapp-hostname }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.health-check.result }}" = "success" ]; then

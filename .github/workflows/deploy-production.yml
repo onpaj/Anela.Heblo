@@ -127,6 +127,8 @@ jobs:
     name: 🚀 Deploy to Azure
     runs-on: ubuntu-latest
     needs: [build-and-push, version]
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     environment:
       name: production
       url: https://heblo.azurewebsites.net
@@ -137,25 +139,79 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
 
       - name: 🚀 Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          images: ${{ needs.build-and-push.outputs.image-tag }}
+        id: deploy
+        run: |
+          # Get the actual web app name (Azure might have generated a different name)
+          ACTUAL_WEBAPP_NAME=$(az webapp list \
+            --resource-group rgHeblo \
+            --query "[?contains(name, 'heblo') && !contains(name, 'test')].name" \
+            -o tsv | head -1)
+          
+          if [ -z "$ACTUAL_WEBAPP_NAME" ]; then
+            echo "❌ No production web app found in resource group rgHeblo"
+            echo "Available web apps:"
+            az webapp list --resource-group rgHeblo --query "[].name" -o table
+            exit 1
+          fi
+          
+          echo "🎯 Found production web app: $ACTUAL_WEBAPP_NAME"
+          
+          # Deploy container to the web app
+          echo "🐳 Setting Docker container..."
+          az webapp config container set \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --docker-custom-image-name ${{ needs.build-and-push.outputs.image-tag }} \
+            --docker-registry-server-url https://index.docker.io/v1/
+            
+          echo "✅ Container deployment completed"
+          
+          # Get hostname for output
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" -o tsv)
+          
+          # Store for later steps
+          echo "ACTUAL_WEBAPP_NAME=$ACTUAL_WEBAPP_NAME" >> $GITHUB_ENV
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
 
       - name: 🔧 Configure App Settings
         run: |
+          # Get the actual hostname for the web app
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" -o tsv)
+          
+          echo "🌐 Web app hostname: $WEBAPP_HOSTNAME"
+          
+          # Get Application Insights instrumentation key
+          AI_INSTRUMENTATION_KEY=$(az monitor app-insights component show \
+            --app aiHeblo \
+            --resource-group rgHeblo \
+            --query instrumentationKey -o tsv 2>/dev/null || echo "")
+          
+          # Configure app settings with actual hostname
           az webapp config appsettings set \
             --resource-group rgHeblo \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --name $ACTUAL_WEBAPP_NAME \
             --settings \
               ASPNETCORE_ENVIRONMENT=Production \
-              REACT_APP_API_URL=https://heblo.azurewebsites.net \
+              REACT_APP_API_URL=https://$WEBAPP_HOSTNAME \
               REACT_APP_USE_MOCK_AUTH=false \
               REACT_APP_AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_PROD }}" \
               REACT_APP_AZURE_AUTHORITY="${{ secrets.AZURE_AUTHORITY_PROD }}" \
               WEBSITES_PORT=8080 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
-              APP_VERSION=${{ needs.version.outputs.version }}
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              APP_VERSION=${{ needs.version.outputs.version }} \
+              ${AI_INSTRUMENTATION_KEY:+APPINSIGHTS_INSTRUMENTATIONKEY=$AI_INSTRUMENTATION_KEY} \
+              ${AI_INSTRUMENTATION_KEY:+APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=$AI_INSTRUMENTATION_KEY}
+          
+          # Store hostname for smoke tests
+          echo "WEBAPP_HOSTNAME=$WEBAPP_HOSTNAME" >> $GITHUB_ENV
 
   # Smoke Tests
   smoke-tests:
@@ -170,7 +226,7 @@ jobs:
         run: |
           echo "🧪 Running production smoke tests..."
           
-          BASE_URL="https://heblo.azurewebsites.net"
+          BASE_URL="https://${{ needs.deploy-azure.outputs.webapp-hostname }}"
           
           # Test 1: Health check
           echo "🏥 Testing health endpoint..."
@@ -246,7 +302,7 @@ jobs:
             
             ## Deployment Info
             - **Environment:** Production
-            - **URL:** https://heblo.azurewebsites.net
+            - **URL:** https://${{ needs.deploy-azure.outputs.webapp-hostname }}
             - **Docker Image:** `${{ needs.build-and-push.outputs.image-tag }}`
             - **Deployed at:** ${{ github.event.head_commit.timestamp }}
           draft: false
@@ -265,7 +321,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`${{ needs.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://heblo.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://${{ needs.deploy-azure.outputs.webapp-hostname }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.smoke-tests.result }}" = "success" ]; then
