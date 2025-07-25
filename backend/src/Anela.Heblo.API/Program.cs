@@ -18,8 +18,15 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // Configure logging first
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole(); // Always add console logging for container stdout
+        
         // Add Application Insights
-        var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+        var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"] 
+                                        ?? builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]
+                                        ?? builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+        
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
             builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
@@ -36,13 +43,28 @@ public class Program
             });
             
             // Add logging to Application Insights
-            builder.Logging.AddApplicationInsights();
+            builder.Logging.AddApplicationInsights(
+                configureTelemetryConfiguration: (config) => config.ConnectionString = appInsightsConnectionString,
+                configureApplicationInsightsLoggerOptions: (options) => { }
+            );
             
             Console.WriteLine($"📊 Application Insights configured for {builder.Environment.EnvironmentName}");
+            Console.WriteLine($"📊 Connection String: {appInsightsConnectionString[..20]}...");
         }
         else
         {
             Console.WriteLine("⚠️ Application Insights not configured - missing ConnectionString");
+            Console.WriteLine("⚠️ Checked: ApplicationInsights:ConnectionString, APPINSIGHTS_INSTRUMENTATIONKEY, APPLICATIONINSIGHTS_CONNECTION_STRING");
+        }
+        
+        // Configure logging levels
+        builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+        
+        // Add structured logging for better Application Insights experience  
+        if (builder.Environment.IsProduction())
+        {
+            builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+            builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
         }
 
         // Add services to the container.
@@ -89,41 +111,61 @@ public class Program
                     var azureAdConfig = builder.Configuration.GetSection("AzureAd");
                     var tenantId = azureAdConfig["TenantId"];
                     
-                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+                    // Use v1.0 endpoint to match the token issuer
+                    options.Authority = $"https://login.microsoftonline.com/{tenantId}";
+                    options.MetadataAddress = $"https://login.microsoftonline.com/{tenantId}/.well-known/openid_configuration";
+                    
                     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                     {
                         ValidAudiences = new[]
                         {
                             "00000003-0000-0000-c000-000000000000", // Microsoft Graph
-                            azureAdConfig["ClientId"] // Also accept tokens for our app
+                            azureAdConfig["ClientId"] ?? "" // Also accept tokens for our app
                         },
                         ValidIssuers = new[]
                         {
-                            $"https://login.microsoftonline.com/{tenantId}/v2.0",
-                            $"https://sts.windows.net/{tenantId}/"
+                            $"https://sts.windows.net/{tenantId}/", // v1.0 issuer (matches your token)
+                            $"https://login.microsoftonline.com/{tenantId}/v2.0" // v2.0 issuer (fallback)
                         },
                         ValidateIssuer = true,
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ClockSkew = TimeSpan.FromMinutes(5)
+                        RequireSignedTokens = true,
+                        ClockSkew = TimeSpan.FromMinutes(5),
+                        NameClaimType = "name",
+                        RoleClaimType = "roles"
                     };
+                    
+                    // Enable PII logging temporarily for debugging
+                    Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test";
+                    
+                    Console.WriteLine($"🔑 JWT Authority: {options.Authority}");
+                    Console.WriteLine($"🔑 JWT Metadata: {options.MetadataAddress}");
+                    Console.WriteLine($"🔑 Valid Audiences: {string.Join(", ", options.TokenValidationParameters.ValidAudiences)}");
+                    Console.WriteLine($"🔑 Valid Issuers: {string.Join(", ", options.TokenValidationParameters.ValidIssuers)}");
                     
                     // Log token validation details for debugging
                     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
                     {
                         OnAuthenticationFailed = context =>
                         {
-                            Console.WriteLine($"❌ JWT Authentication failed: {context.Exception.Message}");
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            logger.LogError("JWT Authentication failed: {Error} | Path: {Path} | UserAgent: {UserAgent}", 
+                                context.Exception.Message, 
+                                context.Request.Path,
+                                context.Request.Headers.UserAgent.FirstOrDefault());
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>
                         {
-                            Console.WriteLine("✅ JWT Token validated successfully");
-                            var audience = context.Principal?.FindFirst("aud")?.Value;
-                            var issuer = context.Principal?.FindFirst("iss")?.Value;
-                            Console.WriteLine($"   Audience: {audience}");
-                            Console.WriteLine($"   Issuer: {issuer}");
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            var audience = context.Principal?.FindFirst("aud")?.Value ?? "unknown";
+                            var issuer = context.Principal?.FindFirst("iss")?.Value ?? "unknown";
+                            var userName = context.Principal?.FindFirst("name")?.Value ?? "unknown";
+                            
+                            logger.LogInformation("JWT Token validated successfully | User: {UserName} | Audience: {Audience} | Issuer: {Issuer} | Path: {Path}",
+                                userName, audience, issuer, context.Request.Path);
                             return Task.CompletedTask;
                         }
                     };

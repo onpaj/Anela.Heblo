@@ -295,6 +295,60 @@ jobs:
           # Store hostname for smoke tests
           echo "WEBAPP_HOSTNAME=$WEBAPP_HOSTNAME" >> $GITHUB_ENV
 
+      - name: 📊 Configure App Service Logging
+        run: |
+          echo "🔧 Configuring App Service diagnostic settings for container logs..."
+          
+          # Get Application Insights resource details
+          AI_RESOURCE_ID=$(az monitor app-insights component show \
+            --app aiHeblo \
+            --resource-group rgHeblo \
+            --query id -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "$AI_RESOURCE_ID" ]; then
+            echo "📊 Found Application Insights resource: $AI_RESOURCE_ID"
+            
+            # Configure diagnostic settings to send container logs to Application Insights
+            az monitor diagnostic-settings create \
+              --resource $ACTUAL_WEBAPP_NAME \
+              --resource-group rgHeblo \
+              --resource-type Microsoft.Web/sites \
+              --name "ContainerLogsToAppInsights" \
+              --workspace $AI_RESOURCE_ID \
+              --logs '[
+                {
+                  "category": "AppServiceConsoleLogs",
+                  "enabled": true
+                },
+                {
+                  "category": "AppServiceAppLogs", 
+                  "enabled": true
+                },
+                {
+                  "category": "AppServiceHTTPLogs",
+                  "enabled": true
+                },
+                {
+                  "category": "AppServicePlatformLogs",
+                  "enabled": true
+                }
+              ]' \
+              --output none || echo "⚠️ Diagnostic settings may already exist"
+            
+            echo "✅ Diagnostic settings configured"
+          else
+            echo "⚠️ Application Insights not found - skipping diagnostic settings"
+          fi
+          
+          # Enable container logging in App Service
+          az webapp log config \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --docker-container-logging filesystem \
+            --output none
+          
+          echo "✅ Container logging enabled"
+
   # Smoke Tests
   smoke-tests:
     name: 💨 Smoke Tests
