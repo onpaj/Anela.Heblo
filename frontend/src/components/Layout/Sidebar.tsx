@@ -12,7 +12,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
-import UserProfile from '../auth/UserProfile';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -118,23 +117,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 z-40 h-full bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
+        fixed top-16 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
         ${isCollapsed ? 'w-16' : 'w-64'}
       `}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className={`flex items-center h-16 border-b border-gray-200 ${isCollapsed ? 'px-3 justify-center' : 'px-6'}`}>
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">AH</span>
-              </div>
-              {!isCollapsed && (
-                <span className="ml-3 text-base font-medium text-gray-900">Anela Heblo</span>
-              )}
-            </div>
-          </div>
-
           {/* Navigation */}
           <nav className={`flex-1 py-4 ${isCollapsed ? 'px-2' : 'px-3'}`}>
             <div className="space-y-1">
@@ -165,7 +152,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                       ) : (
                         <a
                           href={section.href}
-                          onClick={() => setActiveItem(section.id)}
+                          onClick={(e) => {
+                            setActiveItem(section.id);
+                            // Auto-expand sidebar when clicking collapsed menu item
+                            onToggleCollapse();
+                          }}
                           className={`
                             flex items-center justify-center p-2 rounded-md transition-colors duration-300
                             ${isActive 
@@ -237,17 +228,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                     ) : (
                       // Collapsed state - just the icon
                       <button
-                        onClick={() => toggleSection(section.id)}
+                        onClick={() => {
+                          toggleSection(section.id);
+                          // Auto-expand sidebar when clicking collapsed menu item
+                          onToggleCollapse();
+                        }}
                         className={`
                           flex items-center justify-center p-2 rounded-md transition-colors duration-300
                           ${isActive 
-                            ? 'bg-brand-beige text-brand' 
-                            : 'text-charcoal hover:bg-brand/5 hover:text-charcoal'
+                            ? 'bg-secondary-blue-pale text-primary-blue' 
+                            : 'text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate'
                           }
                         `}
                         title={section.name}
                       >
-                        <IconComponent className={`h-5 w-5 ${isActive ? 'text-brand' : 'text-gray-400'}`} />
+                        <IconComponent className={`h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
                       </button>
                     )}
                   </div>
@@ -256,44 +251,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
             </div>
           </nav>
 
-          {/* User Profile */}
-          <div className={`border-t border-gray-200 ${isCollapsed ? 'p-2' : 'p-3'}`}>
-            {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-2">
-                <UserProfile compact={true} />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex-1 mr-2">
-                  <UserProfile />
-                </div>
-                
-                {/* Collapse/Expand Button - only show on desktop */}
-                <button
-                  type="button"
-                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
-                  onClick={onToggleCollapse}
-                  title="Collapse sidebar"
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Collapsed state fold button */}
-          {isCollapsed && (
-            <div className="border-t border-gray-200 p-2">
-              <button
-                type="button"
-                className="hidden md:flex w-full justify-center p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                onClick={onToggleCollapse}
-                title="Expand sidebar"
-              >
+          {/* Toggle button at bottom */}
+          <div className={`h-12 border-t border-gray-200 ${isCollapsed ? 'px-2' : 'px-3'} flex items-center ${isCollapsed ? 'justify-center' : 'justify-end'}`}>
+            <button
+              type="button"
+              className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+              onClick={onToggleCollapse}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? (
                 <PanelLeftOpen className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </>

@@ -54,14 +54,11 @@ This document defines the complete layout structure and positioning of UI elemen
   - **Collapsed**: `w-16` (64px width)
 - **Behavior**:
   - **Auto-expand on navigation**: Clicking any menu item in collapsed state automatically expands sidebar
-  - **Manual toggle**: Users can manually collapse/expand using toggle button at top
+  - **Manual toggle**: Users can manually collapse/expand using toggle button at bottom
 - **Structure**:
   ```
   Expanded (256px):
   ┌─────────────────────────┐
-  │ ┌─────────────────────┐ │
-  │ │              [◄]   │ │ ← Toggle button at top
-  │ └─────────────────────┘ │
   │ 🏠 Dashboard            │
   │ 📊 Analytics            │
   │ 🛍️ Katalog              │
@@ -71,11 +68,13 @@ This document defines the complete layout structure and positioning of UI elemen
   │ 🧾 Faktury              │
   │                         │
   │        (flex-grow)      │
+  │ ┌─────────────────────┐ │
+  │ │              [◄]   │ │ ← Toggle button at bottom
+  │ └─────────────────────┘ │
   └─────────────────────────┘
   
   Collapsed (64px):
   ┌─────┐
-  │ [►] │ ← Toggle button at top
   │ 🏠  │
   │ 📊  │
   │ 🛍️  │
@@ -85,6 +84,7 @@ This document defines the complete layout structure and positioning of UI elemen
   │ 🧾  │
   │     │
   │     │
+  │ [►] │ ← Toggle button at bottom
   └─────┘
   ```
 
@@ -236,16 +236,16 @@ Each nav item (48px height):
 
 ### Sidebar Toggle Component Layout
 ```
-Expanded sidebar (top):
+Expanded sidebar (bottom):
 ┌─────────────────────────┐
-│                    [◄] │ ← 48px height, collapse button at top
 │                         │
+│                    [◄] │ ← 48px height, collapse button at bottom
 └─────────────────────────┘
 
-Collapsed sidebar (top):
+Collapsed sidebar (bottom):
 ┌─────┐
-│ [►] │ ← 48px height, expand button at top
 │     │
+│ [►] │ ← 48px height, expand button at bottom
 └─────┘
 ```
 
@@ -370,7 +370,7 @@ Key changes:
 - Settings button removed from topbar  
 - User profile/login moved from sidebar to topbar (right-aligned)
 - Sidebar contains only navigation items and collapse/expand toggle
-- Sidebar toggle button moved from bottom to top of sidebar
+- Sidebar toggle button positioned at bottom of sidebar
 - Auto-expand behavior: clicking menu items in collapsed sidebar expands it
 
 All measurements use Tailwind CSS units for consistent implementation across the application.

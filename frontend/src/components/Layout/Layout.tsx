@@ -21,17 +21,17 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       
+      {/* Top bar */}
+      <TopBar 
+        onMenuClick={() => setSidebarOpen(true)}
+      />
+      
       {/* Main content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
-        {/* Top bar */}
-        <TopBar 
-          onMenuClick={() => setSidebarOpen(true)}
-        />
-        
+      <div className={`transition-all duration-300 pt-16 pb-6 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
         {/* Page content */}
         <main className="flex-1 relative overflow-hidden">
-          <div className="h-full px-4 sm:px-6 lg:px-8 py-8 bg-gray-50">
-            <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="h-full p-6 bg-gray-50">
+            <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-7xl mx-auto">
               {children}
             </div>
           </div>
