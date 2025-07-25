@@ -217,7 +217,8 @@ const WeatherComponent = () => {
 **Required documents for different change types:**
 
 - **Backend/API changes**: Consult `docs/📘 Architecture Documentation – MVP Work.md` for module definitions and data flow
-- **Infrastructure/deployment changes**: Consult `docs/application_infrastructure.md` for deployment strategy and CI/CD rules  
+- **Infrastructure/deployment changes**: Consult `docs/architecture/application_infrastructure.md` for deployment strategy and CI/CD rules  
+- **Filesystem/structure changes**: Consult `docs/architecture/filesystem.md` for directory organization and file locations
 - **Frontend/UI changes**: Consult `docs/ui_design_document.md` for design system, colors, typography, and component specifications
 - **Any architectural decisions**: Consult ALL documents to ensure consistency
 
@@ -232,7 +233,8 @@ Before implementing, Claude Code MUST:
 
 **CRITICAL**: Whenever architectural changes are agreed upon, the following documentation must be updated immediately:
 - `docs/📘 Architecture Documentation – MVP Work.md` - Core architecture and module definitions
-- `docs/application_infrastructure.md` - Infrastructure, deployment, and CI/CD details  
+- `docs/architecture/application_infrastructure.md` - Infrastructure, deployment, and CI/CD details  
+- `docs/architecture/filesystem.md` - Directory structure and file organization
 - `docs/ui_design_document.md` - UI/UX specifications and design system
 - `CLAUDE.md` - This file for future Claude Code instances
 

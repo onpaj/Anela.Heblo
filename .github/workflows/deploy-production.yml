@@ -158,12 +158,30 @@ jobs:
           
           # Deploy container to the web app
           echo "🐳 Setting Docker container..."
-          # Extract first Docker image tag (in case of multiple tags)
-          DOCKER_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
-          echo "📍 Using Docker image: $DOCKER_IMAGE"
+          
+          # Build Docker image name manually as fallback (use hardcoded for testing)
+          DOCKER_IMAGE="remiiik/heblo:latest"
+          
+          # Try to use build output first, fallback to manual
+          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
+          if [ -n "$BUILD_OUTPUT_IMAGE" ]; then
+            DOCKER_IMAGE="$BUILD_OUTPUT_IMAGE"
+            echo "📍 Using build output image: $DOCKER_IMAGE"
+          else
+            echo "⚠️ Build output empty, using manual image: $DOCKER_IMAGE"
+          fi
+          
+          # Validate Docker image is set
+          if [ -z "$DOCKER_IMAGE" ]; then
+            echo "❌ Error: Docker image is empty!"
+            echo "Build output: '${{ needs.build-and-push.outputs.image-tag }}'"
+            echo "Version: '${{ needs.version.outputs.version }}'"
+            exit 1
+          fi
           
           # Configure container deployment using modern approach
           echo "🔧 Configuring Web App for Container deployment..."
+          echo "🏷️ Image: $DOCKER_IMAGE"
           
           # Set the container image directly via config
           az webapp config set \
