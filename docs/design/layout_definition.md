@@ -10,9 +10,9 @@ This document defines the complete layout structure and positioning of UI elemen
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Topbar (64px height)                    │
-│  [☰] Search [🔍]              [⚙️] [👤] UserMenu            │
+│  App Logo                                  [👤] UserMenu    │
 ├─────────────────────────────────────────────────────────────┤
-│        │                                                    │
+│[◄►]    │                                                    │
 │        │              Main Content Area                     │
 │Sidebar │                                                    │
 │        │         Pages, Components, Forms                   │
@@ -20,8 +20,8 @@ This document defines the complete layout structure and positioning of UI elemen
 │Items   │                                                    │
 │        │                                                    │
 │        │                                                    │
-│[👤]    │                                                    │
-│[◄►]    │                                                    │
+│        │                                                    │
+│        │                                                    │
 ├────────┼─────────────────────────────────────────────────────┤
 │Status  │ Anela Heblo v0.1.0  Development  Mock Auth  API:  │ ← Status Bar
 │Bar     │                                            localhost │  (24px height)
@@ -36,18 +36,15 @@ This document defines the complete layout structure and positioning of UI elemen
 - **Structure**:
   ```
   ┌─────────────────────────────────────────────────────────┐
-  │ [☰]  App Logo    [🔍 Search]    [⚙️] [🔔] [👤 Profile] │
-  │ 16px              Flexible       Right-aligned  16px   │
+  │ [☰]  App Logo                           [👤 Profile]   │
+  │ 16px              Flexible               Right-aligned  │
   └─────────────────────────────────────────────────────────┘
   ```
 - **Elements**:
   - **Mobile Menu Button**: `ml-4` (left: 16px) - only visible on mobile
   - **App Logo/Title**: `ml-4` when no mobile menu, `ml-2` when menu present
-  - **Search Bar**: Center-left, expandable
-  - **Actions Group**: Right-aligned with `mr-4` (right: 16px)
-    - Settings icon `[⚙️]`
-    - Notifications icon `[🔔]` (optional)
-    - User profile dropdown `[👤]`
+  - **User Profile Menu**: Right-aligned with `mr-4` (right: 16px)
+    - User profile dropdown `[👤]` with login/logout functionality
 
 #### 2. **Sidebar (Navigation)**
 - **Position**: `fixed left-0 top-16 bottom-0` (below topbar)
@@ -55,10 +52,16 @@ This document defines the complete layout structure and positioning of UI elemen
 - **States**:
   - **Expanded**: `w-64` (256px width)
   - **Collapsed**: `w-16` (64px width)
+- **Behavior**:
+  - **Auto-expand on navigation**: Clicking any menu item in collapsed state automatically expands sidebar
+  - **Manual toggle**: Users can manually collapse/expand using toggle button at top
 - **Structure**:
   ```
   Expanded (256px):
   ┌─────────────────────────┐
+  │ ┌─────────────────────┐ │
+  │ │              [◄]   │ │ ← Toggle button at top
+  │ └─────────────────────┘ │
   │ 🏠 Dashboard            │
   │ 📊 Analytics            │
   │ 🛍️ Katalog              │
@@ -68,16 +71,11 @@ This document defines the complete layout structure and positioning of UI elemen
   │ 🧾 Faktury              │
   │                         │
   │        (flex-grow)      │
-  │                         │
-  │ ┌─────────────────────┐ │
-  │ │ [👤] Jan Novák      │ │
-  │ │ Software Developer  │ │
-  │ │              [◄]   │ │
-  │ └─────────────────────┘ │
   └─────────────────────────┘
   
   Collapsed (64px):
   ┌─────┐
+  │ [►] │ ← Toggle button at top
   │ 🏠  │
   │ 📊  │
   │ 🛍️  │
@@ -87,8 +85,6 @@ This document defines the complete layout structure and positioning of UI elemen
   │ 🧾  │
   │     │
   │     │
-  │ 👤  │
-  │ [►] │
   └─────┘
   ```
 
@@ -132,7 +128,7 @@ This document defines the complete layout structure and positioning of UI elemen
 ```
 ┌─────────────────────────────────┐
 │        Topbar (64px)            │
-│ [☰] App Name        [👤] [⚙️]  │
+│ [☰] App Name            [👤]   │
 ├─────────────────────────────────┤
 │                                 │
 │                                 │
@@ -156,8 +152,8 @@ This document defines the complete layout structure and positioning of UI elemen
 │ 📋 Nákup        │
 │ 🧾 Faktury      │
 │                 │
-│ [👤] Jan Novák  │
-│ Logout          │
+│                 │
+│                 │
 └─────────────────┘
 ```
 
@@ -168,14 +164,14 @@ This document defines the complete layout structure and positioning of UI elemen
 - **Structure**:
   ```
   ┌─────────────────────────────────────┐
-  │ [☰] App Name       [🔔] [👤] [⚙️] │
-  │ 16px  Flexible      Right-aligned  │
+  │ [☰] App Name                 [👤] │
+  │ 16px  Flexible        Right-aligned │
   └─────────────────────────────────────┘
   ```
 - **Elements**:
   - **Hamburger Menu**: `ml-4` - opens sidebar overlay
   - **App Title**: Centered or left-aligned after hamburger
-  - **Actions**: Condensed, only essential icons
+  - **User Profile Menu**: Right-aligned user profile with login/logout
 
 #### 2. **Mobile Sidebar (Overlay)**
 - **Position**: `fixed inset-y-0 left-0 z-50`
@@ -226,23 +222,30 @@ Each nav item (48px height):
 
 ┌─────┐
 │ 📊  │ ← Collapsed: icon only, centered
-│     │
+│     │    Click triggers: navigation + auto-expand
 └─────┘
 ```
 
-### User Profile Component Layout
+**Navigation Behavior**:
+- **Expanded state**: Normal navigation - click navigates to page
+- **Collapsed state**: Click performs dual action:
+  1. Navigates to the selected page/route
+  2. Automatically expands sidebar to show full navigation
+- **Toggle button**: Independent control for manual expand/collapse
+- **Responsive**: On tablet/desktop only (mobile uses overlay)
+
+### Sidebar Toggle Component Layout
 ```
-Expanded sidebar (bottom):
+Expanded sidebar (top):
 ┌─────────────────────────┐
-│ ┌─────┐ Jan Novák   [◄] │
-│ │ 👤  │ Developer        │ ← 48px height
-│ └─────┘              │  │
+│                    [◄] │ ← 48px height, collapse button at top
+│                         │
 └─────────────────────────┘
 
-Collapsed sidebar (bottom):
+Collapsed sidebar (top):
 ┌─────┐
-│ 👤  │ ← 48px height
-│ [►] │
+│ [►] │ ← 48px height, expand button at top
+│     │
 └─────┘
 ```
 
@@ -266,21 +269,24 @@ Environment Badge Colors:
 • Production:  [PROD] - Green background, white text
 ```
 
-### Search Bar Layout
+### User Profile Menu Layout
 ```
-Desktop (in topbar):
-┌───────────────────────────────┐
-│ [🔍] Search anything...    [×] │ ← Expandable, max 400px
-└───────────────────────────────┘
+Desktop (in topbar, right-aligned):
+┌─────────────────────────────┐
+│ [👤] Jan Novák        [▼]  │ ← User dropdown menu
+└─────────────────────────────┘
 
-Mobile (full-screen overlay when focused):
-┌─────────────────────────────────┐
-│ [←] Search...              [×] │ ← Full screen overlay
-├─────────────────────────────────┤
-│ Recent searches:                │
-│ • Dashboard                     │
-│ • Analytics                     │
-└─────────────────────────────────┘
+When clicked - dropdown menu:
+┌─────────────────────────────┐
+│ Profile Settings            │
+├─────────────────────────────┤
+│ Sign out                    │ 
+└─────────────────────────────┘
+
+Mobile (in topbar, right-aligned):
+┌─────────────────┐
+│ [👤]      [▼]  │ ← Condensed user menu
+└─────────────────┘
 ```
 
 ---
@@ -307,14 +313,23 @@ Mobile (full-screen overlay when focused):
 }
 ```
 
+### Sidebar Interaction Behavior
+- **Desktop/Tablet**: 
+  - Clicking collapsed menu items triggers navigation + auto-expand
+  - Toggle button provides manual control
+  - Sidebar state persists across page navigation
+- **Mobile**: 
+  - Overlay sidebar closes after navigation
+  - No auto-expand behavior (not applicable to overlay)
+
 ### Element Visibility Rules
 | Element | Mobile | Tablet | Desktop |
 |---------|--------|--------|---------|
 | Hamburger Menu | ✅ Visible | ❌ Hidden | ❌ Hidden |
 | Sidebar Fixed | ❌ Hidden | ✅ Visible | ✅ Visible |
 | Sidebar Overlay | ✅ Available | ❌ Hidden | ❌ Hidden |
-| Search (Full) | ✅ Overlay | ✅ Inline | ✅ Inline |
-| User Profile (Full) | ✅ In Sidebar | ✅ In Sidebar | ✅ In Sidebar |
+| User Profile Menu | ✅ In Topbar | ✅ In Topbar | ✅ In Topbar |
+| Sidebar Toggle | ❌ Hidden | ✅ In Sidebar | ✅ In Sidebar |
 
 ---
 
@@ -344,10 +359,18 @@ Mobile (full-screen overlay when focused):
 
 This layout definition establishes the precise positioning and behavior of all UI elements:
 
-- **Topbar**: Fixed header with navigation and user actions
-- **Sidebar**: Collapsible navigation (fixed on desktop, overlay on mobile)  
+- **Topbar**: Fixed header with app logo and user profile menu (login/logout)
+- **Sidebar**: Collapsible navigation (fixed on desktop, overlay on mobile) with toggle button only
 - **Main Content**: Responsive content area that adapts to sidebar state
-- **User Profile**: Context-aware profile display in sidebar
-- **Mobile Adaptations**: Full-screen overlays and touch-optimized layouts
+- **User Profile**: Located in topbar with dropdown menu for all screen sizes
+- **Mobile Adaptations**: Overlay sidebar and condensed topbar layout
+
+Key changes:
+- Search functionality removed from topbar
+- Settings button removed from topbar  
+- User profile/login moved from sidebar to topbar (right-aligned)
+- Sidebar contains only navigation items and collapse/expand toggle
+- Sidebar toggle button moved from bottom to top of sidebar
+- Auto-expand behavior: clicking menu items in collapsed sidebar expands it
 
 All measurements use Tailwind CSS units for consistent implementation across the application.
