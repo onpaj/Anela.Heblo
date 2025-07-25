@@ -106,6 +106,13 @@ jobs:
           DOCKER_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -1)
           echo "📍 Using Docker image: $DOCKER_IMAGE"
           
+          # Force container mode
+          az webapp config set \
+            --name $ACTUAL_WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE"
+          
+          # Set container configuration
           az webapp config container set \
             --name $ACTUAL_WEBAPP_NAME \
             --resource-group rgHeblo \

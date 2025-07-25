@@ -123,6 +123,14 @@ fi
 echo ""
 echo "📋 Step 5: Configuring container settings..."
 echo "🐳 Setting Docker image to $DOCKER_IMAGE..."
+
+# Force container mode
+az webapp config set \
+    --name $WEBAPP_NAME \
+    --resource-group $RESOURCE_GROUP \
+    --linux-fx-version "DOCKER|$DOCKER_IMAGE"
+
+# Set container configuration
 az webapp config container set \
     --name $WEBAPP_NAME \
     --resource-group $RESOURCE_GROUP \
