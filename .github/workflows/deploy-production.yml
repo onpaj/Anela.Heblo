@@ -268,6 +268,14 @@ jobs:
               REACT_APP_USE_MOCK_AUTH=false \
               REACT_APP_AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_PROD }}" \
               REACT_APP_AZURE_AUTHORITY="${{ secrets.AZURE_AUTHORITY_PROD }}" \
+              AzureAd__Instance=https://login.microsoftonline.com/ \
+              AzureAd__Domain=pajgrt.cz \
+              AzureAd__TenantId="${{ secrets.AZURE_TENANT_ID_PROD }}" \
+              AzureAd__ClientId="${{ secrets.AZURE_CLIENT_ID_PROD }}" \
+              AzureAd__Scopes=access_as_user \
+              AzureAd__CallbackPath=/signin-oidc \
+              DownstreamApi__BaseUrl=https://graph.microsoft.com/v1.0 \
+              DownstreamApi__Scopes__0=user.read \
               WEBSITES_PORT=8080 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
               DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \

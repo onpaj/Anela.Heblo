@@ -218,6 +218,7 @@ const WeatherComponent = () => {
 
 - **Backend/API changes**: Consult `docs/📘 Architecture Documentation – MVP Work.md` for module definitions and data flow
 - **Infrastructure/deployment changes**: Consult `docs/architecture/application_infrastructure.md` for deployment strategy and CI/CD rules  
+- **Environment/configuration changes**: Consult `docs/architecture/environments.md` for port mappings, CORS, and Azure settings
 - **Filesystem/structure changes**: Consult `docs/architecture/filesystem.md` for directory organization and file locations
 - **Frontend/UI changes**: Consult `docs/ui_design_document.md` for design system, colors, typography, and component specifications
 - **Any architectural decisions**: Consult ALL documents to ensure consistency
@@ -234,6 +235,7 @@ Before implementing, Claude Code MUST:
 **CRITICAL**: Whenever architectural changes are agreed upon, the following documentation must be updated immediately:
 - `docs/📘 Architecture Documentation – MVP Work.md` - Core architecture and module definitions
 - `docs/architecture/application_infrastructure.md` - Infrastructure, deployment, and CI/CD details  
+- `docs/architecture/environments.md` - Environment configurations, ports, and Azure settings
 - `docs/architecture/filesystem.md` - Directory structure and file organization
 - `docs/ui_design_document.md` - UI/UX specifications and design system
 - `CLAUDE.md` - This file for future Claude Code instances
@@ -245,6 +247,7 @@ This ensures documentation stays synchronized with actual implementation and arc
 - **NO implementation without consultation** - All code changes must reference appropriate design documents
 - **NO architectural deviations without approval** - Stay within documented patterns unless explicitly asked to change them
 - **Documentation-first approach** - When in doubt, follow the documentation; ask for updates if needed
+- **MANDATORY documentation updates** - Whenever any application code, configuration, or implementation changes that is covered by documentation in `/docs`, the corresponding documentation MUST be updated immediately to reflect the changes
 
 ## Frontend Development & Testing Rules
 

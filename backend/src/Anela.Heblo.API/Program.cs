@@ -15,13 +15,29 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth") || 
-                         builder.Environment.IsDevelopment() || 
-                         builder.Environment.EnvironmentName == "Automation";
+        var useMockAuth = builder.Configuration.GetValue<bool>("UseMockAuth");
+        
+        // Only use mock auth if explicitly configured or in specific development environments
+        if (builder.Environment.EnvironmentName == "Development" || 
+            builder.Environment.EnvironmentName == "Automation")
+        {
+            useMockAuth = true;
+        }
+        
+        // In Production environment, NEVER use mock auth unless explicitly forced
+        if (builder.Environment.EnvironmentName == "Production")
+        {
+            useMockAuth = false;
+        }
+
+        // Log authentication mode for debugging
+        Console.WriteLine($"🔐 Environment: {builder.Environment.EnvironmentName}");
+        Console.WriteLine($"🔐 Using Mock Authentication: {useMockAuth}");
                          
         if (useMockAuth)
         {
             // Mock authentication for development and automation
+            Console.WriteLine("🔓 Configuring Mock Authentication for development/testing");
             builder.Services.AddAuthentication("Mock")
                 .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>("Mock", _ => { });
             builder.Services.AddAuthorization();
@@ -29,6 +45,7 @@ public class Program
         else
         {
             // Real Microsoft Identity authentication
+            Console.WriteLine("🔒 Configuring Microsoft Identity Authentication for production");
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
                 .EnableTokenAcquisitionToCallDownstreamApi()
