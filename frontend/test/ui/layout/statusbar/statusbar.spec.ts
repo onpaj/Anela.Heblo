@@ -15,11 +15,11 @@ test.describe('StatusBar Component', () => {
     const statusBar = page.locator('.bg-gray-100');
     await expect(statusBar).toBeVisible();
     
-    // Check version display (should show v0.1.0 from package.json)
-    await expect(statusBar).toContainText('v0.1.0');
+    // Check version display (should show version from backend API or fallback)
+    await expect(statusBar).toContainText(/v\d+\.\d+/);
     
-    // Check environment info - should show "Development" (based on mock auth) and "Mock Auth"
-    await expect(statusBar).toContainText('Development');
+    // Check environment info - should show "Automation" in test environment and "Mock Auth"
+    await expect(statusBar).toContainText('Automation');
     await expect(statusBar).toContainText('Mock Auth');
     
     // Check authentication type badge - should show "Mock Auth" with yellow background

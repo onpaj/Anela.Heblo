@@ -26,12 +26,22 @@ test.describe('Updated Sidebar', () => {
   });
 
   test('should handle navigation structure correctly', async ({ page }) => {
-    // Check the compiled JavaScript includes our new navigation sections
-    const response = await page.goto('/');
-    const content = await response!.text();
+    await page.goto('/');
     
-    // Verify that the new navigation structure is in the built app
-    expect(content).toContain('Anela Heblo');
-    expect(content).toContain('application-ui');
+    // Wait for the app to load completely
+    await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
+    
+    // Wait for sidebar to be visible
+    await page.waitForSelector('nav', { timeout: 5000 });
+    
+    // Verify that the navigation structure is rendered
+    const sidebar = page.locator('nav');
+    await expect(sidebar).toBeVisible();
+    
+    // Check for navigation items instead of raw HTML content
+    await expect(page.locator('nav')).toContainText('Dashboard');
+    
+    // Verify page title contains app name
+    expect(await page.title()).toContain('Anela Heblo');
   });
 });

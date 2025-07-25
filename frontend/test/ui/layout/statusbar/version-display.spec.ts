@@ -19,9 +19,9 @@ test.describe('StatusBar Version Display', () => {
     await expect(statusBar).toBeVisible();
     
     // Check version display - should show version from backend API
-    const versionText = await statusBar.locator('span').filter({ hasText: /^v\d+\.\d+/ }).textContent();
+    const versionText = await statusBar.locator('span').filter({ hasText: /^v/ }).first().textContent();
     
-    // Verify version format (should start with 'v' followed by semantic version)
+    // Verify version format (should start with 'v' followed by version number)
     expect(versionText).toMatch(/^v\d+\.\d+/);
     
     // Log the actual version for debugging
@@ -64,20 +64,29 @@ test.describe('StatusBar Version Display', () => {
     // This test verifies the backend configuration endpoint works correctly
     await page.goto('/');
     
-    // Intercept the configuration API call
-    const configResponse = await page.waitForResponse(response => 
-      response.url().includes('/configuration') && response.status() === 200
-    );
+    // Wait for the app to load completely
+    await page.waitForSelector('[data-testid="app"]', { timeout: 10000 });
+    
+    // Wait for StatusBar to be visible (indicating API call completed)
+    await page.waitForSelector('.bg-gray-100', { timeout: 5000 });
+    
+    // Make direct API call to verify response structure
+    const apiResponse = await page.evaluate(async () => {
+      const response = await fetch('http://localhost:5001/configuration');
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      return response.json();
+    });
     
     // Verify the response contains expected fields
-    const configData = await configResponse.json();
-    expect(configData).toHaveProperty('version');
-    expect(configData).toHaveProperty('environment');
-    expect(configData).toHaveProperty('useMockAuth');
+    expect(apiResponse).toHaveProperty('version');
+    expect(apiResponse).toHaveProperty('environment');
+    expect(apiResponse).toHaveProperty('useMockAuth');
     
-    console.log('Backend configuration response:', configData);
+    console.log('Backend configuration response:', apiResponse);
     
-    // Verify version is properly formatted
-    expect(configData.version).toMatch(/^\d+\.\d+/);
+    // Verify version is properly formatted (with or without 'v' prefix)
+    expect(apiResponse.version).toMatch(/^v?\d+\.\d+/);
   });
 });

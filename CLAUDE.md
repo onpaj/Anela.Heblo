@@ -166,7 +166,7 @@ const WeatherComponent = () => {
 - Every time youre about to run playwright tests on local machine, do exactly:
   - kill all processes on port 3001 and 5001
   - run server and frontent in background. Dont wait for them, wait just 5 sec and continue with nex step
-  - run ui tests (30 sec timeout each)
+  - run ui tests (30 sec timeout each): use `--reporter=list` to avoid HTML report server timeout (default waits 2 min for HTML server)
   - wait for tests to complete
   - kill server and frontend process
 

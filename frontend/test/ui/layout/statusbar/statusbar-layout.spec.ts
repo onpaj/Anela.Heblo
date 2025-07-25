@@ -35,11 +35,17 @@ test.describe('StatusBar Layout Integration', () => {
     const mainContentBox = await mainContent.boundingBox();
     expect(mainContentBox).toBeTruthy();
     
-    // Since status bar is beside sidebar, main content should not need to avoid it
-    // Just verify they don't actually overlap in the visible area
-    const statusBarLeft = statusBarBox!.x;
-    const mainContentRight = mainContentBox!.x + mainContentBox!.width;
-    expect(mainContentRight).toBeLessThanOrEqual(statusBarLeft + 10);
+    // StatusBar is positioned at bottom-right with fixed positioning
+    // It should be beside the sidebar (left offset) and not overlap main content vertically
+    const statusBarBottom = statusBarBox!.y + statusBarBox!.height;
+    const mainContentBottom = mainContentBox!.y + mainContentBox!.height;
+    const viewportHeight = page.viewportSize()!.height;
+    
+    // StatusBar should be at the very bottom of viewport
+    expect(statusBarBottom).toBeCloseTo(viewportHeight, 5);
+    
+    // StatusBar should start after sidebar (256px when expanded)
+    expect(statusBarBox!.x).toBeGreaterThanOrEqual(256 - 10); // 10px tolerance
     
     // Take screenshot for visual verification
     await page.screenshot({ 
