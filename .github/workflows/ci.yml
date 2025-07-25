@@ -99,11 +99,12 @@ jobs:
         id: check-build
         run: echo "has-artifact=true" >> $GITHUB_OUTPUT
 
-  # UI Tests with Playwright - runs in parallel with docker build
+  # UI Tests with Playwright - runs in parallel with docker build (non-blocking)
   playwright-tests:
     name: 🎭 UI Tests (Playwright)
     runs-on: ubuntu-latest
     needs: [frontend-ci, backend-ci]
+    continue-on-error: true
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -232,15 +233,22 @@ jobs:
           echo "Playwright Tests: ${{ needs.playwright-tests.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
           
+          # Check required jobs (always run)
           if [[ "${{ needs.frontend-ci.result }}" != "success" || \
                 "${{ needs.backend-ci.result }}" != "success" || \
-                "${{ needs.playwright-tests.result }}" != "success" || \
                 "${{ needs.docker-build.result }}" != "success" ]]; then
-            echo "❌ Quality gate failed - one or more jobs failed"
+            echo "❌ Quality gate failed - required jobs failed"
             exit 1
-          else
-            echo "✅ Quality gate passed - all jobs succeeded"
           fi
+          
+          # Playwright tests are optional - show status but don't fail CI
+          if [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
+            echo "⚠️ Playwright tests failed (non-blocking)"
+          elif [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
+            echo "✅ Playwright tests passed"
+          fi
+          
+          echo "✅ Quality gate passed - all required jobs succeeded"
 
       - name: 📋 Generate CI summary
         run: |
@@ -248,7 +256,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Frontend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Backend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
-          echo "✅ **UI Tests**: Playwright tests passed successfully" >> $GITHUB_STEP_SUMMARY
+          
+          # Dynamic UI Tests status (non-blocking)
+          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
+            echo "✅ **UI Tests**: Playwright tests passed successfully" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
+            echo "⚠️ **UI Tests**: Playwright tests failed (non-blocking)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

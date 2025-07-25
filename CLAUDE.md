@@ -17,32 +17,103 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 - **Testing**: Playwright for both E2E testing and Shoptet integration automation
 - **Deployment**: Single Docker container to Azure Web App for Containers, GitHub Actions CI/CD
 
-## Repository Structure (Planned)
+## Repository Structure (Clean Architecture - IMPLEMENTED)
 
-Based on the infrastructure document, the intended structure will be:
+**Current Clean Architecture Implementation (IMPLEMENTED):**
 ```
-/                    # Monorepo root
-├── backend/         # ASP.NET Core application
-│   ├── src/         # Application code (Api, Domain, Infrastructure, API.Client)
-│   │   ├── Anela.Heblo.API/           # Main API project
+/                  # Monorepo root
+├── backend/       # Backend – ASP.NET Core application
+│   ├── src/       # Application code
+│   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
+│   │   │   ├── Controllers/           # API controllers
+│   │   │   ├── Extensions/            # Service registration & configuration extensions
+│   │   │   │   ├── ServiceCollectionExtensions.cs
+│   │   │   │   ├── LoggingExtensions.cs
+│   │   │   │   ├── ApplicationBuilderExtensions.cs
+│   │   │   │   └── AuthenticationExtensions.cs
+│   │   │   ├── Constants/             # Configuration constants
+│   │   │   │   └── ConfigurationConstants.cs
+│   │   │   ├── Authentication/        # Authentication handlers
+│   │   │   │   └── MockAuthenticationHandler.cs
+│   │   │   └── Program.cs             # Application entry point (simplified)
 │   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
-│   │   ├── Anela.Heblo.Application/   # Application layer
-│   │   ├── Anela.Heblo.Domain/        # Domain models
-│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer
-│   ├── test/        # Unit/integration tests
-│   ├── migrations/  # EF Core database migrations
-│   └── scripts/     # Utility scripts
-├── frontend/        # Standalone React PWA
-│   ├── public/      # Static assets
+│   │   ├── Anela.Heblo.Application/   # Application layer (Clean Architecture)
+│   │   │   ├── Interfaces/            # Service interfaces
+│   │   │   │   ├── IWeatherService.cs
+│   │   │   │   ├── IUserService.cs
+│   │   │   │   └── ITelemetryService.cs
+│   │   │   └── Services/              # Application service implementations
+│   │   │       ├── WeatherService.cs
+│   │   │       └── UserService.cs
+│   │   ├── Anela.Heblo.Domain/        # Domain layer (Clean Architecture)
+│   │   │   ├── Entities/              # Domain entities
+│   │   │   │   └── WeatherForecast.cs
+│   │   │   └── Constants/             # Domain constants
+│   │   │       └── WeatherConstants.cs
+│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer (Clean Architecture)
+│   │       └── Services/              # Infrastructure service implementations
+│   │           └── TelemetryService.cs (with NoOpTelemetryService)
+│   ├── test/      # Unit/integration tests for backend
+│   │   └── Anela.Heblo.Tests/         # Integration tests
+│   ├── migrations/ # EF Core database migrations
+│   └── scripts/   # Utility scripts (e.g. DB tools, backups)
+│
+├── frontend/      # React PWA (builds into backend wwwroot)
+│   ├── public/     # Static assets (index.html, favicon, etc.)
 │   ├── src/
 │   │   ├── components/
+│   │   │   └── __tests__/    # Component unit tests
 │   │   ├── pages/
-│   │   └── services/    # OpenAPI client (generated)
-│   ├── test/        # Frontend tests
-│   └── package.json # Node.js dependencies
-├── .github/         # GitHub Actions workflows
-└── docker-compose.yml
+│   │   │   └── __tests__/    # Page component tests
+│   │   ├── api/         # API client and services
+│   │   │   └── __tests__/    # API client unit tests
+│   │   ├── auth/        # Authentication logic
+│   │   │   └── __tests__/    # Authentication tests
+│   │   ├── config/      # Configuration management
+│   │   │   └── __tests__/    # Configuration tests
+│   │   └── ...
+│   ├── test/       # UI automation tests (Playwright only)
+│   │   ├── ui/          # UI/Layout tests (Playwright)
+│   │   │   └── layout/  # Layout component UI tests
+│   │   ├── integration/ # Integration tests
+│   │   └── e2e/         # End-to-end tests
+│   └── package.json # Node.js dependencies and scripts
+│
+├── docs/          # Project documentation
+│   ├── architecture/       # Architecture documentation
+│   │   ├── filesystem.md
+│   │   ├── environments.md
+│   │   ├── application_infrastructure.md
+│   │   └── observability.md
+│   ├── design/            # UI/UX design documentation
+│   │   ├── ui_design_document.md
+│   │   ├── layout_definition.md
+│   │   └── styleguide.md
+│   ├── features/          # Feature-specific documentation
+│   │   └── Authentication.md
+│   └── tasks/             # Reusable task definitions
+│       ├── backend-clean-architecture-refactoring.md
+│       └── AUTHENTICATION_TESTING.md
+├── scripts/       # Development and deployment scripts
+│   ├── build-and-push.sh
+│   ├── deploy-azure.sh
+│   └── run-playwright-tests.sh
+├── .github/        # GitHub Actions workflows
+├── .env            # Dev environment variables
+├── Dockerfile      # Single image for backend + frontend
+├── docker-compose.yml # For local dev/test if needed
+├── CLAUDE.md       # AI assistant instructions
+└── .dockerignore   # Docker build optimization
 ```
+
+**🏗️ Clean Architecture Benefits Implemented:**
+- **Dependency Inversion**: API and Infrastructure depend on Application interfaces
+- **Single Responsibility**: Each layer has focused responsibilities
+- **Separation of Concerns**: Business logic separated from HTTP and infrastructure concerns
+- **SOLID Principles**: Applied throughout all layers
+- **Professional Standards**: Structured logging, configuration management, service registration
+- **Testability**: Services can be unit tested independently
+- **Maintainability**: Modular extensions and focused responsibilities
 
 ## Core Modules
 
@@ -447,6 +518,15 @@ await emailInput.fill(credentials.email); // Never hardcoded
 - ESLint and Prettier configurations must be respected
 - Generated components follow existing code patterns
 
+## Available Task Definitions
+
+The `/docs/tasks/` directory contains reusable task definitions for common operations:
+
+- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process)
+- **`AUTHENTICATION_TESTING.md`**: Guidelines for testing authentication flows
+
+These tasks can be referenced for future similar work or applied to other projects.
+
 ## Important Notes
 
 - This is a **solo developer project** with AI-assisted PR reviews
@@ -455,3 +535,4 @@ await emailInput.fill(credentials.email); // Never hardcoded
 - OpenAPI client generation for frontend (post-build step)
 - All Docker images pushed to Docker Hub
 - Observability via Application Insights
+- **Backend follows Clean Architecture** - see `/docs/architecture/filesystem.md` for detailed structure
