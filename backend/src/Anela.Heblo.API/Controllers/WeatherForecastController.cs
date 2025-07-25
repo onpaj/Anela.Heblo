@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Web.Resource;
-using Microsoft.Graph;
+using Anela.Heblo.Application.Interfaces;
+using Anela.Heblo.Domain.Entities;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -10,61 +10,26 @@ namespace Anela.Heblo.API.Controllers;
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
 {
-    private static readonly string[] Summaries = new[]
-    {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
     private readonly ILogger<WeatherForecastController> _logger;
-    private readonly GraphServiceClient? _graphServiceClient;
-    private readonly IConfiguration _configuration;
+    private readonly IWeatherService _weatherService;
+    private readonly IUserService _userService;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger,
-        IConfiguration configuration,
-        GraphServiceClient? graphServiceClient = null)
+    public WeatherForecastController(
+        ILogger<WeatherForecastController> logger,
+        IWeatherService weatherService,
+        IUserService userService)
     {
         _logger = logger;
-        _configuration = configuration;
-        _graphServiceClient = graphServiceClient;
+        _weatherService = weatherService;
+        _userService = userService;
     }
 
     [HttpGet(Name = "GetWeatherForecast")]
     public async Task<IEnumerable<WeatherForecast>> Get()
     {
-        string? userName = "Unknown User";
-
-        if (_configuration.GetValue<bool>("UseMockAuth"))
-        {
-            // Mock mode - get user from claims
-            userName = User.Identity?.Name ?? "Mock User";
-        }
-        else if (_graphServiceClient != null)
-        {
-            try
-            {
-                // Real mode - get user from Graph API
-                var user = await _graphServiceClient.Me.GetAsync();
-                userName = user?.DisplayName ?? User.Identity?.Name ?? "Unknown User";
-            }
-            catch (Exception ex)
-            {
-                // If Graph API fails (e.g., consent required), fallback to JWT claims
-                _logger.LogWarning("Failed to get user from Graph API: {Error}. Using fallback.", ex.Message);
-                userName = User.FindFirst("name")?.Value ?? 
-                          User.FindFirst("preferred_username")?.Value ?? 
-                          User.Identity?.Name ?? 
-                          "Authenticated User";
-            }
-        }
-
+        var userName = await _userService.GetCurrentUserNameAsync();
         _logger.LogInformation("Weather forecast requested by user: {UserName}", userName);
 
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        })
-            .ToArray();
+        return await _weatherService.GetForecastAsync();
     }
 }

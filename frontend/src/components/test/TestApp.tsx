@@ -2,10 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
-import Layout from './components/Layout/Layout';
-import WeatherTest from './components/pages/WeatherTest';
-import AuthGuard from './components/auth/AuthGuard';
-import './i18n';
+import Layout from '../Layout/Layout';
+import WeatherTest from '../pages/WeatherTest';
+import AuthGuard from '../auth/AuthGuard';
+import '../../i18n';
 
 // Test version of App component with mocked configuration
 const msalConfig = {

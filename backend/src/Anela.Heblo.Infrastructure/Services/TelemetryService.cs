@@ -1,22 +1,9 @@
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.Extensions.Logging;
+using Anela.Heblo.Application.Interfaces;
 
-namespace Anela.Heblo.API.Services;
-
-public interface ITelemetryService
-{
-    void TrackBusinessEvent(string eventName, Dictionary<string, string>? properties = null, Dictionary<string, double>? metrics = null);
-    void TrackException(Exception exception, Dictionary<string, string>? properties = null);
-    void TrackMetric(string metricName, double value, Dictionary<string, string>? properties = null);
-    void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success);
-    
-    // Business-specific tracking methods
-    void TrackInvoiceImport(string invoiceId, bool success, string? error = null);
-    void TrackPaymentImport(string paymentId, bool success, string? error = null);
-    void TrackCatalogSync(int itemsProcessed, TimeSpan duration, bool success, string? error = null);
-    void TrackOrderProcessing(string orderId, string status, Dictionary<string, string>? additionalProperties = null);
-    void TrackInventoryUpdate(string productId, int oldQuantity, int newQuantity, string updateReason);
-}
+namespace Anela.Heblo.Infrastructure.Services;
 
 public class TelemetryService : ITelemetryService
 {
@@ -32,7 +19,7 @@ public class TelemetryService : ITelemetryService
     public void TrackBusinessEvent(string eventName, Dictionary<string, string>? properties = null, Dictionary<string, double>? metrics = null)
     {
         var telemetryEvent = new EventTelemetry(eventName);
-        
+
         if (properties != null)
         {
             foreach (var prop in properties)
@@ -40,7 +27,7 @@ public class TelemetryService : ITelemetryService
                 telemetryEvent.Properties[prop.Key] = prop.Value;
             }
         }
-        
+
         if (metrics != null)
         {
             foreach (var metric in metrics)
@@ -48,7 +35,7 @@ public class TelemetryService : ITelemetryService
                 telemetryEvent.Metrics[metric.Key] = metric.Value;
             }
         }
-        
+
         _telemetryClient.TrackEvent(telemetryEvent);
         _logger.LogInformation("Business event tracked: {EventName}", eventName);
     }
@@ -56,7 +43,7 @@ public class TelemetryService : ITelemetryService
     public void TrackException(Exception exception, Dictionary<string, string>? properties = null)
     {
         var telemetryException = new ExceptionTelemetry(exception);
-        
+
         if (properties != null)
         {
             foreach (var prop in properties)
@@ -64,7 +51,7 @@ public class TelemetryService : ITelemetryService
                 telemetryException.Properties[prop.Key] = prop.Value;
             }
         }
-        
+
         _telemetryClient.TrackException(telemetryException);
         _logger.LogError(exception, "Exception tracked");
     }
@@ -72,7 +59,7 @@ public class TelemetryService : ITelemetryService
     public void TrackMetric(string metricName, double value, Dictionary<string, string>? properties = null)
     {
         var telemetryMetric = new MetricTelemetry(metricName, value);
-        
+
         if (properties != null)
         {
             foreach (var prop in properties)
@@ -80,7 +67,7 @@ public class TelemetryService : ITelemetryService
                 telemetryMetric.Properties[prop.Key] = prop.Value;
             }
         }
-        
+
         _telemetryClient.TrackMetric(telemetryMetric);
         _logger.LogDebug("Metric tracked: {MetricName} = {Value}", metricName, value);
     }
@@ -89,7 +76,7 @@ public class TelemetryService : ITelemetryService
     {
         var dependency = new DependencyTelemetry(dependencyName, commandName, startTime, duration, success);
         _telemetryClient.TrackDependency(dependency);
-        _logger.LogInformation("Dependency tracked: {DependencyName} - {CommandName} - Success: {Success}", 
+        _logger.LogInformation("Dependency tracked: {DependencyName} - {CommandName} - Success: {Success}",
             dependencyName, commandName, success);
     }
 
@@ -102,17 +89,17 @@ public class TelemetryService : ITelemetryService
             ["Success"] = success.ToString(),
             ["ImportType"] = "Invoice"
         };
-        
+
         if (!string.IsNullOrEmpty(error))
         {
             properties["Error"] = error;
         }
-        
-        TrackBusinessEvent("InvoiceImport", properties, new Dictionary<string, double> 
-        { 
+
+        TrackBusinessEvent("InvoiceImport", properties, new Dictionary<string, double>
+        {
             ["ImportDuration"] = 0 // Will be set by actual import process
         });
-        
+
         if (!success)
         {
             _logger.LogError("Invoice import failed for {InvoiceId}: {Error}", invoiceId, error);
@@ -127,14 +114,14 @@ public class TelemetryService : ITelemetryService
             ["Success"] = success.ToString(),
             ["ImportType"] = "Payment"
         };
-        
+
         if (!string.IsNullOrEmpty(error))
         {
             properties["Error"] = error;
         }
-        
+
         TrackBusinessEvent("PaymentImport", properties);
-        
+
         if (!success)
         {
             _logger.LogError("Payment import failed for {PaymentId}: {Error}", paymentId, error);
@@ -148,25 +135,25 @@ public class TelemetryService : ITelemetryService
             ["Success"] = success.ToString(),
             ["SyncType"] = "Catalog"
         };
-        
+
         if (!string.IsNullOrEmpty(error))
         {
             properties["Error"] = error;
         }
-        
+
         var metrics = new Dictionary<string, double>
         {
             ["ItemsProcessed"] = itemsProcessed,
             ["DurationSeconds"] = duration.TotalSeconds
         };
-        
+
         TrackBusinessEvent("CatalogSync", properties, metrics);
         TrackMetric("CatalogSyncDuration", duration.TotalSeconds);
         TrackMetric("CatalogItemsProcessed", itemsProcessed);
-        
+
         if (!success)
         {
-            _logger.LogError("Catalog sync failed after processing {ItemsProcessed} items: {Error}", 
+            _logger.LogError("Catalog sync failed after processing {ItemsProcessed} items: {Error}",
                 itemsProcessed, error);
         }
     }
@@ -179,7 +166,7 @@ public class TelemetryService : ITelemetryService
             ["Status"] = status,
             ["ProcessType"] = "Order"
         };
-        
+
         if (additionalProperties != null)
         {
             foreach (var prop in additionalProperties)
@@ -187,7 +174,7 @@ public class TelemetryService : ITelemetryService
                 properties[prop.Key] = prop.Value;
             }
         }
-        
+
         TrackBusinessEvent("OrderProcessing", properties);
         _logger.LogInformation("Order {OrderId} processed with status: {Status}", orderId, status);
     }
@@ -200,16 +187,16 @@ public class TelemetryService : ITelemetryService
             ["UpdateReason"] = updateReason,
             ["UpdateType"] = "Inventory"
         };
-        
+
         var metrics = new Dictionary<string, double>
         {
             ["OldQuantity"] = oldQuantity,
             ["NewQuantity"] = newQuantity,
             ["QuantityChange"] = newQuantity - oldQuantity
         };
-        
+
         TrackBusinessEvent("InventoryUpdate", properties, metrics);
-        _logger.LogInformation("Inventory updated for {ProductId}: {OldQuantity} -> {NewQuantity} ({Reason})", 
+        _logger.LogInformation("Inventory updated for {ProductId}: {OldQuantity} -> {NewQuantity} ({Reason})",
             productId, oldQuantity, newQuantity, updateReason);
     }
 }
@@ -244,7 +231,7 @@ public class NoOpTelemetryService : ITelemetryService
 
     public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
     {
-        _logger.LogDebug("NoOp: TrackDependency - {DependencyName} - {CommandName} - Success: {Success}", 
+        _logger.LogDebug("NoOp: TrackDependency - {DependencyName} - {CommandName} - Success: {Success}",
             dependencyName, commandName, success);
     }
 
@@ -268,11 +255,11 @@ public class NoOpTelemetryService : ITelemetryService
 
     public void TrackCatalogSync(int itemsProcessed, TimeSpan duration, bool success, string? error = null)
     {
-        _logger.LogDebug("NoOp: TrackCatalogSync - Items: {ItemsProcessed}, Duration: {Duration}, Success: {Success}", 
+        _logger.LogDebug("NoOp: TrackCatalogSync - Items: {ItemsProcessed}, Duration: {Duration}, Success: {Success}",
             itemsProcessed, duration, success);
         if (!success && !string.IsNullOrEmpty(error))
         {
-            _logger.LogError("Catalog sync failed after processing {ItemsProcessed} items: {Error}", 
+            _logger.LogError("Catalog sync failed after processing {ItemsProcessed} items: {Error}",
                 itemsProcessed, error);
         }
     }
@@ -284,7 +271,7 @@ public class NoOpTelemetryService : ITelemetryService
 
     public void TrackInventoryUpdate(string productId, int oldQuantity, int newQuantity, string updateReason)
     {
-        _logger.LogDebug("NoOp: TrackInventoryUpdate - {ProductId}: {OldQuantity} -> {NewQuantity} ({Reason})", 
+        _logger.LogDebug("NoOp: TrackInventoryUpdate - {ProductId}: {OldQuantity} -> {NewQuantity} ({Reason})",
             productId, oldQuantity, newQuantity, updateReason);
     }
 }

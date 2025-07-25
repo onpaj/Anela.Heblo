@@ -11,11 +11,36 @@ This document defines the project's directory structure and filesystem organizat
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
 │   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
+│   │   │   ├── Controllers/           # API controllers
+│   │   │   ├── Extensions/            # Service registration & configuration extensions
+│   │   │   │   ├── ServiceCollectionExtensions.cs
+│   │   │   │   ├── LoggingExtensions.cs
+│   │   │   │   ├── ApplicationBuilderExtensions.cs
+│   │   │   │   └── AuthenticationExtensions.cs
+│   │   │   ├── Constants/             # Configuration constants
+│   │   │   │   └── ConfigurationConstants.cs
+│   │   │   ├── Authentication/        # Authentication handlers
+│   │   │   │   └── MockAuthenticationHandler.cs
+│   │   │   └── Program.cs             # Application entry point (simplified)
 │   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
-│   │   ├── Anela.Heblo.Application/   # Application layer
-│   │   ├── Anela.Heblo.Domain/        # Domain models
-│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer
+│   │   ├── Anela.Heblo.Application/   # Application layer (Clean Architecture)
+│   │   │   ├── Interfaces/            # Service interfaces
+│   │   │   │   ├── IWeatherService.cs
+│   │   │   │   ├── IUserService.cs
+│   │   │   │   └── ITelemetryService.cs
+│   │   │   └── Services/              # Application service implementations
+│   │   │       ├── WeatherService.cs
+│   │   │       └── UserService.cs
+│   │   ├── Anela.Heblo.Domain/        # Domain layer (Clean Architecture)
+│   │   │   ├── Entities/              # Domain entities
+│   │   │   │   └── WeatherForecast.cs
+│   │   │   └── Constants/             # Domain constants
+│   │   │       └── WeatherConstants.cs
+│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer (Clean Architecture)
+│   │       └── Services/              # Infrastructure service implementations
+│   │           └── TelemetryService.cs (with NoOpTelemetryService)
 │   ├── test/      # Unit/integration tests for backend
+│   │   └── Anela.Heblo.Tests/         # Integration tests
 │   ├── migrations/ # EF Core database migrations
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
@@ -40,12 +65,51 @@ This document defines the project's directory structure and filesystem organizat
 │   │   └── e2e/         # End-to-end tests
 │   └── package.json # Node.js dependencies and scripts
 │
+├── docs/          # Project documentation
+│   ├── architecture/       # Architecture documentation
+│   │   ├── filesystem.md
+│   │   ├── environments.md
+│   │   ├── application_infrastructure.md
+│   │   └── observability.md
+│   ├── design/            # UI/UX design documentation
+│   │   ├── ui_design_document.md
+│   │   ├── layout_definition.md
+│   │   └── styleguide.md
+│   ├── features/          # Feature-specific documentation
+│   │   └── Authentication.md
+│   └── tasks/             # Reusable task definitions
+│       ├── backend-clean-architecture-refactoring.md
+│       └── AUTHENTICATION_TESTING.md
+├── scripts/       # Development and deployment scripts
+│   ├── build-and-push.sh
+│   ├── deploy-azure.sh
+│   └── run-playwright-tests.sh
 ├── .github/        # GitHub Actions workflows
 ├── .env            # Dev environment variables
 ├── Dockerfile      # Single image for backend + frontend
 ├── docker-compose.yml # For local dev/test if needed
+├── CLAUDE.md       # AI assistant instructions
 └── .dockerignore   # Docker build optimization
 ```
+## 🏗️ Clean Architecture Implementation
+
+**The backend follows Clean Architecture principles with proper layer separation:**
+
+- **Domain Layer** (`Anela.Heblo.Domain`): Core business entities and constants
+- **Application Layer** (`Anela.Heblo.Application`): Business logic and service interfaces
+- **Infrastructure Layer** (`Anela.Heblo.Infrastructure`): External service implementations
+- **API Layer** (`Anela.Heblo.API`): HTTP controllers and application configuration
+- **Files should be kept in layers together by features (vertical slices), not by type (horizontal slices)**
+  - **Example**: `backend/src/Anela.Heblo.Application/UserManagement including both interface and service implementation`
+
+**Dependency Flow**: API → Application/Infrastructure → Domain
+
+**Key Features:**
+- Dependency injection with proper service lifetime management
+- SOLID principles adherence
+- Professional logging and configuration management
+- Modular service registration through extension methods
+- Clean separation of concerns
 
 ---
 
@@ -97,6 +161,8 @@ This document defines the project's directory structure and filesystem organizat
 - **Tool**: NSwag with System.Text.Json
 - **Output**: `Generated/AnelaHebloApiClient.cs`
 - **Manual Generation**: Scripts available (`generate-client.ps1`, `generate-client.sh`)
+
+  
 
 ### Frontend TypeScript Client
 

@@ -5,11 +5,16 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import WeatherTest from '../WeatherTest';
-import { shouldUseMockAuth, getRuntimeConfig } from '../../../config/runtimeConfig';
+import { shouldUseMockAuth, getRuntimeConfig, getConfig, loadConfig } from '../../../config/runtimeConfig';
 import { mockAuthService } from '../../../auth/mockAuth';
 
 // Mock the dependencies
-jest.mock('../../../config/runtimeConfig');
+jest.mock('../../../config/runtimeConfig', () => ({
+  shouldUseMockAuth: jest.fn(),
+  getRuntimeConfig: jest.fn(),
+  getConfig: jest.fn(),
+  loadConfig: jest.fn(),
+}));
 jest.mock('../../../auth/mockAuth');
 
 // Mock fetch globally
@@ -18,6 +23,8 @@ global.fetch = mockFetch;
 
 const mockShouldUseMockAuth = shouldUseMockAuth as jest.MockedFunction<typeof shouldUseMockAuth>;
 const mockGetRuntimeConfig = getRuntimeConfig as jest.MockedFunction<typeof getRuntimeConfig>;
+const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>;
+const mockLoadConfig = loadConfig as jest.MockedFunction<typeof loadConfig>;
 const mockMockAuthService = mockAuthService as jest.Mocked<typeof mockAuthService>;
 
 describe('WeatherTest Component Authentication Integration', () => {
@@ -27,13 +34,17 @@ describe('WeatherTest Component Authentication Integration', () => {
   ];
 
   beforeEach(() => {
-    // Mock runtime config
-    mockGetRuntimeConfig.mockReturnValue({
+    const mockConfig = {
       apiUrl: 'http://localhost:8080',
       useMockAuth: false,
       azureClientId: 'test-client-id',
       azureAuthority: 'https://login.microsoftonline.com/test-tenant',
-    });
+    };
+
+    // Mock all config functions
+    mockGetRuntimeConfig.mockReturnValue(mockConfig);
+    mockGetConfig.mockReturnValue(mockConfig);
+    mockLoadConfig.mockReturnValue(mockConfig);
 
     // Mock mockAuthService
     mockMockAuthService.getAccessToken.mockReturnValue('mock-bearer-token');

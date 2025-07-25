@@ -27,7 +27,7 @@ public class ConfigurationController : ControllerBase
             // 3. Assembly version
             // 4. Fallback to 1.0.0
             var version = Environment.GetEnvironmentVariable("APP_VERSION");
-            
+
             if (string.IsNullOrEmpty(version))
             {
                 var assembly = Assembly.GetExecutingAssembly();

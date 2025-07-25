@@ -1,6 +1,6 @@
 import React, { act } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import TestApp from './TestApp';
+import TestApp from '../components/test/TestApp';
 
 test('renders app without crashing', async () => {
   await act(async () => {
