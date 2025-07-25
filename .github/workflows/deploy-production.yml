@@ -38,7 +38,7 @@ jobs:
       - name: 🔖 Install GitVersion
         uses: gittools/actions/gitversion/setup@v1.1.1
         with:
-          versionSpec: '5.x'
+          versionSpec: '6.x'
 
       - name: 🔖 Determine version with GitVersion
         id: gitversion
@@ -56,8 +56,8 @@ jobs:
             echo "tag=$VERSION" >> $GITHUB_OUTPUT
             echo "📌 Using tag version: $VERSION"
           else
-            # Use GitVersion generated version
-            VERSION="v${{ steps.gitversion.outputs.semVer }}"
+            # Use GitVersion generated version (clean version without pre-release suffixes)
+            VERSION="v${{ steps.gitversion.outputs.majorMinorPatch }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "tag=$VERSION" >> $GITHUB_OUTPUT
             echo "🔢 GitVersion generated: $VERSION"
