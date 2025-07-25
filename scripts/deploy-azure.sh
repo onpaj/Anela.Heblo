@@ -8,26 +8,27 @@ set -e  # Exit on any error
 
 # Configuration
 ENVIRONMENT=${1:-"test"}
-APP_NAME="anela-heblo"
+APP_NAME="heblo"
 DOCKER_USERNAME="your-docker-username"  # Replace with actual Docker Hub username
-IMAGE_NAME="anela-heblo"
+IMAGE_NAME="heblo"
 
 # Environment-specific configuration
+RESOURCE_GROUP="rgHeblo"
+PLAN_NAME="spHeblo"
+APP_INSIGHTS_NAME="aiHeblo"
+LOCATION="West Europe"
+
 if [ "$ENVIRONMENT" = "production" ]; then
-    RESOURCE_GROUP="rg-anela-heblo-prod"
-    WEBAPP_NAME="anela-heblo"
-    LOCATION="West Europe"
+    WEBAPP_NAME="heblo"
     SKU="B1"  # Basic tier for production
     DOCKER_TAG="latest"
-    API_URL="https://anela-heblo.azurewebsites.net"
+    API_URL="https://heblo.azurewebsites.net"
     USE_MOCK_AUTH="false"
 elif [ "$ENVIRONMENT" = "test" ]; then
-    RESOURCE_GROUP="rg-anela-heblo-test"
-    WEBAPP_NAME="anela-heblo-test"
-    LOCATION="West Europe"
-    SKU="F1"  # Free tier for testing
+    WEBAPP_NAME="heblo-test"
+    SKU="B1"  # Same as production for consistency
     DOCKER_TAG="test-latest"
-    API_URL="https://anela-heblo-test.azurewebsites.net"
+    API_URL="https://heblo-test.azurewebsites.net"
     USE_MOCK_AUTH="true"
 else
     echo "❌ Invalid environment. Use 'test' or 'production'"
@@ -68,7 +69,6 @@ fi
 # Step 2: Create App Service Plan
 echo ""
 echo "📋 Step 2: Creating App Service Plan..."
-PLAN_NAME="$WEBAPP_NAME-plan"
 if az appservice plan show --name $PLAN_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
     echo "✅ App Service Plan $PLAN_NAME already exists"
 else
@@ -81,9 +81,32 @@ else
     echo "✅ App Service Plan created"
 fi
 
-# Step 3: Create Web App
+# Step 3: Create Application Insights
 echo ""
-echo "📋 Step 3: Creating Web App..."
+echo "📋 Step 3: Creating Application Insights..."
+if az monitor app-insights component show --app $APP_INSIGHTS_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
+    echo "✅ Application Insights $APP_INSIGHTS_NAME already exists"
+else
+    echo "🔨 Creating Application Insights $APP_INSIGHTS_NAME..."
+    az monitor app-insights component create \
+        --app $APP_INSIGHTS_NAME \
+        --location $LOCATION \
+        --kind web \
+        --resource-group $RESOURCE_GROUP \
+        --application-type web
+    echo "✅ Application Insights created"
+fi
+
+# Get Application Insights instrumentation key
+AI_INSTRUMENTATION_KEY=$(az monitor app-insights component show \
+    --app $APP_INSIGHTS_NAME \
+    --resource-group $RESOURCE_GROUP \
+    --query instrumentationKey -o tsv)
+echo "📊 Application Insights Key: ${AI_INSTRUMENTATION_KEY:0:8}..."
+
+# Step 4: Create Web App
+echo ""
+echo "📋 Step 4: Creating Web App..."
 if az webapp show --name $WEBAPP_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
     echo "✅ Web App $WEBAPP_NAME already exists"
 else
@@ -96,9 +119,9 @@ else
     echo "✅ Web App created"
 fi
 
-# Step 4: Configure Container Settings
+# Step 5: Configure Container Settings
 echo ""
-echo "📋 Step 4: Configuring container settings..."
+echo "📋 Step 5: Configuring container settings..."
 echo "🐳 Setting Docker image to $DOCKER_IMAGE..."
 az webapp config container set \
     --name $WEBAPP_NAME \
@@ -108,9 +131,9 @@ az webapp config container set \
 
 echo "✅ Container configured"
 
-# Step 5: Configure App Settings
+# Step 6: Configure App Settings
 echo ""
-echo "📋 Step 5: Configuring application settings..."
+echo "📋 Step 6: Configuring application settings..."
 
 if [ "$ENVIRONMENT" = "production" ]; then
     echo "📝 Production environment - configuring for real Azure AD authentication"
@@ -127,7 +150,9 @@ if [ "$ENVIRONMENT" = "production" ]; then
             WEBSITES_PORT=8080 \
             WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
             DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=false
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            APPINSIGHTS_INSTRUMENTATIONKEY=$AI_INSTRUMENTATION_KEY \
+            APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=$AI_INSTRUMENTATION_KEY"
 else
     echo "🧪 Test environment - using mock authentication"
     az webapp config appsettings set \
@@ -140,14 +165,16 @@ else
             WEBSITES_PORT=8080 \
             WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
             DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=false
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            APPINSIGHTS_INSTRUMENTATIONKEY=$AI_INSTRUMENTATION_KEY \
+            APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=$AI_INSTRUMENTATION_KEY"
 fi
 
 echo "✅ App settings configured"
 
-# Step 6: Enable Container Logging
+# Step 7: Enable Container Logging
 echo ""
-echo "📋 Step 6: Enabling container logging..."
+echo "📋 Step 7: Enabling container logging..."
 az webapp log config \
     --name $WEBAPP_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -155,18 +182,18 @@ az webapp log config \
 
 echo "✅ Container logging enabled"
 
-# Step 7: Restart Web App (force pull latest image)
+# Step 8: Restart Web App (force pull latest image)
 echo ""
-echo "📋 Step 7: Restarting Web App to pull latest image..."
+echo "📋 Step 8: Restarting Web App to pull latest image..."
 az webapp restart \
     --name $WEBAPP_NAME \
     --resource-group $RESOURCE_GROUP
 
 echo "✅ Web App restarted"
 
-# Step 8: Health Check
+# Step 9: Health Check
 echo ""
-echo "📋 Step 8: Performing health check..."
+echo "📋 Step 9: Performing health check..."
 WEBAPP_URL="https://$WEBAPP_NAME.azurewebsites.net"
 echo "🌐 Web App URL: $WEBAPP_URL"
 
@@ -190,9 +217,9 @@ for i in {1..12}; do
     fi
 done
 
-# Step 9: Final Verification
+# Step 10: Final Verification
 echo ""
-echo "📋 Step 9: Final verification..."
+echo "📋 Step 10: Final verification..."
 echo "🌐 Testing main page..."
 MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEBAPP_URL/")
 if [ "$MAIN_STATUS" = "200" ]; then

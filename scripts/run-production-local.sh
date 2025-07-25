@@ -6,8 +6,8 @@
 
 set -e
 
-DOCKER_IMAGE="anela-heblo:latest"
-CONTAINER_NAME="anela-heblo-local"
+DOCKER_IMAGE="heblo:latest"
+CONTAINER_NAME="heblo-local"
 PORT="8080"
 
 # Azure AD Configuration

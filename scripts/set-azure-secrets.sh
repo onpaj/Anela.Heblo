@@ -11,12 +11,12 @@ ENVIRONMENT=${1:-"production"}
 AZURE_CLIENT_ID=$2
 AZURE_AUTHORITY=$3
 
+RESOURCE_GROUP="rgHeblo"
+
 if [ "$ENVIRONMENT" = "production" ]; then
-    RESOURCE_GROUP="rg-anela-heblo-prod"
-    WEBAPP_NAME="anela-heblo"
+    WEBAPP_NAME="heblo"
 elif [ "$ENVIRONMENT" = "test" ]; then
-    RESOURCE_GROUP="rg-anela-heblo-test"
-    WEBAPP_NAME="anela-heblo-test"
+    WEBAPP_NAME="heblo-test"
 else
     echo "❌ Invalid environment. Use 'production' or 'test'"
     exit 1

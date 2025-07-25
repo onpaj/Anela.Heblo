@@ -48,7 +48,7 @@
 
 | Environment | Application Port | Azure Web App | Note |
 |-------------|------------------|---------------|------|
-| Development | 3000 (frontend), 5000 (backend) | - | Separate dev servers |
+| Development | 3000 (frontend), 44390 (backend) | - | Separate dev servers |
 | Test | 80 | https://anela-heblo-test.azurewebsites.net | Single container |
 | Production | 80 | https://anela-heblo.azurewebsites.net | Single container |
 
@@ -104,6 +104,7 @@ REACT_APP_USE_MOCK_AUTH=false
 - Docker images are pushed to **Docker Hub** with semantic versioning tags.
 - Deployment implemented via **GitHub Actions** to Azure Web App for Containers.
 - Environment-specific configuration via Azure App Settings.
+- **CI validation removed**: Deployment workflows no longer wait for CI to pass (as of current implementation).
 
 ---
 
@@ -182,15 +183,18 @@ Development:           Production/Test:
 - **Custom Domain**: Optional for production (requires paid SSL certificate)
 
 ### Environment-Specific Settings:
+
+**Test Environment:**
 ```json
-// Test Environment
 {
   "ASPNETCORE_ENVIRONMENT": "Test",
   "ConnectionStrings__DefaultConnection": "postgresql://...",
   "REACT_APP_USE_MOCK_AUTH": "true"
 }
+```
 
-// Production Environment  
+**Production Environment:**
+```json
 {
   "ASPNETCORE_ENVIRONMENT": "Production",
   "ConnectionStrings__DefaultConnection": "postgresql://...",
@@ -252,6 +256,81 @@ Development:           Production/Test:
 - Since the project is developed by a single developer:
   - PR review is handled by an **AI agent**.
   - PRs must include CI success and optionally auto-reviewed comments.
+
+---
+
+## 11. 🔐 GitHub Secrets Configuration
+
+### Required Secrets for CI/CD Pipeline
+
+The following secrets must be configured in GitHub repository settings (Settings → Secrets and variables → Actions):
+
+#### 🐳 Docker Hub Authentication
+- **`DOCKER_USERNAME`**: Your Docker Hub username
+- **`DOCKER_PASSWORD`**: Docker Hub access token (not password!)
+  - Create at: Docker Hub → Account Settings → Security → New Access Token
+  - Recommended permissions: Read, Write, Delete
+
+#### ☁️ Azure Service Principal Credentials
+- **`AZURE_CREDENTIALS_TEST`**: Service principal for test environment
+- **`AZURE_CREDENTIALS_PROD`**: Service principal for production environment
+  
+  Create with Azure CLI:
+  ```bash
+  # Test environment
+  az ad sp create-for-rbac \
+    --name "github-actions-anela-heblo-test" \
+    --role contributor \
+    --scopes /subscriptions/{subscription-id}/resourceGroups/rg-anela-heblo-test \
+    --sdk-auth
+
+  # Production environment  
+  az ad sp create-for-rbac \
+    --name "github-actions-anela-heblo-prod" \
+    --role contributor \
+    --scopes /subscriptions/{subscription-id}/resourceGroups/rg-anela-heblo-prod \
+    --sdk-auth
+  ```
+  
+  The output JSON should be stored as the secret value.
+
+#### 🔑 Microsoft Entra ID (Azure AD) Authentication
+- **`AZURE_CLIENT_ID_PROD`**: Azure AD application client ID for production
+- **`AZURE_AUTHORITY_PROD`**: Azure AD authority URL
+  - Format: `https://login.microsoftonline.com/{tenant-id}`
+  - Get from: Azure Portal → App registrations → Your app → Overview
+
+#### 🤖 Automatically Provided
+- **`GITHUB_TOKEN`**: Automatically provided by GitHub Actions
+  - Has permissions to create releases, push tags, etc.
+  - Requires `contents: write` permission in workflow file
+
+### CI/CD Pipeline Configuration
+
+#### Workflow Permissions
+Production deployment workflow requires:
+```yaml
+permissions:
+  contents: write  # For creating git tags
+  packages: write  # For pushing Docker images
+```
+
+#### Environment-Specific App Settings
+Configured automatically during deployment:
+
+**Test Environment:**
+- `ASPNETCORE_ENVIRONMENT=Test`
+- `REACT_APP_API_URL=https://anela-heblo-test.azurewebsites.net`
+- `REACT_APP_USE_MOCK_AUTH=true`
+- `WEBSITES_PORT=8080`
+
+**Production Environment:**
+- `ASPNETCORE_ENVIRONMENT=Production`
+- `REACT_APP_API_URL=https://anela-heblo.azurewebsites.net`
+- `REACT_APP_USE_MOCK_AUTH=false`
+- `REACT_APP_AZURE_CLIENT_ID` (from secret)
+- `REACT_APP_AZURE_AUTHORITY` (from secret)
+- `WEBSITES_PORT=8080`
 
 ---
 

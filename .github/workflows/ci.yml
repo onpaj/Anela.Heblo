@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: anela-heblo
+  IMAGE_NAME: heblo
 
 jobs:
   # Frontend CI - Test and build only (no lint)

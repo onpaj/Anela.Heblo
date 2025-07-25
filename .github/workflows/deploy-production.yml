@@ -18,8 +18,8 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: anela-heblo
-  AZURE_WEBAPP_NAME: anela-heblo
+  IMAGE_NAME: heblo
+  AZURE_WEBAPP_NAME: heblo
 
 jobs:
   # Generate Version
@@ -110,7 +110,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://anela-heblo.azurewebsites.net
+            REACT_APP_API_URL=https://heblo.azurewebsites.net
 
       - name: 🔖 Create Git Tag
         if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
@@ -129,7 +129,7 @@ jobs:
     needs: [build-and-push, version]
     environment:
       name: production
-      url: https://anela-heblo.azurewebsites.net
+      url: https://heblo.azurewebsites.net
     steps:
       - name: 🔐 Azure Login
         uses: azure/login@v1
@@ -145,11 +145,11 @@ jobs:
       - name: 🔧 Configure App Settings
         run: |
           az webapp config appsettings set \
-            --resource-group rg-anela-heblo-prod \
+            --resource-group rgHeblo \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
               ASPNETCORE_ENVIRONMENT=Production \
-              REACT_APP_API_URL=https://anela-heblo.azurewebsites.net \
+              REACT_APP_API_URL=https://heblo.azurewebsites.net \
               REACT_APP_USE_MOCK_AUTH=false \
               REACT_APP_AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_PROD }}" \
               REACT_APP_AZURE_AUTHORITY="${{ secrets.AZURE_AUTHORITY_PROD }}" \
@@ -170,7 +170,7 @@ jobs:
         run: |
           echo "🧪 Running production smoke tests..."
           
-          BASE_URL="https://anela-heblo.azurewebsites.net"
+          BASE_URL="https://heblo.azurewebsites.net"
           
           # Test 1: Health check
           echo "🏥 Testing health endpoint..."
@@ -246,7 +246,7 @@ jobs:
             
             ## Deployment Info
             - **Environment:** Production
-            - **URL:** https://anela-heblo.azurewebsites.net
+            - **URL:** https://heblo.azurewebsites.net
             - **Docker Image:** `${{ needs.build-and-push.outputs.image-tag }}`
             - **Deployed at:** ${{ github.event.head_commit.timestamp }}
           draft: false
@@ -265,7 +265,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`${{ needs.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://anela-heblo.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://heblo.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.smoke-tests.result }}" = "success" ]; then

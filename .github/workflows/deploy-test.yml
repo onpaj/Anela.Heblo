@@ -16,8 +16,8 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: anela-heblo
-  AZURE_WEBAPP_NAME: anela-heblo-test
+  IMAGE_NAME: heblo
+  AZURE_WEBAPP_NAME: heblo-test
 
 jobs:
   # Build and Push Docker Image
@@ -64,7 +64,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://anela-heblo-test.azurewebsites.net
+            REACT_APP_API_URL=https://heblo-test.azurewebsites.net
 
   # Deploy to Azure Web App
   deploy-azure:
@@ -73,7 +73,7 @@ jobs:
     needs: [build-and-push]
     environment:
       name: test
-      url: https://anela-heblo-test.azurewebsites.net
+      url: https://heblo-test.azurewebsites.net
     steps:
       - name: 🔐 Azure Login
         uses: azure/login@v1
@@ -89,11 +89,11 @@ jobs:
       - name: 🔧 Configure App Settings
         run: |
           az webapp config appsettings set \
-            --resource-group rg-anela-heblo-test \
+            --resource-group rgHeblo \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
               ASPNETCORE_ENVIRONMENT=Test \
-              REACT_APP_API_URL=https://anela-heblo-test.azurewebsites.net \
+              REACT_APP_API_URL=https://heblo-test.azurewebsites.net \
               REACT_APP_USE_MOCK_AUTH=true \
               WEBSITES_PORT=8080 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
@@ -115,11 +115,11 @@ jobs:
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS"
             
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://anela-heblo-test.azurewebsites.net/health || echo "000")
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://heblo-test.azurewebsites.net/health || echo "000")
             
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "✅ Health check passed!"
-              echo "🌐 Application is available at: https://anela-heblo-test.azurewebsites.net"
+              echo "🌐 Application is available at: https://heblo-test.azurewebsites.net"
               exit 0
             fi
             
@@ -148,7 +148,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ inputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** Test" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://anela-heblo-test.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://heblo-test.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.health-check.result }}" = "success" ]; then
