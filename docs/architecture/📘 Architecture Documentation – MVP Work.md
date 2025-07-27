@@ -12,7 +12,7 @@ Stack Overview
 
 Layer	Tech Choices
 Frontend	React PWA, i18next, MSAL (MS Entra ID)
-Backend API	ASP.NET Core (.NET 8), FastEndpoints, REST
+Backend API	ASP.NET Core (.NET 8), MediatR + Controllers, REST
 Auth	MS Entra ID (OIDC), Claims-based roles
 Database	PostgreSQL (EF Core Migrations)
 Background Tasks	Hangfire
@@ -24,11 +24,11 @@ Deployment	Docker, GitHub Environments, .NET Environments (on-prem now, Azure la
 ⸻
 
 🧱 Architectural Pattern
-	•	Vertical Slice Architecture with FastEndpoints
+	•	Vertical Slice Architecture with MediatR + Controllers
 	•	Modular monolith with feature-based organization
-	•	Projects: Anela.Heblo.API (host), Anela.Heblo.App (features), Anela.Heblo.Persistence (DB), Anela.Heblo.Xcc (cross-cutting)
-	•	Modules communicate via contracts interfaces, no direct dependencies
-	•	Generic repository pattern with interface in Xcc
+	•	Projects: Anela.Heblo.API (host), Anela.Heblo.Application (features), Anela.Heblo.Persistence (DB), Anela.Heblo.Infrastructure (cross-cutting)
+	•	Features use MediatR handlers as Application Services
+	•	Generic repository pattern with concrete implementation in Persistence
 
 ⸻
 
@@ -126,37 +126,37 @@ Config	.NET environments	.NET environments
 
 ## 📁 Module Structure (Vertical Slices)
 
-Each feature module in `Anela.Heblo.App/features/` follows this structure:
+Each feature module in `Anela.Heblo.Application/Features/` follows this structure:
 
 ```
-features/
-├── catalog/
-│   ├── contracts/
-│   │   ├── ICatalogService.cs
-│   │   ├── ProductDto.cs
-│   │   └── MaterialDto.cs
-│   ├── application/
-│   │   ├── CatalogService.cs
-│   │   └── SyncCatalogUseCase.cs
-│   ├── domain/
+Features/
+├── Catalog/
+│   ├── Contracts/
+│   │   ├── GetCatalogRequest.cs
+│   │   ├── GetCatalogResponse.cs
+│   │   └── CatalogDto.cs
+│   ├── Application/
+│   │   ├── GetCatalogHandler.cs (MediatR Handler)
+│   │   └── SyncCatalogHandler.cs
+│   ├── Domain/
 │   │   ├── Product.cs
 │   │   ├── Material.cs
 │   │   └── StockSnapshot.cs
-│   ├── infrastructure/
-│   │   ├── CatalogRepository.cs
-│   │   └── ExternalApiClients/
-│   └── CatalogModule.cs
-├── invoices/
-├── manufacture/
-├── purchase/
-└── transport/
+│   └── Infrastructure/
+│       ├── CatalogRepository.cs
+│       └── ExternalApiClients/
+├── Invoices/
+├── Manufacture/
+├── Purchase/
+└── Transport/
 ```
 
 **Key Principles:**
-- Each module is self-contained with all layers
-- Communication between modules only via contracts
-- Repository implementations use generic repository from Xcc
-- FastEndpoints in API project delegate to use cases in App
+- Each feature is self-contained with all layers
+- Controllers use MediatR to send requests to handlers
+- Handlers are the Application Services containing business logic
+- API endpoints follow /api/{controller} pattern
+- Repository implementations use generic repository from Persistence
 
 ⸻
 

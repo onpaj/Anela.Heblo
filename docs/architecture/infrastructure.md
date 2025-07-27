@@ -1,6 +1,6 @@
 # 📘 Application Infrastructure Design Document
 
-> **Stack**: Monorepo (`.NET 8` + `React`), Vertical Slice Architecture with FastEndpoints, Single Docker image deployment, Azure Web App for Containers, GitHub + GitHub Actions, EF Core, Docker Hub.
+> **Stack**: Monorepo (`.NET 8` + `React`), Vertical Slice Architecture with MediatR + Controllers, Single Docker image deployment, Azure Web App for Containers, GitHub + GitHub Actions, EF Core, Docker Hub.
 
 ---
 

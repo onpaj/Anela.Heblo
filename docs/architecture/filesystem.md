@@ -1,6 +1,6 @@
 # 📁 Filesystem Structure Documentation
 
-This document defines the project's directory structure and filesystem organization following **Vertical Slice Architecture** with FastEndpoints.
+This document defines the project's directory structure and filesystem organization following **Vertical Slice Architecture** with MediatR + Controllers.
 
 ---
 
@@ -10,13 +10,11 @@ This document defines the project's directory structure and filesystem organizat
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
-│   │   │   ├── Endpoints/             # FastEndpoints organized by features
-│   │   │   │   ├── Orders/
-│   │   │   │   │   ├── CreateOrderEndpoint.cs
-│   │   │   │   │   └── GetOrderEndpoint.cs
-│   │   │   │   ├── Products/
-│   │   │   │   └── Invoices/
+│   │   ├── Anela.Heblo.API/           # Host/Composition project (Controllers + serves React)
+│   │   │   ├── Controllers/           # MVC Controllers for API endpoints
+│   │   │   │   ├── OrdersController.cs
+│   │   │   │   ├── ProductsController.cs
+│   │   │   │   └── InvoicesController.cs
 │   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
@@ -25,23 +23,23 @@ This document defines the project's directory structure and filesystem organizat
 │   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
 │   │   ├── Anela.Heblo.Application/   # Feature modules and business logic
-│   │   │   ├── features/              # Vertical slice feature modules
-│   │   │   │   ├── orders/
-│   │   │   │   │   ├── contracts/
+│   │   │   ├── Features/              # Vertical slice feature modules
+│   │   │   │   ├── Orders/
+│   │   │   │   │   ├── Contracts/
 │   │   │   │   │   │   ├── CreateOrderRequest.cs
 │   │   │   │   │   │   ├── CreateOrderResponse.cs
-│   │   │   │   │   │   └── IOrderService.cs
-│   │   │   │   │   ├── application/
-│   │   │   │   │   │   └── CreateOrderUseCase.cs
-│   │   │   │   │   ├── domain/
+│   │   │   │   │   │   └── GetOrderRequest.cs
+│   │   │   │   │   ├── Application/
+│   │   │   │   │   │   ├── CreateOrderHandler.cs
+│   │   │   │   │   │   └── GetOrderHandler.cs
+│   │   │   │   │   ├── Domain/
 │   │   │   │   │   │   ├── Order.cs
 │   │   │   │   │   │   └── OrderItem.cs
-│   │   │   │   │   ├── infrastructure/
-│   │   │   │   │   │   └── OrderRepository.cs
-│   │   │   │   │   └── OrdersModule.cs
-│   │   │   │   ├── products/
-│   │   │   │   ├── invoices/
-│   │   │   │   └── catalog/
+│   │   │   │   │   └── Infrastructure/
+│   │   │   │   │       └── OrderRepository.cs
+│   │   │   │   ├── Products/
+│   │   │   │   ├── Invoices/
+│   │   │   │   └── Catalog/
 │   │   │   ├── Shared/               # Shared kernel
 │   │   │   │   └── Kernel/
 │   │   │   │       ├── Result.cs
@@ -116,26 +114,26 @@ This document defines the project's directory structure and filesystem organizat
 ```
 ## 🏗️ Vertical Slice Architecture Implementation
 
-**The backend follows Vertical Slice Architecture with FastEndpoints:**
+**The backend follows Vertical Slice Architecture with MediatR + Controllers:**
 
 ### Project Structure:
-- **Anela.Heblo.API**: Host/Composition layer - FastEndpoints, DI composition, serves React app
+- **Anela.Heblo.API**: Host/Composition layer - MVC Controllers, MediatR integration, serves React app
 - **Anela.Heblo.Application**: Feature modules with vertical slices containing all layers
 - **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
 - **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
 
 ### Feature Module Structure:
-Each feature in `Anela.Heblo.Application/features/` contains:
-- **contracts/**: Public interfaces, DTOs (Request/Response)
-- **application/**: Use cases, orchestration, service implementations
-- **domain/**: Entities, aggregates, value objects, business rules
-- **infrastructure/**: Repository implementations (using generic repository from Persistence)
-- **Module.cs**: DI registration for the feature
+Each feature in `Anela.Heblo.Application/Features/` contains:
+- **Contracts/**: MediatR request/response DTOs
+- **Application/**: MediatR handlers (Application Services)
+- **Domain/**: Entities, aggregates, value objects, business rules
+- **Infrastructure/**: Repository implementations (using generic repository from Persistence)
 
 ### Key Principles:
 - **Vertical organization**: Each feature contains all its layers
-- **Module isolation**: Features communicate only through contracts
-- **FastEndpoints**: Thin HTTP layer that delegates to use cases
+- **MediatR pattern**: Controllers send requests to handlers via MediatR
+- **Handlers as Application Services**: Business logic resides in MediatR handlers
+- **Standard endpoints**: All endpoints follow /api/{controller} pattern
 - **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
 - **Single DbContext**: Initially shared in Persistence project, designed to evolve to module-specific contexts
 - **SOLID principles**: Applied within each vertical slice
@@ -152,14 +150,14 @@ Each feature in `Anela.Heblo.Application/features/` contains:
 - Module-specific migrations with unique history tables
 - Example structure:
   ```
-  features/orders/infrastructure/
+  Features/Orders/Infrastructure/
   ├── OrdersDbContext.cs
   ├── Migrations/
   │   └── [timestamp]_InitialOrdersSchema.cs
   └── Configurations/
       └── OrderConfiguration.cs
   ```
-- Migration command: `dotnet ef migrations add InitOrders --context OrdersDbContext --output-dir App/features/orders/infrastructure/Migrations`
+- Migration command: `dotnet ef migrations add InitOrders --context OrdersDbContext --output-dir Application/Features/Orders/Infrastructure/Migrations`
 - Each context configured with: `optionsBuilder.UseSqlServer(connection, x => x.MigrationsHistoryTable("__EFMigrationsHistory_Orders"))`
 
 ---

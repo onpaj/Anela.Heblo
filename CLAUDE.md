@@ -43,13 +43,13 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 │   │   │   │       │   ├── IWeatherService.cs
 │   │   │   │       │   ├── GetWeatherForecastRequest.cs
 │   │   │   │       │   └── GetWeatherForecastResponse.cs
-│   │   │   │       ├── application/   # Use cases, services
-│   │   │   │       │   ├── GetWeatherForecastUseCase.cs
+│   │   │   │       ├── Application/   # MediatR handlers (Application Services)
+│   │   │   │       │   ├── GetWeatherForecastHandler.cs
 │   │   │   │       │   └── WeatherService.cs
 │   │   │   │       ├── domain/        # Entities, aggregates
 │   │   │   │       │   ├── WeatherForecast.cs
 │   │   │   │       │   └── WeatherConstants.cs
-│   │   │   │       ├── GetWeatherForecastEndpoint.cs # FastEndpoint
+│   │   │   │       # Controllers defined in API project
 │   │   │   │       └── WeatherModule.cs # DI registration
 │   │   │   │   # Future modules: catalog/, invoices/, manufacture/, purchase/, transport/
 │   │   │   └── ApplicationModule.cs   # Central module registration
@@ -123,12 +123,13 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 
 **🏗️ Vertical Slice Architecture Benefits Implemented:**
 - **Feature Cohesion**: All layers of a feature are kept together in one module
-- **Module Isolation**: Features communicate only through well-defined contracts
-- **Vertical Organization**: Each feature slice contains its own application, domain, and infrastructure code
-- **FastEndpoints**: Thin HTTP layer focused solely on request/response handling
+- **MediatR Pattern**: Controllers send requests to handlers via MediatR for clean separation
+- **Handlers as Application Services**: Business logic resides in MediatR handlers, no separate service layer
+- **Vertical Organization**: Each feature slice contains its own contracts, handlers, domain, and infrastructure code
+- **Standard API Pattern**: All endpoints follow /api/{controller} REST conventions
 - **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
 - **SOLID Principles**: Applied within each vertical slice
-- **Testability**: Each module can be tested in isolation
+- **Testability**: Each handler can be tested in isolation
 - **Maintainability**: Changes to a feature are localized to its module
 
 ## Core Modules
@@ -210,6 +211,7 @@ The backend automatically generates a TypeScript client for the React frontend:
 - **Tool**: NSwag with Fetch API template
 - **Integration**: TanStack Query for data fetching and caching
 - **Usage**: React hooks in `frontend/src/api/hooks.ts`
+- **Endpoint Pattern**: All API endpoints follow `/api/{controller}` standard REST pattern
 
 ### Example Usage:
 ```typescript
@@ -224,6 +226,11 @@ const WeatherComponent = () => {
   return <div>{/* Render weather data */}</div>;
 };
 ```
+
+### API Endpoint Examples:
+- GET `/api/weather/forecast` - Weather data
+- GET `/api/configuration` - Application configuration
+- Future: `/api/catalog`, `/api/invoices`, `/api/orders`, etc.
 
 ## Background Jobs (Hangfire)
 

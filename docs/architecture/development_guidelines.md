@@ -34,7 +34,7 @@ public class OrderDto { } // Never in API or Xcc!
 | **Direct access to another module's entities** | Violates boundaries, tight coupling |
 | **DTOs defined in API or Xcc** | Breaks ownership, violates boundaries |
 | **Shared EF entities between modules** | Risk of inconsistency, domain logic leakage |
-| **Business logic in FastEndpoint class** | Orchestration should only be in App/application/ layer |
+| **Business logic in Controller class** | Business logic should be in MediatR handlers |
 | **Cross-module database joins** | Breaks module independence |
 | **Shared repositories across modules** | Violates module isolation |
 
@@ -102,9 +102,7 @@ public static class OrdersModule
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         
-        // Register use cases
-        services.AddScoped<CreateOrderUseCase>();
-        services.AddScoped<GetOrderUseCase>();
+        // MediatR handlers are auto-registered
         
         return services;
     }
@@ -130,7 +128,7 @@ services
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
-| **FastEndpoints** | HTTP orchestration without controllers | Required for all endpoints |
+| **MediatR** | Request/Response pattern with handlers | Required for all business logic |
 | **EF Core** | ORM and migrations | Database access |
 | **AutoMapper** | DTO ↔ Domain mapping | Optional, for complex mappings |
 | **MediatR** | Decoupling orchestration and handlers | Optional, for CQRS pattern |
@@ -142,29 +140,28 @@ services
 ## 📝 Coding Standards
 
 ### Naming Conventions
-- **Features**: Lowercase plural (e.g., `orders`, `invoices`)
-- **Use Cases**: Verb + Noun + UseCase (e.g., `CreateOrderUseCase`)
-- **Endpoints**: Verb + Noun + Endpoint (e.g., `CreateOrderEndpoint`)
+- **Features**: PascalCase plural (e.g., `Orders`, `Invoices`)
+- **Handlers**: Verb + Noun + Handler (e.g., `CreateOrderHandler`)
+- **Controllers**: Noun + Controller (e.g., `OrdersController`)
 - **DTOs**: Purpose + Request/Response (e.g., `CreateOrderRequest`)
 
 ### File Organization
 ```
-Anela.Heblo.Application/features/
-└── orders/                          # Feature name (plural, lowercase)
-    ├── contracts/
-    │   ├── IOrderService.cs         # Interface for other modules
-    │   ├── CreateOrderRequest.cs    # Input DTO
-    │   └── CreateOrderResponse.cs   # Output DTO
-    ├── application/
-    │   ├── CreateOrderUseCase.cs    # Business logic orchestration
-    │   └── OrderService.cs          # Contract implementation
-    ├── domain/
+Anela.Heblo.Application/Features/
+└── Orders/                          # Feature name (PascalCase)
+    ├── Contracts/
+    │   ├── CreateOrderRequest.cs    # MediatR request DTO
+    │   ├── CreateOrderResponse.cs   # MediatR response DTO
+    │   └── GetOrderRequest.cs       # Query request DTO
+    ├── Application/
+    │   ├── CreateOrderHandler.cs    # MediatR handler (Application Service)
+    │   └── GetOrderHandler.cs       # Query handler
+    ├── Domain/
     │   ├── Order.cs                 # Aggregate root
     │   ├── OrderItem.cs             # Entity
     │   └── OrderStatus.cs           # Value object
-    ├── infrastructure/
-    │   └── OrderRepository.cs       # Data access (using Persistence base repository)
-    └── OrdersModule.cs              # DI registration
+    └── Infrastructure/
+        └── OrderRepository.cs       # Data access (using Persistence base repository)
 ```
 
 ---
@@ -177,7 +174,7 @@ Anela.Heblo.Application/features/
 3. Implement domain entities
 4. Create use cases in application layer
 5. Implement infrastructure (repository)
-6. Add FastEndpoint in API project
+6. Add Controller action with MediatR request in API project
 7. Register module in Program.cs
 8. Add tests
 
@@ -204,11 +201,11 @@ When module A needs data from module B:
 - **Decision**: Generic repository in Xcc, extended per feature
 - **Consequences**: Reduced boilerplate, consistent API
 
-### ADR-003: FastEndpoints over Controllers
+### ADR-003: MediatR + Controllers Architecture
 - **Status**: Accepted
-- **Context**: Need thin HTTP layer focused on orchestration
-- **Decision**: Use FastEndpoints for all HTTP endpoints
-- **Consequences**: Better separation of concerns, less ceremony
+- **Context**: Need clean separation between HTTP layer and business logic
+- **Decision**: Use standard ASP.NET Core Controllers with MediatR for request handling
+- **Consequences**: Clean architecture, testable handlers, standard /api/{controller} endpoints
 
 ---
 
