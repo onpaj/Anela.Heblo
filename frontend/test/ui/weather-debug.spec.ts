@@ -19,7 +19,7 @@ test.describe('Weather API Debug', () => {
     page.on('response', async response => {
       console.log('RESPONSE:', response.status(), response.url());
       
-      if (response.url().includes('WeatherForecast') || response.url().includes('weather')) {
+      if (response.url().includes('api/weather/forecast') || response.url().includes('weather')) {
         try {
           const responseText = await response.text();
           console.log('Weather API Response Body:', responseText);
@@ -76,7 +76,7 @@ test.describe('Weather API Debug', () => {
     // Print all weather-related requests/responses
     console.log('\n=== Weather API Requests ===');
     requests.forEach((req, i) => {
-      if (req.url.includes('WeatherForecast') || req.url.includes('weather')) {
+      if (req.url.includes('api/weather/forecast') || req.url.includes('weather')) {
         console.log(`Request ${i + 1}:`, req);
       }
     });
@@ -91,7 +91,7 @@ test.describe('Weather API Debug', () => {
 
     // Assert that we made at least one weather API call
     const weatherRequests = requests.filter(req => 
-      req.url.includes('WeatherForecast') || req.url.includes('weather')
+      req.url.includes('api/weather/forecast') || req.url.includes('weather')
     );
     
     console.log('Weather requests found:', weatherRequests.length);

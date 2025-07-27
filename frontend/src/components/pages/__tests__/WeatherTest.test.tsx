@@ -71,7 +71,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     // Assert - Wait for initial API call with mock token from mockAuthService
     await waitFor(() => {
       expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ describe('WeatherTest Component Authentication Integration', () => {
 
     // Assert - Should make API call without token (fallback behavior)
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     });
 
     expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     await waitFor(() => {
       expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

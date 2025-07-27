@@ -1,7 +1,7 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.API.Constants;
+using Anela.Heblo.Application.Features.Configuration.Domain;
 using Anela.Heblo.Persistence.Telemetry;
 
 namespace Anela.Heblo.API.Extensions;

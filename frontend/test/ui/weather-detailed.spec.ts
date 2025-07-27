@@ -14,7 +14,7 @@ test.describe('Weather API Detailed Debug', () => {
 
     // Capture all responses including failures
     page.on('response', async response => {
-      if (response.url().includes('WeatherForecast')) {
+      if (response.url().includes('api/weather/forecast')) {
         console.log('=== WEATHER API RESPONSE ===');
         console.log('Status:', response.status());
         console.log('Status Text:', response.statusText());
@@ -64,7 +64,7 @@ test.describe('Weather API Detailed Debug', () => {
     // Try to fetch the API directly from browser context
     const result = await page.evaluate(async () => {
       try {
-        const response = await fetch('https://localhost:44390/WeatherForecast', {
+        const response = await fetch('https://localhost:44390/api/weather/forecast', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

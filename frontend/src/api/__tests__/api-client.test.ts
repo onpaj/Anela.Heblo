@@ -37,7 +37,7 @@ describe('ApiClient Bearer Token Authentication', () => {
 
     // Assert
     expect(mockTokenProvider).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ describe('ApiClient Bearer Token Authentication', () => {
     await apiClient.weatherForecast();
 
     // Assert
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ describe('ApiClient Bearer Token Authentication', () => {
 
     // Assert
     expect(mockTokenProvider).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ describe('ApiClient Bearer Token Authentication', () => {
     // Assert
     expect(mockTokenProvider).toHaveBeenCalledTimes(1);
     expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to get access token:', expect.any(Error));
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ describe('ApiClient Bearer Token Authentication', () => {
     // Act & Assert
     await expect(apiClient.weatherForecast()).rejects.toThrow('HTTP error! status: 401');
     expect(mockTokenProvider).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ describe('ApiClient Bearer Token Authentication', () => {
     await apiClient.weatherForecast();
 
     // Assert
-    expect(mockFetch).toHaveBeenCalledWith(`${customBaseUrl}/WeatherForecast`, {
+    expect(mockFetch).toHaveBeenCalledWith(`${customBaseUrl}/api/weather/forecast`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
