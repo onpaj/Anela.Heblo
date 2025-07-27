@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Persistence.Telemetry;
+namespace Anela.Heblo.Xcc.Telemetry;
 
 /// <summary>
 /// Service for tracking business events and metrics for observability

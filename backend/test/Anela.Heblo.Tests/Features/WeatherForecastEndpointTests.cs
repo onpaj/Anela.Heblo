@@ -40,19 +40,19 @@ public class WeatherForecastEndpointTests : IClassFixture<WebApplicationFactory<
         using var client = _factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/weatherforecast");
+        var response = await client.GetAsync("/api/weather/forecast");
 
         // Assert
         if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
             Assert.NotEmpty(content);
-            _output.WriteLine("✅ FastEndpoint /weatherforecast responds successfully");
+            _output.WriteLine("✅ Weather API /api/weather/forecast responds successfully");
             _output.WriteLine($"Response content preview: {content[..Math.Min(100, content.Length)]}...");
         }
         else
         {
-            _output.WriteLine($"⚠️ FastEndpoint /weatherforecast returned {response.StatusCode}");
+            _output.WriteLine($"⚠️ Weather API /api/weather/forecast returned {response.StatusCode}");
             _output.WriteLine($"Response: {await response.Content.ReadAsStringAsync()}");
         }
     }
@@ -66,14 +66,14 @@ public class WeatherForecastEndpointTests : IClassFixture<WebApplicationFactory<
         try
         {
             // Act
-            var response = await client.GetFromJsonAsync<GetWeatherForecastResponse[]>("/api/weatherforecast");
+            var response = await client.GetFromJsonAsync<GetWeatherForecastResponse[]>("/api/weather/forecast");
 
             // Assert
             if (response != null)
             {
                 Assert.NotNull(response);
                 Assert.NotEmpty(response);
-                _output.WriteLine($"✅ FastEndpoint returned {response.Length} forecast items");
+                _output.WriteLine($"✅ Weather API returned {response.Length} forecast items");
                 
                 foreach (var forecast in response.Take(2))
                 {

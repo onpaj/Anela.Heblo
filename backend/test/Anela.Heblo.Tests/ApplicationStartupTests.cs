@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Anela.Heblo.API;
-using Anela.Heblo.Persistence.Telemetry;
+using Anela.Heblo.Xcc.Telemetry;
 using Xunit.Abstractions;
 
 namespace Anela.Heblo.Tests;

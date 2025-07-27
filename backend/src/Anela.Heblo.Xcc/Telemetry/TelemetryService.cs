@@ -2,7 +2,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Persistence.Telemetry;
+namespace Anela.Heblo.Xcc.Telemetry;
 
 public class TelemetryService : ITelemetryService
 {

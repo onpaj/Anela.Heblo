@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Anela.Heblo.Adapters.Flexi</RootNamespace>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseNuGetPackages)' == 'false'">
+    <ProjectReference Include="..\..\..\..\FlexiBeeSDK\src\Rem.FlexiBeeSDK.Client\Rem.FlexiBeeSDK.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseNuGetPackages)' == 'true'">
+    <PackageReference Include="Rem.FlexiBeeSDK.Client" Version="0.1.68" />
+  </ItemGroup>
+
+</Project>
