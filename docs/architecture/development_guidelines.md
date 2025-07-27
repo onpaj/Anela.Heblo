@@ -66,7 +66,7 @@ public class OrderDto { } // Never in API or Xcc!
 ### Current State (Phase 1)
 - Single `ApplicationDbContext` in `Anela.Heblo.Persistence`
 - Shared migrations in `Persistence/Migrations/`
-- Generic repository in `Xcc`, extended per feature
+- Generic repository abstraction in `Xcc`, implementation in Persistence layer
 
 ### Future State (Phase 2)
 - **Each module will have its own `DbContext`**
@@ -149,7 +149,7 @@ services
 
 ### File Organization
 ```
-features/
+Anela.Heblo.Application/features/
 └── orders/                          # Feature name (plural, lowercase)
     ├── contracts/
     │   ├── IOrderService.cs         # Interface for other modules
@@ -163,7 +163,7 @@ features/
     │   ├── OrderItem.cs             # Entity
     │   └── OrderStatus.cs           # Value object
     ├── infrastructure/
-    │   └── OrderRepository.cs       # Data access
+    │   └── OrderRepository.cs       # Data access (using Persistence base repository)
     └── OrdersModule.cs              # DI registration
 ```
 
@@ -172,7 +172,7 @@ features/
 ## 🚀 Development Workflow
 
 ### Adding a New Feature
-1. Create feature folder in `App/features/`
+1. Create feature folder in `Application/features/`
 2. Define contracts (interfaces and DTOs)
 3. Implement domain entities
 4. Create use cases in application layer

@@ -102,10 +102,10 @@ Development:           Production/Test:
 
 ### Module Registration Pattern
 
-Each feature module in `Anela.Heblo.App` must provide a registration extension method:
+Each feature module in `Anela.Heblo.Application` must provide a registration extension method:
 
 ```csharp
-// In App/features/orders/OrdersModule.cs
+// In Application/features/orders/OrdersModule.cs
 public static class OrdersModule
 {
     public static IServiceCollection AddOrdersModule(this IServiceCollection services)
@@ -135,7 +135,7 @@ services
     .AddManufactureModule()
     .AddPurchaseModule()
     .AddTransportModule()
-    .AddXccInfrastructure() // Cross-cutting concerns
+    .AddApplicationServices() // All feature modules
     .AddPersistence(Configuration.GetConnectionString("DefaultConnection")); // Database
 
 // FastEndpoints
@@ -295,9 +295,9 @@ This document defines the project's infrastructure practices and expectations:
 - **Monorepo layout** with **Vertical Slice Architecture** and FastEndpoints
 - **Backend architecture**: Modular monolith with feature-based organization
   - `Anela.Heblo.API` - Host/Composition with FastEndpoints
-  - `Anela.Heblo.App` - Feature modules (vertical slices)
-  - `Anela.Heblo.Persistence` - Shared database infrastructure
-  - `Anela.Heblo.Xcc` - Cross-cutting concerns
+  - `Anela.Heblo.Application` - Feature modules (vertical slices)
+  - `Anela.Heblo.Persistence` - Shared database infrastructure with generic repository
+  - `Anela.Heblo.Domain` - Shared domain entities and constants
 - **Development**: Separate servers (React dev server + ASP.NET Core) for **hot reload**
 - **Test/Production**: Single Docker container on **Azure Web App for Containers**
 - **Environment separation**: Development (separate for hot reload) vs Test/Production (single container)

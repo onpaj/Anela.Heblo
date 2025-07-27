@@ -12,9 +12,9 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 - **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
 - **Backend**: ASP.NET Core (.NET 8) with FastEndpoints, vertical slice architecture, Hangfire background jobs, serves React static files
   - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
-  - **Anela.Heblo.App**: Feature modules (vertical slices)
-  - **Anela.Heblo.Persistence**: Shared database infrastructure (single DbContext initially)
-  - **Anela.Heblo.Xcc**: Cross-cutting concerns (generic repository, telemetry, logging)
+  - **Anela.Heblo.Application**: Feature modules (vertical slices)
+  - **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
+  - **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
@@ -29,12 +29,6 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
 │   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
-│   │   │   ├── Endpoints/             # FastEndpoints organized by features
-│   │   │   │   ├── Orders/
-│   │   │   │   │   ├── CreateOrderEndpoint.cs
-│   │   │   │   │   └── GetOrderEndpoint.cs
-│   │   │   │   ├── Products/
-│   │   │   │   └── Invoices/
 │   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
@@ -42,43 +36,41 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
-│   │   ├── Anela.Heblo.App/           # Feature modules and business logic
+│   │   ├── Anela.Heblo.Application/           # Feature modules and business logic
 │   │   │   ├── features/              # Vertical slice feature modules
-│   │   │   │   ├── catalog/
-│   │   │   │   │   ├── contracts/     # Public interfaces, DTOs
-│   │   │   │   │   ├── application/   # Use cases, services
-│   │   │   │   │   ├── domain/        # Entities, aggregates
-│   │   │   │   │   ├── infrastructure/# Repository implementations
-│   │   │   │   │   └── CatalogModule.cs
-│   │   │   │   ├── invoices/
-│   │   │   │   ├── manufacture/
-│   │   │   │   ├── purchase/
-│   │   │   │   └── transport/
-│   │   │   ├── Shared/                # Shared kernel
-│   │   │   │   └── Kernel/
-│   │   │   │       ├── Result.cs
-│   │   │   │       ├── IAggregateRoot.cs
-│   │   │   │       └── DomainEvent.cs
-│   │   │   └── ModuleRegistration.cs  # Central module registration
+│   │   │   │   └── weather/           # Weather feature (example implementation)
+│   │   │   │       ├── contracts/     # Public interfaces, DTOs
+│   │   │   │       │   ├── IWeatherService.cs
+│   │   │   │       │   ├── GetWeatherForecastRequest.cs
+│   │   │   │       │   └── GetWeatherForecastResponse.cs
+│   │   │   │       ├── application/   # Use cases, services
+│   │   │   │       │   ├── GetWeatherForecastUseCase.cs
+│   │   │   │       │   └── WeatherService.cs
+│   │   │   │       ├── domain/        # Entities, aggregates
+│   │   │   │       │   ├── WeatherForecast.cs
+│   │   │   │       │   └── WeatherConstants.cs
+│   │   │   │       ├── GetWeatherForecastEndpoint.cs # FastEndpoint
+│   │   │   │       └── WeatherModule.cs # DI registration
+│   │   │   │   # Future modules: catalog/, invoices/, manufacture/, purchase/, transport/
+│   │   │   └── ApplicationModule.cs   # Central module registration
 │   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
 │   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
-│   │   │   ├── Configurations/        # EF Core entity configurations
-│   │   │   └── Migrations/            # EF Core migrations
-│   │   ├── Anela.Heblo.Xcc/           # Cross-cutting infrastructure
 │   │   │   ├── Repository/            # Generic repository pattern
-│   │   │   │   ├── IRepository.cs    # Generic repository interface
-│   │   │   │   └── Repository.cs     # Generic repository implementation
-│   │   │   ├── Time/
-│   │   │   │   └── ITimeProvider.cs
-│   │   │   ├── Logging/
-│   │   │   │   └── ITelemetryService.cs
-│   │   │   └── Messaging/
-│   │   │       └── IMessageDispatcher.cs
+│   │   │   │   ├── IRepository.cs     # Generic repository interface
+│   │   │   │   └── Repository.cs      # Concrete EF repository implementation
+│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   ├── Migrations/            # EF Core migrations
+│   │   │   └── Services/              # Infrastructure services
+│   │   │       └── TelemetryService.cs
+│   │   ├── Anela.Heblo.Domain/        # Shared domain entities
+│   │   │   ├── Entities/              # Domain entities
+│   │   │   └── Constants/             # Domain constants
 │   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   ├── test/      # Unit/integration tests
-│   │   ├── Anela.Heblo.API.Tests/
-│   │   ├── Anela.Heblo.App.Tests/
-│   │   └── Anela.Heblo.Xcc.Tests/
+│   │   └── Anela.Heblo.Tests/      # Integration tests for all modules
+│   │       ├── ApplicationStartupTests.cs
+│   │       └── Features/
+│   │           └── WeatherForecastEndpointTests.cs
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
@@ -134,7 +126,7 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 - **Module Isolation**: Features communicate only through well-defined contracts
 - **Vertical Organization**: Each feature slice contains its own application, domain, and infrastructure code
 - **FastEndpoints**: Thin HTTP layer focused solely on request/response handling
-- **Generic Repository**: Shared repository pattern in Xcc, extended per feature as needed
+- **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
 - **SOLID Principles**: Applied within each vertical slice
 - **Testability**: Each module can be tested in isolation
 - **Maintainability**: Changes to a feature are localized to its module

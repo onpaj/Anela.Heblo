@@ -1,9 +1,8 @@
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Logging;
-using Anela.Heblo.Application.Interfaces;
 
-namespace Anela.Heblo.Infrastructure.Services;
+namespace Anela.Heblo.Persistence.Telemetry;
 
 public class TelemetryService : ITelemetryService
 {

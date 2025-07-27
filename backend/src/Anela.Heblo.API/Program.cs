@@ -1,4 +1,7 @@
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.Application;
+using Anela.Heblo.Persistence;
+using FastEndpoints;
 
 namespace Anela.Heblo.API;
 
@@ -20,9 +23,17 @@ public class Program
         builder.Services.AddApplicationInsightsServices(builder.Configuration, builder.Environment);
         builder.Services.AddCorsServices(builder.Configuration);
         builder.Services.AddHealthCheckServices(builder.Configuration);
-        builder.Services.AddApplicationServices();
+        
+        // Add new architecture services
+        builder.Services.AddPersistenceServices(builder.Configuration);
+        builder.Services.AddApplicationServices(); // Vertical slice modules from Application layer
+        builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
         builder.Services.AddSpaServices();
 
+        // Add FastEndpoints
+        builder.Services.AddFastEndpoints();
+
+        // Keep existing for backward compatibility
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -32,6 +43,9 @@ public class Program
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();
+        
+        // Add FastEndpoints to pipeline
+        app.UseFastEndpoints();
 
         app.Run();
     }

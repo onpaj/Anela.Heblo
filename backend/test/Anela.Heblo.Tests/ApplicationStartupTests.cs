@@ -5,9 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Anela.Heblo.API;
-using Anela.Heblo.Application.Interfaces;
-using Anela.Heblo.Infrastructure.Services;
-using Anela.Heblo.API.Controllers;
+using Anela.Heblo.Persistence.Telemetry;
 using Xunit.Abstractions;
 
 namespace Anela.Heblo.Tests;
@@ -115,7 +113,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         var requiredServices = new[]
         {
             typeof(ITelemetryService),
-            typeof(ILogger<WeatherForecastController>)
+            typeof(ILogger<Program>)
         };
 
         // Act & Assert

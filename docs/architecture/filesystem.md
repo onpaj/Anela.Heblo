@@ -24,7 +24,7 @@ This document defines the project's directory structure and filesystem organizat
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
-│   │   ├── Anela.Heblo.App/           # Feature modules and business logic
+│   │   ├── Anela.Heblo.Application/   # Feature modules and business logic
 │   │   │   ├── features/              # Vertical slice feature modules
 │   │   │   │   ├── orders/
 │   │   │   │   │   ├── contracts/
@@ -50,23 +50,21 @@ This document defines the project's directory structure and filesystem organizat
 │   │   │   └── ModuleRegistration.cs  # Central module registration
 │   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
 │   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
-│   │   │   ├── Configurations/        # EF Core entity configurations
-│   │   │   └── Migrations/            # EF Core migrations
-│   │   ├── Anela.Heblo.Xcc/           # Cross-cutting infrastructure
 │   │   │   ├── Repository/            # Generic repository pattern
 │   │   │   │   ├── IRepository.cs    # Generic repository interface
-│   │   │   │   └── Repository.cs     # Generic repository implementation
-│   │   │   ├── Time/
-│   │   │   │   └── ITimeProvider.cs
-│   │   │   ├── Logging/
-│   │   │   │   └── ITelemetryService.cs
-│   │   │   └── Messaging/
-│   │   │       └── IMessageDispatcher.cs
+│   │   │   │   └── Repository.cs     # Concrete EF repository implementation
+│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   ├── Migrations/            # EF Core migrations
+│   │   │   └── Services/              # Infrastructure services
+│   │   │       └── TelemetryService.cs
+│   │   ├── Anela.Heblo.Domain/        # Domain layer (shared entities)
+│   │   │   ├── Entities/              # Domain entities
+│   │   │   └── Constants/             # Domain constants
 │   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   ├── test/      # Unit/integration tests
 │   │   ├── Anela.Heblo.API.Tests/
-│   │   ├── Anela.Heblo.App.Tests/
-│   │   └── Anela.Heblo.Xcc.Tests/
+│   │   ├── Anela.Heblo.Application.Tests/
+│   │   └── Anela.Heblo.Persistence.Tests/
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
@@ -122,23 +120,23 @@ This document defines the project's directory structure and filesystem organizat
 
 ### Project Structure:
 - **Anela.Heblo.API**: Host/Composition layer - FastEndpoints, DI composition, serves React app
-- **Anela.Heblo.App**: Feature modules with vertical slices containing all layers
-- **Anela.Heblo.Persistence**: Shared database infrastructure (single DbContext initially)
-- **Anela.Heblo.Xcc**: Cross-cutting concerns - generic repository, time, logging, messaging
+- **Anela.Heblo.Application**: Feature modules with vertical slices containing all layers
+- **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
+- **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
 
 ### Feature Module Structure:
-Each feature in `Anela.Heblo.App/features/` contains:
+Each feature in `Anela.Heblo.Application/features/` contains:
 - **contracts/**: Public interfaces, DTOs (Request/Response)
 - **application/**: Use cases, orchestration, service implementations
 - **domain/**: Entities, aggregates, value objects, business rules
-- **infrastructure/**: Repository implementations (using generic repository from Xcc)
+- **infrastructure/**: Repository implementations (using generic repository from Persistence)
 - **Module.cs**: DI registration for the feature
 
 ### Key Principles:
 - **Vertical organization**: Each feature contains all its layers
 - **Module isolation**: Features communicate only through contracts
 - **FastEndpoints**: Thin HTTP layer that delegates to use cases
-- **Generic Repository**: Base implementation in Xcc, extended in features as needed
+- **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
 - **Single DbContext**: Initially shared in Persistence project, designed to evolve to module-specific contexts
 - **SOLID principles**: Applied within each vertical slice
 
