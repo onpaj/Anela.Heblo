@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.API.Authentication;
-using Anela.Heblo.API.Constants;
+using Anela.Heblo.Application.Features.Configuration.Domain;
 using Microsoft.IdentityModel.Tokens;
 using System.Security;
 

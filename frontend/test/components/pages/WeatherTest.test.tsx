@@ -80,7 +80,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     // Assert - Wait for initial API call
     await waitFor(() => {
       expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     // Assert - Wait for initial API call
     await waitFor(() => {
       expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     });
 
     expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -244,7 +244,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     await waitFor(() => {
       expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -291,7 +291,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     await waitFor(() => {
       expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to get access token:', expect.any(Error));
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/WeatherForecast', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

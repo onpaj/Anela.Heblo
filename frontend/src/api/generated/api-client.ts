@@ -42,7 +42,7 @@ export class ApiClient {
 
   async weatherForecast(): Promise<WeatherForecast[]> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/WeatherForecast`, {
+    const response = await fetch(`${this.baseUrl}/api/weather/forecast`, {
       method: 'GET',
       headers,
     });

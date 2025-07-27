@@ -72,7 +72,7 @@ test.describe('StatusBar Version Display', () => {
     
     // Make direct API call to verify response structure
     const apiResponse = await page.evaluate(async () => {
-      const response = await fetch('http://localhost:5001/configuration');
+      const response = await fetch('http://localhost:5001/api/configuration');
       if (!response.ok) {
         throw new Error(`API call failed: ${response.status}`);
       }

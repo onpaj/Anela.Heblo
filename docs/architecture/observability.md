@@ -6,7 +6,11 @@ Tento dokument definuje kompletní observability strategii pro Heblo aplikaci, k
 
 ## Application Architecture
 
-- **Backend**: .NET 8 App Service (monolith)
+- **Backend**: .NET 8 App Service (Vertical Slice Architecture with FastEndpoints)
+  - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
+  - **Anela.Heblo.App**: Feature modules (vertical slices)
+  - **Anela.Heblo.Persistence**: Shared database infrastructure
+  - **Anela.Heblo.Xcc**: Cross-cutting concerns (telemetry, logging)
 - **Frontend**: React aplikace
 - **Database**: Azure PostgreSQL Database přes Entity Framework Core
 - **External Dependencies**: Proprietární REST API
@@ -277,13 +281,14 @@ Tento dokument definuje kompletní observability strategii pro Heblo aplikaci, k
    - `ApplicationInsights:CloudRoleInstance` - Environment identifier
 
 4. **Custom Telemetry Service** (✅ Completed):
-   - `ITelemetryService` interface for business event tracking
-   - Methods for tracking:
-     - Invoice imports
-     - Payment imports
-     - Catalog synchronization
-     - Order processing
-     - Inventory updates
+   - `ITelemetryService` interface defined in `Anela.Heblo.Xcc`
+   - Implementation in `Anela.Heblo.Xcc` for cross-cutting telemetry
+   - Methods for tracking business events per feature module:
+     - Invoice imports (invoices module)
+     - Payment imports (invoices module)
+     - Catalog synchronization (catalog module)
+     - Order processing (manufacture module)
+     - Inventory updates (transport module)
 
 ### Required Azure Configuration
 

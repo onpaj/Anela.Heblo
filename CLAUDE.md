@@ -8,54 +8,69 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 
 ## Architecture Summary
 
-**Stack**: Monorepo (.NET 8 + React), Single Docker image deployment, Azure Web App for Containers
+**Stack**: Monorepo (.NET 8 + React), Vertical Slice Architecture with FastEndpoints, Single Docker image deployment, Azure Web App for Containers
 - **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
-- **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs, serves React static files
+- **Backend**: ASP.NET Core (.NET 8) with FastEndpoints, vertical slice architecture, Hangfire background jobs, serves React static files
+  - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
+  - **Anela.Heblo.Application**: Feature modules (vertical slices)
+  - **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
+  - **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
 - **Testing**: Playwright for both E2E testing and Shoptet integration automation
 - **Deployment**: Single Docker container to Azure Web App for Containers, GitHub Actions CI/CD
 
-## Repository Structure (Clean Architecture - IMPLEMENTED)
+## Repository Structure (Vertical Slice Architecture - IMPLEMENTED)
 
-**Current Clean Architecture Implementation (IMPLEMENTED):**
+**Current Vertical Slice Architecture Implementation (IMPLEMENTED):**
 ```
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
-│   │   │   ├── Controllers/           # API controllers
-│   │   │   ├── Extensions/            # Service registration & configuration extensions
+│   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
+│   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
-│   │   │   │   ├── ApplicationBuilderExtensions.cs
 │   │   │   │   └── AuthenticationExtensions.cs
-│   │   │   ├── Constants/             # Configuration constants
-│   │   │   │   └── ConfigurationConstants.cs
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
-│   │   │   └── Program.cs             # Application entry point (simplified)
-│   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
-│   │   ├── Anela.Heblo.Application/   # Application layer (Clean Architecture)
-│   │   │   ├── Interfaces/            # Service interfaces
-│   │   │   │   ├── IWeatherService.cs
-│   │   │   │   ├── IUserService.cs
-│   │   │   │   └── ITelemetryService.cs
-│   │   │   └── Services/              # Application service implementations
-│   │   │       ├── WeatherService.cs
-│   │   │       └── UserService.cs
-│   │   ├── Anela.Heblo.Domain/        # Domain layer (Clean Architecture)
+│   │   │   └── Program.cs             # Application entry point
+│   │   ├── Anela.Heblo.Application/           # Feature modules and business logic
+│   │   │   ├── features/              # Vertical slice feature modules
+│   │   │   │   └── weather/           # Weather feature (example implementation)
+│   │   │   │       ├── contracts/     # Public interfaces, DTOs
+│   │   │   │       │   ├── IWeatherService.cs
+│   │   │   │       │   ├── GetWeatherForecastRequest.cs
+│   │   │   │       │   └── GetWeatherForecastResponse.cs
+│   │   │   │       ├── Application/   # MediatR handlers (Application Services)
+│   │   │   │       │   ├── GetWeatherForecastHandler.cs
+│   │   │   │       │   └── WeatherService.cs
+│   │   │   │       ├── domain/        # Entities, aggregates
+│   │   │   │       │   ├── WeatherForecast.cs
+│   │   │   │       │   └── WeatherConstants.cs
+│   │   │   │       # Controllers defined in API project
+│   │   │   │       └── WeatherModule.cs # DI registration
+│   │   │   │   # Future modules: catalog/, invoices/, manufacture/, purchase/, transport/
+│   │   │   └── ApplicationModule.cs   # Central module registration
+│   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
+│   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
+│   │   │   ├── Repository/            # Generic repository pattern
+│   │   │   │   ├── IRepository.cs     # Generic repository interface
+│   │   │   │   └── Repository.cs      # Concrete EF repository implementation
+│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   ├── Migrations/            # EF Core migrations
+│   │   │   └── Services/              # Infrastructure services
+│   │   │       └── TelemetryService.cs
+│   │   ├── Anela.Heblo.Domain/        # Shared domain entities
 │   │   │   ├── Entities/              # Domain entities
-│   │   │   │   └── WeatherForecast.cs
 │   │   │   └── Constants/             # Domain constants
-│   │   │       └── WeatherConstants.cs
-│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer (Clean Architecture)
-│   │       └── Services/              # Infrastructure service implementations
-│   │           └── TelemetryService.cs (with NoOpTelemetryService)
-│   ├── test/      # Unit/integration tests for backend
-│   │   └── Anela.Heblo.Tests/         # Integration tests
-│   ├── migrations/ # EF Core database migrations
+│   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
+│   ├── test/      # Unit/integration tests
+│   │   └── Anela.Heblo.Tests/      # Integration tests for all modules
+│   │       ├── ApplicationStartupTests.cs
+│   │       └── Features/
+│   │           └── WeatherForecastEndpointTests.cs
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
@@ -106,14 +121,16 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 └── .dockerignore   # Docker build optimization
 ```
 
-**🏗️ Clean Architecture Benefits Implemented:**
-- **Dependency Inversion**: API and Infrastructure depend on Application interfaces
-- **Single Responsibility**: Each layer has focused responsibilities
-- **Separation of Concerns**: Business logic separated from HTTP and infrastructure concerns
-- **SOLID Principles**: Applied throughout all layers
-- **Professional Standards**: Structured logging, configuration management, service registration
-- **Testability**: Services can be unit tested independently
-- **Maintainability**: Modular extensions and focused responsibilities
+**🏗️ Vertical Slice Architecture Benefits Implemented:**
+- **Feature Cohesion**: All layers of a feature are kept together in one module
+- **MediatR Pattern**: Controllers send requests to handlers via MediatR for clean separation
+- **Handlers as Application Services**: Business logic resides in MediatR handlers, no separate service layer
+- **Vertical Organization**: Each feature slice contains its own contracts, handlers, domain, and infrastructure code
+- **Standard API Pattern**: All endpoints follow /api/{controller} REST conventions
+- **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
+- **SOLID Principles**: Applied within each vertical slice
+- **Testability**: Each handler can be tested in isolation
+- **Maintainability**: Changes to a feature are localized to its module
 
 ## Core Modules
 
@@ -194,6 +211,7 @@ The backend automatically generates a TypeScript client for the React frontend:
 - **Tool**: NSwag with Fetch API template
 - **Integration**: TanStack Query for data fetching and caching
 - **Usage**: React hooks in `frontend/src/api/hooks.ts`
+- **Endpoint Pattern**: All API endpoints follow `/api/{controller}` standard REST pattern
 
 ### Example Usage:
 ```typescript
@@ -208,6 +226,11 @@ const WeatherComponent = () => {
   return <div>{/* Render weather data */}</div>;
 };
 ```
+
+### API Endpoint Examples:
+- GET `/api/weather/forecast` - Weather data
+- GET `/api/configuration` - Application configuration
+- Future: `/api/catalog`, `/api/invoices`, `/api/orders`, etc.
 
 ## Background Jobs (Hangfire)
 
@@ -522,7 +545,7 @@ await emailInput.fill(credentials.email); // Never hardcoded
 
 The `/docs/tasks/` directory contains reusable task definitions for common operations:
 
-- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process)
+- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process) - can be adapted for Vertical Slice Architecture
 - **`AUTHENTICATION_TESTING.md`**: Guidelines for testing authentication flows
 
 These tasks can be referenced for future similar work or applied to other projects.
@@ -535,4 +558,4 @@ These tasks can be referenced for future similar work or applied to other projec
 - OpenAPI client generation for frontend (post-build step)
 - All Docker images pushed to Docker Hub
 - Observability via Application Insights
-- **Backend follows Clean Architecture** - see `/docs/architecture/filesystem.md` for detailed structure
+- **Backend follows Vertical Slice Architecture** - see `/docs/architecture/filesystem.md` for detailed structure

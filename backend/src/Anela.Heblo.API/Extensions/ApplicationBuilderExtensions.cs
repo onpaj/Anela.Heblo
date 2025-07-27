@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.API.Constants;
+using Anela.Heblo.Application.Features.Configuration.Domain;
 
 namespace Anela.Heblo.API.Extensions;
 

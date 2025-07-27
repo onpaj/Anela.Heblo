@@ -21,7 +21,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
         
         // Try to fetch configuration from backend API
         try {
-          const response = await fetch(`${config.apiUrl}/configuration`);
+          const response = await fetch(`${config.apiUrl}/api/configuration`);
           if (response.ok) {
             const backendConfig = await response.json();
             setAppInfo({

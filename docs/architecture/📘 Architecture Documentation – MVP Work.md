@@ -12,7 +12,7 @@ Stack Overview
 
 Layer	Tech Choices
 Frontend	React PWA, i18next, MSAL (MS Entra ID)
-Backend API	ASP.NET Core (.NET 8), REST
+Backend API	ASP.NET Core (.NET 8), MediatR + Controllers, REST
 Auth	MS Entra ID (OIDC), Claims-based roles
 Database	PostgreSQL (EF Core Migrations)
 Background Tasks	Hangfire
@@ -24,10 +24,11 @@ Deployment	Docker, GitHub Environments, .NET Environments (on-prem now, Azure la
 ⸻
 
 🧱 Architectural Pattern
-	•	Onion Architecture with Domain-Driven Design (DDD)
-	•	Shared domain model library
-	•	Modular monolith, single runtime
-	•	Modules communicate directly, via Catalog abstraction when dealing with external data
+	•	Vertical Slice Architecture with MediatR + Controllers
+	•	Modular monolith with feature-based organization
+	•	Projects: Anela.Heblo.API (host), Anela.Heblo.Application (features), Anela.Heblo.Persistence (DB), Anela.Heblo.Infrastructure (cross-cutting)
+	•	Features use MediatR handlers as Application Services
+	•	Generic repository pattern with concrete implementation in Persistence
 
 ⸻
 
@@ -123,7 +124,43 @@ Config	.NET environments	.NET environments
 
 ⸻
 
-Let me know if you’d like:
+## 📁 Module Structure (Vertical Slices)
+
+Each feature module in `Anela.Heblo.Application/Features/` follows this structure:
+
+```
+Features/
+├── Catalog/
+│   ├── Contracts/
+│   │   ├── GetCatalogRequest.cs
+│   │   ├── GetCatalogResponse.cs
+│   │   └── CatalogDto.cs
+│   ├── Application/
+│   │   ├── GetCatalogHandler.cs (MediatR Handler)
+│   │   └── SyncCatalogHandler.cs
+│   ├── Domain/
+│   │   ├── Product.cs
+│   │   ├── Material.cs
+│   │   └── StockSnapshot.cs
+│   └── Infrastructure/
+│       ├── CatalogRepository.cs
+│       └── ExternalApiClients/
+├── Invoices/
+├── Manufacture/
+├── Purchase/
+└── Transport/
+```
+
+**Key Principles:**
+- Each feature is self-contained with all layers
+- Controllers use MediatR to send requests to handlers
+- Handlers are the Application Services containing business logic
+- API endpoints follow /api/{controller} pattern
+- Repository implementations use generic repository from Persistence
+
+⸻
+
+Let me know if you'd like:
 	•	PlantUML/Mermaid diagram version
 	•	Backend folder structure recommendation
 	•	i18n string loader example

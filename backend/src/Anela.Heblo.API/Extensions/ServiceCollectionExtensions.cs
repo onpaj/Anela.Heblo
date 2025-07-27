@@ -1,10 +1,8 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.API.Constants;
-using Anela.Heblo.Application.Interfaces;
-using Anela.Heblo.Application.Services;
-using Anela.Heblo.Infrastructure.Services;
+using Anela.Heblo.Application.Features.Configuration.Domain;
+using Anela.Heblo.Persistence.Telemetry;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -31,11 +29,11 @@ public static class ServiceCollectionExtensions
                 DeveloperMode = environment.IsDevelopment()
             });
 
-            services.AddSingleton<ITelemetryService, Anela.Heblo.Infrastructure.Services.TelemetryService>();
+            services.AddSingleton<ITelemetryService, TelemetryService>();
         }
         else
         {
-            services.AddSingleton<ITelemetryService, Anela.Heblo.Infrastructure.Services.NoOpTelemetryService>();
+            services.AddSingleton<ITelemetryService, NoOpTelemetryService>();
         }
 
         return services;
@@ -75,14 +73,13 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddCrossCuttingServices(this IServiceCollection services)
     {
         // Register HttpContextAccessor for user service
         services.AddHttpContextAccessor();
 
-        // Register Application Services
-        services.AddScoped<IWeatherService, WeatherService>();
-        services.AddScoped<IUserService, UserService>();
+        // Note: Application services are now registered in vertical slice modules
+        // This method is kept for backward compatibility and other cross-cutting concerns
 
         return services;
     }
