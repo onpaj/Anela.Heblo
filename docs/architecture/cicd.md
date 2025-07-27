@@ -14,6 +14,7 @@ The project uses GitHub Actions for continuous integration and deployment with t
 - **Auto-merge functionality** for PRs with `auto-merge` label
 - **Docker Hub** as container registry
 - **Azure Web App for Containers** for hosting
+- **Backend architecture**: Vertical Slice Architecture with FastEndpoints (Anela.Heblo.API, .App, .Persistence, .Xcc projects)
 
 ---
 
@@ -33,8 +34,11 @@ The project uses GitHub Actions for continuous integration and deployment with t
    
 2. **Backend CI**
    - ~~.NET code formatting~~ (removed for optimization)
-   - Unit tests with coverage
-   - .NET solution build
+   - Unit tests with coverage for all projects:
+     - Anela.Heblo.API.Tests
+     - Anela.Heblo.App.Tests
+     - Anela.Heblo.Xcc.Tests
+   - .NET solution build (all projects)
 
 3. **UI Tests (Playwright)**
    - Runs after frontend and backend CI

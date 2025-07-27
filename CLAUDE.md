@@ -8,54 +8,77 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 
 ## Architecture Summary
 
-**Stack**: Monorepo (.NET 8 + React), Single Docker image deployment, Azure Web App for Containers
+**Stack**: Monorepo (.NET 8 + React), Vertical Slice Architecture with FastEndpoints, Single Docker image deployment, Azure Web App for Containers
 - **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
-- **Backend**: ASP.NET Core (.NET 8) REST API with Hangfire background jobs, serves React static files
+- **Backend**: ASP.NET Core (.NET 8) with FastEndpoints, vertical slice architecture, Hangfire background jobs, serves React static files
+  - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
+  - **Anela.Heblo.App**: Feature modules (vertical slices)
+  - **Anela.Heblo.Persistence**: Shared database infrastructure (single DbContext initially)
+  - **Anela.Heblo.Xcc**: Cross-cutting concerns (generic repository, telemetry, logging)
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
 - **Testing**: Playwright for both E2E testing and Shoptet integration automation
 - **Deployment**: Single Docker container to Azure Web App for Containers, GitHub Actions CI/CD
 
-## Repository Structure (Clean Architecture - IMPLEMENTED)
+## Repository Structure (Vertical Slice Architecture - IMPLEMENTED)
 
-**Current Clean Architecture Implementation (IMPLEMENTED):**
+**Current Vertical Slice Architecture Implementation (IMPLEMENTED):**
 ```
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
-│   │   │   ├── Controllers/           # API controllers
-│   │   │   ├── Extensions/            # Service registration & configuration extensions
+│   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
+│   │   │   ├── Endpoints/             # FastEndpoints organized by features
+│   │   │   │   ├── Orders/
+│   │   │   │   │   ├── CreateOrderEndpoint.cs
+│   │   │   │   │   └── GetOrderEndpoint.cs
+│   │   │   │   ├── Products/
+│   │   │   │   └── Invoices/
+│   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
-│   │   │   │   ├── ApplicationBuilderExtensions.cs
 │   │   │   │   └── AuthenticationExtensions.cs
-│   │   │   ├── Constants/             # Configuration constants
-│   │   │   │   └── ConfigurationConstants.cs
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
-│   │   │   └── Program.cs             # Application entry point (simplified)
-│   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
-│   │   ├── Anela.Heblo.Application/   # Application layer (Clean Architecture)
-│   │   │   ├── Interfaces/            # Service interfaces
-│   │   │   │   ├── IWeatherService.cs
-│   │   │   │   ├── IUserService.cs
+│   │   │   └── Program.cs             # Application entry point
+│   │   ├── Anela.Heblo.App/           # Feature modules and business logic
+│   │   │   ├── features/              # Vertical slice feature modules
+│   │   │   │   ├── catalog/
+│   │   │   │   │   ├── contracts/     # Public interfaces, DTOs
+│   │   │   │   │   ├── application/   # Use cases, services
+│   │   │   │   │   ├── domain/        # Entities, aggregates
+│   │   │   │   │   ├── infrastructure/# Repository implementations
+│   │   │   │   │   └── CatalogModule.cs
+│   │   │   │   ├── invoices/
+│   │   │   │   ├── manufacture/
+│   │   │   │   ├── purchase/
+│   │   │   │   └── transport/
+│   │   │   ├── Shared/                # Shared kernel
+│   │   │   │   └── Kernel/
+│   │   │   │       ├── Result.cs
+│   │   │   │       ├── IAggregateRoot.cs
+│   │   │   │       └── DomainEvent.cs
+│   │   │   └── ModuleRegistration.cs  # Central module registration
+│   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
+│   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
+│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   └── Migrations/            # EF Core migrations
+│   │   ├── Anela.Heblo.Xcc/           # Cross-cutting infrastructure
+│   │   │   ├── Repository/            # Generic repository pattern
+│   │   │   │   ├── IRepository.cs    # Generic repository interface
+│   │   │   │   └── Repository.cs     # Generic repository implementation
+│   │   │   ├── Time/
+│   │   │   │   └── ITimeProvider.cs
+│   │   │   ├── Logging/
 │   │   │   │   └── ITelemetryService.cs
-│   │   │   └── Services/              # Application service implementations
-│   │   │       ├── WeatherService.cs
-│   │   │       └── UserService.cs
-│   │   ├── Anela.Heblo.Domain/        # Domain layer (Clean Architecture)
-│   │   │   ├── Entities/              # Domain entities
-│   │   │   │   └── WeatherForecast.cs
-│   │   │   └── Constants/             # Domain constants
-│   │   │       └── WeatherConstants.cs
-│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer (Clean Architecture)
-│   │       └── Services/              # Infrastructure service implementations
-│   │           └── TelemetryService.cs (with NoOpTelemetryService)
-│   ├── test/      # Unit/integration tests for backend
-│   │   └── Anela.Heblo.Tests/         # Integration tests
-│   ├── migrations/ # EF Core database migrations
+│   │   │   └── Messaging/
+│   │   │       └── IMessageDispatcher.cs
+│   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
+│   ├── test/      # Unit/integration tests
+│   │   ├── Anela.Heblo.API.Tests/
+│   │   ├── Anela.Heblo.App.Tests/
+│   │   └── Anela.Heblo.Xcc.Tests/
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
@@ -106,14 +129,15 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 └── .dockerignore   # Docker build optimization
 ```
 
-**🏗️ Clean Architecture Benefits Implemented:**
-- **Dependency Inversion**: API and Infrastructure depend on Application interfaces
-- **Single Responsibility**: Each layer has focused responsibilities
-- **Separation of Concerns**: Business logic separated from HTTP and infrastructure concerns
-- **SOLID Principles**: Applied throughout all layers
-- **Professional Standards**: Structured logging, configuration management, service registration
-- **Testability**: Services can be unit tested independently
-- **Maintainability**: Modular extensions and focused responsibilities
+**🏗️ Vertical Slice Architecture Benefits Implemented:**
+- **Feature Cohesion**: All layers of a feature are kept together in one module
+- **Module Isolation**: Features communicate only through well-defined contracts
+- **Vertical Organization**: Each feature slice contains its own application, domain, and infrastructure code
+- **FastEndpoints**: Thin HTTP layer focused solely on request/response handling
+- **Generic Repository**: Shared repository pattern in Xcc, extended per feature as needed
+- **SOLID Principles**: Applied within each vertical slice
+- **Testability**: Each module can be tested in isolation
+- **Maintainability**: Changes to a feature are localized to its module
 
 ## Core Modules
 
@@ -522,7 +546,7 @@ await emailInput.fill(credentials.email); // Never hardcoded
 
 The `/docs/tasks/` directory contains reusable task definitions for common operations:
 
-- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process)
+- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process) - can be adapted for Vertical Slice Architecture
 - **`AUTHENTICATION_TESTING.md`**: Guidelines for testing authentication flows
 
 These tasks can be referenced for future similar work or applied to other projects.
@@ -535,4 +559,4 @@ These tasks can be referenced for future similar work or applied to other projec
 - OpenAPI client generation for frontend (post-build step)
 - All Docker images pushed to Docker Hub
 - Observability via Application Insights
-- **Backend follows Clean Architecture** - see `/docs/architecture/filesystem.md` for detailed structure
+- **Backend follows Vertical Slice Architecture** - see `/docs/architecture/filesystem.md` for detailed structure

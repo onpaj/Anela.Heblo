@@ -12,7 +12,7 @@ Stack Overview
 
 Layer	Tech Choices
 Frontend	React PWA, i18next, MSAL (MS Entra ID)
-Backend API	ASP.NET Core (.NET 8), REST
+Backend API	ASP.NET Core (.NET 8), FastEndpoints, REST
 Auth	MS Entra ID (OIDC), Claims-based roles
 Database	PostgreSQL (EF Core Migrations)
 Background Tasks	Hangfire
@@ -24,10 +24,11 @@ Deployment	Docker, GitHub Environments, .NET Environments (on-prem now, Azure la
 ⸻
 
 🧱 Architectural Pattern
-	•	Onion Architecture with Domain-Driven Design (DDD)
-	•	Shared domain model library
-	•	Modular monolith, single runtime
-	•	Modules communicate directly, via Catalog abstraction when dealing with external data
+	•	Vertical Slice Architecture with FastEndpoints
+	•	Modular monolith with feature-based organization
+	•	Projects: Anela.Heblo.API (host), Anela.Heblo.App (features), Anela.Heblo.Persistence (DB), Anela.Heblo.Xcc (cross-cutting)
+	•	Modules communicate via contracts interfaces, no direct dependencies
+	•	Generic repository pattern with interface in Xcc
 
 ⸻
 
@@ -123,7 +124,43 @@ Config	.NET environments	.NET environments
 
 ⸻
 
-Let me know if you’d like:
+## 📁 Module Structure (Vertical Slices)
+
+Each feature module in `Anela.Heblo.App/features/` follows this structure:
+
+```
+features/
+├── catalog/
+│   ├── contracts/
+│   │   ├── ICatalogService.cs
+│   │   ├── ProductDto.cs
+│   │   └── MaterialDto.cs
+│   ├── application/
+│   │   ├── CatalogService.cs
+│   │   └── SyncCatalogUseCase.cs
+│   ├── domain/
+│   │   ├── Product.cs
+│   │   ├── Material.cs
+│   │   └── StockSnapshot.cs
+│   ├── infrastructure/
+│   │   ├── CatalogRepository.cs
+│   │   └── ExternalApiClients/
+│   └── CatalogModule.cs
+├── invoices/
+├── manufacture/
+├── purchase/
+└── transport/
+```
+
+**Key Principles:**
+- Each module is self-contained with all layers
+- Communication between modules only via contracts
+- Repository implementations use generic repository from Xcc
+- FastEndpoints in API project delegate to use cases in App
+
+⸻
+
+Let me know if you'd like:
 	•	PlantUML/Mermaid diagram version
 	•	Backend folder structure recommendation
 	•	i18n string loader example

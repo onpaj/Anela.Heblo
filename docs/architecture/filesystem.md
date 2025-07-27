@@ -1,6 +1,6 @@
 # 📁 Filesystem Structure Documentation
 
-This document defines the project's directory structure and filesystem organization.
+This document defines the project's directory structure and filesystem organization following **Vertical Slice Architecture** with FastEndpoints.
 
 ---
 
@@ -10,38 +10,63 @@ This document defines the project's directory structure and filesystem organizat
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Main API project (serves React app)
-│   │   │   ├── Controllers/           # API controllers
-│   │   │   ├── Extensions/            # Service registration & configuration extensions
+│   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
+│   │   │   ├── Endpoints/             # FastEndpoints organized by features
+│   │   │   │   ├── Orders/
+│   │   │   │   │   ├── CreateOrderEndpoint.cs
+│   │   │   │   │   └── GetOrderEndpoint.cs
+│   │   │   │   ├── Products/
+│   │   │   │   └── Invoices/
+│   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
-│   │   │   │   ├── ApplicationBuilderExtensions.cs
 │   │   │   │   └── AuthenticationExtensions.cs
-│   │   │   ├── Constants/             # Configuration constants
-│   │   │   │   └── ConfigurationConstants.cs
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
-│   │   │   └── Program.cs             # Application entry point (simplified)
-│   │   ├── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
-│   │   ├── Anela.Heblo.Application/   # Application layer (Clean Architecture)
-│   │   │   ├── Interfaces/            # Service interfaces
-│   │   │   │   ├── IWeatherService.cs
-│   │   │   │   ├── IUserService.cs
+│   │   │   └── Program.cs             # Application entry point
+│   │   ├── Anela.Heblo.App/           # Feature modules and business logic
+│   │   │   ├── features/              # Vertical slice feature modules
+│   │   │   │   ├── orders/
+│   │   │   │   │   ├── contracts/
+│   │   │   │   │   │   ├── CreateOrderRequest.cs
+│   │   │   │   │   │   ├── CreateOrderResponse.cs
+│   │   │   │   │   │   └── IOrderService.cs
+│   │   │   │   │   ├── application/
+│   │   │   │   │   │   └── CreateOrderUseCase.cs
+│   │   │   │   │   ├── domain/
+│   │   │   │   │   │   ├── Order.cs
+│   │   │   │   │   │   └── OrderItem.cs
+│   │   │   │   │   ├── infrastructure/
+│   │   │   │   │   │   └── OrderRepository.cs
+│   │   │   │   │   └── OrdersModule.cs
+│   │   │   │   ├── products/
+│   │   │   │   ├── invoices/
+│   │   │   │   └── catalog/
+│   │   │   ├── Shared/               # Shared kernel
+│   │   │   │   └── Kernel/
+│   │   │   │       ├── Result.cs
+│   │   │   │       ├── IAggregateRoot.cs
+│   │   │   │       └── DomainEvent.cs
+│   │   │   └── ModuleRegistration.cs  # Central module registration
+│   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
+│   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
+│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   └── Migrations/            # EF Core migrations
+│   │   ├── Anela.Heblo.Xcc/           # Cross-cutting infrastructure
+│   │   │   ├── Repository/            # Generic repository pattern
+│   │   │   │   ├── IRepository.cs    # Generic repository interface
+│   │   │   │   └── Repository.cs     # Generic repository implementation
+│   │   │   ├── Time/
+│   │   │   │   └── ITimeProvider.cs
+│   │   │   ├── Logging/
 │   │   │   │   └── ITelemetryService.cs
-│   │   │   └── Services/              # Application service implementations
-│   │   │       ├── WeatherService.cs
-│   │   │       └── UserService.cs
-│   │   ├── Anela.Heblo.Domain/        # Domain layer (Clean Architecture)
-│   │   │   ├── Entities/              # Domain entities
-│   │   │   │   └── WeatherForecast.cs
-│   │   │   └── Constants/             # Domain constants
-│   │   │       └── WeatherConstants.cs
-│   │   └── Anela.Heblo.Infrastructure/ # Infrastructure layer (Clean Architecture)
-│   │       └── Services/              # Infrastructure service implementations
-│   │           └── TelemetryService.cs (with NoOpTelemetryService)
-│   ├── test/      # Unit/integration tests for backend
-│   │   └── Anela.Heblo.Tests/         # Integration tests
-│   ├── migrations/ # EF Core database migrations
+│   │   │   └── Messaging/
+│   │   │       └── IMessageDispatcher.cs
+│   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
+│   ├── test/      # Unit/integration tests
+│   │   ├── Anela.Heblo.API.Tests/
+│   │   ├── Anela.Heblo.App.Tests/
+│   │   └── Anela.Heblo.Xcc.Tests/
 │   └── scripts/   # Utility scripts (e.g. DB tools, backups)
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
@@ -91,25 +116,53 @@ This document defines the project's directory structure and filesystem organizat
 ├── CLAUDE.md       # AI assistant instructions
 └── .dockerignore   # Docker build optimization
 ```
-## 🏗️ Clean Architecture Implementation
+## 🏗️ Vertical Slice Architecture Implementation
 
-**The backend follows Clean Architecture principles with proper layer separation:**
+**The backend follows Vertical Slice Architecture with FastEndpoints:**
 
-- **Domain Layer** (`Anela.Heblo.Domain`): Core business entities and constants
-- **Application Layer** (`Anela.Heblo.Application`): Business logic and service interfaces
-- **Infrastructure Layer** (`Anela.Heblo.Infrastructure`): External service implementations
-- **API Layer** (`Anela.Heblo.API`): HTTP controllers and application configuration
-- **Files should be kept in layers together by features (vertical slices), not by type (horizontal slices)**
-  - **Example**: `backend/src/Anela.Heblo.Application/UserManagement including both interface and service implementation`
+### Project Structure:
+- **Anela.Heblo.API**: Host/Composition layer - FastEndpoints, DI composition, serves React app
+- **Anela.Heblo.App**: Feature modules with vertical slices containing all layers
+- **Anela.Heblo.Persistence**: Shared database infrastructure (single DbContext initially)
+- **Anela.Heblo.Xcc**: Cross-cutting concerns - generic repository, time, logging, messaging
 
-**Dependency Flow**: API → Application/Infrastructure → Domain
+### Feature Module Structure:
+Each feature in `Anela.Heblo.App/features/` contains:
+- **contracts/**: Public interfaces, DTOs (Request/Response)
+- **application/**: Use cases, orchestration, service implementations
+- **domain/**: Entities, aggregates, value objects, business rules
+- **infrastructure/**: Repository implementations (using generic repository from Xcc)
+- **Module.cs**: DI registration for the feature
 
-**Key Features:**
-- Dependency injection with proper service lifetime management
-- SOLID principles adherence
-- Professional logging and configuration management
-- Modular service registration through extension methods
-- Clean separation of concerns
+### Key Principles:
+- **Vertical organization**: Each feature contains all its layers
+- **Module isolation**: Features communicate only through contracts
+- **FastEndpoints**: Thin HTTP layer that delegates to use cases
+- **Generic Repository**: Base implementation in Xcc, extended in features as needed
+- **Single DbContext**: Initially shared in Persistence project, designed to evolve to module-specific contexts
+- **SOLID principles**: Applied within each vertical slice
+
+### Database Evolution Path:
+
+**Phase 1 (Current):**
+- Single `ApplicationDbContext` in `Anela.Heblo.Persistence`
+- All entities registered in one context
+- Shared migrations in `Persistence/Migrations/`
+
+**Phase 2 (Future):**
+- Each module will have its own DbContext
+- Module-specific migrations with unique history tables
+- Example structure:
+  ```
+  features/orders/infrastructure/
+  ├── OrdersDbContext.cs
+  ├── Migrations/
+  │   └── [timestamp]_InitialOrdersSchema.cs
+  └── Configurations/
+      └── OrderConfiguration.cs
+  ```
+- Migration command: `dotnet ef migrations add InitOrders --context OrdersDbContext --output-dir App/features/orders/infrastructure/Migrations`
+- Each context configured with: `optionsBuilder.UseSqlServer(connection, x => x.MigrationsHistoryTable("__EFMigrationsHistory_Orders"))`
 
 ---
 
@@ -187,7 +240,7 @@ This document defines the project's directory structure and filesystem organizat
 - **CI/CD**: `.github/workflows/` (GitHub Actions)
 
 ### Database
-- **Migrations**: `backend/migrations/` (EF Core)
+- **Migrations**: `backend/src/Anela.Heblo.Persistence/Migrations/` (EF Core)
 - **Scripts**: `backend/scripts/` (utility tools)
 
 ### Generated Code

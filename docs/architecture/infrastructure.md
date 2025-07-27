@@ -1,6 +1,6 @@
 # 📘 Application Infrastructure Design Document
 
-> **Stack**: Monorepo (`.NET 8` + `React`), Single Docker image deployment, Azure Web App for Containers, GitHub + GitHub Actions, EF Core, Docker Hub.
+> **Stack**: Monorepo (`.NET 8` + `React`), Vertical Slice Architecture with FastEndpoints, Single Docker image deployment, Azure Web App for Containers, GitHub + GitHub Actions, EF Core, Docker Hub.
 
 ---
 
@@ -90,19 +90,102 @@ Development:           Production/Test:
 ## 5. 🗃️ Database Versioning
 
 - Database migrations are managed via **EF Core**.
-- Migrations are stored in `backend/migrations`.
+- Migrations are stored in `backend/src/Anela.Heblo.Persistence/Migrations/`.
+- Single `ApplicationDbContext` in `Anela.Heblo.Persistence` (initially).
 - Migration naming convention: `AddXyzTable`, `AddIndexToProductName`, etc.
 - **Migrations are applied manually** – not part of automated CI/CD.
+- Future evolution: Can move to module-specific DbContexts as needed.
 
 ---
 
-## 6. 🚀 Azure Web App for Containers Deployment
+## 6. 🔌 Dependency Injection & Module Registration
+
+### Module Registration Pattern
+
+Each feature module in `Anela.Heblo.App` must provide a registration extension method:
+
+```csharp
+// In App/features/orders/OrdersModule.cs
+public static class OrdersModule
+{
+    public static IServiceCollection AddOrdersModule(this IServiceCollection services)
+    {
+        // Register module services
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        
+        // Register use cases
+        services.AddScoped<CreateOrderUseCase>();
+        services.AddScoped<GetOrderUseCase>();
+        
+        return services;
+    }
+}
+```
+
+### API Composition (Program.cs)
+
+The API project aggregates all modules:
+
+```csharp
+// Feature modules
+services
+    .AddCatalogModule()
+    .AddInvoicesModule()
+    .AddManufactureModule()
+    .AddPurchaseModule()
+    .AddTransportModule()
+    .AddXccInfrastructure() // Cross-cutting concerns
+    .AddPersistence(Configuration.GetConnectionString("DefaultConnection")); // Database
+
+// FastEndpoints
+services.AddFastEndpoints();
+```
+
+### Service Lifetimes
+- **Scoped**: Default for services, repositories, use cases
+- **Transient**: For lightweight, stateless services
+- **Singleton**: For configuration, caching, and cross-cutting services
+
+---
+
+## 7. 🔧 Technology Stack & Tools
+
+### Core Technologies
+| Technology | Purpose | Version |
+|------------|---------|---------|
+| **.NET 8** | Backend runtime | 8.0+ |
+| **FastEndpoints** | HTTP API framework | Latest |
+| **EF Core** | ORM and migrations | 8.0+ |
+| **PostgreSQL** | Database | 15+ |
+| **React** | Frontend framework | 18+ |
+| **Docker** | Containerization | Latest |
+
+### Recommended Libraries
+| Library | Purpose | Usage |
+|---------|---------|--------|
+| **AutoMapper** | DTO mapping | Optional for complex mappings |
+| **MediatR** | CQRS pattern | Optional for command/query separation |
+| **FluentValidation** | Input validation | Integrated with FastEndpoints |
+| **Polly** | Resilience patterns | For external API calls |
+| **Serilog** | Structured logging | Enhanced logging capabilities |
+| **Hangfire** | Background jobs | Scheduled tasks and processing |
+
+### Development Tools
+- **EF Core CLI**: Database migrations management
+- **Docker Desktop**: Local container development
+- **Azure CLI**: Cloud resource management
+- **GitHub Actions**: CI/CD automation
+
+---
+
+## 8. 🚀 Azure Web App for Containers Deployment
 
 > **Note**: Azure Web App deployment configuration is documented in [`environments.md`](./environments.md).
 
 ---
 
-## 7. 🌿 Branching Strategy
+## 9. 🌿 Branching Strategy
 
 - **Main branch** is the releasable production code.
 - **Feature branches**: `feature/*`
@@ -114,7 +197,7 @@ Development:           Production/Test:
 
 ---
 
-## 8. 🔖 Project Versioning
+## 10. 🔖 Project Versioning
 
 - Follows **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 - Version bump is done automatically based on **conventional commit messages**
@@ -135,7 +218,7 @@ Development:           Production/Test:
 
 ---
 
-## 9. 🧠 AI Review Agent
+## 11. 🧠 AI Review Agent
 
 - Since the project is developed by a single developer:
   - PR review is handled by an **AI agent**.
@@ -143,7 +226,7 @@ Development:           Production/Test:
 
 ---
 
-## 10. 🔐 GitHub Secrets Configuration
+## 12. 🔐 GitHub Secrets Configuration
 
 ### Required Secrets for CI/CD Pipeline
 
@@ -209,7 +292,12 @@ permissions:
 
 This document defines the project's infrastructure practices and expectations:
 
-- **Monorepo layout** with hybrid deployment strategy
+- **Monorepo layout** with **Vertical Slice Architecture** and FastEndpoints
+- **Backend architecture**: Modular monolith with feature-based organization
+  - `Anela.Heblo.API` - Host/Composition with FastEndpoints
+  - `Anela.Heblo.App` - Feature modules (vertical slices)
+  - `Anela.Heblo.Persistence` - Shared database infrastructure
+  - `Anela.Heblo.Xcc` - Cross-cutting concerns
 - **Development**: Separate servers (React dev server + ASP.NET Core) for **hot reload**
 - **Test/Production**: Single Docker container on **Azure Web App for Containers**
 - **Environment separation**: Development (separate for hot reload) vs Test/Production (single container)
