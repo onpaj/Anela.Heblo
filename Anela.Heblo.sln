@@ -29,6 +29,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Adapters", "Adapters", "{4B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Xcc", "backend\src\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj", "{406D53EA-7254-4D72-90CF-8E7C6E39075C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Comgate", "backend\src\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj", "{4B4C3497-2CDD-45FF-B8D2-7500A949D503}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Flexi", "backend\src\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj", "{979D66F0-6449-4DD2-BEA3-2005AB891F5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Shoptet", "backend\src\Adapters\Anela.Heblo.Adapters.Shoptet\Anela.Heblo.Adapters.Shoptet.csproj", "{9271A35A-387E-481F-A97C-21531EBDB707}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +65,18 @@ Global
 		{406D53EA-7254-4D72-90CF-8E7C6E39075C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{406D53EA-7254-4D72-90CF-8E7C6E39075C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{406D53EA-7254-4D72-90CF-8E7C6E39075C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B4C3497-2CDD-45FF-B8D2-7500A949D503}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B4C3497-2CDD-45FF-B8D2-7500A949D503}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B4C3497-2CDD-45FF-B8D2-7500A949D503}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B4C3497-2CDD-45FF-B8D2-7500A949D503}.Release|Any CPU.Build.0 = Release|Any CPU
+		{979D66F0-6449-4DD2-BEA3-2005AB891F5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{979D66F0-6449-4DD2-BEA3-2005AB891F5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{979D66F0-6449-4DD2-BEA3-2005AB891F5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{979D66F0-6449-4DD2-BEA3-2005AB891F5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9271A35A-387E-481F-A97C-21531EBDB707}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9271A35A-387E-481F-A97C-21531EBDB707}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9271A35A-387E-481F-A97C-21531EBDB707}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9271A35A-387E-481F-A97C-21531EBDB707}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{87237941-D198-446F-919C-467E4968E85F} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
@@ -70,5 +88,8 @@ Global
 		{1629E893-1D2B-486C-8552-6FB43EFA8A92} = {87237941-D198-446F-919C-467E4968E85F}
 		{4B6F17C3-0A57-487A-BE8C-1808B40EC604} = {87237941-D198-446F-919C-467E4968E85F}
 		{406D53EA-7254-4D72-90CF-8E7C6E39075C} = {87237941-D198-446F-919C-467E4968E85F}
+		{4B4C3497-2CDD-45FF-B8D2-7500A949D503} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
+		{979D66F0-6449-4DD2-BEA3-2005AB891F5E} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
+		{9271A35A-387E-481F-A97C-21531EBDB707} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 	EndGlobalSection
 EndGlobal

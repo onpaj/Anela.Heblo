@@ -1,6 +1,5 @@
-using Anela.Heblo.Catalog.Attributes;
-using Anela.Heblo.Data;
-using Anela.Heblo.Products;
+using Anela.Heblo.Application.Domain.Catalog;
+using Anela.Heblo.Application.Domain.Catalog.Attributes;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
@@ -11,7 +10,6 @@ namespace Anela.Heblo.Adapters.Flexi.ProductAttributes;
 
 public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttributesFlexiDto>, ICatalogAttributesClient
 {
-    private readonly ISynchronizationContext _synchronizationContext;
     private readonly ISeasonalDataParser _seasonalDataParser;
     private const int OverstockAttributeId = 80;
     private const int StockMinAttributeId = 81;
@@ -23,13 +21,11 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
         FlexiBeeSettings connection, 
         IHttpClientFactory httpClientFactory, 
         IResultHandler resultHandler, 
-        ISynchronizationContext synchronizationContext,
         ISeasonalDataParser seasonalDataParser,
         ILogger<ReceivedInvoiceClient> logger
     ) 
         : base(connection, httpClientFactory, resultHandler, logger)
     {
-        _synchronizationContext = synchronizationContext;
         _seasonalDataParser = seasonalDataParser;
     }
 
@@ -42,7 +38,6 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     public async Task<IList<CatalogAttributes>> GetAttributesAsync(int limit = 0, CancellationToken cancellationToken = default)
     {
         var data = (await GetAsync(limit, cancellationToken));
-        _synchronizationContext.Submit(new ProductAttributeSyncData(data));
         
         return data.GroupBy(g => new { g.ProductId, g.ProductCode, g.ProductType }, (key, values) => new CatalogAttributes()
         {

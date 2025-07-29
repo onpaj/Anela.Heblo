@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Model;
+using Anela.Heblo.Application.Domain.Users;
 using Anela.Heblo.Logistics.Picking.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
@@ -9,6 +10,7 @@ public class PrintPickingListScenario
 {
     private readonly PlaywrightSourceOptions _options;
     private readonly ILogger<PrintPickingListScenario> _logger;
+    private readonly TimeProvider _timeProvider;
 
     private const string ExportFileNameHeaderName = "x-export-file-name";
 
@@ -16,11 +18,13 @@ public class PrintPickingListScenario
 
     public PrintPickingListScenario(
         PlaywrightSourceOptions options,
-        ILogger<PrintPickingListScenario> logger
+        ILogger<PrintPickingListScenario> logger,
+        TimeProvider timeProvider
     )
     {
         _options = options;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<PrintPickingListResult> RunAsync(List<Shipping> shippings, int maxPageSize, int? sourceStateId = null, int? desiredStateId = null)
@@ -65,7 +69,7 @@ public class PrintPickingListScenario
                 if (found > 0)
                 {
                     // Print them to PDF
-                    var filename = $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
+                    var filename = $"{_timeProvider.GetFilenameTimestamp()}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
                     var result = await PrintSelected(page, filename);
                     _logger.LogDebug("Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
 

@@ -1,4 +1,4 @@
-using Anela.Heblo.Catalog.StockTaking;
+using Anela.Heblo.Application.Domain.Catalog.Stock;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 
@@ -8,17 +8,20 @@ public class StockTakingScenario
 {
     private readonly PlaywrightSourceOptions _options;
     private readonly ILogger<StockTakingScenario> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public StockTakingScenario(
         PlaywrightSourceOptions options,
-        ILogger<StockTakingScenario> logger
+        ILogger<StockTakingScenario> logger,
+        TimeProvider timeProvider
     )
     {
         _options = options;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
-    public async Task<StockTakingResult> RunAsync(EshopStockTakingRequest request)
+    public async Task<StockTakingRecord> RunAsync(EshopStockTakingRequest request)
     {
         // Definice selektorů
         var freeSelector = "body > div.pageGrid > div.pageGrid__content > div.section.section-1063 > form > fieldset > div.tableWrapper > table > tbody > tr > td:nth-child(5) > div:nth-child(1) > div > input";
@@ -67,9 +70,9 @@ public class StockTakingScenario
         // Zavření prohlížeče
         await browser.CloseAsync();
 
-        return new StockTakingResult()
+        return new StockTakingRecord()
         {
-            Date = DateTime.Now,
+            Date = _timeProvider.GetUtcNow().DateTime,
             Code = request.ProductCode,
             AmountNew = (double)request.TargetAmount, // TODO Convert to decimal
             AmountOld = freeAmount + reservedAmount

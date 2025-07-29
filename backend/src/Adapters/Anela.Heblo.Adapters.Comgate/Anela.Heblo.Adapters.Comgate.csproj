@@ -2,20 +2,22 @@
 
     
     <PropertyGroup>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Anela.Heblo.Adapters.Comgate</RootNamespace>
   </PropertyGroup>
   
-    <ItemGroup>
-      <ProjectReference Include="..\..\Anela.Heblo.Application.Contracts\Anela.Heblo.Application.Contracts.csproj" />
-      <ProjectReference Include="..\..\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj" />
-    </ItemGroup>
     
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
-        <PackageReference Include="Volo.Abp.AutoMapper" Version="9.2.1" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+    </ItemGroup>
+  
+    
+    <ItemGroup>
+      <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
     </ItemGroup>
 
 </Project>

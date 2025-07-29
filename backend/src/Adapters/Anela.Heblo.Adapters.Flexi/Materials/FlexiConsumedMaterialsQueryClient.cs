@@ -1,5 +1,5 @@
 using System.Globalization;
-using Anela.Heblo.ConsumedMaterials;
+using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
@@ -26,11 +26,11 @@ public class FlexiConsumedMaterialsQueryClient : UserQueryClient<ConsumedMateria
             { LimitParamName, limit.ToString() }
         }, cancellationToken);
 
-    public async Task<IReadOnlyList<ConsumedMaterialHistory>> GetConsumedAsync(DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ConsumedMaterialRecord>> GetConsumedAsync(DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
     {
         var dtos = await GetAsync(dateFrom, dateTo, limit, cancellationToken);
 
-        return dtos.Select(s => new ConsumedMaterialHistory
+        return dtos.Select(s => new ConsumedMaterialRecord
         {
             ProductCode = s.ProductCode,
             ProductName = s.ProductName,

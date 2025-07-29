@@ -1,6 +1,5 @@
-using Anela.Heblo.Manufacture;
+using Anela.Heblo.Application.Domain.Manufacture;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
-using Volo.Abp;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
@@ -17,7 +16,7 @@ public class FlexiManufactureRepository : IManufactureRepository
     {
         var bom = await _bomClient.GetAsync(id);
 
-        var header = bom.SingleOrDefault(s => s.Level == 1) ?? throw new BusinessException(message: $"No BoM header for product {id} found");
+        var header = bom.SingleOrDefault(s => s.Level == 1) ?? throw new ApplicationException(message: $"No BoM header for product {id} found");
         var ingredients = bom.Where(w => w.Level != 1);
 
         return new ManufactureTemplate()

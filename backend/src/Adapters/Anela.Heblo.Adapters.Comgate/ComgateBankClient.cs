@@ -1,7 +1,7 @@
 using System.Globalization;
 using Anela.Heblo.Adapters.Comgate.Model;
-using Anela.Heblo.Bank;
-using Anela.Heblo.Bank.Model;
+using Anela.Heblo.Application.Domain.Bank;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.Comgate;
 
@@ -15,10 +15,10 @@ public class ComgateBankClient : IBankClient
     private static string GetStatementUrlTemplate =
         "https://payments.comgate.cz/v1.0/aboSingleTransfer?merchant={0}&secret={1}&transferId={2}&download=true&type=v2";
     
-    public ComgateBankClient(HttpClient httpClient, ComgateSettings settings)
+    public ComgateBankClient(HttpClient httpClient, IOptions<ComgateSettings> options)
     {
         _httpClient = httpClient;
-        _settings = settings;
+        _settings = options.Value;
     }
     public async Task<BankStatementData> GetStatementAsync(string transferId)
     {

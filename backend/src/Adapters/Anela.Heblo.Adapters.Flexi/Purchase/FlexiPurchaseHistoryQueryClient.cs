@@ -1,6 +1,4 @@
-using Anela.Heblo.Catalog.Purchase;
-using Anela.Heblo.Data;
-using Anela.Heblo.Purchase;
+using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
@@ -10,9 +8,8 @@ using Rem.FlexiBeeSDK.Client.ResultFilters;
 
 namespace Anela.Heblo.Adapters.Flexi.Purchase;
 
-public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistory>, IPurchaseHistoryClient
+public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFlexiDto>, IPurchaseHistoryClient
 {
-    private readonly ISynchronizationContext _synchronizationContext;
     private readonly IMemoryCache _cache;
 
     public FlexiPurchaseHistoryQueryClient(
@@ -20,17 +17,15 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistory>,
         IHttpClientFactory httpClientFactory, 
         IResultHandler resultHandler, 
         ILogger<ReceivedInvoiceClient> logger, 
-        ISynchronizationContext synchronizationContext,
         IMemoryCache cache) 
         : base(connection, httpClientFactory, resultHandler, logger)
     {
-        _synchronizationContext = synchronizationContext;
         _cache = cache;
     }
 
     protected override int QueryId => 19;
 
-    public Task<IList<PurchaseHistory>> GetAsync(string? productCode, DateTime dateFrom, DateTime dateTo, int limit = 0,
+    public Task<IList<PurchaseHistoryFlexiDto>> GetAsync(string? productCode, DateTime dateFrom, DateTime dateTo, int limit = 0,
         CancellationToken cancellationToken = default)
     {
         var query = new Dictionary<string, string>()
@@ -48,18 +43,18 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistory>,
         return GetAsync(query, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<PurchaseHistoryData>> GetHistoryAsync(string? productCode, DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CatalogPurchaseRecord>> GetHistoryAsync(string? productCode, DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
     {
-        if (!_cache.TryGetValue(GetKey(dateFrom, dateTo, limit), out IList<PurchaseHistory>? purchaseHistory))
+        if (!_cache.TryGetValue(GetKey(dateFrom, dateTo, limit), out IList<PurchaseHistoryFlexiDto>? purchaseHistory))
         {
             purchaseHistory = await GetAsync(null, dateFrom, dateTo, limit, cancellationToken);
-            _synchronizationContext.Submit(new PurchaseHistorySyncData(purchaseHistory));
+            // TODO Add Audit trace to log successful load
             _cache.Set(GetKey(dateFrom, dateTo, limit), purchaseHistory, DateTimeOffset.Now.AddHours(1));
         }
 
         return purchaseHistory!
             .Where(w=> productCode == null || w.ProductCode == productCode)
-            .Select(p => new PurchaseHistoryData()
+            .Select(p => new CatalogPurchaseRecord()
             {
                 ProductCode = p.ProductCode,
                 SupplierName = p.CompanyName,

@@ -1,4 +1,4 @@
-using Volo.Abp.Domain.Entities;
+using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Adapters.Flexi.Price;
 

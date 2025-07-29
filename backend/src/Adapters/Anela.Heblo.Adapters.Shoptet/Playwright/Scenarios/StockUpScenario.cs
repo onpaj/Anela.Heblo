@@ -1,4 +1,4 @@
-using Anela.Heblo.Catalog.StockTaking;
+using Anela.Heblo.Application.Domain.Catalog.Stock;
 using Anela.Heblo.Logistics.Transport;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
@@ -19,7 +19,7 @@ public class StockUpScenario
         _logger = logger;
     }
 
-    public async Task<StockUpResult> RunAsync(StockUpRequest request)
+    public async Task<StockUpRecord> RunAsync(StockUpRequest request)
     {
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
      
@@ -51,7 +51,7 @@ public class StockUpScenario
         await page.FillAsync("text=Množství", request.Amount.ToString());
         await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
 
-        return new StockUpResult()
+        return new StockUpRecord()
         {
         };
     }

@@ -24,5 +24,5 @@ var options = conf.GetSection("Shoptet.Playwright").Get<PlaywrightSourceOptions>
 foreach(var f in Directory.EnumerateFiles(options.PdfTmpFolder))
     File.Delete(f);
 
-var source = new ShoptetPlaywrightExpeditionListSource(new PrintPickingListScenario(options, log));
+var source = new ShoptetPlaywrightExpeditionListSource(new PrintPickingListScenario(options, log, TimeProvider.System));
 await source.CreatePickingList(new PrintPickingListRequest(), CancellationToken.None);

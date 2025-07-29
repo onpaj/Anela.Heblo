@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
     <ProjectReference Include="..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
   </ItemGroup>
 

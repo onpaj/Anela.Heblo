@@ -1,9 +1,6 @@
-using Anela.Heblo.Catalog;
-using Anela.Heblo.Catalog.Stock;
-using Anela.Heblo.Data;
-using Anela.Heblo.Products;
+using Anela.Heblo.Application.Domain.Catalog;
+using Anela.Heblo.Application.Domain.Catalog.Stock;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
-using Volo.Abp.Timing;
 
 namespace Anela.Heblo.Adapters.Flexi.Materials;
 
@@ -14,14 +11,12 @@ public  class FlexiStockClient : IErpStockClient
     private const int ProductsWarehouseId = 4;
     
     private readonly IStockToDateClient _stockClient;
-    private readonly IClock _clock;
-    private readonly ISynchronizationContext _synchronizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public FlexiStockClient(IStockToDateClient stockClient, IClock clock, ISynchronizationContext synchronizationContext)
+    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider)
     {
         _stockClient = stockClient;
-        _clock = clock;
-        _synchronizationContext = synchronizationContext;
+        _timeProvider = timeProvider;
     }
     
     public async Task<IReadOnlyList<ErpStock>> ListAsync(CancellationToken cancellationToken)
@@ -48,7 +43,7 @@ public  class FlexiStockClient : IErpStockClient
     private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes, CancellationToken cancellationToken)
     {
         var stockToDate = await _stockClient
-            .GetAsync(_clock.Now.Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
+            .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
         var productTypeIds = productTypes.Select(i => (int?)i).ToList();
         var stock = stockToDate
@@ -67,7 +62,8 @@ public  class FlexiStockClient : IErpStockClient
                 Weight = s.Weight
             }).ToList();
 
-        _synchronizationContext.Submit(new ErpStockSyncData(stock, warehouseId));
+
+        // TODO Add Audit trace to log successful load of stock for warehouse {warehouseId} with product types {string.Join(", ", productTypes)}.
         
         return stock;
     }

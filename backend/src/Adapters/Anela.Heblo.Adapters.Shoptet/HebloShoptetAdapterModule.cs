@@ -1,60 +1,52 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Catalog.Stock;
-using Anela.Heblo.Catalog.StockTaking;
+using Anela.Heblo.Application.Domain.Catalog.Stock;
 using Anela.Heblo.Invoices;
 using Anela.Heblo.Logistics.Picking;
 using Anela.Heblo.Price;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Volo.Abp.AutoMapper;
-using Volo.Abp.Modularity;
 
 namespace Anela.Heblo.Adapters.Shoptet;
 
-[DependsOn(
-    typeof(HebloDomainModule)
-    )]
-public class HebloShoptetAdapterModule : AbpModule
+public static class ShoptetAdapterServiceCollectionExtensions
 {
-    public override void ConfigureServices(ServiceConfigurationContext context)
+    public static IServiceCollection AddShopetAdapter(this IServiceCollection services, IConfiguration configuration)
     {
-        var configuration = context.Services.GetConfiguration();
+        // Configure AutoMapper
+        services.AddAutoMapper(typeof(ShoptetAdapterServiceCollectionExtensions));
+
+        services.AddHttpClient();
+        services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();
+        services.AddSingleton<IIssuedInvoiceSource, ShoptetPlaywrightInvoiceSource>();
+
+        services.AddSingleton<IssuedInvoiceExportScenario>();
+
+        services.AddSingleton<IPickingListSource, ShoptetPlaywrightExpeditionListSource>();
+        services.AddSingleton<PrintPickingListScenario>();
         
-        Configure<AbpAutoMapperOptions>(options =>
-        {
-            options.AddMaps<IssuedInvoiceMapping>();
-        });
+        services.AddSingleton<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
+        services.AddSingleton<StockUpScenario>();
+        services.AddSingleton<StockTakingScenario>();
 
-        context.Services.AddHttpClient();
-        context.Services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();
-        context.Services.AddSingleton<IIssuedInvoiceSource, ShoptetPlaywrightInvoiceSource>();
-
-        context.Services.AddSingleton<IssuedInvoiceExportScenario>();
-
-        context.Services.AddSingleton<IPickingListSource, ShoptetPlaywrightExpeditionListSource>();
-        context.Services.AddSingleton<PrintPickingListScenario>();
-        
-        context.Services.AddSingleton<IEshopStockTakingDomainService, ShoptetPlaywrightStockTakingDomainService>();
-        context.Services.AddSingleton<StockUpScenario>();
-        context.Services.AddSingleton<StockTakingScenario>();
-
-        context.Services.AddSingleton<ICashRegisterOrdersSource, ShoptetPlaywrightCashRegisterOrdersSource>();
-        context.Services.AddSingleton<CashRegisterStatisticsScenario>();
+        services.AddSingleton<ICashRegisterOrdersSource, ShoptetPlaywrightCashRegisterOrdersSource>();
+        services.AddSingleton<CashRegisterStatisticsScenario>();
 
 
-        //context.Services.Configure<DropBoxSourceOptions>(configuration.GetSection("Shoptet"));
-        context.Services.Configure<PlaywrightSourceOptions>(configuration.GetSection(PlaywrightSourceOptions.SettingsKey));
-        context.Services.AddSingleton(configuration.GetSection(PlaywrightSourceOptions.SettingsKey).Get<PlaywrightSourceOptions>());
+        //services.Configure<DropBoxSourceOptions>(configuration.GetSection("Shoptet"));
+        services.Configure<PlaywrightSourceOptions>(configuration.GetSection(PlaywrightSourceOptions.SettingsKey));
+        services.AddSingleton(configuration.GetSection(PlaywrightSourceOptions.SettingsKey).Get<PlaywrightSourceOptions>());
 
 
-        context.Services.AddSingleton<IEshopStockClient, ShoptetStockClient>();
-        context.Services.Configure<ShoptetStockClientOptions>(
+        services.AddSingleton<IEshopStockClient, ShoptetStockClient>();
+        services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
         
-        context.Services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
+        services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
                 
-        context.Services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
+        services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
+
+        return services;
     }
 }

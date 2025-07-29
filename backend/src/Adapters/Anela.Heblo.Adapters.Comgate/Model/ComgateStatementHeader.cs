@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Adapters.Comgate.Model;
 
-public class ComgateStatementHeader
+internal class ComgateStatementHeader
 {
     public string TransferId { get; set; }
     public string TransferDate { get; set; }

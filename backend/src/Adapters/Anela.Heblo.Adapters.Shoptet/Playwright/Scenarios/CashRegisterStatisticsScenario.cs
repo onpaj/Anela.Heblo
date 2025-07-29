@@ -25,7 +25,7 @@ public class CashRegisterStatisticsScenario
         _logger = logger;
     }
 
-    public async Task<CashRegisterStatisticsResult> RunAsync(List<CashRegister> registers, int year, int month)
+    public async Task<CashRegisterStatistics> RunAsync(List<CashRegister> registers, int year, int month)
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
@@ -50,7 +50,7 @@ public class CashRegisterStatisticsScenario
 
         _logger.LogDebug("Login successful");
 
-        var result = new CashRegisterStatisticsResult();
+        var result = new CashRegisterStatistics();
         foreach (var register in registers)
         {
             int found;
@@ -61,7 +61,7 @@ public class CashRegisterStatisticsScenario
             var html = await page.ContentAsync();
 
             var orders = ParseOrders(html);
-            result.Orders.AddRange(orders.Select(s => new CashRegisterOrderResult()
+            result.Orders.AddRange(orders.Select(s => new CashRegisterOrder()
             {
                 CashRegisterId = register.Id,
                 User = s.User,

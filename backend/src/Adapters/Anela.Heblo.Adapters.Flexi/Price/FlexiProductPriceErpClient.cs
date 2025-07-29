@@ -1,5 +1,4 @@
-using Anela.Heblo.Data;
-using Anela.Heblo.Price;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
@@ -12,7 +11,6 @@ namespace Anela.Heblo.Adapters.Flexi.Price;
 public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>, IProductPriceErpClient
 {
     private readonly IMemoryCache _cache;
-    private readonly ISynchronizationContext _synchronizationContext;
     private const string CacheKey = "FlexiProductPrices";
 
     public FlexiProductPriceErpClient(
@@ -20,13 +18,11 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         IHttpClientFactory httpClientFactory, 
         IResultHandler resultHandler, 
         IMemoryCache cache, 
-        ISynchronizationContext synchronizationContext,
         ILogger<ReceivedInvoiceClient> logger
     ) 
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
-        _synchronizationContext = synchronizationContext;
     }
 
     protected override int QueryId => 41;
@@ -41,7 +37,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         if (!_cache.TryGetValue(CacheKey, out IList<ProductPriceFlexiDto>? data))
         {
             data = await GetAsync(0, cancellationToken);
-            _cache.Set(CacheKey, data, DateTime.Now.AddMinutes(5));
+            _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
             dataLoaded = true;
         }
         
@@ -57,7 +53,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
         if (dataLoaded)
         {
-            _synchronizationContext.Submit(new ProductPriceSyncData(prices));
+            // TODO Add Audit trace to log successful load
         }
 
         return prices;
