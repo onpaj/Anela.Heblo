@@ -1,7 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Invoices;
-using Anela.Heblo.IssuedInvoices;
-using Anela.Heblo.IssuedInvoices.Model;
+using Anela.Heblo.Application.Domain.CashRegister;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 

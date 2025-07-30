@@ -1,8 +1,4 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Anela.Heblo.Price;
+namespace Anela.Heblo.Application.Domain.Catalog.Price;
 
 public interface IProductPriceEshopClient 
 {

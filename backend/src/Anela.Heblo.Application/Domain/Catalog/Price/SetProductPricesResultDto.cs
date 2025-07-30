@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Price;
+namespace Anela.Heblo.Application.Domain.Catalog.Price;
 
 public class SetProductPricesResultDto
 {

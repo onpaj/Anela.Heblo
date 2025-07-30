@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Logistics.Transport;
+namespace Anela.Heblo.Application.Domain.Catalog.Stock;
 
 public class StockUpRecord
 {

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Anela.Heblo.Adapters.Flexi.Price;
-using Anela.Heblo.Price;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Options;

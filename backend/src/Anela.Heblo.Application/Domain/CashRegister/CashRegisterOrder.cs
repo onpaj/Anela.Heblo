@@ -1,6 +1,6 @@
-using System;
+using Anela.Heblo.Application.Domain.IssuedInvoices;
 
-namespace Anela.Heblo.IssuedInvoices;
+namespace Anela.Heblo.Application.Domain.CashRegister;
 
 public class CashRegisterOrder
 {

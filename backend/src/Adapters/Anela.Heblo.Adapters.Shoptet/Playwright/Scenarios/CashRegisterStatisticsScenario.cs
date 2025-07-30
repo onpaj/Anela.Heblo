@@ -1,6 +1,7 @@
 using System.Globalization;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Model;
-using Anela.Heblo.IssuedInvoices;
+using Anela.Heblo.Application.Domain.CashRegister;
+using Anela.Heblo.Application.Domain.IssuedInvoices;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;

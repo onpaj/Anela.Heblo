@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Invoices;
+namespace Anela.Heblo.Application.Domain.IssuedInvoices;
 
 public enum CurrencyCode
 {

@@ -2,7 +2,7 @@ using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 
-namespace Anela.Heblo.Adapters.Flexi.Materials;
+namespace Anela.Heblo.Adapters.Flexi.Stock;
 
 public  class FlexiStockClient : IErpStockClient
 {

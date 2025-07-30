@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace Anela.Heblo.IssuedInvoices;
+namespace Anela.Heblo.Application.Domain.IssuedInvoices;
 
 public class IssuedInvoiceDetailBatch
 {

@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace Anela.Heblo.Logistics.Picking.Model;
+namespace Anela.Heblo.Application.Domain.Logistics.Picking;
 
 public class PrintPickingListRequest
 {

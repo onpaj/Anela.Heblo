@@ -1,8 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Anela.Heblo.Logistics.Picking.Model;
-
-namespace Anela.Heblo.Logistics.Picking;
+namespace Anela.Heblo.Application.Domain.Logistics.Picking;
 
 public interface IPickingListSource
 {

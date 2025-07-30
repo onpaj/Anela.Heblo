@@ -1,4 +1,4 @@
-﻿using Anela.Heblo.IssuedInvoices;
+﻿using Anela.Heblo.Application.Domain.IssuedInvoices;
 using AutoMapper;
 
 namespace Anela.Heblo.Adapters.Shoptet

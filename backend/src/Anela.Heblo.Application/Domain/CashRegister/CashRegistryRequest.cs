@@ -1,4 +1,4 @@
-namespace Anela.Heblo.IssuedInvoices.Model;
+namespace Anela.Heblo.Application.Domain.CashRegister;
 
 public class CashRegistryRequest
 {

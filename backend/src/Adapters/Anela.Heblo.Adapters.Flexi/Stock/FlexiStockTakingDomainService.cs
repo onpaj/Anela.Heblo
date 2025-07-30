@@ -3,7 +3,7 @@ using Anela.Heblo.Application.Domain.Users;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Model.Products.StockTaking;
 
-namespace Anela.Heblo.Adapters.Flexi;
+namespace Anela.Heblo.Adapters.Flexi.Stock;
 
 
 public class FlexiStockTakingDomainService : IErpStockDomainService

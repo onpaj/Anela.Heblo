@@ -1,10 +1,11 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
+using Anela.Heblo.Application.Domain.CashRegister;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Invoices;
-using Anela.Heblo.Logistics.Picking;
-using Anela.Heblo.Price;
+using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Anela.Heblo.Application.Domain.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

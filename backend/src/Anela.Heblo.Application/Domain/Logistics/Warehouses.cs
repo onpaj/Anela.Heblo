@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Logistics;
+namespace Anela.Heblo.Application.Domain.Logistics;
 
 public enum Warehouses
 {

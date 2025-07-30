@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
+using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Application.Domain.Catalog.Attributes;
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
+using Rem.FlexiBeeSDK.Client.DI;
 
 namespace Anela.Heblo.Adapters.Flexi;
 
@@ -23,8 +25,15 @@ public static class FlexiAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddFlexiAdapter(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddFlexiBee(configuration);
+        
         // Configure AutoMapper
         services.AddAutoMapper(typeof(FlexiAdapterServiceCollectionExtensions));
+
+        services.AddHttpClient();
+        
+        // Add TimeProvider for FlexiStockClient
+        services.AddSingleton(TimeProvider.System);
         
         services.AddSingleton<IErpStockDomainService, FlexiStockTakingDomainService>();
         

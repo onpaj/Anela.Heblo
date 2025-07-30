@@ -1,4 +1,4 @@
-using Anela.Heblo.Logistics;
+using Anela.Heblo.Application.Domain.Logistics;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright.Model;
 

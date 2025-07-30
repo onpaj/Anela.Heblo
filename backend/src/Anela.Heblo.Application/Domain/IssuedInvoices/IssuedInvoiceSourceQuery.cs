@@ -1,6 +1,4 @@
-using System;
-
-namespace Anela.Heblo.IssuedInvoices.Model;
+namespace Anela.Heblo.Application.Domain.IssuedInvoices;
 
 public class IssuedInvoiceSourceQuery
 {

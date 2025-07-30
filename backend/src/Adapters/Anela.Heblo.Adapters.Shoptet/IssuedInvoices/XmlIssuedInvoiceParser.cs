@@ -1,6 +1,6 @@
 using System.Xml;
 using System.Xml.Serialization;
-using Anela.Heblo.IssuedInvoices;
+using Anela.Heblo.Application.Domain.IssuedInvoices;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 

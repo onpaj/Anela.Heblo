@@ -14,7 +14,7 @@ public class FlexiManufactureRepository : IManufactureRepository
 
     public async Task<ManufactureTemplate> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
     {
-        var bom = await _bomClient.GetAsync(id);
+        var bom = await _bomClient.GetAsync(id, cancellationToken);
 
         var header = bom.SingleOrDefault(s => s.Level == 1) ?? throw new ApplicationException(message: $"No BoM header for product {id} found");
         var ingredients = bom.Where(w => w.Level != 1);
@@ -43,16 +43,13 @@ public class FlexiManufactureRepository : IManufactureRepository
         var templates = await _bomClient.GetByIngredientAsync(ingredientCode, cancellationToken);
 
         return templates
-                .Select(s =>
-        {
-            return new ManufactureTemplate()
-            {
-                ProductCode = s.ParentCode.RemoveCodePrefix(),
-                ProductName = s.ParentFullName,
-                Amount = s.Amount,
-                TemplateId = s.Id
-            };
-        })
+                .Select(s => new ManufactureTemplate()
+                {
+                    ProductCode = s.ParentCode.RemoveCodePrefix(),
+                    ProductName = s.ParentFullName,
+                    Amount = s.Amount,
+                    TemplateId = s.Id
+                })
         .Where(w => w.ProductCode != ingredientCode)
         .ToList();
     }
