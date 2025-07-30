@@ -85,7 +85,6 @@ jobs:
         run: dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
 
       - name: 🎭 Install Playwright for Shoptet tests
-        if: ${{ secrets.SHOPTET_URL != '' }}
         run: |
           cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
           pwsh bin/Release/net8.0/playwright.ps1 install chromium

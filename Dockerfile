@@ -8,10 +8,6 @@ WORKDIR /app/frontend
 # Accept build arguments for React environment variables
 ARG REACT_APP_API_URL=http://localhost:8080
 ARG REACT_APP_USE_MOCK_AUTH=true
-ARG REACT_APP_AZURE_CLIENT_ID=
-ARG REACT_APP_AZURE_AUTHORITY=
-ARG REACT_APP_AZURE_BACKEND_CLIENT_ID=
-ARG REACT_APP_AZURE_TENANT_ID=
 
 # Set environment variables for React build
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
@@ -35,10 +31,7 @@ WORKDIR /src
 
 # Copy solution and project files
 COPY Anela.Heblo.sln ./
-COPY backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj ./backend/src/Anela.Heblo.API/
-COPY backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj ./backend/src/Anela.Heblo.Application/
-COPY backend/src/Anela.Heblo.Domain/Anela.Heblo.Domain.csproj ./backend/src/Anela.Heblo.Domain/
-COPY backend/src/Anela.Heblo.Infrastructure/Anela.Heblo.Infrastructure.csproj ./backend/src/Anela.Heblo.Infrastructure/
+COPY backend/src ./backend/src
 
 # Restore dependencies
 RUN dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
