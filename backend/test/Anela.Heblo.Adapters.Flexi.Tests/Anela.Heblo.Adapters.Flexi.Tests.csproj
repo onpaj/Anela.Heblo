@@ -33,5 +33,9 @@
       <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj" />
       <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <None Remove="Integration\README.md" />
+    </ItemGroup>
 
 </Project>
