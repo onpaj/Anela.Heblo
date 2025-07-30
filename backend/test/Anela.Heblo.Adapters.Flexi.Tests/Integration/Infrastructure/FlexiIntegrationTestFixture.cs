@@ -25,9 +25,6 @@ public class FlexiIntegrationTestFixture : IDisposable
         // Add logging
         services.AddLogging();
         
-        // Add memory cache for FlexiProductPriceErpClient
-        services.AddMemoryCache();
-
         ServiceProvider = services.BuildServiceProvider();
     }
 

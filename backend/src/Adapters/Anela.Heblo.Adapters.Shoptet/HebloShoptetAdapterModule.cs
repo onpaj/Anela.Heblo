@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Domain.IssuedInvoices;
 using Anela.Heblo.Application.Domain.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 
 namespace Anela.Heblo.Adapters.Shoptet;
 
@@ -15,6 +16,9 @@ public static class ShoptetAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddShopetAdapter(this IServiceCollection services, IConfiguration configuration)
     {
+        // Register code pages to support windows-1250 encoding used by Shoptet CSV exports
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        
         // Configure AutoMapper
         services.AddAutoMapper(typeof(ShoptetAdapterServiceCollectionExtensions));
 
