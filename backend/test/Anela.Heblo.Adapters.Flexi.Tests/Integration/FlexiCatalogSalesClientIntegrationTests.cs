@@ -31,15 +31,15 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         // Assert
         result.Should().NotBeNull();
         result.Should().BeAssignableTo<IList<CatalogSaleRecord>>();
-        
+
         if (result.Any())
         {
             // Verify basic structure
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
-            result.Should().OnlyContain(record => record.Date >= dateFrom.Date && record.Date <= dateTo.Date, 
+            result.Should().OnlyContain(record => record.Date >= dateFrom.Date && record.Date <= dateTo.Date,
                 "Date should be within specified range");
-            
+
             // Test limit parameter
             result.Count.Should().BeLessOrEqualTo(limit);
         }
@@ -58,7 +58,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             foreach (var sale in result.Take(15))
@@ -67,12 +67,12 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
                 sale.AmountTotal.Should().BeGreaterOrEqualTo(0, $"AmountTotal should be non-negative for product {sale.ProductCode}");
                 sale.AmountB2B.Should().BeGreaterOrEqualTo(0, $"AmountB2B should be non-negative for product {sale.ProductCode}");
                 sale.AmountB2C.Should().BeGreaterOrEqualTo(0, $"AmountB2C should be non-negative for product {sale.ProductCode}");
-                
+
                 // Total should be sum of B2B and B2C
                 var expectedTotal = sale.AmountB2B + sale.AmountB2C;
-                sale.AmountTotal.Should().BeApproximately(expectedTotal, 0.001, 
+                sale.AmountTotal.Should().BeApproximately(expectedTotal, 0.001,
                     $"AmountTotal ({sale.AmountTotal}) should equal AmountB2B ({sale.AmountB2B}) + AmountB2C ({sale.AmountB2C}) for product {sale.ProductCode}");
-                
+
                 // Amounts should be reasonable (not extremely high)
                 sale.AmountTotal.Should().BeLessThan(1000000, "AmountTotal should be reasonable");
             }
@@ -92,7 +92,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             foreach (var sale in result.Take(15))
@@ -101,15 +101,15 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
                 sale.SumTotal.Should().BeGreaterOrEqualTo(0, $"SumTotal should be non-negative for product {sale.ProductCode}");
                 sale.SumB2B.Should().BeGreaterOrEqualTo(0, $"SumB2B should be non-negative for product {sale.ProductCode}");
                 sale.SumB2C.Should().BeGreaterOrEqualTo(0, $"SumB2C should be non-negative for product {sale.ProductCode}");
-                
+
                 // Total should be sum of B2B and B2C
                 var expectedSum = sale.SumB2B + sale.SumB2C;
-                sale.SumTotal.Should().BeApproximately(expectedSum, 0.01m, 
+                sale.SumTotal.Should().BeApproximately(expectedSum, 0.01m,
                     $"SumTotal ({sale.SumTotal}) should equal SumB2B ({sale.SumB2B}) + SumB2C ({sale.SumB2C}) for product {sale.ProductCode}");
-                
+
                 // Sums should be reasonable (not extremely high)
                 sale.SumTotal.Should().BeLessThan(10000000m, "SumTotal should be reasonable");
-                
+
                 // Product identifiers should be valid
                 sale.ProductCode.Should().NotBeNullOrWhiteSpace("ProductCode should not be empty");
                 sale.ProductName.Should().NotBeNullOrWhiteSpace("ProductName should not be empty");
@@ -150,7 +150,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             // All dates should be within the last week
@@ -158,17 +158,17 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
                 "All records should be after or on the start date");
             result.Should().OnlyContain(record => record.Date <= dateTo.Date,
                 "All records should be before or on the end date");
-            
+
             // Verify data consistency
             foreach (var record in result.Take(10))
             {
                 record.ProductCode.Should().NotBeNullOrWhiteSpace();
                 record.ProductName.Should().NotBeNullOrWhiteSpace();
-                
+
                 // If there are sales, amounts should be positive
                 if (record.AmountTotal > 0)
                 {
-                    record.SumTotal.Should().BeGreaterThan(0, 
+                    record.SumTotal.Should().BeGreaterThan(0,
                         $"If AmountTotal > 0, SumTotal should be positive for product {record.ProductCode}");
                 }
             }
@@ -203,38 +203,38 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             // Find records with B2B sales
             var b2bSales = result.Where(r => r.AmountB2B > 0).Take(10).ToList();
-            
+
             // Find records with B2C sales
             var b2cSales = result.Where(r => r.AmountB2C > 0).Take(10).ToList();
-            
+
             // Validate B2B sales
             foreach (var sale in b2bSales)
             {
                 sale.AmountB2B.Should().BeGreaterThan(0);
-                sale.SumB2B.Should().BeGreaterThan(0, 
+                sale.SumB2B.Should().BeGreaterThan(0,
                     $"B2B sum should be positive when B2B amount is positive for product {sale.ProductCode}");
-                
+
                 // Average price check
                 var avgPriceB2B = (double)sale.SumB2B / sale.AmountB2B;
-                avgPriceB2B.Should().BeGreaterThan(0).And.BeLessThan(1000000, 
+                avgPriceB2B.Should().BeGreaterThan(0).And.BeLessThan(1000000,
                     "Average B2B price should be reasonable");
             }
-            
+
             // Validate B2C sales
             foreach (var sale in b2cSales)
             {
                 sale.AmountB2C.Should().BeGreaterThan(0);
-                sale.SumB2C.Should().BeGreaterThan(0, 
+                sale.SumB2C.Should().BeGreaterThan(0,
                     $"B2C sum should be positive when B2C amount is positive for product {sale.ProductCode}");
-                
+
                 // Average price check
                 var avgPriceB2C = (double)sale.SumB2C / sale.AmountB2C;
-                avgPriceB2C.Should().BeGreaterThan(0).And.BeLessThan(1000000, 
+                avgPriceB2C.Should().BeGreaterThan(0).And.BeLessThan(1000000,
                     "Average B2C price should be reasonable");
             }
         }
@@ -252,7 +252,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             // Check for chronological consistency if multiple records
@@ -265,7 +265,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
                         "Records should be in valid chronological order");
                 }
             }
-            
+
             // Verify date format consistency
             foreach (var record in result)
             {
@@ -286,7 +286,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
         // Act & Assert
         var act = async () => await _client.GetAsync(dateFrom, dateTo, 10, cts.Token);
-        
+
         // This might or might not throw depending on timing, but should not hang
         await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(10));
     }
@@ -295,73 +295,73 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
     public async Task Integration_SalesWorkflow_ValidatesCompleteDataFlow()
     {
         // This test validates the complete workflow and data consistency
-        
+
         // Step 1: Get sales for recent period
         var dateFrom = DateTime.Now.AddDays(-30);
         var dateTo = DateTime.Now;
         var allSales = await _client.GetAsync(dateFrom, dateTo, 0); // No limit
-        
+
         allSales.Should().NotBeNull();
-        
+
         if (allSales.Any())
         {
             // Step 2: Verify overall data structure
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductCode));
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductName));
             allSales.Should().OnlyContain(s => s.Date >= dateFrom.Date && s.Date <= dateTo.Date);
-            
+
             // Step 3: Group by product and verify consistency
             var salesByProduct = allSales.GroupBy(s => s.ProductCode).ToList();
-            
+
             foreach (var productGroup in salesByProduct.Take(5))
             {
                 var productCode = productGroup.Key;
                 var productSales = productGroup.ToList();
-                
+
                 // All sales for same product should have same product name
                 var productNames = productSales.Select(s => s.ProductName).Distinct().ToList();
-                productNames.Count.Should().Be(1, 
+                productNames.Count.Should().Be(1,
                     $"Product {productCode} should have consistent product name across all records");
-                
+
                 // Calculate totals
                 var totalAmount = productSales.Sum(s => s.AmountTotal);
                 var totalSum = productSales.Sum(s => s.SumTotal);
-                
+
                 // Totals should be reasonable
                 totalAmount.Should().BeGreaterOrEqualTo(0);
                 totalSum.Should().BeGreaterOrEqualTo(0);
-                
+
                 // If there's amount, there should be sum
                 if (totalAmount > 0)
                 {
-                    totalSum.Should().BeGreaterThan(0, 
+                    totalSum.Should().BeGreaterThan(0,
                         $"Product {productCode} has {totalAmount} units sold, so should have positive sum");
                 }
             }
-            
+
             // Step 4: Verify B2B/B2C split logic
             foreach (var sale in allSales.Take(20))
             {
                 // Total equals sum of parts
                 var expectedAmount = sale.AmountB2B + sale.AmountB2C;
                 sale.AmountTotal.Should().BeApproximately(expectedAmount, 0.001);
-                
+
                 var expectedSum = sale.SumB2B + sale.SumB2C;
                 sale.SumTotal.Should().BeApproximately(expectedSum, 0.01m);
-                
+
                 // Validate price consistency
                 if (sale.AmountTotal > 0 && sale.SumTotal > 0)
                 {
                     var avgPrice = (double)sale.SumTotal / sale.AmountTotal;
-                    avgPrice.Should().BeGreaterThan(0).And.BeLessThan(1000000, 
+                    avgPrice.Should().BeGreaterThan(0).And.BeLessThan(1000000,
                         $"Average price for {sale.ProductCode} should be reasonable");
                 }
             }
-            
+
             // Step 5: Test date filtering with smaller range
             var recentFrom = DateTime.Now.AddDays(-7);
             var recentSales = await _client.GetAsync(recentFrom, dateTo, 10);
-            
+
             recentSales.Should().NotBeNull();
             if (recentSales.Any())
             {

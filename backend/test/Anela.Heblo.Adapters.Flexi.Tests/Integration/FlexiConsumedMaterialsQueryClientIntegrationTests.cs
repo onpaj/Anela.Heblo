@@ -10,7 +10,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
 {
     private readonly FlexiIntegrationTestFixture _fixture;
     private readonly IConsumedMaterialsClient _client;
-    
+
     private static DateTime ReferenceTime = DateTime.Parse("2025-07-01");
 
     public FlexiConsumedMaterialsQueryClientIntegrationTests(FlexiIntegrationTestFixture fixture)
@@ -33,14 +33,14 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
         // Assert
         result.Should().NotBeNull();
         result.Should().BeAssignableTo<IReadOnlyList<ConsumedMaterialRecord>>();
-        
+
         if (result.Any())
         {
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
             result.Should().OnlyContain(record => record.Amount > 0);
             result.Should().OnlyContain(record => record.Date >= dateFrom && record.Date <= dateTo);
-            
+
             // Test limit parameter
             result.Count.Should().BeLessOrEqualTo(limit);
         }
@@ -60,7 +60,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
         // Assert
         result.Should().NotBeNull();
         result.Should().BeAssignableTo<IReadOnlyList<ConsumedMaterialRecord>>();
-        
+
         if (result.Any())
         {
             result.Should().OnlyContain(record => record.Date >= dateFrom && record.Date <= dateTo);
@@ -115,7 +115,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
         // Assert
         result.Should().NotBeNull();
         result.Should().BeAssignableTo<IReadOnlyList<ConsumedMaterialRecord>>();
-        
+
         if (result.Any())
         {
             // Verify data structure
@@ -127,7 +127,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
                 record.Date.Should().BeAfter(dateFrom.AddDays(-1)); // Allow small tolerance
                 record.Date.Should().BeBefore(dateTo.AddDays(1)); // Allow small tolerance
             }
-            
+
             // Check that results are within limit
             result.Count.Should().BeLessOrEqualTo(limit);
         }
@@ -172,33 +172,33 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
     public async Task Integration_ConsumedMaterialsWorkflow_ValidatesDataConsistency()
     {
         // This test validates the complete workflow and data consistency
-        
+
         // Step 1: Get consumed materials for last month
         var dateFrom = ReferenceTime.AddDays(-30);
         var dateTo = ReferenceTime;
-        
+
         var allRecords = await _client.GetConsumedAsync(dateFrom, dateTo, 0); // No limit
         var limitedRecords = await _client.GetConsumedAsync(dateFrom, dateTo, 5); // With limit
 
         // Step 2: Validate consistency
         allRecords.Should().NotBeNull();
         limitedRecords.Should().NotBeNull();
-        
+
         if (allRecords.Any())
         {
             // Limited results should be a subset of all results
             limitedRecords.Count.Should().BeLessOrEqualTo(Math.Min(5, allRecords.Count));
-            
+
             // All limited records should exist in the full set
             foreach (var limitedRecord in limitedRecords)
             {
-                allRecords.Should().Contain(r => 
-                    r.ProductCode == limitedRecord.ProductCode && 
+                allRecords.Should().Contain(r =>
+                    r.ProductCode == limitedRecord.ProductCode &&
                     r.Date == limitedRecord.Date &&
                     Math.Abs(r.Amount - limitedRecord.Amount) < 0.001);
             }
         }
-        
+
         // Step 3: Validate data types and ranges
         foreach (var record in allRecords.Take(10)) // Test first 10 records
         {

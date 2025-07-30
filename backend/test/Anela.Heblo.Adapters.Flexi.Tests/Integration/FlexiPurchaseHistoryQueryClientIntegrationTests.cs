@@ -31,7 +31,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
         // Assert
         result.Should().NotBeNull();
         result.Should().BeAssignableTo<IReadOnlyList<CatalogPurchaseRecord>>();
-        
+
         if (result.Any())
         {
             // Verify basic structure
@@ -41,17 +41,17 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
             result.Should().OnlyContain(record => record.PricePerPiece >= 0, "PricePerPiece should be non-negative");
             // Note: Some records might be slightly outside the exact range due to cache or system behavior
             // so we'll be more lenient with date validation
-            result.Should().OnlyContain(record => record.Date >= dateFrom.AddDays(-30) && record.Date <= dateTo.AddDays(1), 
+            result.Should().OnlyContain(record => record.Date >= dateFrom.AddDays(-30) && record.Date <= dateTo.AddDays(1),
                 "Date should be approximately within range");
-            
+
             // Test limit parameter
             result.Count.Should().BeLessOrEqualTo(limit);
-            
+
             // Verify calculated total price
             foreach (var record in result.Take(10))
             {
                 var expectedTotal = record.PricePerPiece * (decimal)record.Amount;
-                record.PriceTotal.Should().BeApproximately(expectedTotal, 0.01m, 
+                record.PriceTotal.Should().BeApproximately(expectedTotal, 0.01m,
                     $"PriceTotal should equal PricePerPiece * Amount for product {record.ProductCode}");
             }
         }
@@ -71,18 +71,18 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             // All records should be for the specified product
             result.Should().OnlyContain(record => record.ProductCode == specificProductCode);
-            
+
             // Verify other properties
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.SupplierName));
             result.Should().OnlyContain(record => record.Amount > 0);
             result.Should().OnlyContain(record => record.PricePerPiece >= 0);
             result.Should().OnlyContain(record => record.Date >= dateFrom && record.Date <= dateTo);
-            
+
             result.Count.Should().BeLessOrEqualTo(limit);
         }
     }
@@ -97,25 +97,25 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
 
         // Act - First call (should fetch from API and cache)
         var result1 = await _client.GetHistoryAsync(null, dateFrom, dateTo, limit);
-        
+
         // Act - Second call with same parameters (should use cache)
         var result2 = await _client.GetHistoryAsync(null, dateFrom, dateTo, limit);
 
         // Assert
         result1.Should().NotBeNull();
         result2.Should().NotBeNull();
-        
+
         if (result1.Any() && result2.Any())
         {
             // Results should be identical (from cache)
             result1.Count.Should().Be(result2.Count());
-            
+
             // Compare first few records
             for (int i = 0; i < Math.Min(3, Math.Min(result1.Count, result2.Count)); i++)
             {
                 var record1 = result1.ElementAt(i);
                 var record2 = result2.ElementAt(i);
-                
+
                 record1.ProductCode.Should().Be(record2.ProductCode);
                 record1.SupplierName.Should().Be(record2.SupplierName);
                 record1.PricePerPiece.Should().Be(record2.PricePerPiece);
@@ -156,7 +156,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             foreach (var record in result.Take(10))
@@ -164,13 +164,13 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
                 // Supplier information should be valid
                 record.SupplierName.Should().NotBeNullOrWhiteSpace("SupplierName should not be empty");
                 record.SupplierName.Should().Be(record.SupplierName.Trim(), "SupplierName should be trimmed");
-                
+
                 // SupplierId should be valid if present
                 if (record.SupplierId.HasValue)
                 {
                     record.SupplierId.Value.Should().BeGreaterThan(0, "SupplierId should be positive if present");
                 }
-                
+
                 // DocumentNumber should be present
                 record.DocumentNumber.Should().NotBeNullOrWhiteSpace("DocumentNumber should not be empty");
             }
@@ -190,7 +190,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             foreach (var record in result.Take(15))
@@ -198,12 +198,12 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
                 // Basic validations
                 record.Amount.Should().BeGreaterThan(0, $"Amount should be positive for product {record.ProductCode}");
                 record.PricePerPiece.Should().BeGreaterOrEqualTo(0, $"PricePerPiece should be non-negative for product {record.ProductCode}");
-                
+
                 // Price calculation should be accurate
                 var expectedTotal = record.PricePerPiece * (decimal)record.Amount;
                 record.PriceTotal.Should().BeApproximately(expectedTotal, 0.001m,
                     $"PriceTotal ({record.PriceTotal}) should equal PricePerPiece ({record.PricePerPiece}) * Amount ({record.Amount}) for product {record.ProductCode}");
-                
+
                 // Prices should be reasonable (not extremely high)
                 record.PricePerPiece.Should().BeLessThan(1000000m, "PricePerPiece should be reasonable");
                 record.PriceTotal.Should().BeLessThan(10000000m, "PriceTotal should be reasonable");
@@ -254,7 +254,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
 
         // Assert
         result.Should().NotBeNull();
-        
+
         if (result.Any())
         {
             // All dates should be within the specified range
@@ -262,7 +262,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
                 "All records should be after or on the start date");
             result.Should().OnlyContain(record => record.Date <= dateTo.Date,
                 "All records should be before or on the end date");
-            
+
             // Check for chronological consistency if multiple records
             if (result.Count > 1)
             {
@@ -280,53 +280,53 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task Integration_PurchaseHistoryWorkflow_ValidatesCompleteDataFlow()
     {
         // This test validates the complete workflow and data consistency
-        
+
         // Step 1: Get all purchase history for recent period
         var dateFrom = DateTime.Now.AddDays(-60);
         var dateTo = DateTime.Now;
         var allRecords = await _client.GetHistoryAsync(null, dateFrom, dateTo, 0); // No limit
-        
+
         allRecords.Should().NotBeNull();
-        
+
         if (allRecords.Any())
         {
             // Step 2: Get purchase history for a specific product that appears in the data
             var sampleProduct = allRecords.First().ProductCode;
             var productRecords = await _client.GetHistoryAsync(sampleProduct, dateFrom, dateTo, 0);
-            
+
             productRecords.Should().NotBeNull();
             productRecords.Should().OnlyContain(record => record.ProductCode == sampleProduct);
-            
+
             // Step 3: Verify filtering works correctly
             var productRecordsFromAll = allRecords.Where(r => r.ProductCode == sampleProduct).ToList();
             productRecords.Count.Should().Be(productRecordsFromAll.Count,
                 "Filtered results should match records from unfiltered query");
-                
+
             // Step 4: Test caching with limited results
             var cachedRecords = await _client.GetHistoryAsync(null, dateFrom, dateTo, 10);
             cachedRecords.Should().NotBeNull();
             cachedRecords.Count.Should().BeLessOrEqualTo(10);
-            
+
             // Step 5: Validate business logic across all records
             foreach (var record in allRecords.Take(20))
             {
                 // Product code format validation
                 record.ProductCode.Should().NotBeNullOrWhiteSpace();
                 record.ProductCode.Should().Be(record.ProductCode.Trim());
-                
+
                 // Supplier validation
                 record.SupplierName.Should().NotBeNullOrWhiteSpace();
-                
+
                 // Financial data consistency
                 if (record.PricePerPiece > 0 && record.Amount > 0)
                 {
                     record.PriceTotal.Should().BeGreaterThan(0, "PriceTotal should be positive when both price and amount are positive");
                 }
-                
+
                 // Document number should be present
                 record.DocumentNumber.Should().NotBeNullOrWhiteSpace();
             }
-            
+
             // Step 6: Verify unique suppliers exist
             var suppliers = allRecords.Select(r => r.SupplierName).Distinct().ToList();
             suppliers.Should().NotBeEmpty("Should have at least one supplier");

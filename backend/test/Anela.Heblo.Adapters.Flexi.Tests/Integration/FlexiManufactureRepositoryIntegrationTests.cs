@@ -64,7 +64,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         // Assert
         result.Should().NotBeNull();
         result.Should().BeOfType<List<Anela.Heblo.Application.Domain.Manufacture.ManufactureTemplate>>();
-        
+
         if (result.Any())
         {
             result.Should().OnlyContain(template => template.ProductCode != ingredientCode);
@@ -98,7 +98,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
 
         // Step 1: Get a manufacture template for a known product
         var template = await _repository.GetManufactureTemplateAsync(productCode);
-        
+
         template.Should().NotBeNull();
         template.Ingredients.Should().NotBeEmpty();
 
@@ -106,10 +106,10 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         foreach (var ingredient in template.Ingredients.Take(3)) // Test first 3 ingredients
         {
             var usageTemplates = await _repository.FindByIngredientAsync(ingredient.ProductCode, CancellationToken.None);
-            
+
             // The ingredient might be used in other products
             usageTemplates.Should().NotBeNull();
-            
+
             // Verify the original product is not in the results
             usageTemplates.Should().Contain(t => t.ProductCode == template.ProductCode);
         }

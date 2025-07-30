@@ -22,7 +22,7 @@ public class Program
         builder.Services.AddApplicationInsightsServices(builder.Configuration, builder.Environment);
         builder.Services.AddCorsServices(builder.Configuration);
         builder.Services.AddHealthCheckServices(builder.Configuration);
-        
+
         // Add new architecture services
         builder.Services.AddPersistenceServices(builder.Configuration);
         builder.Services.AddApplicationServices(); // Vertical slice modules from Application layer

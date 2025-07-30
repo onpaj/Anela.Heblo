@@ -30,6 +30,9 @@ public static class FlexiAdapterServiceCollectionExtensions
         // Configure AutoMapper
         services.AddAutoMapper(typeof(FlexiAdapterServiceCollectionExtensions));
 
+        // Add memory cache for FlexiProductPriceErpClient
+        services.AddMemoryCache();
+        
         services.AddHttpClient();
         
         // Add TimeProvider for FlexiStockClient

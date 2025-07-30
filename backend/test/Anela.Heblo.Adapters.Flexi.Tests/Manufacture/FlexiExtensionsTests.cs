@@ -21,7 +21,7 @@ public class FlexiExtensionsTests
     {
         // Act
         var result = input.RemoveCodePrefix();
-        
+
         // Assert
         result.Should().Be(expected);
     }
