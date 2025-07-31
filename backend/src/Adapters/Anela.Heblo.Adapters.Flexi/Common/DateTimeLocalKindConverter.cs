@@ -3,12 +3,15 @@ using AutoMapper;
 namespace Anela.Heblo.Adapters.Flexi.Common;
 
 /// <summary>
-/// AutoMapper type converter that ensures all DateTime values are treated as Local kind
+/// AutoMapper type converter that preserves DateTime values without timezone conversion.
+/// FlexiBee returns dates in Prague timezone, so we keep them as Unspecified to avoid 
+/// timezone conversion issues between local development and UTC build servers.
 /// </summary>
 public class DateTimeLocalKindConverter : ITypeConverter<DateTime, DateTime>
 {
     public DateTime Convert(DateTime source, DateTime destination, ResolutionContext context)
     {
-        return DateTime.SpecifyKind(source, DateTimeKind.Local);
+        // Keep as Unspecified to avoid timezone conversion - FlexiBee data is already in Prague time
+        return DateTime.SpecifyKind(source, DateTimeKind.Unspecified);
     }
 }

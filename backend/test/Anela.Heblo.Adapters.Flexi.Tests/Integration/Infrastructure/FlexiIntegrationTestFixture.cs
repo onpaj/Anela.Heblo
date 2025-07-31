@@ -10,9 +10,9 @@ public class FlexiIntegrationTestFixture : IDisposable
     public IConfiguration Configuration { get; }
     
     /// <summary>
-    /// Fixed reference date for deterministic testing (2025-06-01) in Prague timezone
+    /// Fixed reference date for deterministic testing (2025-06-01) as Unspecified to avoid timezone conversion
     /// </summary>
-    public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Local);
+    public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Unspecified);
     
     /// <summary>
     /// Prague timezone for consistent test behavior

@@ -10,7 +10,7 @@ public class ConsumedMaterialsFlexiDtoProfile : BaseFlexiProfile
     {
         CreateMap<ConsumedMaterialsFlexiDto, ConsumedMaterialRecord>()
             .ForMember(dest => dest.Date, opt => opt.MapFrom(src => 
-                DateTime.SpecifyKind(DateTime.Parse(src.Date, CultureInfo.InvariantCulture), DateTimeKind.Local)));
+                DateTime.SpecifyKind(DateTime.Parse(src.Date, CultureInfo.InvariantCulture), DateTimeKind.Unspecified)));
         // Other properties map directly, DateTime conversion handled by BaseFlexiProfile
     }
 }
