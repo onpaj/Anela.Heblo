@@ -21,8 +21,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithValidDateRange_ReturnsPurchaseHistory()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-90); // Last 90 days
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-90); // Last 90 days
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var limit = 20;
 
         // Act
@@ -61,8 +61,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithSpecificProduct_FiltersCorrectly()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-180); // Last 180 days for more data
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-180); // Last 180 days for more data
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var specificProductCode = "HYD007"; // Use a known product code
         var limit = 10;
 
@@ -91,8 +91,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithCaching_UsesCacheOnSecondCall()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-30);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-30);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var limit = 5;
 
         // Act - First call (should fetch from API and cache)
@@ -132,8 +132,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithDifferentLimits_RespectsLimitParameter(int limit)
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-365); // Last year for more data
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-365); // Last year for more data
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
 
         // Act
         var result = await _client.GetHistoryAsync(null, dateFrom, dateTo, limit);
@@ -147,8 +147,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_ValidatesSupplierInformation()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-60);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-60);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var limit = 20;
 
         // Act
@@ -181,8 +181,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_ValidatesPriceAndAmountCalculations()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-120);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-120);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var limit = 25;
 
         // Act
@@ -215,8 +215,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithNonExistentProduct_ReturnsEmptyResults()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-30);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-30);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var nonExistentProductCode = "NON_EXISTENT_PRODUCT_12345";
 
         // Act
@@ -231,8 +231,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_WithFutureDateRange_ReturnsEmptyResults()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(1); // Tomorrow
-        var dateTo = DateTime.Now.AddDays(30); // Next month
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddYears(10).AddDays(1); // Tomorrow
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate.AddYears(10).AddDays(30); // Next month
 
         // Act
         var result = await _client.GetHistoryAsync(null, dateFrom, dateTo);
@@ -246,8 +246,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     public async Task GetHistoryAsync_ValidatesDateConsistency()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(-7);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-7);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
 
         // Act
         var result = await _client.GetHistoryAsync(null, dateFrom, dateTo, 10);
@@ -282,8 +282,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
         // This test validates the complete workflow and data consistency
 
         // Step 1: Get all purchase history for recent period
-        var dateFrom = DateTime.Now.AddDays(-60);
-        var dateTo = DateTime.Now;
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-60);
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var allRecords = await _client.GetHistoryAsync(null, dateFrom, dateTo, 0); // No limit
 
         allRecords.Should().NotBeNull();

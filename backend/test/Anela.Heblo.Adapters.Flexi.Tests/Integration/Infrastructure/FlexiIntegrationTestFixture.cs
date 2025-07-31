@@ -8,6 +8,11 @@ public class FlexiIntegrationTestFixture : IDisposable
 {
     public IServiceProvider ServiceProvider { get; }
     public IConfiguration Configuration { get; }
+    
+    /// <summary>
+    /// Fixed reference date for deterministic testing (2025-06-01)
+    /// </summary>
+    public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1);
 
     public FlexiIntegrationTestFixture()
     {

@@ -137,8 +137,8 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
     public async Task GetConsumedAsync_WithFutureDateRange_ReturnsEmptyResults()
     {
         // Arrange
-        var dateFrom = DateTime.Now.AddDays(1); // Tomorrow
-        var dateTo = DateTime.Now.AddDays(7); // Next week
+        var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddYears(10).AddDays(1); // Tomorrow
+        var dateTo = FlexiIntegrationTestFixture.ReferenceDate.AddYears(10).AddDays(7); // Next week
 
         // Act
         var result = await _client.GetConsumedAsync(dateFrom, dateTo);
