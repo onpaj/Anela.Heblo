@@ -287,15 +287,17 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
     public async Task GetAsync_CancellationToken_CanBeCancelled()
     {
         // Arrange
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(10));
         var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-30);
         var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
 
         // Act & Assert
         var act = async () => await _client.GetAsync(dateFrom, dateTo, 10, cts.Token);
 
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        
         // This might or might not throw depending on timing, but should not hang
-        await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(10));
+        //await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(10));
     }
 
     // TODO - Fix timezone issues in these tests
