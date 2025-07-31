@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard,
   FileText,
@@ -68,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: Factory,
       type: 'section' as const,
       items: [
+        { id: 'catalog', name: 'Katalog produktů', href: '/catalog' },
         { id: 'zasoby-vyrobku', name: 'Zásoby výrobků', href: '/vyroba/zasoby' },
         { id: 'trojclenka', name: 'Trojčlenka', href: '/vyroba/trojclenka' },
         { id: 'inventura', name: 'Inventura', href: '/vyroba/inventura' },
@@ -135,8 +137,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                   return (
                     <div key={section.id}>
                       {!isCollapsed ? (
-                        <a
-                          href={section.href}
+                        <Link
+                          to={section.href!}
                           onClick={() => setActiveItem(section.id)}
                           className={`
                             flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
@@ -148,10 +150,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                         >
                           <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
                           {section.name}
-                        </a>
+                        </Link>
                       ) : (
-                        <a
-                          href={section.href}
+                        <Link
+                          to={section.href!}
                           onClick={(e) => {
                             setActiveItem(section.id);
                             // Auto-expand sidebar when clicking collapsed menu item
@@ -167,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                           title={section.name}
                         >
                           <IconComponent className={`h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-neutral-gray'}`} />
-                        </a>
+                        </Link>
                       )}
                     </div>
                   );
@@ -206,9 +208,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                             {section.items.map((subItem) => {
                               const isSubActive = activeItem === subItem.id;
                               return (
-                                <a
+                                <Link
                                   key={subItem.id}
-                                  href={subItem.href}
+                                  to={subItem.href}
                                   onClick={() => setActiveItem(subItem.id)}
                                   className={`
                                     block px-3 py-2 text-sm rounded-md transition-colors duration-300
@@ -219,7 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                                   `}
                                 >
                                   {subItem.name}
-                                </a>
+                                </Link>
                               );
                             })}
                           </div>

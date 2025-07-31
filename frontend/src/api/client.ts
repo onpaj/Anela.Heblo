@@ -98,8 +98,9 @@ export const getApiConfig = () => {
 // Query keys for TanStack Query
 export const QUERY_KEYS = {
   weather: ['weather'] as const,
+  catalog: ['catalog'] as const,
   // Add more query keys as needed
-  // users: ['users'] as const,
+  // users: ['users'] as const,  
   // products: ['products'] as const,
 } as const;
 

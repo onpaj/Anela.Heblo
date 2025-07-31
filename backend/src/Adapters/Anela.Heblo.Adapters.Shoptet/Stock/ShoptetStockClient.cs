@@ -13,13 +13,13 @@ public class ShoptetStockClient : IEshopStockClient
     private readonly IOptions<ShoptetStockClientOptions> _options;
 
     public ShoptetStockClient(
-        HttpClient client, 
+        HttpClient client,
         IOptions<ShoptetStockClientOptions> options)
     {
         _client = client;
         _options = options;
     }
-    
+
     public async Task<List<EshopStock>> ListAsync(CancellationToken cancellationToken)
     {
         List<EshopStock> stockDataList = new List<EshopStock>();
@@ -36,7 +36,7 @@ public class ShoptetStockClient : IEshopStockClient
         // TODO Add Audit trace to log successful load
         return stockDataList;
     }
-    
+
     private class StockDataMap : ClassMap<EshopStock>
     {
         public StockDataMap()

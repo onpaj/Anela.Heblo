@@ -18,7 +18,7 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
     }
 
     // TODO Fix timezone issues
-    [Fact(Skip="Timezone issues")]
+    [Fact(Skip = "Timezone issues")]
     public async Task GetHistoryAsync_WithValidDateRange_ReturnsPurchaseHistory()
     {
         // Arrange
@@ -43,8 +43,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
             // Note: Some records might be slightly outside the exact range due to cache or system behavior
             // so we'll be more lenient with date validation
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
-                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+            result.Should().OnlyContain(record =>
+                record.Date.ToLocalTime().Date >= dateFrom.Date &&
                 record.Date.ToLocalTime().Date <= dateTo.Date,
                 "Date should be within specified range when converted to local timezone");
 
@@ -86,8 +86,8 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
             result.Should().OnlyContain(record => record.Amount > 0);
             result.Should().OnlyContain(record => record.PricePerPiece >= 0);
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
-                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+            result.Should().OnlyContain(record =>
+                record.Date.ToLocalTime().Date >= dateFrom.Date &&
                 record.Date.ToLocalTime().Date <= dateTo.Date);
 
             result.Count.Should().BeLessOrEqualTo(limit);
@@ -266,10 +266,10 @@ public class FlexiPurchaseHistoryQueryClientIntegrationTests : IClassFixture<Fle
         {
             // All dates should be within the specified range
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
+            result.Should().OnlyContain(record =>
                 record.Date.ToLocalTime().Date >= dateFrom.Date,
                 "All records should be after or on the start date when converted to local timezone");
-            result.Should().OnlyContain(record => 
+            result.Should().OnlyContain(record =>
                 record.Date.ToLocalTime().Date <= dateTo.Date,
                 "All records should be before or on the end date when converted to local timezone");
 

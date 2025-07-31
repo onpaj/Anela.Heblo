@@ -15,14 +15,14 @@ public class UnspecifiedDateTimeConverter : IsoDateTimeConverter
         // IsoDateTimeConverter doesn't have DateTimeZoneHandling property
         // We handle timezone conversion in ReadJson method instead
     }
-    
+
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
             if (objectType == typeof(DateTime?))
                 return null;
-            
+
             throw new JsonSerializationException($"Cannot convert null value to {objectType}.");
         }
 
@@ -49,7 +49,7 @@ public class UnspecifiedDateTimeConverter : IsoDateTimeConverter
         // TimeZoneInfo.Local automatically uses the TZ environment variable set at startup
         var localDateTime = DateTime.SpecifyKind(parsedDateTime, DateTimeKind.Unspecified);
         var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(localDateTime, TimeZoneInfo.Local);
-        
+
         return utcDateTime;
     }
 }

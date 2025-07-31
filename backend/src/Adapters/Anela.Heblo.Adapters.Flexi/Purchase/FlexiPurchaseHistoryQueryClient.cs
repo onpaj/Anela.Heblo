@@ -15,12 +15,12 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
     private readonly IMapper _mapper;
 
     public FlexiPurchaseHistoryQueryClient(
-        FlexiBeeSettings connection, 
-        IHttpClientFactory httpClientFactory, 
-        IResultHandler resultHandler, 
-        ILogger<ReceivedInvoiceClient> logger, 
+        FlexiBeeSettings connection,
+        IHttpClientFactory httpClientFactory,
+        IResultHandler resultHandler,
+        ILogger<ReceivedInvoiceClient> logger,
         IMemoryCache cache,
-        IMapper mapper) 
+        IMapper mapper)
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
@@ -43,7 +43,7 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
         {
             query.Add("PRODUCT", productCode);
         }
-        
+
         return GetAsync(query, cancellationToken);
     }
 

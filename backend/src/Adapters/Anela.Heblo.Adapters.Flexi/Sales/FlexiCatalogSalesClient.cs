@@ -13,30 +13,30 @@ public class FlexiCatalogSalesClient : UserQueryClient<CatalogSalesFlexiDto>, IC
     private readonly IMapper _mapper;
     private const string DateFromParamName = "DATUM_OD";
     private const string DateToParamName = "DATUM_DO";
-    
+
     public FlexiCatalogSalesClient(
-        FlexiBeeSettings connection, 
-        IHttpClientFactory httpClientFactory, 
-        IResultHandler resultHandler, 
+        FlexiBeeSettings connection,
+        IHttpClientFactory httpClientFactory,
+        IResultHandler resultHandler,
         IMapper mapper,
         ILogger<ReceivedInvoiceClient> logger
-    ) 
+    )
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _mapper = mapper;
     }
 
     protected override int QueryId => 37;
-    
+
     public async Task<IList<CatalogSaleRecord>> GetAsync(DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
     {
         var pars = new Dictionary<string, string>();
         pars.Add(DateFromParamName, dateFrom.ToString("yyyy-MM-dd"));
         pars.Add(DateToParamName, dateTo.ToString("yyyy-MM-dd"));
         pars.Add(LimitParamName, limit.ToString());
-        
+
         var flexiSales = await GetAsync(pars, cancellationToken);
-        
+
         // TODO Add Audit trace to log successful load
 
         return _mapper.Map<IList<CatalogSalesFlexiDto>, IList<CatalogSaleRecord>>(flexiSales);

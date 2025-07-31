@@ -31,9 +31,9 @@ public class PrintPickingListScenario
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
-        
+
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-     
+
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
@@ -54,8 +54,8 @@ public class PrintPickingListScenario
 
         var exportList = new List<string>();
         var totalCount = 0;
-        
-        
+
+
         foreach (var shipping in shippings)
         {
             int found;
@@ -77,18 +77,18 @@ public class PrintPickingListScenario
                     {
                         // Select them again (so far no other way around)
                         found = await SelectTopX(page, shipping.Id, shipping.PageSize);
-                        
+
                         // Change states
                         result = await ChangeStateSelected(page, desiredStateId.Value);
                         _logger.LogDebug("Changing state to {DesiredState} for shipping={ShippingId}", desiredStateId, shipping.Id);
                     }
                     if (!result)
                         throw new Exception();
-                    
+
                     exportList.Add(GetAbsolutePath(filename));
                     totalCount += found;
                 }
-                
+
             } while (found >= maxPageSize);
         }
 
@@ -111,7 +111,7 @@ public class PrintPickingListScenario
                 await HandlePrintRequest(response, browser);
             }
         };
-        
+
         // Disable print dialog
         await page.RouteAsync("**/MassPrint/*", RewritePrintDialog);
 
@@ -149,7 +149,7 @@ public class PrintPickingListScenario
         await page.ClickAsync("text=Funkce");
         await page.ClickAsync(".massAction__submenuHeader:has-text('Stav')");
         await page.ClickAsync($"a[rel='massStatusChange|{desiredStateId}']");
-        
+
         await page.WaitForSelectorAsync(".systemMessage.systemMessage--success .systemMessage__text");
 
         return true;
@@ -166,7 +166,7 @@ public class PrintPickingListScenario
         });
 
         semaphore = new TaskCompletionSource<bool>();
-        
+
         await page.ClickAsync("text=Expedice");
         await page.WaitForResponseAsync(r => true, new PageWaitForResponseOptions() { Timeout = 30000 });
 
@@ -189,8 +189,8 @@ public class PrintPickingListScenario
 
         return false;
     }
-    
-    
+
+
     private async Task HandlePrintRequest(IResponse response, IBrowser browser)
     {
         _logger.LogDebug("Printing export page {Url}", response.Request.Url);
@@ -201,14 +201,14 @@ public class PrintPickingListScenario
         await newPage.SetContentAsync(body);
 
         var filenameHeader = response.Request.Headers.SingleOrDefault(s => s.Key == ExportFileNameHeaderName);
-        
+
         await newPage.PdfAsync(new PagePdfOptions() { Path = GetAbsolutePath(filenameHeader.Value) });
 
         await newPage.CloseAsync();
         _logger.LogDebug("Page {Url} extracted to {FileName}", response.Request.Url, filenameHeader.Value);
         semaphore.SetResult(true);
     }
-    
+
     private async Task RewritePrintDialog(IRoute route)
     {
         var response = await route.FetchAsync();

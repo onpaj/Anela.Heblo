@@ -4,5 +4,5 @@ namespace Anela.Heblo.Application.Domain.Catalog.Stock;
 
 public interface IStockTakingRepository : IRepository<StockTakingRecord, int>
 {
-    
+
 }

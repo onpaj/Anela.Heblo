@@ -18,7 +18,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         _httpClient = httpClient;
         _options = options;
     }
-    
+
     public async Task<IEnumerable<ProductPriceEshop>> GetAllAsync(CancellationToken cancellationToken)
     {
         List<ProductPriceEshop> priceList = new List<ProductPriceEshop>();
@@ -37,7 +37,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
             f.OriginalPrice = f.Price;
             f.OriginalPurchasePrice = f.PurchasePrice;
         });
-        
+
         return priceList;
     }
 
@@ -61,12 +61,12 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         var tempFile = Path.Combine(tempPath, "products.csv");
         using (var stream = File.Create(tempFile))
         using (var writer = new StreamWriter(stream, Encoding.UTF8))
-        using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";"}))
+        using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
         {
             csv.Context.RegisterClassMap<ProductPriceExportMap>();
             csv.WriteHeader<ProductPriceEshop>();
             csv.NextRecord();
-            
+
             foreach (var product in destinationData)
             {
                 csv.WriteRecord(product);
@@ -76,7 +76,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
 
         return tempFile;
     }
-    
+
     private class ProductPriceImportMap : ClassMap<ProductPriceEshop>
     {
         public ProductPriceImportMap()
@@ -88,7 +88,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
             Map(m => m.PurchasePrice).Convert(a => decimal.TryParse(a.Row.GetField(4).Replace(",", "."), out var result) ? result : null);
         }
     }
-    
+
     private class ProductPriceExportMap : ClassMap<ProductPriceEshop>
     {
         public ProductPriceExportMap()

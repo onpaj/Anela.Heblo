@@ -10,6 +10,6 @@ public enum TransportBoxState
     Stocked,
     Closed,
     Error,
-    
+
     Reserve
 }

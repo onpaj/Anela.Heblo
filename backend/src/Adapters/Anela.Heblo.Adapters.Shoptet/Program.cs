@@ -21,7 +21,7 @@ var options = conf.GetSection("Shoptet.Playwright").Get<PlaywrightSourceOptions>
 //var source = new IssuedInvoiceExportScenario(options, NullLogger<ShoptetPlaywrightSource>.Instance);
 //await source.RunAsync(new IssuedInvoiceSourceQuery() { InvoiceId = "123008354"});
 
-foreach(var f in Directory.EnumerateFiles(options.PdfTmpFolder))
+foreach (var f in Directory.EnumerateFiles(options.PdfTmpFolder))
     File.Delete(f);
 
 var source = new ShoptetPlaywrightExpeditionListSource(new PrintPickingListScenario(options, log, TimeProvider.System));

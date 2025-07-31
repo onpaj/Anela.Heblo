@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import Layout from './components/Layout/Layout';
 import WeatherTest from './components/pages/WeatherTest';
+import CatalogList from './components/pages/CatalogList';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
@@ -164,7 +165,10 @@ function App() {
         <Router>
           <AuthGuard>
             <Layout statusBar={<StatusBar />}>
-              <WeatherTest />
+              <Routes>
+                <Route path="/" element={<WeatherTest />} />
+                <Route path="/catalog" element={<CatalogList />} />
+              </Routes>
             </Layout>
           </AuthGuard>
         </Router>

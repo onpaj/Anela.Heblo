@@ -8,13 +8,13 @@ public class FlexiIntegrationTestFixture : IDisposable
 {
     public IServiceProvider ServiceProvider { get; }
     public IConfiguration Configuration { get; }
-    
+
     /// <summary>
     /// Fixed reference date for deterministic testing (2025-06-01) in UTC.
     /// This represents midnight UTC, which corresponds to 2:00 AM in Prague (UTC+2).
     /// </summary>
     public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-    
+
     /// <summary>
     /// Prague timezone for consistent test behavior
     /// </summary>
@@ -38,7 +38,7 @@ public class FlexiIntegrationTestFixture : IDisposable
 
         // Add logging
         services.AddLogging();
-        
+
         ServiceProvider = services.BuildServiceProvider();
     }
 

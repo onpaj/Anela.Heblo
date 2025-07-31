@@ -8,15 +8,15 @@ public static class ConfigurationConstants
     // Environment variable keys
     public const string APP_VERSION = "APP_VERSION";
     public const string ASPNETCORE_ENVIRONMENT = "ASPNETCORE_ENVIRONMENT";
-    
+
     // Configuration keys
     public const string USE_MOCK_AUTH = "UseMockAuth";
     public const string BYPASS_JWT_VALIDATION = "BypassJwtValidation";
-    
+
     // Default values
     public const string DEFAULT_VERSION = "1.0.0";
     public const string DEFAULT_ENVIRONMENT = "Production";
-    
+
     // Application Insights configuration keys
     public const string APPLICATION_INSIGHTS_CONNECTION_STRING = "ApplicationInsights:ConnectionString";
     public const string APPINSIGHTS_INSTRUMENTATION_KEY = "APPINSIGHTS_INSTRUMENTATIONKEY";

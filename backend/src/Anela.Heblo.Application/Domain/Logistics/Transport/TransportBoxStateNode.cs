@@ -11,9 +11,9 @@ public class TransportBoxStateNode
     {
         if (targetState == NextState?.NewState)
             return NextState;
-        if(targetState == PreviousState?.NewState)
+        if (targetState == PreviousState?.NewState)
             return PreviousState;
-        
+
         throw new ValidationException($"Unable to change state to {targetState}");
     }
 }

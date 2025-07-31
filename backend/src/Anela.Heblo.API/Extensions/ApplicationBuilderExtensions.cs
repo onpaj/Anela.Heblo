@@ -12,7 +12,47 @@ public static class ApplicationBuilderExtensions
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(options =>
+            {
+                // Only configure OAuth2 for Swagger UI if mock auth is disabled
+                var useMockAuth = app.Configuration.GetValue<bool>("UseMockAuth", false);
+                
+                if (!useMockAuth)
+                {
+                    // Configure OAuth2 for Swagger UI
+                    var azureAdConfig = app.Configuration.GetSection("AzureAd");
+                    var clientId = azureAdConfig["ClientId"];
+                    var scopes = azureAdConfig["Scopes"];
+
+                    if (!string.IsNullOrEmpty(clientId))
+                    {
+                        // OAuth2 configuration for Swagger UI
+                        options.OAuthClientId(clientId);
+                        options.OAuthUsePkce();
+                        options.OAuthScopeSeparator(" ");
+                        options.OAuthAppName("Anela Heblo API");
+                        
+                        // Additional OAuth2 settings for better UX
+                        options.OAuthUseBasicAuthenticationWithAccessCodeGrant();
+                        
+                        // Pre-fill scopes if available
+                        if (!string.IsNullOrEmpty(scopes))
+                        {
+                            var scopeArray = scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            options.OAuthScopes(scopeArray);
+                        }
+                        else
+                        {
+                            // Fallback to API scope
+                            options.OAuthScopes($"api://{clientId}/access_as_user");
+                        }
+                    }
+                }
+                
+                // Enable additional Swagger UI features (always)
+                options.EnableDeepLinking();
+                options.DisplayRequestDuration();
+            });
             app.UseOpenApi();
         }
 

@@ -19,11 +19,11 @@ public class CatalogAggregate : Entity<string>
 
     public ProductType Type { get; set; } = Catalog.ProductType.UNDEFINED;
 
-    public StockData Stock { get; set; } = new ();
+    public StockData Stock { get; set; } = new();
     public CatalogProperties Properties { get; set; } = new();
-    
-    public List<StockTakingRecord> StockTakingHistory { get; set; } = new ();
-    
+
+    public List<StockTakingRecord> StockTakingHistory { get; set; } = new();
+
     public string Location { get; set; } = string.Empty;
 
     public IList<CatalogSaleRecord> SalesHistory { get; set; } = new List<CatalogSaleRecord>();
@@ -35,8 +35,8 @@ public class CatalogAggregate : Entity<string>
     public string MinimalOrderQuantity { get; set; } = "";
     public double MinimalManufactureQuantity { get; set; } = 0;
 
-    
-    
+
+
     // Readonly PROPS
     public string? PrimarySupplier => Suppliers.FirstOrDefault(f => f.IsPrimary)?.Name;
     public bool IsSameFamily(CatalogAggregate product) => product.ProductFamily == this.ProductFamily;
@@ -44,8 +44,8 @@ public class CatalogAggregate : Entity<string>
     public string? ProductFamily => ProductCode?.Left(Math.Min(6, ProductCode.Length));
     public string? ProductType => ProductCode?.Left(Math.Min(3, ProductCode.Length));
     public string? SizeCode => ProductCode?.Substring(Math.Min(6, ProductCode.Length));
-    
-    
+
+
     public bool IsInSeason(DateTime referenceTime) => Properties.SeasonMonths.Length > 0 && !Properties.SeasonMonths.Contains(referenceTime.Month);
 
     public bool IsUnderStocked => Stock.Available < Properties.StockMinSetup && IsMinStockConfigured;
@@ -79,7 +79,7 @@ public class CatalogAggregate : Entity<string>
             DateTo = dateTo,
         };
     }
-    
+
     public double GetTotalSold(DateTime dateFrom, DateTime dateTo) => SalesHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
         .Sum(s => s.AmountB2B + s.AmountB2C);

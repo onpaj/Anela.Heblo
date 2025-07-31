@@ -10,11 +10,11 @@ namespace Anela.Heblo.Adapters.Shoptet
             CreateMap<Invoice, IssuedInvoiceDetail>()
                 .ForMember(m => m.BillingMethod, u => u.MapFrom((si, ai, sbm) =>
                 {
-                    if(si.InvoiceHeader?.PaymentType?.PaymentType == "creditcard")
+                    if (si.InvoiceHeader?.PaymentType?.PaymentType == "creditcard")
                         return BillingMethod.CreditCard;
-                    if(si.InvoiceHeader?.PaymentType?.PaymentType == "cash")
+                    if (si.InvoiceHeader?.PaymentType?.PaymentType == "cash")
                         return BillingMethod.Cash;
-                    
+
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Převodem"))
                         return BillingMethod.BankTransfer;
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Hotově"))
@@ -23,26 +23,26 @@ namespace Anela.Heblo.Adapters.Shoptet
                         return BillingMethod.Comgate;
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Dobírkou"))
                         return BillingMethod.CoD;
-                    
+
                     return BillingMethod.BankTransfer;
                 }))
                 .ForMember(m => m.ShippingMethod, u => u.MapFrom((si, ai, sbm) =>
                 {
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "PPL - ParcelShop"))
                         return ShippingMethod.PPLParcelShop;
-                    
+
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("PPL", StringComparison.InvariantCultureIgnoreCase)))
                         return ShippingMethod.PPL;
 
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("Osobn", StringComparison.InvariantCultureIgnoreCase)))
                         return ShippingMethod.PickUp;
-                    
+
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("GLS", StringComparison.InvariantCultureIgnoreCase)))
                         return ShippingMethod.GLS;
 
                     if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("zásilk", StringComparison.InvariantCultureIgnoreCase)))
                         return ShippingMethod.Zasilkovna;
-                    
+
                     return ShippingMethod.PickUp;
                 }))
                 .ForMember(m => m.Customer, u => u.MapFrom(f => f.InvoiceHeader.PartnerIdentity.Address))
@@ -83,12 +83,12 @@ namespace Anela.Heblo.Adapters.Shoptet
                             ExchangeRate = 1,
                         };
                     }
-                    
+
                     ii.Items.ForEach(f => f.ItemPrice.CurrencyCode = ii.Price.CurrencyCode);
                 })
                 ;
 
-           
+
             CreateMap<InvoiceItem, IssuedInvoiceDetailItem>()
                 .ForMember(m => m.Name, c => c.MapFrom(f => f.Text))
                 .ForMember(m => m.Amount, c => c.MapFrom(f => f.Quantity))
@@ -99,12 +99,12 @@ namespace Anela.Heblo.Adapters.Shoptet
                         invoiceItem.ItemPrice = ctx.Mapper.Map<ForeignCurrency, InvoicePrice>(item.ForeignCurrency);
                     else
                         invoiceItem.ItemPrice = ctx.Mapper.Map<HomeCurrency, InvoicePrice>(item.HomeCurrency);
-                    
-                    
+
+
                     invoiceItem.ItemPrice.VatRate = item.RateVAT;
                 }))
                 ;
-                
+
 
             CreateMap<HomeCurrency, InvoicePrice>()
                 .AfterMap((hc, p) =>
@@ -114,7 +114,7 @@ namespace Anela.Heblo.Adapters.Shoptet
                         p.Vat = hc.PriceVAT;
                     })
                 ;
-            
+
             CreateMap<ForeignCurrency, InvoicePrice>()
                 .AfterMap((hc, p) =>
                 {
@@ -123,14 +123,14 @@ namespace Anela.Heblo.Adapters.Shoptet
                     p.Vat = hc.PriceVAT;
                 })
                 ;
-                
+
             CreateMap<PartnerIdentity, InvoiceCustomer>()
                 .ForMember(m => m.Company, c => c.MapFrom(f => f.Address.Company))
                 .ForMember(m => m.Name, c => c.MapFrom(f => f.Address.Name))
                 .ForMember(m => m.VatId, c => c.MapFrom(f => f.Address.Dic))
                 .ForMember(m => m.CompanyId, c => c.MapFrom(f => f.Address.Ico))
                 ;
-            
+
             CreateMap<Address, InvoiceAddress>()
                 .ForMember(m => m.Company, c => c.MapFrom(f => f.Company))
                 .ForMember(m => m.FullName, c => c.MapFrom(f => f.Name))
@@ -139,7 +139,7 @@ namespace Anela.Heblo.Adapters.Shoptet
                 .ForMember(m => m.CountryCode, c => c.MapFrom(f => f.Country.Ids))
                 .ForMember(m => m.City, c => c.MapFrom(f => f.City))
                 ;
-            
+
             CreateMap<ShipToAddress, InvoiceAddress>()
                 .ForMember(m => m.Company, c => c.MapFrom(f => f.Company))
                 .ForMember(m => m.FullName, c => c.MapFrom(f => f.Name))
@@ -148,7 +148,7 @@ namespace Anela.Heblo.Adapters.Shoptet
                 .ForMember(m => m.CountryCode, c => c.MapFrom(f => f.Country.Ids))
                 .ForMember(m => m.City, c => c.MapFrom(f => f.City))
                 ;
-            
+
             CreateMap<Address, InvoiceCustomer>()
                 .ForMember(m => m.Company, c => c.MapFrom(f => f.Company))
                 .ForMember(m => m.DisplayName, c => c.MapFrom(f => f.Name))

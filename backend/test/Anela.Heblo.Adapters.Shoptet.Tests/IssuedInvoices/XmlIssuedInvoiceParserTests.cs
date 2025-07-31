@@ -78,7 +78,7 @@ public class XmlIssuedInvoiceParserTests
 </dat:dataPack>";
 
         var expectedInvoiceDetail = new IssuedInvoiceDetail { Code = "INV001" };
-        
+
         _mockMapper.Setup(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()))
                    .Returns(expectedInvoiceDetail);
 
@@ -89,7 +89,7 @@ public class XmlIssuedInvoiceParserTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result[0].Should().Be(expectedInvoiceDetail);
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Once);
     }
 
@@ -137,7 +137,7 @@ public class XmlIssuedInvoiceParserTests
 
         var invoice1 = new IssuedInvoiceDetail { Code = "INV001" };
         var invoice2 = new IssuedInvoiceDetail { Code = "INV002" };
-        
+
         _mockMapper.SetupSequence(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()))
                    .Returns(invoice1)
                    .Returns(invoice2);
@@ -150,7 +150,7 @@ public class XmlIssuedInvoiceParserTests
         result.Should().HaveCount(2);
         result[0].Should().Be(invoice1);
         result[1].Should().Be(invoice2);
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Exactly(2));
     }
 
@@ -197,7 +197,7 @@ public class XmlIssuedInvoiceParserTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result[0].Should().Be(validInvoice);
-        
+
         // Verify that error was logged for invalid invoice
         _mockLogger.Verify(
             x => x.Log(
@@ -207,7 +207,7 @@ public class XmlIssuedInvoiceParserTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Once);
     }
 
@@ -225,7 +225,7 @@ public class XmlIssuedInvoiceParserTests
         // Assert
         result.Should().NotBeNull();
         result.Should().BeEmpty();
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Never);
     }
 
@@ -243,17 +243,17 @@ public class XmlIssuedInvoiceParserTests
         // Act & Assert
         var act = async () => await _parser.ParseAsync(malformedXml);
         await act.Should().ThrowAsync<InvalidOperationException>();
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Never);
     }
 
-    [Fact] 
+    [Fact]
     public async Task ParseAsync_WithNullInput_ThrowsArgumentException()
     {
         // Act & Assert
         var act = async () => await _parser.ParseAsync(null!);
         await act.Should().ThrowAsync<ArgumentException>();
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Never);
     }
 
@@ -263,7 +263,7 @@ public class XmlIssuedInvoiceParserTests
         // Act & Assert
         var act = async () => await _parser.ParseAsync(string.Empty);
         await act.Should().ThrowAsync<InvalidOperationException>();
-        
+
         _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.IsAny<Invoice>()), Times.Never);
     }
 
@@ -375,9 +375,9 @@ public class XmlIssuedInvoiceParserTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result[0].Should().Be(expectedInvoice);
-        
+
         // Verify that mapper was called with properly parsed invoice structure
-        _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.Is<Invoice>(inv => 
+        _mockMapper.Verify(m => m.Map<IssuedInvoiceDetail>(It.Is<Invoice>(inv =>
             inv.InvoiceHeader != null &&
             inv.InvoiceHeader.Number != null &&
             inv.InvoiceHeader.Number.NumberRequested == "INV-2024-001" &&

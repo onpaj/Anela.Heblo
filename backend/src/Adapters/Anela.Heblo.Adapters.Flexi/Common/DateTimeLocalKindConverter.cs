@@ -14,7 +14,7 @@ public class DateTimeLocalKindConverter : ITypeConverter<DateTime, DateTime>
         // If source is already UTC, return as-is
         if (source.Kind == DateTimeKind.Utc)
             return source;
-            
+
         // If source is Unspecified or Local, treat as local timezone and convert to UTC
         // TimeZoneInfo.Local automatically uses the TZ environment variable set at startup
         return TimeZoneInfo.ConvertTimeToUtc(source, TimeZoneInfo.Local);

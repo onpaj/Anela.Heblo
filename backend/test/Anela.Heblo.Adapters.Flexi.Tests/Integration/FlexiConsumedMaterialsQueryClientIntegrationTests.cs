@@ -20,7 +20,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
     }
 
     // TODO Fix timezone issues
-    [Fact(Skip="Timezone issue")]
+    [Fact(Skip = "Timezone issue")]
     public async Task GetConsumedAsync_WithValidDateRange_ReturnsConsumedMaterials()
     {
         // Arrange
@@ -41,8 +41,8 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
             result.Should().OnlyContain(record => record.Amount > 0);
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
-                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+            result.Should().OnlyContain(record =>
+                record.Date.ToLocalTime().Date >= dateFrom.Date &&
                 record.Date.ToLocalTime().Date <= dateTo.Date);
 
             // Test limit parameter
@@ -51,7 +51,7 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
     }
 
     // TODO Fix timezone issues
-    [Fact(Skip="Timezone issue")]
+    [Fact(Skip = "Timezone issue")]
     public async Task GetConsumedAsync_WithLimitZero_ReturnsAllRecords()
     {
         // Arrange
@@ -69,8 +69,8 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
         if (result.Any())
         {
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
-                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+            result.Should().OnlyContain(record =>
+                record.Date.ToLocalTime().Date >= dateFrom.Date &&
                 record.Date.ToLocalTime().Date <= dateTo.Date);
         }
     }

@@ -4,17 +4,17 @@ public class SeasonalDataParser : ISeasonalDataParser
 {
     public int[] GetSeasonalMonths(string? s)
     {
-        if(string.IsNullOrEmpty(s))
+        if (string.IsNullOrEmpty(s))
             return Array.Empty<int>();
 
         var months = new List<int>();
 
         var sections = s.Split(',');
-        foreach(var section in sections)
+        foreach (var section in sections)
         {
             months.AddRange(ParseSection(section));
         }
-       
+
         return months.Distinct().OrderBy(o => o).ToArray();
     }
 
@@ -22,21 +22,21 @@ public class SeasonalDataParser : ISeasonalDataParser
     {
         if (int.TryParse(s, out var single))
         {
-            if(single is < 1 or > 12)
+            if (single is < 1 or > 12)
                 return Array.Empty<int>();
             return new[] { single };
         }
-        
+
         var range = s.Split('-');
-        if(range.Length != 2)
-            return Array.Empty<int>();
-        
-        if(!int.TryParse(range[0], out var first) || !int.TryParse(range[1], out var second))
+        if (range.Length != 2)
             return Array.Empty<int>();
 
-        if(first < 1 || first > 12 || second < 1 || second > 12)
+        if (!int.TryParse(range[0], out var first) || !int.TryParse(range[1], out var second))
             return Array.Empty<int>();
-            
+
+        if (first < 1 || first > 12 || second < 1 || second > 12)
+            return Array.Empty<int>();
+
         if (first > second)
         {
             var retVal = new List<int>();

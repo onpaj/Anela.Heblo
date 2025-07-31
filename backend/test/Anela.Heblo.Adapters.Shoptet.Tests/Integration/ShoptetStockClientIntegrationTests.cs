@@ -143,8 +143,8 @@ public class ShoptetStockClientIntegrationTests
 
         // Even if no products, the CSV structure should be parsed correctly
         // Each product should have valid decimal stock values (including 0)
-        result.Should().OnlyContain(stock => 
-            stock.Stock >= 0 && 
+        result.Should().OnlyContain(stock =>
+            stock.Stock >= 0 &&
             !string.IsNullOrEmpty(stock.Code)
         );
 
@@ -175,7 +175,7 @@ public class ShoptetStockClientIntegrationTests
         if (result.Any())
         {
             // Check that Czech characters are properly decoded (windows-1250 encoding)
-            var productsWithCzechChars = result.Where(p => 
+            var productsWithCzechChars = result.Where(p =>
                 p.Name.Contains('ř') || p.Name.Contains('š') || p.Name.Contains('č') ||
                 p.Name.Contains('ž') || p.Name.Contains('ý') || p.Name.Contains('á') ||
                 p.Name.Contains('í') || p.Name.Contains('é') || p.Name.Contains('ů')

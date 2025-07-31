@@ -30,9 +30,9 @@ public class CashRegisterStatisticsScenario
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
-        
+
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-     
+
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
@@ -58,7 +58,7 @@ public class CashRegisterStatisticsScenario
             var pageCounter = 0;
 
             await page.GotoAsync($"{_options.ShopEntryUrl}statistika-pokladny/?f[monthYear]={month}%2F{year}&f[cashDeskId]={register.Id}");
-            
+
             var html = await page.ContentAsync();
 
             var orders = ParseOrders(html);
@@ -90,7 +90,7 @@ public class CashRegisterStatisticsScenario
 
         var list = new List<CashRegisterStatisticsLine>();
 
-        foreach (var rows in table.SelectNodes("tbody/tr").Skip(1)) 
+        foreach (var rows in table.SelectNodes("tbody/tr").Skip(1))
         {
             var columns = rows.SelectNodes("td").Select(td => td.InnerText.Trim()).ToArray();
 

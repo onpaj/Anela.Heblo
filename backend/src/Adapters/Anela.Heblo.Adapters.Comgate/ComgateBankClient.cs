@@ -14,7 +14,7 @@ public class ComgateBankClient : IBankClient
         "https://payments.comgate.cz/v1.0/transferList?merchant={0}&secret={1}&date={2}";
     private static string GetStatementUrlTemplate =
         "https://payments.comgate.cz/v1.0/aboSingleTransfer?merchant={0}&secret={1}&transferId={2}&download=true&type=v2";
-    
+
     public ComgateBankClient(HttpClient httpClient, IOptions<ComgateSettings> options)
     {
         _httpClient = httpClient;
@@ -23,13 +23,13 @@ public class ComgateBankClient : IBankClient
     public async Task<BankStatementData> GetStatementAsync(string transferId)
     {
         var client = new HttpClient();
-        var url = string.Format(GetStatementUrlTemplate, _settings.MerchantId, _settings.Secret,transferId);
+        var url = string.Format(GetStatementUrlTemplate, _settings.MerchantId, _settings.Secret, transferId);
         var response = await client.GetStreamAsync(url);
 
         using var sr = new StreamReader(response);
         var data = await sr.ReadToEndAsync();
         var abo = AboFile.Parse(data);
-        
+
         return new BankStatementData()
         {
             StatementId = transferId,

@@ -21,7 +21,7 @@ public class StockUpScenario
     public async Task<StockUpRecord> RunAsync(StockUpRequest request)
     {
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-     
+
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
@@ -36,9 +36,9 @@ public class StockUpScenario
         await page.PressAsync("[placeholder='E-mail']", "Tab");
         await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
         await page.ClickAsync("role=button >> text=Přihlášení");
-        
+
         _logger.LogDebug("Login successful");
-        
+
         await page.GotoAsync($"{_options.ShopEntryUrl}/sklad");
         await page.WaitForLoadStateAsync();
         await page.ClickAsync("text=Naskladnění");

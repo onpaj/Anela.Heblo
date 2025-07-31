@@ -30,6 +30,9 @@
 
     <ItemGroup>
         <ProjectReference Include="../Anela.Heblo.Application/Anela.Heblo.Application.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Shoptet\Anela.Heblo.Adapters.Shoptet.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Persistence\Anela.Heblo.Persistence.csproj" />
     </ItemGroup>
 

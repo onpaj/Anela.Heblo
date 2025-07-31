@@ -14,11 +14,11 @@ namespace Anela.Heblo.Adapters.Shoptet;
 
 public static class ShoptetAdapterServiceCollectionExtensions
 {
-    public static IServiceCollection AddShopetAdapter(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddShoptetAdapter(this IServiceCollection services, IConfiguration configuration)
     {
         // Register code pages to support windows-1250 encoding used by Shoptet CSV exports
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        
+
         // Configure AutoMapper
         services.AddAutoMapper(typeof(ShoptetAdapterServiceCollectionExtensions));
 
@@ -30,7 +30,7 @@ public static class ShoptetAdapterServiceCollectionExtensions
 
         services.AddSingleton<IPickingListSource, ShoptetPlaywrightExpeditionListSource>();
         services.AddSingleton<PrintPickingListScenario>();
-        
+
         services.AddSingleton<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
         services.AddSingleton<StockUpScenario>();
         services.AddSingleton<StockTakingScenario>();
@@ -47,9 +47,9 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IEshopStockClient, ShoptetStockClient>();
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
-        
+
         services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
-                
+
         services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
 
         return services;

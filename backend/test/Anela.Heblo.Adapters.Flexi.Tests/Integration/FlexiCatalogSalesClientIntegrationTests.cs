@@ -38,8 +38,8 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
             // Convert UTC dates to local time for comparison
-            result.Should().OnlyContain(record => 
-                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+            result.Should().OnlyContain(record =>
+                record.Date.ToLocalTime().Date >= dateFrom.Date &&
                 record.Date.ToLocalTime().Date <= dateTo.Date,
                 "Date should be within specified range when converted to local timezone");
 
@@ -142,7 +142,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
 
 
     // TODO - Fix timezone issues in these tests
-    [Fact(Skip="Timezone issues")]
+    [Fact(Skip = "Timezone issues")]
     public async Task GetAsync_WithRecentDateRange_ReturnsRecentSales()
     {
         // Arrange
@@ -159,10 +159,10 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         {
             // All dates should be within the last week
             // Convert UTC dates to local time for comparison  
-            result.Should().OnlyContain(record => 
+            result.Should().OnlyContain(record =>
                 record.Date.ToLocalTime().Date >= dateFrom.Date,
                 "All records should be after or on the start date when converted to local timezone");
-            result.Should().OnlyContain(record => 
+            result.Should().OnlyContain(record =>
                 record.Date.ToLocalTime().Date <= dateTo.Date,
                 "All records should be before or on the end date when converted to local timezone");
 
@@ -295,13 +295,13 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         var act = async () => await _client.GetAsync(dateFrom, dateTo, 10, cts.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
-        
+
         // This might or might not throw depending on timing, but should not hang
         //await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(10));
     }
 
     // TODO - Fix timezone issues in these tests
-    [Fact(Skip="Timezone issues")]
+    [Fact(Skip = "Timezone issues")]
     public async Task Integration_SalesWorkflow_ValidatesCompleteDataFlow()
     {
         // This test validates the complete workflow and data consistency
@@ -320,8 +320,8 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductCode));
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductName));
             // Convert UTC dates to local time for comparison
-            allSales.Should().OnlyContain(s => 
-                s.Date.ToLocalTime().Date >= dateFrom.Date && 
+            allSales.Should().OnlyContain(s =>
+                s.Date.ToLocalTime().Date >= dateFrom.Date &&
                 s.Date.ToLocalTime().Date <= dateTo.Date,
                 "Dates should be within specified range when converted to local timezone");
 

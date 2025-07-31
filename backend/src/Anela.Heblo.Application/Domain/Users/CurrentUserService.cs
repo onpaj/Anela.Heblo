@@ -17,7 +17,7 @@ public class CurrentUserService : ICurrentUserService
         var user = _httpContextAccessor.HttpContext?.User;
         var isAuthenticated = user?.Identity?.IsAuthenticated ?? false;
 
-        var name = user?.Identity?.Name 
+        var name = user?.Identity?.Name
                    ?? user?.FindFirst(ClaimTypes.Name)?.Value
                    ?? user?.FindFirst("name")?.Value
                    ?? (isAuthenticated ? "Unknown User" : "Anonymous");

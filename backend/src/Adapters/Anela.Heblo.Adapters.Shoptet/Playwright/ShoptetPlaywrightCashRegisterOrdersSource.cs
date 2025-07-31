@@ -14,7 +14,7 @@ public class ShoptetPlaywrightCashRegisterOrdersSource : ICashRegisterOrdersSour
 
     public async Task<List<CashRegisterOrder>> GetAllAsync(CashRegistryRequest query)
     {
-        var registers = query.RegistersId.Select(s => new CashRegister() { Id = s}).ToList();
+        var registers = query.RegistersId.Select(s => new CashRegister() { Id = s }).ToList();
         var result = await _scenario.RunAsync(registers, query.Year, query.Month);
 
         return result.Orders;

@@ -1,4 +1,5 @@
-﻿using Anela.Heblo.Adapters.Flexi.Manufacture;
+﻿using Anela.Heblo.Adapters.Flexi.Lots;
+using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
 using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
@@ -25,22 +26,22 @@ public static class FlexiAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddFlexiAdapter(this IServiceCollection services, IConfiguration configuration)
     {
-        
+
         services.AddFlexiBee(configuration);
-        
+
         // Configure AutoMapper
         services.AddAutoMapper(typeof(FlexiAdapterServiceCollectionExtensions));
 
         // Add memory cache for FlexiProductPriceErpClient
         services.AddMemoryCache();
-        
+
         services.AddHttpClient();
-        
+
         // Add TimeProvider for FlexiStockClient
         services.AddSingleton(TimeProvider.System);
-        
+
         services.AddSingleton<IErpStockDomainService, FlexiStockTakingDomainService>();
-        
+
         services.AddSingleton<ICatalogAttributesClient, FlexiProductAttributesQueryClient>();
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();
@@ -49,10 +50,11 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
         services.AddSingleton<IManufactureRepository, FlexiManufactureRepository>();
         services.AddSingleton<ILotsClient, LotsClient>();
+        services.AddSingleton<Anela.Heblo.Application.Domain.Catalog.Lots.ILotsClient, FlexiLotsClient>();
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
         services.AddSingleton<IStockTakingClient, StockTakingClient>();
         services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
-        
+
         return services;
     }
 }

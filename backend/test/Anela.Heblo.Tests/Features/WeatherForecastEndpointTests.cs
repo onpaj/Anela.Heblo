@@ -74,7 +74,7 @@ public class WeatherForecastEndpointTests : IClassFixture<WebApplicationFactory<
                 Assert.NotNull(response);
                 Assert.NotEmpty(response);
                 _output.WriteLine($"✅ Weather API returned {response.Length} forecast items");
-                
+
                 foreach (var forecast in response.Take(2))
                 {
                     Assert.True(forecast.Date > DateTime.Now);

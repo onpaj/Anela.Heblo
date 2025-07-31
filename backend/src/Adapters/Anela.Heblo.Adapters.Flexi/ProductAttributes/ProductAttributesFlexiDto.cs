@@ -6,7 +6,7 @@ public class ProductAttributesFlexiDto
 {
     public const string ProductType_Product = "VYROBEK";
     public const string ProductType_Material = "MATERIÁL";
-    
+
     [JsonProperty("cenikid")]
     public int ProductId { get; set; }
 
@@ -21,10 +21,10 @@ public class ProductAttributesFlexiDto
 
     [JsonProperty("hodnota")]
     public string Value { get; set; }
-    
+
     [JsonProperty("SkupinaZboziId")]
     public int ProductTypeId { get; set; }
-    
+
     [JsonProperty("SkupinaZbozi")]
     public string ProductType { get; set; }
 }
