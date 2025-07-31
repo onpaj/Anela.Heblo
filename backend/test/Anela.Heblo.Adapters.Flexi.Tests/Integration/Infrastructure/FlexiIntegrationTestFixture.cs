@@ -10,12 +10,19 @@ public class FlexiIntegrationTestFixture : IDisposable
     public IConfiguration Configuration { get; }
     
     /// <summary>
-    /// Fixed reference date for deterministic testing (2025-06-01)
+    /// Fixed reference date for deterministic testing (2025-06-01) in Prague timezone
     /// </summary>
-    public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1);
+    public static DateTime ReferenceDate { get; } = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Local);
+    
+    /// <summary>
+    /// Prague timezone for consistent test behavior
+    /// </summary>
+    public static TimeZoneInfo TestTimeZone { get; } = TimeZoneInfo.FindSystemTimeZoneById("Central Europe Standard Time");
 
     public FlexiIntegrationTestFixture()
     {
+        // Set timezone to Prague/Central Europe for consistent test behavior across environments
+        Environment.SetEnvironmentVariable("TZ", "Europe/Prague");
         var configBuilder = new ConfigurationBuilder()
             .AddUserSecrets<FlexiIntegrationTestFixture>()
             .AddEnvironmentVariables();

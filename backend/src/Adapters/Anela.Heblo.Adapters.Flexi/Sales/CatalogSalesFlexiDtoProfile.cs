@@ -1,14 +1,13 @@
+using Anela.Heblo.Adapters.Flexi.Common;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
-using AutoMapper;
 
 namespace Anela.Heblo.Adapters.Flexi.Sales;
 
-public class CatalogSalesFlexiDtoProfile : Profile
+public class CatalogSalesFlexiDtoProfile : BaseFlexiProfile
 {
     public CatalogSalesFlexiDtoProfile()
     {
-        CreateMap<CatalogSalesFlexiDto, CatalogSaleRecord>()
-            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => 
-                DateTime.SpecifyKind(src.Date, DateTimeKind.Local)));
+        // DateTime conversion is handled by BaseFlexiProfile automatically
+        CreateMap<CatalogSalesFlexiDto, CatalogSaleRecord>();
     }
 }

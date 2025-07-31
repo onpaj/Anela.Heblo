@@ -47,6 +47,12 @@ RUN dotnet publish backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
+# Set timezone to Prague/Central Europe
+RUN apt-get update && apt-get install -y tzdata \
+    && ln -sf /usr/share/zoneinfo/Europe/Prague /etc/localtime \
+    && echo "Europe/Prague" > /etc/timezone \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy published backend
 COPY --from=backend-build /app/publish ./
 
@@ -56,6 +62,7 @@ COPY --from=frontend-build /app/frontend/build ./wwwroot
 # Configure ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV TZ=Europe/Prague
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos "" --uid 1001 appuser

@@ -1,5 +1,5 @@
-using System.Globalization;
 using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
@@ -10,9 +10,12 @@ namespace Anela.Heblo.Adapters.Flexi.Materials;
 
 public class FlexiConsumedMaterialsQueryClient : UserQueryClient<ConsumedMaterialsFlexiDto>, IConsumedMaterialsClient
 {
-    public FlexiConsumedMaterialsQueryClient(FlexiBeeSettings connection, IHttpClientFactory httpClientFactory, IResultHandler resultHandler, ILogger<ReceivedInvoiceClient> logger) 
+    private readonly IMapper _mapper;
+
+    public FlexiConsumedMaterialsQueryClient(FlexiBeeSettings connection, IHttpClientFactory httpClientFactory, IResultHandler resultHandler, ILogger<ReceivedInvoiceClient> logger, IMapper mapper) 
         : base(connection, httpClientFactory, resultHandler, logger)
     {
+        _mapper = mapper;
     }
 
     protected override int QueryId => 21;
@@ -30,12 +33,6 @@ public class FlexiConsumedMaterialsQueryClient : UserQueryClient<ConsumedMateria
     {
         var dtos = await GetAsync(dateFrom, dateTo, limit, cancellationToken);
 
-        return dtos.Select(s => new ConsumedMaterialRecord
-        {
-            ProductCode = s.ProductCode,
-            ProductName = s.ProductName,
-            Amount = s.Amount,
-            Date = DateTime.SpecifyKind(DateTime.Parse(s.Date, CultureInfo.InvariantCulture), DateTimeKind.Unspecified),
-        }).ToList();
+        return _mapper.Map<IReadOnlyList<ConsumedMaterialRecord>>(dtos);
     }
 }

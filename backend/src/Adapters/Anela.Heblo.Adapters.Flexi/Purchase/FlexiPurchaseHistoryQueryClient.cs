@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
+using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
@@ -11,16 +12,19 @@ namespace Anela.Heblo.Adapters.Flexi.Purchase;
 public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFlexiDto>, IPurchaseHistoryClient
 {
     private readonly IMemoryCache _cache;
+    private readonly IMapper _mapper;
 
     public FlexiPurchaseHistoryQueryClient(
         FlexiBeeSettings connection, 
         IHttpClientFactory httpClientFactory, 
         IResultHandler resultHandler, 
         ILogger<ReceivedInvoiceClient> logger, 
-        IMemoryCache cache) 
+        IMemoryCache cache,
+        IMapper mapper) 
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
+        _mapper = mapper;
     }
 
     protected override int QueryId => 19;
@@ -52,19 +56,7 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
             _cache.Set(GetKey(dateFrom, dateTo, limit), purchaseHistory, DateTimeOffset.Now.AddHours(1));
         }
 
-        return purchaseHistory!
-            .Where(w=> productCode == null || w.ProductCode == productCode)
-            .Select(p => new CatalogPurchaseRecord()
-            {
-                ProductCode = p.ProductCode,
-                SupplierName = p.CompanyName,
-                SupplierId = p.CompanyId,
-                PricePerPiece = p.Price,
-                PriceTotal = p.Price * (decimal)p.Amount,
-                Amount = p.Amount,
-                Date = DateTime.SpecifyKind(p.Date, DateTimeKind.Unspecified),
-                DocumentNumber = p.PurchaseDocumentNo,
-            }).ToList();
+        return _mapper.Map<IReadOnlyList<CatalogPurchaseRecord>>(purchaseHistory!.Where(w => productCode == null || w.ProductCode == productCode).ToList());
     }
 
     private string GetKey(DateTime dateFrom, DateTime dateTo, int limit) =>

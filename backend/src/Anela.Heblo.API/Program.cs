@@ -8,6 +8,10 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        // Set application timezone to Prague/Central Europe
+        Environment.SetEnvironmentVariable("TZ", "Europe/Prague");
+        TimeZoneInfo.ClearCachedData(); // Clear any cached timezone data to force reload
+        
         var builder = WebApplication.CreateBuilder(args);
 
         // Configure logging

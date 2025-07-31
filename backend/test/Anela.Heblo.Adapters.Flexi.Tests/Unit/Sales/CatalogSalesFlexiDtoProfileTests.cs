@@ -20,10 +20,10 @@ public class CatalogSalesFlexiDtoProfileTests
     }
 
     [Fact]
-    public void Should_Map_DateTime_With_Unspecified_Kind()
+    public void Should_Map_DateTime_With_Local_Kind()
     {
         // Arrange
-        var sourceDate = new DateTime(2025, 6, 1, 10, 30, 0, DateTimeKind.Local);
+        var sourceDate = new DateTime(2025, 6, 1, 10, 30, 0, DateTimeKind.Utc);
         var dto = new CatalogSalesFlexiDto
         {
             Date = sourceDate,
@@ -42,7 +42,7 @@ public class CatalogSalesFlexiDtoProfileTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Date.Kind.Should().Be(DateTimeKind.Unspecified);
+        result.Date.Kind.Should().Be(DateTimeKind.Local);
         result.Date.Should().Be(new DateTime(2025, 6, 1, 10, 30, 0));
         result.ProductCode.Should().Be("TEST001");
         result.ProductName.Should().Be("Test Product");
@@ -85,7 +85,7 @@ public class CatalogSalesFlexiDtoProfileTests
     [InlineData(DateTimeKind.Local)]
     [InlineData(DateTimeKind.Utc)]
     [InlineData(DateTimeKind.Unspecified)]
-    public void Should_Always_Map_To_Unspecified_Kind_Regardless_Of_Source(DateTimeKind sourceKind)
+    public void Should_Always_Map_To_Local_Kind_Regardless_Of_Source(DateTimeKind sourceKind)
     {
         // Arrange
         var sourceDate = DateTime.SpecifyKind(new DateTime(2025, 6, 1), sourceKind);
@@ -100,7 +100,7 @@ public class CatalogSalesFlexiDtoProfileTests
         var result = _mapper.Map<CatalogSaleRecord>(dto);
 
         // Assert
-        result.Date.Kind.Should().Be(DateTimeKind.Unspecified);
+        result.Date.Kind.Should().Be(DateTimeKind.Local);
         result.Date.Ticks.Should().Be(sourceDate.Ticks);
     }
 }
