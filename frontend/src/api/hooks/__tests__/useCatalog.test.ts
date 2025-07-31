@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useCatalogQuery, ProductType, GetCatalogListResponse } from '../useCatalog';
 import { getAuthenticatedApiClient } from '../../client';
 
@@ -79,9 +79,11 @@ describe('useCatalogQuery', () => {
     queryClient.clear();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const createWrapper = () => {
+    return ({ children }: { children: ReactNode }) => {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    };
+  };
 
   describe('Basic Functionality', () => {
     test('should fetch catalog data successfully', async () => {
@@ -90,7 +92,7 @@ describe('useCatalogQuery', () => {
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
 
-      const { result } = renderHook(() => useCatalogQuery(), { wrapper });
+      const { result } = renderHook(() => useCatalogQuery(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -108,7 +110,7 @@ describe('useCatalogQuery', () => {
         statusText: 'Internal Server Error'
       });
 
-      const { result } = renderHook(() => useCatalogQuery(), { wrapper });
+      const { result } = renderHook(() => useCatalogQuery(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -130,7 +132,7 @@ describe('useCatalogQuery', () => {
     test('should pass product name filter to API', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('Test Product', '', '', 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -139,7 +141,7 @@ describe('useCatalogQuery', () => {
 
       // Should pass productName parameter to API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('productName=Test%20Product'),
+        expect.stringContaining('productName=Test+Product'),
         expect.any(Object)
       );
       
@@ -150,7 +152,7 @@ describe('useCatalogQuery', () => {
     test('should pass product code filter to API', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('', 'MAT', '', 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -170,7 +172,7 @@ describe('useCatalogQuery', () => {
     test('should filter by product type', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('', '', ProductType.Material, 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -188,7 +190,7 @@ describe('useCatalogQuery', () => {
     test('should combine multiple filters in API call', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('Test', 'PROD', '', 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -220,7 +222,7 @@ describe('useCatalogQuery', () => {
     test('should pass sort parameters to API', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('', '', '', 1, 20, 'productCode', false), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -243,7 +245,7 @@ describe('useCatalogQuery', () => {
     test('should pass descending sort to API', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('', '', '', 1, 20, 'productCode', true), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -270,7 +272,7 @@ describe('useCatalogQuery', () => {
     test('should pass pagination parameters to API', async () => {
       renderHook(() => 
         useCatalogQuery('', '', '', 2, 10), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -288,7 +290,7 @@ describe('useCatalogQuery', () => {
     test('should pass sorting parameters to API', async () => {
       renderHook(() => 
         useCatalogQuery('', '', '', 1, 20, 'productName', true), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -315,7 +317,7 @@ describe('useCatalogQuery', () => {
     test('should return server response as-is', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('Test Product', '', '', 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {
@@ -333,7 +335,7 @@ describe('useCatalogQuery', () => {
     test('should handle API filtering parameters correctly', async () => {
       const { result } = renderHook(() => 
         useCatalogQuery('NonExistentProduct', '', '', 1, 20), 
-        { wrapper }
+        { wrapper: createWrapper() }
       );
 
       await waitFor(() => {

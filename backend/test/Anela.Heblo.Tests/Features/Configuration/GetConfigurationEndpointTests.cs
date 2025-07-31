@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net.Http.Json;
-using System.Text.Json;
-using Anela.Heblo.Application.Features.Configuration.Contracts;
 using Anela.Heblo.API;
+using Anela.Heblo.Application.Features.Configuration.Contracts;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 
-namespace Anela.Heblo.Tests.Features;
+namespace Anela.Heblo.Tests.Features.Configuration;
 
 /// <summary>
 /// Integration tests for GetConfigurationEndpoint
