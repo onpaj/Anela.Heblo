@@ -100,10 +100,10 @@ jobs:
           Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
           Shoptet.Playwright__Headless: true
           # FlexiBee integration test configuration
-          FlexiBee__ServerUrl: ${{ secrets.FLEXIBEE_SERVER_URL }}
-          FlexiBee__Username: ${{ secrets.FLEXIBEE_USERNAME }}
-          FlexiBee__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
-          FlexiBee__Company: ${{ secrets.FLEXIBEE_COMPANY }}
+          FlexiBeeSettings__ServerUrl: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Username: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v3
