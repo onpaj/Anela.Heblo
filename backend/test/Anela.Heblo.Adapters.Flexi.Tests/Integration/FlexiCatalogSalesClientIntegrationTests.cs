@@ -296,6 +296,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         // This test validates the complete workflow and data consistency
 
         // Step 1: Get sales for recent period
+        // Use Date property to avoid timezone issues
         var dateFrom = FlexiIntegrationTestFixture.ReferenceDate.AddDays(-30);
         var dateTo = FlexiIntegrationTestFixture.ReferenceDate;
         var allSales = await _client.GetAsync(dateFrom, dateTo, 0); // No limit
@@ -307,7 +308,10 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             // Step 2: Verify overall data structure
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductCode));
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductName));
-            allSales.Should().OnlyContain(s => s.Date >= dateFrom.Date && s.Date <= dateTo.Date);
+            // Use Date property for comparison to avoid timezone issues
+            allSales.Should().OnlyContain(s => 
+                s.Date.Date >= dateFrom.Date && 
+                s.Date.Date <= dateTo.Date);
 
             // Step 3: Group by product and verify consistency
             var salesByProduct = allSales.GroupBy(s => s.ProductCode).ToList();
@@ -364,7 +368,8 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             recentSales.Should().NotBeNull();
             if (recentSales.Any())
             {
-                recentSales.Should().OnlyContain(s => s.Date >= recentFrom.Date);
+                // Use Date property for comparison
+                recentSales.Should().OnlyContain(s => s.Date.Date >= recentFrom.Date);
                 recentSales.Count.Should().BeLessOrEqualTo(10);
             }
         }

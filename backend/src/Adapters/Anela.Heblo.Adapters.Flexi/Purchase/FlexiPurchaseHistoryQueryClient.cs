@@ -62,7 +62,7 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
                 PricePerPiece = p.Price,
                 PriceTotal = p.Price * (decimal)p.Amount,
                 Amount = p.Amount,
-                Date = p.Date,
+                Date = DateTime.SpecifyKind(p.Date, DateTimeKind.Unspecified),
                 DocumentNumber = p.PurchaseDocumentNo,
             }).ToList();
     }

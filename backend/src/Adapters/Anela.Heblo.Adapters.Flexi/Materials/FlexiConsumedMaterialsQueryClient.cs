@@ -35,7 +35,7 @@ public class FlexiConsumedMaterialsQueryClient : UserQueryClient<ConsumedMateria
             ProductCode = s.ProductCode,
             ProductName = s.ProductName,
             Amount = s.Amount,
-            Date = DateTime.Parse(s.Date, CultureInfo.InvariantCulture),
+            Date = DateTime.SpecifyKind(DateTime.Parse(s.Date, CultureInfo.InvariantCulture), DateTimeKind.Unspecified),
         }).ToList();
     }
 }
