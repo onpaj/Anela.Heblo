@@ -20,6 +20,9 @@ public static class CatalogModule
         // Register background service for periodic refresh operations
         services.AddHostedService<CatalogRefreshBackgroundService>();
 
+        // Register AutoMapper for catalog mappings
+        services.AddAutoMapper(typeof(CatalogModule));
+
         return services;
     }
 }

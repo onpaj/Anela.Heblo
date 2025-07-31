@@ -2,20 +2,12 @@ import { test, expect } from '@playwright/test';
 
 test.describe('CatalogList Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the catalog page
-    await page.goto('/');
+    // Navigate directly to the catalog page
+    await page.goto('/catalog');
     await page.waitForLoadState('domcontentloaded');
     
-    // Navigate to catalog by clicking on sidebar link
-    const catalogLink = page.locator('a[href*="catalog"], button:has-text("Seznam produktů"), nav a:has-text("Katalog")').first();
-    if (await catalogLink.isVisible()) {
-      await catalogLink.click();
-      await page.waitForLoadState('domcontentloaded');
-    } else {
-      // Fallback: navigate directly if sidebar link is not found
-      await page.goto('/catalog');
-      await page.waitForLoadState('domcontentloaded');
-    }
+    // Wait a bit for the page to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should display catalog page header and filters', async ({ page }) => {

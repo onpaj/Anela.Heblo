@@ -3,16 +3,20 @@ using Anela.Heblo.Application.features.catalog.contracts;
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Xcc.Persistance;
 using System.Linq.Expressions;
+using Anela.Heblo.Xcc;
+using AutoMapper;
 
 namespace Anela.Heblo.Application.features.catalog.Application;
 
 public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetCatalogListResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly IMapper _mapper;
 
-    public GetCatalogListHandler(ICatalogRepository catalogRepository)
+    public GetCatalogListHandler(ICatalogRepository catalogRepository, IMapper mapper)
     {
         _catalogRepository = catalogRepository;
+        _mapper = mapper;
     }
 
     public async Task<GetCatalogListResponse> Handle(GetCatalogListRequest request, CancellationToken cancellationToken)
@@ -23,7 +27,19 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         if (request.Type.HasValue)
         {
             var typeValue = request.Type.Value;
-            filter = x => x.Type == typeValue;
+            filter = filter.And(x => x.Type == typeValue);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductName))
+        {
+            var productName = request.ProductName.Trim();
+            filter = filter.And(x => x.ProductName.ToLowerInvariant().Contains(productName.ToLowerInvariant()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductCode))
+        {
+            var productCode = request.ProductCode.Trim();
+            filter = filter.And(x => x.ProductCode.ToLowerInvariant().Contains(productCode.ToLowerInvariant()));
         }
 
         // Get all filtered items (repository doesn't support paging directly)
@@ -38,6 +54,9 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             "productname" => request.SortDescending ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
             "type" => request.SortDescending ? query.OrderByDescending(x => x.Type) : query.OrderBy(x => x.Type),
             "location" => request.SortDescending ? query.OrderByDescending(x => x.Location) : query.OrderBy(x => x.Location),
+            "available" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Available) : query.OrderBy(x => x.Stock.Available),
+            "erp" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Erp) : query.OrderBy(x => x.Stock.Erp),
+            "eshop" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Eshop) : query.OrderBy(x => x.Stock.Eshop),
             _ => query.OrderBy(x => x.ProductCode) // Default sort by ProductCode
         };
 
@@ -45,11 +64,13 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         var totalCount = query.Count();
 
         // Apply paging
-        var items = query
+        var pagedItems = query
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(MapToDto)
             .ToList();
+
+        // Map to DTOs using AutoMapper
+        var items = _mapper.Map<List<CatalogItemDto>>(pagedItems);
 
         return new GetCatalogListResponse
         {
@@ -57,34 +78,6 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             TotalCount = totalCount,
             PageNumber = request.PageNumber,
             PageSize = request.PageSize
-        };
-    }
-
-    private static CatalogItemDto MapToDto(CatalogAggregate entity)
-    {
-        return new CatalogItemDto
-        {
-            ProductCode = entity.ProductCode,
-            ProductName = entity.ProductName,
-            Type = entity.Type,
-            Stock = new StockDto
-            {
-                Eshop = entity.Stock.Eshop,
-                Erp = entity.Stock.Erp,
-                Transport = entity.Stock.Transport,
-                Reserve = entity.Stock.Reserve,
-                Available = entity.Stock.Available
-            },
-            Properties = new PropertiesDto
-            {
-                OptimalStockDaysSetup = entity.Properties.OptimalStockDaysSetup,
-                StockMinSetup = entity.Properties.StockMinSetup,
-                BatchSize = entity.Properties.BatchSize,
-                SeasonMonths = entity.Properties.SeasonMonths
-            },
-            Location = entity.Location,
-            MinimalOrderQuantity = entity.MinimalOrderQuantity,
-            MinimalManufactureQuantity = entity.MinimalManufactureQuantity
         };
     }
 }

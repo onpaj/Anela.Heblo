@@ -42,6 +42,8 @@ export interface GetCatalogListRequest {
   pageSize?: number;
   sortBy?: string;
   sortDescending?: boolean;
+  productName?: string;
+  productCode?: string;
 }
 
 export interface GetCatalogListResponse {
@@ -71,6 +73,12 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
   }
   if (params.sortDescending !== undefined) {
     searchParams.append('sortDescending', params.sortDescending.toString());
+  }
+  if (params.productName) {
+    searchParams.append('productName', params.productName);
+  }
+  if (params.productCode) {
+    searchParams.append('productCode', params.productCode);
   }
 
   const url = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
@@ -104,12 +112,18 @@ export const useCatalogQuery = (
   productCodeFilter?: string,
   productTypeFilter?: ProductType | '',
   pageNumber: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  sortBy?: string,
+  sortDescending: boolean = false
 ) => {
   const params: GetCatalogListRequest = {
     pageNumber,
     pageSize,
     type: productTypeFilter !== '' ? productTypeFilter : undefined,
+    sortBy,
+    sortDescending,
+    productName: productNameFilter || undefined,
+    productCode: productCodeFilter || undefined,
   };
 
   return useQuery({
@@ -118,32 +132,11 @@ export const useCatalogQuery = (
       productCodeFilter, 
       productTypeFilter, 
       pageNumber, 
-      pageSize 
+      pageSize,
+      sortBy,
+      sortDescending
     }],
-    queryFn: async () => {
-      const response = await fetchCatalogList(params);
-      
-      // Apply client-side filtering for name and code since the backend doesn't support these filters yet
-      let filteredItems = response.items;
-      
-      if (productNameFilter) {
-        filteredItems = filteredItems.filter(item =>
-          item.productName.toLowerCase().includes(productNameFilter.toLowerCase())
-        );
-      }
-      
-      if (productCodeFilter) {
-        filteredItems = filteredItems.filter(item =>
-          item.productCode.toLowerCase().includes(productCodeFilter.toLowerCase())
-        );
-      }
-      
-      return {
-        ...response,
-        items: filteredItems,
-        totalCount: filteredItems.length,
-      };
-    },
+    queryFn: () => fetchCatalogList(params),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });

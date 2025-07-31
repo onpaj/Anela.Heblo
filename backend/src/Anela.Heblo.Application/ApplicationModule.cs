@@ -15,6 +15,9 @@ public static class ApplicationModule
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
 
+        // Register AutoMapper
+        services.AddAutoMapper(typeof(ApplicationModule).Assembly);
+
         // Register all feature modules
         services.AddWeatherModule();
         services.AddConfigurationModule();
