@@ -280,11 +280,12 @@ describe('useCatalogQuery', () => {
           expect.stringContaining('pageNumber=2'),
           expect.any(Object)
         );
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('pageSize=10'),
-          expect.any(Object)
-        );
       });
+      
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=10'),
+        expect.any(Object)
+      );
     });
 
     test('should pass sorting parameters to API', async () => {
@@ -298,11 +299,12 @@ describe('useCatalogQuery', () => {
           expect.stringContaining('sortBy=productName'),
           expect.any(Object)
         );
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('sortDescending=true'),
-          expect.any(Object)
-        );
       });
+      
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('sortDescending=true'),
+        expect.any(Object)
+      );
     });
   });
 

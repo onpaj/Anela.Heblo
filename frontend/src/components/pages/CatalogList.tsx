@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   useCatalogQuery, 
-  ProductType, 
-  type CatalogItemDto, 
-  type StockDto, 
-  type PropertiesDto 
+  ProductType
 } from '../../api/hooks/useCatalog';
 
 const productTypeLabels: Record<ProductType, string> = {
@@ -18,7 +14,6 @@ const productTypeLabels: Record<ProductType, string> = {
 };
 
 const CatalogList: React.FC = () => {
-  const { t } = useTranslation();
   
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState('');

@@ -71,13 +71,14 @@ describe('WeatherTest Component Authentication Integration', () => {
     // Assert - Wait for initial API call with mock token from mockAuthService
     await waitFor(() => {
       expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-bearer-token',
-        },
-      });
+    });
+    
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer mock-bearer-token',
+      },
     });
 
     // Verify weather data is displayed
@@ -125,8 +126,9 @@ describe('WeatherTest Component Authentication Integration', () => {
     // Assert - Wait for error to be displayed
     await waitFor(() => {
       expect(screen.getByText('Error loading weather data')).toBeInTheDocument();
-      expect(screen.getByText('HTTP error! status: 401')).toBeInTheDocument();
     });
+    
+    expect(screen.getByText('HTTP error! status: 401')).toBeInTheDocument();
 
     expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
     expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
@@ -162,20 +164,23 @@ describe('WeatherTest Component Authentication Integration', () => {
     await waitFor(() => {
       const reloadButton = screen.getByRole('button', { name: /reload/i });
       expect(reloadButton).not.toBeDisabled();
-      fireEvent.click(reloadButton);
     });
+    
+    const reloadButton = screen.getByRole('button', { name: /reload/i });
+    fireEvent.click(reloadButton);
 
     // Assert - Should make another API call with mock bearer token
     await waitFor(() => {
       expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-bearer-token',
-        },
-      });
+    });
+    
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer mock-bearer-token',
+      },
     });
   });
 
