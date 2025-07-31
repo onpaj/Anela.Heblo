@@ -18,14 +18,14 @@ public class ProductPriceFlexiDto
 
     [JsonProperty("typszbdphk")]
     public string VatLevel { get; set; }
-    
+
     [JsonProperty("typzasobyk")]
     public string ProductType { get; set; }
-    
-    [JsonProperty("idKusovnik")] 
+
+    [JsonProperty("idKusovnik")]
     public int? BoMId { get; set; }
-    
-    public decimal Vat 
+
+    public decimal Vat
     {
         get
         {

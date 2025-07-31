@@ -14,23 +14,23 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
     private const string CacheKey = "FlexiProductPrices";
 
     public FlexiProductPriceErpClient(
-        FlexiBeeSettings connection, 
-        IHttpClientFactory httpClientFactory, 
-        IResultHandler resultHandler, 
-        IMemoryCache cache, 
+        FlexiBeeSettings connection,
+        IHttpClientFactory httpClientFactory,
+        IResultHandler resultHandler,
+        IMemoryCache cache,
         ILogger<ReceivedInvoiceClient> logger
-    ) 
+    )
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
     }
 
     protected override int QueryId => 41;
-    
+
     public Task<IList<ProductPriceFlexiDto>> GetAsync(int limit = 0, CancellationToken cancellationToken = default) =>
         GetAsync(new Dictionary<string, string>() { { LimitParamName, limit.ToString() } }, cancellationToken);
 
-    
+
     public async Task<IEnumerable<ProductPriceErp>> GetAllAsync(bool forceReload, CancellationToken cancellationToken)
     {
         bool dataLoaded = false;
@@ -40,7 +40,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
             dataLoaded = true;
         }
-        
+
         var prices = data!.Select(s => new ProductPriceErp()
         {
             ProductCode = s.ProductCode,

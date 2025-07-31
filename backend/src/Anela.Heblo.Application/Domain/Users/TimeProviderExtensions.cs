@@ -22,7 +22,7 @@ public static class TimeProviderExtensions
         {
             return timeProvider.GetLocalNow().DateTime.AddTicks(utcDateTime.Ticks - timeProvider.GetUtcNow().Ticks);
         }
-        
+
         // Assume UTC if kind is unspecified
         return timeProvider.GetLocalNow().DateTime.AddTicks(utcDateTime.Ticks - timeProvider.GetUtcNow().Ticks);
     }

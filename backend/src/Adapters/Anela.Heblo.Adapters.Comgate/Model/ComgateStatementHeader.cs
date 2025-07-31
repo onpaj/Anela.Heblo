@@ -7,5 +7,5 @@ internal class ComgateStatementHeader
 
     public string AccountCounterParty { get; set; }
     public string AccountOutgoing { get; set; }
-    public string  VariableSymbol { get; set; }
+    public string VariableSymbol { get; set; }
 }

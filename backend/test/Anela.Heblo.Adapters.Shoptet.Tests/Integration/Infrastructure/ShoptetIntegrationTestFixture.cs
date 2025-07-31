@@ -29,7 +29,7 @@ public class ShoptetIntegrationTestFixture
         // Add logging
         services.AddLogging(builder => builder.AddConsole());
 
-        services.AddShopetAdapter(Configuration);
+        services.AddShoptetAdapter(Configuration);
 
         ServiceProvider = services.BuildServiceProvider();
     }

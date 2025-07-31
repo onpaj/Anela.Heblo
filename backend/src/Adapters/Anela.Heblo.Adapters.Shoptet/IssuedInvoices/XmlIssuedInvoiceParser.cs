@@ -21,13 +21,13 @@ public class XmlIssuedInvoiceParser : IIssuedInvoiceParser
     {
         XmlSerializer serializer = new XmlSerializer(typeof(DataPack));
         var invoices = new List<IssuedInvoiceDetail>();
-            
+
         using var reader = new XmlTextReader(new StringReader(data));
-            
+
         var pack = (DataPack)serializer.Deserialize(reader);
         foreach (var i in pack.DataPackItems)
         {
-            if(i.IsValid())
+            if (i.IsValid())
                 invoices.Add(_mapper.Map<IssuedInvoiceDetail>(i.Invoice));
             else
                 _logger.LogError("Unable to deserialize invoice {InvoicerNumber}", i.Id);

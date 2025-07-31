@@ -28,13 +28,13 @@ public class IssuedInvoiceDetail
 
     public bool? VatPayer { get; set; }
 
-    public List<IssuedInvoiceDetailItem> Items { get; set; } = new ();
+    public List<IssuedInvoiceDetailItem> Items { get; set; } = new();
 
-    public InvoiceAddress BillingAddress { get; set; } = new ();
+    public InvoiceAddress BillingAddress { get; set; } = new();
 
-    public InvoiceAddress DeliveryAddress { get; set; } = new ();
+    public InvoiceAddress DeliveryAddress { get; set; } = new();
 
-    public InvoicePrice Price { get; set; } = new ();
+    public InvoicePrice Price { get; set; } = new();
 
-    public InvoiceCustomer Customer { get; set; } = new ();
+    public InvoiceCustomer Customer { get; set; } = new();
 }

@@ -25,7 +25,7 @@ public class ApplicationConfiguration
     {
         return new ApplicationConfiguration(
             version ?? "1.0.0",
-            environment ?? "Production", 
+            environment ?? "Production",
             useMockAuth
         );
     }

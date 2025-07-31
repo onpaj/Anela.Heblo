@@ -125,7 +125,7 @@ public class ShoptetPriceClientIntegrationTests
         // Arrange - Skip if configuration is not available
         var url = _configuration["ProductPriceOptions:ProductExportUrl"];
         (string.IsNullOrEmpty(url) || url.Contains("your-shoptet")).Should().BeFalse("Shoptet ProductExportUrl should be configured for this test");
-        
+
         var cancellationToken = new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token;
 
         // Act

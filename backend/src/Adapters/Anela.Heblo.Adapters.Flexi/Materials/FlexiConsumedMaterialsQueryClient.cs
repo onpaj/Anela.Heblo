@@ -12,7 +12,7 @@ public class FlexiConsumedMaterialsQueryClient : UserQueryClient<ConsumedMateria
 {
     private readonly IMapper _mapper;
 
-    public FlexiConsumedMaterialsQueryClient(FlexiBeeSettings connection, IHttpClientFactory httpClientFactory, IResultHandler resultHandler, ILogger<ReceivedInvoiceClient> logger, IMapper mapper) 
+    public FlexiConsumedMaterialsQueryClient(FlexiBeeSettings connection, IHttpClientFactory httpClientFactory, IResultHandler resultHandler, ILogger<ReceivedInvoiceClient> logger, IMapper mapper)
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _mapper = mapper;

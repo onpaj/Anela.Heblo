@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Weather;
 using Anela.Heblo.Application.Features.Configuration;
+using Anela.Heblo.Application.features.catalog;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application;
@@ -13,19 +14,20 @@ public static class ApplicationModule
     {
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
-        
+
+        // Register AutoMapper
+        services.AddAutoMapper(typeof(ApplicationModule).Assembly);
+
         // Register all feature modules
         services.AddWeatherModule();
         services.AddConfigurationModule();
-        
-        // Add more modules here as they are created:
-        // services.AddCatalogModule();
+        services.AddCatalogModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
         // services.AddManufactureModule();
         // services.AddTransportModule();
         // services.AddPurchaseModule();
-        
+
         return services;
     }
 }

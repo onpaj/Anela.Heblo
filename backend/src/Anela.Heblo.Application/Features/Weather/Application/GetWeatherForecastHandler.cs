@@ -17,8 +17,8 @@ public class GetWeatherForecastHandler : IRequestHandler<GetWeatherForecastReque
     public async Task<IEnumerable<GetWeatherForecastResponse>> Handle(GetWeatherForecastRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Handling GetWeatherForecast request - generating forecast for {Days} days", WeatherConstants.FORECAST_DAYS);
-        
-        var forecast = Enumerable.Range(1, WeatherConstants.FORECAST_DAYS).Select(index => 
+
+        var forecast = Enumerable.Range(1, WeatherConstants.FORECAST_DAYS).Select(index =>
             new GetWeatherForecastResponse
             {
                 Date = DateTime.Now.AddDays(index),

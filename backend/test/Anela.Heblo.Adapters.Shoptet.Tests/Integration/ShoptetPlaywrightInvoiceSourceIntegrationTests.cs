@@ -21,7 +21,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
     private readonly ITestOutputHelper _output;
 
     private static DateTime ReferenceDate => new DateTime(2025, 07, 1);
-    
+
     public ShoptetPlaywrightInvoiceSourceIntegrationTests(
         ShoptetIntegrationTestFixture fixture,
         ITestOutputHelper output)
@@ -208,11 +208,11 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
         var username = _configuration["Shoptet.Playwright:Login"];
         var password = _configuration["Shoptet.Playwright:Password"];
 
-        return !string.IsNullOrEmpty(url) && 
-               !string.IsNullOrEmpty(username) && 
+        return !string.IsNullOrEmpty(url) &&
+               !string.IsNullOrEmpty(username) &&
                !string.IsNullOrEmpty(password) &&
-               !url.Contains("your-shoptet") && 
-               !username.Contains("test-username") && 
+               !url.Contains("your-shoptet") &&
+               !username.Contains("test-username") &&
                !password.Contains("test-password");
     }
 }

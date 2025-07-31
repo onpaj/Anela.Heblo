@@ -26,9 +26,9 @@ public class StockTakingScenario
         // Definice selektorů
         var freeSelector = "body > div.pageGrid > div.pageGrid__content > div.section.section-1063 > form > fieldset > div.tableWrapper > table > tbody > tr > td:nth-child(5) > div:nth-child(1) > div > input";
         var reservedSelector = "body > div.pageGrid > div.pageGrid__content > div.section.section-1063 > form > fieldset > div.tableWrapper > table > tbody > tr > td:nth-child(5) > div:nth-child(2) > div > input";
-        
+
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-     
+
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
@@ -43,9 +43,9 @@ public class StockTakingScenario
         await page.PressAsync("[placeholder='E-mail']", "Tab");
         await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
         await page.ClickAsync("role=button >> text=Přihlášení");
-        
+
         _logger.LogDebug("Login successful");
-        
+
         await page.GotoAsync($"{_options.ShopEntryUrl}/skladove-zasoby/?f[code]={request.ProductCode}");
         await page.WaitForLoadStateAsync();
 
@@ -54,12 +54,12 @@ public class StockTakingScenario
         var originalLocator = actionsCellLocator.Locator("input[name^='originalAmounts']");
         var freeLocator = actionsCellLocator.Locator("input[name^='amounts']");
         var reservedLocator = actionsCellLocator.Locator("input").Last;
-        
+
         var originalAmount = Convert.ToInt32(await originalLocator.InputValueAsync());
         var freeAmount = Convert.ToInt32(await freeLocator.InputValueAsync());
         var reservedAmount = Convert.ToInt32(await reservedLocator.GetAttributeAsync("placeholder"));
 
-        var  setAmount = request.TargetAmount - reservedAmount;
+        var setAmount = request.TargetAmount - reservedAmount;
         // Výpočet a vyplnění nového množství
         await freeLocator.FillAsync(setAmount.ToString());
 

@@ -8,10 +8,10 @@ public record StockData
     public decimal Erp { get; set; }
     public decimal Transport { get; set; }
     public decimal Reserve { get; set; }
-    
+
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 
     public decimal Available => (PrimaryStockSource == StockSource.Erp ? Erp : Eshop) + Transport;
-    public List<CatalogLot> Lots { get; set; } = new ();
+    public List<CatalogLot> Lots { get; set; } = new();
 
 }

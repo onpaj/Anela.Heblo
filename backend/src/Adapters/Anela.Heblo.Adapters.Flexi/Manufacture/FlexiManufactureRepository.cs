@@ -38,7 +38,7 @@ public class FlexiManufactureRepository : IManufactureRepository
         };
     }
 
-    public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode,CancellationToken cancellationToken)
+    public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)
     {
         var templates = await _bomClient.GetByIngredientAsync(ingredientCode, cancellationToken);
 

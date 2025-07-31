@@ -4,12 +4,12 @@ using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 
 namespace Anela.Heblo.Adapters.Flexi.Stock;
 
-public  class FlexiStockClient : IErpStockClient
+public class FlexiStockClient : IErpStockClient
 {
     private const int MaterialWarehouseId = 5;
     private const int SemiProductsWarehouseId = 20;
     private const int ProductsWarehouseId = 4;
-    
+
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
 
@@ -18,14 +18,14 @@ public  class FlexiStockClient : IErpStockClient
         _stockClient = stockClient;
         _timeProvider = timeProvider;
     }
-    
+
     public async Task<IReadOnlyList<ErpStock>> ListAsync(CancellationToken cancellationToken)
     {
         var materialStockTask = ListByWarehouse(MaterialWarehouseId, ProductType.Material, cancellationToken);
         var semiProductsStockTask = ListByWarehouse(SemiProductsWarehouseId, ProductType.SemiProduct, cancellationToken);
-        var productsStockTask = ListByWarehouse(ProductsWarehouseId, new [] { ProductType.Product, ProductType.Goods}, cancellationToken);
-        
-        await Task.WhenAll( materialStockTask, semiProductsStockTask, productsStockTask);
+        var productsStockTask = ListByWarehouse(ProductsWarehouseId, new[] { ProductType.Product, ProductType.Goods }, cancellationToken);
+
+        await Task.WhenAll(materialStockTask, semiProductsStockTask, productsStockTask);
 
         return materialStockTask.Result
             .Union(semiProductsStockTask.Result)
@@ -37,7 +37,7 @@ public  class FlexiStockClient : IErpStockClient
     private Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType productType,
         CancellationToken cancellationToken)
     {
-        return ListByWarehouse(warehouseId, new [] {productType}, cancellationToken);
+        return ListByWarehouse(warehouseId, new[] { productType }, cancellationToken);
     }
 
     private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes, CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ public  class FlexiStockClient : IErpStockClient
 
 
         // TODO Add Audit trace to log successful load of stock for warehouse {warehouseId} with product types {string.Join(", ", productTypes)}.
-        
+
         return stock;
     }
 }

@@ -59,17 +59,17 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         // 3. Assembly version
         // 4. Fallback to default
         var version = GetVersionFromSources();
-        
+
         // Get environment
         var environment = _environment.EnvironmentName;
-        
+
         // Get mock auth setting
         var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
 
         var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
-        
+
         await Task.CompletedTask; // Placeholder for potential async operations
-        
+
         return config;
     }
 

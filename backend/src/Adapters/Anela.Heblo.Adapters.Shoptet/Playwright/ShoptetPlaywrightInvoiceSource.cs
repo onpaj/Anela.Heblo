@@ -13,7 +13,7 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
         _invoiceParser = invoiceParser;
         _exportScenario = exportScenario;
     }
-    
+
     public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
     {
         var content = await _exportScenario.RunAsync(query);
@@ -24,10 +24,10 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
             BatchId = query.RequestId,
         };
 
-        return  new List<IssuedInvoiceDetailBatch>() { invoiceBatch };
+        return new List<IssuedInvoiceDetailBatch>() { invoiceBatch };
     }
 
-    
+
 
     public Task CommitAsync(IssuedInvoiceDetailBatch batch, string? commitMessage = default)
     {

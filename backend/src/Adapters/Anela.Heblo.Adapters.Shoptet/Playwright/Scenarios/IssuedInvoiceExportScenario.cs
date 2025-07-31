@@ -17,7 +17,7 @@ public class IssuedInvoiceExportScenario
         _options = options;
         _logger = logger;
     }
-    
+
     public async Task<string> RunAsync(IssuedInvoiceSourceQuery query)
     {
         var currency = query.Currency == CurrencyCode.EUR.ToString() ? "3" : "2";
@@ -49,7 +49,7 @@ public class IssuedInvoiceExportScenario
 
 
         await page.ClickAsync("text=Export dokladů");
-        
+
         await page.WaitForSelectorAsync("a[data-testid=buttonExport]");
         // try
         // {
@@ -96,7 +96,7 @@ public class IssuedInvoiceExportScenario
 
         File.Delete(outputFile);
 
-        
+
         return content;
     }
 }

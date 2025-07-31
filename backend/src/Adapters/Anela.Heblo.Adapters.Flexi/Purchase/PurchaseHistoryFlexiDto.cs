@@ -20,16 +20,16 @@ public class PurchaseHistoryFlexiDto
 
     [JsonProperty("Mnozstvi")]
     public double Amount { get; set; }
-    
+
     [JsonProperty("Sklad")]
     public int WarehouseId { get; set; }
-    
-    [JsonProperty("CenaMj")] 
+
+    [JsonProperty("CenaMj")]
     public decimal Price { get; set; }
-    
-    [JsonProperty("Firma")] 
+
+    [JsonProperty("Firma")]
     public string CompanyName { get; set; }
-    
-    [JsonProperty("FirmaId")] 
+
+    [JsonProperty("FirmaId")]
     public int? CompanyId { get; set; }
 }

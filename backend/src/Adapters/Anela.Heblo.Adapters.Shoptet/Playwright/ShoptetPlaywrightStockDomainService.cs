@@ -13,7 +13,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
     private readonly TimeProvider _timeProvider;
 
     public ShoptetPlaywrightStockDomainService(
-        StockUpScenario stockUpScenario, 
+        StockUpScenario stockUpScenario,
         StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
@@ -25,7 +25,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
         _currentUser = currentUser;
         _timeProvider = timeProvider;
     }
-    
+
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
     {
         var result = await _stockUpScenario.RunAsync(stockUpOrder);

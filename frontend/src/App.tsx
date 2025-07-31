@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout/Layout';
 import WeatherTest from './components/pages/WeatherTest';
+import CatalogList from './components/pages/CatalogList';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
 import { setGlobalTokenProvider } from './api/client';
 import { apiRequest } from './auth/msalConfig';
 import './i18n';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -159,17 +172,22 @@ function App() {
   }
 
   return (
-    <div className="App min-h-screen" data-testid="app">
-      <MsalProvider instance={msalInstance}>
-        <Router>
-          <AuthGuard>
-            <Layout statusBar={<StatusBar />}>
-              <WeatherTest />
-            </Layout>
-          </AuthGuard>
-        </Router>
-      </MsalProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <div className="App min-h-screen" data-testid="app">
+        <MsalProvider instance={msalInstance}>
+          <Router>
+            <AuthGuard>
+              <Layout statusBar={<StatusBar />}>
+                <Routes>
+                  <Route path="/" element={<WeatherTest />} />
+                  <Route path="/catalog" element={<CatalogList />} />
+                </Routes>
+              </Layout>
+            </AuthGuard>
+          </Router>
+        </MsalProvider>
+      </div>
+    </QueryClientProvider>
   );
 }
 

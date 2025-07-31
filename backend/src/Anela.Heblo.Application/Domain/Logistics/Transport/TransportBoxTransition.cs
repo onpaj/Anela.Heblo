@@ -5,7 +5,7 @@ public class TransportBoxAction
     private readonly Action<TransportBox, DateTime, string>? _transitionCallback;
 
     public TransportBoxAction(
-        TransportBoxState newState, 
+        TransportBoxState newState,
         Action<TransportBox, DateTime, string>? transitionCallback = null,
         Func<TransportBox, bool>? condition = null)
     {

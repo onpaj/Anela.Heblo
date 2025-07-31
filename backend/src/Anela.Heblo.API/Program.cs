@@ -1,3 +1,6 @@
+using Anela.Heblo.Adapters.Comgate;
+using Anela.Heblo.Adapters.Flexi;
+using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application;
 using Anela.Heblo.Persistence;
@@ -32,10 +35,14 @@ public class Program
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
         builder.Services.AddSpaServices();
 
+        // Adapters
+        builder.Services.AddFlexiAdapter(builder.Configuration);
+        builder.Services.AddShoptetAdapter(builder.Configuration);
+        builder.Services.AddComgateAdapter(builder.Configuration);
+
         // Controllers and API documentation
         builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSwaggerServices(builder.Configuration);
         builder.Services.AddOpenApiDocument();
 
         var app = builder.Build();
@@ -49,8 +56,8 @@ public class Program
     private static void ConfigureApplicationTimeZone(IConfiguration configuration)
     {
         // Get timezone ID from configuration or environment variable
-        var timeZoneId = Environment.GetEnvironmentVariable("TIMEZONE") 
-                        ?? configuration["Application:TimeZone"] 
+        var timeZoneId = Environment.GetEnvironmentVariable("TIMEZONE")
+                        ?? configuration["Application:TimeZone"]
                         ?? "Central Europe Standard Time";
 
         // Set system timezone environment variable for consistent behavior

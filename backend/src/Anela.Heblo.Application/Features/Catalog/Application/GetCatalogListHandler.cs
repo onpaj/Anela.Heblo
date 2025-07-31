@@ -1,0 +1,83 @@
+using MediatR;
+using Anela.Heblo.Application.features.catalog.contracts;
+using Anela.Heblo.Application.Domain.Catalog;
+using Anela.Heblo.Xcc.Persistance;
+using System.Linq.Expressions;
+using Anela.Heblo.Xcc;
+using AutoMapper;
+
+namespace Anela.Heblo.Application.features.catalog.Application;
+
+public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetCatalogListResponse>
+{
+    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMapper _mapper;
+
+    public GetCatalogListHandler(ICatalogRepository catalogRepository, IMapper mapper)
+    {
+        _catalogRepository = catalogRepository;
+        _mapper = mapper;
+    }
+
+    public async Task<GetCatalogListResponse> Handle(GetCatalogListRequest request, CancellationToken cancellationToken)
+    {
+        // Build filter expression
+        Expression<Func<CatalogAggregate, bool>> filter = x => true;
+
+        if (request.Type.HasValue)
+        {
+            var typeValue = request.Type.Value;
+            filter = filter.And(x => x.Type == typeValue);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductName))
+        {
+            var productName = request.ProductName.Trim();
+            filter = filter.And(x => x.ProductName.ToLowerInvariant().Contains(productName.ToLowerInvariant()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductCode))
+        {
+            var productCode = request.ProductCode.Trim();
+            filter = filter.And(x => x.ProductCode.ToLowerInvariant().Contains(productCode.ToLowerInvariant()));
+        }
+
+        // Get all filtered items (repository doesn't support paging directly)
+        var allItems = await _catalogRepository.FindAsync(filter, cancellationToken);
+
+        // Apply sorting
+        var query = allItems.AsQueryable();
+
+        query = request.SortBy?.ToLower() switch
+        {
+            "productcode" => request.SortDescending ? query.OrderByDescending(x => x.ProductCode) : query.OrderBy(x => x.ProductCode),
+            "productname" => request.SortDescending ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+            "type" => request.SortDescending ? query.OrderByDescending(x => x.Type) : query.OrderBy(x => x.Type),
+            "location" => request.SortDescending ? query.OrderByDescending(x => x.Location) : query.OrderBy(x => x.Location),
+            "available" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Available) : query.OrderBy(x => x.Stock.Available),
+            "erp" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Erp) : query.OrderBy(x => x.Stock.Erp),
+            "eshop" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Eshop) : query.OrderBy(x => x.Stock.Eshop),
+            _ => query.OrderBy(x => x.ProductCode) // Default sort by ProductCode
+        };
+
+        // Count total items
+        var totalCount = query.Count();
+
+        // Apply paging
+        var pagedItems = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        // Map to DTOs using AutoMapper
+        var items = _mapper.Map<List<CatalogItemDto>>(pagedItems);
+
+        return new GetCatalogListResponse
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+}

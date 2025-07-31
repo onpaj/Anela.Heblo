@@ -8,7 +8,7 @@ public static class WeatherModule
     {
         // MediatR handlers are automatically registered by MediatR assembly scanning
         // No manual registration needed for handlers
-        
+
         return services;
     }
 }

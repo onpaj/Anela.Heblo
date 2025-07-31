@@ -32,7 +32,7 @@ public class FlexiStockTakingDomainService : IErpStockDomainService
         _currentUser = currentUser;
         _timeProvider = timeProvider;
     }
-    
+
 
     public async Task<StockTakingRecord> SubmitStockTakingAsync(ErpStockTakingRequest order)
     {
@@ -50,7 +50,7 @@ public class FlexiStockTakingDomainService : IErpStockDomainService
                     Type = $"{MaterialStockTakingType}-{order.ProductCode}",
                 };
                 var header = await _stockTakingClient.CreateHeaderAsync(headerRequest);
-                
+
                 var newItems = order.StockTakingItems.Select(item => new AddStockTakingItemRequest
                 {
                     ProductCode = order.ProductCode,
@@ -58,7 +58,7 @@ public class FlexiStockTakingDomainService : IErpStockDomainService
                     Lot = item.LotCode ?? "",
                     Expiration = item.Expiration?.ToString("yyyy-MM-dd") ?? "",
                 }).ToList();
-                
+
                 await _stockTakingItemsClient.AddStockTakingsAsync(header.Id, MaterialWarehouseId, newItems);
 
                 if (order.RemoveMissingLots)
@@ -77,7 +77,7 @@ public class FlexiStockTakingDomainService : IErpStockDomainService
 
                 header = await _stockTakingClient.GetHeaderAsync(header.Id);
                 var itemsAfter = await _stockTakingItemsClient.GetStockTakingsAsync(header.Id);
-                
+
                 result = new StockTakingRecord()
                 {
                     Code = order.ProductCode,

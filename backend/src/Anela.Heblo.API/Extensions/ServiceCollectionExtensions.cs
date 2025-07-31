@@ -4,6 +4,7 @@ using HealthChecks.UI.Client;
 using Anela.Heblo.Application.Features.Configuration.Domain;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.Application.Domain.Users;
+using Microsoft.OpenApi.Models;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -83,7 +84,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
 
         // Register Current User Service
-        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<ICurrentUserService, CurrentUserService>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns
@@ -96,6 +97,104 @@ public static class ServiceCollectionExtensions
         services.AddSpaStaticFiles(configuration =>
         {
             configuration.RootPath = "wwwroot";
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddSwaggerServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Anela Heblo API",
+                Version = "v1",
+                Description = "API for Anela Heblo cosmetics company workspace application"
+            });
+
+            // Only add authentication to Swagger if mock auth is disabled
+            var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+
+            if (!useMockAuth)
+            {
+                // Add Microsoft Entra ID OAuth2 authentication
+                var azureAdConfig = configuration.GetSection("AzureAd");
+                var tenantId = azureAdConfig["TenantId"];
+                var clientId = azureAdConfig["ClientId"];
+                var configuredScopes = azureAdConfig["Scopes"];
+
+                if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId))
+                {
+                    // Build scopes dictionary
+                    var scopes = new Dictionary<string, string>();
+
+                    if (!string.IsNullOrEmpty(configuredScopes))
+                    {
+                        // Use configured scopes from appsettings
+                        foreach (var scope in configuredScopes.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            var description = scope switch
+                            {
+                                "openid" => "OpenID Connect sign-in",
+                                "profile" => "Access user profile information",
+                                "User.Read" => "Read user profile",
+                                _ when scope.StartsWith("api://") => "Access the API as the signed-in user",
+                                _ => $"Access {scope}"
+                            };
+                            scopes[scope] = description;
+                        }
+                    }
+                    else
+                    {
+                        // Fallback to API scope
+                        scopes[$"api://{clientId}/access_as_user"] = "Access the API as the signed-in user";
+                    }
+
+                    options.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.OAuth2,
+                        Description = "Authenticate using Microsoft Entra ID (Azure AD)",
+                        Flows = new OpenApiOAuthFlows
+                        {
+                            AuthorizationCode = new OpenApiOAuthFlow
+                            {
+                                AuthorizationUrl = new Uri($"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/authorize"),
+                                TokenUrl = new Uri($"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
+                                Scopes = scopes
+                            }
+                        }
+                    });
+
+                    // Security requirement - OAuth2 only
+                    // Determine required scopes for OAuth2 security requirement
+                    var requiredScopes = new List<string>();
+                    if (!string.IsNullOrEmpty(configuredScopes))
+                    {
+                        requiredScopes.AddRange(configuredScopes.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                    }
+                    else
+                    {
+                        requiredScopes.Add($"api://{clientId}/access_as_user");
+                    }
+
+                    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "OAuth2"
+                                }
+                            },
+                            requiredScopes.ToArray()
+                        }
+                    });
+                }
+            }
         });
 
         return services;
