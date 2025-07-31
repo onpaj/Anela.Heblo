@@ -132,6 +132,7 @@ frontend/step*.png
 frontend/error*.png
 frontend/test-results/
 frontend/playwright-report/
+backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/app/playwright/
 
 # Test results and coverage
 TestResults/
@@ -139,3 +140,4 @@ test-results/
 *.trx
 *.coverage
 *.coveragexml
+

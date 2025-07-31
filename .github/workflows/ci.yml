@@ -81,8 +81,29 @@ jobs:
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
 
+      - name: 🏗️ Build test projects
+        run: dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
+
+      - name: 🎭 Install Playwright for Shoptet tests
+        run: |
+          cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
+          pwsh bin/Release/net8.0/playwright.ps1 install chromium
+
       - name: 🧪 Run tests with coverage
         run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
+        env:
+          # Shoptet integration test configuration
+          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          Shoptet.Playwright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          Shoptet.Playwright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          Shoptet.Playwright__Headless: true
+          # FlexiBee integration test configuration
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v3

@@ -2,7 +2,8 @@ using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Anela.Heblo.Application.Features.Configuration.Domain;
-using Anela.Heblo.Persistence.Telemetry;
+using Anela.Heblo.Xcc.Telemetry;
+using Anela.Heblo.Application.Domain.Users;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -77,6 +78,12 @@ public static class ServiceCollectionExtensions
     {
         // Register HttpContextAccessor for user service
         services.AddHttpContextAccessor();
+
+        // Register TimeProvider
+        services.AddSingleton(TimeProvider.System);
+
+        // Register Current User Service
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns

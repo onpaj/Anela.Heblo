@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using Anela.Heblo.Xcc.Domain;
 using Anela.Heblo.Xcc.Persistance;
 
 namespace Anela.Heblo.Persistence.Repository;
@@ -8,8 +9,9 @@ namespace Anela.Heblo.Persistence.Repository;
 /// Base generic repository implementation using Entity Framework Core
 /// </summary>
 /// <typeparam name="TEntity">The entity type</typeparam>
-public class BaseRepository<TEntity> : IRepository<TEntity>
-    where TEntity : class
+/// <typeparam name="TKey">Entity unique key</typeparam>
+public class BaseRepository<TEntity, TKey> : IRepository<TEntity, TKey>
+    where TEntity : class, IEntity<TKey>
 {
     protected readonly ApplicationDbContext Context;
     protected readonly DbSet<TEntity> DbSet;
@@ -20,9 +22,9 @@ public class BaseRepository<TEntity> : IRepository<TEntity>
         DbSet = context.Set<TEntity>();
     }
 
-    public virtual async Task<TEntity?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FindAsync(new object[] { id }, cancellationToken);
+        return await DbSet.FindAsync(id, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -77,7 +79,7 @@ public class BaseRepository<TEntity> : IRepository<TEntity>
         await Task.CompletedTask;
     }
 
-    public virtual async Task DeleteAsync(object id, CancellationToken cancellationToken = default)
+    public virtual async Task DeleteAsync(TKey id, CancellationToken cancellationToken = default)
     {
         var entity = await GetByIdAsync(id, cancellationToken);
         if (entity != null)
