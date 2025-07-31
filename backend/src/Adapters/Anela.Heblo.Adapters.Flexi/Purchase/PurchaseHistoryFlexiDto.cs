@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.Flexi.Common;
 using Newtonsoft.Json;
 
 namespace Anela.Heblo.Adapters.Flexi.Purchase;
@@ -11,6 +12,7 @@ public class PurchaseHistoryFlexiDto
     public string ProductCode { get; set; }
 
     [JsonProperty("Datum")]
+    [JsonConverter(typeof(UnspecifiedDateTimeConverter))]
     public DateTime Date { get; set; }
 
     [JsonProperty("CisloDokladu")]

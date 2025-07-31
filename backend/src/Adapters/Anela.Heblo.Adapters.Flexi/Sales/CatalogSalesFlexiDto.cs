@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.Flexi.Common;
 using Newtonsoft.Json;
 
 namespace Anela.Heblo.Adapters.Flexi.Sales;
@@ -5,6 +6,7 @@ namespace Anela.Heblo.Adapters.Flexi.Sales;
 public class CatalogSalesFlexiDto
 {
     [JsonProperty("datum")]
+    [JsonConverter(typeof(UnspecifiedDateTimeConverter))]
     public DateTime Date { get; set; }
 
     [JsonProperty("produktkod")]
