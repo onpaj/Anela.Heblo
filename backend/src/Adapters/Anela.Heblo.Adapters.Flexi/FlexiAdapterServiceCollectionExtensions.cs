@@ -25,6 +25,7 @@ public static class FlexiAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddFlexiAdapter(this IServiceCollection services, IConfiguration configuration)
     {
+        
         services.AddFlexiBee(configuration);
         
         // Configure AutoMapper

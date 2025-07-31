@@ -37,7 +37,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             // Verify basic structure
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
-            result.Should().OnlyContain(record => record.Date >= dateFrom.Date && record.Date <= dateTo.Date,
+            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date && record.Date.Date <= dateTo.Date,
                 "Date should be within specified range");
 
             // Test limit parameter
@@ -153,9 +153,9 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         if (result.Any())
         {
             // All dates should be within the last week
-            result.Should().OnlyContain(record => record.Date >= dateFrom.Date,
+            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date,
                 "All records should be after or on the start date");
-            result.Should().OnlyContain(record => record.Date <= dateTo.Date,
+            result.Should().OnlyContain(record => record.Date.Date <= dateTo.Date,
                 "All records should be before or on the end date");
 
             // Verify data consistency
@@ -311,7 +311,8 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             // Use Date property for comparison to avoid timezone issues
             allSales.Should().OnlyContain(s => 
                 s.Date.Date >= dateFrom.Date && 
-                s.Date.Date <= dateTo.Date);
+                s.Date.Date <= dateTo.Date,
+                "Dates should be within specified range");
 
             // Step 3: Group by product and verify consistency
             var salesByProduct = allSales.GroupBy(s => s.ProductCode).ToList();
