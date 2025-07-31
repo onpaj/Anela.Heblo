@@ -9,6 +9,6 @@ public class CatalogSalesFlexiDtoProfile : Profile
     {
         CreateMap<CatalogSalesFlexiDto, CatalogSaleRecord>()
             .ForMember(dest => dest.Date, opt => opt.MapFrom(src => 
-                DateTime.SpecifyKind(src.Date, DateTimeKind.Unspecified)));
+                DateTime.SpecifyKind(src.Date, DateTimeKind.Local)));
     }
 }
