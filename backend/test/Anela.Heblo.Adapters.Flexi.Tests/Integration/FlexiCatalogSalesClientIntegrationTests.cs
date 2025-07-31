@@ -37,8 +37,11 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             // Verify basic structure
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
-            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date && record.Date.Date <= dateTo.Date,
-                "Date should be within specified range");
+            // Convert UTC dates to local time for comparison
+            result.Should().OnlyContain(record => 
+                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+                record.Date.ToLocalTime().Date <= dateTo.Date,
+                "Date should be within specified range when converted to local timezone");
 
             // Test limit parameter
             result.Count.Should().BeLessOrEqualTo(limit);
@@ -153,10 +156,13 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
         if (result.Any())
         {
             // All dates should be within the last week
-            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date,
-                "All records should be after or on the start date");
-            result.Should().OnlyContain(record => record.Date.Date <= dateTo.Date,
-                "All records should be before or on the end date");
+            // Convert UTC dates to local time for comparison  
+            result.Should().OnlyContain(record => 
+                record.Date.ToLocalTime().Date >= dateFrom.Date,
+                "All records should be after or on the start date when converted to local timezone");
+            result.Should().OnlyContain(record => 
+                record.Date.ToLocalTime().Date <= dateTo.Date,
+                "All records should be before or on the end date when converted to local timezone");
 
             // Verify data consistency
             foreach (var record in result.Take(10))
@@ -308,11 +314,11 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             // Step 2: Verify overall data structure
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductCode));
             allSales.Should().OnlyContain(s => !string.IsNullOrWhiteSpace(s.ProductName));
-            // Use Date property for comparison to avoid timezone issues
+            // Convert UTC dates to local time for comparison
             allSales.Should().OnlyContain(s => 
-                s.Date.Date >= dateFrom.Date && 
-                s.Date.Date <= dateTo.Date,
-                "Dates should be within specified range");
+                s.Date.ToLocalTime().Date >= dateFrom.Date && 
+                s.Date.ToLocalTime().Date <= dateTo.Date,
+                "Dates should be within specified range when converted to local timezone");
 
             // Step 3: Group by product and verify consistency
             var salesByProduct = allSales.GroupBy(s => s.ProductCode).ToList();
@@ -370,7 +376,7 @@ public class FlexiCatalogSalesClientIntegrationTests : IClassFixture<FlexiIntegr
             if (recentSales.Any())
             {
                 // Use Date property for comparison
-                recentSales.Should().OnlyContain(s => s.Date.Date >= recentFrom.Date);
+                recentSales.Should().OnlyContain(s => s.Date.ToLocalTime() >= recentFrom.Date);
                 recentSales.Count.Should().BeLessOrEqualTo(10);
             }
         }

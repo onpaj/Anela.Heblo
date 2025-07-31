@@ -39,7 +39,10 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductCode));
             result.Should().OnlyContain(record => !string.IsNullOrWhiteSpace(record.ProductName));
             result.Should().OnlyContain(record => record.Amount > 0);
-            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date && record.Date.Date <= dateTo.Date);
+            // Convert UTC dates to local time for comparison
+            result.Should().OnlyContain(record => 
+                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+                record.Date.ToLocalTime().Date <= dateTo.Date);
 
             // Test limit parameter
             result.Count.Should().BeLessOrEqualTo(limit);
@@ -63,7 +66,10 @@ public class FlexiConsumedMaterialsQueryClientIntegrationTests : IClassFixture<F
 
         if (result.Any())
         {
-            result.Should().OnlyContain(record => record.Date.Date >= dateFrom.Date && record.Date.Date <= dateTo.Date);
+            // Convert UTC dates to local time for comparison
+            result.Should().OnlyContain(record => 
+                record.Date.ToLocalTime().Date >= dateFrom.Date && 
+                record.Date.ToLocalTime().Date <= dateTo.Date);
         }
     }
 
