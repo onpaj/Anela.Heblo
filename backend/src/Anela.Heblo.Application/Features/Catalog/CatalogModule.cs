@@ -17,6 +17,9 @@ public static class CatalogModule
         services.AddTransient<ITransportBoxRepository, EmptyTransportBoxRepository>();
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
+        // Register background service for periodic refresh operations
+        services.AddHostedService<CatalogRefreshBackgroundService>();
+
         return services;
     }
 }

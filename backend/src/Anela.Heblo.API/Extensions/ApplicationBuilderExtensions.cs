@@ -16,7 +16,7 @@ public static class ApplicationBuilderExtensions
             {
                 // Only configure OAuth2 for Swagger UI if mock auth is disabled
                 var useMockAuth = app.Configuration.GetValue<bool>("UseMockAuth", false);
-                
+
                 if (!useMockAuth)
                 {
                     // Configure OAuth2 for Swagger UI
@@ -31,10 +31,10 @@ public static class ApplicationBuilderExtensions
                         options.OAuthUsePkce();
                         options.OAuthScopeSeparator(" ");
                         options.OAuthAppName("Anela Heblo API");
-                        
+
                         // Additional OAuth2 settings for better UX
                         options.OAuthUseBasicAuthenticationWithAccessCodeGrant();
-                        
+
                         // Pre-fill scopes if available
                         if (!string.IsNullOrEmpty(scopes))
                         {
@@ -48,7 +48,7 @@ public static class ApplicationBuilderExtensions
                         }
                     }
                 }
-                
+
                 // Enable additional Swagger UI features (always)
                 options.EnableDeepLinking();
                 options.DisplayRequestDuration();

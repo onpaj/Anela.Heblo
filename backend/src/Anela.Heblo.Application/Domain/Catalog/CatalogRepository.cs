@@ -130,7 +130,7 @@ public class CatalogRepository : ICatalogRepository
         CachedStockTakingData = (await _stockTakingRepository.GetAllAsync(ct)).ToList();
     }
 
-    public async Task RefreshLostData(CancellationToken ct)
+    public async Task RefreshLotsData(CancellationToken ct)
     {
         CachedLotsData = (await _lotsClient.GetAsync(cancellationToken: ct)).ToList();
     }

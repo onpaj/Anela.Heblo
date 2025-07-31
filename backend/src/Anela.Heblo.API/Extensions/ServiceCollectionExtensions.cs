@@ -116,7 +116,7 @@ public static class ServiceCollectionExtensions
 
             // Only add authentication to Swagger if mock auth is disabled
             var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-            
+
             if (!useMockAuth)
             {
                 // Add Microsoft Entra ID OAuth2 authentication
