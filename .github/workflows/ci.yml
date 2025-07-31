@@ -100,8 +100,8 @@ jobs:
           Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
           Shoptet.Playwright__Headless: true
           # FlexiBee integration test configuration
-          FlexiBeeSettings__ServerUrl: ${{ secrets.FLEXIBEE_SERVER_URL }}
-          FlexiBeeSettings__Username: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
