@@ -49,7 +49,7 @@ public class ShoptetStockClient : IEshopStockClient
                 .NullValues(string.Empty)
                 .Default(0m);
             Map(m => m.NameSuffix).Index(7);
-            Map(m => m.Location).Index(17);
+            Map(m => m.Location).Index(18);
         }
     }
 }
