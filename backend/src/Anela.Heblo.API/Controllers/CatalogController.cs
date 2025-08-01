@@ -11,25 +11,51 @@ namespace Anela.Heblo.API.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<CatalogController> _logger;
 
-    public CatalogController(IMediator mediator)
+    public CatalogController(IMediator mediator, ILogger<CatalogController> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<ActionResult<GetCatalogListResponse>> GetCatalogList([FromQuery] GetCatalogListRequest request)
     {
-        var response = await _mediator.Send(request);
-        return Ok(response);
+        _logger.LogInformation("Getting catalog list with page {PageNumber}, size {PageSize}, product name {ProductName}", 
+            request.PageNumber, request.PageSize, request.ProductName);
+        
+        try
+        {
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully retrieved catalog list with {Count} items, total {TotalCount}", 
+                response.Items.Count, response.TotalCount);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get catalog list");
+            throw;
+        }
     }
 
     [HttpGet("{productCode}")]
     public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode)
     {
-        var request = new GetCatalogDetailRequest { ProductCode = productCode };
-        var response = await _mediator.Send(request);
-        return Ok(response);
+        _logger.LogInformation("Getting catalog detail for product code {ProductCode}", productCode);
+        
+        try
+        {
+            var request = new GetCatalogDetailRequest { ProductCode = productCode };
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully retrieved catalog detail for product {ProductCode}", productCode);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get catalog detail for product {ProductCode}", productCode);
+            throw;
+        }
     }
 
     [HttpPost("refresh/transport")]

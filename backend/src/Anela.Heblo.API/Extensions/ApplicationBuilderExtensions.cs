@@ -58,6 +58,9 @@ public static class ApplicationBuilderExtensions
 
         app.UseHttpsRedirection();
 
+        // Built-in HTTP request logging
+        app.UseHttpLogging();
+
         // Use CORS
         app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
 

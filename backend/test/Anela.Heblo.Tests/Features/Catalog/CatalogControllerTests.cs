@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
@@ -10,12 +11,14 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 public class CatalogControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ILogger<CatalogController>> _loggerMock;
     private readonly CatalogController _controller;
 
     public CatalogControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _controller = new CatalogController(_mediatorMock.Object);
+        _loggerMock = new Mock<ILogger<CatalogController>>();
+        _controller = new CatalogController(_mediatorMock.Object, _loggerMock.Object);
     }
 
     [Fact]

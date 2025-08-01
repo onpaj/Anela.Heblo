@@ -86,6 +86,18 @@ public static class ServiceCollectionExtensions
         // Register Current User Service
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
 
+        // Built-in HTTP request logging
+        services.AddHttpLogging(logging =>
+        {
+            logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+            logging.RequestHeaders.Add("User-Agent");
+            logging.RequestHeaders.Add("Authorization");
+            logging.ResponseHeaders.Add("Content-Type");
+            logging.MediaTypeOptions.AddText("application/json");
+            logging.RequestBodyLogLimit = 4096;
+            logging.ResponseBodyLogLimit = 4096;
+        });
+
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns
 
