@@ -84,8 +84,20 @@ public class ShoptetPriceClient : IProductPriceEshopClient
             Map(m => m.Code).Index(0);
             Map(m => m.PairCode).Index(1);
             Map(m => m.Name).Index(2);
-            Map(m => m.Price).Convert(a => decimal.TryParse(a.Row.GetField(3).Replace(",", "."), out var result) ? result : null);
-            Map(m => m.PurchasePrice).Convert(a => decimal.TryParse(a.Row.GetField(4).Replace(",", "."), out var result) ? result : null);
+            Map(m => m.Price).Convert(a => 
+            {
+                var fieldValue = a.Row.GetField(3);
+                if (string.IsNullOrWhiteSpace(fieldValue))
+                    return null;
+                return decimal.TryParse(fieldValue.Replace(",", "."), NumberStyles.Number, CultureInfo.InvariantCulture, out var result) ? (decimal?)result : null;
+            });
+            Map(m => m.PurchasePrice).Convert(a => 
+            {
+                var fieldValue = a.Row.GetField(4);
+                if (string.IsNullOrWhiteSpace(fieldValue))
+                    return null;
+                return decimal.TryParse(fieldValue.Replace(",", "."), NumberStyles.Number, CultureInfo.InvariantCulture, out var result) ? (decimal?)result : null;
+            });
         }
     }
 

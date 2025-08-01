@@ -14,8 +14,10 @@ using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
 using Anela.Heblo.Application.Domain.Catalog.Price;
 using Anela.Heblo.Application.Domain.Logistics.Transport;
 using Anela.Heblo.Application.Domain.Manufacture;
+using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 using Rem.FlexiBeeSDK.Client.DI;
@@ -55,6 +57,8 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IStockTakingClient, StockTakingClient>();
         services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
 
+        services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
+        
         return services;
     }
 }

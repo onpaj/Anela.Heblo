@@ -37,7 +37,9 @@
     "test": "react-scripts test",
     "test:playwright": "npx playwright test",
     "eject": "react-scripts eject",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "prepare": "husky"
   },
   "eslintConfig": {
     "extends": [
@@ -60,7 +62,15 @@
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/react-router-dom": "^5.3.3",
-    "eslint": "^8.57.1"
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ]
   },
   "homepage": "."
 }

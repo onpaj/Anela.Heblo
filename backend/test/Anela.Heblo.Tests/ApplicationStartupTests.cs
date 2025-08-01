@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.API;
 using Anela.Heblo.Xcc.Telemetry;
 using Xunit.Abstractions;
@@ -29,6 +31,24 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     {"UseMockAuth", "true"}
+                });
+            });
+
+            // Register mock TelemetryClient for test environment
+            builder.ConfigureServices(services =>
+            {
+                // Remove any existing TelemetryClient registration
+                var telemetryClientDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(TelemetryClient));
+                if (telemetryClientDescriptor != null)
+                {
+                    services.Remove(telemetryClientDescriptor);
+                }
+
+                // Add mock TelemetryClient
+                services.AddSingleton<TelemetryClient>(serviceProvider =>
+                {
+                    var config = new TelemetryConfiguration();
+                    return new TelemetryClient(config);
                 });
             });
         });
@@ -82,7 +102,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                         (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>)) ||
                         paramType.Name.EndsWith("?"))
                     {
-                        args[i] = serviceProvider.GetService(paramType) ?? paramInfo.DefaultValue;
+                        args[i] = serviceProvider.GetService(paramType) ?? paramInfo.DefaultValue ?? null!;
                     }
                     else
                     {

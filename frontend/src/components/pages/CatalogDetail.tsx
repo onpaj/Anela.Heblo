@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle } from 'lucide-react';
-import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogPurchaseRecordDto, CatalogConsumedRecordDto } from '../../api/hooks/useCatalog';
+import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto } from '../../api/hooks/useCatalog';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +12,7 @@ import {
   LineElement,
   PointElement,
 } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -49,7 +49,6 @@ const productTypeColors: Record<ProductType, string> = {
 };
 
 const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'sales' | 'purchases' | 'consumed'>('sales');
 
   // Fetch detailed data from API
   const { data: detailData, isLoading: detailLoading, error: detailError } = useCatalogDetail(item?.productCode || '');
@@ -64,16 +63,6 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose }) 
     }
   };
 
-  const formatSeasonMonths = (months: number[]) => {
-    if (!months || months.length === 0) return 'Není nastaveno';
-    
-    const monthNames = [
-      'Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn',
-      'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'
-    ];
-    
-    return months.map(m => monthNames[m - 1]).join(', ');
-  };
 
   return (
     <div 

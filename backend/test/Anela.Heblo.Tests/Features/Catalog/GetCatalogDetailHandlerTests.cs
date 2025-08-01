@@ -96,7 +96,7 @@ public class GetCatalogDetailHandlerTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         var expectedFromDate = currentDate.AddMonths(-monthsBack);
         var expectedFromKey = $"{expectedFromDate.Year:D4}-{expectedFromDate.Month:D2}";
 
@@ -149,7 +149,7 @@ public class GetCatalogDetailHandlerTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.HistoricalData);
-        
+
         // Should not throw exception even with edge case values
         // Results might be empty or include all data depending on the edge case
         Assert.NotNull(result.HistoricalData.SalesHistory);
@@ -202,13 +202,13 @@ public class GetCatalogDetailHandlerTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify data is ordered by Year DESC, Month DESC
         for (int i = 0; i < result.HistoricalData.SalesHistory.Count - 1; i++)
         {
             var current = result.HistoricalData.SalesHistory[i];
             var next = result.HistoricalData.SalesHistory[i + 1];
-            
+
             Assert.True(current.Year >= next.Year);
             if (current.Year == next.Year)
             {
@@ -243,25 +243,37 @@ public class GetCatalogDetailHandlerTests
         {
             MonthlyData = new Dictionary<string, MonthlyPurchaseSummary>
             {
-                ["2023-01"] = new MonthlyPurchaseSummary 
-                { 
-                    Year = 2023, Month = 1, TotalAmount = 100, TotalCost = 2000, AveragePricePerPiece = 20,
+                ["2023-01"] = new MonthlyPurchaseSummary
+                {
+                    Year = 2023,
+                    Month = 1,
+                    TotalAmount = 100,
+                    TotalCost = 2000,
+                    AveragePricePerPiece = 20,
                     SupplierBreakdown = new Dictionary<string, SupplierPurchaseSummary>
                     {
                         ["Supplier1"] = new SupplierPurchaseSummary { SupplierName = "Supplier1", Amount = 100, Cost = 2000 }
                     }
                 },
-                ["2023-05"] = new MonthlyPurchaseSummary 
-                { 
-                    Year = 2023, Month = 5, TotalAmount = 120, TotalCost = 2400, AveragePricePerPiece = 20,
+                ["2023-05"] = new MonthlyPurchaseSummary
+                {
+                    Year = 2023,
+                    Month = 5,
+                    TotalAmount = 120,
+                    TotalCost = 2400,
+                    AveragePricePerPiece = 20,
                     SupplierBreakdown = new Dictionary<string, SupplierPurchaseSummary>
                     {
                         ["Supplier1"] = new SupplierPurchaseSummary { SupplierName = "Supplier1", Amount = 120, Cost = 2400 }
                     }
                 },
-                ["2024-01"] = new MonthlyPurchaseSummary 
-                { 
-                    Year = 2024, Month = 1, TotalAmount = 110, TotalCost = 2200, AveragePricePerPiece = 20,
+                ["2024-01"] = new MonthlyPurchaseSummary
+                {
+                    Year = 2024,
+                    Month = 1,
+                    TotalAmount = 110,
+                    TotalCost = 2200,
+                    AveragePricePerPiece = 20,
                     SupplierBreakdown = new Dictionary<string, SupplierPurchaseSummary>
                     {
                         ["Supplier1"] = new SupplierPurchaseSummary { SupplierName = "Supplier1", Amount = 110, Cost = 2200 }
