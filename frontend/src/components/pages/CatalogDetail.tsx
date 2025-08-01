@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto } from '../../api/hooks/useCatalog';
 import {
   Chart as ChartJS,
@@ -144,39 +144,119 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose }) 
                   </div>
 
                   {/* Stock Information */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <h3 className="text-lg font-medium text-gray-900 flex items-center">
                       <BarChart3 className="h-5 w-5 mr-2 text-gray-500" />
                       Skladové zásoby
                     </h3>
                     
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      {/* Available stock - highlighted */}
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600">Dostupné:</span>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
                           {Math.round(item.stock.available * 100) / 100}
                         </span>
                       </div>
                       
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">E-shop:</span>
-                        <span className="text-sm text-gray-900">{Math.round(item.stock.eshop * 100) / 100}</span>
+                      {/* Other stock info in compact grid */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm border-t border-gray-200 pt-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Shoptet:</span>
+                          <span className="font-medium">{Math.round(item.stock.eshop * 100) / 100}</span>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Transport:</span>
+                          <span className="font-medium">{Math.round(item.stock.transport * 100) / 100}</span>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">ABRA:</span>
+                          <span className="font-medium">{Math.round(item.stock.erp * 100) / 100}</span>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Rezervované:</span>
+                          <span className="font-medium">{Math.round(item.stock.reserve * 100) / 100}</span>
+                        </div>
                       </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">ERP sklad:</span>
-                        <span className="text-sm text-gray-900">{Math.round(item.stock.erp * 100) / 100}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Transport:</span>
-                        <span className="text-sm text-gray-900">{Math.round(item.stock.transport * 100) / 100}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Rezervované:</span>
-                        <span className="text-sm text-gray-900">{Math.round(item.stock.reserve * 100) / 100}</span>
-                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price Information */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2 text-gray-500" />
+                      Cenové informace
+                    </h3>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      {/* Check if we have any price data */}
+                      {(item.price?.eshopPrice || item.price?.erpPrice) ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-2 pr-4 font-medium text-gray-700"></th>
+                                <th className="text-center py-2 px-2 font-medium text-gray-700">Shoptet</th>
+                                <th className="text-center py-2 pl-2 font-medium text-gray-700">ABRA</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {/* Selling price with VAT row */}
+                              <tr>
+                                <td className="py-2 pr-4 font-medium text-gray-600">Prodejní s DPH:</td>
+                                <td className="text-center py-2 px-2">
+                                  {item.price?.eshopPrice?.priceWithVat 
+                                    ? `${item.price.eshopPrice.priceWithVat.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`
+                                    : '-'
+                                  }
+                                </td>
+                                <td className="text-center py-2 pl-2">
+                                  {item.price?.erpPrice?.priceWithVat 
+                                    ? `${item.price.erpPrice.priceWithVat.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`
+                                    : '-'
+                                  }
+                                </td>
+                              </tr>
+                              
+                              {/* Selling price without VAT row */}
+                              <tr>
+                                <td className="py-2 pr-4 font-medium text-gray-600">Prodejní bez DPH:</td>
+                                <td className="text-center py-2 px-2">-</td>
+                                <td className="text-center py-2 pl-2">
+                                  {item.price?.erpPrice?.priceWithoutVat 
+                                    ? `${item.price.erpPrice.priceWithoutVat.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`
+                                    : '-'
+                                  }
+                                </td>
+                              </tr>
+                              
+                              {/* Purchase price row */}
+                              <tr>
+                                <td className="py-2 pr-4 font-medium text-gray-600">Nákupní:</td>
+                                <td className="text-center py-2 px-2">
+                                  {item.price?.eshopPrice?.purchasePrice 
+                                    ? `${item.price.eshopPrice.purchasePrice.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`
+                                    : '-'
+                                  }
+                                </td>
+                                <td className="text-center py-2 pl-2">
+                                  {item.price?.erpPrice?.purchasePrice 
+                                    ? `${item.price.erpPrice.purchasePrice.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`
+                                    : '-'
+                                  }
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-4">
+                          <span className="text-sm">Cenové informace nejsou k dispozici</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

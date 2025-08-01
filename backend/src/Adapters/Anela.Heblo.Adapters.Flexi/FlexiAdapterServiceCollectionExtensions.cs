@@ -58,7 +58,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
-        
+
         return services;
     }
 }

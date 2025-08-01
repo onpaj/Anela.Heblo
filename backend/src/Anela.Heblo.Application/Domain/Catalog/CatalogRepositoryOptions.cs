@@ -19,6 +19,10 @@ public class CatalogRepositoryOptions
     public TimeSpan StockTakingRefreshInterval { get; set; } = TimeSpan.FromMinutes(5);
     public TimeSpan PurchaseHistoryRefreshInterval { get; set; } = TimeSpan.FromMinutes(60);
     public TimeSpan LotsRefreshInterval { get; set; } = TimeSpan.FromMinutes(60);
+
+    public TimeSpan EshopPricesRefreshInterval { get; set; } = TimeSpan.FromMinutes(30);
+    public TimeSpan ErpPricesRefreshInterval { get; set; } = TimeSpan.FromMinutes(60);
+
     public int SalesHistoryDays { get; set; } = 400;
     public int PurchaseHistoryDays { get; set; } = 400;
     public int ConsumedHistoryDays { get; set; } = 720;

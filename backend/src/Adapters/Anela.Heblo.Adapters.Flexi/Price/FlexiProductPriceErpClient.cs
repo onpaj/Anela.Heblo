@@ -71,11 +71,10 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         var prices = data!.Select(s => new ProductPriceErp()
         {
             ProductCode = s.ProductCode,
-            Price = s.Price,
+            PriceWithoutVat = s.Price,
             PriceWithVat = s.Price * ((100 + s.Vat) / 100),
             PurchasePrice = s.PurchasePrice,
-            PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
-            BoMId = s.BoMId
+            PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100)
         }).ToList();
 
         if (dataLoaded)
@@ -84,7 +83,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             await _auditService.LogDataLoadAsync(
                 dataType: "Product Prices",
                 source: "Flexi ERP",
-                recordCount: prices.Count,
+                recordCount: prices.Count(),
                 success: true,
                 parameters: parameters,
                 duration: duration);

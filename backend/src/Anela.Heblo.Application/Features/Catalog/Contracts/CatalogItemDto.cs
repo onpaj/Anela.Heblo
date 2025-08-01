@@ -8,6 +8,7 @@ public class CatalogItemDto
     public string ProductName { get; set; } = string.Empty;
     public ProductType Type { get; set; }
     public StockDto Stock { get; set; } = new();
+    public PriceDto Price { get; set; } = new();
     public PropertiesDto Properties { get; set; } = new();
     public string Location { get; set; } = string.Empty;
     public string MinimalOrderQuantity { get; set; } = string.Empty;

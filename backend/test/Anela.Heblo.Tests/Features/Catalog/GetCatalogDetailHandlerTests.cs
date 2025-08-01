@@ -36,7 +36,12 @@ public class GetCatalogDetailHandlerTests
         };
 
         var catalogItem = CreateTestCatalogAggregate();
-        var catalogItemDto = new CatalogItemDto { ProductCode = "TEST001", ProductName = "Test Product" };
+        var catalogItemDto = new CatalogItemDto
+        {
+            ProductCode = "TEST001",
+            ProductName = "Test Product",
+            Price = new PriceDto()
+        };
 
         _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(new DateTimeOffset(currentDate));
         _catalogRepositoryMock
@@ -83,7 +88,12 @@ public class GetCatalogDetailHandlerTests
         };
 
         var catalogItem = CreateTestCatalogAggregate();
-        var catalogItemDto = new CatalogItemDto { ProductCode = "TEST001", ProductName = "Test Product" };
+        var catalogItemDto = new CatalogItemDto
+        {
+            ProductCode = "TEST001",
+            ProductName = "Test Product",
+            Price = new PriceDto()
+        };
 
         _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(new DateTimeOffset(currentDate));
         _catalogRepositoryMock
@@ -135,7 +145,12 @@ public class GetCatalogDetailHandlerTests
         };
 
         var catalogItem = CreateTestCatalogAggregate();
-        var catalogItemDto = new CatalogItemDto { ProductCode = "TEST001", ProductName = "Test Product" };
+        var catalogItemDto = new CatalogItemDto
+        {
+            ProductCode = "TEST001",
+            ProductName = "Test Product",
+            Price = new PriceDto()
+        };
 
         _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(new DateTimeOffset(currentDate));
         _catalogRepositoryMock
@@ -189,7 +204,12 @@ public class GetCatalogDetailHandlerTests
         };
 
         var catalogItem = CreateTestCatalogAggregate();
-        var catalogItemDto = new CatalogItemDto { ProductCode = "TEST001", ProductName = "Test Product" };
+        var catalogItemDto = new CatalogItemDto
+        {
+            ProductCode = "TEST001",
+            ProductName = "Test Product",
+            Price = new PriceDto()
+        };
 
         _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(new DateTimeOffset(currentDate));
         _catalogRepositoryMock

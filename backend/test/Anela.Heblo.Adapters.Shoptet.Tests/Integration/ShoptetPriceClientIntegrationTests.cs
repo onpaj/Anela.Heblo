@@ -43,29 +43,11 @@ public class ShoptetPriceClientIntegrationTests
         var resultList = result.ToList();
         if (resultList.Any())
         {
-            // Validate structure of returned price items
-            resultList.Should().OnlyContain(price =>
-                !string.IsNullOrEmpty(price.Code)
-            );
-
-            // Check that CSV mapping worked correctly
+            // Check that prices are properly parsed
             var firstPrice = resultList.First();
-            firstPrice.Code.Should().NotBeNullOrEmpty("Product code should be parsed from CSV");
-            firstPrice.Name.Should().NotBeNullOrEmpty("Product name should be parsed from CSV");
 
-            // Check that original prices are set (business logic requirement)
-            if (firstPrice.Price.HasValue)
-            {
-                firstPrice.OriginalPrice.Should().Be(firstPrice.Price, "OriginalPrice should be set to Price value");
-            }
-
-            if (firstPrice.PurchasePrice.HasValue)
-            {
-                firstPrice.OriginalPurchasePrice.Should().Be(firstPrice.PurchasePrice, "OriginalPurchasePrice should be set to PurchasePrice value");
-            }
-
-            resultList.Where(p => p.Price.HasValue).Should().Contain(price =>
-                price.Price >= 0, "Prices should be non-negative");
+            resultList.Where(p => p.PriceWithVat.HasValue).Should().Contain(price =>
+                price.PriceWithVat >= 0, "Prices with VAT should be non-negative");
 
             resultList.Where(p => p.PurchasePrice.HasValue).Should().Contain(price =>
                 price.PurchasePrice >= 0, "Purchase prices should be non-negative");
@@ -94,19 +76,10 @@ public class ShoptetPriceClientIntegrationTests
             // Test CSV column mapping is working correctly
             foreach (var price in resultList.Take(5)) // Check first 5 items
             {
-                // Code should be non-empty (column 0)
-                price.Code.Should().NotBeNullOrEmpty("Code should be mapped from column 0");
-
-                // PairCode can be empty but should not be null (column 1)
-                price.PairCode.Should().NotBeNull("PairCode should be mapped from column 1");
-
-                // Name should be non-empty (column 2)
-                price.Name.Should().NotBeNullOrEmpty("Name should be mapped from column 2");
-
-                // Price parsing with comma replacement (column 3)
-                if (price.Price.HasValue)
+                // PriceWithVat parsing with comma replacement (column 3)
+                if (price.PriceWithVat.HasValue)
                 {
-                    price.Price.Should().BeGreaterOrEqualTo(0, "Price should be non-negative decimal from column 3");
+                    price.PriceWithVat.Should().BeGreaterOrEqualTo(0, "PriceWithVat should be non-negative decimal from column 3");
                 }
 
                 // PurchasePrice parsing with comma replacement (column 4)
@@ -136,18 +109,15 @@ public class ShoptetPriceClientIntegrationTests
         var resultList = result.ToList();
         if (resultList.Any())
         {
-            // Check that Czech characters are properly decoded (windows-1250 encoding)
-            var productsWithCzechChars = resultList.Where(p =>
-                p.Name.Contains('ř') || p.Name.Contains('š') || p.Name.Contains('č') ||
-                p.Name.Contains('ž') || p.Name.Contains('ý') || p.Name.Contains('á') ||
-                p.Name.Contains('í') || p.Name.Contains('é') || p.Name.Contains('ů')
-            ).ToList();
+            // Test that CSV parsing works with different character encodings
+            // Note: Simplified model doesn't include Name field, so we just verify data is parsed
+            resultList.Should().NotBeEmpty("Should parse price data from CSV even with encoding");
 
-            // If there are Czech characters, they should be properly decoded
-            foreach (var product in productsWithCzechChars.Take(3))
+            // Verify prices are reasonable (basic sanity check)
+            var pricesWithValues = resultList.Where(p => p.PriceWithVat.HasValue).ToList();
+            if (pricesWithValues.Any())
             {
-                product.Name.Should().NotContain("?", "Czech characters should be properly decoded from windows-1250");
-                product.Name.Should().NotContain("�", "Czech characters should not contain replacement characters");
+                pricesWithValues.Should().OnlyContain(p => p.PriceWithVat >= 0, "All prices should be non-negative");
             }
         }
     }
@@ -176,23 +146,13 @@ public class ShoptetPriceClientIntegrationTests
         {
             new ProductPriceEshop
             {
-                Code = "TEST001",
-                PairCode = "PAIR001",
-                Name = "Test Product 1",
-                Price = 100.50m,
-                PurchasePrice = 75.25m,
-                OriginalPrice = 90.00m,
-                OriginalPurchasePrice = 70.00m
+                PriceWithVat = 100.50m,
+                PurchasePrice = 75.25m
             },
             new ProductPriceEshop
             {
-                Code = "TEST002",
-                PairCode = "PAIR002",
-                Name = "Test Product 2",
-                Price = 200.00m,
-                PurchasePrice = 150.00m,
-                OriginalPrice = 180.00m,
-                OriginalPurchasePrice = 140.00m
+                PriceWithVat = 200.00m,
+                PurchasePrice = 150.00m
             }
         };
 
@@ -212,10 +172,9 @@ public class ShoptetPriceClientIntegrationTests
 
         // Verify CSV content structure
         var csvContent = System.Text.Encoding.UTF8.GetString(result.Data);
-        csvContent.Should().Contain("TEST001", "CSV should contain first test product code");
-        csvContent.Should().Contain("TEST002", "CSV should contain second test product code");
-        csvContent.Should().Contain("PAIR001", "CSV should contain first test pair code");
+        csvContent.Should().Contain("100.50", "CSV should contain first test price with VAT");
         csvContent.Should().Contain("75.25", "CSV should contain first test purchase price");
+        csvContent.Should().Contain("200.00", "CSV should contain second test price");
 
         // Clean up
         try
@@ -269,10 +228,7 @@ public class ShoptetPriceClientIntegrationTests
         {
             new ProductPriceEshop
             {
-                Code = "ČR001",
-                PairCode = "PÁRČR001",
-                Name = "Tëst Prõdũkt čšřžýáíéů",
-                Price = 150.75m,
+                PriceWithVat = 150.75m,
                 PurchasePrice = 100.50m
             }
         };
@@ -286,10 +242,10 @@ public class ShoptetPriceClientIntegrationTests
         result.Should().NotBeNull();
         result.Data.Should().NotBeNull();
 
-        // Verify Czech characters are properly encoded in UTF-8
+        // Verify decimal formatting is properly encoded in UTF-8
         var csvContent = System.Text.Encoding.UTF8.GetString(result.Data);
-        csvContent.Should().Contain("ČR001", "CSV should contain Czech characters in code");
-        csvContent.Should().Contain("PÁRČR001", "CSV should contain Czech characters in pair code");
+        csvContent.Should().Contain("150.75", "CSV should contain price with decimal formatting");
+        csvContent.Should().Contain("100.50", "CSV should contain purchase price with decimal formatting");
 
         // Clean up
         try

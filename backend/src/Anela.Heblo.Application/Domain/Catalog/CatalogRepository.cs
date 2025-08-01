@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Anela.Heblo.Application.Domain.Catalog.Attributes;
 using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
 using Anela.Heblo.Application.Domain.Catalog.Lots;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
@@ -21,6 +22,8 @@ public class CatalogRepository : ICatalogRepository
     private readonly IPurchaseHistoryClient _purchaseHistoryClient;
     private readonly IErpStockClient _erpStockClient;
     private readonly ILotsClient _lotsClient;
+    private readonly IProductPriceEshopClient _productPriceEshopClient;
+    private readonly IProductPriceErpClient _productPriceErpClient;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly IMemoryCache _cache;
@@ -37,6 +40,8 @@ public class CatalogRepository : ICatalogRepository
         IPurchaseHistoryClient purchaseHistoryClient,
         IErpStockClient erpStockClient,
         ILotsClient lotsClient,
+        IProductPriceEshopClient productPriceEshopClient,
+        IProductPriceErpClient productPriceErpClient,
         ITransportBoxRepository transportBoxRepository,
         IStockTakingRepository stockTakingRepository,
         IMemoryCache cache,
@@ -51,6 +56,8 @@ public class CatalogRepository : ICatalogRepository
         _purchaseHistoryClient = purchaseHistoryClient;
         _erpStockClient = erpStockClient;
         _lotsClient = lotsClient;
+        _productPriceEshopClient = productPriceEshopClient;
+        _productPriceErpClient = productPriceErpClient;
         _transportBoxRepository = transportBoxRepository;
         _stockTakingRepository = stockTakingRepository;
         _cache = cache;
@@ -135,6 +142,16 @@ public class CatalogRepository : ICatalogRepository
         CachedLotsData = (await _lotsClient.GetAsync(cancellationToken: ct)).ToList();
     }
 
+    public async Task RefreshEshopPricesData(CancellationToken ct)
+    {
+        CachedEshopPriceData = (await _productPriceEshopClient.GetAllAsync(ct)).ToList();
+    }
+
+    public async Task RefreshErpPricesData(CancellationToken ct)
+    {
+        CachedErpPriceData = (await _productPriceErpClient.GetAllAsync(false, ct)).ToList();
+    }
+
 
     private List<CatalogAggregate> CatalogData => _cache.GetOrCreate(nameof(CatalogData), c => Merge())!;
 
@@ -171,6 +188,8 @@ public class CatalogRepository : ICatalogRepository
         var lotsMap = CachedLotsData
             .GroupBy(p => p.ProductCode)
             .ToDictionary(k => k.Key, v => v.ToList());
+        var eshopPriceMap = CachedEshopPriceData.ToDictionary(k => k.ProductCode, v => v);
+        var erpPriceMap = CachedErpPriceData.ToDictionary(k => k.ProductCode, v => v);
 
         foreach (var product in products)
         {
@@ -220,6 +239,18 @@ public class CatalogRepository : ICatalogRepository
             if (lotsMap.TryGetValue(product.ProductCode, out var lots))
             {
                 product.Stock.Lots = lots.ToList();
+            }
+
+            // Mapování eshop cen podle ProductCode
+            if (eshopPriceMap.TryGetValue(product.ProductCode, out var eshopPrice))
+            {
+                product.EshopPrice = eshopPrice;
+            }
+
+            // Mapování ERP cen podle ProductCode
+            if (erpPriceMap.TryGetValue(product.ProductCode, out var erpPrice))
+            {
+                product.ErpPrice = erpPrice;
             }
         }
 
@@ -325,6 +356,26 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedLotsData), value);
+            Invalidate();
+        }
+    }
+
+    private IList<ProductPriceEshop> CachedEshopPriceData
+    {
+        get => _cache.Get<List<ProductPriceEshop>>(nameof(CachedEshopPriceData)) ?? new List<ProductPriceEshop>();
+        set
+        {
+            _cache.Set(nameof(CachedEshopPriceData), value);
+            Invalidate();
+        }
+    }
+
+    private IList<ProductPriceErp> CachedErpPriceData
+    {
+        get => _cache.Get<List<ProductPriceErp>>(nameof(CachedErpPriceData)) ?? new List<ProductPriceErp>();
+        set
+        {
+            _cache.Set(nameof(CachedErpPriceData), value);
             Invalidate();
         }
     }

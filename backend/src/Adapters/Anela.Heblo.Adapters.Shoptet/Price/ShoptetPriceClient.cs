@@ -32,11 +32,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
             priceList = csv.GetRecords<ProductPriceEshop>().ToList();
         }
 
-        priceList.ForEach(f =>
-        {
-            f.OriginalPrice = f.Price;
-            f.OriginalPurchasePrice = f.PurchasePrice;
-        });
+        // Removed OriginalPrice and OriginalPurchasePrice assignments as these properties don't exist in simplified model
 
         return priceList;
     }
@@ -81,17 +77,18 @@ public class ShoptetPriceClient : IProductPriceEshopClient
     {
         public ProductPriceImportMap()
         {
-            Map(m => m.Code).Index(0);
-            Map(m => m.PairCode).Index(1);
-            Map(m => m.Name).Index(2);
-            Map(m => m.Price).Convert(a => 
+            // Map ProductCode from first column
+            Map(m => m.ProductCode).Index(0);
+
+            // Map prices from columns 3 and 4 (skip PairCode and Name)
+            Map(m => m.PriceWithVat).Convert(a =>
             {
                 var fieldValue = a.Row.GetField(3);
                 if (string.IsNullOrWhiteSpace(fieldValue))
                     return null;
                 return decimal.TryParse(fieldValue.Replace(",", "."), NumberStyles.Number, CultureInfo.InvariantCulture, out var result) ? (decimal?)result : null;
             });
-            Map(m => m.PurchasePrice).Convert(a => 
+            Map(m => m.PurchasePrice).Convert(a =>
             {
                 var fieldValue = a.Row.GetField(4);
                 if (string.IsNullOrWhiteSpace(fieldValue))
@@ -105,13 +102,9 @@ public class ShoptetPriceClient : IProductPriceEshopClient
     {
         public ProductPriceExportMap()
         {
-            Map(m => m.Code).Index(0);
-            Map(m => m.PairCode).Index(1);
+            Map(m => m.ProductCode).Index(0);
+            Map(m => m.PriceWithVat).Index(1);
             Map(m => m.PurchasePrice).Index(2);
-            Map(m => m.Name).Ignore();
-            Map(m => m.Price).Ignore();
-            Map(m => m.OriginalPrice).Ignore();
-            Map(m => m.OriginalPurchasePrice).Ignore();
         }
     }
 }

@@ -23,7 +23,7 @@ public class GetAuditSummaryHandler : IRequestHandler<GetAuditSummaryRequest, Ge
     {
         try
         {
-            _logger.LogInformation("Retrieving audit summary for period fromDate: {FromDate}, toDate: {ToDate}", 
+            _logger.LogInformation("Retrieving audit summary for period fromDate: {FromDate}, toDate: {ToDate}",
                 request.FromDate, request.ToDate);
 
             var auditLogs = await _auditService.GetAuditLogsAsync(null, request.FromDate, request.ToDate);
@@ -38,8 +38,8 @@ public class GetAuditSummaryHandler : IRequestHandler<GetAuditSummaryRequest, Ge
                     SuccessfulRequests = g.Count(x => x.Success),
                     FailedRequests = g.Count(x => !x.Success),
                     TotalRecords = g.Where(x => x.Success).Sum(x => x.RecordCount),
-                    AverageDuration = g.Where(x => x.Success).Any() 
-                        ? g.Where(x => x.Success).Average(x => x.Duration.TotalMilliseconds) 
+                    AverageDuration = g.Where(x => x.Success).Any()
+                        ? g.Where(x => x.Success).Average(x => x.Duration.TotalMilliseconds)
                         : 0,
                     LastSuccessfulLoad = g.Where(x => x.Success).Max(x => (DateTime?)x.Timestamp),
                     LastFailedLoad = g.Where(x => !x.Success).Max(x => (DateTime?)x.Timestamp)

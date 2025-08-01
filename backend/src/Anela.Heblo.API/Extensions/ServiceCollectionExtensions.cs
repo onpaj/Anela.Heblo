@@ -38,7 +38,7 @@ public static class ServiceCollectionExtensions
             {
                 var cloudRole = configuration["ApplicationInsights:CloudRole"] ?? "Heblo-API";
                 var cloudRoleInstance = configuration["ApplicationInsights:CloudRoleInstance"] ?? environment.EnvironmentName;
-                
+
                 telemetryConfig.TelemetryInitializers.Add(new CloudRoleInitializer(cloudRole, cloudRoleInstance));
             });
 

@@ -17,6 +17,27 @@ export interface PropertiesDto {
   seasonMonths: number[];
 }
 
+export interface EshopPriceDto {
+  priceWithVat?: number;
+  purchasePrice?: number;
+}
+
+export interface ErpPriceDto {
+  priceWithoutVat?: number;
+  priceWithVat?: number;
+  purchasePrice?: number;
+  purchasePriceWithVat?: number;
+}
+
+export interface PriceDto {
+  currentSellingPrice?: number;
+  currentPurchasePrice?: number;
+  sellingPriceWithVat?: number;
+  purchasePriceWithVat?: number;
+  eshopPrice?: EshopPriceDto;
+  erpPrice?: ErpPriceDto;
+}
+
 export enum ProductType {
   Product = 8,
   Goods = 1,
@@ -30,6 +51,7 @@ export interface CatalogItemDto {
   productName: string;
   type: ProductType;
   stock: StockDto;
+  price: PriceDto;
   properties: PropertiesDto;
   location: string;
   minimalOrderQuantity: string;

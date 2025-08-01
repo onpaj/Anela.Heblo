@@ -9,6 +9,6 @@ public class MonthlyPurchaseSummary
     public decimal AveragePricePerPiece { get; set; }
     public int PurchaseCount { get; set; }
     public Dictionary<string, SupplierPurchaseSummary> SupplierBreakdown { get; set; } = new();
-    
+
     public string MonthKey => $"{Year:D4}-{Month:D2}";
 }

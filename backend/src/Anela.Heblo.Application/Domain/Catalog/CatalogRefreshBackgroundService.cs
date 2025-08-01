@@ -21,6 +21,8 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private DateTime _lastConsumedRefresh = DateTime.MinValue;
     private DateTime _lastStockTakingRefresh = DateTime.MinValue;
     private DateTime _lastLotsRefresh = DateTime.MinValue;
+    private DateTime _lastEshopPricesRefresh = DateTime.MinValue;
+    private DateTime _lastErpPricesRefresh = DateTime.MinValue;
 
     public CatalogRefreshBackgroundService(
         IServiceProvider serviceProvider,
@@ -124,6 +126,22 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     now, stoppingToken))
                 {
                     _lastLotsRefresh = now;
+                }
+
+                if (await RefreshIfNeeded(catalogRepository, "E-shop Prices",
+                    _lastEshopPricesRefresh, _options.EshopPricesRefreshInterval,
+                    async ct => await catalogRepository.RefreshEshopPricesData(ct),
+                    now, stoppingToken))
+                {
+                    _lastEshopPricesRefresh = now;
+                }
+
+                if (await RefreshIfNeeded(catalogRepository, "ERP Prices",
+                    _lastErpPricesRefresh, _options.ErpPricesRefreshInterval,
+                    async ct => await catalogRepository.RefreshErpPricesData(ct),
+                    now, stoppingToken))
+                {
+                    _lastErpPricesRefresh = now;
                 }
 
                 // Wait before next cycle (check every minute)

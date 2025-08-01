@@ -59,7 +59,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var currentDate = _timeProvider.GetUtcNow().Date;
         var fromDate = currentDate.AddMonths(-monthsBack);
         var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
-        
+
         return catalogItem.SaleHistorySummary.MonthlyData
             .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
             .Select(kvp => new CatalogSalesRecordDto
@@ -81,7 +81,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var currentDate = _timeProvider.GetUtcNow().Date;
         var fromDate = currentDate.AddMonths(-monthsBack);
         var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
-        
+
         return catalogItem.PurchaseHistorySummary.MonthlyData
             .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
             .Select(kvp => new CatalogPurchaseRecordDto
@@ -102,7 +102,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var currentDate = _timeProvider.GetUtcNow().Date;
         var fromDate = currentDate.AddMonths(-monthsBack);
         var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
-        
+
         return catalogItem.ConsumedHistorySummary.MonthlyData
             .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
             .Select(kvp => new CatalogConsumedRecordDto
