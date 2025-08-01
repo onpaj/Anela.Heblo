@@ -9,6 +9,8 @@ using Anela.Heblo.Application.Domain.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
+using Anela.Heblo.Xcc.Audit;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Anela.Heblo.Adapters.Shoptet;
 
@@ -51,6 +53,8 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
 
         services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
+
+        services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 
         return services;
     }

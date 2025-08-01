@@ -1,5 +1,6 @@
 ﻿using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 
@@ -7,16 +8,28 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
 {
     private readonly IIssuedInvoiceParser _invoiceParser;
     private readonly IssuedInvoiceExportScenario _exportScenario;
+    private readonly ILogger<ShoptetPlaywrightInvoiceSource> _logger;
 
-    public ShoptetPlaywrightInvoiceSource(IIssuedInvoiceParser invoiceParser, IssuedInvoiceExportScenario exportScenario)
+    public ShoptetPlaywrightInvoiceSource(
+        IIssuedInvoiceParser invoiceParser,
+        IssuedInvoiceExportScenario exportScenario,
+        ILogger<ShoptetPlaywrightInvoiceSource> logger)
     {
         _invoiceParser = invoiceParser;
         _exportScenario = exportScenario;
+        _logger = logger;
     }
 
     public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
     {
-        var content = await _exportScenario.RunAsync(query);
+        var content = await ScenarioRetryHelper.ExecuteWithRetryAsync(
+            async () => await _exportScenario.RunAsync(query),
+            _logger,
+            "IssuedInvoiceExportScenario",
+            maxRetries: 3,
+            delayMilliseconds: 2000
+        );
+
         var invoices = await _invoiceParser.ParseAsync(content);
         var invoiceBatch = new IssuedInvoiceDetailBatch()
         {
