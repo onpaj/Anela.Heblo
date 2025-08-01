@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Xcc.Audit;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 
 namespace Anela.Heblo.Adapters.Flexi.Stock;
@@ -12,11 +13,13 @@ public class FlexiStockClient : IErpStockClient
 
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
+    private readonly IDataLoadAuditService _auditService;
 
-    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider)
+    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IDataLoadAuditService auditService)
     {
         _stockClient = stockClient;
         _timeProvider = timeProvider;
+        _auditService = auditService;
     }
 
     public async Task<IReadOnlyList<ErpStock>> ListAsync(CancellationToken cancellationToken)
@@ -42,29 +45,59 @@ public class FlexiStockClient : IErpStockClient
 
     private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes, CancellationToken cancellationToken)
     {
-        var stockToDate = await _stockClient
-            .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
+        var startTime = DateTime.UtcNow;
+        var parameters = new Dictionary<string, object>
+        {
+            ["warehouseId"] = warehouseId,
+            ["productTypes"] = string.Join(", ", productTypes),
+            ["date"] = _timeProvider.GetUtcNow().Date
+        };
 
-        var productTypeIds = productTypes.Select(i => (int?)i).ToList();
-        var stock = stockToDate
-            .Where(w => productTypeIds.Contains(w.ProductTypeId))
-            .Select(s => new ErpStock
-            {
-                ProductCode = s.ProductCode,
-                ProductName = s.ProductName,
-                ProductTypeId = s.ProductTypeId,
-                ProductId = s.ProductId,
-                Stock = (decimal)s.OnStock,
-                MOQ = s.MoqName,
-                HasLots = s.HasLots,
-                HasExpiration = s.HasExpiration,
-                Volume = s.Volume,
-                Weight = s.Weight
-            }).ToList();
+        try
+        {
+            var stockToDate = await _stockClient
+                .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
+            var productTypeIds = productTypes.Select(i => (int?)i).ToList();
+            var stock = stockToDate
+                .Where(w => productTypeIds.Contains(w.ProductTypeId))
+                .Select(s => new ErpStock
+                {
+                    ProductCode = s.ProductCode,
+                    ProductName = s.ProductName,
+                    ProductTypeId = s.ProductTypeId,
+                    ProductId = s.ProductId,
+                    Stock = (decimal)s.OnStock,
+                    MOQ = s.MoqName,
+                    HasLots = s.HasLots,
+                    HasExpiration = s.HasExpiration,
+                    Volume = s.Volume,
+                    Weight = s.Weight
+                }).ToList();
 
-        // TODO Add Audit trace to log successful load of stock for warehouse {warehouseId} with product types {string.Join(", ", productTypes)}.
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "Stock",
+                source: "Flexi ERP",
+                recordCount: stock.Count,
+                success: true,
+                parameters: parameters,
+                duration: duration);
 
-        return stock;
+            return stock;
+        }
+        catch (Exception ex)
+        {
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "Stock",
+                source: "Flexi ERP",
+                recordCount: 0,
+                success: false,
+                parameters: parameters,
+                errorMessage: ex.Message,
+                duration: duration);
+            throw;
+        }
     }
 }

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Weather;
 using Anela.Heblo.Application.Features.Configuration;
+using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.features.catalog;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddWeatherModule();
         services.AddConfigurationModule();
+        services.AddAuditModule();
         services.AddCatalogModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();

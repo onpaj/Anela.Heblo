@@ -18,6 +18,103 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    getDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Audit/data-loads?";
+        if (limit !== undefined && limit !== null)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetDataLoadAuditLogs(_response);
+        });
+    }
+
+    protected processGetDataLoadAuditLogs(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    getAuditSummary(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Audit/summary?";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAuditSummary(_response);
+        });
+    }
+
+    protected processGetAuditSummary(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+}
+
+export class ApiClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
     getCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (type !== undefined && type !== null)
@@ -545,6 +642,169 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    testLogging(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Diagnostics/test-logging";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTestLogging(_response);
+        });
+    }
+
+    protected processTestLogging(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    testException(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Diagnostics/test-exception";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTestException(_response);
+        });
+    }
+
+    protected processTestException(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    health(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Diagnostics/health";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processHealth(_response);
+        });
+    }
+
+    protected processHealth(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    getApplicationInsightsConfig(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Diagnostics/appinsights-config";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetApplicationInsightsConfig(_response);
+        });
+    }
+
+    protected processGetApplicationInsightsConfig(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+}
+
+export class ApiClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
     getWeatherForecast(): Promise<GetWeatherForecastResponse[]> {
         let url_ = this.baseUrl + "/api/Weather/forecast";
         url_ = url_.replace(/[?&]$/, "");
@@ -936,7 +1196,8 @@ export interface ICatalogHistoricalDataDto {
 }
 
 export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     amountTotal?: number;
     amountB2B?: number;
     amountB2C?: number;
@@ -955,7 +1216,8 @@ export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
 
     init(_data?: any) {
         if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.year = _data["year"];
+            this.month = _data["month"];
             this.amountTotal = _data["amountTotal"];
             this.amountB2B = _data["amountB2B"];
             this.amountB2C = _data["amountB2C"];
@@ -974,7 +1236,8 @@ export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["year"] = this.year;
+        data["month"] = this.month;
         data["amountTotal"] = this.amountTotal;
         data["amountB2B"] = this.amountB2B;
         data["amountB2C"] = this.amountB2C;
@@ -986,7 +1249,8 @@ export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
 }
 
 export interface ICatalogSalesRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     amountTotal?: number;
     amountB2B?: number;
     amountB2C?: number;
@@ -996,7 +1260,8 @@ export interface ICatalogSalesRecordDto {
 }
 
 export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     supplierName?: string;
     amount?: number;
     pricePerPiece?: number;
@@ -1014,7 +1279,8 @@ export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
 
     init(_data?: any) {
         if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.year = _data["year"];
+            this.month = _data["month"];
             this.supplierName = _data["supplierName"];
             this.amount = _data["amount"];
             this.pricePerPiece = _data["pricePerPiece"];
@@ -1032,7 +1298,8 @@ export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["year"] = this.year;
+        data["month"] = this.month;
         data["supplierName"] = this.supplierName;
         data["amount"] = this.amount;
         data["pricePerPiece"] = this.pricePerPiece;
@@ -1043,7 +1310,8 @@ export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
 }
 
 export interface ICatalogPurchaseRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     supplierName?: string;
     amount?: number;
     pricePerPiece?: number;
@@ -1052,7 +1320,8 @@ export interface ICatalogPurchaseRecordDto {
 }
 
 export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     amount?: number;
     productName?: string;
 
@@ -1067,7 +1336,8 @@ export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
 
     init(_data?: any) {
         if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.year = _data["year"];
+            this.month = _data["month"];
             this.amount = _data["amount"];
             this.productName = _data["productName"];
         }
@@ -1082,7 +1352,8 @@ export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["year"] = this.year;
+        data["month"] = this.month;
         data["amount"] = this.amount;
         data["productName"] = this.productName;
         return data;
@@ -1090,7 +1361,8 @@ export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
 }
 
 export interface ICatalogConsumedRecordDto {
-    date?: Date;
+    year?: number;
+    month?: number;
     amount?: number;
     productName?: string;
 }

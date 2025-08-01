@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
+using Anela.Heblo.Xcc.Audit;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
 {
     private readonly IMemoryCache _cache;
     private readonly IMapper _mapper;
+    private readonly IDataLoadAuditService _auditService;
 
     public FlexiPurchaseHistoryQueryClient(
         FlexiBeeSettings connection,
@@ -20,11 +22,13 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
         IResultHandler resultHandler,
         ILogger<ReceivedInvoiceClient> logger,
         IMemoryCache cache,
-        IMapper mapper)
+        IMapper mapper,
+        IDataLoadAuditService auditService)
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
         _mapper = mapper;
+        _auditService = auditService;
     }
 
     protected override int QueryId => 19;
@@ -49,11 +53,44 @@ public class FlexiPurchaseHistoryQueryClient : UserQueryClient<PurchaseHistoryFl
 
     public async Task<IReadOnlyList<CatalogPurchaseRecord>> GetHistoryAsync(string? productCode, DateTime dateFrom, DateTime dateTo, int limit = 0, CancellationToken cancellationToken = default)
     {
+        var startTime = DateTime.UtcNow;
+        var parameters = new Dictionary<string, object>
+        {
+            ["productCode"] = productCode ?? "all",
+            ["dateFrom"] = dateFrom.ToString("yyyy-MM-dd"),
+            ["dateTo"] = dateTo.ToString("yyyy-MM-dd"),
+            ["limit"] = limit
+        };
+
         if (!_cache.TryGetValue(GetKey(dateFrom, dateTo, limit), out IList<PurchaseHistoryFlexiDto>? purchaseHistory))
         {
-            purchaseHistory = await GetAsync(null, dateFrom, dateTo, limit, cancellationToken);
-            // TODO Add Audit trace to log successful load
-            _cache.Set(GetKey(dateFrom, dateTo, limit), purchaseHistory, DateTimeOffset.Now.AddHours(1));
+            try
+            {
+                purchaseHistory = await GetAsync(null, dateFrom, dateTo, limit, cancellationToken);
+                _cache.Set(GetKey(dateFrom, dateTo, limit), purchaseHistory, DateTimeOffset.Now.AddHours(1));
+
+                var duration = DateTime.UtcNow - startTime;
+                await _auditService.LogDataLoadAsync(
+                    dataType: "Purchase History",
+                    source: "Flexi ERP",
+                    recordCount: purchaseHistory.Count,
+                    success: true,
+                    parameters: parameters,
+                    duration: duration);
+            }
+            catch (Exception ex)
+            {
+                var duration = DateTime.UtcNow - startTime;
+                await _auditService.LogDataLoadAsync(
+                    dataType: "Purchase History",
+                    source: "Flexi ERP",
+                    recordCount: 0,
+                    success: false,
+                    parameters: parameters,
+                    errorMessage: ex.Message,
+                    duration: duration);
+                throw;
+            }
         }
 
         return _mapper.Map<IReadOnlyList<CatalogPurchaseRecord>>(purchaseHistory!.Where(w => productCode == null || w.ProductCode == productCode).ToList());

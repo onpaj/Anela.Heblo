@@ -1,342 +1,389 @@
 import React, { useState } from 'react';
-import ApiTestComponent from '../test/ApiTestComponent';
+import { useRecentAuditLogs, useRecentAuditSummary } from '../../api/hooks/useAudit';
+import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('listings');
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  const { 
+    data: auditLogs, 
+    isLoading: isLogsLoading, 
+    error: logsError 
+  } = useRecentAuditLogs(50);
+  
+  const { 
+    data: auditSummary, 
+    isLoading: isSummaryLoading, 
+    error: summaryError 
+  } = useRecentAuditSummary();
 
-  const mockBusinesses = [
-    {
-      id: 1,
-      name: 'Anchor Oyster Bar',
-      category: 'Seafood, +3',
-      status: 'draft',
-      rating: 3.0,
-      reviews: 101,
-      views: '313K',
-      viewsChange: '+1%',
-      actions: 630,
-      actionsChange: '+5%',
-      lastUpdate: '3 hours ago',
-      image: '/api/placeholder/48/48'
-    },
-    {
-      id: 2,
-      name: 'Starbucks Coffee',
-      category: 'Coffee & Tea, +3',
-      status: 'published',
-      rating: 3.5,
-      reviews: 889,
-      views: '193K',
-      viewsChange: '+1%',
-      actions: 189,
-      actionsChange: '+5%',
-      lastUpdate: '12/6/2017 8:23 PM',
-      image: '/api/placeholder/48/48'
-    },
-    {
-      id: 3,
-      name: 'Kokkari Estiatorio',
-      category: 'Greek, Mediterranean, +2',
-      status: 'published',
-      rating: 3.0,
-      reviews: 381,
-      views: '178K',
-      viewsChange: '+1%',
-      actions: 403,
-      actionsChange: '+5%',
-      lastUpdate: '16/2/2017 8:23 PM',
-      image: '/api/placeholder/48/48'
-    },
-    {
-      id: 4,
-      name: 'Krispy Kreme',
-      category: 'Donuts, Coffee & Tea, +3',
-      status: 'published',
-      rating: 4.0,
-      reviews: 415,
-      views: '881K',
-      viewsChange: '+1%',
-      actions: 199,
-      actionsChange: '+5%',
-      lastUpdate: '23/8/2016 8:23 PM',
-      image: '/api/placeholder/48/48'
-    },
-    {
-      id: 5,
-      name: 'Eco Smart Landscaping',
-      category: 'Contractors, Landscaping, +3',
-      status: 'published',
-      rating: 4.0,
-      reviews: 415,
-      views: '881K',
-      viewsChange: '+1%',
-      actions: 199,
-      actionsChange: '+5%',
-      lastUpdate: '23/8/2016 8:23 PM',
-      image: '/api/placeholder/48/48'
-    }
-  ];
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('cs-CZ', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'published') {
-      return (
-        <span className="badge-success">
-          Published
-        </span>
-      );
+  const formatDuration = (durationString: string) => {
+    const duration = parseFloat(durationString);
+    if (duration < 1000) {
+      return `${Math.round(duration)}ms`;
     }
-    return (
-      <span className="badge-neutral">
-        Draft
+    return `${(duration / 1000).toFixed(1)}s`;
+  };
+
+  const getStatusIcon = (success: boolean) => {
+    return success ? (
+      <CheckCircle className="w-5 h-5 text-emerald-500" />
+    ) : (
+      <XCircle className="w-5 h-5 text-red-500" />
+    );
+  };
+
+  const getStatusBadge = (success: boolean) => {
+    return success ? (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+        Úspěšné
+      </span>
+    ) : (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        Chyba
       </span>
     );
   };
 
-  const getRatingStars = (rating: number) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      if (i <= rating) {
-        stars.push(
-          <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-          </svg>
-        );
-      } else if (i - rating === 0.5) {
-        stars.push(
-          <svg key={i} className="w-4 h-4 text-yellow-400" viewBox="0 0 20 20">
-            <defs>
-              <linearGradient id={`half-${rating}`}>
-                <stop offset="50%" stopColor="currentColor"/>
-                <stop offset="50%" stopColor="transparent"/>
-              </linearGradient>
-            </defs>
-            <path fill={`url(#half-${rating})`} d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-          </svg>
-        );
-      } else {
-        stars.push(
-          <svg key={i} className="w-4 h-4 text-gray-300" viewBox="0 0 20 20">
-            <path fill="currentColor" d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-          </svg>
-        );
-      }
-    }
-    return stars;
+  const getSummaryStats = () => {
+    if (!auditSummary?.summary) return null;
+    
+    const totalRequests = auditSummary.summary.reduce((sum, item) => sum + item.totalRequests, 0);
+    const successfulRequests = auditSummary.summary.reduce((sum, item) => sum + item.successfulRequests, 0);
+    const failedRequests = auditSummary.summary.reduce((sum, item) => sum + item.failedRequests, 0);
+    const successRate = totalRequests > 0 ? ((successfulRequests / totalRequests) * 100).toFixed(1) : '0';
+    
+    return { totalRequests, successfulRequests, failedRequests, successRate };
   };
+
+  const stats = getSummaryStats();
 
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-h1">Local Business</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Administrační dashboard</h1>
+        <p className="mt-2 text-gray-600">Přehled systémové aktivity a audit logů</p>
       </div>
 
-      {/* API Test Component */}
-      <div className="mb-8">
-        <h2 className="text-h3 mb-4">API Test</h2>
-        <ApiTestComponent />
-      </div>
+      {/* Loading States */}
+      {(isLogsLoading || isSummaryLoading) && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-2 text-gray-600">Načítám data...</span>
+        </div>
+      )}
+
+      {/* Error States */}
+      {(logsError || summaryError) && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+            <h3 className="text-red-800 font-medium">Chyba při načítání dat</h3>
+          </div>
+          <p className="mt-1 text-red-700 text-sm">
+            {logsError?.message || summaryError?.message || 'Neznámá chyba'}
+          </p>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab('listings')}
+            onClick={() => setActiveTab('overview')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'listings'
-                ? 'border-primary-blue text-primary-blue'
-                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
+              activeTab === 'overview'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Listings
+            <Activity className="w-4 h-4 inline mr-2" />
+            Přehled
           </button>
           <button
-            onClick={() => setActiveTab('categories')}
+            onClick={() => setActiveTab('logs')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'categories'
-                ? 'border-primary-blue text-primary-blue'
-                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
+              activeTab === 'logs'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Categories
-          </button>
-          <button
-            onClick={() => setActiveTab('custom-fields')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'custom-fields'
-                ? 'border-primary-blue text-primary-blue'
-                : 'border-transparent text-neutral-gray hover:text-neutral-slate hover:border-gray-300'
-            }`}
-          >
-            Custom Fields
+            <Database className="w-4 h-4 inline mr-2" />
+            Audit logy
           </button>
         </nav>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        {/* Total Businesses */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-neutral-slate">4,307</p>
-              <p className="text-body-small">Local Businesses</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification Required */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-rose-100 rounded flex items-center justify-center">
-                <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.863-.833-2.633 0L4.138 14.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-neutral-slate">91</p>
-              <p className="text-body-small">Verification Required</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Published */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-emerald-100 rounded flex items-center justify-center">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-neutral-slate">67%</p>
-              <p className="text-body-small">Published</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Chart placeholder */}
-      <div className="card mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-h3">Activity Overview</h3>
-          <div className="flex items-center space-x-4">
-            <button className="text-sm text-gray-500 hover:text-gray-700">← August</button>
-            <span className="text-body font-medium text-neutral-slate">September 2018</span>
-            <button className="text-sm text-gray-500 hover:text-gray-700">October →</button>
-          </div>
-        </div>
-        
-        {/* Simple bar chart representation */}
-        <div className="flex items-end space-x-1 h-32">
-          {[20, 35, 50, 30, 45, 60, 40, 55, 35, 45, 30, 40, 50, 35, 25, 45, 60, 40, 30, 35, 50, 45, 30, 40, 55, 35, 45, 50, 40, 30].map((height, index) => (
-            <div
-              key={index}
-              className="bg-gray-300 rounded-sm flex-1"
-              style={{ height: `${height}%` }}
-            />
-          ))}
-        </div>
-        
-        <div className="mt-4 text-center">
-          <span className="badge-success">
-            39 published
-          </span>
-        </div>
-      </div>
-
-      {/* Business List Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-h3 mb-2 sm:mb-0">Business</h3>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">Status/Modified</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          {mockBusinesses.map((business) => (
-            <div key={business.id} className="px-4 sm:px-6 py-4 hover:bg-secondary-blue-pale/30 transition-colors">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                {/* Business Info */}
-                <div className="flex items-center space-x-4 flex-1">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-medium text-neutral-slate truncate">{business.name}</h4>
-                      <span className="w-5 h-5 bg-gray-600 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
-                        S
-                      </span>
-                    </div>
-                    <p className="text-body text-neutral-gray truncate">{business.category}</p>
-                    <p className="text-caption text-gray-400">{business.lastUpdate}</p>
-                  </div>
+      {stats && activeTab === 'overview' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Requests */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Activity className="h-6 w-6 text-gray-400" />
                 </div>
-
-                {/* Status and Metrics */}
-                <div className="flex flex-wrap items-center gap-4 lg:gap-8">
-                  {/* Status */}
-                  <div className="flex-shrink-0">
-                    {getStatusBadge(business.status)}
-                  </div>
-
-                  {/* Rating - Hidden on mobile */}
-                  <div className="text-center hidden sm:block">
-                    <div className="flex items-center space-x-1">
-                      {getRatingStars(business.rating)}
-                    </div>
-                    <p className="text-caption text-gray-500 mt-1">{business.reviews} reviews</p>
-                  </div>
-
-                  {/* Views */}
-                  <div className="text-center min-w-0">
-                    <p className="font-medium text-neutral-slate">{business.views}</p>
-                    <p className="text-xs text-success">{business.viewsChange}</p>
-                    <p className="text-body-small text-neutral-gray">Total views</p>
-                  </div>
-
-                  {/* Actions - Hidden on small screens */}
-                  <div className="text-center min-w-0 hidden md:block">
-                    <p className="font-medium text-neutral-slate">{business.actions}</p>
-                    <p className="text-xs text-error">{business.actionsChange}</p>
-                    <p className="text-body-small text-neutral-gray">Total actions</p>
-                  </div>
-
-                  {/* Menu */}
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                    <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                  </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Celkem požadavků
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {stats.totalRequests}
+                    </dd>
+                  </dl>
                 </div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Successful Requests */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-6 w-6 text-emerald-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Úspěšné
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {stats.successfulRequests}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Failed Requests */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-6 w-6 text-red-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Chybné
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {stats.failedRequests}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Success Rate */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Clock className="h-6 w-6 text-blue-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Úspěšnost
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {stats.successRate}%
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Summary Table */}
+      {activeTab === 'overview' && auditSummary?.summary && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Souhrn podle typu dat (posledních 7 dní)
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Statistiky načítání dat podle zdroje a typu
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Typ dat / Zdroj
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Požadavky
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Úspěšnost
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Záznamy
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Průměrná doba
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Poslední úspěch
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {auditSummary.summary.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.dataType}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {item.source}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {item.totalRequests}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {item.failedRequests > 0 && (
+                          <span className="text-red-600">
+                            {item.failedRequests} chyb
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {item.totalRequests > 0 
+                          ? `${((item.successfulRequests / item.totalRequests) * 100).toFixed(1)}%`
+                          : '0%'
+                        }
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.totalRecords.toLocaleString('cs-CZ')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.averageDuration > 0 ? `${item.averageDuration.toFixed(0)}ms` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.lastSuccessfulLoad 
+                        ? formatDateTime(item.lastSuccessfulLoad)
+                        : 'Nikdy'
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Logs Table */}
+      {activeTab === 'logs' && auditLogs?.logs && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Poslední audit logy (24 hodin)
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Zobrazeno posledních {auditLogs.logs.length} záznamů
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Čas
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Typ / Zdroj
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Záznamy
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Doba trvání
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Chyba
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {auditLogs.logs.map((log) => (
+                  <tr key={log.id} className={`hover:bg-gray-50 ${!log.success ? 'bg-red-50' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDateTime(log.timestamp)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getStatusIcon(log.success)}
+                        <span className="ml-2">
+                          {getStatusBadge(log.success)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {log.dataType}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {log.source}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.recordCount.toLocaleString('cs-CZ')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDuration(log.duration)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-red-600 max-w-xs truncate">
+                      {log.errorMessage || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {activeTab === 'logs' && auditLogs?.logs && auditLogs.logs.length === 0 && (
+        <div className="text-center py-12">
+          <Database className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Žádné audit logy</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            V posledních 24 hodinách nebyly zaznamenány žádné aktivity.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

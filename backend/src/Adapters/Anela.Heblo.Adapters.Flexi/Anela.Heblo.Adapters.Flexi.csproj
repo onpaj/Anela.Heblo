@@ -13,6 +13,7 @@
     <PackageReference Include="Rem.FlexiBeeSDK.Client" Version="0.1.68" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+    <ProjectReference Include="..\..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
   </ItemGroup>
 
 </Project>
