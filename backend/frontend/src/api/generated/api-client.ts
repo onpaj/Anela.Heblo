@@ -18,7 +18,7 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetCatalogListResponse> {
+    getCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (type !== undefined && type !== null)
             url_ += "Type=" + encodeURIComponent("" + type) + "&";
@@ -36,6 +36,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
             url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (productName !== undefined && productName !== null)
+            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -66,6 +70,423 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetCatalogListResponse>(null as any);
+    }
+
+    getCatalogDetail(productCode: string): Promise<GetCatalogDetailResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetCatalogDetail(_response);
+        });
+    }
+
+    protected processGetCatalogDetail(response: Response): Promise<GetCatalogDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCatalogDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCatalogDetailResponse>(null as any);
+    }
+
+    refreshTransportData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/transport";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshTransportData(_response);
+        });
+    }
+
+    protected processRefreshTransportData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshReserveData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/reserve";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshReserveData(_response);
+        });
+    }
+
+    protected processRefreshReserveData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshSalesData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/sales";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshSalesData(_response);
+        });
+    }
+
+    protected processRefreshSalesData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshAttributesData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/attributes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshAttributesData(_response);
+        });
+    }
+
+    protected processRefreshAttributesData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshErpStockData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/erp-stock";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshErpStockData(_response);
+        });
+    }
+
+    protected processRefreshErpStockData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshEshopStockData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-stock";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshEshopStockData(_response);
+        });
+    }
+
+    protected processRefreshEshopStockData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshPurchaseHistoryData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/purchase-history";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshPurchaseHistoryData(_response);
+        });
+    }
+
+    protected processRefreshPurchaseHistoryData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshConsumedHistoryData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/consumed-history";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshConsumedHistoryData(_response);
+        });
+    }
+
+    protected processRefreshConsumedHistoryData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshStockTakingData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/stock-taking";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshStockTakingData(_response);
+        });
+    }
+
+    protected processRefreshStockTakingData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    refreshLotsData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/lots";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshLotsData(_response);
+        });
+    }
+
+    protected processRefreshLotsData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
     }
 }
 
@@ -406,6 +827,274 @@ export interface IPropertiesDto {
     seasonMonths?: number[];
 }
 
+export class GetCatalogDetailResponse implements IGetCatalogDetailResponse {
+    item?: CatalogItemDto;
+    historicalData?: CatalogHistoricalDataDto;
+
+    constructor(data?: IGetCatalogDetailResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.item = _data["item"] ? CatalogItemDto.fromJS(_data["item"]) : <any>undefined;
+            this.historicalData = _data["historicalData"] ? CatalogHistoricalDataDto.fromJS(_data["historicalData"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetCatalogDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetCatalogDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+        data["historicalData"] = this.historicalData ? this.historicalData.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetCatalogDetailResponse {
+    item?: CatalogItemDto;
+    historicalData?: CatalogHistoricalDataDto;
+}
+
+export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
+    salesHistory?: CatalogSalesRecordDto[];
+    purchaseHistory?: CatalogPurchaseRecordDto[];
+    consumedHistory?: CatalogConsumedRecordDto[];
+
+    constructor(data?: ICatalogHistoricalDataDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["salesHistory"])) {
+                this.salesHistory = [] as any;
+                for (let item of _data["salesHistory"])
+                    this.salesHistory!.push(CatalogSalesRecordDto.fromJS(item));
+            }
+            if (Array.isArray(_data["purchaseHistory"])) {
+                this.purchaseHistory = [] as any;
+                for (let item of _data["purchaseHistory"])
+                    this.purchaseHistory!.push(CatalogPurchaseRecordDto.fromJS(item));
+            }
+            if (Array.isArray(_data["consumedHistory"])) {
+                this.consumedHistory = [] as any;
+                for (let item of _data["consumedHistory"])
+                    this.consumedHistory!.push(CatalogConsumedRecordDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CatalogHistoricalDataDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogHistoricalDataDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.salesHistory)) {
+            data["salesHistory"] = [];
+            for (let item of this.salesHistory)
+                data["salesHistory"].push(item.toJSON());
+        }
+        if (Array.isArray(this.purchaseHistory)) {
+            data["purchaseHistory"] = [];
+            for (let item of this.purchaseHistory)
+                data["purchaseHistory"].push(item.toJSON());
+        }
+        if (Array.isArray(this.consumedHistory)) {
+            data["consumedHistory"] = [];
+            for (let item of this.consumedHistory)
+                data["consumedHistory"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ICatalogHistoricalDataDto {
+    salesHistory?: CatalogSalesRecordDto[];
+    purchaseHistory?: CatalogPurchaseRecordDto[];
+    consumedHistory?: CatalogConsumedRecordDto[];
+}
+
+export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
+    date?: Date;
+    amountTotal?: number;
+    amountB2B?: number;
+    amountB2C?: number;
+    sumTotal?: number;
+    sumB2B?: number;
+    sumB2C?: number;
+
+    constructor(data?: ICatalogSalesRecordDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.amountTotal = _data["amountTotal"];
+            this.amountB2B = _data["amountB2B"];
+            this.amountB2C = _data["amountB2C"];
+            this.sumTotal = _data["sumTotal"];
+            this.sumB2B = _data["sumB2B"];
+            this.sumB2C = _data["sumB2C"];
+        }
+    }
+
+    static fromJS(data: any): CatalogSalesRecordDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogSalesRecordDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["amountTotal"] = this.amountTotal;
+        data["amountB2B"] = this.amountB2B;
+        data["amountB2C"] = this.amountB2C;
+        data["sumTotal"] = this.sumTotal;
+        data["sumB2B"] = this.sumB2B;
+        data["sumB2C"] = this.sumB2C;
+        return data;
+    }
+}
+
+export interface ICatalogSalesRecordDto {
+    date?: Date;
+    amountTotal?: number;
+    amountB2B?: number;
+    amountB2C?: number;
+    sumTotal?: number;
+    sumB2B?: number;
+    sumB2C?: number;
+}
+
+export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
+    date?: Date;
+    supplierName?: string;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    documentNumber?: string;
+
+    constructor(data?: ICatalogPurchaseRecordDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.supplierName = _data["supplierName"];
+            this.amount = _data["amount"];
+            this.pricePerPiece = _data["pricePerPiece"];
+            this.priceTotal = _data["priceTotal"];
+            this.documentNumber = _data["documentNumber"];
+        }
+    }
+
+    static fromJS(data: any): CatalogPurchaseRecordDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogPurchaseRecordDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["supplierName"] = this.supplierName;
+        data["amount"] = this.amount;
+        data["pricePerPiece"] = this.pricePerPiece;
+        data["priceTotal"] = this.priceTotal;
+        data["documentNumber"] = this.documentNumber;
+        return data;
+    }
+}
+
+export interface ICatalogPurchaseRecordDto {
+    date?: Date;
+    supplierName?: string;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    documentNumber?: string;
+}
+
+export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
+    date?: Date;
+    amount?: number;
+    productName?: string;
+
+    constructor(data?: ICatalogConsumedRecordDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.amount = _data["amount"];
+            this.productName = _data["productName"];
+        }
+    }
+
+    static fromJS(data: any): CatalogConsumedRecordDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogConsumedRecordDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["amount"] = this.amount;
+        data["productName"] = this.productName;
+        return data;
+    }
+}
+
+export interface ICatalogConsumedRecordDto {
+    date?: Date;
+    amount?: number;
+    productName?: string;
+}
+
 export class GetConfigurationResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
@@ -500,6 +1189,13 @@ export interface IGetWeatherForecastResponse {
     temperatureC?: number;
     temperatureF?: number;
     summary?: string | undefined;
+}
+
+export interface FileResponse {
+    data: Blob;
+    status: number;
+    fileName?: string;
+    headers?: { [name: string]: any };
 }
 
 export class SwaggerException extends Error {

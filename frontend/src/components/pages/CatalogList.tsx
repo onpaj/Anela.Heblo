@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   useCatalogQuery, 
-  ProductType
+  ProductType,
+  CatalogItemDto
 } from '../../api/hooks/useCatalog';
+import CatalogDetail from './CatalogDetail';
 
 const productTypeLabels: Record<ProductType, string> = {
   [ProductType.Product]: 'Produkt',
@@ -29,6 +31,10 @@ const CatalogList: React.FC = () => {
   // Sorting states
   const [sortBy, setSortBy] = useState<string>('');
   const [sortDescending, setSortDescending] = useState(false);
+
+  // Modal states
+  const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use the actual API call
   const { data, isLoading: loading, error } = useCatalogQuery(
@@ -95,6 +101,17 @@ const CatalogList: React.FC = () => {
   React.useEffect(() => {
     setPageNumber(1);
   }, [productTypeFilter]);
+
+  // Modal handlers
+  const handleItemClick = (item: CatalogItemDto) => {
+    setSelectedItem(item);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailModalOpen(false);
+    setSelectedItem(null);
+  };
 
   // Sortable header component
   const SortableHeader: React.FC<{ column: string; children: React.ReactNode }> = ({ column, children }) => {
@@ -255,7 +272,12 @@ const CatalogList: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => (
-                <tr key={item.productCode} className="hover:bg-gray-50">
+                <tr 
+                  key={item.productCode} 
+                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  onClick={() => handleItemClick(item)}
+                  title="Klikněte pro zobrazení detailu"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {item.productCode}
                   </td>
@@ -396,6 +418,13 @@ const CatalogList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal for Product Detail */}
+      <CatalogDetail 
+        item={selectedItem}
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 };

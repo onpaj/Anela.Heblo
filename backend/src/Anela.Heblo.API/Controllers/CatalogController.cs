@@ -25,6 +25,14 @@ public class CatalogController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{productCode}")]
+    public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode)
+    {
+        var request = new GetCatalogDetailRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+        return Ok(response);
+    }
+
     [HttpPost("refresh/transport")]
     public async Task<IActionResult> RefreshTransportData()
     {
