@@ -37,7 +37,8 @@ export interface CatalogItemDto {
 }
 
 export interface CatalogSalesRecordDto {
-  date: string;
+  year: number;
+  month: number;
   amountTotal: number;
   amountB2B: number;
   amountB2C: number;
@@ -47,7 +48,8 @@ export interface CatalogSalesRecordDto {
 }
 
 export interface CatalogPurchaseRecordDto {
-  date: string;
+  year: number;
+  month: number;
   supplierName: string;
   amount: number;
   pricePerPiece: number;
@@ -56,7 +58,8 @@ export interface CatalogPurchaseRecordDto {
 }
 
 export interface CatalogConsumedRecordDto {
-  date: string;
+  year: number;
+  month: number;
   amount: number;
   productName: string;
 }

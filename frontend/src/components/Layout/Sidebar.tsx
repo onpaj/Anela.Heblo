@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard,
   FileText,
+  Package,
   DollarSign,
   Truck,
   Factory,
@@ -44,6 +45,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       ]
     },
     {
+      id: 'catalog',
+      name: 'Katalog',
+      href: '/catalog',
+      icon: Package,
+      type: 'single' as const
+    },
+    {
       id: 'finance',
       name: 'Finance',
       icon: DollarSign,
@@ -69,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: Factory,
       type: 'section' as const,
       items: [
-        { id: 'catalog', name: 'Katalog produktů', href: '/catalog' },
         { id: 'zasoby-vyrobku', name: 'Zásoby výrobků', href: '/vyroba/zasoby' },
         { id: 'trojclenka', name: 'Trojčlenka', href: '/vyroba/trojclenka' },
         { id: 'inventura', name: 'Inventura', href: '/vyroba/inventura' },

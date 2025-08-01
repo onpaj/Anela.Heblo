@@ -37,7 +37,7 @@ const CatalogList: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use the actual API call
-  const { data, isLoading: loading, error } = useCatalogQuery(
+  const { data, isLoading: loading, error, refetch } = useCatalogQuery(
     productNameFilter,
     productCodeFilter,
     productTypeFilter,
@@ -52,10 +52,13 @@ const CatalogList: React.FC = () => {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   // Handler for applying filters on Enter
-  const handleApplyFilters = () => {
+  const handleApplyFilters = async () => {
     setProductNameFilter(productNameInput);
     setProductCodeFilter(productCodeInput);
     setPageNumber(1); // Reset to first page when applying filters
+    
+    // Force data reload by refetching
+    await refetch();
   };
 
   // Handler for Enter key press
@@ -66,13 +69,16 @@ const CatalogList: React.FC = () => {
   };
 
   // Handler for clearing all filters
-  const handleClearFilters = () => {
+  const handleClearFilters = async () => {
     setProductNameInput('');
     setProductCodeInput('');
     setProductNameFilter('');
     setProductCodeFilter('');
     setProductTypeFilter('');
     setPageNumber(1); // Reset to first page when clearing filters
+    
+    // Force data reload by refetching
+    await refetch();
   };
 
   // Sorting handler
@@ -83,23 +89,27 @@ const CatalogList: React.FC = () => {
       setSortBy(column);
       setSortDescending(false);
     }
+    // React Query will automatically refetch when sortBy or sortDescending changes
   };
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setPageNumber(newPage);
+      // React Query will automatically refetch when pageNumber changes
     }
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setPageNumber(1); // Reset to first page when changing page size
+    // React Query will automatically refetch when pageSize changes
   };
 
   // Reset pagination when type filter changes
   React.useEffect(() => {
     setPageNumber(1);
+    // Refetch will be triggered automatically by the query dependency change
   }, [productTypeFilter]);
 
   // Modal handlers
@@ -291,7 +301,7 @@ const CatalogList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                      {item.stock.available}
+                      {Math.round(item.stock.available * 100) / 100}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
