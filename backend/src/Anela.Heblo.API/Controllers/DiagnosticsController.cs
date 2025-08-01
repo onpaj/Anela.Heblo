@@ -88,4 +88,28 @@ public class DiagnosticsController : ControllerBase
             MachineName = Environment.MachineName
         });
     }
+
+    [HttpGet("appinsights-config")]
+    public IActionResult GetApplicationInsightsConfig()
+    {
+        var connectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")
+                            ?? Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+        
+        var hasConnectionString = !string.IsNullOrEmpty(connectionString);
+        var hasInstrumentationKey = !string.IsNullOrEmpty(_telemetryClient.InstrumentationKey);
+
+        _logger.LogInformation("Application Insights configuration check - HasConnectionString: {HasConnectionString}, HasInstrumentationKey: {HasInstrumentationKey}", 
+            hasConnectionString, hasInstrumentationKey);
+
+        return Ok(new
+        {
+            HasConnectionString = hasConnectionString,
+            HasInstrumentationKey = hasInstrumentationKey,
+            InstrumentationKey = hasInstrumentationKey ? _telemetryClient.InstrumentationKey : "Not configured",
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            ConnectionStringSource = connectionString?.Substring(0, Math.Min(50, connectionString.Length)) + "...",
+            CloudRole = _telemetryClient.Context.Cloud.RoleName,
+            CloudRoleInstance = _telemetryClient.Context.Cloud.RoleInstance
+        });
+    }
 }

@@ -1,9 +1,11 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Anela.Heblo.Application.Features.Configuration.Domain;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.Application.Domain.Users;
+using Anela.Heblo.API.Infrastructure.Telemetry;
 using Microsoft.OpenApi.Models;
 
 namespace Anela.Heblo.API.Extensions;
@@ -29,6 +31,15 @@ public static class ServiceCollectionExtensions
                 EnableEventCounterCollectionModule = true,
                 EnableAppServicesHeartbeatTelemetryModule = true,
                 DeveloperMode = environment.IsDevelopment()
+            });
+
+            // Configure Cloud Role for environment identification
+            services.Configure<TelemetryConfiguration>(telemetryConfig =>
+            {
+                var cloudRole = configuration["ApplicationInsights:CloudRole"] ?? "Heblo-API";
+                var cloudRoleInstance = configuration["ApplicationInsights:CloudRoleInstance"] ?? environment.EnvironmentName;
+                
+                telemetryConfig.TelemetryInitializers.Add(new CloudRoleInitializer(cloudRole, cloudRoleInstance));
             });
 
             services.AddSingleton<ITelemetryService, TelemetryService>();
