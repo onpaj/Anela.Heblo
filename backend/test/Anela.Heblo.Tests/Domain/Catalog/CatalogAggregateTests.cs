@@ -45,7 +45,7 @@ public class CatalogAggregateTests
 
         // Assert
         Assert.Equal(2, aggregate.SaleHistorySummary.MonthlyData.Count);
-        
+
         // Check January 2024 summary
         var jan2024 = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
         Assert.Equal(2024, jan2024.Year);
@@ -122,7 +122,7 @@ public class CatalogAggregateTests
         Assert.Equal(2, mar2024.SupplierBreakdown.Count);
         Assert.Contains("Supplier A", mar2024.SupplierBreakdown.Keys);
         Assert.Contains("Supplier B", mar2024.SupplierBreakdown.Keys);
-        
+
         var supplierA = mar2024.SupplierBreakdown["Supplier A"];
         Assert.Equal(100, supplierA.Amount);
         Assert.Equal(1000, supplierA.Cost);
@@ -196,13 +196,13 @@ public class CatalogAggregateTests
     {
         // Arrange
         var aggregate = new CatalogAggregate();
-        
+
         // First set some data
         aggregate.SalesHistory = new List<CatalogSaleRecord>
         {
             new CatalogSaleRecord { Date = DateTime.Now, SumB2B = 100, SumB2C = 50, AmountB2B = 1, AmountB2C = 1 }
         };
-        
+
         Assert.Single(aggregate.SaleHistorySummary.MonthlyData);
 
         // Act - Set to empty list
@@ -224,7 +224,7 @@ public class CatalogAggregateTests
         {
             new CatalogSaleRecord { Date = new DateTime(2024, 1, 1), SumB2B = 100, SumB2C = 50, AmountB2B = 1, AmountB2C = 1 }
         };
-        
+
         var firstUpdate = aggregate.SaleHistorySummary.LastUpdated;
         Assert.Single(aggregate.SaleHistorySummary.MonthlyData);
 
@@ -240,12 +240,12 @@ public class CatalogAggregateTests
 
         // Assert
         Assert.Equal(2, aggregate.SaleHistorySummary.MonthlyData.Count);
-        
+
         // January should reflect the new data (200 B2B, not 100)
         var jan2024 = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
         Assert.Equal(200, jan2024.TotalB2B);
         Assert.Equal(100, jan2024.TotalB2C);
-        
+
         // Should have February data
         var feb2024 = aggregate.SaleHistorySummary.MonthlyData["2024-02"];
         Assert.Equal(300, feb2024.TotalB2B);
@@ -284,7 +284,7 @@ public class CatalogAggregateTests
         Assert.True(aggregate.SaleHistorySummary.LastUpdated > beforeUpdate);
         Assert.True(aggregate.PurchaseHistorySummary.LastUpdated > beforeUpdate);
         Assert.True(aggregate.ConsumedHistorySummary.LastUpdated > beforeUpdate);
-        
+
         Assert.NotEmpty(aggregate.SaleHistorySummary.MonthlyData);
         Assert.NotEmpty(aggregate.PurchaseHistorySummary.MonthlyData);
         Assert.NotEmpty(aggregate.ConsumedHistorySummary.MonthlyData);
@@ -297,19 +297,19 @@ public class CatalogAggregateTests
         var aggregate = new CatalogAggregate();
         aggregate.SalesHistory = new List<CatalogSaleRecord>
         {
-            new CatalogSaleRecord 
-            { 
-                Date = new DateTime(2024, 1, 1), 
-                SumB2B = 1000, 
-                SumB2C = 500, 
-                AmountB2B = 10, 
-                AmountB2C = 5 
+            new CatalogSaleRecord
+            {
+                Date = new DateTime(2024, 1, 1),
+                SumB2B = 1000,
+                SumB2C = 500,
+                AmountB2B = 10,
+                AmountB2C = 5
             }
         };
 
         // Act & Assert
         var summary = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
-        
+
         Assert.Equal("2024-01", summary.MonthKey);
         Assert.Equal(1500, summary.TotalRevenue); // 1000 + 500
         Assert.Equal(15, summary.TotalAmount);    // 10 + 5

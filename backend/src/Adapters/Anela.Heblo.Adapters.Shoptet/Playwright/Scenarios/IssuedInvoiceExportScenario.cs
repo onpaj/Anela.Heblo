@@ -22,81 +22,147 @@ public class IssuedInvoiceExportScenario
     {
         var currency = query.Currency == CurrencyCode.EUR.ToString() ? "3" : "2";
         var outputFile = Path.GetTempFileName();
+        IPage? page = null;
+        IBrowser? browser = null;
+        IPlaywright? playwright = null;
 
-        _logger.LogInformation("Starting extracting query {RequestId}", query.RequestId);
-        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
+        try
         {
-            Headless = _options.Headless,
-        });
-        var page = await browser.NewPageAsync();
+            _logger.LogInformation("Starting extracting query {RequestId}", query.RequestId);
+            playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+            browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
+            {
+                Headless = _options.Headless,
+            });
+            page = await browser.NewPageAsync();
 
-        page.SetDefaultTimeout(300000); // Set timeout
+            // Set more reasonable timeouts
+            page.SetDefaultTimeout(60000); // 60 seconds default timeout
+            page.SetDefaultNavigationTimeout(30000); // 30 seconds for navigation
 
-        await page.GotoAsync(_options.ShopEntryUrl);
-        await page.WaitForLoadStateAsync();
+            await page.GotoAsync(_options.ShopEntryUrl, new PageGotoOptions
+            {
+                WaitUntil = WaitUntilState.NetworkIdle,
+                Timeout = 30000
+            });
 
-        await page.ClickAsync("[placeholder='E-mail']");
-        await page.FillAsync("[placeholder='E-mail']", _options.Login);
-        await page.PressAsync("[placeholder='E-mail']", "Tab");
-        await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
-        await page.ClickAsync("role=button >> text=Přihlášení");
-        await page.ClickAsync("text=Objednávky");
-        await page.ClickAsync("text=Daňové doklady");
+            // Wait for login form and fill credentials
+            await page.WaitForSelectorAsync("[placeholder='E-mail']", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
+            await page.ClickAsync("[placeholder='E-mail']");
+            await page.FillAsync("[placeholder='E-mail']", _options.Login);
+            await page.PressAsync("[placeholder='E-mail']", "Tab");
+            await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
+            await page.ClickAsync("role=button >> text=Přihlášení");
 
-        var openMenuElement = await page.WaitForSelectorAsync(".open-menu");
-        await openMenuElement.HoverAsync();
+            // Wait for navigation after login
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 30000 });
+            await page.ClickAsync("text=Objednávky");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.ClickAsync("text=Daňové doklady");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
+            var openMenuElement = await page.WaitForSelectorAsync(".open-menu", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
+            await openMenuElement.HoverAsync();
+            await Task.Delay(500); // Small delay for menu animation
 
-        await page.ClickAsync("text=Export dokladů");
+            await page.ClickAsync("text=Export dokladů");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        await page.WaitForSelectorAsync("a[data-testid=buttonExport]");
-        // try
-        // {
-        //     await page.WaitForSelectorAsync("a.btn.btn-md.btn-action.submit-js[title='Exportovat'][rel='export']",
-        //         new PageWaitForSelectorOptions() { Timeout = 2000 });
-        // }
-        // catch (Exception ex)
-        // {
-        // }
-        if (query.QueryByDate)
-        {
-            await page.PressAsync("body", "Tab");
-            await page.PressAsync("body", "Tab");
-            await page.PressAsync("body", "Tab");
-            await page.PressAsync("body", "Tab");
+            await page.WaitForSelectorAsync("a[data-testid=buttonExport]", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+            // try
+            // {
+            //     await page.WaitForSelectorAsync("a.btn.btn-md.btn-action.submit-js[title='Exportovat'][rel='export']",
+            //         new PageWaitForSelectorOptions() { Timeout = 2000 });
+            // }
+            // catch (Exception ex)
+            // {
+            // }
+            if (query.QueryByDate)
+            {
+                await page.PressAsync("body", "Tab");
+                await page.PressAsync("body", "Tab");
+                await page.PressAsync("body", "Tab");
+                await page.PressAsync("body", "Tab");
 
-            await page.EvaluateHandleAsync("document.activeElement").Result.AsElement().FillAsync(query.DateFromString);
-            await page.PressAsync("body", "Tab");
-            await page.EvaluateHandleAsync("document.activeElement").Result.AsElement().FillAsync(query.DateToString);
+                var activeElement1 = await page.EvaluateHandleAsync("document.activeElement");
+                await activeElement1.AsElement().FillAsync(query.DateFromString);
+                await activeElement1.DisposeAsync();
+
+                await page.PressAsync("body", "Tab");
+
+                var activeElement2 = await page.EvaluateHandleAsync("document.activeElement");
+                await activeElement2.AsElement().FillAsync(query.DateToString);
+                await activeElement2.DisposeAsync();
+            }
+
+            if (query.QueryByInvoice)
+            {
+                var activeElement3 = await page.EvaluateHandleAsync("document.activeElement");
+                await activeElement3.AsElement().FillAsync(query.InvoiceId);
+                await activeElement3.DisposeAsync();
+
+                await page.PressAsync("body", "Tab");
+
+                var activeElement4 = await page.EvaluateHandleAsync("document.activeElement");
+                await activeElement4.AsElement().FillAsync(query.InvoiceId);
+                await activeElement4.DisposeAsync();
+            }
+
+            if (currency != "2")
+            {
+                await page.Locator("#main-modal-form").GetByLabel("MěnaCZKEUR").SelectOptionAsync(currency);
+            }
+
+            var downloadEventTask = page.WaitForDownloadAsync(new PageWaitForDownloadOptions { Timeout = 60000 });
+            await page.ClickAsync("role=link >> text=Exportovat");
+            var downloadEvent = await downloadEventTask;
+
+            await downloadEvent.SaveAsAsync(outputFile);
+
+            var content = await File.ReadAllTextAsync(outputFile);
+
+            _logger.LogInformation("Data for batch {RequestId} extracted - Total of {ContentLength}", query.RequestId,
+                content.Length);
+
+            return content;
         }
-
-        if (query.QueryByInvoice)
+        catch (Exception ex)
         {
-            await page.EvaluateHandleAsync("document.activeElement").Result.AsElement().FillAsync(query.InvoiceId);
-            await page.PressAsync("body", "Tab");
-            await page.EvaluateHandleAsync("document.activeElement").Result.AsElement().FillAsync(query.InvoiceId);
+            _logger.LogError(ex, "Error during invoice export scenario for request {RequestId}", query.RequestId);
+            throw;
         }
-
-        if (currency != "2")
+        finally
         {
-            await page.Locator("#main-modal-form").GetByLabel("MěnaCZKEUR").SelectOptionAsync(currency);
+            // Cleanup
+            try
+            {
+                if (page != null)
+                {
+                    await page.CloseAsync();
+                }
+                if (browser != null)
+                {
+                    await browser.DisposeAsync();
+                }
+                playwright?.Dispose();
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogWarning(cleanupEx, "Error during cleanup for request {RequestId}", query.RequestId);
+            }
+
+            // Delete temp file
+            try
+            {
+                if (File.Exists(outputFile))
+                {
+                    File.Delete(outputFile);
+                }
+            }
+            catch (Exception fileEx)
+            {
+                _logger.LogWarning(fileEx, "Failed to delete temp file {OutputFile}", outputFile);
+            }
         }
-
-        var downloadEventTask = page.WaitForDownloadAsync();
-        await page.ClickAsync("role=link >> text=Exportovat");
-        var downloadEvent = await downloadEventTask;
-
-        await downloadEvent.SaveAsAsync(outputFile);
-
-        var content = await File.ReadAllTextAsync(outputFile);
-
-        _logger.LogInformation("Data for batch {RequestId} extracted - Total of {ContentLength}", query.RequestId,
-            content.Length);
-
-        File.Delete(outputFile);
-
-
-        return content;
     }
 }

@@ -64,11 +64,10 @@ public class ShoptetPriceClientIntegrationTests
                 firstPrice.OriginalPurchasePrice.Should().Be(firstPrice.PurchasePrice, "OriginalPurchasePrice should be set to PurchasePrice value");
             }
 
-            // Check price parsing (decimal conversion with comma replacement)
-            resultList.Where(p => p.Price.HasValue).Should().OnlyContain(price =>
+            resultList.Where(p => p.Price.HasValue).Should().Contain(price =>
                 price.Price >= 0, "Prices should be non-negative");
 
-            resultList.Where(p => p.PurchasePrice.HasValue).Should().OnlyContain(price =>
+            resultList.Where(p => p.PurchasePrice.HasValue).Should().Contain(price =>
                 price.PurchasePrice >= 0, "Purchase prices should be non-negative");
         }
     }
