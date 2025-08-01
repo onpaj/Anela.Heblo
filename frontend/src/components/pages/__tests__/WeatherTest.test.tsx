@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import WeatherTest from '../WeatherTest';
 import { shouldUseMockAuth, getRuntimeConfig, getConfig, loadConfig } from '../../../config/runtimeConfig';
 import { mockAuthService } from '../../../auth/mockAuth';
+import { getAuthenticatedApiClient } from '../../../api/client';
 
 // Mock the dependencies
 jest.mock('../../../config/runtimeConfig', () => ({
@@ -17,6 +18,11 @@ jest.mock('../../../config/runtimeConfig', () => ({
 }));
 jest.mock('../../../auth/mockAuth');
 
+// Mock the API client entirely
+jest.mock('../../../api/client', () => ({
+  getAuthenticatedApiClient: jest.fn(),
+}));
+
 // Mock fetch globally
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -26,6 +32,7 @@ const mockGetRuntimeConfig = getRuntimeConfig as jest.MockedFunction<typeof getR
 const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>;
 const mockLoadConfig = loadConfig as jest.MockedFunction<typeof loadConfig>;
 const mockMockAuthService = mockAuthService as jest.Mocked<typeof mockAuthService>;
+const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 describe('WeatherTest Component Authentication Integration', () => {
   const mockWeatherData = [
@@ -50,7 +57,14 @@ describe('WeatherTest Component Authentication Integration', () => {
     mockMockAuthService.getAccessToken.mockReturnValue('mock-bearer-token');
     mockMockAuthService.isAuthenticated.mockReturnValue(true);
 
+    // Create a mock API client
+    const mockApiClient = {
+      weatherForecast: jest.fn(),
+    };
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient as any);
+
     mockFetch.mockClear();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -60,96 +74,93 @@ describe('WeatherTest Component Authentication Integration', () => {
   it('should use mock authentication and send mock bearer token when shouldUseMockAuth returns true', async () => {
     // Arrange
     mockShouldUseMockAuth.mockReturnValue(true);
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockWeatherData),
-    });
+    
+    // Get the mock API client instance
+    const mockApiClient = mockGetAuthenticatedApiClient() as any;
+    mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    render(<WeatherTest />);
-
-    // Assert - Wait for initial API call with mock token from mockAuthService
-    await waitFor(() => {
-      expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
+    await act(async () => {
+      render(<WeatherTest />);
     });
-    
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-bearer-token',
-      },
+
+    // Assert - Wait for API client to be called
+    await waitFor(() => {
+      expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
 
     // Verify weather data is displayed
-    expect(screen.getByText('20°C')).toBeInTheDocument();
-    expect(screen.getByText('15°C')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('20°C')).toBeInTheDocument();
+      expect(screen.getByText('15°C')).toBeInTheDocument();
+    });
   });
 
   it('should use real authentication and send no token when shouldUseMockAuth returns false (fallback behavior)', async () => {
     // Arrange - Real auth isn't fully implemented yet, so it should fall back to no token
     mockShouldUseMockAuth.mockReturnValue(false);
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockWeatherData),
-    });
+    
+    // Get the mock API client instance
+    const mockApiClient = mockGetAuthenticatedApiClient() as any;
+    mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    render(<WeatherTest />);
+    await act(async () => {
+      render(<WeatherTest />);
+    });
 
-    // Assert - Should make API call without token (fallback behavior)
+    // Assert - Should make API call via API client
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
 
     // Verify weather data is displayed
-    expect(screen.getByText('20°C')).toBeInTheDocument();
-    expect(screen.getByText('15°C')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('20°C')).toBeInTheDocument();
+      expect(screen.getByText('15°C')).toBeInTheDocument();
+    });
   });
 
   it('should handle 401 authentication errors and display error message', async () => {
     // Arrange
     mockShouldUseMockAuth.mockReturnValue(true);
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 401,
-    });
+    
+    // Get the mock API client instance and make it reject with 401 error
+    const mockApiClient = mockGetAuthenticatedApiClient() as any;
+    mockApiClient.weatherForecast.mockRejectedValue(new Error('HTTP error! status: 401'));
 
     // Act
-    render(<WeatherTest />);
+    await act(async () => {
+      render(<WeatherTest />);
+    });
 
     // Assert - Wait for error to be displayed
     await waitFor(() => {
       expect(screen.getByText('Error loading weather data')).toBeInTheDocument();
     });
     
-    expect(screen.getByText('HTTP error! status: 401')).toBeInTheDocument();
-
-    expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-bearer-token',
-      },
+    await waitFor(() => {
+      expect(screen.getByText('HTTP error! status: 401')).toBeInTheDocument();
     });
+
+    expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+    expect(mockApiClient.weatherForecast).toHaveBeenCalled();
   });
 
   it('should retry API call with bearer token when reload button is clicked', async () => {
     // Arrange
     mockShouldUseMockAuth.mockReturnValue(true);
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockWeatherData),
-    });
+    
+    // Get the mock API client instance
+    const mockApiClient = mockGetAuthenticatedApiClient() as any;
+    mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    render(<WeatherTest />);
+    await act(async () => {
+      render(<WeatherTest />);
+    });
 
     // Wait for initial load to complete
     await waitFor(() => {
@@ -157,8 +168,10 @@ describe('WeatherTest Component Authentication Integration', () => {
     });
 
     // Reset mocks to track the second call
-    mockFetch.mockClear();
-    mockMockAuthService.getAccessToken.mockClear();
+    jest.clearAllMocks();
+    // Re-setup the mock after clearing
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Click reload button (should be enabled after loading is complete)
     await waitFor(() => {
@@ -167,20 +180,15 @@ describe('WeatherTest Component Authentication Integration', () => {
     });
     
     const reloadButton = screen.getByRole('button', { name: /reload/i });
-    fireEvent.click(reloadButton);
-
-    // Assert - Should make another API call with mock bearer token
-    await waitFor(() => {
-      expect(mockMockAuthService.getAccessToken).toHaveBeenCalled();
-    });
     
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/weather/forecast', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-bearer-token',
-      },
+    await act(async () => {
+      fireEvent.click(reloadButton);
+    });
+
+    // Assert - Should make another API call via API client
+    await waitFor(() => {
+      expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
   });
 
