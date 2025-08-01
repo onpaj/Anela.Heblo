@@ -4,6 +4,7 @@ import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout/Layout';
+import Dashboard from './components/pages/Dashboard';
 import WeatherTest from './components/pages/WeatherTest';
 import CatalogList from './components/pages/CatalogList';
 import AuthGuard from './components/auth/AuthGuard';
@@ -179,7 +180,8 @@ function App() {
             <AuthGuard>
               <Layout statusBar={<StatusBar />}>
                 <Routes>
-                  <Route path="/" element={<WeatherTest />} />
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/weather" element={<WeatherTest />} />
                   <Route path="/catalog" element={<CatalogList />} />
                 </Routes>
               </Layout>

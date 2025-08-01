@@ -99,6 +99,7 @@ export const getApiConfig = () => {
 export const QUERY_KEYS = {
   weather: ['weather'] as const,
   catalog: ['catalog'] as const,
+  audit: ['audit'] as const,
   // Add more query keys as needed
   // users: ['users'] as const,  
   // products: ['products'] as const,

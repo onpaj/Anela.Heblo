@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Xcc.Audit;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Options;
@@ -11,30 +12,65 @@ public class ShoptetStockClient : IEshopStockClient
 {
     private readonly HttpClient _client;
     private readonly IOptions<ShoptetStockClientOptions> _options;
+    private readonly IDataLoadAuditService _auditService;
 
     public ShoptetStockClient(
         HttpClient client,
-        IOptions<ShoptetStockClientOptions> options)
+        IOptions<ShoptetStockClientOptions> options,
+        IDataLoadAuditService auditService)
     {
         _client = client;
         _options = options;
+        _auditService = auditService;
     }
 
     public async Task<List<EshopStock>> ListAsync(CancellationToken cancellationToken)
     {
-        List<EshopStock> stockDataList = new List<EshopStock>();
-
-        using (HttpResponseMessage response = await _client.GetAsync(_options.Value.Url, cancellationToken))
-        using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
-        using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
-        using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
+        var startTime = DateTime.UtcNow;
+        var parameters = new Dictionary<string, object>
         {
-            csv.Context.RegisterClassMap<StockDataMap>();
-            stockDataList = csv.GetRecords<EshopStock>().ToList();
-        }
+            ["url"] = _options.Value.Url,
+            ["encoding"] = "windows-1250",
+            ["delimiter"] = ";"
+        };
 
-        // TODO Add Audit trace to log successful load
-        return stockDataList;
+        try
+        {
+            List<EshopStock> stockDataList = new List<EshopStock>();
+
+            using (HttpResponseMessage response = await _client.GetAsync(_options.Value.Url, cancellationToken))
+            using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
+            using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
+            using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
+            {
+                csv.Context.RegisterClassMap<StockDataMap>();
+                stockDataList = csv.GetRecords<EshopStock>().ToList();
+            }
+
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "Stock",
+                source: "Shoptet E-shop",
+                recordCount: stockDataList.Count,
+                success: true,
+                parameters: parameters,
+                duration: duration);
+
+            return stockDataList;
+        }
+        catch (Exception ex)
+        {
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "Stock",
+                source: "Shoptet E-shop",
+                recordCount: 0,
+                success: false,
+                parameters: parameters,
+                errorMessage: ex.Message,
+                duration: duration);
+            throw;
+        }
     }
 
     private class StockDataMap : ClassMap<EshopStock>
