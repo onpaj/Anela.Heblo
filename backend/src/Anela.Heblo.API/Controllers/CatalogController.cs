@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
-using Anela.Heblo.Application.features.catalog.contracts;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Microsoft.AspNetCore.Authorization;
 
@@ -21,6 +20,14 @@ public class CatalogController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<GetCatalogListResponse>> GetCatalogList([FromQuery] GetCatalogListRequest request)
     {
+        var response = await _mediator.Send(request);
+        return Ok(response);
+    }
+
+    [HttpGet("{productCode}")]
+    public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode)
+    {
+        var request = new GetCatalogDetailRequest { ProductCode = productCode };
         var response = await _mediator.Send(request);
         return Ok(response);
     }

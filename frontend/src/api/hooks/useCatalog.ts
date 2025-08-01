@@ -36,6 +36,45 @@ export interface CatalogItemDto {
   minimalManufactureQuantity: number;
 }
 
+export interface CatalogSalesRecordDto {
+  year: number;
+  month: number;
+  amountTotal: number;
+  amountB2B: number;
+  amountB2C: number;
+  sumTotal: number;
+  sumB2B: number;
+  sumB2C: number;
+}
+
+export interface CatalogPurchaseRecordDto {
+  year: number;
+  month: number;
+  supplierName: string;
+  amount: number;
+  pricePerPiece: number;
+  priceTotal: number;
+  documentNumber: string;
+}
+
+export interface CatalogConsumedRecordDto {
+  year: number;
+  month: number;
+  amount: number;
+  productName: string;
+}
+
+export interface CatalogHistoricalDataDto {
+  salesHistory: CatalogSalesRecordDto[];
+  purchaseHistory: CatalogPurchaseRecordDto[];
+  consumedHistory: CatalogConsumedRecordDto[];
+}
+
+export interface GetCatalogDetailResponse {
+  item: CatalogItemDto;
+  historicalData: CatalogHistoricalDataDto;
+}
+
 export interface GetCatalogListRequest {
   type?: ProductType;
   pageNumber?: number;
@@ -96,6 +135,24 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
   return response.json();
 };
 
+// API function to fetch catalog detail
+const fetchCatalogDetail = async (productCode: string, monthsBack: number = 13): Promise<GetCatalogDetailResponse> => {
+  const apiClient = getAuthenticatedApiClient();
+  const url = `/api/catalog/${encodeURIComponent(productCode)}?monthsBack=${monthsBack}`;
+  const headers = await (apiClient as any).getAuthHeaders();
+  
+  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+    method: 'GET',
+    headers,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch catalog detail: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+};
+
 // React Query hook
 export const useCatalogList = (params: GetCatalogListRequest = {}) => {
   return useQuery({
@@ -139,5 +196,16 @@ export const useCatalogQuery = (
     queryFn: () => fetchCatalogList(params),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+  });
+};
+
+// Hook for catalog detail with historical data
+export const useCatalogDetail = (productCode: string, monthsBack: number = 13) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.catalog, 'detail', productCode, monthsBack],
+    queryFn: () => fetchCatalogDetail(productCode, monthsBack),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!productCode, // Only run query if productCode is provided
   });
 };

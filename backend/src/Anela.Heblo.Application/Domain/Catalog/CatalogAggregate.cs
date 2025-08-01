@@ -26,9 +26,43 @@ public class CatalogAggregate : Entity<string>
 
     public string Location { get; set; } = string.Empty;
 
-    public IList<CatalogSaleRecord> SalesHistory { get; set; } = new List<CatalogSaleRecord>();
-    public IList<ConsumedMaterialRecord> ConsumedHistory { get; set; } = new List<ConsumedMaterialRecord>();
-    public IReadOnlyList<CatalogPurchaseRecord> PurchaseHistory { get; set; } = new List<CatalogPurchaseRecord>();
+    private IList<CatalogSaleRecord> _salesHistory = new List<CatalogSaleRecord>();
+    private IList<ConsumedMaterialRecord> _consumedHistory = new List<ConsumedMaterialRecord>();
+    private IReadOnlyList<CatalogPurchaseRecord> _purchaseHistory = new List<CatalogPurchaseRecord>();
+
+    public IList<CatalogSaleRecord> SalesHistory
+    {
+        get => _salesHistory;
+        set
+        {
+            _salesHistory = value;
+            UpdateSaleHistorySummary();
+        }
+    }
+
+    public IList<ConsumedMaterialRecord> ConsumedHistory
+    {
+        get => _consumedHistory;
+        set
+        {
+            _consumedHistory = value;
+            UpdateConsumedHistorySummary();
+        }
+    }
+
+    public IReadOnlyList<CatalogPurchaseRecord> PurchaseHistory
+    {
+        get => _purchaseHistory;
+        set
+        {
+            _purchaseHistory = value;
+            UpdatePurchaseHistorySummary();
+        }
+    }
+
+    public SaleHistorySummary SaleHistorySummary { get; set; } = new();
+    public ConsumedHistorySummary ConsumedHistorySummary { get; set; } = new();
+    public PurchaseHistorySummary PurchaseHistorySummary { get; set; } = new();
 
     public IReadOnlyList<Supplier> Suppliers { get; set; } = new List<Supplier>();
 
@@ -61,27 +95,106 @@ public class CatalogAggregate : Entity<string>
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
         .Sum(s => s.Amount);
 
-    public CatalogSalesSummary GetSales(DateTime dateFrom, DateTime dateTo)
-    {
-        var sales = SalesHistory
-            .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
-            .ToList();
-        var days = (dateTo - dateFrom).TotalDays;
-        return new CatalogSalesSummary()
-        {
-            B2B = sales.Sum(s => s.SumB2B),
-            B2C = sales.Sum(s => s.SumB2C),
-            AmountB2B = sales.Sum(s => s.AmountB2B),
-            AmountB2C = sales.Sum(s => s.AmountB2C),
-            DailyB2B = (double)sales.Sum(s => s.SumB2B) / days,
-            DailyB2C = (double)sales.Sum(s => s.SumB2C) / days,
-            DateFrom = dateFrom,
-            DateTo = dateTo,
-        };
-    }
-
     public double GetTotalSold(DateTime dateFrom, DateTime dateTo) => SalesHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
         .Sum(s => s.AmountB2B + s.AmountB2C);
+
+    public void UpdateSaleHistorySummary()
+    {
+        var monthlyData = new Dictionary<string, MonthlySalesSummary>();
+        
+        var groupedSales = SalesHistory
+            .GroupBy(s => new { s.Date.Year, s.Date.Month })
+            .ToList();
+
+        foreach (var group in groupedSales)
+        {
+            var monthKey = $"{group.Key.Year:D4}-{group.Key.Month:D2}";
+            monthlyData[monthKey] = new MonthlySalesSummary
+            {
+                Year = group.Key.Year,
+                Month = group.Key.Month,
+                TotalB2B = group.Sum(s => s.SumB2B),
+                TotalB2C = group.Sum(s => s.SumB2C),
+                AmountB2B = group.Sum(s => s.AmountB2B),
+                AmountB2C = group.Sum(s => s.AmountB2C),
+                TransactionCount = group.Count()
+            };
+        }
+
+        SaleHistorySummary.MonthlyData = monthlyData;
+        SaleHistorySummary.LastUpdated = DateTime.UtcNow;
+    }
+
+    public void UpdatePurchaseHistorySummary()
+    {
+        var monthlyData = new Dictionary<string, MonthlyPurchaseSummary>();
+        
+        var groupedPurchases = PurchaseHistory
+            .GroupBy(p => new { p.Date.Year, p.Date.Month })
+            .ToList();
+
+        foreach (var group in groupedPurchases)
+        {
+            var monthKey = $"{group.Key.Year:D4}-{group.Key.Month:D2}";
+            
+            var supplierBreakdown = group
+                .GroupBy(p => p.SupplierName ?? "Unknown")
+                .ToDictionary(
+                    sg => sg.Key,
+                    sg => new SupplierPurchaseSummary
+                    {
+                        SupplierName = sg.Key,
+                        Amount = sg.Sum(p => p.Amount),
+                        Cost = sg.Sum(p => p.PriceTotal),
+                        PurchaseCount = sg.Count()
+                    });
+
+            monthlyData[monthKey] = new MonthlyPurchaseSummary
+            {
+                Year = group.Key.Year,
+                Month = group.Key.Month,
+                TotalAmount = group.Sum(p => p.Amount),
+                TotalCost = group.Sum(p => p.PriceTotal),
+                AveragePricePerPiece = group.Count() > 0 ? group.Average(p => p.PricePerPiece) : 0,
+                PurchaseCount = group.Count(),
+                SupplierBreakdown = supplierBreakdown
+            };
+        }
+
+        PurchaseHistorySummary.MonthlyData = monthlyData;
+        PurchaseHistorySummary.LastUpdated = DateTime.UtcNow;
+    }
+
+    public void UpdateConsumedHistorySummary()
+    {
+        var monthlyData = new Dictionary<string, MonthlyConsumedSummary>();
+        
+        var groupedConsumed = ConsumedHistory
+            .GroupBy(c => new { c.Date.Year, c.Date.Month })
+            .ToList();
+
+        foreach (var group in groupedConsumed)
+        {
+            var monthKey = $"{group.Key.Year:D4}-{group.Key.Month:D2}";
+            monthlyData[monthKey] = new MonthlyConsumedSummary
+            {
+                Year = group.Key.Year,
+                Month = group.Key.Month,
+                TotalAmount = group.Sum(c => c.Amount),
+                ConsumptionCount = group.Count()
+            };
+        }
+
+        ConsumedHistorySummary.MonthlyData = monthlyData;
+        ConsumedHistorySummary.LastUpdated = DateTime.UtcNow;
+    }
+
+    public void UpdateAllSummaries()
+    {
+        UpdateSaleHistorySummary();
+        UpdatePurchaseHistorySummary();
+        UpdateConsumedHistorySummary();
+    }
 
 }
