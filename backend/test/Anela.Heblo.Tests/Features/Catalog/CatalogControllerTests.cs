@@ -320,4 +320,5 @@ public class CatalogControllerTests
 
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
 }

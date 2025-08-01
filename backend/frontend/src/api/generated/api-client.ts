@@ -585,6 +585,40 @@ export class ApiClient {
         }
         return Promise.resolve<FileResponse>(null as any);
     }
+
+    getCatalogDebugPrices(): Promise<GetCatalogDebugPricesResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/debug-prices";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetCatalogDebugPrices(_response);
+        });
+    }
+
+    protected processGetCatalogDebugPrices(response: Response): Promise<GetCatalogDebugPricesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCatalogDebugPricesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCatalogDebugPricesResponse>(null as any);
+    }
 }
 
 export class ApiClient {
@@ -912,6 +946,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     productName?: string;
     type?: ProductType;
     stock?: StockDto;
+    price?: PriceDto;
     properties?: PropertiesDto;
     location?: string;
     minimalOrderQuantity?: string;
@@ -932,6 +967,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.productName = _data["productName"];
             this.type = _data["type"];
             this.stock = _data["stock"] ? StockDto.fromJS(_data["stock"]) : <any>undefined;
+            this.price = _data["price"] ? PriceDto.fromJS(_data["price"]) : <any>undefined;
             this.properties = _data["properties"] ? PropertiesDto.fromJS(_data["properties"]) : <any>undefined;
             this.location = _data["location"];
             this.minimalOrderQuantity = _data["minimalOrderQuantity"];
@@ -952,6 +988,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["productName"] = this.productName;
         data["type"] = this.type;
         data["stock"] = this.stock ? this.stock.toJSON() : <any>undefined;
+        data["price"] = this.price ? this.price.toJSON() : <any>undefined;
         data["properties"] = this.properties ? this.properties.toJSON() : <any>undefined;
         data["location"] = this.location;
         data["minimalOrderQuantity"] = this.minimalOrderQuantity;
@@ -965,6 +1002,7 @@ export interface ICatalogItemDto {
     productName?: string;
     type?: ProductType;
     stock?: StockDto;
+    price?: PriceDto;
     properties?: PropertiesDto;
     location?: string;
     minimalOrderQuantity?: string;
@@ -1029,6 +1067,150 @@ export interface IStockDto {
     transport?: number;
     reserve?: number;
     available?: number;
+}
+
+export class PriceDto implements IPriceDto {
+    currentSellingPrice?: number | undefined;
+    currentPurchasePrice?: number | undefined;
+    sellingPriceWithVat?: number | undefined;
+    purchasePriceWithVat?: number | undefined;
+    eshopPrice?: EshopPriceDto | undefined;
+    erpPrice?: ErpPriceDto | undefined;
+
+    constructor(data?: IPriceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.currentSellingPrice = _data["currentSellingPrice"];
+            this.currentPurchasePrice = _data["currentPurchasePrice"];
+            this.sellingPriceWithVat = _data["sellingPriceWithVat"];
+            this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+            this.eshopPrice = _data["eshopPrice"] ? EshopPriceDto.fromJS(_data["eshopPrice"]) : <any>undefined;
+            this.erpPrice = _data["erpPrice"] ? ErpPriceDto.fromJS(_data["erpPrice"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PriceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PriceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["currentSellingPrice"] = this.currentSellingPrice;
+        data["currentPurchasePrice"] = this.currentPurchasePrice;
+        data["sellingPriceWithVat"] = this.sellingPriceWithVat;
+        data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+        data["eshopPrice"] = this.eshopPrice ? this.eshopPrice.toJSON() : <any>undefined;
+        data["erpPrice"] = this.erpPrice ? this.erpPrice.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPriceDto {
+    currentSellingPrice?: number | undefined;
+    currentPurchasePrice?: number | undefined;
+    sellingPriceWithVat?: number | undefined;
+    purchasePriceWithVat?: number | undefined;
+    eshopPrice?: EshopPriceDto | undefined;
+    erpPrice?: ErpPriceDto | undefined;
+}
+
+export class EshopPriceDto implements IEshopPriceDto {
+    priceWithVat?: number;
+    purchasePrice?: number;
+
+    constructor(data?: IEshopPriceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.priceWithVat = _data["priceWithVat"];
+            this.purchasePrice = _data["purchasePrice"];
+        }
+    }
+
+    static fromJS(data: any): EshopPriceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EshopPriceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["priceWithVat"] = this.priceWithVat;
+        data["purchasePrice"] = this.purchasePrice;
+        return data;
+    }
+}
+
+export interface IEshopPriceDto {
+    priceWithVat?: number;
+    purchasePrice?: number;
+}
+
+export class ErpPriceDto implements IErpPriceDto {
+    priceWithoutVat?: number;
+    priceWithVat?: number;
+    purchasePrice?: number;
+    purchasePriceWithVat?: number;
+
+    constructor(data?: IErpPriceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.priceWithoutVat = _data["priceWithoutVat"];
+            this.priceWithVat = _data["priceWithVat"];
+            this.purchasePrice = _data["purchasePrice"];
+            this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+        }
+    }
+
+    static fromJS(data: any): ErpPriceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ErpPriceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["priceWithoutVat"] = this.priceWithoutVat;
+        data["priceWithVat"] = this.priceWithVat;
+        data["purchasePrice"] = this.purchasePrice;
+        data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+        return data;
+    }
+}
+
+export interface IErpPriceDto {
+    priceWithoutVat?: number;
+    priceWithVat?: number;
+    purchasePrice?: number;
+    purchasePriceWithVat?: number;
 }
 
 export class PropertiesDto implements IPropertiesDto {
@@ -1365,6 +1547,158 @@ export interface ICatalogConsumedRecordDto {
     month?: number;
     amount?: number;
     productName?: string;
+}
+
+export class GetCatalogDebugPricesResponse implements IGetCatalogDebugPricesResponse {
+    items?: CatalogDebugPriceItemDto[];
+    totalProductsChecked?: number;
+    productsWithEshopPrice?: number;
+    productsWithErpPrice?: number;
+    productsWithBothPrices?: number;
+    productsWithNoPrices?: number;
+
+    constructor(data?: IGetCatalogDebugPricesResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(CatalogDebugPriceItemDto.fromJS(item));
+            }
+            this.totalProductsChecked = _data["totalProductsChecked"];
+            this.productsWithEshopPrice = _data["productsWithEshopPrice"];
+            this.productsWithErpPrice = _data["productsWithErpPrice"];
+            this.productsWithBothPrices = _data["productsWithBothPrices"];
+            this.productsWithNoPrices = _data["productsWithNoPrices"];
+        }
+    }
+
+    static fromJS(data: any): GetCatalogDebugPricesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetCatalogDebugPricesResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalProductsChecked"] = this.totalProductsChecked;
+        data["productsWithEshopPrice"] = this.productsWithEshopPrice;
+        data["productsWithErpPrice"] = this.productsWithErpPrice;
+        data["productsWithBothPrices"] = this.productsWithBothPrices;
+        data["productsWithNoPrices"] = this.productsWithNoPrices;
+        return data;
+    }
+}
+
+export interface IGetCatalogDebugPricesResponse {
+    items?: CatalogDebugPriceItemDto[];
+    totalProductsChecked?: number;
+    productsWithEshopPrice?: number;
+    productsWithErpPrice?: number;
+    productsWithBothPrices?: number;
+    productsWithNoPrices?: number;
+}
+
+export class CatalogDebugPriceItemDto implements ICatalogDebugPriceItemDto {
+    productCode?: string;
+    productName?: string;
+    hasEshopPrice?: boolean;
+    hasErpPrice?: boolean;
+    eshopPriceWithVat?: number | undefined;
+    eshopPurchasePrice?: number | undefined;
+    erpPriceWithVat?: number | undefined;
+    erpPriceWithoutVat?: number | undefined;
+    erpPurchasePrice?: number | undefined;
+    erpPurchasePriceWithVat?: number | undefined;
+    currentSellingPrice?: number | undefined;
+    currentPurchasePrice?: number | undefined;
+    sellingPriceWithVat?: number | undefined;
+    purchasePriceWithVat?: number | undefined;
+
+    constructor(data?: ICatalogDebugPriceItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.hasEshopPrice = _data["hasEshopPrice"];
+            this.hasErpPrice = _data["hasErpPrice"];
+            this.eshopPriceWithVat = _data["eshopPriceWithVat"];
+            this.eshopPurchasePrice = _data["eshopPurchasePrice"];
+            this.erpPriceWithVat = _data["erpPriceWithVat"];
+            this.erpPriceWithoutVat = _data["erpPriceWithoutVat"];
+            this.erpPurchasePrice = _data["erpPurchasePrice"];
+            this.erpPurchasePriceWithVat = _data["erpPurchasePriceWithVat"];
+            this.currentSellingPrice = _data["currentSellingPrice"];
+            this.currentPurchasePrice = _data["currentPurchasePrice"];
+            this.sellingPriceWithVat = _data["sellingPriceWithVat"];
+            this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+        }
+    }
+
+    static fromJS(data: any): CatalogDebugPriceItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogDebugPriceItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["hasEshopPrice"] = this.hasEshopPrice;
+        data["hasErpPrice"] = this.hasErpPrice;
+        data["eshopPriceWithVat"] = this.eshopPriceWithVat;
+        data["eshopPurchasePrice"] = this.eshopPurchasePrice;
+        data["erpPriceWithVat"] = this.erpPriceWithVat;
+        data["erpPriceWithoutVat"] = this.erpPriceWithoutVat;
+        data["erpPurchasePrice"] = this.erpPurchasePrice;
+        data["erpPurchasePriceWithVat"] = this.erpPurchasePriceWithVat;
+        data["currentSellingPrice"] = this.currentSellingPrice;
+        data["currentPurchasePrice"] = this.currentPurchasePrice;
+        data["sellingPriceWithVat"] = this.sellingPriceWithVat;
+        data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+        return data;
+    }
+}
+
+export interface ICatalogDebugPriceItemDto {
+    productCode?: string;
+    productName?: string;
+    hasEshopPrice?: boolean;
+    hasErpPrice?: boolean;
+    eshopPriceWithVat?: number | undefined;
+    eshopPurchasePrice?: number | undefined;
+    erpPriceWithVat?: number | undefined;
+    erpPriceWithoutVat?: number | undefined;
+    erpPurchasePrice?: number | undefined;
+    erpPurchasePriceWithVat?: number | undefined;
+    currentSellingPrice?: number | undefined;
+    currentPurchasePrice?: number | undefined;
+    sellingPriceWithVat?: number | undefined;
+    purchasePriceWithVat?: number | undefined;
 }
 
 export class GetConfigurationResponse implements IGetConfigurationResponse {

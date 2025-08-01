@@ -12,3 +12,5 @@ public record RefreshPurchaseHistoryDataRequest() : IRequest;
 public record RefreshConsumedHistoryDataRequest() : IRequest;
 public record RefreshStockTakingDataRequest() : IRequest;
 public record RefreshLotsDataRequest() : IRequest;
+public record RefreshEshopPricesDataRequest() : IRequest;
+public record RefreshErpPricesDataRequest() : IRequest;

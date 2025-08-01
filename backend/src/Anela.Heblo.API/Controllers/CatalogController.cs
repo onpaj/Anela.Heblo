@@ -22,13 +22,13 @@ public class CatalogController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<GetCatalogListResponse>> GetCatalogList([FromQuery] GetCatalogListRequest request)
     {
-        _logger.LogInformation("Getting catalog list with page {PageNumber}, size {PageSize}, product name {ProductName}", 
+        _logger.LogInformation("Getting catalog list with page {PageNumber}, size {PageSize}, product name {ProductName}",
             request.PageNumber, request.PageSize, request.ProductName);
-        
+
         try
         {
             var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved catalog list with {Count} items, total {TotalCount}", 
+            _logger.LogInformation("Successfully retrieved catalog list with {Count} items, total {TotalCount}",
                 response.Items.Count, response.TotalCount);
             return Ok(response);
         }
@@ -43,7 +43,7 @@ public class CatalogController : ControllerBase
     public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode)
     {
         _logger.LogInformation("Getting catalog detail for product code {ProductCode}", productCode);
-        
+
         try
         {
             var request = new GetCatalogDetailRequest { ProductCode = productCode };
@@ -127,4 +127,5 @@ public class CatalogController : ControllerBase
         await _mediator.Send(new RefreshLotsDataRequest());
         return NoContent();
     }
+
 }

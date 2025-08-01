@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
 
@@ -313,5 +314,116 @@ public class CatalogAggregateTests
         Assert.Equal("2024-01", summary.MonthKey);
         Assert.Equal(1500, summary.TotalRevenue); // 1000 + 500
         Assert.Equal(15, summary.TotalAmount);    // 10 + 5
+    }
+
+    [Fact]
+    public void EshopPrice_WhenSet_ConveniencePropertiesReturnCorrectValues()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        var eshopPrice = new ProductPriceEshop
+        {
+            PriceWithVat = 100.50m,
+            PurchasePrice = 80.25m
+        };
+
+        // Act
+        aggregate.EshopPrice = eshopPrice;
+
+        // Assert
+        Assert.Equal(100.50m, aggregate.CurrentSellingPrice);
+        Assert.Equal(80.25m, aggregate.CurrentPurchasePrice);
+        Assert.Equal(100.50m, aggregate.SellingPriceWithVat);
+        Assert.Null(aggregate.PurchasePriceWithVat);
+    }
+
+    [Fact]
+    public void ErpPrice_WhenSet_ConveniencePropertiesReturnCorrectValues()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        var erpPrice = new ProductPriceErp
+        {
+            PriceWithoutVat = 90.00m,
+            PurchasePrice = 70.00m,
+            PriceWithVat = 108.90m,
+            PurchasePriceWithVat = 84.70m
+        };
+
+        // Act
+        aggregate.ErpPrice = erpPrice;
+
+        // Assert
+        Assert.Equal(90.00m, aggregate.CurrentSellingPrice);
+        Assert.Equal(70.00m, aggregate.CurrentPurchasePrice);
+        Assert.Equal(108.90m, aggregate.SellingPriceWithVat);
+        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+    }
+
+    [Fact]
+    public void PriceConvenienceProperties_WhenBothEshopAndErpPricesSet_PrefersEshopPrices()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        var eshopPrice = new ProductPriceEshop
+        {
+            PriceWithVat = 100.50m,
+            PurchasePrice = 80.25m
+        };
+        var erpPrice = new ProductPriceErp
+        {
+            PriceWithoutVat = 90.00m,
+            PurchasePrice = 70.00m,
+            PriceWithVat = 108.90m,
+            PurchasePriceWithVat = 84.70m
+        };
+
+        // Act
+        aggregate.EshopPrice = eshopPrice;
+        aggregate.ErpPrice = erpPrice;
+
+        // Assert - Should prefer eshop prices for current prices
+        Assert.Equal(100.50m, aggregate.CurrentSellingPrice);
+        Assert.Equal(80.25m, aggregate.CurrentPurchasePrice);
+
+        // Should prefer eshop VAT price over ERP VAT price
+        Assert.Equal(100.50m, aggregate.SellingPriceWithVat);
+        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+    }
+
+    [Fact]
+    public void PriceConvenienceProperties_WhenOnlyErpPriceSet_FallsBackToErpPrices()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        var erpPrice = new ProductPriceErp
+        {
+            PriceWithoutVat = 90.00m,
+            PurchasePrice = 70.00m,
+            PriceWithVat = 108.90m,
+            PurchasePriceWithVat = 84.70m
+        };
+
+        // Act
+        aggregate.ErpPrice = erpPrice;
+
+        // Assert - Should fall back to ERP prices
+        Assert.Equal(90.00m, aggregate.CurrentSellingPrice);
+        Assert.Equal(70.00m, aggregate.CurrentPurchasePrice);
+        Assert.Equal(108.90m, aggregate.SellingPriceWithVat);
+        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+    }
+
+    [Fact]
+    public void PriceConvenienceProperties_WhenNoPricesSet_ReturnsNull()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+
+        // Assert
+        Assert.Null(aggregate.CurrentSellingPrice);
+        Assert.Null(aggregate.CurrentPurchasePrice);
+        Assert.Null(aggregate.SellingPriceWithVat);
+        Assert.Null(aggregate.PurchasePriceWithVat);
     }
 }

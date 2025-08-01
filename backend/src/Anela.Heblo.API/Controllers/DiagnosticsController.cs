@@ -57,7 +57,7 @@ public class DiagnosticsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Test exception occurred in Diagnostics endpoint");
-            
+
             // Track exception in Application Insights
             _telemetryClient.TrackException(ex, new Dictionary<string, string>
             {
@@ -94,11 +94,11 @@ public class DiagnosticsController : ControllerBase
     {
         var connectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")
                             ?? Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
-        
+
         var hasConnectionString = !string.IsNullOrEmpty(connectionString);
         var hasInstrumentationKey = !string.IsNullOrEmpty(_telemetryClient.InstrumentationKey);
 
-        _logger.LogInformation("Application Insights configuration check - HasConnectionString: {HasConnectionString}, HasInstrumentationKey: {HasInstrumentationKey}", 
+        _logger.LogInformation("Application Insights configuration check - HasConnectionString: {HasConnectionString}, HasInstrumentationKey: {HasInstrumentationKey}",
             hasConnectionString, hasInstrumentationKey);
 
         return Ok(new

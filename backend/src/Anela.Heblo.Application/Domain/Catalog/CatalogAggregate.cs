@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Domain.Catalog.Attributes;
 using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
+using Anela.Heblo.Application.Domain.Catalog.Price;
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
@@ -21,6 +22,9 @@ public class CatalogAggregate : Entity<string>
 
     public StockData Stock { get; set; } = new();
     public CatalogProperties Properties { get; set; } = new();
+
+    public ProductPriceEshop? EshopPrice { get; set; }
+    public ProductPriceErp? ErpPrice { get; set; }
 
     public List<StockTakingRecord> StockTakingHistory { get; set; } = new();
 
@@ -91,6 +95,12 @@ public class CatalogAggregate : Entity<string>
     public double Volume { get; set; }
     public double Weight { get; set; }
 
+    // Price convenience properties
+    public decimal? CurrentSellingPrice => EshopPrice?.PriceWithVat ?? ErpPrice?.PriceWithoutVat;
+    public decimal? CurrentPurchasePrice => EshopPrice?.PurchasePrice ?? ErpPrice?.PurchasePrice;
+    public decimal? SellingPriceWithVat => EshopPrice?.PriceWithVat ?? ErpPrice?.PriceWithVat;
+    public decimal? PurchasePriceWithVat => ErpPrice?.PurchasePriceWithVat;
+
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
         .Sum(s => s.Amount);
@@ -102,7 +112,7 @@ public class CatalogAggregate : Entity<string>
     public void UpdateSaleHistorySummary()
     {
         var monthlyData = new Dictionary<string, MonthlySalesSummary>();
-        
+
         var groupedSales = SalesHistory
             .GroupBy(s => new { s.Date.Year, s.Date.Month })
             .ToList();
@@ -129,7 +139,7 @@ public class CatalogAggregate : Entity<string>
     public void UpdatePurchaseHistorySummary()
     {
         var monthlyData = new Dictionary<string, MonthlyPurchaseSummary>();
-        
+
         var groupedPurchases = PurchaseHistory
             .GroupBy(p => new { p.Date.Year, p.Date.Month })
             .ToList();
@@ -137,7 +147,7 @@ public class CatalogAggregate : Entity<string>
         foreach (var group in groupedPurchases)
         {
             var monthKey = $"{group.Key.Year:D4}-{group.Key.Month:D2}";
-            
+
             var supplierBreakdown = group
                 .GroupBy(p => p.SupplierName ?? "Unknown")
                 .ToDictionary(
@@ -169,7 +179,7 @@ public class CatalogAggregate : Entity<string>
     public void UpdateConsumedHistorySummary()
     {
         var monthlyData = new Dictionary<string, MonthlyConsumedSummary>();
-        
+
         var groupedConsumed = ConsumedHistory
             .GroupBy(c => new { c.Date.Year, c.Date.Month })
             .ToList();

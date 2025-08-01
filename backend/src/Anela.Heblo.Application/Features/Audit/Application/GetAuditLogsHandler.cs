@@ -23,7 +23,7 @@ public class GetAuditLogsHandler : IRequestHandler<GetAuditLogsRequest, GetAudit
     {
         try
         {
-            _logger.LogInformation("Retrieving data load audit logs with limit: {Limit}, fromDate: {FromDate}, toDate: {ToDate}", 
+            _logger.LogInformation("Retrieving data load audit logs with limit: {Limit}, fromDate: {FromDate}, toDate: {ToDate}",
                 request.Limit, request.FromDate, request.ToDate);
 
             var auditLogs = await _auditService.GetAuditLogsAsync(request.Limit, request.FromDate, request.ToDate);
