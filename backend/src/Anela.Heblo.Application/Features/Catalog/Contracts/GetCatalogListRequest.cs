@@ -1,7 +1,7 @@
 using MediatR;
 using Anela.Heblo.Application.Domain.Catalog;
 
-namespace Anela.Heblo.Application.features.catalog.contracts;
+namespace Anela.Heblo.Application.Features.Catalog.Contracts;
 
 public class GetCatalogListRequest : IRequest<GetCatalogListResponse>
 {

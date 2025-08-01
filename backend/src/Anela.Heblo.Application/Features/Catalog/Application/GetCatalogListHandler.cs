@@ -1,8 +1,9 @@
 using MediatR;
-using Anela.Heblo.Application.features.catalog.contracts;
+
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Xcc.Persistance;
 using System.Linq.Expressions;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Xcc;
 using AutoMapper;
 

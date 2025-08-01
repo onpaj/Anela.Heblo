@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.features.catalog.contracts;
+namespace Anela.Heblo.Application.Features.Catalog.Contracts;
 
 public class GetCatalogListResponse
 {

@@ -1,6 +1,5 @@
 using MediatR;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
-using Anela.Heblo.Application.features.catalog.contracts;
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Domain.Catalog.Sales;
 using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
@@ -38,9 +37,9 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         }
 
         // Convert historical data to DTOs with monthly grouping
-        var salesHistory = GetSalesHistoryFromAggregate(catalogItem);
-        var purchaseHistory = GetPurchaseHistoryFromAggregate(catalogItem);
-        var consumedHistory = GetConsumedHistoryFromAggregate(catalogItem);
+        var salesHistory = GetSalesHistoryFromAggregate(catalogItem, request.MonthsBack);
+        var purchaseHistory = GetPurchaseHistoryFromAggregate(catalogItem, request.MonthsBack);
+        var consumedHistory = GetConsumedHistoryFromAggregate(catalogItem, request.MonthsBack);
 
         return new GetCatalogDetailResponse
         {
@@ -54,73 +53,64 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         };
     }
 
-    private List<CatalogSalesRecordDto> GetSalesHistoryFromAggregate(CatalogAggregate catalogItem)
+    private List<CatalogSalesRecordDto> GetSalesHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Get data from the already loaded aggregate (from cache)
-        var salesData = catalogItem.SalesHistory ?? new List<CatalogSaleRecord>();
-        
-        // Filter to last 13 months and group by month and year for optimization
+        // Use pre-calculated summary data - much faster than runtime aggregation
         var currentDate = _timeProvider.GetUtcNow().Date;
-        var fromDate = currentDate.AddMonths(-13);
+        var fromDate = currentDate.AddMonths(-monthsBack);
+        var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
         
-        return salesData
-            .Where(s => s.Date >= fromDate)
-            .GroupBy(s => new { s.Date.Year, s.Date.Month })
-            .Select(g => new CatalogSalesRecordDto
+        return catalogItem.SaleHistorySummary.MonthlyData
+            .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
+            .Select(kvp => new CatalogSalesRecordDto
             {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                AmountTotal = g.Sum(s => s.AmountTotal),
-                AmountB2B = g.Sum(s => s.AmountB2B),
-                AmountB2C = g.Sum(s => s.AmountB2C),
-                SumTotal = g.Sum(s => s.SumTotal),
-                SumB2B = g.Sum(s => s.SumB2B),
-                SumB2C = g.Sum(s => s.SumB2C)
+                Year = kvp.Value.Year,
+                Month = kvp.Value.Month,
+                AmountTotal = kvp.Value.TotalAmount,
+                AmountB2B = kvp.Value.AmountB2B,
+                AmountB2C = kvp.Value.AmountB2C,
+                SumTotal = kvp.Value.TotalRevenue,
+                SumB2B = kvp.Value.TotalB2B,
+                SumB2C = kvp.Value.TotalB2C
             }).ToList();
     }
 
-    private List<CatalogPurchaseRecordDto> GetPurchaseHistoryFromAggregate(CatalogAggregate catalogItem)
+    private List<CatalogPurchaseRecordDto> GetPurchaseHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Get data from the already loaded aggregate (from cache)
-        var purchaseData = catalogItem.PurchaseHistory ?? new List<CatalogPurchaseRecord>();
-        
-        // Filter to last 13 months and group by month and year for optimization
+        // Use pre-calculated summary data - much faster than runtime aggregation
         var currentDate = _timeProvider.GetUtcNow().Date;
-        var fromDate = currentDate.AddMonths(-13);
+        var fromDate = currentDate.AddMonths(-monthsBack);
+        var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
         
-        return purchaseData
-            .Where(p => p.Date >= fromDate)
-            .GroupBy(p => new { p.Date.Year, p.Date.Month })
-            .Select(g => new CatalogPurchaseRecordDto
+        return catalogItem.PurchaseHistorySummary.MonthlyData
+            .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
+            .Select(kvp => new CatalogPurchaseRecordDto
             {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                SupplierName = g.First().SupplierName ?? string.Empty, // Take first supplier for the month
-                Amount = g.Sum(p => p.Amount),
-                PricePerPiece = g.Count() > 0 ? g.Average(p => p.PricePerPiece) : 0, // Average price per piece
-                PriceTotal = g.Sum(p => p.PriceTotal),
-                DocumentNumber = string.Join(", ", g.Select(p => p.DocumentNumber).Where(d => !string.IsNullOrEmpty(d)).Distinct())
+                Year = kvp.Value.Year,
+                Month = kvp.Value.Month,
+                SupplierName = kvp.Value.SupplierBreakdown.FirstOrDefault().Value?.SupplierName ?? string.Empty,
+                Amount = kvp.Value.TotalAmount,
+                PricePerPiece = kvp.Value.AveragePricePerPiece,
+                PriceTotal = kvp.Value.TotalCost,
+                DocumentNumber = string.Empty // Document numbers not stored in summary
             }).ToList();
     }
 
-    private List<CatalogConsumedRecordDto> GetConsumedHistoryFromAggregate(CatalogAggregate catalogItem)
+    private List<CatalogConsumedRecordDto> GetConsumedHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Get data from the already loaded aggregate (from cache)
-        var consumedData = catalogItem.ConsumedHistory ?? new List<ConsumedMaterialRecord>();
-        
-        // Filter to last 13 months and group by month and year for optimization
+        // Use pre-calculated summary data - much faster than runtime aggregation
         var currentDate = _timeProvider.GetUtcNow().Date;
-        var fromDate = currentDate.AddMonths(-13);
+        var fromDate = currentDate.AddMonths(-monthsBack);
+        var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
         
-        return consumedData
-            .Where(c => c.Date >= fromDate)
-            .GroupBy(c => new { c.Date.Year, c.Date.Month })
-            .Select(g => new CatalogConsumedRecordDto
+        return catalogItem.ConsumedHistorySummary.MonthlyData
+            .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
+            .Select(kvp => new CatalogConsumedRecordDto
             {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                Amount = g.Sum(c => c.Amount),
-                ProductName = g.First().ProductName ?? string.Empty
+                Year = kvp.Value.Year,
+                Month = kvp.Value.Month,
+                Amount = kvp.Value.TotalAmount,
+                ProductName = catalogItem.ProductName // Use product name from main aggregate
             }).ToList();
     }
 }

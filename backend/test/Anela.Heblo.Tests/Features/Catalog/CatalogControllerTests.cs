@@ -1,6 +1,5 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.features.catalog.contracts;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

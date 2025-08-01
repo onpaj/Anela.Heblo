@@ -239,13 +239,20 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose }) 
                       {item.type === ProductType.Material ? 'Spotřeba za posledních 13 měsíců' : 'Prodeje za posledních 13 měsíců'}
                     </h3>
                     
-                    <div className="flex-1 bg-gray-50 rounded-lg p-4">
+                    <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4">
                       <ProductChart 
                         productType={item.type}
                         salesData={detailData?.historicalData.salesHistory || []}
                         consumedData={detailData?.historicalData.consumedHistory || []}
                       />
                     </div>
+
+                    {/* Summary Section */}
+                    <ProductSummary 
+                      productType={item.type}
+                      salesData={detailData?.historicalData.salesHistory || []}
+                      consumedData={detailData?.historicalData.consumedHistory || []}
+                    />
                   </div>
                 </div>
               </div>
@@ -393,6 +400,96 @@ const ProductChart: React.FC<ProductChartProps> = ({ productType, salesData, con
   return (
     <div className="h-96">
       <Line data={chartData} options={chartOptions} />
+    </div>
+  );
+};
+
+// ProductSummary Component - displays summary statistics for sales or consumption
+interface ProductSummaryProps {
+  productType: ProductType;
+  salesData: CatalogSalesRecordDto[];
+  consumedData: CatalogConsumedRecordDto[];
+}
+
+const ProductSummary: React.FC<ProductSummaryProps> = ({ productType, salesData, consumedData }) => {
+  // Calculate summary statistics
+  const calculateSummary = () => {
+    const currentDate = new Date();
+    const oneYearAgo = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1);
+    
+    let totalForLastYear = 0;
+    let monthsWithData = 0;
+    
+    if (productType === ProductType.Material) {
+      // Calculate total consumption for last 12 months
+      consumedData.forEach(record => {
+        const recordDate = new Date(record.year, record.month - 1); // month is 1-based
+        if (recordDate >= oneYearAgo) {
+          totalForLastYear += record.amount || 0;
+          if ((record.amount || 0) > 0) monthsWithData++;
+        }
+      });
+    } else {
+      // Calculate total sales for last 12 months
+      salesData.forEach(record => {
+        const recordDate = new Date(record.year, record.month - 1); // month is 1-based
+        if (recordDate >= oneYearAgo) {
+          totalForLastYear += record.amountTotal || 0;
+          if ((record.amountTotal || 0) > 0) monthsWithData++;
+        }
+      });
+    }
+    
+    const averageMonthly = monthsWithData > 0 ? totalForLastYear / 12 : 0;
+    
+    return {
+      totalForLastYear: Math.round(totalForLastYear * 100) / 100,
+      averageMonthly: Math.round(averageMonthly * 100) / 100,
+      monthsWithData
+    };
+  };
+
+  const summary = calculateSummary();
+  const isMaterial = productType === ProductType.Material;
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+      <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
+        <BarChart3 className="h-4 w-4 mr-2 text-gray-500" />
+        Celkové shrnutí
+      </h4>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <div className="text-sm font-medium text-gray-600 mb-1">
+            {isMaterial ? 'Celková spotřeba za rok' : 'Celkové prodeje za rok'}
+          </div>
+          <div className="text-2xl font-bold text-blue-900">
+            {summary.totalForLastYear.toLocaleString('cs-CZ')}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            za posledních 12 měsíců
+          </div>
+        </div>
+        
+        <div className="text-center p-3 bg-green-50 rounded-lg">
+          <div className="text-sm font-medium text-gray-600 mb-1">
+            {isMaterial ? 'Průměrná spotřeba/měsíc' : 'Průměrné prodeje/měsíc'}
+          </div>
+          <div className="text-2xl font-bold text-green-900">
+            {summary.averageMonthly.toLocaleString('cs-CZ')}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            měsíční průměr
+          </div>
+        </div>
+      </div>
+      
+      {summary.monthsWithData === 0 && (
+        <div className="mt-3 text-center text-sm text-gray-500">
+          Žádná data za posledních 12 měsíců
+        </div>
+      )}
     </div>
   );
 };

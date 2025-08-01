@@ -1,7 +1,7 @@
 using AutoMapper;
 using Anela.Heblo.Application.Domain.Catalog;
 using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.features.catalog.contracts;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 
 namespace Anela.Heblo.Application.features.catalog.Application;
 

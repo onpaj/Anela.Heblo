@@ -136,9 +136,9 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
 };
 
 // API function to fetch catalog detail
-const fetchCatalogDetail = async (productCode: string): Promise<GetCatalogDetailResponse> => {
+const fetchCatalogDetail = async (productCode: string, monthsBack: number = 13): Promise<GetCatalogDetailResponse> => {
   const apiClient = getAuthenticatedApiClient();
-  const url = `/api/catalog/${encodeURIComponent(productCode)}`;
+  const url = `/api/catalog/${encodeURIComponent(productCode)}?monthsBack=${monthsBack}`;
   const headers = await (apiClient as any).getAuthHeaders();
   
   const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
@@ -200,10 +200,10 @@ export const useCatalogQuery = (
 };
 
 // Hook for catalog detail with historical data
-export const useCatalogDetail = (productCode: string) => {
+export const useCatalogDetail = (productCode: string, monthsBack: number = 13) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.catalog, 'detail', productCode],
-    queryFn: () => fetchCatalogDetail(productCode),
+    queryKey: [...QUERY_KEYS.catalog, 'detail', productCode, monthsBack],
+    queryFn: () => fetchCatalogDetail(productCode, monthsBack),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     enabled: !!productCode, // Only run query if productCode is provided
