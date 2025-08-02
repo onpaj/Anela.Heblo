@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.API.Authentication;
+namespace Anela.Heblo.API.Infrastructure.Authentication;
 
 public class MockAuthenticationSchemeOptions : AuthenticationSchemeOptions
 {

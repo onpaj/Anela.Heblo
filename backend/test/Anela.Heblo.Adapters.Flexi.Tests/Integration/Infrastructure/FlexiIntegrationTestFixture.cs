@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Rem.FlexiBeeSDK.Client.DI;
 
-namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
+namespace Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
 
 public class FlexiIntegrationTestFixture : IDisposable
 {

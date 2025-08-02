@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
-using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.Model;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;

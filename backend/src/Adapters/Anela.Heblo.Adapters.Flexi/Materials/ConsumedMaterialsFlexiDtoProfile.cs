@@ -1,6 +1,6 @@
 using System.Globalization;
 using Anela.Heblo.Adapters.Flexi.Common;
-using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 
 namespace Anela.Heblo.Adapters.Flexi.Materials;
 

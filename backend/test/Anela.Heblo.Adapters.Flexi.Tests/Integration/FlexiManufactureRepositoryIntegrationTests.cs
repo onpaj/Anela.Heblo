@@ -1,8 +1,8 @@
 using Anela.Heblo.Adapters.Flexi.Manufacture;
+using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 
@@ -63,7 +63,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
 
         // Assert
         result.Should().NotBeNull();
-        result.Should().BeOfType<List<Anela.Heblo.Application.Domain.Manufacture.ManufactureTemplate>>();
+        result.Should().BeOfType<List<Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate>>();
 
         if (result.Any())
         {

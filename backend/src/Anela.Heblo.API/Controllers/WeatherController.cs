@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Weather.Contracts;
+using Anela.Heblo.Application.Features.Weather.Model;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Shopte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Flexi.Tests", "backend\test\Anela.Heblo.Adapters.Flexi.Tests\Anela.Heblo.Adapters.Flexi.Tests.csproj", "{15DB42BF-98E3-48D1-A6EA-DAF8C284A683}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Domain", "backend\src\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj", "{65791D8D-0983-4868-872D-B362921812CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -181,6 +183,18 @@ Global
 		{15DB42BF-98E3-48D1-A6EA-DAF8C284A683}.Release|x64.Build.0 = Release|Any CPU
 		{15DB42BF-98E3-48D1-A6EA-DAF8C284A683}.Release|x86.ActiveCfg = Release|Any CPU
 		{15DB42BF-98E3-48D1-A6EA-DAF8C284A683}.Release|x86.Build.0 = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|x64.Build.0 = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Debug|x86.Build.0 = Debug|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|x64.ActiveCfg = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|x64.Build.0 = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|x86.ActiveCfg = Release|Any CPU
+		{65791D8D-0983-4868-872D-B362921812CE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -200,5 +214,6 @@ Global
 		{9271A35A-387E-481F-A97C-21531EBDB707} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 		{8C02537A-EEB3-475B-BFC2-946CFFAA0D1E} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 		{15DB42BF-98E3-48D1-A6EA-DAF8C284A683} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
+		{65791D8D-0983-4868-872D-B362921812CE} = {87237941-D198-446F-919C-467E4968E85F}
 	EndGlobalSection
 EndGlobal

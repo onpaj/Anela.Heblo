@@ -1,7 +1,7 @@
-using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
+using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 

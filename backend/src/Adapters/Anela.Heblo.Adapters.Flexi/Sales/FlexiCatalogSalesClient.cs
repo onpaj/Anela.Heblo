@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Xcc.Audit;
 using AutoMapper;
 using Microsoft.Extensions.Logging;

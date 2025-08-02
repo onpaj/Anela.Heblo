@@ -1,12 +1,12 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.Attributes;
-using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
-using Anela.Heblo.Application.Domain.Catalog.Lots;
-using Anela.Heblo.Application.Domain.Catalog.Price;
-using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
-using Anela.Heblo.Application.Domain.Catalog.Sales;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.Domain.Logistics.Transport;
+using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Attributes;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -94,21 +94,21 @@ public class CatalogRepositoryTests
 
         var erpPriceData = new List<ProductPriceErp>
         {
-            new ProductPriceErp 
-            { 
-                ProductCode = "PRODUCT001", 
-                PriceWithoutVat = 100m, 
-                PriceWithVat = 121m, 
-                PurchasePrice = 80m, 
-                PurchasePriceWithVat = 96.8m 
+            new ProductPriceErp
+            {
+                ProductCode = "PRODUCT001",
+                PriceWithoutVat = 100m,
+                PriceWithVat = 121m,
+                PurchasePrice = 80m,
+                PurchasePriceWithVat = 96.8m
             },
-            new ProductPriceErp 
-            { 
-                ProductCode = "PRODUCT002", 
-                PriceWithoutVat = 200m, 
-                PriceWithVat = 242m, 
-                PurchasePrice = 160m, 
-                PurchasePriceWithVat = 193.6m 
+            new ProductPriceErp
+            {
+                ProductCode = "PRODUCT002",
+                PriceWithoutVat = 200m,
+                PriceWithVat = 242m,
+                PurchasePrice = 160m,
+                PurchasePriceWithVat = 193.6m
             }
         };
 
@@ -161,17 +161,17 @@ public class CatalogRepositoryTests
 
         var eshopPriceData = new List<ProductPriceEshop>
         {
-            new ProductPriceEshop 
-            { 
-                ProductCode = "PRODUCT001", 
-                PriceWithVat = 125m, 
-                PurchasePrice = 85m 
+            new ProductPriceEshop
+            {
+                ProductCode = "PRODUCT001",
+                PriceWithVat = 125m,
+                PurchasePrice = 85m
             },
-            new ProductPriceEshop 
-            { 
-                ProductCode = "PRODUCT002", 
-                PriceWithVat = 250m, 
-                PurchasePrice = 170m 
+            new ProductPriceEshop
+            {
+                ProductCode = "PRODUCT002",
+                PriceWithVat = 250m,
+                PurchasePrice = 170m
             }
         };
 
@@ -220,23 +220,23 @@ public class CatalogRepositoryTests
 
         var erpPriceData = new List<ProductPriceErp>
         {
-            new ProductPriceErp 
-            { 
-                ProductCode = "DIFFERENT_PRODUCT", 
-                PriceWithoutVat = 100m, 
-                PriceWithVat = 121m, 
-                PurchasePrice = 80m, 
-                PurchasePriceWithVat = 96.8m 
+            new ProductPriceErp
+            {
+                ProductCode = "DIFFERENT_PRODUCT",
+                PriceWithoutVat = 100m,
+                PriceWithVat = 121m,
+                PurchasePrice = 80m,
+                PurchasePriceWithVat = 96.8m
             }
         };
 
         var eshopPriceData = new List<ProductPriceEshop>
         {
-            new ProductPriceEshop 
-            { 
-                ProductCode = "ANOTHER_DIFFERENT_PRODUCT", 
-                PriceWithVat = 125m, 
-                PurchasePrice = 85m 
+            new ProductPriceEshop
+            {
+                ProductCode = "ANOTHER_DIFFERENT_PRODUCT",
+                PriceWithVat = 125m,
+                PurchasePrice = 85m
             }
         };
 
@@ -284,23 +284,23 @@ public class CatalogRepositoryTests
 
         var erpPriceData = new List<ProductPriceErp>
         {
-            new ProductPriceErp 
-            { 
+            new ProductPriceErp
+            {
                 ProductCode = "PRODUCT001", // Only matches first product
-                PriceWithoutVat = 100m, 
-                PriceWithVat = 121m, 
-                PurchasePrice = 80m, 
-                PurchasePriceWithVat = 96.8m 
+                PriceWithoutVat = 100m,
+                PriceWithVat = 121m,
+                PurchasePrice = 80m,
+                PurchasePriceWithVat = 96.8m
             }
         };
 
         var eshopPriceData = new List<ProductPriceEshop>
         {
-            new ProductPriceEshop 
-            { 
+            new ProductPriceEshop
+            {
                 ProductCode = "PRODUCT002", // Only matches second product
-                PriceWithVat = 250m, 
-                PurchasePrice = 170m 
+                PriceWithVat = 250m,
+                PurchasePrice = 170m
             }
         };
 

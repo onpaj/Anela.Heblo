@@ -1,5 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Common;
-using Anela.Heblo.Application.Domain.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
 
 namespace Anela.Heblo.Adapters.Flexi.Sales;
 

@@ -1,7 +1,7 @@
 
 using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Domain.Logistics.Picking;
+using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

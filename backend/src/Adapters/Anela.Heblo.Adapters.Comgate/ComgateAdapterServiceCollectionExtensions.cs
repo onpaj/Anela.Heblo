@@ -1,4 +1,4 @@
-﻿using Anela.Heblo.Application.Domain.Bank;
+﻿using Anela.Heblo.Domain.Features.Bank;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

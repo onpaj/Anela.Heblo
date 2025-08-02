@@ -1,5 +1,6 @@
-﻿using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Domain.IssuedInvoices;
+﻿using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
+using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
+using Anela.Heblo.Domain.Features.Invoices;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright;

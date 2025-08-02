@@ -1,6 +1,6 @@
 using System.Globalization;
 using Anela.Heblo.Adapters.Comgate.Model;
-using Anela.Heblo.Application.Domain.Bank;
+using Anela.Heblo.Domain.Features.Bank;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.Comgate;

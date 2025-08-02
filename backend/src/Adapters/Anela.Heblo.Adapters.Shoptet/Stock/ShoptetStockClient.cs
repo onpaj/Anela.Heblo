@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Xcc.Audit;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Adapters.Shoptet;
+namespace Anela.Heblo.Adapters.Shoptet.Stock;
 
 public class ShoptetStockClient : IEshopStockClient
 {

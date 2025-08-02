@@ -1,6 +1,6 @@
 using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
-using Anela.Heblo.Application.Domain.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,7 +51,7 @@ public class ShoptetPriceClientIntegrationTests
 
             resultList.Where(p => p.PurchasePrice.HasValue).Should().Contain(price =>
                 price.PurchasePrice >= 0, "Purchase prices should be non-negative");
-                
+
             // Verify ProductCode is populated from CSV
             resultList.Should().OnlyContain(price => !string.IsNullOrEmpty(price.ProductCode), "ProductCode should be populated from CSV first column");
         }
@@ -82,7 +82,7 @@ public class ShoptetPriceClientIntegrationTests
                 // ProductCode mapping from first column (column 0)
                 price.ProductCode.Should().NotBeNullOrEmpty("ProductCode should be mapped from CSV column 0");
                 price.ProductCode.Should().NotBeNullOrWhiteSpace("ProductCode should contain actual product code from CSV");
-                
+
                 // PriceWithVat parsing with comma replacement (column 3)
                 if (price.PriceWithVat.HasValue)
                 {
@@ -95,7 +95,7 @@ public class ShoptetPriceClientIntegrationTests
                     price.PurchasePrice.Should().BeGreaterOrEqualTo(0, "PurchasePrice should be non-negative decimal from column 4");
                 }
             }
-            
+
             // Test that different products have different codes
             var sampleCodes = resultList.Take(10).Select(p => p.ProductCode).ToList();
             if (sampleCodes.Count > 1)

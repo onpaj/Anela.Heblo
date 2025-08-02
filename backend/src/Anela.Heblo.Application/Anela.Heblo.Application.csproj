@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Anela.Heblo.Domain/Anela.Heblo.Domain.csproj" />
     <ProjectReference Include="../Anela.Heblo.Persistence/Anela.Heblo.Persistence.csproj" />
   </ItemGroup>
 

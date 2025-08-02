@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Adapters.Flexi.Price;
+namespace Anela.Heblo.Adapters.Shoptet.Price;
 
 public class ProductPriceOptions
 {

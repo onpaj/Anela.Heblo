@@ -1,7 +1,7 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Model;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Domain.Logistics;
-using Anela.Heblo.Application.Domain.Logistics.Picking;
+using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Logistics.Picking;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 

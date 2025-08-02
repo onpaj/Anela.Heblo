@@ -1,6 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using FluentAssertions;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.ProductAttributes;
 

@@ -1,11 +1,9 @@
-using System.Xml;
-using Anela.Heblo.Adapters.Shoptet;
-using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
+using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.IssuedInvoices;
 

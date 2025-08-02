@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Xcc.Audit;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 

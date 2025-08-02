@@ -1,6 +1,6 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Model;
-using Anela.Heblo.Application.Domain.Logistics.Picking;
-using Anela.Heblo.Application.Domain.Users;
+using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Xcc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 

@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.Domain.Users;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Users;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Model.Products.StockTaking;
 

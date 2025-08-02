@@ -12,9 +12,9 @@ This document defines the project's directory structure and filesystem organizat
 │   ├── src/       # Application code
 │   │   ├── Anela.Heblo.API/           # Host/Composition project (Controllers + serves React)
 │   │   │   ├── Controllers/           # MVC Controllers for API endpoints
-│   │   │   │   ├── OrdersController.cs
-│   │   │   │   ├── ProductsController.cs
-│   │   │   │   └── InvoicesController.cs
+│   │   │   │   ├── PurchaseOrdersController.cs
+│   │   │   │   ├── CatalogController.cs
+│   │   │   │   └── WeatherController.cs
 │   │   │   ├── Extensions/            # Service registration & configuration
 │   │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   │   ├── LoggingExtensions.cs
@@ -22,30 +22,116 @@ This document defines the project's directory structure and filesystem organizat
 │   │   │   ├── Authentication/        # Authentication handlers
 │   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
-│   │   ├── Anela.Heblo.Application/   # Feature modules and business logic
-│   │   │   ├── Features/              # Vertical slice feature modules
-│   │   │   │   ├── Orders/
-│   │   │   │   │   ├── Contracts/
-│   │   │   │   │   │   ├── CreateOrderRequest.cs
-│   │   │   │   │   │   ├── CreateOrderResponse.cs
-│   │   │   │   │   │   └── GetOrderRequest.cs
-│   │   │   │   │   ├── Application/
-│   │   │   │   │   │   ├── CreateOrderHandler.cs
-│   │   │   │   │   │   └── GetOrderHandler.cs
-│   │   │   │   │   ├── Domain/
-│   │   │   │   │   │   ├── Order.cs
-│   │   │   │   │   │   └── OrderItem.cs
-│   │   │   │   │   └── Infrastructure/
-│   │   │   │   │       └── OrderRepository.cs
-│   │   │   │   ├── Products/
-│   │   │   │   ├── Invoices/
-│   │   │   │   └── Catalog/
-│   │   │   ├── Shared/               # Shared kernel
-│   │   │   │   └── Kernel/
-│   │   │   │       ├── Result.cs
-│   │   │   │       ├── IAggregateRoot.cs
-│   │   │   │       └── DomainEvent.cs
-│   │   │   └── ModuleRegistration.cs  # Central module registration
+│   │   ├── Anela.Heblo.Domain/        # Domain layer - domain entities and repository interfaces
+│   │   │   ├── Features/              # Feature-specific domain objects
+│   │   │   │   ├── Audit/             # Audit domain (empty - contracts in Application)
+│   │   │   │   ├── Bank/              # Banking domain objects
+│   │   │   │   │   ├── BankAccountConfiguration.cs
+│   │   │   │   │   ├── BankStatementData.cs
+│   │   │   │   │   └── IBankClient.cs
+│   │   │   │   ├── CashRegister/      # Cash register domain objects
+│   │   │   │   │   ├── CashRegister.cs
+│   │   │   │   │   ├── CashRegisterOrder.cs
+│   │   │   │   │   └── ICashRegisterOrdersSource.cs
+│   │   │   │   ├── Catalog/           # Product catalog domain (complex)
+│   │   │   │   │   ├── CatalogAggregate.cs
+│   │   │   │   │   ├── ProductType.cs
+│   │   │   │   │   ├── ICatalogRepository.cs
+│   │   │   │   │   ├── Stock/         # Stock management subdomain
+│   │   │   │   │   │   ├── ErpStock.cs
+│   │   │   │   │   │   ├── EshopStock.cs
+│   │   │   │   │   │   └── IStockTakingRepository.cs
+│   │   │   │   │   ├── Sales/         # Sales tracking subdomain
+│   │   │   │   │   │   ├── CatalogSaleRecord.cs
+│   │   │   │   │   │   └── ICatalogSalesClient.cs
+│   │   │   │   │   ├── Price/         # Pricing subdomain
+│   │   │   │   │   │   ├── ProductPriceErp.cs
+│   │   │   │   │   │   └── IProductPriceErpClient.cs
+│   │   │   │   │   └── PurchaseHistory/ # Purchase history subdomain
+│   │   │   │   │       ├── CatalogPurchaseRecord.cs
+│   │   │   │   │       └── IPurchaseHistoryClient.cs
+│   │   │   │   ├── Configuration/     # Application configuration
+│   │   │   │   │   ├── ApplicationConfiguration.cs
+│   │   │   │   │   └── ConfigurationConstants.cs
+│   │   │   │   ├── Invoices/          # Invoice processing domain
+│   │   │   │   │   ├── IssuedInvoiceDetail.cs
+│   │   │   │   │   ├── InvoiceCustomer.cs
+│   │   │   │   │   └── IIssuedInvoiceSource.cs
+│   │   │   │   ├── Logistics/         # Logistics and transport
+│   │   │   │   │   ├── Carriers.cs
+│   │   │   │   │   ├── Warehouses.cs
+│   │   │   │   │   ├── Transport/     # Transport box management
+│   │   │   │   │   │   ├── TransportBox.cs
+│   │   │   │   │   │   └── ITransportBoxRepository.cs
+│   │   │   │   │   └── Picking/       # Picking list functionality
+│   │   │   │   │       └── IPickingListSource.cs
+│   │   │   │   ├── Manufacture/       # Manufacturing domain
+│   │   │   │   │   ├── Ingredient.cs
+│   │   │   │   │   └── IManufactureRepository.cs
+│   │   │   │   ├── Purchase/          # Purchase order domain
+│   │   │   │   │   ├── PurchaseOrder.cs
+│   │   │   │   │   ├── PurchaseOrderLine.cs
+│   │   │   │   │   ├── IPurchaseOrderRepository.cs
+│   │   │   │   │   └── Supplier.cs
+│   │   │   │   └── Weather/           # Weather forecast domain
+│   │   │   │       ├── WeatherForecast.cs
+│   │   │   │       └── WeatherConstants.cs
+│   │   │   └── Shared/               # Cross-cutting domain utilities
+│   │   │       ├── Kernel/           # Domain base classes
+│   │   │       │   ├── Result.cs
+│   │   │       │   ├── IAggregateRoot.cs
+│   │   │       │   └── DomainEvent.cs
+│   │   │       └── Users/            # User management utilities
+│   │   │           ├── CurrentUser.cs
+│   │   │           ├── ICurrentUserService.cs
+│   │   │           └── CurrentUserExtensions.cs
+│   │   ├── Anela.Heblo.Application/   # Application services and handlers
+│   │   │   ├── Features/              # Feature-specific application services
+│   │   │   │   ├── Audit/              # Audit log feature
+│   │   │   │   │   ├── GetAuditLogsHandler.cs
+│   │   │   │   │   ├── GetAuditSummaryHandler.cs
+│   │   │   │   │   ├── Model/         # Request/Response DTOs
+│   │   │   │   │   │   ├── GetAuditLogsRequest.cs
+│   │   │   │   │   │   └── GetAuditLogsResponse.cs
+│   │   │   │   │   └── AuditModule.cs
+│   │   │   │   ├── Catalog/           # Product catalog feature (complex)
+│   │   │   │   │   ├── GetCatalogListHandler.cs
+│   │   │   │   │   ├── GetCatalogDetailHandler.cs
+│   │   │   │   │   ├── CatalogRefreshBackgroundService.cs
+│   │   │   │   │   ├── Refresh*DataHandler.cs (14+ handlers)
+│   │   │   │   │   ├── Model/         # Catalog DTOs
+│   │   │   │   │   │   ├── CatalogItemDto.cs
+│   │   │   │   │   │   ├── GetCatalogListRequest.cs
+│   │   │   │   │   │   └── RefreshDataRequests.cs
+│   │   │   │   │   ├── Fakes/         # Test implementations
+│   │   │   │   │   │   └── EmptyTransportBoxRepository.cs
+│   │   │   │   │   └── CatalogModule.cs
+│   │   │   │   ├── Configuration/     # App configuration feature
+│   │   │   │   │   ├── GetConfigurationHandler.cs
+│   │   │   │   │   ├── Model/
+│   │   │   │   │   │   ├── GetConfigurationRequest.cs
+│   │   │   │   │   │   └── GetConfigurationResponse.cs
+│   │   │   │   │   └── ConfigurationModule.cs
+│   │   │   │   ├── Purchase/          # Purchase order feature
+│   │   │   │   │   ├── CreatePurchaseOrderHandler.cs
+│   │   │   │   │   ├── GetPurchaseOrdersHandler.cs
+│   │   │   │   │   ├── GetPurchaseOrderByIdHandler.cs
+│   │   │   │   │   ├── UpdatePurchaseOrderHandler.cs
+│   │   │   │   │   ├── UpdatePurchaseOrderStatusHandler.cs
+│   │   │   │   │   ├── Model/         # Purchase DTOs
+│   │   │   │   │   │   ├── CreatePurchaseOrderRequest.cs
+│   │   │   │   │   │   ├── CreatePurchaseOrderResponse.cs
+│   │   │   │   │   │   └── GetPurchaseOrdersRequest.cs
+│   │   │   │   │   ├── Infrastructure/
+│   │   │   │   │   │   └── PurchaseOrderRepository.cs
+│   │   │   │   │   └── PurchaseModule.cs
+│   │   │   │   └── Weather/           # Weather forecast feature
+│   │   │   │       ├── GetWeatherForecastHandler.cs
+│   │   │   │       ├── Model/
+│   │   │   │       │   ├── GetWeatherForecastRequest.cs
+│   │   │   │       │   └── GetWeatherForecastResponse.cs
+│   │   │   │       └── WeatherModule.cs
+│   │   │   └── ApplicationModule.cs  # Central module registration
 │   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
 │   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
 │   │   │   ├── Repository/            # Generic repository pattern
@@ -112,22 +198,28 @@ This document defines the project's directory structure and filesystem organizat
 ├── CLAUDE.md       # AI assistant instructions
 └── .dockerignore   # Docker build optimization
 ```
-## 🏗️ Vertical Slice Architecture Implementation
+## 🏗️ Clean Architecture Implementation
 
-**The backend follows Vertical Slice Architecture with MediatR + Controllers:**
+**The backend follows Clean Architecture with Vertical Slice organization and MediatR + Controllers:**
 
 ### Project Structure:
 - **Anela.Heblo.API**: Host/Composition layer - MVC Controllers, MediatR integration, serves React app
-- **Anela.Heblo.Application**: Feature modules with vertical slices containing all layers
-- **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
-- **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
+- **Anela.Heblo.Domain**: Domain layer - entities, domain services, contracts (MediatR DTOs), repository interfaces
+- **Anela.Heblo.Application**: Application layer - MediatR handlers, infrastructure implementations, business logic
+- **Anela.Heblo.Persistence**: Infrastructure layer - database contexts, configurations, shared repository implementations
 
 ### Feature Module Structure:
-Each feature in `Anela.Heblo.Application/Features/` contains:
-- **Contracts/**: MediatR request/response DTOs
-- **Application/**: MediatR handlers (Application Services)
-- **Domain/**: Entities, aggregates, value objects, business rules
-- **Infrastructure/**: Repository implementations (using generic repository from Persistence)
+Each feature is organized as vertical slices across domain and application layers:
+
+**Domain Layer** (`Anela.Heblo.Domain/Features/{Feature}/`):
+- **Feature root**: Domain entities, aggregates, value objects, domain services, repository interfaces
+- **Subdomains**: Complex features may have subdomain folders (e.g., Catalog/Stock/, Catalog/Sales/)
+
+**Application Layer** (`Anela.Heblo.Application/Features/{Feature}/`):
+- **Handler files**: MediatR handlers (Application Services) - directly in feature root
+- **Model/**: MediatR request/response DTOs and interfaces  
+- **Infrastructure/**: Repository implementations and other infrastructure services (if needed)
+- **FeatureModule.cs**: Dependency injection registration
 
 ### Key Principles:
 - **Vertical organization**: Each feature contains all its layers

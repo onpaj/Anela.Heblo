@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Adapters.Flexi;
+namespace Anela.Heblo.Adapters.Flexi.ProductAttributes;
 
 public interface ISeasonalDataParser
 {

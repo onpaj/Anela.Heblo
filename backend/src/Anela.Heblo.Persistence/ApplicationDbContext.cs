@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;
@@ -13,14 +14,15 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    // This will be populated as we add features
-    // For now, keep it minimal to support existing functionality
+    public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
+    public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
+    public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply configurations from all assemblies that contain entity configurations
-        // This will be expanded as we add features
+        // Apply configurations from current assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

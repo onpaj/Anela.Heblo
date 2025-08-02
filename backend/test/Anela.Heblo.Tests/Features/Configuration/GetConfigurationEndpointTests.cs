@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using Anela.Heblo.API;
-using Anela.Heblo.Application.Features.Configuration.Contracts;
+using Anela.Heblo.Application.Features.Configuration.Model;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;

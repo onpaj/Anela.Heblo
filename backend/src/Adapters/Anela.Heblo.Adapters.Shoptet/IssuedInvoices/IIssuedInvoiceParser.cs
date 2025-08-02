@@ -1,6 +1,6 @@
-using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Anela.Heblo.Domain.Features.Invoices;
 
-namespace Anela.Heblo.Adapters.Shoptet;
+namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
 
 public interface IIssuedInvoiceParser
 {

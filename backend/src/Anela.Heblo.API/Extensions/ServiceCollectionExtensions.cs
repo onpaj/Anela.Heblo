@@ -1,11 +1,10 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using HealthChecks.UI.Client;
-using Anela.Heblo.Application.Features.Configuration.Domain;
 using Anela.Heblo.Xcc.Telemetry;
-using Anela.Heblo.Application.Domain.Users;
 using Anela.Heblo.API.Infrastructure.Telemetry;
+using Anela.Heblo.Application.Features.Users;
+using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.Users;
 using Microsoft.OpenApi.Models;
 
 namespace Anela.Heblo.API.Extensions;

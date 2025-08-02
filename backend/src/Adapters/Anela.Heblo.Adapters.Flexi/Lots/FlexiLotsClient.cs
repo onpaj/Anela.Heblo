@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 
 namespace Anela.Heblo.Adapters.Flexi.Lots;
 

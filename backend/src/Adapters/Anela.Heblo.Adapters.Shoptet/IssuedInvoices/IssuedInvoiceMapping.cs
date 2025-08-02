@@ -1,7 +1,7 @@
-﻿using Anela.Heblo.Application.Domain.IssuedInvoices;
+﻿using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 
-namespace Anela.Heblo.Adapters.Shoptet
+namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
 {
     public class IssuedInvoiceMapping : Profile
     {

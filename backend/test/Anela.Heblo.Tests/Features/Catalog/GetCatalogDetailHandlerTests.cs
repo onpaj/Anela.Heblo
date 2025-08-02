@@ -1,9 +1,9 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
-using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
-using Anela.Heblo.Application.Domain.Catalog.Sales;
-using Anela.Heblo.Application.Features.Catalog.Application;
-using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
 using AutoMapper;
 using Moq;
 

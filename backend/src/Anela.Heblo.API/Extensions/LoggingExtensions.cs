@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Configuration.Domain;
+using Anela.Heblo.Domain.Features.Configuration;
 
 namespace Anela.Heblo.API.Extensions;
 

@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Adapters.Shoptet;
+namespace Anela.Heblo.Adapters.Shoptet.Stock;
 
 public class ShoptetStockClientOptions
 {

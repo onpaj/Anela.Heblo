@@ -53,6 +53,23 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose }) 
   // Fetch detailed data from API
   const { data: detailData, isLoading: detailLoading, error: detailError } = useCatalogDetail(item?.productCode || '');
 
+  // Add keyboard event listener for Esc key
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen || !item) {
     return null;
   }

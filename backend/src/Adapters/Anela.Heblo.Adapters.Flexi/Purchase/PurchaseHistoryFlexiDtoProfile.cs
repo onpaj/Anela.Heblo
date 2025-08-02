@@ -1,5 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Common;
-using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 
 namespace Anela.Heblo.Adapters.Flexi.Purchase;
 

@@ -1,10 +1,8 @@
-using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration;
 

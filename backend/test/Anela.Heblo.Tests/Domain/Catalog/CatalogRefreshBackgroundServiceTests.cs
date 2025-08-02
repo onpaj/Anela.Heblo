@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog;
+using Anela.Heblo.Application.Features.Catalog;
 
 namespace Anela.Heblo.Tests.Domain.Catalog;
 

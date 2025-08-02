@@ -1,12 +1,11 @@
 using System.Globalization;
 using System.Text;
-using Anela.Heblo.Adapters.Flexi.Price;
-using Anela.Heblo.Application.Domain.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.Price;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Adapters.Shoptet;
+namespace Anela.Heblo.Adapters.Shoptet.Price;
 
 public class ShoptetPriceClient : IProductPriceEshopClient
 {

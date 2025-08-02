@@ -1,7 +1,8 @@
 using Anela.Heblo.Application.Features.Weather;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
-using Anela.Heblo.Application.features.catalog;
+using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Purchase;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application;
@@ -24,11 +25,11 @@ public static class ApplicationModule
         services.AddConfigurationModule();
         services.AddAuditModule();
         services.AddCatalogModule();
+        services.AddPurchaseModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
         // services.AddManufactureModule();
         // services.AddTransportModule();
-        // services.AddPurchaseModule();
 
         return services;
     }

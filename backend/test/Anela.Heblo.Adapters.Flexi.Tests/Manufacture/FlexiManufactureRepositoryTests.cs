@@ -1,12 +1,10 @@
 using Anela.Heblo.Adapters.Flexi.Manufacture;
-using Anela.Heblo.Application.Domain.Manufacture;
 using AutoFixture;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Model;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 

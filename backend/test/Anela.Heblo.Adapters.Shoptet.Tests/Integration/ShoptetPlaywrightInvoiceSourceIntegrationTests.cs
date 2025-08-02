@@ -1,11 +1,8 @@
-using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
-using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Anela.Heblo.Domain.Features.Invoices;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration;

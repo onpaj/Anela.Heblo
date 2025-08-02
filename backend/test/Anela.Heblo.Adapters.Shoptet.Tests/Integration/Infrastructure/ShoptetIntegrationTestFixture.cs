@@ -1,12 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Anela.Heblo.Adapters.Shoptet;
-using Anela.Heblo.Adapters.Flexi.Price;
-using Anela.Heblo.Adapters.Shoptet.Playwright;
-using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using AutoMapper;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 

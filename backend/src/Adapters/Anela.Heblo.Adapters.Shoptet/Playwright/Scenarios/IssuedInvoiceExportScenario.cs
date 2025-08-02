@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.IssuedInvoices;
+using Anela.Heblo.Domain.Features.Invoices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 

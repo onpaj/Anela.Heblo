@@ -1,9 +1,0 @@
-namespace Anela.Heblo.Application.Domain.Catalog;
-
-public record CatalogProperties
-{
-    public int OptimalStockDaysSetup { get; set; } = 0;
-    public decimal StockMinSetup { get; set; } = 0;
-    public int BatchSize { get; set; } = 0;
-    public int[] SeasonMonths { get; set; } = Array.Empty<int>();
-}

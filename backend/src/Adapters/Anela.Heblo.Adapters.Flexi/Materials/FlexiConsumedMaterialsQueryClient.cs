@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;

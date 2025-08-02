@@ -1,13 +1,6 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Anela.Heblo.API.Authentication;
-using Anela.Heblo.Application.Features.Configuration.Domain;
-using Microsoft.IdentityModel.Tokens;
-using System.Security;
+using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.Domain.Features.Configuration;
 
 namespace Anela.Heblo.API.Extensions;
 

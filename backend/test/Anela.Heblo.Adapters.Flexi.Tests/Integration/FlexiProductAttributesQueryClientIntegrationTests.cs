@@ -1,8 +1,8 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.Attributes;
+using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 

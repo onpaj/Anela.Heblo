@@ -1,6 +1,6 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.Domain.Users;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 

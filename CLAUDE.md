@@ -8,13 +8,13 @@ This is a documentation repository for "Anela Heblo" - a cosmetics company works
 
 ## Architecture Summary
 
-**Stack**: Monorepo (.NET 8 + React), Vertical Slice Architecture with FastEndpoints, Single Docker image deployment, Azure Web App for Containers
+**Stack**: Monorepo (.NET 8 + React), Clean Architecture with Vertical Slice organization, MediatR + Controllers, Single Docker image deployment, Azure Web App for Containers
 - **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
-- **Backend**: ASP.NET Core (.NET 8) with FastEndpoints, vertical slice architecture, Hangfire background jobs, serves React static files
-  - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
-  - **Anela.Heblo.Application**: Feature modules (vertical slices)
-  - **Anela.Heblo.Persistence**: Shared database infrastructure with single DbContext and generic repository
-  - **Anela.Heblo.Domain**: Shared domain entities and constants (for backward compatibility)
+- **Backend**: ASP.NET Core (.NET 8) with Clean Architecture, MediatR pattern, Hangfire background jobs, serves React static files
+  - **Anela.Heblo.API**: Host/Composition layer with MVC Controllers
+  - **Anela.Heblo.Domain**: Domain layer with entities, domain services, and contracts
+  - **Anela.Heblo.Application**: Application layer with MediatR handlers and infrastructure interfaces
+  - **Anela.Heblo.Persistence**: Infrastructure layer with EF Core contexts and repository implementations
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)

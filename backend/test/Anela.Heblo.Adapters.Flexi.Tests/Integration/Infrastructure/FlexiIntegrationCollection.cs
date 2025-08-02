@@ -1,6 +1,4 @@
-using Xunit;
-
-namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
+namespace Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
 
 [CollectionDefinition("FlexiIntegration")]
 public class FlexiIntegrationCollection : ICollectionFixture<FlexiIntegrationTestFixture>

@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 
 [CollectionDefinition("ShoptetIntegration")]

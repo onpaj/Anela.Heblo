@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;

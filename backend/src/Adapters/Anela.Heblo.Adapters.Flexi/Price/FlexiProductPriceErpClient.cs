@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

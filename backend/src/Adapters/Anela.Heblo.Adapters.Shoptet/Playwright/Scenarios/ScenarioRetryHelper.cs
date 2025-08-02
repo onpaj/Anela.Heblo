@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
-using System;
 
 namespace Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 

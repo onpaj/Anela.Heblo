@@ -1,14 +1,16 @@
-﻿using Anela.Heblo.Adapters.Flexi.Price;
-using Anela.Heblo.Adapters.Shoptet.Playwright;
+﻿using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Domain.CashRegister;
-using Anela.Heblo.Application.Domain.Catalog.Price;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.Domain.IssuedInvoices;
-using Anela.Heblo.Application.Domain.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
+using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
+using Anela.Heblo.Adapters.Shoptet.Price;
+using Anela.Heblo.Adapters.Shoptet.Stock;
+using Anela.Heblo.Domain.Features.CashRegister;
+using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

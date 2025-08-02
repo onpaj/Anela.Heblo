@@ -1,8 +1,8 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.ConsumedMaterials;
-using Anela.Heblo.Application.Domain.Catalog.Price;
-using Anela.Heblo.Application.Domain.Catalog.PurchaseHistory;
-using Anela.Heblo.Application.Domain.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
 
 namespace Anela.Heblo.Tests.Domain.Catalog;
 

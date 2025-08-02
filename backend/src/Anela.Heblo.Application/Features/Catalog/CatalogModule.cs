@@ -1,9 +1,10 @@
-using Anela.Heblo.Application.Domain.Catalog;
-using Anela.Heblo.Application.Domain.Catalog.Stock;
-using Anela.Heblo.Application.Domain.Logistics.Transport;
+using Anela.Heblo.Application.Features.Catalog.Fakes;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anela.Heblo.Application.features.catalog;
+namespace Anela.Heblo.Application.Features.Catalog;
 
 public static class CatalogModule
 {

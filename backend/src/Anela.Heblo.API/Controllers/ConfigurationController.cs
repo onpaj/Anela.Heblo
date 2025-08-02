@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Configuration.Contracts;
+using Anela.Heblo.Application.Features.Configuration.Model;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

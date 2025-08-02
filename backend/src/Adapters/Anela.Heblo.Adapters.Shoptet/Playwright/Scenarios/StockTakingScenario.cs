@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Domain.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 

@@ -1,4 +1,5 @@
-using Anela.Heblo.Application.Domain.Catalog.Price;
+using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
+using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -35,7 +36,7 @@ public class FlexiProductPriceErpClientIntegrationTests : IClassFixture<FlexiInt
             // Verify basic structure
             result.Should().OnlyContain(price => price.PriceWithoutVat >= 0, "PriceWithoutVat should be non-negative");
             result.Should().OnlyContain(price => price.PurchasePrice >= 0, "PurchasePrice should be non-negative");
-            
+
             // Verify ProductCode is populated
             result.Should().OnlyContain(price => !string.IsNullOrEmpty(price.ProductCode), "ProductCode should be populated for all prices");
 
@@ -227,11 +228,11 @@ public class FlexiProductPriceErpClientIntegrationTests : IClassFixture<FlexiInt
                 // ProductCode should be populated from Flexi
                 price.ProductCode.Should().NotBeNullOrEmpty("ProductCode should be populated from Flexi data");
                 price.ProductCode.Should().NotBeNullOrWhiteSpace("ProductCode should contain actual product code");
-                
+
                 // ProductCode should be reasonable length (typical product codes)
                 price.ProductCode.Length.Should().BeInRange(1, 50, "ProductCode should have reasonable length");
             }
-            
+
             // Test that different products have different codes
             var sampleCodes = result.Take(10).Select(p => p.ProductCode).ToList();
             if (sampleCodes.Count > 1)
