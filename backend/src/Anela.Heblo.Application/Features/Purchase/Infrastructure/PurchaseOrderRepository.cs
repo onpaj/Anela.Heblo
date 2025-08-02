@@ -49,7 +49,8 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, Guid>, IPur
 
         if (supplierId.HasValue)
         {
-            query = query.Where(x => x.SupplierId == supplierId.Value);
+            // Note: SupplierId filtering is disabled as we now use SupplierName
+            // In future, implement supplier name filtering if needed
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

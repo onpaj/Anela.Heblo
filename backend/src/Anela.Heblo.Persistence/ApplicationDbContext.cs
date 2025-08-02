@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,12 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    //public DbSet<ScheduledTask> Tasks { get; set; }
+    //public DbSet<IssuedInvoice> IssuedInvoices { get; set; }
+    //public DbSet<BankStatementImport> BankStatements { get; set; }
+    //public DbSet<RecurringJob> Jobs { get; set; }
+    public DbSet<TransportBox> TransportBoxes { get; set; }
+    //public DbSet<StockTakingResult> StockTakings { get; set; }
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
@@ -24,5 +31,12 @@ public class ApplicationDbContext : DbContext
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        
+        //modelBuilder.ConfigureScheduledTasks();
+        //modelBuilder.ConfigureIssuedInvoices();
+        //modelBuilder.ConfigureRecurringJobs();
+        //modelBuilder.ConfigureTransportBoxes();
+        //modelBuilder.ConfigureStockTaking();
+        //modelBuilder.ConfigureBankStatements();
     }
 }

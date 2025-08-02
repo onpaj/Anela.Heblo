@@ -36,8 +36,8 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         return new GetPurchaseOrderByIdResponse(
             purchaseOrder.Id,
             purchaseOrder.OrderNumber,
-            purchaseOrder.SupplierId,
-            "Unknown Supplier", // TODO: Join with supplier catalog
+            Guid.Empty, // No longer using SupplierId
+            purchaseOrder.SupplierName,
             purchaseOrder.OrderDate,
             purchaseOrder.ExpectedDeliveryDate,
             purchaseOrder.Status.ToString(),

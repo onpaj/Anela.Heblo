@@ -3,7 +3,7 @@ namespace Anela.Heblo.Application.Features.Purchase.Model;
 public record GetPurchaseOrderByIdResponse(
     Guid Id,
     string OrderNumber,
-    Guid SupplierId,
+    Guid SupplierId, // Kept for backward compatibility, always Guid.Empty
     string SupplierName,
     DateTime OrderDate,
     DateTime? ExpectedDeliveryDate,

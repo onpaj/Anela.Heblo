@@ -17,21 +17,9 @@ public class PurchaseOrdersController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<GetPurchaseOrdersResponse>> GetPurchaseOrders(
-        [FromQuery] string? searchTerm = null,
-        [FromQuery] string? status = null,
-        [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null,
-        [FromQuery] Guid? supplierId = null,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string sortBy = "OrderDate",
-        [FromQuery] bool sortDescending = true,
+        [FromQuery] GetPurchaseOrdersRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetPurchaseOrdersRequest(
-            searchTerm, status, fromDate, toDate, supplierId,
-            pageNumber, pageSize, sortBy, sortDescending);
-
         var response = await _mediator.Send(request, cancellationToken);
         return Ok(response);
     }

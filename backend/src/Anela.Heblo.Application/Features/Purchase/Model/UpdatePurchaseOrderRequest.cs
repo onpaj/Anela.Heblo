@@ -4,6 +4,7 @@ namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record UpdatePurchaseOrderRequest(
     Guid Id,
+    string SupplierName,
     DateTime? ExpectedDeliveryDate,
     string? Notes,
     List<UpdatePurchaseOrderLineRequest> Lines
@@ -11,7 +12,7 @@ public record UpdatePurchaseOrderRequest(
 
 public record UpdatePurchaseOrderLineRequest(
     Guid? Id,
-    Guid MaterialId,
+    string MaterialId, // Product code from catalog
     decimal Quantity,
     decimal UnitPrice,
     string? Notes

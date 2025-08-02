@@ -22,7 +22,106 @@ namespace Anela.Heblo.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrder", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultReceiveState")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastStateChanged")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TransportBox", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("Amount")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("DateAdded")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("TransportBoxId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAdded")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransportBoxId");
+
+                    b.ToTable("TransportBoxItem", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxStateLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("TransportBoxId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("User")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransportBoxId");
+
+                    b.ToTable("TransportBoxStateLog", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -54,8 +153,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -69,10 +170,10 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
-                    b.ToTable("PurchaseOrders", (string)null);
+                    b.ToTable("PurchaseOrders", "dbo");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrderHistory", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -107,10 +208,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderHistory", (string)null);
+                    b.ToTable("PurchaseOrderHistory", "dbo");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrderLine", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -139,28 +240,51 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderLines", (string)null);
+                    b.ToTable("PurchaseOrderLines", "dbo");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrderHistory", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
                 {
-                    b.HasOne("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrder", null)
+                    b.HasOne("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", null)
+                        .WithMany("Items")
+                        .HasForeignKey("TransportBoxId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxStateLog", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", null)
+                        .WithMany("StateLog")
+                        .HasForeignKey("TransportBoxId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", null)
                         .WithMany("History")
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrderLine", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine", b =>
                 {
-                    b.HasOne("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrder", null)
+                    b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", null)
                         .WithMany("Lines")
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.Domain.PurchaseOrder", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("StateLog");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
                 {
                     b.Navigation("History");
 

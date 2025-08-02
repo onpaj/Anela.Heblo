@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.Weather;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Catalog;
@@ -21,7 +20,6 @@ public static class ApplicationModule
         services.AddAutoMapper(typeof(ApplicationModule).Assembly);
 
         // Register all feature modules
-        services.AddWeatherModule();
         services.AddConfigurationModule();
         services.AddAuditModule();
         services.AddCatalogModule();

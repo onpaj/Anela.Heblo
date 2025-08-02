@@ -128,4 +128,23 @@ public class CatalogController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("materials-for-purchase")]
+    public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)
+    {
+        _logger.LogInformation("Getting materials for purchase with search term '{SearchTerm}', limit {Limit}",
+            request.SearchTerm, request.Limit);
+
+        try
+        {
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully retrieved {Count} materials for purchase", response.Materials.Count);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get materials for purchase");
+            throw;
+        }
+    }
+
 }

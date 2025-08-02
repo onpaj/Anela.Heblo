@@ -3,7 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import Layout from '../Layout/Layout';
-import WeatherTest from '../pages/WeatherTest';
+import Dashboard from '../pages/Dashboard';
 import AuthGuard from '../auth/AuthGuard';
 import '../../i18n';
 
@@ -34,7 +34,7 @@ function TestApp() {
         <Router>
           <AuthGuard>
             <Layout>
-              <WeatherTest />
+              <Dashboard />
             </Layout>
           </AuthGuard>
         </Router>

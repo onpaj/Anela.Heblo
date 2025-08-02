@@ -15,7 +15,7 @@ public static class PersistenceModule
         // Register DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("Default");
             if (!string.IsNullOrEmpty(connectionString))
             {
                 options.UseNpgsql(connectionString);

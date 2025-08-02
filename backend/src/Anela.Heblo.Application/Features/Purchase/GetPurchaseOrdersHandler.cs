@@ -40,8 +40,8 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
         var orderSummaries = orders.Select(order => new PurchaseOrderSummaryDto(
             order.Id,
             order.OrderNumber,
-            order.SupplierId,
-            "Unknown Supplier", // TODO: Join with supplier catalog
+            Guid.Empty, // No longer using SupplierId
+            order.SupplierName,
             order.OrderDate,
             order.ExpectedDeliveryDate,
             order.Status.ToString(),
