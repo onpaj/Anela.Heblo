@@ -51,6 +51,9 @@ public class ShoptetPriceClientIntegrationTests
 
             resultList.Where(p => p.PurchasePrice.HasValue).Should().Contain(price =>
                 price.PurchasePrice >= 0, "Purchase prices should be non-negative");
+                
+            // Verify ProductCode is populated from CSV
+            resultList.Should().OnlyContain(price => !string.IsNullOrEmpty(price.ProductCode), "ProductCode should be populated from CSV first column");
         }
     }
 
@@ -76,6 +79,10 @@ public class ShoptetPriceClientIntegrationTests
             // Test CSV column mapping is working correctly
             foreach (var price in resultList.Take(5)) // Check first 5 items
             {
+                // ProductCode mapping from first column (column 0)
+                price.ProductCode.Should().NotBeNullOrEmpty("ProductCode should be mapped from CSV column 0");
+                price.ProductCode.Should().NotBeNullOrWhiteSpace("ProductCode should contain actual product code from CSV");
+                
                 // PriceWithVat parsing with comma replacement (column 3)
                 if (price.PriceWithVat.HasValue)
                 {
@@ -87,6 +94,13 @@ public class ShoptetPriceClientIntegrationTests
                 {
                     price.PurchasePrice.Should().BeGreaterOrEqualTo(0, "PurchasePrice should be non-negative decimal from column 4");
                 }
+            }
+            
+            // Test that different products have different codes
+            var sampleCodes = resultList.Take(10).Select(p => p.ProductCode).ToList();
+            if (sampleCodes.Count > 1)
+            {
+                sampleCodes.Should().OnlyHaveUniqueItems("Different products should have different ProductCodes from CSV");
             }
         }
     }
@@ -146,11 +160,13 @@ public class ShoptetPriceClientIntegrationTests
         {
             new ProductPriceEshop
             {
+                ProductCode = "PRODUCT001",
                 PriceWithVat = 100.50m,
                 PurchasePrice = 75.25m
             },
             new ProductPriceEshop
             {
+                ProductCode = "PRODUCT002",
                 PriceWithVat = 200.00m,
                 PurchasePrice = 150.00m
             }
@@ -172,6 +188,8 @@ public class ShoptetPriceClientIntegrationTests
 
         // Verify CSV content structure
         var csvContent = System.Text.Encoding.UTF8.GetString(result.Data);
+        csvContent.Should().Contain("PRODUCT001", "CSV should contain first test product code");
+        csvContent.Should().Contain("PRODUCT002", "CSV should contain second test product code");
         csvContent.Should().Contain("100.50", "CSV should contain first test price with VAT");
         csvContent.Should().Contain("75.25", "CSV should contain first test purchase price");
         csvContent.Should().Contain("200.00", "CSV should contain second test price");
@@ -228,6 +246,7 @@ public class ShoptetPriceClientIntegrationTests
         {
             new ProductPriceEshop
             {
+                ProductCode = "PRODUCT003",
                 PriceWithVat = 150.75m,
                 PurchasePrice = 100.50m
             }
