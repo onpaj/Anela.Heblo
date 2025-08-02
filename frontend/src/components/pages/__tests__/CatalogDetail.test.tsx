@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CatalogDetail from '../CatalogDetail';
 import { CatalogItemDto, ProductType } from '../../../api/hooks/useCatalog';
 
+import { useCatalogDetail } from '../../../api/hooks/useCatalog';
+
 // Mock the chart components to avoid canvas issues in tests
 jest.mock('react-chartjs-2', () => ({
   Line: ({ data }: any) => (
@@ -32,8 +34,6 @@ jest.mock('../../../api/hooks/useCatalog', () => ({
   ...jest.requireActual('../../../api/hooks/useCatalog'),
   useCatalogDetail: jest.fn(),
 }));
-
-import { useCatalogDetail } from '../../../api/hooks/useCatalog';
 
 const mockUseCatalogDetail = useCatalogDetail as jest.MockedFunction<typeof useCatalogDetail>;
 
@@ -299,6 +299,6 @@ describe('CatalogDetail', () => {
       />
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 });

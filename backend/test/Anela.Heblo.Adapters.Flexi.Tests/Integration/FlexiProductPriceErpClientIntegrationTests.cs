@@ -35,6 +35,9 @@ public class FlexiProductPriceErpClientIntegrationTests : IClassFixture<FlexiInt
             // Verify basic structure
             result.Should().OnlyContain(price => price.PriceWithoutVat >= 0, "PriceWithoutVat should be non-negative");
             result.Should().OnlyContain(price => price.PurchasePrice >= 0, "PurchasePrice should be non-negative");
+            
+            // Verify ProductCode is populated
+            result.Should().OnlyContain(price => !string.IsNullOrEmpty(price.ProductCode), "ProductCode should be populated for all prices");
 
             // Validate calculated prices with VAT
             foreach (var price in result.Take(10))
@@ -206,6 +209,36 @@ public class FlexiProductPriceErpClientIntegrationTests : IClassFixture<FlexiInt
 
         // This might or might not throw depending on timing, but should not hang
         await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ValidatesProductCodePopulation()
+    {
+        // Arrange & Act
+        var result = await _client.GetAllAsync(forceReload: true, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+
+        if (result.Any())
+        {
+            foreach (var price in result.Take(10))
+            {
+                // ProductCode should be populated from Flexi
+                price.ProductCode.Should().NotBeNullOrEmpty("ProductCode should be populated from Flexi data");
+                price.ProductCode.Should().NotBeNullOrWhiteSpace("ProductCode should contain actual product code");
+                
+                // ProductCode should be reasonable length (typical product codes)
+                price.ProductCode.Length.Should().BeInRange(1, 50, "ProductCode should have reasonable length");
+            }
+            
+            // Test that different products have different codes
+            var sampleCodes = result.Take(10).Select(p => p.ProductCode).ToList();
+            if (sampleCodes.Count > 1)
+            {
+                sampleCodes.Should().OnlyHaveUniqueItems("Different products should have different ProductCodes");
+            }
+        }
     }
 
     [Fact]

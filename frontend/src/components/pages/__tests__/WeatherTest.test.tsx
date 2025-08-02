@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import WeatherTest from '../WeatherTest';
 import { shouldUseMockAuth, getRuntimeConfig, getConfig, loadConfig } from '../../../config/runtimeConfig';
 import { mockAuthService } from '../../../auth/mockAuth';
@@ -80,21 +80,19 @@ describe('WeatherTest Component Authentication Integration', () => {
     mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    await act(async () => {
-      render(<WeatherTest />);
-    });
+    render(<WeatherTest />);
 
     // Assert - Wait for API client to be called
     await waitFor(() => {
       expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
-      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
+    expect(mockApiClient.weatherForecast).toHaveBeenCalled();
 
     // Verify weather data is displayed
     await waitFor(() => {
       expect(screen.getByText('20°C')).toBeInTheDocument();
-      expect(screen.getByText('15°C')).toBeInTheDocument();
     });
+    expect(screen.getByText('15°C')).toBeInTheDocument();
   });
 
   it('should use real authentication and send no token when shouldUseMockAuth returns false (fallback behavior)', async () => {
@@ -106,21 +104,19 @@ describe('WeatherTest Component Authentication Integration', () => {
     mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    await act(async () => {
-      render(<WeatherTest />);
-    });
+    render(<WeatherTest />);
 
     // Assert - Should make API call via API client
     await waitFor(() => {
       expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
-      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
+    expect(mockApiClient.weatherForecast).toHaveBeenCalled();
 
     // Verify weather data is displayed
     await waitFor(() => {
       expect(screen.getByText('20°C')).toBeInTheDocument();
-      expect(screen.getByText('15°C')).toBeInTheDocument();
     });
+    expect(screen.getByText('15°C')).toBeInTheDocument();
   });
 
   it('should handle 401 authentication errors and display error message', async () => {
@@ -132,9 +128,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     mockApiClient.weatherForecast.mockRejectedValue(new Error('HTTP error! status: 401'));
 
     // Act
-    await act(async () => {
-      render(<WeatherTest />);
-    });
+    render(<WeatherTest />);
 
     // Assert - Wait for error to be displayed
     await waitFor(() => {
@@ -158,9 +152,7 @@ describe('WeatherTest Component Authentication Integration', () => {
     mockApiClient.weatherForecast.mockResolvedValue(mockWeatherData);
 
     // Act
-    await act(async () => {
-      render(<WeatherTest />);
-    });
+    render(<WeatherTest />);
 
     // Wait for initial load to complete
     await waitFor(() => {
@@ -181,15 +173,13 @@ describe('WeatherTest Component Authentication Integration', () => {
     
     const reloadButton = screen.getByRole('button', { name: /reload/i });
     
-    await act(async () => {
-      fireEvent.click(reloadButton);
-    });
+    fireEvent.click(reloadButton);
 
     // Assert - Should make another API call via API client
     await waitFor(() => {
       expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
-      expect(mockApiClient.weatherForecast).toHaveBeenCalled();
     });
+    expect(mockApiClient.weatherForecast).toHaveBeenCalled();
   });
 
 });
