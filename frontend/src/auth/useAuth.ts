@@ -3,6 +3,7 @@ import { loginRequest, loginRedirectRequest, apiRequest } from './msalConfig';
 import { AccountInfo } from '@azure/msal-browser';
 import { UserStorage, StoredUserInfo } from './userStorage';
 import { useEffect, useState } from 'react';
+import { clearTokenCache } from '../api/client';
 
 export interface UserInfo {
   name: string;
@@ -81,6 +82,9 @@ export const useAuth = () => {
       // Clear stored user info before logout
       UserStorage.clearUserInfo();
       setStoredUserInfo(null);
+      
+      // Clear token cache
+      clearTokenCache();
       
       // Use redirect logout (more reliable for SPA)
       await instance.logoutRedirect({

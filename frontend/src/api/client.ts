@@ -10,6 +10,26 @@ import { mockAuthService } from '../auth/mockAuth';
 let globalTokenProvider: (() => Promise<string | null>) | null = null;
 
 /**
+ * Token cache to avoid requesting new tokens for every API call
+ */
+interface TokenCache {
+  token: string;
+  expiresAt: number; // Unix timestamp
+}
+
+let tokenCache: TokenCache | null = null;
+
+/**
+ * Check if cached token is still valid (with 5 minute buffer)
+ */
+const isCachedTokenValid = (): boolean => {
+  if (!tokenCache) return false;
+  const now = Date.now();
+  const bufferMs = 5 * 60 * 1000; // 5 minutes buffer
+  return tokenCache.expiresAt > now + bufferMs;
+};
+
+/**
  * Set the global token provider
  * This should be called from App component after MSAL initialization
  */
@@ -18,27 +38,46 @@ export const setGlobalTokenProvider = (provider: () => Promise<string | null>) =
 };
 
 /**
- * Centralized authentication header provider
+ * Clear the token cache
+ * This should be called during logout
+ */
+export const clearTokenCache = () => {
+  tokenCache = null;
+  console.log('🗑️ Token cache cleared');
+};
+
+/**
+ * Centralized authentication header provider with token caching
  * According to documentation specification (Authentication.md section 7.1.3)
  */
 const getAuthHeader = async (): Promise<string | null> => {
   if (shouldUseMockAuth()) {
     // Mock authentication - use mockAuthService
     const token = mockAuthService.getAccessToken();
-    console.log('🧪 Using mock authentication token for API call');
+    console.log('🧪 Using cached mock authentication token for API call');
     return `Bearer ${token}`;
   } else {
-    // Real authentication - use global token provider
+    // Real authentication - check cache first
+    if (isCachedTokenValid()) {
+      console.log('⚡ Using cached authentication token for API call');
+      return `Bearer ${tokenCache!.token}`;
+    }
+    
+    // Cache miss or expired - get new token
     if (!globalTokenProvider) {
       console.error('❌ Global token provider not set. Make sure App component initialized MSAL.');
       return null;
     }
     
     try {
-      console.log('🔐 Acquiring real authentication token...');
+      console.log('🔐 Acquiring new authentication token...');
       const token = await globalTokenProvider();
       if (token) {
-        console.log('✅ Real authentication token acquired successfully');
+        // Cache the token (MSAL tokens typically expire in 1 hour)
+        const expiresAt = Date.now() + (55 * 60 * 1000); // 55 minutes from now
+        tokenCache = { token, expiresAt };
+        
+        console.log('✅ New authentication token acquired and cached');
         return `Bearer ${token}`;
       } else {
         console.warn('⚠️  No authentication token available - user may need to login');
