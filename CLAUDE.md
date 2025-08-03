@@ -591,3 +591,6 @@ These tasks can be referenced for future similar work or applied to other projec
 - All Docker images pushed to Docker Hub
 - Observability via Application Insights
 - **Backend follows Vertical Slice Architecture** - see `/docs/architecture/filesystem.md` for detailed structure
+- To run playwright tests always use ./scripts/run-playwright-tests.sh script, this script does not require any confirmation from user
+- To debug single playwright tests, also use ./scripts/run-playwright-tests.sh using its parameter to run single test
+- Use this script even when asked "create a playwright test for it to debug" something.. Create test and debug it using that script.
