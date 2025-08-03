@@ -198,8 +198,10 @@ const PurchaseOrderList: React.FC = () => {
   };
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('cs-CZ');
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return '-';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('cs-CZ');
   };
 
   // Format currency
@@ -350,7 +352,7 @@ const PurchaseOrderList: React.FC = () => {
                 <tr 
                   key={order.id} 
                   className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                  onClick={() => handleOrderClick(order.id)}
+                  onClick={() => order.id && handleOrderClick(order.id)}
                   title="Klikněte pro zobrazení detailu"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -366,15 +368,15 @@ const PurchaseOrderList: React.FC = () => {
                     {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                      {statusLabels[order.status]}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status && statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
+                      {order.status && statusLabels[order.status] || order.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    {formatCurrency(order.totalAmount)}
+                    {formatCurrency(order.totalAmount || 0)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                    {order.lineItemCount}
+                    {order.lineCount}
                   </td>
                 </tr>
               ))}

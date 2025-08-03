@@ -3,11 +3,15 @@ import { X, Trash2, Save, Calendar, Truck, FileText, Package } from 'lucide-reac
 import { 
   useCreatePurchaseOrderMutation,
   useUpdatePurchaseOrderMutation,
-  usePurchaseOrderDetailQuery,
-  CreatePurchaseOrderRequest,
-  UpdatePurchaseOrderRequest,
-  PurchaseOrderLineDto
+  usePurchaseOrderDetailQuery
 } from '../../api/hooks/usePurchaseOrders';
+import { 
+  PurchaseOrderLineDto, 
+  UpdatePurchaseOrderLineRequest, 
+  CreatePurchaseOrderLineRequest,
+  UpdatePurchaseOrderRequest,
+  CreatePurchaseOrderRequest
+} from '../../api/generated/api-client';
 import { MaterialAutocomplete } from '../common/MaterialAutocomplete';
 import { MaterialForPurchaseDto, useMaterialByProductCode } from '../../api/hooks/useMaterials';
 
@@ -52,7 +56,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     orderDate: new Date().toISOString().split('T')[0], // Today's date
     expectedDeliveryDate: '',
     notes: '',
-    lines: [{
+    lines: [Object.assign(new PurchaseOrderLineDto(), {
       id: 0, // Temporary ID for new lines
       materialId: `temp-${Date.now()}`,
       code: '',
@@ -61,7 +65,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       unitPrice: 0,
       lineTotal: 0,
       selectedMaterial: undefined
-    }]
+    })]
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,11 +83,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     setFormData(prev => {
       const newLines = [...prev.lines];
       if (lineIndex < newLines.length) {
-        newLines[lineIndex] = {
+        newLines[lineIndex] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[lineIndex],
           selectedMaterial: material,
           name: material?.productName || newLines[lineIndex].name
-        };
+        });
       }
       return { ...prev, lines: newLines };
     });
@@ -100,11 +104,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   React.useEffect(() => {
     if (isEditMode && existingOrderData && isOpen) {
       const linesWithMaterials = existingOrderData.lines && existingOrderData.lines.length > 0
-        ? existingOrderData.lines.map(line => ({
+        ? existingOrderData.lines.map(line => Object.assign(new PurchaseOrderLineDto(), {
             ...line,
             selectedMaterial: undefined // Will be resolved by MaterialResolver components
           }))
-        : [{
+        : [Object.assign(new PurchaseOrderLineDto(), {
             id: 0, // Temporary ID for new lines
             materialId: `temp-${Date.now()}`,
             code: '',
@@ -113,12 +117,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             unitPrice: 0,
             lineTotal: 0,
             selectedMaterial: undefined
-          }];
+          })];
 
       setFormData({
         supplierName: existingOrderData.supplierName || '',
-        orderDate: existingOrderData.orderDate ? existingOrderData.orderDate.split('T')[0] : new Date().toISOString().split('T')[0],
-        expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? existingOrderData.expectedDeliveryDate.split('T')[0] : '',
+        orderDate: existingOrderData.orderDate ? new Date(existingOrderData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? new Date(existingOrderData.expectedDeliveryDate).toISOString().split('T')[0] : '',
         notes: existingOrderData.notes || '',
         lines: linesWithMaterials
       });
@@ -141,7 +145,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         orderDate: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: '',
         notes: '',
-        lines: [{
+        lines: [Object.assign(new PurchaseOrderLineDto(), {
           id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
           code: '',
@@ -150,7 +154,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           unitPrice: 0,
           lineTotal: 0,
           selectedMaterial: undefined
-        }]
+        })]
       });
       setPendingMaterialResolutions(new Set());
     }
@@ -238,50 +242,46 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     try {
       if (isEditMode && editOrderId) {
         // Update existing order
-        const request: UpdatePurchaseOrderRequest = {
+        const request = new UpdatePurchaseOrderRequest({
           id: editOrderId,
           supplierName: formData.supplierName,
-          expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          expectedDeliveryDate: formData.expectedDeliveryDate ? new Date(formData.expectedDeliveryDate) : undefined,
           notes: formData.notes || undefined,
           lines: formData.lines
             .filter(line => line.selectedMaterial)
-            .map(line => ({
+            .map(line => new UpdatePurchaseOrderLineRequest({
               materialId: line.materialId,
-              code: line.selectedMaterial?.productCode || line.code || line.materialId,
-              name: line.selectedMaterial?.productName || line.name || '',
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
             }))
-        };
+        });
 
         const response = await updateMutation.mutateAsync({ id: editOrderId, request });
         
-        if (onSuccess) {
+        if (onSuccess && response.id) {
           onSuccess(response.id);
         }
       } else {
         // Create new order
-        const request: CreatePurchaseOrderRequest = {
+        const request = new CreatePurchaseOrderRequest({
           supplierName: formData.supplierName,
           orderDate: formData.orderDate,
           expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
           notes: formData.notes || undefined,
           lines: formData.lines
             .filter(line => line.selectedMaterial)
-            .map(line => ({
+            .map(line => new CreatePurchaseOrderLineRequest({
               materialId: line.materialId,
-              code: line.selectedMaterial?.productCode || line.code || line.materialId,
-              name: line.selectedMaterial?.productName || line.name || '',
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
             }))
-        };
+        });
 
         const response = await createMutation.mutateAsync(request);
         
-        if (onSuccess) {
+        if (onSuccess && response.id) {
           onSuccess(response.id);
         }
       }
@@ -309,7 +309,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       const newLines = prev.lines.filter((_, i) => i !== index);
       // Always keep at least one empty row
       if (newLines.length === 0) {
-        newLines.push({
+        newLines.push(Object.assign(new PurchaseOrderLineDto(), {
           id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
           code: '',
@@ -318,7 +318,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           unitPrice: 0,
           lineTotal: 0,
           selectedMaterial: undefined
-        });
+        }));
       }
       return { ...prev, lines: newLines };
     });
@@ -327,11 +327,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   const updateLine = (index: number, field: keyof PurchaseOrderLineDto, value: string | number) => {
     setFormData(prev => {
       const newLines = [...prev.lines];
-      newLines[index] = { ...newLines[index], [field]: value };
+      newLines[index] = Object.assign(new PurchaseOrderLineDto(), { ...newLines[index], [field]: value });
       
       // Recalculate line total
       if (field === 'quantity' || field === 'unitPrice') {
-        newLines[index].lineTotal = newLines[index].quantity * newLines[index].unitPrice;
+        newLines[index].lineTotal = (newLines[index].quantity || 0) * (newLines[index].unitPrice || 0);
       }
       
       return { ...prev, lines: newLines };
@@ -346,7 +346,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         const moq = material.minimalOrderQuantity ? parseInt(material.minimalOrderQuantity) : 1;
         const quantity = isNaN(moq) ? 1 : Math.max(moq, 1);
         
-        newLines[index] = {
+        newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[index],
           materialId: material.productCode || `temp-${Date.now()}`, // Use product code as material ID
           code: material.productCode || '',
@@ -356,13 +356,13 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           quantity: quantity,
           // Pre-fill unit price with last purchase price if available
           unitPrice: material.lastPurchasePrice || newLines[index].unitPrice,
-        };
+        });
         // Recalculate line total
-        newLines[index].lineTotal = newLines[index].quantity * newLines[index].unitPrice;
+        newLines[index].lineTotal = (newLines[index].quantity || 0) * (newLines[index].unitPrice || 0);
         
         // Add empty row if this is the last row and it now has material
         if (index === newLines.length - 1) {
-          newLines.push({
+          newLines.push(Object.assign(new PurchaseOrderLineDto(), {
             id: 0, // Temporary ID for new lines
             materialId: `temp-${Date.now()}-${Math.random()}`,
             code: '',
@@ -371,16 +371,16 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             unitPrice: 0,
             lineTotal: 0,
             selectedMaterial: undefined
-          });
+          }));
         }
       } else {
-        newLines[index] = {
+        newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[index],
           materialId: `temp-${Date.now()}`,
           code: '',
           name: '',
           selectedMaterial: undefined,
-        };
+        });
       }
       
       return { ...prev, lines: newLines };
@@ -393,7 +393,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   };
 
   const calculateTotal = () => {
-    return formData.lines.reduce((sum, line) => sum + line.lineTotal, 0);
+    return formData.lines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
   };
 
   return (
@@ -535,7 +535,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-gray-900">Položky objednávky</h3>
                 <div className="text-right">
-                  {formData.lines.some(line => line.selectedMaterial && line.quantity > 0 && line.unitPrice > 0) && (
+                  {formData.lines.some(line => line.selectedMaterial && (line.quantity || 0) > 0 && (line.unitPrice || 0) > 0) && (
                     <div className="text-sm text-gray-600">
                       Celkem: <span className="font-semibold text-indigo-600 text-base">
                         {calculateTotal().toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč
@@ -611,7 +611,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                         {/* Line Total */}
                         <div className="col-span-2 flex items-center justify-end pr-2">
                           <span className="text-sm font-medium text-gray-900">
-                            {line.lineTotal.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč
+                            {(line.lineTotal || 0).toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč
                           </span>
                         </div>
 
