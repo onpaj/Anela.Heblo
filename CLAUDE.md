@@ -573,6 +573,46 @@ await emailInput.fill(credentials.email); // Never hardcoded
 - ESLint and Prettier configurations must be respected
 - Generated components follow existing code patterns
 
+## Backend DTO and API Request/Response Design Rules
+
+**CRITICAL: OpenAPI Client Generation Compatibility**
+
+**Use Classes Instead of Records for API DTOs:**
+- ❌ **NEVER use C# records for API request/response DTOs** - OpenAPI generators have issues with parameter order and property detection
+- ✅ **ALWAYS use classes with properties for API DTOs** - ensures reliable OpenAPI schema generation
+- ✅ **Add proper validation attributes** - `[Required]`, `[JsonPropertyName]`, etc.
+
+**Correct DTO Pattern:**
+```csharp
+public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
+{
+    [Required]
+    public string SupplierName { get; set; } = null!;
+    
+    [Required] 
+    public string OrderDate { get; set; } = null!;
+    
+    public string? ExpectedDeliveryDate { get; set; }
+    
+    public string? Notes { get; set; }
+    
+    public string? OrderNumber { get; set; } // Optional custom order number
+    
+    public List<CreatePurchaseOrderLineRequest>? Lines { get; set; }
+}
+```
+
+**Why This Matters:**
+- **C# records with constructor parameters**: Parameter order affects OpenAPI generation, properties may be missing or incorrectly ordered
+- **Classes with properties**: Property names and types are correctly detected by OpenAPI generators
+- **Frontend API client generation**: NSwag and other tools work reliably with class-based DTOs
+- **Future maintenance**: Adding/removing properties doesn't break existing API calls due to parameter order changes
+
+**Enforcement:**
+- All MediatR requests/responses for API endpoints must use classes
+- Internal domain objects can still use records if not exposed via API
+- API client regeneration automatically picks up new properties when using classes
+
 ## Available Task Definitions
 
 The `/docs/tasks/` directory contains reusable task definitions for common operations:

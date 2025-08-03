@@ -32,7 +32,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -63,7 +63,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -87,7 +87,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     public async Task Handle_WithNonExistentOrder_ShouldReturnNull()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder?)null);
@@ -102,7 +102,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InvalidStatus");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -118,7 +118,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -134,7 +134,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -159,7 +159,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -197,7 +197,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     public async Task Handle_WhenOrderNotFound_ShouldLogWarning()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder?)null);
@@ -219,7 +219,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InvalidStatus");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
@@ -242,7 +242,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
-        
+
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);

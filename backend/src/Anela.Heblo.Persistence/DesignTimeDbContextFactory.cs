@@ -12,7 +12,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        
+
         // Build configuration
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         var builder = new ConfigurationBuilder()
@@ -30,7 +30,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
         IConfigurationRoot configuration = builder.Build();
 
         // Get connection string - try both "Default" and "DefaultConnection"
-        var connectionString = configuration.GetConnectionString("Default") 
+        var connectionString = configuration.GetConnectionString("Default")
             ?? configuration.GetConnectionString("DefaultConnection");
 
         if (!string.IsNullOrEmpty(connectionString))

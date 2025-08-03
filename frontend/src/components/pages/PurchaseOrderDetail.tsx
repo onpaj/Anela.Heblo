@@ -91,7 +91,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč`;
+    return `${amount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
   };
 
   // Format datetime
@@ -174,8 +174,8 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600">Stav:</span>
                         <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${orderData.status && statusColors[orderData.status] || 'bg-gray-100 text-gray-800'}`}>
-                            {orderData.status && statusLabels[orderData.status] || orderData.status}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(orderData.status && statusColors[orderData.status]) || 'bg-gray-100 text-gray-800'}`}>
+                            {(orderData.status && statusLabels[orderData.status]) || orderData.status}
                           </span>
                           {orderData.status && getNextStatus(orderData.status) && (
                             <button

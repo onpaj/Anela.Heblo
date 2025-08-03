@@ -31,7 +31,7 @@ public class ApplicationDbContext : DbContext
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-        
+
         //modelBuilder.ConfigureScheduledTasks();
         //modelBuilder.ConfigureIssuedInvoices();
         //modelBuilder.ConfigureRecurringJobs();

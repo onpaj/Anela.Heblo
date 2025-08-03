@@ -20,13 +20,13 @@ namespace Anela.Heblo.Persistence.Migrations
                 newSchema: "dbo");
 
             migrationBuilder.RenameTable(
-                name: "PurchaseOrderLines", 
+                name: "PurchaseOrderLines",
                 newName: "PurchaseOrderLines",
                 newSchema: "dbo");
 
             migrationBuilder.RenameTable(
                 name: "PurchaseOrderHistory",
-                newName: "PurchaseOrderHistory", 
+                newName: "PurchaseOrderHistory",
                 newSchema: "dbo");
         }
 
@@ -41,7 +41,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.RenameTable(
                 name: "PurchaseOrderLines",
-                schema: "dbo", 
+                schema: "dbo",
                 newName: "PurchaseOrderLines");
 
             migrationBuilder.RenameTable(

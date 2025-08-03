@@ -11,9 +11,12 @@ public class PurchaseOrderNumberGenerator : IPurchaseOrderNumberGenerator
     {
         var year = orderDate.Year;
         var month = orderDate.Month;
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var day = orderDate.Day;
+        var hour = DateTime.Now.Hour;
+        var minute = DateTime.Now.Minute;
 
-        var orderNumber = $"PO{year:D4}{month:D2}-{timestamp}";
+        // Format: POyyyyMMdd-HHmm
+        var orderNumber = $"PO{year:D4}{month:D2}{day:D2}-{hour:D2}{minute:D2}";
 
         return Task.FromResult(orderNumber);
     }

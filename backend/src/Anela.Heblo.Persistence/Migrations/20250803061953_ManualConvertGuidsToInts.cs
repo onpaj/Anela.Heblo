@@ -19,7 +19,7 @@ namespace Anela.Heblo.Persistence.Migrations
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrderLines"" 
                 DROP CONSTRAINT IF EXISTS ""FK_PurchaseOrderLines_PurchaseOrders_PurchaseOrderId""");
-            
+
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrderHistory"" 
                 DROP CONSTRAINT IF EXISTS ""FK_PurchaseOrderHistory_PurchaseOrders_PurchaseOrderId""");
@@ -28,7 +28,7 @@ namespace Anela.Heblo.Persistence.Migrations
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrders"" 
                 DROP COLUMN ""Id""");
-            
+
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrders"" 
                 ADD COLUMN ""Id"" SERIAL PRIMARY KEY");
@@ -38,7 +38,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 ALTER TABLE dbo.""PurchaseOrderLines"" 
                 DROP COLUMN ""Id"", 
                 DROP COLUMN ""PurchaseOrderId""");
-            
+
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrderLines"" 
                 ADD COLUMN ""Id"" SERIAL PRIMARY KEY,
@@ -49,7 +49,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 ALTER TABLE dbo.""PurchaseOrderHistory"" 
                 DROP COLUMN ""Id"", 
                 DROP COLUMN ""PurchaseOrderId""");
-            
+
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrderHistory"" 
                 ADD COLUMN ""Id"" SERIAL PRIMARY KEY,
@@ -60,7 +60,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 ALTER TABLE dbo.""PurchaseOrderLines"" 
                 ADD CONSTRAINT ""FK_PurchaseOrderLines_PurchaseOrders_PurchaseOrderId"" 
                 FOREIGN KEY (""PurchaseOrderId"") REFERENCES dbo.""PurchaseOrders""(""Id"") ON DELETE CASCADE");
-            
+
             migrationBuilder.Sql(@"
                 ALTER TABLE dbo.""PurchaseOrderHistory"" 
                 ADD CONSTRAINT ""FK_PurchaseOrderHistory_PurchaseOrders_PurchaseOrderId"" 
@@ -70,7 +70,7 @@ namespace Anela.Heblo.Persistence.Migrations
             migrationBuilder.Sql(@"
                 CREATE INDEX ""IX_PurchaseOrderLines_PurchaseOrderId"" 
                 ON dbo.""PurchaseOrderLines"" (""PurchaseOrderId"")");
-            
+
             migrationBuilder.Sql(@"
                 CREATE INDEX ""IX_PurchaseOrderHistory_PurchaseOrderId"" 
                 ON dbo.""PurchaseOrderHistory"" (""PurchaseOrderId"")");

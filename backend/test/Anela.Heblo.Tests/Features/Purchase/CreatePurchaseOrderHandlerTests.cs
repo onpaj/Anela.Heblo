@@ -81,17 +81,20 @@ public class CreatePurchaseOrderHandlerTests
     [Fact]
     public async Task Handle_WithMultipleLines_ShouldCreateOrderWithAllLines()
     {
-        var request = new CreatePurchaseOrderRequest(
-            ValidSupplierName,
-            ValidOrderDate,
-            ValidExpectedDeliveryDate,
-            ValidNotes,
-            new List<CreatePurchaseOrderLineRequest>
+        var request = new CreatePurchaseOrderRequest
+        {
+            SupplierName = ValidSupplierName,
+            OrderDate = ValidOrderDate,
+            ExpectedDeliveryDate = ValidExpectedDeliveryDate,
+            Notes = ValidNotes,
+            OrderNumber = null, // OrderNumber - let system generate
+            Lines = new List<CreatePurchaseOrderLineRequest>
             {
-                new(ValidMaterialId, ValidName, 10, 25.50m, "Line 1"),
-                new("MAT002", "Test Material 2", 5, 100.00m, "Line 2"),
-                new("MAT003", "Test Material 3", 2, 75.25m, "Line 3")
-            });
+                new() { MaterialId = ValidMaterialId, Name = ValidName, Quantity = 10, UnitPrice = 25.50m, Notes = "Line 1" },
+                new() { MaterialId = "MAT002", Name = "Test Material 2", Quantity = 5, UnitPrice = 100.00m, Notes = "Line 2" },
+                new() { MaterialId = "MAT003", Name = "Test Material 3", Quantity = 2, UnitPrice = 75.25m, Notes = "Line 3" }
+            }
+        };
 
         _orderNumberGeneratorMock
             .Setup(x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()))
@@ -114,12 +117,15 @@ public class CreatePurchaseOrderHandlerTests
     [Fact]
     public async Task Handle_WithEmptyLines_ShouldCreateOrderWithZeroTotal()
     {
-        var request = new CreatePurchaseOrderRequest(
-            ValidSupplierName,
-            ValidOrderDate,
-            ValidExpectedDeliveryDate,
-            ValidNotes,
-            new List<CreatePurchaseOrderLineRequest>());
+        var request = new CreatePurchaseOrderRequest
+        {
+            SupplierName = ValidSupplierName,
+            OrderDate = ValidOrderDate,
+            ExpectedDeliveryDate = ValidExpectedDeliveryDate,
+            Notes = ValidNotes,
+            OrderNumber = null, // OrderNumber - let system generate
+            Lines = new List<CreatePurchaseOrderLineRequest>()
+        };
 
         _orderNumberGeneratorMock
             .Setup(x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()))
@@ -181,11 +187,11 @@ public class CreatePurchaseOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(
-            x => x.AddAsync(It.Is<PurchaseOrder>(po => 
+            x => x.AddAsync(It.Is<PurchaseOrder>(po =>
                 po.OrderNumber == GeneratedOrderNumber &&
                 po.SupplierName == ValidSupplierName &&
                 po.OrderDate == DateTime.Parse(ValidOrderDate) &&
-                po.Lines.Count == 1), 
+                po.Lines.Count == 1),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -265,14 +271,17 @@ public class CreatePurchaseOrderHandlerTests
 
     private static CreatePurchaseOrderRequest CreateValidRequest()
     {
-        return new CreatePurchaseOrderRequest(
-            ValidSupplierName,
-            ValidOrderDate,
-            ValidExpectedDeliveryDate,
-            ValidNotes,
-            new List<CreatePurchaseOrderLineRequest>
+        return new CreatePurchaseOrderRequest
+        {
+            SupplierName = ValidSupplierName,
+            OrderDate = ValidOrderDate,
+            ExpectedDeliveryDate = ValidExpectedDeliveryDate,
+            Notes = ValidNotes,
+            OrderNumber = null, // OrderNumber - let system generate
+            Lines = new List<CreatePurchaseOrderLineRequest>
             {
-                new(ValidMaterialId, ValidName, 10, 25.50m, "Line notes")
-            });
+                new() { MaterialId = ValidMaterialId, Name = ValidName, Quantity = 10, UnitPrice = 25.50m, Notes = "Line notes" }
+            }
+        };
     }
 }

@@ -23,12 +23,25 @@ interface PurchaseOrderFormProps {
 }
 
 interface FormData {
+  orderNumber: string;
   supplierName: string;
   orderDate: string;
   expectedDeliveryDate: string;
   notes: string;
   lines: (PurchaseOrderLineDto & { selectedMaterial?: MaterialForPurchaseDto | null })[];
 }
+
+// Generate default order number in format POyyyyMMdd-HHmm
+const generateDefaultOrderNumber = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  
+  return `PO${year}${month}${day}-${hour}${minute}`;
+};
 
 // Component to resolve and set material for existing purchase order line
 const MaterialResolver: React.FC<{ 
@@ -52,6 +65,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   const isEditMode = !!editOrderId;
   
   const [formData, setFormData] = useState<FormData>({
+    orderNumber: generateDefaultOrderNumber(),
     supplierName: '',
     orderDate: new Date().toISOString().split('T')[0], // Today's date
     expectedDeliveryDate: '',
@@ -118,6 +132,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           })];
 
       setFormData({
+        orderNumber: existingOrderData.orderNumber || generateDefaultOrderNumber(),
         supplierName: existingOrderData.supplierName || '',
         orderDate: existingOrderData.orderDate ? new Date(existingOrderData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? new Date(existingOrderData.expectedDeliveryDate).toISOString().split('T')[0] : '',
@@ -139,6 +154,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     } else if (!isEditMode && isOpen) {
       // Reset to default state for create mode
       setFormData({
+        orderNumber: generateDefaultOrderNumber(),
         supplierName: '',
         orderDate: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: '',
@@ -186,6 +202,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    if (!formData.orderNumber.trim()) {
+      newErrors.orderNumber = 'Číslo objednávky je povinné';
+    }
 
     if (!formData.supplierName.trim()) {
       newErrors.supplierName = 'Název dodavatele je povinný';
@@ -244,13 +264,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           supplierName: formData.supplierName,
           expectedDeliveryDate: formData.expectedDeliveryDate ? new Date(formData.expectedDeliveryDate) : undefined,
           notes: formData.notes || undefined,
+          orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
-            .filter(line => line.selectedMaterial)
+            .filter(line => line.selectedMaterial && line.materialId && line.quantity && line.unitPrice)
             .map(line => new UpdatePurchaseOrderLineRequest({
-              materialId: line.materialId,
+              materialId: line.materialId!,
               name: line.selectedMaterial?.productName || line.materialName,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
+              quantity: line.quantity!,
+              unitPrice: line.unitPrice!,
               notes: line.notes
             }))
         });
@@ -267,13 +288,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           orderDate: formData.orderDate,
           expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
           notes: formData.notes || undefined,
+          orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
-            .filter(line => line.selectedMaterial)
+            .filter(line => line.selectedMaterial && line.materialId && line.quantity && line.unitPrice)
             .map(line => new CreatePurchaseOrderLineRequest({
-              materialId: line.materialId,
+              materialId: line.materialId!,
               name: line.selectedMaterial?.productName || line.materialName,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
+              quantity: line.quantity!,
+              unitPrice: line.unitPrice!,
               notes: line.notes
             }))
         });
@@ -325,11 +347,17 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   const updateLine = (index: number, field: keyof PurchaseOrderLineDto, value: string | number) => {
     setFormData(prev => {
       const newLines = [...prev.lines];
+      
+      // Apply rounding for unit price
+      if (field === 'unitPrice' && typeof value === 'number') {
+        value = Math.round(value * 10000) / 10000; // Round to 4 decimal places
+      }
+      
       newLines[index] = Object.assign(new PurchaseOrderLineDto(), { ...newLines[index], [field]: value });
       
-      // Recalculate line total
+      // Recalculate line total with proper rounding
       if (field === 'quantity' || field === 'unitPrice') {
-        newLines[index].lineTotal = (newLines[index].quantity || 0) * (newLines[index].unitPrice || 0);
+        newLines[index].lineTotal = Math.round((newLines[index].quantity || 0) * (newLines[index].unitPrice || 0) * 100) / 100;
       }
       
       return { ...prev, lines: newLines };
@@ -344,6 +372,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         const moq = material.minimalOrderQuantity ? parseInt(material.minimalOrderQuantity) : 1;
         const quantity = isNaN(moq) ? 1 : Math.max(moq, 1);
         
+        // Round unit price to 4 decimal places if provided
+        const unitPrice = material.lastPurchasePrice ? Math.round(material.lastPurchasePrice * 10000) / 10000 : newLines[index].unitPrice;
+        
         newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[index],
           materialId: material.productCode || `temp-${Date.now()}`, // Use product code as material ID
@@ -352,10 +383,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           // Pre-fill quantity with MOQ
           quantity: quantity,
           // Pre-fill unit price with last purchase price if available
-          unitPrice: material.lastPurchasePrice || newLines[index].unitPrice,
+          unitPrice: unitPrice,
         });
         // Recalculate line total
-        newLines[index].lineTotal = (newLines[index].quantity || 0) * (newLines[index].unitPrice || 0);
+        newLines[index].lineTotal = Math.round((newLines[index].quantity || 0) * (newLines[index].unitPrice || 0) * 100) / 100;
         
         // Add empty row if this is the last row and it now has material
         if (index === newLines.length - 1) {
@@ -447,6 +478,27 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {/* Order Number */}
+                <div className="md:col-span-4">
+                  <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    Číslo objednávky *
+                  </label>
+                  <input
+                    type="text"
+                    id="orderNumber"
+                    value={formData.orderNumber}
+                    onChange={(e) => handleInputChange('orderNumber', e.target.value)}
+                    className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.orderNumber ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Číslo objednávky (např. PO20250101-1015)"
+                  />
+                  {errors.orderNumber && (
+                    <p className="mt-1 text-sm text-red-600">{errors.orderNumber}</p>
+                  )}
+                </div>
+
                 {/* Supplier Name */}
                 <div className="md:col-span-2">
                   <label htmlFor="supplierName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -533,7 +585,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                   {formData.lines.some(line => line.selectedMaterial && (line.quantity || 0) > 0 && (line.unitPrice || 0) > 0) && (
                     <div className="text-sm text-gray-600">
                       Celkem: <span className="font-semibold text-indigo-600 text-base">
-                        {calculateTotal().toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč
+                        {calculateTotal().toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
                       </span>
                     </div>
                   )}
@@ -594,7 +646,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                             type="number"
                             min="0"
                             step="0.0001"
-                            value={line.unitPrice}
+                            value={(line.unitPrice || 0).toFixed(4)}
                             onChange={(e) => updateLine(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                             className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 ${
                               errors[`line_${index}_price`] ? 'border-red-300' : 'border-gray-300'
@@ -606,7 +658,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                         {/* Line Total */}
                         <div className="col-span-2 flex items-center justify-end pr-2">
                           <span className="text-sm font-medium text-gray-900">
-                            {(line.lineTotal || 0).toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč
+                            {(line.lineTotal || 0).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
                           </span>
                         </div>
 

@@ -21,7 +21,7 @@ public class PurchaseOrderLine : IEntity<int>
     public PurchaseOrderLine(int purchaseOrderId, string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
         PurchaseOrderId = purchaseOrderId;
-        
+
         if (string.IsNullOrWhiteSpace(materialId))
         {
             throw new ArgumentException("Material ID cannot be null or empty", nameof(materialId));

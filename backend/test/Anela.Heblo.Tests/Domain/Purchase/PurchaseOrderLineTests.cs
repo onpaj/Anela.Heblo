@@ -235,7 +235,7 @@ public class PurchaseOrderLineTests
         originalTotal.Should().Be(267.75m);
 
         line.Update("Updated Material", 5, 50, ValidNotes);
-        
+
         line.LineTotal.Should().Be(250m);
         line.LineTotal.Should().NotBe(originalTotal);
     }

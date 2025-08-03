@@ -2248,10 +2248,11 @@ export interface IPurchaseOrderHistoryDto {
 }
 
 export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
-    supplierName?: string;
-    orderDate?: string;
+    supplierName!: string;
+    orderDate!: string;
     expectedDeliveryDate?: string | undefined;
     notes?: string | undefined;
+    orderNumber?: string | undefined;
     lines?: CreatePurchaseOrderLineRequest[] | undefined;
 
     constructor(data?: ICreatePurchaseOrderRequest) {
@@ -2269,6 +2270,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
             this.orderDate = _data["orderDate"];
             this.expectedDeliveryDate = _data["expectedDeliveryDate"];
             this.notes = _data["notes"];
+            this.orderNumber = _data["orderNumber"];
             if (Array.isArray(_data["lines"])) {
                 this.lines = [] as any;
                 for (let item of _data["lines"])
@@ -2290,6 +2292,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
         data["orderDate"] = this.orderDate;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate;
         data["notes"] = this.notes;
+        data["orderNumber"] = this.orderNumber;
         if (Array.isArray(this.lines)) {
             data["lines"] = [];
             for (let item of this.lines)
@@ -2300,18 +2303,19 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 }
 
 export interface ICreatePurchaseOrderRequest {
-    supplierName?: string;
-    orderDate?: string;
+    supplierName: string;
+    orderDate: string;
     expectedDeliveryDate?: string | undefined;
     notes?: string | undefined;
+    orderNumber?: string | undefined;
     lines?: CreatePurchaseOrderLineRequest[] | undefined;
 }
 
 export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineRequest {
-    materialId?: string;
-    name?: string;
-    quantity?: number;
-    unitPrice?: number;
+    materialId!: string;
+    name?: string | undefined;
+    quantity!: number;
+    unitPrice!: number;
     notes?: string | undefined;
 
     constructor(data?: ICreatePurchaseOrderLineRequest) {
@@ -2352,10 +2356,10 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
 }
 
 export interface ICreatePurchaseOrderLineRequest {
-    materialId?: string;
-    name?: string;
-    quantity?: number;
-    unitPrice?: number;
+    materialId: string;
+    name?: string | undefined;
+    quantity: number;
+    unitPrice: number;
     notes?: string | undefined;
 }
 
@@ -2556,11 +2560,12 @@ export interface IUpdatePurchaseOrderResponse {
 }
 
 export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
-    id?: number;
-    supplierName?: string;
+    id!: number;
+    supplierName!: string;
     expectedDeliveryDate?: Date | undefined;
     notes?: string | undefined;
-    lines?: UpdatePurchaseOrderLineRequest[];
+    lines!: UpdatePurchaseOrderLineRequest[];
+    orderNumber?: string | undefined;
 
     constructor(data?: IUpdatePurchaseOrderRequest) {
         if (data) {
@@ -2568,6 +2573,9 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
                 if (data.hasOwnProperty(property))
                     (<any>this)[property] = (<any>data)[property];
             }
+        }
+        if (!data) {
+            this.lines = [];
         }
     }
 
@@ -2582,6 +2590,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
                 for (let item of _data["lines"])
                     this.lines!.push(UpdatePurchaseOrderLineRequest.fromJS(item));
             }
+            this.orderNumber = _data["orderNumber"];
         }
     }
 
@@ -2603,24 +2612,26 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
             for (let item of this.lines)
                 data["lines"].push(item.toJSON());
         }
+        data["orderNumber"] = this.orderNumber;
         return data;
     }
 }
 
 export interface IUpdatePurchaseOrderRequest {
-    id?: number;
-    supplierName?: string;
+    id: number;
+    supplierName: string;
     expectedDeliveryDate?: Date | undefined;
     notes?: string | undefined;
-    lines?: UpdatePurchaseOrderLineRequest[];
+    lines: UpdatePurchaseOrderLineRequest[];
+    orderNumber?: string | undefined;
 }
 
 export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineRequest {
     id?: number | undefined;
-    materialId?: string;
-    name?: string;
-    quantity?: number;
-    unitPrice?: number;
+    materialId!: string;
+    name?: string | undefined;
+    quantity!: number;
+    unitPrice!: number;
     notes?: string | undefined;
 
     constructor(data?: IUpdatePurchaseOrderLineRequest) {
@@ -2664,10 +2675,10 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
 
 export interface IUpdatePurchaseOrderLineRequest {
     id?: number | undefined;
-    materialId?: string;
-    name?: string;
-    quantity?: number;
-    unitPrice?: number;
+    materialId: string;
+    name?: string | undefined;
+    quantity: number;
+    unitPrice: number;
     notes?: string | undefined;
 }
 
@@ -2771,7 +2782,7 @@ export interface FileResponse {
 }
 
 export class SwaggerException extends Error {
-    message: string;
+    override message: string;
     status: number;
     response: string;
     headers: { [key: string]: any; };

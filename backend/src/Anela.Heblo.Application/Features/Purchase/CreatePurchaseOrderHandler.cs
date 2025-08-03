@@ -31,11 +31,13 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
 
         // Parse dates from string format and ensure UTC for PostgreSQL compatibility
         var orderDate = DateTime.SpecifyKind(DateTime.Parse(request.OrderDate).Date, DateTimeKind.Utc);
-        var expectedDeliveryDate = !string.IsNullOrEmpty(request.ExpectedDeliveryDate) 
+        var expectedDeliveryDate = !string.IsNullOrEmpty(request.ExpectedDeliveryDate)
             ? DateTime.SpecifyKind(DateTime.Parse(request.ExpectedDeliveryDate).Date, DateTimeKind.Utc)
             : (DateTime?)null;
 
-        var orderNumber = await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
+        var orderNumber = !string.IsNullOrEmpty(request.OrderNumber)
+            ? request.OrderNumber
+            : await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
 
         var purchaseOrder = new PurchaseOrder(
             orderNumber,
@@ -48,18 +50,18 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         // Add lines if provided
         if (request.Lines != null && request.Lines.Any())
         {
-            _logger.LogInformation("Adding {LineCount} lines to purchase order {OrderNumber}", 
+            _logger.LogInformation("Adding {LineCount} lines to purchase order {OrderNumber}",
                 request.Lines.Count, orderNumber);
-                
+
             foreach (var lineRequest in request.Lines)
             {
                 // Look up material by ProductCode in catalog to get ProductName
                 var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
                 var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-                
+
                 if (material == null)
                 {
-                    _logger.LogWarning("Material with code {MaterialId} not found in catalog, using provided name: {Name}", 
+                    _logger.LogWarning("Material with code {MaterialId} not found in catalog, using provided name: {Name}",
                         lineRequest.MaterialId, materialName);
                 }
 
@@ -72,9 +74,9 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
             }
         }
 
-        _logger.LogInformation("Purchase order {OrderNumber} has {LineCount} lines before saving", 
+        _logger.LogInformation("Purchase order {OrderNumber} has {LineCount} lines before saving",
             orderNumber, purchaseOrder.Lines.Count);
-            
+
         await _repository.AddAsync(purchaseOrder, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
@@ -88,7 +90,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     private async Task<CreatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
     {
         var lines = new List<PurchaseOrderLineDto>();
-        
+
         foreach (var line in purchaseOrder.Lines)
         {
             lines.Add(new PurchaseOrderLineDto(

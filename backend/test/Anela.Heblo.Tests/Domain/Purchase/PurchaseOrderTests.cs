@@ -223,7 +223,7 @@ public class PurchaseOrderTests
         purchaseOrder.UpdatedBy.Should().Be(changedBy);
         purchaseOrder.UpdatedAt.Should().NotBeNull();
         purchaseOrder.History.Should().HaveCount(2);
-        
+
         var statusChangeEntry = purchaseOrder.History.Last();
         statusChangeEntry.Action.Should().Contain("Status changed");
         statusChangeEntry.OldValue.Should().Be("Draft");
@@ -243,7 +243,7 @@ public class PurchaseOrderTests
         purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Completed);
         purchaseOrder.UpdatedBy.Should().Be(changedBy);
         purchaseOrder.History.Should().HaveCount(3);
-        
+
         var statusChangeEntry = purchaseOrder.History.Last();
         statusChangeEntry.Action.Should().Contain("Status changed");
         statusChangeEntry.OldValue.Should().Be("InTransit");
@@ -260,7 +260,7 @@ public class PurchaseOrderTests
         PurchaseOrderStatus fromStatus, PurchaseOrderStatus toStatus)
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        
+
         if (fromStatus == PurchaseOrderStatus.InTransit)
         {
             purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);

@@ -23,7 +23,7 @@
       "className": "ApiClient",
       "moduleName": "",
       "namespace": "",
-      "typeScriptVersion": 4.0,
+      "typeScriptVersion": 4.3,
       "template": "Fetch",
       "promiseType": "Promise",
       "httpClass": "HttpClient",
@@ -49,7 +49,7 @@
       "useTransformOptionsMethod": false,
       "useTransformResultMethod": false,
       "generateDtoTypes": true,
-      "operationGenerationMode": "MultipleClientsFromOperationId",
+      "operationGenerationMode": "SingleClientFromOperationId",
       "markOptionalProperties": true,
       "generateCloneMethod": false,
       "typeStyle": "Class",
@@ -76,7 +76,7 @@
       "templateDirectory": null,
       "serviceHost": null,
       "serviceSchemes": null,
-      "output": "../../frontend/src/api/generated/api-client.ts",
+      "output": "../../../frontend/src/api/generated/api-client.ts",
       "newLineBehavior": "Auto"
     }
   }

@@ -215,7 +215,7 @@ const PurchaseOrderList: React.FC = () => {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('cs-CZ', { minimumFractionDigits: 0 })} Kč`;
+    return `${amount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
   };
 
   if (loading) {
@@ -377,8 +377,8 @@ const PurchaseOrderList: React.FC = () => {
                     {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status && statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {order.status && statusLabels[order.status] || order.status}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || 'bg-gray-100 text-gray-800'}`}>
+                      {(order.status && statusLabels[order.status]) || order.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">

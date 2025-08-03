@@ -36,6 +36,12 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
         try
         {
+            // Update order number if provided
+            if (!string.IsNullOrEmpty(request.OrderNumber) && request.OrderNumber != purchaseOrder.OrderNumber)
+            {
+                purchaseOrder.UpdateOrderNumber(request.OrderNumber, "System"); // TODO: Get actual user
+            }
+
             purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, "System"); // TODO: Get actual user
 
             var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
@@ -54,7 +60,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                     // Get material name from catalog if available
                     var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
                     var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-                    
+
                     purchaseOrder.UpdateLine(
                         lineRequest.Id.Value,
                         materialName,
@@ -67,7 +73,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                     // Get material name from catalog if available
                     var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
                     var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-                    
+
                     purchaseOrder.AddLine(
                         lineRequest.MaterialId,
                         materialName,
@@ -96,7 +102,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
     private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
     {
         var lines = new List<PurchaseOrderLineDto>();
-        
+
         foreach (var line in purchaseOrder.Lines)
         {
             // Try to get material name from catalog

@@ -57,7 +57,7 @@ public class PurchaseOrder : IEntity<int>
 
         var line = new PurchaseOrderLine(Id, materialId, materialName, quantity, unitPrice, notes);
         _lines.Add(line);
-        
+
         // Debug logging
         Console.WriteLine($"Added line {line.Id} to purchase order {Id}. Total lines: {_lines.Count}");
 
@@ -121,6 +121,21 @@ public class PurchaseOrder : IEntity<int>
         Notes = notes;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateOrderNumber(string orderNumber, string updatedBy)
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot update order number for non-draft orders");
+        }
+
+        var oldOrderNumber = OrderNumber;
+        OrderNumber = orderNumber ?? throw new ArgumentNullException(nameof(orderNumber));
+        UpdatedBy = updatedBy;
+        UpdatedAt = DateTime.UtcNow;
+
+        AddHistoryEntry($"Order number changed", oldOrderNumber, orderNumber, updatedBy);
     }
 
     public void ChangeStatus(PurchaseOrderStatus newStatus, string changedBy)

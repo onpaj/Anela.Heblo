@@ -9,7 +9,7 @@ public class TransportBoxItemConfiguration : IEntityTypeConfiguration<TransportB
     public void Configure(EntityTypeBuilder<TransportBoxItem> builder)
     {
         builder.ToTable("TransportBoxItem", "dbo");
-        
+
         builder.HasKey(x => x.Id);
     }
 }
