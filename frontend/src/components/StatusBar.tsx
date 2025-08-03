@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getRuntimeConfig } from '../config/runtimeConfig';
+import { getAuthenticatedApiClient } from '../api/client';
 
 interface StatusBarProps {
   className?: string;
@@ -21,7 +22,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
         
         // Try to fetch configuration from backend API
         try {
-          const response = await fetch(`${config.apiUrl}/api/configuration`);
+          const apiClient = getAuthenticatedApiClient();
+          const relativeUrl = '/api/configuration';
+          const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+          
+          const response = await (apiClient as any).http.fetch(fullUrl, {
+            method: 'GET',
+          });
+          
           if (response.ok) {
             const backendConfig = await response.json();
             setAppInfo({

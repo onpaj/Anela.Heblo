@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.name='fetch'][arguments.0.type='Literal'][arguments.0.value*='/api/']",
+        "message": "Use getAuthenticatedApiClient() instead of plain fetch() for API calls to avoid 401 Unauthorized errors"
+      },
+      {
+        "selector": "CallExpression[callee.name='fetch'][arguments.0.type='TemplateLiteral'] TemplateLiteral[quasis.0.value.raw*='/api/']",
+        "message": "Use getAuthenticatedApiClient() instead of plain fetch() for API calls to avoid 401 Unauthorized errors"
+      }
+    ]
+  }
+}

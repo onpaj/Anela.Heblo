@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getConfig } from '../../config/runtimeConfig';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 // Temporary types since API client is incomplete
 export interface MaterialForPurchaseDto {
@@ -18,21 +18,21 @@ interface GetMaterialsForPurchaseResponse {
 
 export function useMaterialsForPurchase(searchTerm?: string, limit: number = 50) {
   return useQuery({
-    queryKey: ['materials-for-purchase', searchTerm, limit],
+    queryKey: [...QUERY_KEYS.catalog, 'materials-for-purchase', searchTerm, limit],
     queryFn: async () => {
-      const config = getConfig();
-      const url = new URL(`${config.apiUrl}/api/catalog/materials-for-purchase`);
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
       
       if (searchTerm) {
-        url.searchParams.append('searchTerm', searchTerm);
+        searchParams.append('searchTerm', searchTerm);
       }
-      url.searchParams.append('limit', limit.toString());
+      searchParams.append('limit', limit.toString());
 
-      const response = await fetch(url.toString(), {
+      const relativeUrl = `/api/catalog/materials-for-purchase${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      
+      const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -49,20 +49,20 @@ export function useMaterialsForPurchase(searchTerm?: string, limit: number = 50)
 
 export function useMaterialByProductCode(productCode?: string) {
   return useQuery({
-    queryKey: ['material-by-product-code', productCode],
+    queryKey: [...QUERY_KEYS.catalog, 'material-by-product-code', productCode],
     queryFn: async () => {
       if (!productCode) return null;
       
-      const config = getConfig();
-      const url = new URL(`${config.apiUrl}/api/catalog/materials-for-purchase`);
-      url.searchParams.append('searchTerm', productCode);
-      url.searchParams.append('limit', '50');
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+      searchParams.append('searchTerm', productCode);
+      searchParams.append('limit', '50');
 
-      const response = await fetch(url.toString(), {
+      const relativeUrl = `/api/catalog/materials-for-purchase?${searchParams.toString()}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      
+      const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
