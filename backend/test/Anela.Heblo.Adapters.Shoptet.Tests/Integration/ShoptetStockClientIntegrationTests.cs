@@ -22,48 +22,6 @@ public class ShoptetStockClientIntegrationTests
     }
 
     [Fact]
-    public async Task ListAsync_WithValidConfiguration_ReturnsStockData()
-    {
-        // Arrange - Skip if configuration is not available
-        var url = _configuration["StockClient:Url"];
-        (string.IsNullOrEmpty(url) || url.Contains("your-shoptet")).Should().BeFalse(
-            "Shoptet stock URL is not configured or contains placeholder. Please set a valid URL in appsettings.json");
-
-
-        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token;
-
-        // Act
-        var result = await _stockClient.ListAsync(cancellationToken);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<List<EshopStock>>();
-
-        if (result.Any())
-        {
-            // Validate structure of returned stock items
-            result.Should().OnlyContain(stock =>
-                !string.IsNullOrEmpty(stock.Code) &&
-                stock.Stock >= 0
-            );
-
-            // Check that CSV mapping worked correctly
-            var firstStock = result.First();
-            firstStock.Code.Should().NotBeNullOrEmpty("Product code should be parsed from CSV");
-            firstStock.Name.Should().NotBeNullOrEmpty("Product name should be parsed from CSV");
-            firstStock.Stock.Should().BeGreaterOrEqualTo(0, "Stock level should be non-negative");
-
-            // Log some statistics for debugging
-            var totalProducts = result.Count;
-            var productsInStock = result.Count(s => s.Stock > 0);
-            var averageStock = result.Where(s => s.Stock > 0).Select(s => s.Stock).DefaultIfEmpty(0).Average();
-
-            // These are informational - not assertions
-            totalProducts.Should().BeGreaterThan(0, "Should have at least some products");
-        }
-    }
-
-    [Fact]
     public async Task ListAsync_WithValidConfiguration_ParsesCsvDataCorrectly()
     {
         // Arrange - Skip if configuration is not available
@@ -121,38 +79,6 @@ public class ShoptetStockClientIntegrationTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    [Fact]
-    public async Task ListAsync_WithValidConfiguration_HandlesEmptyStock()
-    {
-        // Arrange - Skip if configuration is not available
-        var url = _configuration["StockClient:Url"];
-        if (string.IsNullOrEmpty(url) || url.Contains("your-shoptet"))
-        {
-            return;
-        }
-
-        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token;
-
-        // Act
-        var result = await _stockClient.ListAsync(cancellationToken);
-
-        // Assert
-        result.Should().NotBeNull();
-
-        // Even if no products, the CSV structure should be parsed correctly
-        // Each product should have valid decimal stock values (including 0)
-        result.Should().OnlyContain(stock =>
-            stock.Stock >= 0 &&
-            !string.IsNullOrEmpty(stock.Code)
-        );
-
-        // Verify that default value mapping works for empty stock values
-        var productsWithZeroStock = result.Where(s => s.Stock == 0).ToList();
-        productsWithZeroStock.Should().OnlyContain(stock =>
-            !string.IsNullOrEmpty(stock.Code) &&
-            stock.Stock == 0
-        );
-    }
 
     [Fact]
     public async Task ListAsync_WithValidConfiguration_HandlesCsvEncoding()

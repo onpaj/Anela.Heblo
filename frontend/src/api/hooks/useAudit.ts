@@ -64,11 +64,9 @@ const fetchAuditLogs = async (params: GetAuditLogsRequest = {}): Promise<GetAudi
   }
 
   const url = `/api/audit/data-loads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-  const headers = await (apiClient as any).getAuthHeaders();
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(url, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {
@@ -91,11 +89,9 @@ const fetchAuditSummary = async (params: GetAuditSummaryRequest = {}): Promise<G
   }
 
   const url = `/api/audit/summary${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-  const headers = await (apiClient as any).getAuthHeaders();
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(url, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {

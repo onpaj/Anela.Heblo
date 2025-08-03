@@ -143,11 +143,9 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
   }
 
   const url = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-  const headers = await (apiClient as any).getAuthHeaders();
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(url, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {
@@ -161,11 +159,9 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
 const fetchCatalogDetail = async (productCode: string, monthsBack: number = 13): Promise<GetCatalogDetailResponse> => {
   const apiClient = getAuthenticatedApiClient();
   const url = `/api/catalog/${encodeURIComponent(productCode)}?monthsBack=${monthsBack}`;
-  const headers = await (apiClient as any).getAuthHeaders();
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(url, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {
