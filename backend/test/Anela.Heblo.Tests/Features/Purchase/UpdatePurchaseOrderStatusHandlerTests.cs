@@ -14,7 +14,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
     private readonly UpdatePurchaseOrderStatusHandler _handler;
 
-    private static readonly Guid ValidOrderId = Guid.NewGuid();
+    private static readonly int ValidOrderId = 999;
     private const string ValidOrderNumber = "PO-2024-001";
 
     public UpdatePurchaseOrderStatusHandlerTests()
@@ -264,7 +264,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         return new PurchaseOrder(
             ValidOrderNumber,
-            Guid.NewGuid(),
+            "Test Supplier",
             DateTime.UtcNow.Date,
             DateTime.UtcNow.Date.AddDays(14),
             "Test notes",

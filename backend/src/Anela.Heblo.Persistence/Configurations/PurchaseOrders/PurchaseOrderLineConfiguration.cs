@@ -13,13 +13,22 @@ public class PurchaseOrderLineConfiguration : IEntityTypeConfiguration<PurchaseO
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id)
-            .ValueGeneratedNever();
+            .ValueGeneratedOnAdd();
 
         builder.Property(x => x.PurchaseOrderId)
             .IsRequired();
 
         builder.Property(x => x.MaterialId)
-            .IsRequired();
+            .IsRequired()
+            .HasMaxLength(50);
+
+        builder.Property(x => x.Code)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(x => x.Name)
+            .IsRequired()
+            .HasMaxLength(500);
 
         builder.Property(x => x.Quantity)
             .IsRequired()

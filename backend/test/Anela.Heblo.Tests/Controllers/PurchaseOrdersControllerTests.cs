@@ -2,10 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using Anela.Heblo.API;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Controllers;
@@ -14,6 +17,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
+    private static readonly string DatabaseName = $"TestDb_{Guid.NewGuid()}";
 
     public PurchaseOrdersControllerTests(WebApplicationFactory<Program> factory)
     {
@@ -24,8 +28,33 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    {"UseMockAuth", "true"}
+                    {"UseMockAuth", "true"},
+                    {"ConnectionStrings:Default", ""} // Ensure empty connection string to trigger in-memory database
                 });
+            });
+            builder.ConfigureServices(services =>
+            {
+                // Remove the existing DbContext registration
+                var descriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+                
+                // Add in-memory database with shared database name
+                services.AddDbContext<ApplicationDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase(DatabaseName); // Shared DB name for all tests in this class
+                });
+
+                // Ensure the database is created
+                var serviceProvider = services.BuildServiceProvider();
+                using (var scope = serviceProvider.CreateScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    dbContext.Database.EnsureCreated();
+                }
             });
         });
         _client = _factory.CreateClient();
@@ -97,7 +126,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Integration test order",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", 10, 25.50m, "Test line")
+                new("MAT001", "CODE001", "Test Material", 10, 25.50m, "Test line")
             });
 
         var response = await _client.PostAsJsonAsync("/api/purchase-orders", request);
@@ -106,7 +135,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
         
         var content = await response.Content.ReadFromJsonAsync<CreatePurchaseOrderResponse>();
         content.Should().NotBeNull();
-        content!.Id.Should().NotBeEmpty();
+        content!.Id.Should().NotBe(0);
         content.OrderNumber.Should().NotBeNullOrEmpty();
         content.Status.Should().Be("Draft");
         content.TotalAmount.Should().Be(255.00m);
@@ -120,9 +149,9 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     public async Task CreatePurchaseOrder_WithEmptyLines_ShouldReturnCreated()
     {
         var request = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Empty order",
             new List<CreatePurchaseOrderLineRequest>());
 
@@ -137,35 +166,34 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     }
 
     [Fact]
-    public async Task CreatePurchaseOrder_WithInvalidQuantity_ShouldThrowArgumentException()
+    public async Task CreatePurchaseOrder_WithInvalidQuantity_ShouldReturnBadRequest()
     {
         var request = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Order with invalid line",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), -5, 25.00m, "Invalid negative quantity")
+                new("MAT001", "CODE001", "Test Material", -5, 25.00m, "Invalid negative quantity")
             });
 
-        var postAction = async () => await _client.PostAsJsonAsync("/api/purchase-orders", request);
+        var response = await _client.PostAsJsonAsync("/api/purchase-orders", request);
 
-        await postAction.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("Quantity must be greater than zero*");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task GetPurchaseOrderById_WithExistingOrder_ShouldReturnOk()
     {
         var createRequest = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Test order for retrieval",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), 5, 10.00m, "Retrieval test line")
+                new("MAT001", "CODE001", "Test Material", 5, 10.00m, "Retrieval test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -190,7 +218,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task GetPurchaseOrderById_WithNonExistentOrder_ShouldReturnNotFound()
     {
-        var nonExistentId = Guid.NewGuid();
+        var nonExistentId = 999999;
         
         var response = await _client.GetAsync($"/api/purchase-orders/{nonExistentId}");
 
@@ -201,13 +229,13 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     public async Task UpdatePurchaseOrder_WithValidData_ShouldReturnOk()
     {
         var createRequest = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Order to update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), 5, 20.00m, "Original line")
+                new("MAT001", "CODE001", "Test Material", 5, 20.00m, "Original line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -216,11 +244,12 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
 
         var updateRequest = new UpdatePurchaseOrderRequest(
             orderId,
+            "Updated Supplier",
             DateTime.UtcNow.Date.AddDays(21),
             "Updated notes",
             new List<UpdatePurchaseOrderLineRequest>
             {
-                new(createdOrder.Lines.First().Id, Guid.NewGuid(), 10, 30.00m, "Updated line")
+                new(createdOrder.Lines.First().Id, "MAT002", "CODE002", "Updated Material", 10, 30.00m, "Updated line")
             });
 
         var updateResponse = await _client.PutAsJsonAsync($"/api/purchase-orders/{orderId}", updateRequest);
@@ -238,9 +267,10 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task UpdatePurchaseOrder_WithNonExistentOrder_ShouldReturnNotFound()
     {
-        var nonExistentId = Guid.NewGuid();
+        var nonExistentId = 999999;
         var updateRequest = new UpdatePurchaseOrderRequest(
             nonExistentId,
+            "Test Supplier",
             DateTime.UtcNow.Date.AddDays(21),
             "Updated notes",
             new List<UpdatePurchaseOrderLineRequest>());
@@ -253,10 +283,11 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task UpdatePurchaseOrder_WithMismatchedId_ShouldReturnBadRequest()
     {
-        var orderId = Guid.NewGuid();
-        var differentId = Guid.NewGuid();
+        var orderId = 12345;
+        var differentId = 54321;
         var updateRequest = new UpdatePurchaseOrderRequest(
             differentId,
+            "Test Supplier",
             DateTime.UtcNow.Date.AddDays(21),
             "Updated notes",
             new List<UpdatePurchaseOrderLineRequest>());
@@ -270,13 +301,13 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     public async Task UpdatePurchaseOrderStatus_WithValidTransition_ShouldReturnOk()
     {
         var createRequest = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Order for status update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), 1, 10.00m, "Status test line")
+                new("MAT001", "CODE001", "Test Material", 1, 10.00m, "Status test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -298,13 +329,13 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     public async Task UpdatePurchaseOrderStatus_WithInvalidTransition_ShouldReturnBadRequest()
     {
         var createRequest = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Order for invalid status update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), 1, 10.00m, "Invalid status test line")
+                new("MAT001", "CODE001", "Test Material", 1, 10.00m, "Invalid status test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -320,7 +351,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task UpdatePurchaseOrderStatus_WithNonExistentOrder_ShouldReturnNotFound()
     {
-        var nonExistentId = Guid.NewGuid();
+        var nonExistentId = 999999;
         var statusRequest = new UpdatePurchaseOrderStatusRequest(nonExistentId, "InTransit");
         
         var response = await _client.PutAsJsonAsync($"/api/purchase-orders/{nonExistentId}/status", statusRequest);
@@ -332,13 +363,13 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     public async Task GetPurchaseOrderHistory_WithExistingOrder_ShouldReturnOk()
     {
         var createRequest = new CreatePurchaseOrderRequest(
-            Guid.NewGuid(),
-            DateTime.UtcNow.Date,
-            DateTime.UtcNow.Date.AddDays(14),
+            "Test Supplier",
+            DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             "Order for history test",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(Guid.NewGuid(), 1, 15.00m, "History test line")
+                new("MAT001", "CODE001", "Test Material", 1, 15.00m, "History test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -362,7 +393,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task GetPurchaseOrderHistory_WithNonExistentOrder_ShouldReturnNotFound()
     {
-        var nonExistentId = Guid.NewGuid();
+        var nonExistentId = 999999;
         
         var response = await _client.GetAsync($"/api/purchase-orders/{nonExistentId}/history");
 

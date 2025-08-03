@@ -1,9 +1,9 @@
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record UpdatePurchaseOrderResponse(
-    Guid Id,
+    int Id,
     string OrderNumber,
-    Guid SupplierId, // Kept for backward compatibility, always Guid.Empty
+    int SupplierId, // Changed to int
     string SupplierName,
     DateTime OrderDate,
     DateTime? ExpectedDeliveryDate,

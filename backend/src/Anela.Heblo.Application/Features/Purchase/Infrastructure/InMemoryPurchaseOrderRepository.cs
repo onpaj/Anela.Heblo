@@ -5,23 +5,27 @@ using System.Linq.Expressions;
 
 namespace Anela.Heblo.Application.Features.Purchase.Infrastructure;
 
-public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, Guid>, IPurchaseOrderRepository
+public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, int>, IPurchaseOrderRepository
 {
-    private readonly ConcurrentDictionary<Guid, PurchaseOrder> _orders = new();
+    private readonly ConcurrentDictionary<int, PurchaseOrder> _orders = new();
+    private int _nextId = 1;
 
     public new async Task<PurchaseOrder> AddAsync(PurchaseOrder entity, CancellationToken cancellationToken = default)
     {
-        _orders.TryAdd(entity.Id, entity);
+        // Simulate auto-increment ID assignment for in-memory implementation
+        var id = Interlocked.Increment(ref _nextId);
+        typeof(PurchaseOrder).GetProperty("Id")!.SetValue(entity, id);
+        _orders.TryAdd(id, entity);
         return await Task.FromResult(entity);
     }
 
-    public new async Task<PurchaseOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public new async Task<PurchaseOrder?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         _orders.TryGetValue(id, out var order);
         return await Task.FromResult(order);
     }
 
-    public async Task<PurchaseOrder?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<PurchaseOrder?> GetByIdWithDetailsAsync(int id, CancellationToken cancellationToken = default)
     {
         _orders.TryGetValue(id, out var order);
         return await Task.FromResult(order);
@@ -32,7 +36,7 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, Gu
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
-        Guid? supplierId,
+        int? supplierId,
         int pageNumber,
         int pageSize,
         string sortBy,
@@ -93,6 +97,12 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, Gu
     {
         var exists = _orders.Values.Any(x => x.OrderNumber == orderNumber);
         return await Task.FromResult(exists);
+    }
+
+    public new async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var removed = _orders.TryRemove(id, out _);
+        return await Task.FromResult(removed);
     }
 
     public new async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

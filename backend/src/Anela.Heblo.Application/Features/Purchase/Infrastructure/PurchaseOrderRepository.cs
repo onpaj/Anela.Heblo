@@ -5,7 +5,7 @@ using Anela.Heblo.Persistence.Repository;
 
 namespace Anela.Heblo.Application.Features.Purchase.Infrastructure;
 
-public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, Guid>, IPurchaseOrderRepository
+public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurchaseOrderRepository
 {
     public PurchaseOrderRepository(ApplicationDbContext context) : base(context)
     {
@@ -16,7 +16,7 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, Guid>, IPur
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
-        Guid? supplierId,
+        int? supplierId,
         int pageNumber,
         int pageSize,
         string sortBy,
@@ -74,7 +74,7 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, Guid>, IPur
         return (orders, totalCount);
     }
 
-    public async Task<PurchaseOrder?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<PurchaseOrder?> GetByIdWithDetailsAsync(int id, CancellationToken cancellationToken = default)
     {
         return await DbSet
             .Include(x => x.Lines)

@@ -2,9 +2,9 @@ using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.Purchase;
 
-public class PurchaseOrder : IEntity<Guid>
+public class PurchaseOrder : IEntity<int>
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public string OrderNumber { get; private set; } = null!;
     public string SupplierName { get; private set; } = null!;
     public DateTime OrderDate { get; private set; }
@@ -36,7 +36,6 @@ public class PurchaseOrder : IEntity<Guid>
         string? notes,
         string createdBy)
     {
-        Id = Guid.NewGuid();
         OrderNumber = orderNumber ?? throw new ArgumentNullException(nameof(orderNumber));
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         OrderDate = orderDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(orderDate, DateTimeKind.Utc) : orderDate.ToUniversalTime();
@@ -49,14 +48,14 @@ public class PurchaseOrder : IEntity<Guid>
         AddHistoryEntry($"Order created", null, Status.ToString(), createdBy);
     }
 
-    public void AddLine(Guid materialId, decimal quantity, decimal unitPrice, string? notes)
+    public void AddLine(string materialId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (Status == PurchaseOrderStatus.Completed)
+        if (Status != PurchaseOrderStatus.Draft)
         {
-            throw new InvalidOperationException("Cannot add lines to completed orders");
+            throw new InvalidOperationException("Cannot add lines to non-draft orders");
         }
 
-        var line = new PurchaseOrderLine(Id, materialId, quantity, unitPrice, notes);
+        var line = new PurchaseOrderLine(Id, materialId, code, name, quantity, unitPrice, notes);
         _lines.Add(line);
         
         // Debug logging
@@ -66,11 +65,11 @@ public class PurchaseOrder : IEntity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void RemoveLine(Guid lineId)
+    public void RemoveLine(int lineId)
     {
-        if (Status == PurchaseOrderStatus.Completed)
+        if (Status != PurchaseOrderStatus.Draft)
         {
-            throw new InvalidOperationException("Cannot remove lines from completed orders");
+            throw new InvalidOperationException("Cannot remove lines from non-draft orders");
         }
 
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
@@ -82,17 +81,17 @@ public class PurchaseOrder : IEntity<Guid>
         }
     }
 
-    public void UpdateLine(Guid lineId, decimal quantity, decimal unitPrice, string? notes)
+    public void UpdateLine(int lineId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (Status == PurchaseOrderStatus.Completed)
+        if (Status != PurchaseOrderStatus.Draft)
         {
-            throw new InvalidOperationException("Cannot update lines in completed orders");
+            throw new InvalidOperationException("Cannot update lines in non-draft orders");
         }
 
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
         if (line != null)
         {
-            line.Update(quantity, unitPrice, notes);
+            line.Update(code, name, quantity, unitPrice, notes);
             UpdatedBy = CreatedBy;
             UpdatedAt = DateTime.UtcNow;
         }
@@ -100,9 +99,9 @@ public class PurchaseOrder : IEntity<Guid>
 
     public void ClearAllLines()
     {
-        if (Status == PurchaseOrderStatus.Completed)
+        if (Status != PurchaseOrderStatus.Draft)
         {
-            throw new InvalidOperationException("Cannot clear lines from completed orders");
+            throw new InvalidOperationException("Cannot clear lines from non-draft orders");
         }
 
         _lines.Clear();

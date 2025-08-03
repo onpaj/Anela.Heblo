@@ -22,6 +22,8 @@ public class CreatePurchaseOrderHandlerTests
     private const string ValidExpectedDeliveryDate = "2024-08-16";
     private const string ValidNotes = "Test purchase order";
     private const string ValidMaterialId = "MAT001";
+    private const string ValidCode = "CODE001";
+    private const string ValidName = "Test Material";
     private const string GeneratedOrderNumber = "PO-2024-001";
 
     public CreatePurchaseOrderHandlerTests()
@@ -57,7 +59,6 @@ public class CreatePurchaseOrderHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Should().NotBeNull();
-        result.Id.Should().NotBeEmpty();
         result.OrderNumber.Should().Be(GeneratedOrderNumber);
         result.SupplierName.Should().Be(ValidSupplierName);
         result.OrderDate.Should().Be(DateTime.Parse(ValidOrderDate));
@@ -70,7 +71,7 @@ public class CreatePurchaseOrderHandlerTests
 
         var line = result.Lines.First();
         line.MaterialId.Should().Be(ValidMaterialId);
-        line.MaterialName.Should().Be("Unknown Material");
+        line.Name.Should().Be(ValidName);
         line.Quantity.Should().Be(10);
         line.UnitPrice.Should().Be(25.50m);
         line.LineTotal.Should().Be(255.00m);
@@ -87,9 +88,9 @@ public class CreatePurchaseOrderHandlerTests
             ValidNotes,
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(ValidMaterialId, 10, 25.50m, "Line 1"),
-                new("MAT002", 5, 100.00m, "Line 2"),
-                new("MAT003", 2, 75.25m, "Line 3")
+                new(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "Line 1"),
+                new("MAT002", "CODE002", "Test Material 2", 5, 100.00m, "Line 2"),
+                new("MAT003", "CODE003", "Test Material 3", 2, 75.25m, "Line 3")
             });
 
         _orderNumberGeneratorMock
@@ -157,7 +158,7 @@ public class CreatePurchaseOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _orderNumberGeneratorMock.Verify(
-            x => x.GenerateOrderNumberAsync(ValidOrderDate, It.IsAny<CancellationToken>()),
+            x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -253,7 +254,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateOrderNumberAsync(ValidOrderDate, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Order number generation failed"));
 
         var action = async () => await _handler.Handle(request, CancellationToken.None);
@@ -271,7 +272,7 @@ public class CreatePurchaseOrderHandlerTests
             ValidNotes,
             new List<CreatePurchaseOrderLineRequest>
             {
-                new(ValidMaterialId, 10, 25.50m, "Line notes")
+                new(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "Line notes")
             });
     }
 }

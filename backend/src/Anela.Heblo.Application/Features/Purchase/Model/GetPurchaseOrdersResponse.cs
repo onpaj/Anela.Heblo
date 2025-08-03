@@ -9,9 +9,9 @@ public record GetPurchaseOrdersResponse(
 );
 
 public record PurchaseOrderSummaryDto(
-    Guid Id,
+    int Id,
     string OrderNumber,
-    Guid SupplierId,
+    int SupplierId,
     string SupplierName,
     DateTime OrderDate,
     DateTime? ExpectedDeliveryDate,

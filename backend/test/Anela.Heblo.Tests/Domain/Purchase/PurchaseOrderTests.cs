@@ -7,27 +7,29 @@ namespace Anela.Heblo.Tests.Domain.Purchase;
 public class PurchaseOrderTests
 {
     private const string ValidOrderNumber = "PO-2024-001";
-    private static readonly Guid ValidSupplierId = Guid.NewGuid();
+    private const string ValidSupplierName = "Test Supplier";
     private static readonly DateTime ValidOrderDate = DateTime.UtcNow.Date;
     private static readonly DateTime? ValidExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14);
     private const string ValidNotes = "Test purchase order notes";
     private const string ValidCreatedBy = "test@example.com";
-    private static readonly Guid ValidMaterialId = Guid.NewGuid();
+    private const string ValidMaterialId = "MAT001";
+    private const string ValidCode = "CODE001";
+    private const string ValidName = "Test Material Name";
 
     [Fact]
     public void Constructor_WithValidParameters_ShouldCreatePurchaseOrder()
     {
         var purchaseOrder = new PurchaseOrder(
             ValidOrderNumber,
-            ValidSupplierId,
+            ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
             ValidNotes,
             ValidCreatedBy);
 
-        purchaseOrder.Id.Should().NotBeEmpty();
+        purchaseOrder.Id.Should().Be(0); // For new entities, EF will set this to 0 until saved
         purchaseOrder.OrderNumber.Should().Be(ValidOrderNumber);
-        purchaseOrder.SupplierId.Should().Be(ValidSupplierId);
+        purchaseOrder.SupplierName.Should().Be(ValidSupplierName);
         purchaseOrder.OrderDate.Should().Be(ValidOrderDate);
         purchaseOrder.ExpectedDeliveryDate.Should().Be(ValidExpectedDeliveryDate);
         purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Draft);
@@ -46,7 +48,7 @@ public class PurchaseOrderTests
     {
         var action = () => new PurchaseOrder(
             null!,
-            ValidSupplierId,
+            ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
             ValidNotes,
@@ -61,7 +63,7 @@ public class PurchaseOrderTests
     {
         var action = () => new PurchaseOrder(
             ValidOrderNumber,
-            ValidSupplierId,
+            ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
             ValidNotes,
@@ -79,7 +81,7 @@ public class PurchaseOrderTests
         const decimal unitPrice = 25.50m;
         const string notes = "Test line item";
 
-        purchaseOrder.AddLine(ValidMaterialId, quantity, unitPrice, notes);
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, quantity, unitPrice, notes);
 
         purchaseOrder.Lines.Should().HaveCount(1);
         var line = purchaseOrder.Lines.First();
@@ -99,7 +101,7 @@ public class PurchaseOrderTests
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        var action = () => purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "notes");
+        var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot add lines to non-draft orders");
@@ -109,7 +111,7 @@ public class PurchaseOrderTests
     public void RemoveLine_FromDraftOrder_ShouldRemoveLineAndUpdateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
 
         purchaseOrder.RemoveLine(lineId);
@@ -122,7 +124,7 @@ public class PurchaseOrderTests
     public void RemoveLine_FromNonDraftOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
@@ -136,10 +138,10 @@ public class PurchaseOrderTests
     public void UpdateLine_InDraftOrder_ShouldUpdateLineAndRecalculateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "old notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "old notes");
         var lineId = purchaseOrder.Lines.First().Id;
 
-        purchaseOrder.UpdateLine(lineId, 20, 30.00m, "new notes");
+        purchaseOrder.UpdateLine(lineId, "CODE002", "Updated Material Name", 20, 30.00m, "new notes");
 
         var line = purchaseOrder.Lines.First();
         line.Quantity.Should().Be(20);
@@ -153,11 +155,11 @@ public class PurchaseOrderTests
     public void UpdateLine_InNonDraftOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        var action = () => purchaseOrder.UpdateLine(lineId, 20, 30.00m, "new notes");
+        var action = () => purchaseOrder.UpdateLine(lineId, "CODE002", "Updated Material Name", 20, 30.00m, "new notes");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update lines in non-draft orders");
@@ -171,7 +173,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(newExpectedDeliveryDate, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -188,7 +190,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(newExpectedDeliveryDate, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -203,7 +205,7 @@ public class PurchaseOrderTests
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
         var newExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21);
 
-        var action = () => purchaseOrder.Update(newExpectedDeliveryDate, "new notes", "updater");
+        var action = () => purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, "new notes", "updater");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update completed orders");
@@ -279,9 +281,9 @@ public class PurchaseOrderTests
     public void TotalAmount_WithMultipleLines_ShouldCalculateCorrectTotal()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, 10, 25.50m, "line 1");
-        purchaseOrder.AddLine(Guid.NewGuid(), 5, 100.00m, "line 2");
-        purchaseOrder.AddLine(Guid.NewGuid(), 3, 33.33m, "line 3");
+        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "line 1");
+        purchaseOrder.AddLine("MAT002", "CODE002", "Material 2", 5, 100.00m, "line 2");
+        purchaseOrder.AddLine("MAT003", "CODE003", "Material 3", 3, 33.33m, "line 3");
 
         purchaseOrder.TotalAmount.Should().Be(854.99m);
     }
@@ -304,7 +306,7 @@ public class PurchaseOrderTests
     {
         return new PurchaseOrder(
             ValidOrderNumber,
-            ValidSupplierId,
+            ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
             ValidNotes,

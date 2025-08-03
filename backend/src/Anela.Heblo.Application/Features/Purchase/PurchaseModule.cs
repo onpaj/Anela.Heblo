@@ -12,7 +12,7 @@ public static class PurchaseModule
         var serviceProvider = services.BuildServiceProvider();
         var environment = serviceProvider.GetService<IHostEnvironment>();
 
-        if (environment?.EnvironmentName == "Automation")
+        if (environment?.EnvironmentName == "Automation" || environment?.EnvironmentName == "Test")
         {
             // Use in-memory implementations for testing
             services.AddSingleton<IPurchaseOrderRepository, InMemoryPurchaseOrderRepository>();

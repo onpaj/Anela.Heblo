@@ -34,13 +34,20 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var response = await _mediator.Send(request, cancellationToken);
-        return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+        try
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<GetPurchaseOrderByIdResponse>> GetPurchaseOrderById(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         CancellationToken cancellationToken)
     {
         var request = new GetPurchaseOrderByIdRequest(id);
@@ -54,9 +61,9 @@ public class PurchaseOrdersController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult<UpdatePurchaseOrderResponse>> UpdatePurchaseOrder(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderRequest request,
         CancellationToken cancellationToken)
     {
@@ -85,11 +92,15 @@ public class PurchaseOrdersController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpPut("{id:guid}/status")]
+    [HttpPut("{id:int}/status")]
     public async Task<ActionResult<UpdatePurchaseOrderStatusResponse>> UpdatePurchaseOrderStatus(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderStatusRequest request,
         CancellationToken cancellationToken)
     {
@@ -124,9 +135,9 @@ public class PurchaseOrdersController : ControllerBase
         }
     }
 
-    [HttpGet("{id:guid}/history")]
+    [HttpGet("{id:int}/history")]
     public async Task<ActionResult<List<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         CancellationToken cancellationToken)
     {
         var request = new GetPurchaseOrderByIdRequest(id);

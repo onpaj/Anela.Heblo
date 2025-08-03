@@ -13,6 +13,8 @@ public record CreatePurchaseOrderRequest(
 
 public record CreatePurchaseOrderLineRequest(
     string MaterialId,
+    string Code,
+    string Name,
     decimal Quantity,
     decimal UnitPrice,
     string? Notes

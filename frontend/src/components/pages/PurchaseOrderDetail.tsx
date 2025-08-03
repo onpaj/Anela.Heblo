@@ -7,10 +7,10 @@ import {
 } from '../../api/hooks/usePurchaseOrders';
 
 interface PurchaseOrderDetailProps {
-  orderId: string;
+  orderId: number;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (orderId: string) => void;
+  onEdit?: (orderId: number) => void;
 }
 
 // Status labels and colors
@@ -292,7 +292,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                           {orderData.lines?.map((line, index) => (
                             <tr key={index}>
                               <td className="px-4 py-2 text-sm text-gray-900">
-                                {line.materialName || `Materiál ID: ${line.materialId}`}
+                                {line.name || line.code || line.materialId}
                                 {line.notes && (
                                   <div className="text-xs text-gray-500 mt-1">{line.notes}</div>
                                 )}

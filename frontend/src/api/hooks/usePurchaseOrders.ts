@@ -8,7 +8,7 @@ export interface GetPurchaseOrdersRequest {
   status?: string;
   fromDate?: Date;
   toDate?: Date;
-  supplierId?: string;
+  supplierId?: number;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -16,9 +16,9 @@ export interface GetPurchaseOrdersRequest {
 }
 
 export interface PurchaseOrderSummaryDto {
-  id: string;
+  id: number;
   orderNumber: string;
-  supplierId: string;
+  supplierId: number;
   supplierName: string;
   orderDate: string;
   expectedDeliveryDate?: string;
@@ -38,9 +38,10 @@ export interface GetPurchaseOrdersResponse {
 }
 
 export interface PurchaseOrderLineDto {
-  id: string;
+  id: number;
   materialId: string;
-  materialName?: string;
+  code: string;
+  name: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -48,9 +49,9 @@ export interface PurchaseOrderLineDto {
 }
 
 export interface GetPurchaseOrderByIdResponse {
-  id: string;
+  id: number;
   orderNumber: string;
-  supplierId: string;
+  supplierId: number;
   supplierName: string;
   orderDate: string;
   expectedDeliveryDate?: string;
@@ -65,7 +66,7 @@ export interface GetPurchaseOrderByIdResponse {
 }
 
 export interface PurchaseOrderHistoryDto {
-  id: string;
+  id: number;
   action: string;
   oldValue?: string;
   newValue?: string;
@@ -89,12 +90,12 @@ export interface CreatePurchaseOrderLineRequest {
 }
 
 export interface CreatePurchaseOrderResponse {
-  id: string;
+  id: number;
   orderNumber: string;
 }
 
 export interface UpdatePurchaseOrderRequest {
-  id: string;
+  id: number;
   supplierName: string;
   expectedDeliveryDate?: string;
   notes?: string;
@@ -102,7 +103,7 @@ export interface UpdatePurchaseOrderRequest {
 }
 
 export interface UpdatePurchaseOrderLineRequest {
-  id?: string;
+  id?: number;
   materialId: string;
   quantity: number;
   unitPrice: number;
@@ -110,17 +111,17 @@ export interface UpdatePurchaseOrderLineRequest {
 }
 
 export interface UpdatePurchaseOrderResponse {
-  id: string;
+  id: number;
   orderNumber: string;
 }
 
 export interface UpdatePurchaseOrderStatusRequest {
-  id: string;
+  id: number;
   status: string;
 }
 
 export interface UpdatePurchaseOrderStatusResponse {
-  id: string;
+  id: number;
   status: string;
 }
 
@@ -176,7 +177,7 @@ class PurchaseOrdersApiClient {
     if (request.status) params.append('status', request.status);
     if (request.fromDate) params.append('fromDate', request.fromDate.toISOString());
     if (request.toDate) params.append('toDate', request.toDate.toISOString());
-    if (request.supplierId) params.append('supplierId', request.supplierId);
+    if (request.supplierId) params.append('supplierId', request.supplierId.toString());
     if (request.pageNumber) params.append('pageNumber', request.pageNumber.toString());
     if (request.pageSize) params.append('pageSize', request.pageSize.toString());
     if (request.sortBy) params.append('sortBy', request.sortBy);
@@ -188,11 +189,11 @@ class PurchaseOrdersApiClient {
     return this.makeRequest<GetPurchaseOrdersResponse>(url);
   }
 
-  async getPurchaseOrderById(id: string): Promise<GetPurchaseOrderByIdResponse> {
+  async getPurchaseOrderById(id: number): Promise<GetPurchaseOrderByIdResponse> {
     return this.makeRequest<GetPurchaseOrderByIdResponse>(`/api/purchase-orders/${id}`);
   }
 
-  async getPurchaseOrderHistory(id: string): Promise<PurchaseOrderHistoryDto[]> {
+  async getPurchaseOrderHistory(id: number): Promise<PurchaseOrderHistoryDto[]> {
     return this.makeRequest<PurchaseOrderHistoryDto[]>(`/api/purchase-orders/${id}/history`);
   }
 
@@ -203,14 +204,14 @@ class PurchaseOrdersApiClient {
     });
   }
 
-  async updatePurchaseOrder(id: string, request: UpdatePurchaseOrderRequest): Promise<UpdatePurchaseOrderResponse> {
+  async updatePurchaseOrder(id: number, request: UpdatePurchaseOrderRequest): Promise<UpdatePurchaseOrderResponse> {
     return this.makeRequest<UpdatePurchaseOrderResponse>(`/api/purchase-orders/${id}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   }
 
-  async updatePurchaseOrderStatus(id: string, request: UpdatePurchaseOrderStatusRequest): Promise<UpdatePurchaseOrderStatusResponse> {
+  async updatePurchaseOrderStatus(id: number, request: UpdatePurchaseOrderStatusRequest): Promise<UpdatePurchaseOrderStatusResponse> {
     return this.makeRequest<UpdatePurchaseOrderStatusResponse>(`/api/purchase-orders/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify(request),
@@ -230,8 +231,8 @@ const purchaseOrderKeys = {
   lists: () => [...purchaseOrderKeys.all, 'list'] as const,
   list: (filters: GetPurchaseOrdersRequest) => [...purchaseOrderKeys.lists(), filters] as const,
   details: () => [...purchaseOrderKeys.all, 'detail'] as const,
-  detail: (id: string) => [...purchaseOrderKeys.details(), id] as const,
-  history: (id: string) => [...purchaseOrderKeys.detail(id), 'history'] as const,
+  detail: (id: number) => [...purchaseOrderKeys.details(), id] as const,
+  history: (id: number) => [...purchaseOrderKeys.detail(id), 'history'] as const,
 };
 
 // Hooks
@@ -243,7 +244,7 @@ export const usePurchaseOrdersQuery = (request: GetPurchaseOrdersRequest) => {
   });
 };
 
-export const usePurchaseOrderDetailQuery = (id: string) => {
+export const usePurchaseOrderDetailQuery = (id: number) => {
   return useQuery({
     queryKey: purchaseOrderKeys.detail(id),
     queryFn: () => getClient().getPurchaseOrderById(id),
@@ -252,7 +253,7 @@ export const usePurchaseOrderDetailQuery = (id: string) => {
   });
 };
 
-export const usePurchaseOrderHistoryQuery = (id: string) => {
+export const usePurchaseOrderHistoryQuery = (id: number) => {
   return useQuery({
     queryKey: purchaseOrderKeys.history(id),
     queryFn: () => getClient().getPurchaseOrderHistory(id),
@@ -276,7 +277,7 @@ export const useUpdatePurchaseOrderMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, request }: { id: string; request: UpdatePurchaseOrderRequest }) => 
+    mutationFn: ({ id, request }: { id: number; request: UpdatePurchaseOrderRequest }) => 
       getClient().updatePurchaseOrder(id, request),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(id) });
@@ -289,7 +290,7 @@ export const useUpdatePurchaseOrderStatusMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, request }: { id: string; request: UpdatePurchaseOrderStatusRequest }) => 
+    mutationFn: ({ id, request }: { id: number; request: UpdatePurchaseOrderStatusRequest }) => 
       getClient().updatePurchaseOrderStatus(id, request),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(id) });

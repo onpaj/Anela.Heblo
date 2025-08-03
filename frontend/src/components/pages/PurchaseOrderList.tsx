@@ -42,11 +42,11 @@ const PurchaseOrderList: React.FC = () => {
   const [sortDescending, setSortDescending] = useState(true);
 
   // Modal states
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editOrderId, setEditOrderId] = useState<string | null>(null);
+  const [editOrderId, setEditOrderId] = useState<number | null>(null);
 
   // Build request object
   const request: GetPurchaseOrdersRequest = {
@@ -128,7 +128,7 @@ const PurchaseOrderList: React.FC = () => {
   };
 
   // Modal handlers
-  const handleOrderClick = (orderId: string) => {
+  const handleOrderClick = (orderId: number) => {
     setSelectedOrderId(orderId);
     setIsDetailModalOpen(true);
   };
@@ -146,7 +146,7 @@ const PurchaseOrderList: React.FC = () => {
     setIsCreateModalOpen(false);
   };
 
-  const handleEditOrder = (orderId: string) => {
+  const handleEditOrder = (orderId: number) => {
     setEditOrderId(orderId);
     setIsEditModalOpen(true);
     setIsDetailModalOpen(false); // Close detail modal when opening edit
@@ -157,13 +157,13 @@ const PurchaseOrderList: React.FC = () => {
     setEditOrderId(null);
   };
 
-  const handleEditSuccess = (orderId: string) => {
+  const handleEditSuccess = (orderId: number) => {
     // Refresh the list
     refetch();
     console.log('Order updated successfully:', orderId);
   };
 
-  const handleCreateSuccess = (orderId: string) => {
+  const handleCreateSuccess = (orderId: number) => {
     // Refresh the list
     refetch();
     // Optionally open the detail of the newly created order

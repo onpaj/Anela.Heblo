@@ -34,8 +34,8 @@ public class PurchaseOrderLinesSimpleDebugTests
             Notes: "Debug test order",
             Lines: new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", 10m, 25.5m, "First test line"),
-                new("MAT002", 5m, 15.0m, "Second test line")
+                new("MAT001", "CODE001", "Test Material 1", 10m, 25.5m, "First test line"),
+                new("MAT002", "CODE002", "Test Material 2", 5m, 15.0m, "Second test line")
             }
         );
 

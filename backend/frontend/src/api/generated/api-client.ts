@@ -845,7 +845,7 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
+    getPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders?";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
@@ -943,7 +943,7 @@ export class ApiClient {
         return Promise.resolve<CreatePurchaseOrderResponse>(null as any);
     }
 
-    getPurchaseOrderById(id: string): Promise<GetPurchaseOrderByIdResponse> {
+    getPurchaseOrderById(id: number): Promise<GetPurchaseOrderByIdResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -980,7 +980,7 @@ export class ApiClient {
         return Promise.resolve<GetPurchaseOrderByIdResponse>(null as any);
     }
 
-    updatePurchaseOrder(id: string, request: UpdatePurchaseOrderRequest): Promise<UpdatePurchaseOrderResponse> {
+    updatePurchaseOrder(id: number, request: UpdatePurchaseOrderRequest): Promise<UpdatePurchaseOrderResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -1021,7 +1021,7 @@ export class ApiClient {
         return Promise.resolve<UpdatePurchaseOrderResponse>(null as any);
     }
 
-    updatePurchaseOrderStatus(id: string, request: UpdatePurchaseOrderStatusRequest): Promise<UpdatePurchaseOrderStatusResponse> {
+    updatePurchaseOrderStatus(id: number, request: UpdatePurchaseOrderStatusRequest): Promise<UpdatePurchaseOrderStatusResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}/status";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -1062,7 +1062,7 @@ export class ApiClient {
         return Promise.resolve<UpdatePurchaseOrderStatusResponse>(null as any);
     }
 
-    getPurchaseOrderHistory(id: string): Promise<PurchaseOrderHistoryDto[]> {
+    getPurchaseOrderHistory(id: number): Promise<PurchaseOrderHistoryDto[]> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}/history";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -1988,9 +1988,9 @@ export interface IGetPurchaseOrdersResponse {
 }
 
 export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2050,9 +2050,9 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
 }
 
 export interface IPurchaseOrderSummaryDto {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2064,9 +2064,9 @@ export interface IPurchaseOrderSummaryDto {
 }
 
 export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2154,9 +2154,9 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
 }
 
 export interface ICreatePurchaseOrderResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2172,9 +2172,10 @@ export interface ICreatePurchaseOrderResponse {
 }
 
 export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
-    id?: string;
+    id?: number;
     materialId?: string;
-    materialName?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     lineTotal?: number;
@@ -2193,7 +2194,8 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
         if (_data) {
             this.id = _data["id"];
             this.materialId = _data["materialId"];
-            this.materialName = _data["materialName"];
+            this.code = _data["code"];
+            this.name = _data["name"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
             this.lineTotal = _data["lineTotal"];
@@ -2212,7 +2214,8 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["materialId"] = this.materialId;
-        data["materialName"] = this.materialName;
+        data["code"] = this.code;
+        data["name"] = this.name;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
         data["lineTotal"] = this.lineTotal;
@@ -2222,9 +2225,10 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
 }
 
 export interface IPurchaseOrderLineDto {
-    id?: string;
+    id?: number;
     materialId?: string;
-    materialName?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     lineTotal?: number;
@@ -2232,7 +2236,7 @@ export interface IPurchaseOrderLineDto {
 }
 
 export class PurchaseOrderHistoryDto implements IPurchaseOrderHistoryDto {
-    id?: string;
+    id?: number;
     action?: string;
     oldValue?: string | undefined;
     newValue?: string | undefined;
@@ -2279,7 +2283,7 @@ export class PurchaseOrderHistoryDto implements IPurchaseOrderHistoryDto {
 }
 
 export interface IPurchaseOrderHistoryDto {
-    id?: string;
+    id?: number;
     action?: string;
     oldValue?: string | undefined;
     newValue?: string | undefined;
@@ -2349,6 +2353,8 @@ export interface ICreatePurchaseOrderRequest {
 
 export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineRequest {
     materialId?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     notes?: string | undefined;
@@ -2365,6 +2371,8 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
     init(_data?: any) {
         if (_data) {
             this.materialId = _data["materialId"];
+            this.code = _data["code"];
+            this.name = _data["name"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
             this.notes = _data["notes"];
@@ -2381,6 +2389,8 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["materialId"] = this.materialId;
+        data["code"] = this.code;
+        data["name"] = this.name;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
         data["notes"] = this.notes;
@@ -2390,15 +2400,17 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
 
 export interface ICreatePurchaseOrderLineRequest {
     materialId?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     notes?: string | undefined;
 }
 
 export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2486,9 +2498,9 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
 }
 
 export interface IGetPurchaseOrderByIdResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2504,9 +2516,9 @@ export interface IGetPurchaseOrderByIdResponse {
 }
 
 export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2577,9 +2589,9 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
 }
 
 export interface IUpdatePurchaseOrderResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
-    supplierId?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -2592,7 +2604,7 @@ export interface IUpdatePurchaseOrderResponse {
 }
 
 export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
-    id?: string;
+    id?: number;
     supplierName?: string;
     expectedDeliveryDate?: Date | undefined;
     notes?: string | undefined;
@@ -2644,7 +2656,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
 }
 
 export interface IUpdatePurchaseOrderRequest {
-    id?: string;
+    id?: number;
     supplierName?: string;
     expectedDeliveryDate?: Date | undefined;
     notes?: string | undefined;
@@ -2652,8 +2664,10 @@ export interface IUpdatePurchaseOrderRequest {
 }
 
 export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineRequest {
-    id?: string | undefined;
+    id?: number | undefined;
     materialId?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     notes?: string | undefined;
@@ -2671,6 +2685,8 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
         if (_data) {
             this.id = _data["id"];
             this.materialId = _data["materialId"];
+            this.code = _data["code"];
+            this.name = _data["name"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
             this.notes = _data["notes"];
@@ -2688,6 +2704,8 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["materialId"] = this.materialId;
+        data["code"] = this.code;
+        data["name"] = this.name;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
         data["notes"] = this.notes;
@@ -2696,15 +2714,17 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
 }
 
 export interface IUpdatePurchaseOrderLineRequest {
-    id?: string | undefined;
+    id?: number | undefined;
     materialId?: string;
+    code?: string;
+    name?: string;
     quantity?: number;
     unitPrice?: number;
     notes?: string | undefined;
 }
 
 export class UpdatePurchaseOrderStatusResponse implements IUpdatePurchaseOrderStatusResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
     status?: string;
     updatedAt?: Date | undefined;
@@ -2748,7 +2768,7 @@ export class UpdatePurchaseOrderStatusResponse implements IUpdatePurchaseOrderSt
 }
 
 export interface IUpdatePurchaseOrderStatusResponse {
-    id?: string;
+    id?: number;
     orderNumber?: string;
     status?: string;
     updatedAt?: Date | undefined;
@@ -2756,7 +2776,7 @@ export interface IUpdatePurchaseOrderStatusResponse {
 }
 
 export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderStatusRequest {
-    id?: string;
+    id?: number;
     status?: string;
 
     constructor(data?: IUpdatePurchaseOrderStatusRequest) {
@@ -2791,7 +2811,7 @@ export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderSta
 }
 
 export interface IUpdatePurchaseOrderStatusRequest {
-    id?: string;
+    id?: number;
     status?: string;
 }
 

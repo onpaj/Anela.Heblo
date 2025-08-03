@@ -9,13 +9,13 @@ import {
   PurchaseOrderLineDto
 } from '../../api/hooks/usePurchaseOrders';
 import { MaterialAutocomplete } from '../common/MaterialAutocomplete';
-import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
+import { MaterialForPurchaseDto, useMaterialByProductCode } from '../../api/hooks/useMaterials';
 
 interface PurchaseOrderFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (orderId: string) => void;
-  editOrderId?: string; // Optional - if provided, form is in edit mode
+  onSuccess?: (orderId: number) => void;
+  editOrderId?: number; // Optional - if provided, form is in edit mode
 }
 
 interface FormData {
@@ -23,8 +23,25 @@ interface FormData {
   orderDate: string;
   expectedDeliveryDate: string;
   notes: string;
-  lines: (PurchaseOrderLineDto & { selectedMaterial?: MaterialForPurchaseDto })[];
+  lines: (PurchaseOrderLineDto & { selectedMaterial?: MaterialForPurchaseDto | null })[];
 }
+
+// Component to resolve and set material for existing purchase order line
+const MaterialResolver: React.FC<{ 
+  materialId: string;
+  lineIndex: number;
+  onMaterialResolved: (index: number, material: MaterialForPurchaseDto | null) => void;
+}> = ({ materialId, lineIndex, onMaterialResolved }) => {
+  const { data: material, isLoading, error } = useMaterialByProductCode(materialId);
+  
+  React.useEffect(() => {
+    if (!isLoading && !error) {
+      onMaterialResolved(lineIndex, material || null);
+    }
+  }, [material, isLoading, error, lineIndex, onMaterialResolved]);
+  
+  return null; // This is a logic-only component
+};
 
 const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, onSuccess, editOrderId }) => {
   
@@ -36,9 +53,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     expectedDeliveryDate: '',
     notes: '',
     lines: [{
-      id: `temp-${Date.now()}`,
+      id: 0, // Temporary ID for new lines
       materialId: `temp-${Date.now()}`,
-      materialName: '',
+      code: '',
+      name: '',
       quantity: 1,
       unitPrice: 0,
       lineTotal: 0,
@@ -48,36 +66,74 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingMaterialResolutions, setPendingMaterialResolutions] = useState<Set<number>>(new Set());
 
   const createMutation = useCreatePurchaseOrderMutation();
   const updateMutation = useUpdatePurchaseOrderMutation();
   
   // Fetch existing order data when in edit mode
-  const { data: existingOrderData } = usePurchaseOrderDetailQuery(editOrderId || '');
+  const { data: existingOrderData } = usePurchaseOrderDetailQuery(editOrderId || 0);
+
+  // Callback to handle when materials are resolved for existing purchase order lines
+  const handleMaterialResolved = React.useCallback((lineIndex: number, material: MaterialForPurchaseDto | null) => {
+    setFormData(prev => {
+      const newLines = [...prev.lines];
+      if (lineIndex < newLines.length) {
+        newLines[lineIndex] = {
+          ...newLines[lineIndex],
+          selectedMaterial: material,
+          name: material?.productName || newLines[lineIndex].name
+        };
+      }
+      return { ...prev, lines: newLines };
+    });
+
+    // Remove this line from pending resolutions
+    setPendingMaterialResolutions(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(lineIndex);
+      return newSet;
+    });
+  }, []);
 
   // Load existing data in edit mode
   React.useEffect(() => {
     if (isEditMode && existingOrderData && isOpen) {
+      const linesWithMaterials = existingOrderData.lines && existingOrderData.lines.length > 0
+        ? existingOrderData.lines.map(line => ({
+            ...line,
+            selectedMaterial: undefined // Will be resolved by MaterialResolver components
+          }))
+        : [{
+            id: 0, // Temporary ID for new lines
+            materialId: `temp-${Date.now()}`,
+            code: '',
+            name: '',
+            quantity: 1,
+            unitPrice: 0,
+            lineTotal: 0,
+            selectedMaterial: undefined
+          }];
+
       setFormData({
         supplierName: existingOrderData.supplierName || '',
         orderDate: existingOrderData.orderDate ? existingOrderData.orderDate.split('T')[0] : new Date().toISOString().split('T')[0],
         expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? existingOrderData.expectedDeliveryDate.split('T')[0] : '',
         notes: existingOrderData.notes || '',
-        lines: existingOrderData.lines && existingOrderData.lines.length > 0
-          ? existingOrderData.lines.map(line => ({
-              ...line,
-              selectedMaterial: undefined // Will need to be resolved if we have material lookup
-            }))
-          : [{
-              id: `temp-${Date.now()}`,
-              materialId: `temp-${Date.now()}`,
-              materialName: '',
-              quantity: 1,
-              unitPrice: 0,
-              lineTotal: 0,
-              selectedMaterial: undefined
-            }]
+        lines: linesWithMaterials
       });
+
+      // Track which lines need material resolution
+      if (existingOrderData.lines && existingOrderData.lines.length > 0) {
+        const pendingResolutions = new Set<number>();
+        existingOrderData.lines.forEach((line, index) => {
+          // Only resolve materials that have a valid materialId (not temp ones)
+          if (line.materialId && !line.materialId.startsWith('temp-')) {
+            pendingResolutions.add(index);
+          }
+        });
+        setPendingMaterialResolutions(pendingResolutions);
+      }
     } else if (!isEditMode && isOpen) {
       // Reset to default state for create mode
       setFormData({
@@ -86,15 +142,17 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         expectedDeliveryDate: '',
         notes: '',
         lines: [{
-          id: `temp-${Date.now()}`,
+          id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
-          materialName: '',
+          code: '',
+          name: '',
           quantity: 1,
           unitPrice: 0,
           lineTotal: 0,
           selectedMaterial: undefined
         }]
       });
+      setPendingMaterialResolutions(new Set());
     }
   }, [isEditMode, existingOrderData, isOpen]);
 
@@ -152,7 +210,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     formData.lines.forEach((line, index) => {
       // Only validate rows that have material selected
       if (line.selectedMaterial) {
-        if (!line.materialName?.trim()) {
+        if (!line.name?.trim() && !line.selectedMaterial?.productName?.trim()) {
           newErrors[`line_${index}_material`] = 'Název materiálu je povinný';
         }
         if (!line.quantity || line.quantity <= 0) {
@@ -189,6 +247,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             .filter(line => line.selectedMaterial)
             .map(line => ({
               materialId: line.materialId,
+              code: line.selectedMaterial?.productCode || line.code || line.materialId,
+              name: line.selectedMaterial?.productName || line.name || '',
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
@@ -211,6 +271,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             .filter(line => line.selectedMaterial)
             .map(line => ({
               materialId: line.materialId,
+              code: line.selectedMaterial?.productCode || line.code || line.materialId,
+              name: line.selectedMaterial?.productName || line.name || '',
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
@@ -248,9 +310,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       // Always keep at least one empty row
       if (newLines.length === 0) {
         newLines.push({
-          id: `temp-${Date.now()}`,
+          id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
-          materialName: '',
+          code: '',
+          name: '',
           quantity: 1,
           unitPrice: 0,
           lineTotal: 0,
@@ -286,7 +349,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines[index] = {
           ...newLines[index],
           materialId: material.productCode || `temp-${Date.now()}`, // Use product code as material ID
-          materialName: material.productName || '',
+          code: material.productCode || '',
+          name: material.productName || '',
           selectedMaterial: material,
           // Pre-fill quantity with MOQ
           quantity: quantity,
@@ -299,9 +363,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         // Add empty row if this is the last row and it now has material
         if (index === newLines.length - 1) {
           newLines.push({
-            id: `temp-${Date.now()}-${Math.random()}`,
+            id: 0, // Temporary ID for new lines
             materialId: `temp-${Date.now()}-${Math.random()}`,
-            materialName: '',
+            code: '',
+            name: '',
             quantity: 1,
             unitPrice: 0,
             lineTotal: 0,
@@ -312,7 +377,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines[index] = {
           ...newLines[index],
           materialId: `temp-${Date.now()}`,
-          materialName: '',
+          code: '',
+          name: '',
           selectedMaterial: undefined,
         };
       }
@@ -356,6 +422,21 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
             
+            {/* Material Resolvers for edit mode - hidden components that load materials for existing lines */}
+            {isEditMode && pendingMaterialResolutions.size > 0 && formData.lines.map((line, index) => {
+              if (!pendingMaterialResolutions.has(index) || !line.materialId || line.materialId.startsWith('temp-')) {
+                return null;
+              }
+              return (
+                <MaterialResolver
+                  key={`resolver-${line.materialId}-${index}`}
+                  materialId={line.materialId}
+                  lineIndex={index}
+                  onMaterialResolved={handleMaterialResolved}
+                />
+              );
+            })}
+
             {/* Submit Error - moved to top */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -484,7 +565,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
 
                   {/* Line items */}
                   {formData.lines.map((line, index) => (
-                    <div key={line.id} className="space-y-1">
+                    <div key={line.id === 0 ? `temp-${index}` : line.id} className="space-y-1">
                       <div className="grid grid-cols-12 gap-2 p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
                         {/* Material Selection */}
                         <div className="col-span-4">

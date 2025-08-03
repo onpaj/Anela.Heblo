@@ -1,9 +1,9 @@
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record CreatePurchaseOrderResponse(
-    Guid Id,
+    int Id,
     string OrderNumber,
-    Guid SupplierId,
+    int SupplierId,
     string SupplierName,
     DateTime OrderDate,
     DateTime? ExpectedDeliveryDate,

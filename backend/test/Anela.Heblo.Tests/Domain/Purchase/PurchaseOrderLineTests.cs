@@ -6,8 +6,10 @@ namespace Anela.Heblo.Tests.Domain.Purchase;
 
 public class PurchaseOrderLineTests
 {
-    private static readonly Guid ValidPurchaseOrderId = Guid.NewGuid();
-    private static readonly Guid ValidMaterialId = Guid.NewGuid();
+    private const int ValidPurchaseOrderId = 1;
+    private const string ValidMaterialId = "MAT001";
+    private const string ValidCode = "CODE001";
+    private const string ValidName = "Test Material Name";
     private const decimal ValidQuantity = 10.5m;
     private const decimal ValidUnitPrice = 25.50m;
     private const string ValidNotes = "Test line notes";
@@ -18,13 +20,17 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
 
-        line.Id.Should().NotBeEmpty();
+        line.Id.Should().Be(0); // For new entities, EF will set this to 0 until saved
         line.PurchaseOrderId.Should().Be(ValidPurchaseOrderId);
         line.MaterialId.Should().Be(ValidMaterialId);
+        line.Code.Should().Be(ValidCode);
+        line.Name.Should().Be(ValidName);
         line.Quantity.Should().Be(ValidQuantity);
         line.UnitPrice.Should().Be(ValidUnitPrice);
         line.Notes.Should().Be(ValidNotes);
@@ -37,12 +43,35 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             null);
 
         line.Notes.Should().BeNull();
         line.LineTotal.Should().Be(267.75m);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("   ")]
+    public void Constructor_WithInvalidMaterialId_ShouldThrowArgumentException(string? invalidMaterialId)
+    {
+        var action = () => new PurchaseOrderLine(
+            ValidPurchaseOrderId,
+            invalidMaterialId,
+            ValidCode,
+            ValidName,
+            ValidQuantity,
+            ValidUnitPrice,
+            ValidNotes);
+
+        action.Should().Throw<ArgumentException>()
+            .WithParameterName("materialId")
+            .WithMessage("Material ID cannot be null or empty*");
     }
 
     [Theory]
@@ -54,6 +83,8 @@ public class PurchaseOrderLineTests
         var action = () => new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             invalidQuantity,
             ValidUnitPrice,
             ValidNotes);
@@ -71,6 +102,8 @@ public class PurchaseOrderLineTests
         var action = () => new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             invalidUnitPrice,
             ValidNotes);
@@ -86,6 +119,8 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             0,
             ValidNotes);
@@ -100,6 +135,8 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
@@ -108,7 +145,7 @@ public class PurchaseOrderLineTests
         const decimal newUnitPrice = 30.00m;
         const string newNotes = "Updated notes";
 
-        line.Update(newQuantity, newUnitPrice, newNotes);
+        line.Update("CODE002", "Updated Material Name", newQuantity, newUnitPrice, newNotes);
 
         line.Quantity.Should().Be(newQuantity);
         line.UnitPrice.Should().Be(newUnitPrice);
@@ -122,11 +159,13 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
 
-        line.Update(ValidQuantity, ValidUnitPrice, null);
+        line.Update(ValidCode, ValidName, ValidQuantity, ValidUnitPrice, null);
 
         line.Notes.Should().BeNull();
     }
@@ -140,11 +179,13 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
 
-        var action = () => line.Update(invalidQuantity, ValidUnitPrice, ValidNotes);
+        var action = () => line.Update(ValidCode, ValidName, invalidQuantity, ValidUnitPrice, ValidNotes);
 
         action.Should().Throw<ArgumentException>()
             .WithParameterName("quantity")
@@ -159,11 +200,13 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
 
-        var action = () => line.Update(ValidQuantity, invalidUnitPrice, ValidNotes);
+        var action = () => line.Update(ValidCode, ValidName, ValidQuantity, invalidUnitPrice, ValidNotes);
 
         action.Should().Throw<ArgumentException>()
             .WithParameterName("unitPrice")
@@ -181,6 +224,8 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             quantity,
             unitPrice,
             ValidNotes);
@@ -194,6 +239,8 @@ public class PurchaseOrderLineTests
         var line = new PurchaseOrderLine(
             ValidPurchaseOrderId,
             ValidMaterialId,
+            ValidCode,
+            ValidName,
             ValidQuantity,
             ValidUnitPrice,
             ValidNotes);
@@ -201,7 +248,7 @@ public class PurchaseOrderLineTests
         var originalTotal = line.LineTotal;
         originalTotal.Should().Be(267.75m);
 
-        line.Update(5, 50, ValidNotes);
+        line.Update("CODE002", "Updated Material", 5, 50, ValidNotes);
         
         line.LineTotal.Should().Be(250m);
         line.LineTotal.Should().NotBe(originalTotal);

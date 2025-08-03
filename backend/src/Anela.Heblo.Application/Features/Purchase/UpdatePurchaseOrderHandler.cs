@@ -53,19 +53,18 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                 {
                     purchaseOrder.UpdateLine(
                         lineRequest.Id.Value,
+                        lineRequest.Code,
+                        lineRequest.Name,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
                         lineRequest.Notes);
                 }
                 else
                 {
-                    // Convert MaterialId string to Guid for storage consistency
-                    var materialId = Guid.TryParse(lineRequest.MaterialId, out var parsedId) 
-                        ? parsedId 
-                        : GenerateGuidFromString(lineRequest.MaterialId);
-
                     purchaseOrder.AddLine(
-                        materialId,
+                        lineRequest.MaterialId,
+                        lineRequest.Code,
+                        lineRequest.Name,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
                         lineRequest.Notes);
@@ -87,13 +86,6 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         }
     }
 
-    private static Guid GenerateGuidFromString(string input)
-    {
-        // Create a deterministic GUID from string for consistency
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return new Guid(hash);
-    }
 
     private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
     {
@@ -102,13 +94,14 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         foreach (var line in purchaseOrder.Lines)
         {
             // Try to get material name from catalog
-            var material = await _catalogRepository.GetByIdAsync(line.MaterialId.ToString(), cancellationToken);
+            var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
             var materialName = material?.ProductName ?? "Unknown Material";
 
             lines.Add(new PurchaseOrderLineDto(
                 line.Id,
                 line.MaterialId,
-                materialName,
+                line.Code,
+                line.Name,
                 line.Quantity,
                 line.UnitPrice,
                 line.LineTotal,
@@ -118,7 +111,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         return new UpdatePurchaseOrderResponse(
             purchaseOrder.Id,
             purchaseOrder.OrderNumber,
-            Guid.Empty, // No longer using SupplierId
+            0, // No longer using SupplierId
             purchaseOrder.SupplierName,
             purchaseOrder.OrderDate,
             purchaseOrder.ExpectedDeliveryDate,

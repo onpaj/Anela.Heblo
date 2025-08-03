@@ -23,7 +23,7 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
         _logger.LogInformation("Getting purchase orders with filters - SearchTerm: {SearchTerm}, Status: {Status}, Page: {PageNumber}/{PageSize}",
             request.SearchTerm, request.Status, request.PageNumber, request.PageSize);
 
-        var (orders, totalCount) = await _repository.GetPaginatedAsync(
+        (List<PurchaseOrder> orders, int totalCount) = await _repository.GetPaginatedAsync(
             request.SearchTerm,
             request.Status,
             request.FromDate,
@@ -40,7 +40,7 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
         var orderSummaries = orders.Select(order => new PurchaseOrderSummaryDto(
             order.Id,
             order.OrderNumber,
-            Guid.Empty, // No longer using SupplierId
+            0, // No longer using SupplierId
             order.SupplierName,
             order.OrderDate,
             order.ExpectedDeliveryDate,
