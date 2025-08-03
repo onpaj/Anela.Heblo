@@ -5,8 +5,8 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/pages/Dashboard';
-import WeatherTest from './components/pages/WeatherTest';
 import CatalogList from './components/pages/CatalogList';
+import PurchaseOrderList from './components/pages/PurchaseOrderList';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
@@ -181,8 +181,8 @@ function App() {
               <Layout statusBar={<StatusBar />}>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/weather" element={<WeatherTest />} />
                   <Route path="/catalog" element={<CatalogList />} />
+                  <Route path="/nakup/objednavky" element={<PurchaseOrderList />} />
                 </Routes>
               </Layout>
             </AuthGuard>

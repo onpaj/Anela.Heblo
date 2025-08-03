@@ -2,11 +2,11 @@ using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.Purchase;
 
-public class PurchaseOrder : IEntity<Guid>
+public class PurchaseOrder : IEntity<int>
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public string OrderNumber { get; private set; } = null!;
-    public Guid SupplierId { get; private set; }
+    public string SupplierName { get; private set; } = null!;
     public DateTime OrderDate { get; private set; }
     public DateTime? ExpectedDeliveryDate { get; private set; }
     public PurchaseOrderStatus Status { get; private set; }
@@ -30,17 +30,16 @@ public class PurchaseOrder : IEntity<Guid>
 
     public PurchaseOrder(
         string orderNumber,
-        Guid supplierId,
+        string supplierName,
         DateTime orderDate,
         DateTime? expectedDeliveryDate,
         string? notes,
         string createdBy)
     {
-        Id = Guid.NewGuid();
         OrderNumber = orderNumber ?? throw new ArgumentNullException(nameof(orderNumber));
-        SupplierId = supplierId;
-        OrderDate = orderDate;
-        ExpectedDeliveryDate = expectedDeliveryDate;
+        SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
+        OrderDate = orderDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(orderDate, DateTimeKind.Utc) : orderDate.ToUniversalTime();
+        ExpectedDeliveryDate = expectedDeliveryDate?.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(expectedDeliveryDate.Value, DateTimeKind.Utc) : expectedDeliveryDate?.ToUniversalTime();
         Status = PurchaseOrderStatus.Draft;
         Notes = notes;
         CreatedBy = createdBy ?? throw new ArgumentNullException(nameof(createdBy));
@@ -49,21 +48,24 @@ public class PurchaseOrder : IEntity<Guid>
         AddHistoryEntry($"Order created", null, Status.ToString(), createdBy);
     }
 
-    public void AddLine(Guid materialId, decimal quantity, decimal unitPrice, string? notes)
+    public void AddLine(string materialId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
         if (Status != PurchaseOrderStatus.Draft)
         {
             throw new InvalidOperationException("Cannot add lines to non-draft orders");
         }
 
-        var line = new PurchaseOrderLine(Id, materialId, quantity, unitPrice, notes);
+        var line = new PurchaseOrderLine(Id, materialId, code, name, quantity, unitPrice, notes);
         _lines.Add(line);
+        
+        // Debug logging
+        Console.WriteLine($"Added line {line.Id} to purchase order {Id}. Total lines: {_lines.Count}");
 
         UpdatedBy = CreatedBy;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void RemoveLine(Guid lineId)
+    public void RemoveLine(int lineId)
     {
         if (Status != PurchaseOrderStatus.Draft)
         {
@@ -79,7 +81,7 @@ public class PurchaseOrder : IEntity<Guid>
         }
     }
 
-    public void UpdateLine(Guid lineId, decimal quantity, decimal unitPrice, string? notes)
+    public void UpdateLine(int lineId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
         if (Status != PurchaseOrderStatus.Draft)
         {
@@ -89,19 +91,32 @@ public class PurchaseOrder : IEntity<Guid>
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
         if (line != null)
         {
-            line.Update(quantity, unitPrice, notes);
+            line.Update(code, name, quantity, unitPrice, notes);
             UpdatedBy = CreatedBy;
             UpdatedAt = DateTime.UtcNow;
         }
     }
 
-    public void Update(DateTime? expectedDeliveryDate, string? notes, string updatedBy)
+    public void ClearAllLines()
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot clear lines from non-draft orders");
+        }
+
+        _lines.Clear();
+        UpdatedBy = CreatedBy;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Update(string supplierName, DateTime? expectedDeliveryDate, string? notes, string updatedBy)
     {
         if (Status == PurchaseOrderStatus.Completed)
         {
             throw new InvalidOperationException("Cannot update completed orders");
         }
 
+        SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         ExpectedDeliveryDate = expectedDeliveryDate;
         Notes = notes;
         UpdatedBy = updatedBy;

@@ -3,7 +3,6 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Domain;
 
@@ -66,7 +65,7 @@ public class CatalogAggregate : Entity<string>
     public ConsumedHistorySummary ConsumedHistorySummary { get; set; } = new();
     public PurchaseHistorySummary PurchaseHistorySummary { get; set; } = new();
 
-    public IReadOnlyList<Supplier> Suppliers { get; set; } = new List<Supplier>();
+    public List<string> SupplierNames { get; set; } = new List<string>();
 
     public string MinimalOrderQuantity { get; set; } = "";
     public double MinimalManufactureQuantity { get; set; } = 0;
@@ -74,7 +73,7 @@ public class CatalogAggregate : Entity<string>
 
 
     // Readonly PROPS
-    public string? PrimarySupplier => Suppliers.FirstOrDefault(f => f.IsPrimary)?.Name;
+    public string? PrimarySupplier => SupplierNames.FirstOrDefault();
     public bool IsSameFamily(CatalogAggregate product) => product.ProductFamily == this.ProductFamily;
     public bool IsSameType(CatalogAggregate product) => product.ProductType == this.ProductType;
     public string? ProductFamily => ProductCode?.Left(Math.Min(6, ProductCode.Length));

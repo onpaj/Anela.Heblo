@@ -1,17 +1,20 @@
 using MediatR;
+using System.ComponentModel.DataAnnotations;
 
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record CreatePurchaseOrderRequest(
-    Guid SupplierId,
-    DateTime OrderDate,
-    DateTime? ExpectedDeliveryDate,
+    string SupplierName,
+    string OrderDate,
+    string? ExpectedDeliveryDate,
     string? Notes,
-    List<CreatePurchaseOrderLineRequest> Lines
+    List<CreatePurchaseOrderLineRequest>? Lines = null
 ) : IRequest<CreatePurchaseOrderResponse>;
 
 public record CreatePurchaseOrderLineRequest(
-    Guid MaterialId,
+    string MaterialId,
+    string Code,
+    string Name,
     decimal Quantity,
     decimal UnitPrice,
     string? Notes

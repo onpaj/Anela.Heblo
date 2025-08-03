@@ -1,9 +1,11 @@
 using Anela.Heblo.Application.Features.Purchase.Model;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/purchase-orders")]
 public class PurchaseOrdersController : ControllerBase
@@ -17,21 +19,9 @@ public class PurchaseOrdersController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<GetPurchaseOrdersResponse>> GetPurchaseOrders(
-        [FromQuery] string? searchTerm = null,
-        [FromQuery] string? status = null,
-        [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null,
-        [FromQuery] Guid? supplierId = null,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string sortBy = "OrderDate",
-        [FromQuery] bool sortDescending = true,
+        [FromQuery] GetPurchaseOrdersRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetPurchaseOrdersRequest(
-            searchTerm, status, fromDate, toDate, supplierId,
-            pageNumber, pageSize, sortBy, sortDescending);
-
         var response = await _mediator.Send(request, cancellationToken);
         return Ok(response);
     }
@@ -46,13 +36,20 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var response = await _mediator.Send(request, cancellationToken);
-        return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+        try
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<GetPurchaseOrderByIdResponse>> GetPurchaseOrderById(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         CancellationToken cancellationToken)
     {
         var request = new GetPurchaseOrderByIdRequest(id);
@@ -66,9 +63,9 @@ public class PurchaseOrdersController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult<UpdatePurchaseOrderResponse>> UpdatePurchaseOrder(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderRequest request,
         CancellationToken cancellationToken)
     {
@@ -97,11 +94,15 @@ public class PurchaseOrdersController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpPut("{id:guid}/status")]
+    [HttpPut("{id:int}/status")]
     public async Task<ActionResult<UpdatePurchaseOrderStatusResponse>> UpdatePurchaseOrderStatus(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderStatusRequest request,
         CancellationToken cancellationToken)
     {
@@ -136,9 +137,9 @@ public class PurchaseOrdersController : ControllerBase
         }
     }
 
-    [HttpGet("{id:guid}/history")]
+    [HttpGet("{id:int}/history")]
     public async Task<ActionResult<List<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
-        [FromRoute] Guid id,
+        [FromRoute] int id,
         CancellationToken cancellationToken)
     {
         var request = new GetPurchaseOrderByIdRequest(id);

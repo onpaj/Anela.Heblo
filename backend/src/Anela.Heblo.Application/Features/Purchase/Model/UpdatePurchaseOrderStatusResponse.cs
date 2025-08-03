@@ -1,7 +1,7 @@
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record UpdatePurchaseOrderStatusResponse(
-    Guid Id,
+    int Id,
     string OrderNumber,
     string Status,
     DateTime? UpdatedAt,

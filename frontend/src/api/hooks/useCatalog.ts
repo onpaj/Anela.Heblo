@@ -142,12 +142,11 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
     searchParams.append('productCode', params.productCode);
   }
 
-  const url = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-  const headers = await (apiClient as any).getAuthHeaders();
+  const relativeUrl = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(fullUrl, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {
@@ -160,12 +159,11 @@ const fetchCatalogList = async (params: GetCatalogListRequest = {}): Promise<Get
 // API function to fetch catalog detail
 const fetchCatalogDetail = async (productCode: string, monthsBack: number = 13): Promise<GetCatalogDetailResponse> => {
   const apiClient = getAuthenticatedApiClient();
-  const url = `/api/catalog/${encodeURIComponent(productCode)}?monthsBack=${monthsBack}`;
-  const headers = await (apiClient as any).getAuthHeaders();
+  const relativeUrl = `/api/catalog/${encodeURIComponent(productCode)}?monthsBack=${monthsBack}`;
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
   
-  const response = await fetch(`${(apiClient as any).baseUrl}${url}`, {
+  const response = await (apiClient as any).http.fetch(fullUrl, {
     method: 'GET',
-    headers,
   });
   
   if (!response.ok) {

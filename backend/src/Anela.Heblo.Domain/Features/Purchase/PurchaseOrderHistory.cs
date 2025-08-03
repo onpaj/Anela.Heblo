@@ -2,10 +2,10 @@ using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.Purchase;
 
-public class PurchaseOrderHistory : IEntity<Guid>
+public class PurchaseOrderHistory : IEntity<int>
 {
-    public Guid Id { get; private set; }
-    public Guid PurchaseOrderId { get; private set; }
+    public int Id { get; private set; }
+    public int PurchaseOrderId { get; private set; }
     public string Action { get; private set; } = null!;
     public string? OldValue { get; private set; }
     public string? NewValue { get; private set; }
@@ -16,9 +16,8 @@ public class PurchaseOrderHistory : IEntity<Guid>
     {
     }
 
-    public PurchaseOrderHistory(Guid purchaseOrderId, string action, string? oldValue, string? newValue, string changedBy)
+    public PurchaseOrderHistory(int purchaseOrderId, string action, string? oldValue, string? newValue, string changedBy)
     {
-        Id = Guid.NewGuid();
         PurchaseOrderId = purchaseOrderId;
         Action = action ?? throw new ArgumentNullException(nameof(action));
         OldValue = oldValue;

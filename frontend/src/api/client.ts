@@ -67,20 +67,55 @@ export const getApiClient = (): ApiClient => {
 export const getAuthenticatedApiClient = (): ApiClient => {
   const config = getConfig();
   
-  // Token provider that uses centralized getAuthHeader function
-  const tokenProvider = async (): Promise<string | null> => {
-    const authHeader = await getAuthHeader();
-    // Extract token from "Bearer TOKEN" format
-    return authHeader ? authHeader.replace('Bearer ', '') : null;
+  // Create http object with custom fetch that includes authentication
+  const authenticatedHttp = {
+    fetch: async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
+      const authHeader = await getAuthHeader();
+      
+      const headers: Record<string, string> = {
+        ...((init?.headers as Record<string, string>) || {}),
+        'Content-Type': 'application/json',
+      };
+      
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      
+      return fetch(url, {
+        ...init,
+        headers,
+      });
+    }
   };
   
-  return new ApiClient(config.apiUrl, tokenProvider);
+  return new ApiClient(config.apiUrl, authenticatedHttp);
 };
 
 // Create an authenticated API client with custom token provider (for advanced scenarios)
 export const getAuthenticatedApiClientWithProvider = (getAccessToken: () => Promise<string | null>): ApiClient => {
   const config = getConfig();
-  return new ApiClient(config.apiUrl, getAccessToken);
+  
+  const customHttp = {
+    fetch: async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
+      const token = await getAccessToken();
+      
+      const headers: Record<string, string> = {
+        ...((init?.headers as Record<string, string>) || {}),
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      return fetch(url, {
+        ...init,
+        headers,
+      });
+    }
+  };
+  
+  return new ApiClient(config.apiUrl, customHttp);
 };
 
 // Legacy export for backward compatibility

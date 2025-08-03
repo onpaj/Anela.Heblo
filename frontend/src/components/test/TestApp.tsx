@@ -2,8 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from '../Layout/Layout';
-import WeatherTest from '../pages/WeatherTest';
+import Dashboard from '../pages/Dashboard';
 import AuthGuard from '../auth/AuthGuard';
 import '../../i18n';
 
@@ -27,18 +28,32 @@ const msalConfig = {
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
+// Create test query client
+const testQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+
 function TestApp() {
   return (
     <div className="App" data-testid="app">
-      <MsalProvider instance={msalInstance}>
-        <Router>
-          <AuthGuard>
-            <Layout>
-              <WeatherTest />
-            </Layout>
-          </AuthGuard>
-        </Router>
-      </MsalProvider>
+      <QueryClientProvider client={testQueryClient}>
+        <MsalProvider instance={msalInstance}>
+          <Router>
+            <AuthGuard>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </AuthGuard>
+          </Router>
+        </MsalProvider>
+      </QueryClientProvider>
     </div>
   );
 }

@@ -3,12 +3,13 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Application.Features.Catalog;
 
 public static class CatalogModule
 {
-    public static IServiceCollection AddCatalogModule(this IServiceCollection services)
+    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IHostEnvironment? environment = null)
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
@@ -19,7 +20,12 @@ public static class CatalogModule
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
         // Register background service for periodic refresh operations
-        services.AddHostedService<CatalogRefreshBackgroundService>();
+        // Skip background services in automation environment to avoid external service dependencies
+        var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        if (environmentName != "Automation")
+        {
+            services.AddHostedService<CatalogRefreshBackgroundService>();
+        }
 
         // Configure catalog repository options
         services.Configure<CatalogRepositoryOptions>(options => { });

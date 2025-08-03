@@ -201,25 +201,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         // Arrange
         using var client = _factory.CreateClient();
 
-        // Act & Assert - Test WeatherForecast endpoint
-        try
-        {
-            var weatherResponse = await client.GetAsync("/weatherforecast");
-            if (weatherResponse.IsSuccessStatusCode)
-            {
-                var weatherContent = await weatherResponse.Content.ReadAsStringAsync();
-                Assert.NotEmpty(weatherContent);
-                _output.WriteLine("✅ WeatherForecast controller responds successfully");
-            }
-            else
-            {
-                _output.WriteLine($"⚠️ WeatherForecast endpoint returned {weatherResponse.StatusCode} (may require authentication)");
-            }
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"⚠️ WeatherForecast endpoint test failed: {ex.Message}");
-        }
+        // Test basic API availability - no specific endpoints needed for now
 
         // Config controller was removed as it's no longer needed
         // Frontend now uses build-time environment variables instead of runtime config

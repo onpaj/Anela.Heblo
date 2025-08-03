@@ -60,18 +60,20 @@ describe('useCatalogQuery', () => {
       },
     });
 
+    // Mock the http.fetch method that our implementation now uses
+    const mockFetch = jest.fn();
+    
     mockApiClient = {
       baseUrl: 'http://localhost:5001',
-      getAuthHeaders: jest.fn().mockResolvedValue({
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-token'
-      })
+      http: {
+        fetch: mockFetch
+      }
     };
 
     mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
 
-    // Mock fetch globally
-    global.fetch = jest.fn();
+    // Also mock global fetch for backward compatibility
+    global.fetch = mockFetch;
   });
 
   afterEach(() => {
@@ -87,7 +89,7 @@ describe('useCatalogQuery', () => {
 
   describe('Basic Functionality', () => {
     test('should fetch catalog data successfully', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockApiClient.http.fetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
@@ -104,7 +106,7 @@ describe('useCatalogQuery', () => {
     });
 
     test('should handle API errors', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockApiClient.http.fetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error'
@@ -123,7 +125,7 @@ describe('useCatalogQuery', () => {
 
   describe('Filtering', () => {
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
@@ -140,7 +142,7 @@ describe('useCatalogQuery', () => {
       });
 
       // Should pass productName parameter to API
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('productName=Test+Product'),
         expect.any(Object)
       );
@@ -160,7 +162,7 @@ describe('useCatalogQuery', () => {
       });
 
       // Should pass productCode parameter to API
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('productCode=MAT'),
         expect.any(Object)
       );
@@ -181,7 +183,7 @@ describe('useCatalogQuery', () => {
 
       // This should be filtered on the server side (not client side)
       // So we expect the API to be called with the type parameter
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`type=${ProductType.Material}`),
         expect.any(Object)
       );
@@ -198,11 +200,11 @@ describe('useCatalogQuery', () => {
       });
 
       // Should pass both filters to API
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('productName=Test'),
         expect.any(Object)
       );
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('productCode=PROD'),
         expect.any(Object)
       );
@@ -213,7 +215,7 @@ describe('useCatalogQuery', () => {
 
   describe('Sorting', () => {
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
@@ -230,11 +232,11 @@ describe('useCatalogQuery', () => {
       });
 
       // Should pass sort parameters to API
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('sortBy=productCode'),
         expect.any(Object)
       );
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('sortDescending=false'),
         expect.any(Object)
       );
@@ -252,7 +254,7 @@ describe('useCatalogQuery', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('sortDescending=true'),
         expect.any(Object)
       );
@@ -263,7 +265,7 @@ describe('useCatalogQuery', () => {
 
   describe('Pagination', () => {
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
@@ -276,13 +278,13 @@ describe('useCatalogQuery', () => {
       );
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
+        expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
           expect.stringContaining('pageNumber=2'),
           expect.any(Object)
         );
       });
       
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('pageSize=10'),
         expect.any(Object)
       );
@@ -295,13 +297,13 @@ describe('useCatalogQuery', () => {
       );
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
+        expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
           expect.stringContaining('sortBy=productName'),
           expect.any(Object)
         );
       });
       
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('sortDescending=true'),
         expect.any(Object)
       );
@@ -310,7 +312,7 @@ describe('useCatalogQuery', () => {
 
   describe('Server Response Handling', () => {
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockApiResponse)
       });
@@ -344,7 +346,7 @@ describe('useCatalogQuery', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
         expect.stringContaining('productName=NonExistentProduct'),
         expect.any(Object)
       );

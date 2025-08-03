@@ -3,6 +3,7 @@ namespace Anela.Heblo.Domain.Features.Purchase;
 public static class PurchaseOrderConstants
 {
     public const int OrderNumberMaxLength = 50;
+    public const int SupplierNameMaxLength = 200;
     public const int NotesMaxLength = 2000;
     public const int ActionMaxLength = 200;
     public const int ValueMaxLength = 500;

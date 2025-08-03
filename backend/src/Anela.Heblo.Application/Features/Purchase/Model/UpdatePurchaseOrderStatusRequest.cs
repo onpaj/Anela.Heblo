@@ -3,6 +3,6 @@ using MediatR;
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record UpdatePurchaseOrderStatusRequest(
-    Guid Id,
+    int Id,
     string Status
 ) : IRequest<UpdatePurchaseOrderStatusResponse>;

@@ -2,14 +2,15 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
-public record GetPurchaseOrdersRequest(
-    string? SearchTerm = null,
-    string? Status = null,
-    DateTime? FromDate = null,
-    DateTime? ToDate = null,
-    Guid? SupplierId = null,
-    int PageNumber = 1,
-    int PageSize = 20,
-    string SortBy = "OrderDate",
-    bool SortDescending = true
-) : IRequest<GetPurchaseOrdersResponse>;
+public class GetPurchaseOrdersRequest : IRequest<GetPurchaseOrdersResponse>
+{
+    public string? SearchTerm { get; set; }
+    public string? Status { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public int? SupplierId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string SortBy { get; set; } = "OrderDate";
+    public bool SortDescending { get; set; } = true;
+}

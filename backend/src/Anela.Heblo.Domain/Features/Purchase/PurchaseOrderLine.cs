@@ -2,11 +2,13 @@ using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.Purchase;
 
-public class PurchaseOrderLine : IEntity<Guid>
+public class PurchaseOrderLine : IEntity<int>
 {
-    public Guid Id { get; private set; }
-    public Guid PurchaseOrderId { get; private set; }
-    public Guid MaterialId { get; private set; }
+    public int Id { get; private set; }
+    public int PurchaseOrderId { get; private set; }
+    public string MaterialId { get; private set; }
+    public string Code { get; private set; }
+    public string Name { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
     public string? Notes { get; private set; }
@@ -17,11 +19,27 @@ public class PurchaseOrderLine : IEntity<Guid>
     {
     }
 
-    public PurchaseOrderLine(Guid purchaseOrderId, Guid materialId, decimal quantity, decimal unitPrice, string? notes)
+    public PurchaseOrderLine(int purchaseOrderId, string materialId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
-        Id = Guid.NewGuid();
         PurchaseOrderId = purchaseOrderId;
+        
+        if (string.IsNullOrWhiteSpace(materialId))
+        {
+            throw new ArgumentException("Material ID cannot be null or empty", nameof(materialId));
+        }
         MaterialId = materialId;
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new ArgumentException("Code cannot be null or empty", nameof(code));
+        }
+        Code = code;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty", nameof(name));
+        }
+        Name = name;
 
         if (quantity <= 0)
         {
@@ -38,8 +56,20 @@ public class PurchaseOrderLine : IEntity<Guid>
         Notes = notes;
     }
 
-    internal void Update(decimal quantity, decimal unitPrice, string? notes)
+    internal void Update(string code, string name, decimal quantity, decimal unitPrice, string? notes)
     {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new ArgumentException("Code cannot be null or empty", nameof(code));
+        }
+        Code = code;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty", nameof(name));
+        }
+        Name = name;
+
         if (quantity <= 0)
         {
             throw new ArgumentException("Quantity must be greater than zero", nameof(quantity));

@@ -1,9 +1,9 @@
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public record GetPurchaseOrderByIdResponse(
-    Guid Id,
+    int Id,
     string OrderNumber,
-    Guid SupplierId,
+    int SupplierId, // Changed to int
     string SupplierName,
     DateTime OrderDate,
     DateTime? ExpectedDeliveryDate,
@@ -19,9 +19,10 @@ public record GetPurchaseOrderByIdResponse(
 );
 
 public record PurchaseOrderLineDto(
-    Guid Id,
-    Guid MaterialId,
-    string MaterialName,
+    int Id,
+    string MaterialId,
+    string Code,
+    string Name,
     decimal Quantity,
     decimal UnitPrice,
     decimal LineTotal,
@@ -29,7 +30,7 @@ public record PurchaseOrderLineDto(
 );
 
 public record PurchaseOrderHistoryDto(
-    Guid Id,
+    int Id,
     string Action,
     string? OldValue,
     string? NewValue,

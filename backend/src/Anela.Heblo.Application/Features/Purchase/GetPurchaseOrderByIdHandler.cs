@@ -36,8 +36,8 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         return new GetPurchaseOrderByIdResponse(
             purchaseOrder.Id,
             purchaseOrder.OrderNumber,
-            purchaseOrder.SupplierId,
-            "Unknown Supplier", // TODO: Join with supplier catalog
+            0, // No longer using SupplierId
+            purchaseOrder.SupplierName,
             purchaseOrder.OrderDate,
             purchaseOrder.ExpectedDeliveryDate,
             purchaseOrder.Status.ToString(),
@@ -46,7 +46,8 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto(
                 l.Id,
                 l.MaterialId,
-                "Unknown Material", // TODO: Join with material catalog
+                l.Code,
+                l.Name,
                 l.Quantity,
                 l.UnitPrice,
                 l.LineTotal,
