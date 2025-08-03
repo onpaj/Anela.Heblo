@@ -13,8 +13,7 @@ public record UpdatePurchaseOrderRequest(
 public record UpdatePurchaseOrderLineRequest(
     int? Id,
     string MaterialId, // Product code from catalog
-    string Code,
-    string Name,
+    string? Name, // Optional - will use ProductName from catalog if available
     decimal Quantity,
     decimal UnitPrice,
     string? Notes

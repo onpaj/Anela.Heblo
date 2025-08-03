@@ -7,8 +7,7 @@ public class PurchaseOrderLine : IEntity<int>
     public int Id { get; private set; }
     public int PurchaseOrderId { get; private set; }
     public string MaterialId { get; private set; }
-    public string Code { get; private set; }
-    public string Name { get; private set; }
+    public string MaterialName { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
     public string? Notes { get; private set; }
@@ -19,7 +18,7 @@ public class PurchaseOrderLine : IEntity<int>
     {
     }
 
-    public PurchaseOrderLine(int purchaseOrderId, string materialId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
+    public PurchaseOrderLine(int purchaseOrderId, string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
         PurchaseOrderId = purchaseOrderId;
         
@@ -29,17 +28,11 @@ public class PurchaseOrderLine : IEntity<int>
         }
         MaterialId = materialId;
 
-        if (string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(materialName))
         {
-            throw new ArgumentException("Code cannot be null or empty", nameof(code));
+            throw new ArgumentException("Material name cannot be null or empty", nameof(materialName));
         }
-        Code = code;
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Name cannot be null or empty", nameof(name));
-        }
-        Name = name;
+        MaterialName = materialName;
 
         if (quantity <= 0)
         {
@@ -56,19 +49,13 @@ public class PurchaseOrderLine : IEntity<int>
         Notes = notes;
     }
 
-    internal void Update(string code, string name, decimal quantity, decimal unitPrice, string? notes)
+    internal void Update(string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(materialName))
         {
-            throw new ArgumentException("Code cannot be null or empty", nameof(code));
+            throw new ArgumentException("Material name cannot be null or empty", nameof(materialName));
         }
-        Code = code;
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Name cannot be null or empty", nameof(name));
-        }
-        Name = name;
+        MaterialName = materialName;
 
         if (quantity <= 0)
         {

@@ -53,17 +53,19 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
                 
             foreach (var lineRequest in request.Lines)
             {
-                // Look up material by ProductCode in catalog
+                // Look up material by ProductCode in catalog to get ProductName
                 var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+                
                 if (material == null)
                 {
-                    _logger.LogWarning("Material with code {MaterialId} not found in catalog, using placeholder", lineRequest.MaterialId);
+                    _logger.LogWarning("Material with code {MaterialId} not found in catalog, using provided name: {Name}", 
+                        lineRequest.MaterialId, materialName);
                 }
 
                 purchaseOrder.AddLine(
                     lineRequest.MaterialId,
-                    lineRequest.Code,
-                    lineRequest.Name,
+                    materialName,
                     lineRequest.Quantity,
                     lineRequest.UnitPrice,
                     lineRequest.Notes);
@@ -89,15 +91,11 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         
         foreach (var line in purchaseOrder.Lines)
         {
-            // Try to get material name from catalog
-            var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
-            var materialName = material?.ProductName ?? "Unknown Material";
-
             lines.Add(new PurchaseOrderLineDto(
                 line.Id,
                 line.MaterialId,
-                line.Code,
-                line.Name,
+                line.MaterialId, // Code is same as MaterialId
+                line.MaterialName,
                 line.Quantity,
                 line.UnitPrice,
                 line.LineTotal,

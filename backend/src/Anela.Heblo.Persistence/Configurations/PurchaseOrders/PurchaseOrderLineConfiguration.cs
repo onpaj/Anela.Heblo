@@ -22,11 +22,7 @@ public class PurchaseOrderLineConfiguration : IEntityTypeConfiguration<PurchaseO
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(x => x.Code)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(x => x.Name)
+        builder.Property(x => x.MaterialName)
             .IsRequired()
             .HasMaxLength(500);
 

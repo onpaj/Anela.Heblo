@@ -2131,7 +2131,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
     id?: number;
     materialId?: string;
     code?: string;
-    name?: string;
+    materialName?: string;
     quantity?: number;
     unitPrice?: number;
     lineTotal?: number;
@@ -2151,7 +2151,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
             this.id = _data["id"];
             this.materialId = _data["materialId"];
             this.code = _data["code"];
-            this.name = _data["name"];
+            this.materialName = _data["materialName"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
             this.lineTotal = _data["lineTotal"];
@@ -2171,7 +2171,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
         data["id"] = this.id;
         data["materialId"] = this.materialId;
         data["code"] = this.code;
-        data["name"] = this.name;
+        data["materialName"] = this.materialName;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
         data["lineTotal"] = this.lineTotal;
@@ -2184,7 +2184,7 @@ export interface IPurchaseOrderLineDto {
     id?: number;
     materialId?: string;
     code?: string;
-    name?: string;
+    materialName?: string;
     quantity?: number;
     unitPrice?: number;
     lineTotal?: number;
@@ -2309,7 +2309,6 @@ export interface ICreatePurchaseOrderRequest {
 
 export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineRequest {
     materialId?: string;
-    code?: string;
     name?: string;
     quantity?: number;
     unitPrice?: number;
@@ -2327,7 +2326,6 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
     init(_data?: any) {
         if (_data) {
             this.materialId = _data["materialId"];
-            this.code = _data["code"];
             this.name = _data["name"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
@@ -2345,7 +2343,6 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["materialId"] = this.materialId;
-        data["code"] = this.code;
         data["name"] = this.name;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
@@ -2356,7 +2353,6 @@ export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineR
 
 export interface ICreatePurchaseOrderLineRequest {
     materialId?: string;
-    code?: string;
     name?: string;
     quantity?: number;
     unitPrice?: number;
@@ -2622,7 +2618,6 @@ export interface IUpdatePurchaseOrderRequest {
 export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineRequest {
     id?: number | undefined;
     materialId?: string;
-    code?: string;
     name?: string;
     quantity?: number;
     unitPrice?: number;
@@ -2641,7 +2636,6 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
         if (_data) {
             this.id = _data["id"];
             this.materialId = _data["materialId"];
-            this.code = _data["code"];
             this.name = _data["name"];
             this.quantity = _data["quantity"];
             this.unitPrice = _data["unitPrice"];
@@ -2660,7 +2654,6 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["materialId"] = this.materialId;
-        data["code"] = this.code;
         data["name"] = this.name;
         data["quantity"] = this.quantity;
         data["unitPrice"] = this.unitPrice;
@@ -2672,7 +2665,6 @@ export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineR
 export interface IUpdatePurchaseOrderLineRequest {
     id?: number | undefined;
     materialId?: string;
-    code?: string;
     name?: string;
     quantity?: number;
     unitPrice?: number;

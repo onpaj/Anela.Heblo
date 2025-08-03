@@ -48,14 +48,14 @@ public class PurchaseOrder : IEntity<int>
         AddHistoryEntry($"Order created", null, Status.ToString(), createdBy);
     }
 
-    public void AddLine(string materialId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
+    public void AddLine(string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
         if (Status != PurchaseOrderStatus.Draft)
         {
             throw new InvalidOperationException("Cannot add lines to non-draft orders");
         }
 
-        var line = new PurchaseOrderLine(Id, materialId, code, name, quantity, unitPrice, notes);
+        var line = new PurchaseOrderLine(Id, materialId, materialName, quantity, unitPrice, notes);
         _lines.Add(line);
         
         // Debug logging
@@ -81,7 +81,7 @@ public class PurchaseOrder : IEntity<int>
         }
     }
 
-    public void UpdateLine(int lineId, string code, string name, decimal quantity, decimal unitPrice, string? notes)
+    public void UpdateLine(int lineId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
         if (Status != PurchaseOrderStatus.Draft)
         {
@@ -91,7 +91,7 @@ public class PurchaseOrder : IEntity<int>
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
         if (line != null)
         {
-            line.Update(code, name, quantity, unitPrice, notes);
+            line.Update(materialName, quantity, unitPrice, notes);
             UpdatedBy = CreatedBy;
             UpdatedAt = DateTime.UtcNow;
         }

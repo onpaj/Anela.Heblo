@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # Run Playwright tests with automation environment
+# Usage:
+#   ./run-playwright-tests.sh                    # Run all tests
+#   ./run-playwright-tests.sh test.spec.ts       # Run specific test file
+#   ./run-playwright-tests.sh test/ --grep="pattern"  # Run tests matching pattern
+#   ./run-playwright-tests.sh --headed           # Run tests with visible browser
 
 # Colors for output
 RED='\033[0;31m'
@@ -66,8 +71,16 @@ echo -e "${GREEN}✅ Services started successfully${NC}"
 
 # Run Playwright tests
 echo -e "${BLUE}🎭 Running Playwright tests...${NC}"
+
+# Display what tests will run
+if [ $# -eq 0 ]; then
+    echo -e "${BLUE}   Running all tests${NC}"
+else
+    echo -e "${BLUE}   Running with parameters: $@${NC}"
+fi
+
 cd "$FRONTEND_DIR"
-npx playwright test "$@"
+npx playwright test --reporter=list "$@"
 
 # Immediate cleanup and exit
 cleanup_and_exit $?
