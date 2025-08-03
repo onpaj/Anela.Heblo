@@ -261,9 +261,8 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 **Enforcement Rules**:
 - NIKDY nepoužívat relativní URLs přímo v fetch calls
 - VŽDY ověřit, že API volá správný port (5001 pro backend, ne 3001 pro frontend)
-- **DEPRECATED**: Purchase orders používají vlastní API client třídu z historických důvodů - nepoužívat jako pattern pro nové funkce
-- Pro nové hooks používat generovaný API client s absolutními URLs (pattern z useCatalog.ts po opravě)
-- Legacy hooks (catalog, audit) opraveny pomocí absolutních URLs s `${apiClient.baseUrl}${relativeUrl}`
+- Pro všechny hooks používat generovaný API client prostřednictvím `getAuthenticatedApiClient()`
+- Purchase orders modul byl refaktorován aby používal standardní generovaný API client (migrace z vlastního client řešení)
 
 ## Background Jobs (Hangfire)
 

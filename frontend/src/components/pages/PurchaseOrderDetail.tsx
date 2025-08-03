@@ -5,6 +5,7 @@ import {
   usePurchaseOrderHistoryQuery,
   useUpdatePurchaseOrderStatusMutation
 } from '../../api/hooks/usePurchaseOrders';
+import { UpdatePurchaseOrderStatusRequest } from '../../api/generated/api-client';
 
 interface PurchaseOrderDetailProps {
   orderId: number;
@@ -68,10 +69,10 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
     try {
       await updateStatusMutation.mutateAsync({
         id: orderId,
-        request: {
+        request: new UpdatePurchaseOrderStatusRequest({
           id: orderId,
           status: newStatus
-        }
+        })
       });
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -79,8 +80,9 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
   };
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('cs-CZ', {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('cs-CZ', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -93,8 +95,9 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
   };
 
   // Format datetime
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('cs-CZ');
+  const formatDateTime = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleString('cs-CZ');
   };
 
   // Get next available status
@@ -171,16 +174,16 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600">Stav:</span>
                         <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[orderData.status]}`}>
-                            {statusLabels[orderData.status]}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${orderData.status && statusColors[orderData.status] || 'bg-gray-100 text-gray-800'}`}>
+                            {orderData.status && statusLabels[orderData.status] || orderData.status}
                           </span>
-                          {getNextStatus(orderData.status) && (
+                          {orderData.status && getNextStatus(orderData.status) && (
                             <button
-                              onClick={() => handleStatusChange(getNextStatus(orderData.status)!)}
+                              onClick={() => handleStatusChange(getNextStatus(orderData.status!)!)}
                               disabled={updateStatusMutation.isPending}
                               className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded disabled:opacity-50"
                             >
-                              → {getNextStatusLabel(orderData.status)}
+                              → {getNextStatusLabel(orderData.status!)}
                             </button>
                           )}
                         </div>
@@ -199,7 +202,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                           <Calendar className="h-4 w-4 mr-1" />
                           Datum objednávky:
                         </span>
-                        <span className="text-sm text-gray-900">{formatDate(orderData.orderDate)}</span>
+                        <span className="text-sm text-gray-900">{orderData.orderDate ? formatDate(orderData.orderDate) : '-'}</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
@@ -217,7 +220,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                           <DollarSign className="h-4 w-4 mr-1" />
                           Celková částka:
                         </span>
-                        <span className="text-lg font-semibold text-gray-900">{formatCurrency(orderData.totalAmount)}</span>
+                        <span className="text-lg font-semibold text-gray-900">{formatCurrency(orderData.totalAmount || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -246,7 +249,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Datum vytvoření:</span>
-                        <span className="font-medium">{formatDateTime(orderData.createdAt)}</span>
+                        <span className="font-medium">{orderData.createdAt ? formatDateTime(orderData.createdAt) : '-'}</span>
                       </div>
                       {orderData.updatedBy && (
                         <>
@@ -301,10 +304,10 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                                 {line.quantity}
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                {formatCurrency(line.unitPrice)}
+                                {formatCurrency(line.unitPrice || 0)}
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                                {formatCurrency(line.lineTotal)}
+                                {formatCurrency(line.lineTotal || 0)}
                               </td>
                             </tr>
                           ))}
@@ -332,7 +335,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                             <div key={index} className="border-l-2 border-indigo-200 pl-4 pb-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-900">{entry.action}</span>
-                                <span className="text-xs text-gray-500">{formatDateTime(entry.changedAt)}</span>
+                                <span className="text-xs text-gray-500">{entry.changedAt ? formatDateTime(entry.changedAt) : '-'}</span>
                               </div>
                               {entry.oldValue && entry.newValue && (
                                 <div className="text-xs text-gray-600 mt-1">
