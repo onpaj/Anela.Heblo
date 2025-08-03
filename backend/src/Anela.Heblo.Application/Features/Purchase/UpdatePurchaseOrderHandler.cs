@@ -51,20 +51,26 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             {
                 if (lineRequest.Id.HasValue)
                 {
+                    // Get material name from catalog if available
+                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+                    
                     purchaseOrder.UpdateLine(
                         lineRequest.Id.Value,
-                        lineRequest.Code,
-                        lineRequest.Name,
+                        materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
                         lineRequest.Notes);
                 }
                 else
                 {
+                    // Get material name from catalog if available
+                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+                    
                     purchaseOrder.AddLine(
                         lineRequest.MaterialId,
-                        lineRequest.Code,
-                        lineRequest.Name,
+                        materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
                         lineRequest.Notes);
@@ -100,8 +106,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             lines.Add(new PurchaseOrderLineDto(
                 line.Id,
                 line.MaterialId,
-                line.Code,
-                line.Name,
+                line.MaterialId, // Code is same as MaterialId
+                line.MaterialName,
                 line.Quantity,
                 line.UnitPrice,
                 line.LineTotal,

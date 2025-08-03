@@ -46,8 +46,8 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto(
                 l.Id,
                 l.MaterialId,
-                l.Code,
-                l.Name,
+                l.MaterialId, // Code is same as MaterialId
+                l.MaterialName,
                 l.Quantity,
                 l.UnitPrice,
                 l.LineTotal,

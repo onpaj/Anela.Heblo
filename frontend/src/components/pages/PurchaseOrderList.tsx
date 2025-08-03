@@ -148,18 +148,27 @@ const PurchaseOrderList: React.FC = () => {
 
   const handleEditOrder = (orderId: number) => {
     setEditOrderId(orderId);
+    setSelectedOrderId(orderId); // Ensure selected order is set for return to detail
     setIsEditModalOpen(true);
     setIsDetailModalOpen(false); // Close detail modal when opening edit
   };
 
   const handleCloseEdit = () => {
     setIsEditModalOpen(false);
+    // If we have a selected order, return to detail view instead of closing everything
+    if (selectedOrderId) {
+      setIsDetailModalOpen(true);
+    }
     setEditOrderId(null);
   };
 
   const handleEditSuccess = (orderId: number) => {
     // Refresh the list
     refetch();
+    // If we have a selected order, return to detail view after successful edit
+    if (selectedOrderId) {
+      setIsDetailModalOpen(true);
+    }
     console.log('Order updated successfully:', orderId);
   };
 

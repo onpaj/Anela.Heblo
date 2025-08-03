@@ -21,8 +21,8 @@ public record GetPurchaseOrderByIdResponse(
 public record PurchaseOrderLineDto(
     int Id,
     string MaterialId,
-    string Code,
-    string Name,
+    string Code, // Same as MaterialId for compatibility
+    string MaterialName,
     decimal Quantity,
     decimal UnitPrice,
     decimal LineTotal,

@@ -81,7 +81,7 @@ public class PurchaseOrderTests
         const decimal unitPrice = 25.50m;
         const string notes = "Test line item";
 
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, quantity, unitPrice, notes);
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes);
 
         purchaseOrder.Lines.Should().HaveCount(1);
         var line = purchaseOrder.Lines.First();
@@ -101,7 +101,7 @@ public class PurchaseOrderTests
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
+        var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot add lines to non-draft orders");
@@ -111,7 +111,7 @@ public class PurchaseOrderTests
     public void RemoveLine_FromDraftOrder_ShouldRemoveLineAndUpdateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
 
         purchaseOrder.RemoveLine(lineId);
@@ -124,7 +124,7 @@ public class PurchaseOrderTests
     public void RemoveLine_FromNonDraftOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
@@ -138,10 +138,10 @@ public class PurchaseOrderTests
     public void UpdateLine_InDraftOrder_ShouldUpdateLineAndRecalculateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "old notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes");
         var lineId = purchaseOrder.Lines.First().Id;
 
-        purchaseOrder.UpdateLine(lineId, "CODE002", "Updated Material Name", 20, 30.00m, "new notes");
+        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
 
         var line = purchaseOrder.Lines.First();
         line.Quantity.Should().Be(20);
@@ -155,11 +155,11 @@ public class PurchaseOrderTests
     public void UpdateLine_InNonDraftOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        var action = () => purchaseOrder.UpdateLine(lineId, "CODE002", "Updated Material Name", 20, 30.00m, "new notes");
+        var action = () => purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update lines in non-draft orders");
@@ -281,9 +281,9 @@ public class PurchaseOrderTests
     public void TotalAmount_WithMultipleLines_ShouldCalculateCorrectTotal()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidCode, ValidName, 10, 25.50m, "line 1");
-        purchaseOrder.AddLine("MAT002", "CODE002", "Material 2", 5, 100.00m, "line 2");
-        purchaseOrder.AddLine("MAT003", "CODE003", "Material 3", 3, 33.33m, "line 3");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
+        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2");
+        purchaseOrder.AddLine("MAT003", "Material 3", 3, 33.33m, "line 3");
 
         purchaseOrder.TotalAmount.Should().Be(854.99m);
     }

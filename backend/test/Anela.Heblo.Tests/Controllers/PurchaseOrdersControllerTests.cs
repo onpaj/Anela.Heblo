@@ -126,7 +126,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Integration test order",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 10, 25.50m, "Test line")
+                new("MAT001", "Test Material", 10, 25.50m, "Test line")
             });
 
         var response = await _client.PostAsJsonAsync("/api/purchase-orders", request);
@@ -175,7 +175,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Order with invalid line",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", -5, 25.00m, "Invalid negative quantity")
+                new("MAT001", "Test Material", -5, 25.00m, "Invalid negative quantity")
             });
 
         var response = await _client.PostAsJsonAsync("/api/purchase-orders", request);
@@ -193,7 +193,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Test order for retrieval",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 5, 10.00m, "Retrieval test line")
+                new("MAT001", "Test Material", 5, 10.00m, "Retrieval test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -235,7 +235,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Order to update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 5, 20.00m, "Original line")
+                new("MAT001", "Test Material", 5, 20.00m, "Original line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -249,7 +249,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Updated notes",
             new List<UpdatePurchaseOrderLineRequest>
             {
-                new(createdOrder.Lines.First().Id, "MAT002", "CODE002", "Updated Material", 10, 30.00m, "Updated line")
+                new(createdOrder.Lines.First().Id, "MAT002", "Updated Material", 10, 30.00m, "Updated line")
             });
 
         var updateResponse = await _client.PutAsJsonAsync($"/api/purchase-orders/{orderId}", updateRequest);
@@ -307,7 +307,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Order for status update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 1, 10.00m, "Status test line")
+                new("MAT001", "Test Material", 1, 10.00m, "Status test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -335,7 +335,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Order for invalid status update",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 1, 10.00m, "Invalid status test line")
+                new("MAT001", "Test Material", 1, 10.00m, "Invalid status test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);
@@ -369,7 +369,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             "Order for history test",
             new List<CreatePurchaseOrderLineRequest>
             {
-                new("MAT001", "CODE001", "Test Material", 1, 15.00m, "History test line")
+                new("MAT001", "Test Material", 1, 15.00m, "History test line")
             });
 
         var createResponse = await _client.PostAsJsonAsync("/api/purchase-orders", createRequest);

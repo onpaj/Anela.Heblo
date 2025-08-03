@@ -59,8 +59,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     lines: [Object.assign(new PurchaseOrderLineDto(), {
       id: 0, // Temporary ID for new lines
       materialId: `temp-${Date.now()}`,
-      code: '',
-      name: '',
+      materialName: '',
       quantity: 1,
       unitPrice: 0,
       lineTotal: 0,
@@ -86,7 +85,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines[lineIndex] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[lineIndex],
           selectedMaterial: material,
-          name: material?.productName || newLines[lineIndex].name
+          materialName: material?.productName || newLines[lineIndex].materialName
         });
       }
       return { ...prev, lines: newLines };
@@ -111,8 +110,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         : [Object.assign(new PurchaseOrderLineDto(), {
             id: 0, // Temporary ID for new lines
             materialId: `temp-${Date.now()}`,
-            code: '',
-            name: '',
+            materialName: '',
             quantity: 1,
             unitPrice: 0,
             lineTotal: 0,
@@ -148,8 +146,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         lines: [Object.assign(new PurchaseOrderLineDto(), {
           id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
-          code: '',
-          name: '',
+          materialName: '',
           quantity: 1,
           unitPrice: 0,
           lineTotal: 0,
@@ -214,7 +211,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     formData.lines.forEach((line, index) => {
       // Only validate rows that have material selected
       if (line.selectedMaterial) {
-        if (!line.name?.trim() && !line.selectedMaterial?.productName?.trim()) {
+        if (!line.materialName?.trim() && !line.selectedMaterial?.productName?.trim()) {
           newErrors[`line_${index}_material`] = 'Název materiálu je povinný';
         }
         if (!line.quantity || line.quantity <= 0) {
@@ -251,6 +248,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             .filter(line => line.selectedMaterial)
             .map(line => new UpdatePurchaseOrderLineRequest({
               materialId: line.materialId,
+              name: line.selectedMaterial?.productName || line.materialName,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
@@ -273,6 +271,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             .filter(line => line.selectedMaterial)
             .map(line => new CreatePurchaseOrderLineRequest({
               materialId: line.materialId,
+              name: line.selectedMaterial?.productName || line.materialName,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               notes: line.notes
@@ -312,8 +311,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines.push(Object.assign(new PurchaseOrderLineDto(), {
           id: 0, // Temporary ID for new lines
           materialId: `temp-${Date.now()}`,
-          code: '',
-          name: '',
+          materialName: '',
           quantity: 1,
           unitPrice: 0,
           lineTotal: 0,
@@ -349,8 +347,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[index],
           materialId: material.productCode || `temp-${Date.now()}`, // Use product code as material ID
-          code: material.productCode || '',
-          name: material.productName || '',
+          materialName: material.productName || '',
           selectedMaterial: material,
           // Pre-fill quantity with MOQ
           quantity: quantity,
@@ -365,8 +362,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           newLines.push(Object.assign(new PurchaseOrderLineDto(), {
             id: 0, // Temporary ID for new lines
             materialId: `temp-${Date.now()}-${Math.random()}`,
-            code: '',
-            name: '',
+            materialName: '',
             quantity: 1,
             unitPrice: 0,
             lineTotal: 0,
@@ -377,8 +373,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
           ...newLines[index],
           materialId: `temp-${Date.now()}`,
-          code: '',
-          name: '',
+          materialName: '',
           selectedMaterial: undefined,
         });
       }

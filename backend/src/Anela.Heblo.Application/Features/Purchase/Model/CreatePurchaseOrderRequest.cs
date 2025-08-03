@@ -13,8 +13,7 @@ public record CreatePurchaseOrderRequest(
 
 public record CreatePurchaseOrderLineRequest(
     string MaterialId,
-    string Code,
-    string Name,
+    string? Name, // Optional - will use ProductName from catalog if available
     decimal Quantity,
     decimal UnitPrice,
     string? Notes

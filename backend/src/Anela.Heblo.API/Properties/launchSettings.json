@@ -30,6 +30,16 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "Update Database": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "ef database update --project ../Anela.Heblo.Persistence --startup-project .",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
