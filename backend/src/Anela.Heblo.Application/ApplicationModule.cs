@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Purchase;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Application;
 
@@ -11,7 +12,7 @@ namespace Anela.Heblo.Application;
 /// </summary>
 public static class ApplicationModule
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IHostEnvironment? environment = null)
     {
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
@@ -22,7 +23,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAuditModule();
-        services.AddCatalogModule();
+        services.AddCatalogModule(environment);
         services.AddPurchaseModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();

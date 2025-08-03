@@ -1,9 +1,11 @@
 using Anela.Heblo.Application.Features.Purchase.Model;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/purchase-orders")]
 public class PurchaseOrdersController : ControllerBase

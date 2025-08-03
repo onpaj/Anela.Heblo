@@ -63,9 +63,10 @@ const fetchAuditLogs = async (params: GetAuditLogsRequest = {}): Promise<GetAudi
     searchParams.append('toDate', params.toDate);
   }
 
-  const url = `/api/audit/data-loads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const relativeUrl = `/api/audit/data-loads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
   
-  const response = await (apiClient as any).http.fetch(url, {
+  const response = await (apiClient as any).http.fetch(fullUrl, {
     method: 'GET',
   });
   
@@ -88,9 +89,10 @@ const fetchAuditSummary = async (params: GetAuditSummaryRequest = {}): Promise<G
     searchParams.append('toDate', params.toDate);
   }
 
-  const url = `/api/audit/summary${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const relativeUrl = `/api/audit/summary${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
   
-  const response = await (apiClient as any).http.fetch(url, {
+  const response = await (apiClient as any).http.fetch(fullUrl, {
     method: 'GET',
   });
   

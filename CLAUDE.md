@@ -232,6 +232,38 @@ const WeatherComponent = () => {
 - GET `/api/configuration` - Application configuration
 - Future: `/api/catalog`, `/api/invoices`, `/api/orders`, etc.
 
+### CRITICAL: API Client URL Construction Rules
+
+**MANDATORY**: All API hooks MUST use absolute URLs with baseUrl to avoid calling wrong endpoints.
+
+**❌ WRONG - Relativní URL (volá frontend port místo backend)**:
+```typescript
+const url = `/api/catalog`; // Toto volá localhost:3001/api/catalog místo localhost:5001/api/catalog
+const response = await (apiClient as any).http.fetch(url, {method: 'GET'});
+```
+
+**✅ CORRECT - Absolutní URL s baseUrl**:
+```typescript
+const relativeUrl = `/api/catalog`;
+const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`; // http://localhost:5001/api/catalog
+const response = await (apiClient as any).http.fetch(fullUrl, {method: 'GET'});
+```
+
+**Alternative správný pattern (jako v usePurchaseOrders.ts)**:
+```typescript
+// Vlastní API client třída s makeRequest metodou
+async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${this.baseUrl}${url}`, {...}); // Správně používá baseUrl
+  return response.json();
+}
+```
+
+**Enforcement Rules**:
+- NIKDY nepoužívat relativní URLs přímo v fetch calls
+- VŽDY ověřit, že API volá správný port (5001 pro backend, ne 3001 pro frontend)
+- Purchase orders pattern je referenční implementace pro nové hooks
+- Při psaní nových API hooks se inspirovat usePurchaseOrders.ts, ne starými hooks
+
 ## Background Jobs (Hangfire)
 
 - **Stock Sync**: Refresh catalog every 10 minutes
