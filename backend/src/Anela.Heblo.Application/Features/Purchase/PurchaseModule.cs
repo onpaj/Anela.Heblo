@@ -25,6 +25,9 @@ public static class PurchaseModule
             services.AddScoped<IPurchaseOrderNumberGenerator, PurchaseOrderNumberGenerator>();
         }
 
+        // Register stock severity calculator
+        services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();
+
         return services;
     }
 }

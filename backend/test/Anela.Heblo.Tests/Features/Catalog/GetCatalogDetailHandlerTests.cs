@@ -119,8 +119,7 @@ public class GetCatalogDetailHandlerTests
 
         Assert.All(result.HistoricalData.PurchaseHistory, purchase =>
         {
-            var purchaseKey = $"{purchase.Year:D4}-{purchase.Month:D2}";
-            Assert.True(string.Compare(purchaseKey, expectedFromKey, StringComparison.Ordinal) >= 0);
+            Assert.True(purchase.Date >= expectedFromDate);
         });
 
         Assert.All(result.HistoricalData.ConsumedHistory, consumed =>
@@ -259,6 +258,52 @@ public class GetCatalogDetailHandlerTests
             LastUpdated = DateTime.UtcNow
         };
 
+        // Add individual purchase records instead of just summary data
+        aggregate.PurchaseHistory = new List<CatalogPurchaseRecord>
+        {
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2023, 1, 15),
+                SupplierName = "Supplier A",
+                Amount = 50,
+                PricePerPiece = 20.0M,
+                PriceTotal = 1000.0M,
+                DocumentNumber = "DOC001-2023",
+                ProductCode = "TEST001"
+            },
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2023, 1, 28),
+                SupplierName = "Supplier B",
+                Amount = 50,
+                PricePerPiece = 20.0M,
+                PriceTotal = 1000.0M,
+                DocumentNumber = "DOC002-2023",
+                ProductCode = "TEST001"
+            },
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2023, 5, 10),
+                SupplierName = "Supplier A",
+                Amount = 120,
+                PricePerPiece = 20.0M,
+                PriceTotal = 2400.0M,
+                DocumentNumber = "DOC003-2023",
+                ProductCode = "TEST001"
+            },
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2024, 1, 5),
+                SupplierName = "Supplier C",
+                Amount = 110,
+                PricePerPiece = 20.0M,
+                PriceTotal = 2200.0M,
+                DocumentNumber = "DOC004-2024",
+                ProductCode = "TEST001"
+            }
+        };
+
+        // Keep the summary for backward compatibility
         aggregate.PurchaseHistorySummary = new PurchaseHistorySummary
         {
             MonthlyData = new Dictionary<string, MonthlyPurchaseSummary>

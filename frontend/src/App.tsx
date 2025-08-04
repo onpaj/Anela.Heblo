@@ -7,6 +7,7 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './components/pages/Dashboard';
 import CatalogList from './components/pages/CatalogList';
 import PurchaseOrderList from './components/pages/PurchaseOrderList';
+import PurchaseStockAnalysis from './components/pages/PurchaseStockAnalysis';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
@@ -183,6 +184,7 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/catalog" element={<CatalogList />} />
                   <Route path="/nakup/objednavky" element={<PurchaseOrderList />} />
+                  <Route path="/nakup/analyza-skladu" element={<PurchaseStockAnalysis />} />
                 </Routes>
               </Layout>
             </AuthGuard>

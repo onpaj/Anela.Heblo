@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Catalog.Fakes;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Persistence.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,7 +14,16 @@ public static class CatalogModule
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        services.AddTransient<ICatalogRepository, CatalogRepository>();
+        // Register catalog repository - use mock for Automation environment
+        var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        if (environmentName == "Automation")
+        {
+            services.AddTransient<ICatalogRepository, MockCatalogRepository>();
+        }
+        else
+        {
+            services.AddTransient<ICatalogRepository, CatalogRepository>();
+        }
         // Register any catalog-specific services here if needed
 
         services.AddTransient<ITransportBoxRepository, EmptyTransportBoxRepository>();
@@ -21,7 +31,6 @@ public static class CatalogModule
 
         // Register background service for periodic refresh operations
         // Skip background services in automation environment to avoid external service dependencies
-        var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         if (environmentName != "Automation")
         {
             services.AddHostedService<CatalogRefreshBackgroundService>();

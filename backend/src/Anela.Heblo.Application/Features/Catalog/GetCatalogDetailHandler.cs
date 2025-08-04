@@ -74,22 +74,39 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
     private List<CatalogPurchaseRecordDto> GetPurchaseHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Use pre-calculated summary data - much faster than runtime aggregation
+        // Return individual purchase records instead of monthly summaries
         var currentDate = _timeProvider.GetUtcNow().Date;
+        
+        // For very high monthsBack values (like 999), return all records without date filtering
+        // to avoid potential issues with very old dates
+        if (monthsBack >= 999)
+        {
+            return catalogItem.PurchaseHistory
+                .OrderByDescending(p => p.Date)
+                .Select(p => new CatalogPurchaseRecordDto
+                {
+                    Date = p.Date,
+                    SupplierName = p.SupplierName,
+                    Amount = p.Amount,
+                    PricePerPiece = p.PricePerPiece,
+                    PriceTotal = p.PriceTotal,
+                    DocumentNumber = p.DocumentNumber
+                }).ToList();
+        }
+        
         var fromDate = currentDate.AddMonths(-monthsBack);
-        var fromKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
 
-        return catalogItem.PurchaseHistorySummary.MonthlyData
-            .Where(kvp => string.Compare(kvp.Key, fromKey, StringComparison.Ordinal) >= 0)
-            .Select(kvp => new CatalogPurchaseRecordDto
+        return catalogItem.PurchaseHistory
+            .Where(p => p.Date >= fromDate)
+            .OrderByDescending(p => p.Date)
+            .Select(p => new CatalogPurchaseRecordDto
             {
-                Year = kvp.Value.Year,
-                Month = kvp.Value.Month,
-                SupplierName = kvp.Value.SupplierBreakdown.FirstOrDefault().Value?.SupplierName ?? string.Empty,
-                Amount = kvp.Value.TotalAmount,
-                PricePerPiece = kvp.Value.AveragePricePerPiece,
-                PriceTotal = kvp.Value.TotalCost,
-                DocumentNumber = string.Empty // Document numbers not stored in summary
+                Date = p.Date,
+                SupplierName = p.SupplierName,
+                Amount = p.Amount,
+                PricePerPiece = p.PricePerPiece,
+                PriceTotal = p.PriceTotal,
+                DocumentNumber = p.DocumentNumber
             }).ToList();
     }
 

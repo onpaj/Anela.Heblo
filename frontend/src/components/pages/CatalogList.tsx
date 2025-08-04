@@ -431,6 +431,7 @@ const CatalogList: React.FC = () => {
         item={selectedItem}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
+        defaultTab="basic"
       />
     </div>
   );

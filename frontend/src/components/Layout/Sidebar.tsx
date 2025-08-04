@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard,
-  FileText,
   Package,
-  DollarSign,
-  Truck,
-  Factory,
   ShoppingCart,
-  Settings,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -24,9 +19,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['logistika']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup']);
 
-  // Navigation sections following design system
+  // Navigation sections - only implemented pages
   const navigationSections = [
     {
       id: 'dashboard',
@@ -36,52 +31,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'single' as const
     },
     {
-      id: 'faktury',
-      name: 'Faktury',
-      icon: FileText,
-      type: 'section' as const,
-      items: [
-        { id: 'import-shoptet', name: 'Import Shoptet', href: '/faktury/import' }
-      ]
-    },
-    {
       id: 'catalog',
       name: 'Katalog',
       href: '/catalog',
       icon: Package,
       type: 'single' as const
-    },
-    {
-      id: 'finance',
-      name: 'Finance',
-      icon: DollarSign,
-      type: 'section' as const,
-      items: [
-        { id: 'comgate', name: 'Comgate', href: '/finance/comgate' }
-      ]
-    },
-    {
-      id: 'logistika',
-      name: 'Logistika',
-      icon: Truck,
-      type: 'section' as const,
-      items: [
-        { id: 'zavozy', name: 'Závozy', href: '/logistika/zavozy' },
-        { id: 'prijem-boxu', name: 'Příjem boxů', href: '/logistika/prijem' },
-        { id: 'zasoby', name: 'Zásoby', href: '/logistika/zasoby' }
-      ]
-    },
-    {
-      id: 'vyroba',
-      name: 'Výroba',
-      icon: Factory,
-      type: 'section' as const,
-      items: [
-        { id: 'zasoby-vyrobku', name: 'Zásoby výrobků', href: '/vyroba/zasoby' },
-        { id: 'trojclenka', name: 'Trojčlenka', href: '/vyroba/trojclenka' },
-        { id: 'inventura', name: 'Inventura', href: '/vyroba/inventura' },
-        { id: 'planovani', name: 'Plánování', href: '/vyroba/planovani' }
-      ]
     },
     {
       id: 'nakup',
@@ -90,17 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'section' as const,
       items: [
         { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/nakup/objednavky' },
-        { id: 'material-zbozi', name: 'Materiál a zboží', href: '/nakup/material' }
-      ]
-    },
-    {
-      id: 'automatizace',
-      name: 'Automatizace',
-      icon: Settings,
-      type: 'section' as const,
-      items: [
-        { id: 'joby', name: 'Joby', href: '/automatizace/joby' },
-        { id: 'hangfire', name: 'Hangfire', href: '/automatizace/hangfire' }
+        { id: 'analyza-skladu', name: 'Analýza skladů', href: '/nakup/analyza-skladu' }
       ]
     }
   ];
