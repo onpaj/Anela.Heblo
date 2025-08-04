@@ -76,6 +76,24 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
     {
         // Return individual purchase records instead of monthly summaries
         var currentDate = _timeProvider.GetUtcNow().Date;
+        
+        // For very high monthsBack values (like 999), return all records without date filtering
+        // to avoid potential issues with very old dates
+        if (monthsBack >= 999)
+        {
+            return catalogItem.PurchaseHistory
+                .OrderByDescending(p => p.Date)
+                .Select(p => new CatalogPurchaseRecordDto
+                {
+                    Date = p.Date,
+                    SupplierName = p.SupplierName,
+                    Amount = p.Amount,
+                    PricePerPiece = p.PricePerPiece,
+                    PriceTotal = p.PriceTotal,
+                    DocumentNumber = p.DocumentNumber
+                }).ToList();
+        }
+        
         var fromDate = currentDate.AddMonths(-monthsBack);
 
         return catalogItem.PurchaseHistory
