@@ -547,7 +547,7 @@ const PurchaseStockAnalysis: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <SortableHeader column={StockAnalysisSortBy.ProductCode} className="text-left">
+                    <SortableHeader column={StockAnalysisSortBy.ProductCode} className="text-left w-40">
                       Produkt
                     </SortableHeader>
                     <SortableHeader column={StockAnalysisSortBy.AvailableStock} className="text-right">
@@ -568,7 +568,7 @@ const PurchaseStockAnalysis: React.FC = () => {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
                       Dny
                     </th>
-                    <SortableHeader column={StockAnalysisSortBy.LastPurchaseDate} className="text-left hidden lg:table-cell">
+                    <SortableHeader column={StockAnalysisSortBy.LastPurchaseDate} className="text-left hidden lg:table-cell w-56">
                       Poslední nákup
                     </SortableHeader>
                   </tr>
@@ -582,7 +582,7 @@ const PurchaseStockAnalysis: React.FC = () => {
                       title="Klikněte pro zobrazení detailu produktu"
                     >
                       {/* Product Info */}
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap w-40">
                         <div className="flex items-center">
                           {/* Color strip based on severity (only when not filtering) */}
                           {getSeverityStripColor(item.severity) && (
@@ -647,7 +647,7 @@ const PurchaseStockAnalysis: React.FC = () => {
                       </td>
 
                       {/* Last Purchase with quantity and price - Hidden on tablet and below */}
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 hidden lg:table-cell">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 hidden lg:table-cell w-56">
                         {item.lastPurchase ? (
                           <div>
                             <div className="font-medium">{new Date(item.lastPurchase.date).toLocaleDateString('cs-CZ')}</div>
@@ -772,6 +772,7 @@ const PurchaseStockAnalysis: React.FC = () => {
         item={selectedProduct}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
+        defaultTab="history"
       />
     </div>
   );

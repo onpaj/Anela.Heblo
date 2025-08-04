@@ -70,13 +70,15 @@ export interface CatalogSalesRecordDto {
 }
 
 export interface CatalogPurchaseRecordDto {
-  year: number;
-  month: number;
+  date: string; // ISO date string
   supplierName: string;
   amount: number;
   pricePerPiece: number;
   priceTotal: number;
   documentNumber: string;
+  // Backward compatibility (derived from date)
+  year?: number;
+  month?: number;
 }
 
 export interface CatalogConsumedRecordDto {

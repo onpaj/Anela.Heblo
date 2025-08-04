@@ -1688,13 +1688,14 @@ export interface ICatalogSalesRecordDto {
 }
 
 export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
-    year?: number;
-    month?: number;
+    date?: Date;
     supplierName?: string;
     amount?: number;
     pricePerPiece?: number;
     priceTotal?: number;
     documentNumber?: string;
+    year?: number;
+    month?: number;
 
     constructor(data?: ICatalogPurchaseRecordDto) {
         if (data) {
@@ -1707,13 +1708,14 @@ export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
 
     init(_data?: any) {
         if (_data) {
-            this.year = _data["year"];
-            this.month = _data["month"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
             this.supplierName = _data["supplierName"];
             this.amount = _data["amount"];
             this.pricePerPiece = _data["pricePerPiece"];
             this.priceTotal = _data["priceTotal"];
             this.documentNumber = _data["documentNumber"];
+            this.year = _data["year"];
+            this.month = _data["month"];
         }
     }
 
@@ -1726,25 +1728,27 @@ export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["year"] = this.year;
-        data["month"] = this.month;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
         data["supplierName"] = this.supplierName;
         data["amount"] = this.amount;
         data["pricePerPiece"] = this.pricePerPiece;
         data["priceTotal"] = this.priceTotal;
         data["documentNumber"] = this.documentNumber;
+        data["year"] = this.year;
+        data["month"] = this.month;
         return data;
     }
 }
 
 export interface ICatalogPurchaseRecordDto {
-    year?: number;
-    month?: number;
+    date?: Date;
     supplierName?: string;
     amount?: number;
     pricePerPiece?: number;
     priceTotal?: number;
     documentNumber?: string;
+    year?: number;
+    month?: number;
 }
 
 export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
