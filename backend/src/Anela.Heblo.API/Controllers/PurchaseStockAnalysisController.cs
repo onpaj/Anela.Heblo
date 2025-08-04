@@ -1,0 +1,40 @@
+using Anela.Heblo.Application.Features.Purchase.Model;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Anela.Heblo.API.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/purchase-stock-analysis")]
+public class PurchaseStockAnalysisController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public PurchaseStockAnalysisController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<GetPurchaseStockAnalysisResponse>> GetStockAnalysis(
+        [FromQuery] GetPurchaseStockAnalysisRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+}

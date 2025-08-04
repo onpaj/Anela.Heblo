@@ -90,6 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'section' as const,
       items: [
         { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/nakup/objednavky' },
+        { id: 'analyza-skladu', name: 'Analýza skladů', href: '/nakup/analyza-skladu' },
         { id: 'material-zbozi', name: 'Materiál a zboží', href: '/nakup/material' }
       ]
     },

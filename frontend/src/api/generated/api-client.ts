@@ -1061,6 +1061,70 @@ export class ApiClient {
         }
         return Promise.resolve<PurchaseOrderHistoryDto[]>(null as any);
     }
+
+    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
+        let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (stockStatus === null)
+            throw new Error("The parameter 'stockStatus' cannot be null.");
+        else if (stockStatus !== undefined)
+            url_ += "StockStatus=" + encodeURIComponent("" + stockStatus) + "&";
+        if (onlyConfigured === null)
+            throw new Error("The parameter 'onlyConfigured' cannot be null.");
+        else if (onlyConfigured !== undefined)
+            url_ += "OnlyConfigured=" + encodeURIComponent("" + onlyConfigured) + "&";
+        if (searchTerm !== undefined && searchTerm !== null)
+            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPurchaseStockAnalysis_GetStockAnalysis(_response);
+        });
+    }
+
+    protected processPurchaseStockAnalysis_GetStockAnalysis(response: Response): Promise<GetPurchaseStockAnalysisResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPurchaseStockAnalysisResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
+    }
 }
 
 export class GetCatalogListResponse implements IGetCatalogListResponse {
@@ -2772,6 +2836,316 @@ export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderSta
 export interface IUpdatePurchaseOrderStatusRequest {
     id?: number;
     status?: string;
+}
+
+export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalysisResponse {
+    items?: StockAnalysisItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    summary?: StockAnalysisSummaryDto;
+
+    constructor(data?: IGetPurchaseStockAnalysisResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(StockAnalysisItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.summary = _data["summary"] ? StockAnalysisSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetPurchaseStockAnalysisResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPurchaseStockAnalysisResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetPurchaseStockAnalysisResponse {
+    items?: StockAnalysisItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    summary?: StockAnalysisSummaryDto;
+}
+
+export class StockAnalysisItemDto implements IStockAnalysisItemDto {
+    productCode?: string;
+    productName?: string;
+    productType?: string;
+    availableStock?: number;
+    minStockLevel?: number;
+    optimalStockLevel?: number;
+    consumptionInPeriod?: number;
+    dailyConsumption?: number;
+    daysUntilStockout?: number | undefined;
+    stockEfficiencyPercentage?: number;
+    severity?: StockSeverity;
+    minimalOrderQuantity?: string;
+    lastPurchase?: LastPurchaseInfoDto | undefined;
+    suppliers?: string[];
+    recommendedOrderQuantity?: number | undefined;
+    isConfigured?: boolean;
+
+    constructor(data?: IStockAnalysisItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productType = _data["productType"];
+            this.availableStock = _data["availableStock"];
+            this.minStockLevel = _data["minStockLevel"];
+            this.optimalStockLevel = _data["optimalStockLevel"];
+            this.consumptionInPeriod = _data["consumptionInPeriod"];
+            this.dailyConsumption = _data["dailyConsumption"];
+            this.daysUntilStockout = _data["daysUntilStockout"];
+            this.stockEfficiencyPercentage = _data["stockEfficiencyPercentage"];
+            this.severity = _data["severity"];
+            this.minimalOrderQuantity = _data["minimalOrderQuantity"];
+            this.lastPurchase = _data["lastPurchase"] ? LastPurchaseInfoDto.fromJS(_data["lastPurchase"]) : <any>undefined;
+            if (Array.isArray(_data["suppliers"])) {
+                this.suppliers = [] as any;
+                for (let item of _data["suppliers"])
+                    this.suppliers!.push(item);
+            }
+            this.recommendedOrderQuantity = _data["recommendedOrderQuantity"];
+            this.isConfigured = _data["isConfigured"];
+        }
+    }
+
+    static fromJS(data: any): StockAnalysisItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockAnalysisItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productType"] = this.productType;
+        data["availableStock"] = this.availableStock;
+        data["minStockLevel"] = this.minStockLevel;
+        data["optimalStockLevel"] = this.optimalStockLevel;
+        data["consumptionInPeriod"] = this.consumptionInPeriod;
+        data["dailyConsumption"] = this.dailyConsumption;
+        data["daysUntilStockout"] = this.daysUntilStockout;
+        data["stockEfficiencyPercentage"] = this.stockEfficiencyPercentage;
+        data["severity"] = this.severity;
+        data["minimalOrderQuantity"] = this.minimalOrderQuantity;
+        data["lastPurchase"] = this.lastPurchase ? this.lastPurchase.toJSON() : <any>undefined;
+        if (Array.isArray(this.suppliers)) {
+            data["suppliers"] = [];
+            for (let item of this.suppliers)
+                data["suppliers"].push(item);
+        }
+        data["recommendedOrderQuantity"] = this.recommendedOrderQuantity;
+        data["isConfigured"] = this.isConfigured;
+        return data;
+    }
+}
+
+export interface IStockAnalysisItemDto {
+    productCode?: string;
+    productName?: string;
+    productType?: string;
+    availableStock?: number;
+    minStockLevel?: number;
+    optimalStockLevel?: number;
+    consumptionInPeriod?: number;
+    dailyConsumption?: number;
+    daysUntilStockout?: number | undefined;
+    stockEfficiencyPercentage?: number;
+    severity?: StockSeverity;
+    minimalOrderQuantity?: string;
+    lastPurchase?: LastPurchaseInfoDto | undefined;
+    suppliers?: string[];
+    recommendedOrderQuantity?: number | undefined;
+    isConfigured?: boolean;
+}
+
+export enum StockSeverity {
+    Critical = 0,
+    Low = 1,
+    Optimal = 2,
+    Overstocked = 3,
+    NotConfigured = 4,
+}
+
+export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {
+    date?: Date;
+    supplierName?: string;
+    amount?: number;
+    unitPrice?: number;
+    totalPrice?: number;
+
+    constructor(data?: ILastPurchaseInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.supplierName = _data["supplierName"];
+            this.amount = _data["amount"];
+            this.unitPrice = _data["unitPrice"];
+            this.totalPrice = _data["totalPrice"];
+        }
+    }
+
+    static fromJS(data: any): LastPurchaseInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LastPurchaseInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["supplierName"] = this.supplierName;
+        data["amount"] = this.amount;
+        data["unitPrice"] = this.unitPrice;
+        data["totalPrice"] = this.totalPrice;
+        return data;
+    }
+}
+
+export interface ILastPurchaseInfoDto {
+    date?: Date;
+    supplierName?: string;
+    amount?: number;
+    unitPrice?: number;
+    totalPrice?: number;
+}
+
+export class StockAnalysisSummaryDto implements IStockAnalysisSummaryDto {
+    totalProducts?: number;
+    criticalCount?: number;
+    lowStockCount?: number;
+    optimalCount?: number;
+    overstockedCount?: number;
+    notConfiguredCount?: number;
+    totalInventoryValue?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+
+    constructor(data?: IStockAnalysisSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalProducts = _data["totalProducts"];
+            this.criticalCount = _data["criticalCount"];
+            this.lowStockCount = _data["lowStockCount"];
+            this.optimalCount = _data["optimalCount"];
+            this.overstockedCount = _data["overstockedCount"];
+            this.notConfiguredCount = _data["notConfiguredCount"];
+            this.totalInventoryValue = _data["totalInventoryValue"];
+            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
+            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): StockAnalysisSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockAnalysisSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalProducts"] = this.totalProducts;
+        data["criticalCount"] = this.criticalCount;
+        data["lowStockCount"] = this.lowStockCount;
+        data["optimalCount"] = this.optimalCount;
+        data["overstockedCount"] = this.overstockedCount;
+        data["notConfiguredCount"] = this.notConfiguredCount;
+        data["totalInventoryValue"] = this.totalInventoryValue;
+        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
+        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IStockAnalysisSummaryDto {
+    totalProducts?: number;
+    criticalCount?: number;
+    lowStockCount?: number;
+    optimalCount?: number;
+    overstockedCount?: number;
+    notConfiguredCount?: number;
+    totalInventoryValue?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+}
+
+export enum StockStatusFilter {
+    All = 0,
+    Critical = 1,
+    Low = 2,
+    Optimal = 3,
+    Overstocked = 4,
+    NotConfigured = 5,
+}
+
+export enum StockAnalysisSortBy {
+    ProductCode = 0,
+    ProductName = 1,
+    AvailableStock = 2,
+    Consumption = 3,
+    StockEfficiency = 4,
+    LastPurchaseDate = 5,
 }
 
 export interface FileResponse {
