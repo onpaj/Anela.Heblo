@@ -31,7 +31,7 @@ public class GetPurchaseStockAnalysisHandlerTests
         var catalogItems = CreateTestCatalogItems();
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
-        
+
         _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
             It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .Returns(StockSeverity.Optimal);

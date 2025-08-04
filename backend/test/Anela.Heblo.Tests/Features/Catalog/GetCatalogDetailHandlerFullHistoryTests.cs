@@ -59,7 +59,7 @@ public class GetCatalogDetailHandlerFullHistoryTests
 
         // Should return ALL 7 purchase records (including very old ones from 2020)
         Assert.Equal(7, result.HistoricalData.PurchaseHistory.Count);
-        
+
         // Verify that we have records spanning multiple years
         var years = result.HistoricalData.PurchaseHistory.Select(p => p.Date.Year).Distinct().ToList();
         Assert.Contains(2024, years);
@@ -105,19 +105,19 @@ public class GetCatalogDetailHandlerFullHistoryTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Should return only records from last 13 months (from 2023-05-15 onwards)
         // This should exclude the very old records from 2020-2022
         var expectedFromDate = currentDate.AddMonths(-13); // 2023-05-15
-        
+
         Assert.All(result.HistoricalData.PurchaseHistory, purchase =>
         {
-            Assert.True(purchase.Date >= expectedFromDate, 
+            Assert.True(purchase.Date >= expectedFromDate,
                 $"Purchase date {purchase.Date} should be >= {expectedFromDate}");
         });
 
         // Should have fewer records than full history
-        Assert.True(result.HistoricalData.PurchaseHistory.Count < 7, 
+        Assert.True(result.HistoricalData.PurchaseHistory.Count < 7,
             "Limited history should have fewer records than full history");
     }
 

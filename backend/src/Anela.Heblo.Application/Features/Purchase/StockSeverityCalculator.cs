@@ -17,10 +17,10 @@ public class StockSeverityCalculator : IStockSeverityCalculator
     /// <param name="isOptimalConfigured">Whether optimal stock level is configured</param>
     /// <returns>Stock severity level</returns>
     public StockSeverity DetermineStockSeverity(
-        double availableStock, 
-        double minStock, 
-        double optimalStock, 
-        bool isMinConfigured, 
+        double availableStock,
+        double minStock,
+        double optimalStock,
+        bool isMinConfigured,
         bool isOptimalConfigured)
     {
         // Not configured - missing min/optimal stock settings
@@ -30,14 +30,14 @@ public class StockSeverityCalculator : IStockSeverityCalculator
         }
 
         // Critical - below minimum OR below 20% of optimal
-        if ((isMinConfigured && availableStock < minStock) || 
+        if ((isMinConfigured && availableStock < minStock) ||
             (isOptimalConfigured && availableStock < optimalStock * CriticalOptimalThresholdMultiplier))
         {
             return StockSeverity.Critical;
         }
 
         // Low - between 20-70% of optimal stock
-        if (isOptimalConfigured && availableStock >= optimalStock * CriticalOptimalThresholdMultiplier && 
+        if (isOptimalConfigured && availableStock >= optimalStock * CriticalOptimalThresholdMultiplier &&
             availableStock < optimalStock * LowOptimalThresholdMultiplier)
         {
             return StockSeverity.Low;

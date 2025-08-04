@@ -1,16 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, RefreshCw, Download, AlertTriangle, TrendingDown, CheckCircle, Package, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, HelpCircle } from 'lucide-react';
+import { Search, RefreshCw, Download, AlertTriangle, TrendingDown, CheckCircle, Package, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, HelpCircle } from 'lucide-react';
 import { 
   usePurchaseStockAnalysisQuery, 
   GetPurchaseStockAnalysisRequest, 
   StockStatusFilter, 
   StockAnalysisSortBy,
-  getSeverityColorClass,
-  getSeverityDisplayText,
   formatNumber,
-  formatCurrency,
-  StockSeverity
+  formatCurrency
 } from '../../api/hooks/usePurchaseStockAnalysis';
+import { StockSeverity } from '../../api/generated/api-client';
 import { CatalogItemDto } from '../../api/hooks/useCatalog';
 import CatalogDetail from './CatalogDetail';
 
@@ -168,15 +166,15 @@ const PurchaseStockAnalysis: React.FC = () => {
   // Get row background color based on severity (subtle coloring)
   const getRowColorClass = (severity: StockSeverity) => {
     switch (severity) {
-      case 'Critical':
+      case StockSeverity.Critical:
         return 'bg-red-50/30 hover:bg-red-50/50';
-      case 'Low':
+      case StockSeverity.Low:
         return 'bg-amber-50/30 hover:bg-amber-50/50';
-      case 'Optimal':
+      case StockSeverity.Optimal:
         return 'bg-emerald-50/30 hover:bg-emerald-50/50';
-      case 'Overstocked':
+      case StockSeverity.Overstocked:
         return 'bg-blue-50/30 hover:bg-blue-50/50';
-      case 'NotConfigured':
+      case StockSeverity.NotConfigured:
         return 'bg-gray-50/30 hover:bg-gray-50/50';
       default:
         return 'hover:bg-gray-50';
@@ -234,15 +232,15 @@ const PurchaseStockAnalysis: React.FC = () => {
     }
     
     switch (severity) {
-      case 'Critical':
+      case StockSeverity.Critical:
         return 'bg-red-500';
-      case 'Low':
+      case StockSeverity.Low:
         return 'bg-amber-500';
-      case 'Optimal':
+      case StockSeverity.Optimal:
         return 'bg-emerald-500';
-      case 'Overstocked':
+      case StockSeverity.Overstocked:
         return 'bg-blue-500';
-      case 'NotConfigured':
+      case StockSeverity.NotConfigured:
         return 'bg-gray-400';
       default:
         return '';

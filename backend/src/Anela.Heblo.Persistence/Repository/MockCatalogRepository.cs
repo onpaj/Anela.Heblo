@@ -53,7 +53,7 @@ public class MockCatalogRepository : ICatalogRepository
             },
             new CatalogAggregate
             {
-                ProductCode = "MAT002", 
+                ProductCode = "MAT002",
                 ProductName = "Speciální komponenta B",
                 Type = ProductType.Material,
                 Stock = new StockData
@@ -108,7 +108,7 @@ public class MockCatalogRepository : ICatalogRepository
             new CatalogAggregate
             {
                 ProductCode = "MAT003",
-                ProductName = "Standardní materiál C", 
+                ProductName = "Standardní materiál C",
                 Type = ProductType.Material,
                 Stock = new StockData
                 {
@@ -237,7 +237,7 @@ public class MockCatalogRepository : ICatalogRepository
         await Task.Delay(10, cancellationToken);
         if (predicate == null)
             return _mockData.Count;
-        
+
         var compiled = predicate.Compile();
         return _mockData.Count(compiled);
     }

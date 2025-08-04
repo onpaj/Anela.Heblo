@@ -55,10 +55,10 @@ describe('Authenticated API Usage', () => {
         }
         
         // Check for fetch calls to API endpoints
+        // Using template string variables (checking for interpolation syntax)
+        const hasTemplateInterpolation = /\$\{(config\.apiUrl|apiUrl)\}/.test(trimmedLine);
         if (trimmedLine.includes('fetch(') && 
-            (trimmedLine.includes('/api/') || 
-             trimmedLine.includes('${config.apiUrl}') ||
-             trimmedLine.includes('${apiUrl}'))) {
+            (trimmedLine.includes('/api/') || hasTemplateInterpolation)) {
           
           // Allow if it's using authenticated client pattern
           const fileContent = fs.readFileSync(file, 'utf-8');

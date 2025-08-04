@@ -17,9 +17,9 @@ public interface IStockSeverityCalculator
     /// <param name="isOptimalConfigured">Whether optimal stock level is configured</param>
     /// <returns>Stock severity level</returns>
     StockSeverity DetermineStockSeverity(
-        double availableStock, 
-        double minStock, 
-        double optimalStock, 
-        bool isMinConfigured, 
+        double availableStock,
+        double minStock,
+        double optimalStock,
+        bool isMinConfigured,
         bool isOptimalConfigured);
 }
