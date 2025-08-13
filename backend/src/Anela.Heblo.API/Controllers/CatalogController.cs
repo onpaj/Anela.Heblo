@@ -128,6 +128,20 @@ public class CatalogController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("refresh/eshop-prices")]
+    public async Task<IActionResult> RefreshEshopPricesData()
+    {
+        await _mediator.Send(new RefreshEshopPricesDataRequest());
+        return NoContent();
+    }
+
+    [HttpPost("refresh/erp-prices")]
+    public async Task<IActionResult> RefreshErpPricesData()
+    {
+        await _mediator.Send(new RefreshErpPricesDataRequest());
+        return NoContent();
+    }
+
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)
     {
