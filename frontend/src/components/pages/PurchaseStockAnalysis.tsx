@@ -606,7 +606,7 @@ const PurchaseStockAnalysis: React.FC = () => {
           ) : (
             <div className="flex-1 overflow-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <SortableHeader column={StockAnalysisSortBy.ProductCode} className="text-left w-40">
                       Produkt

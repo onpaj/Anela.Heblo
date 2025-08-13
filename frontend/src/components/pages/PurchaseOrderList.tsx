@@ -400,48 +400,39 @@ const PurchaseOrderList: React.FC = () => {
         </div>
       </div>
       
-      {/* Pagination - Fixed at bottom */}
+      {/* Pagination - Compact */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 shadow-lg">
+        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(pageNumber - 1)}
               disabled={pageNumber <= 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Předchozí
             </button>
             <button
               onClick={() => handlePageChange(pageNumber + 1)}
               disabled={pageNumber >= totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Další
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm text-gray-700">
-                Zobrazeno{' '}
-                <span className="font-medium">{Math.min((pageNumber - 1) * pageSize + 1, totalCount)}</span>
-                {' '}až{' '}
-                <span className="font-medium">{Math.min(pageNumber * pageSize, totalCount)}</span>
-                {' '}z{' '}
-                <span className="font-medium">{totalCount}</span>
-                {' '}výsledků
+            <div className="flex items-center space-x-3">
+              <p className="text-xs text-gray-600">
+                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
                 {searchTermFilter || statusFilter || fromDateFilter || toDateFilter ? (
-                  <span className="text-gray-500"> (s aplikovanými filtry)</span>
+                  <span className="text-gray-500"> (filtrováno)</span>
                 ) : ''}
               </p>
-              <div className="flex items-center space-x-2">
-                <label htmlFor="pageSize" className="text-sm text-gray-700">
-                  Počet na stránku:
-                </label>
+              <div className="flex items-center space-x-1">
+                <span className="text-xs text-gray-600">Zobrazit:</span>
                 <select
-                  id="pageSize"
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border-gray-300 rounded-md text-sm"
+                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -451,34 +442,33 @@ const PurchaseOrderList: React.FC = () => {
               </div>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="sr-only">Předchozí</span>
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-3 w-3" />
                 </button>
                 
                 {/* Page numbers */}
-                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum: number;
-                  if (totalPages <= 7) {
+                  if (totalPages <= 5) {
                     pageNum = i + 1;
-                  } else if (pageNumber <= 4) {
+                  } else if (pageNumber <= 3) {
                     pageNum = i + 1;
-                  } else if (pageNumber >= totalPages - 3) {
-                    pageNum = totalPages - 6 + i;
+                  } else if (pageNumber >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
                   } else {
-                    pageNum = pageNumber - 3 + i;
+                    pageNum = pageNumber - 2 + i;
                   }
                   
                   return (
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNum === pageNumber
                           ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
                           : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
@@ -492,10 +482,9 @@ const PurchaseOrderList: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="sr-only">Další</span>
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-3 w-3" />
                 </button>
               </nav>
             </div>
