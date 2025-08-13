@@ -70,6 +70,7 @@ const ProductMarginsList: React.FC = () => {
   // Format currency
   const formatCurrency = (value?: number | null) => {
     if (value === null || value === undefined) return '-';
+    if (!isFinite(value)) return '-'; // Handle Infinity, -Infinity, NaN
     return new Intl.NumberFormat('cs-CZ', {
       style: 'currency',
       currency: 'CZK',
@@ -81,12 +82,14 @@ const ProductMarginsList: React.FC = () => {
   // Format percentage
   const formatPercentage = (value?: number | null) => {
     if (value === null || value === undefined) return '-';
+    if (!isFinite(value)) return '-'; // Handle Infinity, -Infinity, NaN
     return `${value.toFixed(2)}%`;
   };
 
   // Get margin color
   const getMarginColor = (margin?: number | null) => {
     if (margin === null || margin === undefined) return 'text-gray-500';
+    if (!isFinite(margin)) return 'text-gray-500'; // Handle Infinity, -Infinity, NaN
     if (margin < 10) return 'text-red-600';
     if (margin < 20) return 'text-orange-600';
     if (margin < 30) return 'text-yellow-600';

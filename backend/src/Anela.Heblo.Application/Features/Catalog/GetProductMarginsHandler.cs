@@ -77,12 +77,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
 
     private static decimal? CalculateMockMargin(decimal? price, decimal? cost, bool isAverage)
     {
-        if (price == null || cost == null || cost == 0) return null;
+        if (price == null || cost == null || cost == 0 || price == 0) return null;
         
         var actualCost = isAverage ? GenerateMockAverageCost(cost) : GenerateMockCost30Days(cost);
         if (actualCost == null || actualCost == 0) return null;
         
         var margin = ((price.Value - actualCost.Value) / price.Value) * 100;
+        
         return Math.Round(margin, 2);
     }
 }

@@ -185,20 +185,24 @@ Since this is currently documentation-only, these are the expected commands base
 ## UI Design System
 
 The frontend follows a Tailwind CSS-based design system with:
-- **Layout**: Foldable sidebar navigation + main content area
+- **Layout**: Full-height sidebar navigation + main content area (no topbar)
 - **Sidebar**: 
+  - **Structure**: App title at top, navigation items in middle, user info + toggle at bottom
   - **Expanded**: `w-64` (256px) with full navigation and text labels
-  - **Collapsed**: `w-16` (64px) with icons only and tooltips
-  - **Toggle**: Via button in sidebar bottom (next to user profile)
-  - **Button location**: Bottom of sidebar - right side when expanded, center when collapsed
+  - **Collapsed**: `w-16` (64px) with app logo, icons only, and tooltips
+  - **Toggle**: Via button in sidebar bottom (next to user info)
+  - **Button location**: Bottom-right when expanded, bottom-center when collapsed
   - **Icons**: `PanelLeftClose` (collapse) / `PanelLeftOpen` (expand)
   - **Animation**: Smooth `transition-all duration-300` for width changes
   - **Content adaptation**: Main content adapts with `md:pl-64` or `md:pl-16`
+- **App Title**: "Anela Heblo" displayed at top of sidebar
+- **User Profile**: Located in sidebar bottom with dropdown menu (login/logout)
+- **Page Layout Standards**: **CRITICAL** - All pages must follow standardized container structure defined in `docs/design/layout_definition.md` (Page Layout Structure Rules)
 - **Colors**: Gray-based palette with indigo accents, emerald success states
 - **Icons**: Lucide React for consistent, modern iconography
 - **Typography**: System fonts with defined hierarchy (XL headings to XS captions)
 - **Components**: Consistent buttons, forms, tables with hover states
-- **Responsiveness**: Mobile-first approach with sidebar collapsing on `md:` breakpoint
+- **Responsiveness**: Mobile-first approach with sidebar overlay on mobile, fixed on desktop
 - **Localization**: Czech language primary, i18next framework
 
 ## OpenAPI Client Generation

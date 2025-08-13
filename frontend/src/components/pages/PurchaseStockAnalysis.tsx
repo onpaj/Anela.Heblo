@@ -275,15 +275,14 @@ const PurchaseStockAnalysis: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 bg-gray-50 px-4 py-6 flex flex-col min-h-0">
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Header */}
-        <div className="mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">Analýza skladových zásob</h1>
-        </div>
+    <div className="flex flex-col h-full">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 mb-3">
+        <h1 className="text-lg font-semibold text-gray-900">Analýza skladových zásob</h1>
+      </div>
 
-        {/* Controls - Single Collapsible Block */}
-        <div className="bg-white rounded-lg shadow mb-3">
+      {/* Controls - Single Collapsible Block */}
+      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
           <div className="p-3 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <button
@@ -587,8 +586,8 @@ const PurchaseStockAnalysis: React.FC = () => {
           )}
         </div>
 
-        {/* Results Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden flex-1 flex flex-col min-h-0">
+      {/* Results Table */}
+      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -818,7 +817,6 @@ const PurchaseStockAnalysis: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
       </div>
 
       {/* Product Detail Modal */}

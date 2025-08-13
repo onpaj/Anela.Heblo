@@ -9,56 +9,40 @@ This document defines the complete layout structure and positioning of UI elemen
 ### Application Shell Layout
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Topbar (64px height)                    │
-│  App Logo                                  [👤] UserMenu    │
-├─────────────────────────────────────────────────────────────┤
 │[◄►]    │                                                    │
 │        │              Main Content Area                     │
-│Sidebar │                                                    │
-│        │         Pages, Components, Forms                   │
+│Anela   │                                                    │
+│Heblo   │         Pages, Components, Forms                   │
+│        │                                                    │
 │Nav     │                                                    │
 │Items   │                                                    │
 │        │                                                    │
 │        │                                                    │
 │        │                                                    │
 │        │                                                    │
+│        │                                                    │
 ├────────┼─────────────────────────────────────────────────────┤
-│Status  │ Anela Heblo v0.1.0  Development  Mock Auth  API:  │ ← Status Bar
-│Bar     │                                            localhost │  (24px height)
+│[👤]    │ Anela Heblo v0.1.0  Development  Mock Auth  API:  │ ← Status Bar
+│User    │                                            localhost │  (24px height)
 └────────┴─────────────────────────────────────────────────────┘
 ```
 
 ### Layout Elements Positioning
 
-#### 1. **Topbar (Header)**
-- **Position**: `fixed top-0 left-0 right-0 z-50`
-- **Height**: `64px` (16 Tailwind units)
-- **Structure**:
-  ```
-  ┌─────────────────────────────────────────────────────────┐
-  │ [☰]  App Logo                           [👤 Profile]   │
-  │ 16px              Flexible               Right-aligned  │
-  └─────────────────────────────────────────────────────────┘
-  ```
-- **Elements**:
-  - **Mobile Menu Button**: `ml-4` (left: 16px) - only visible on mobile
-  - **App Logo/Title**: `ml-4` when no mobile menu, `ml-2` when menu present
-  - **User Profile Menu**: Right-aligned with `mr-4` (right: 16px)
-    - User profile dropdown `[👤]` with login/logout functionality
-
-#### 2. **Sidebar (Navigation)**
-- **Position**: `fixed left-0 top-16 bottom-0` (below topbar)
-- **Z-index**: `z-40` (below topbar)
+#### 1. **Sidebar (Navigation)**
+- **Position**: `fixed left-0 top-0 bottom-0` (full height)
+- **Z-index**: `z-40`
 - **States**:
   - **Expanded**: `w-64` (256px width)
   - **Collapsed**: `w-16` (64px width)
 - **Behavior**:
   - **Auto-expand on navigation**: Clicking any menu item in collapsed state automatically expands sidebar
-  - **Manual toggle**: Users can manually collapse/expand using toggle button at bottom
+  - **Manual toggle**: Users can manually collapse/expand using toggle button
 - **Structure**:
   ```
   Expanded (256px):
   ┌─────────────────────────┐
+  │ Anela Heblo             │ ← App title at top
   │ 🏠 Dashboard            │
   │ 📊 Analytics            │
   │ 🛍️ Katalog              │
@@ -69,12 +53,13 @@ This document defines the complete layout structure and positioning of UI elemen
   │                         │
   │        (flex-grow)      │
   │ ┌─────────────────────┐ │
-  │ │              [◄]   │ │ ← Toggle button at bottom
+  │ │ [👤] Jan Novák  [◄] │ │ ← User + Toggle at bottom
   │ └─────────────────────┘ │
   └─────────────────────────┘
   
   Collapsed (64px):
   ┌─────┐
+  │  A  │ ← App logo/initial
   │ 🏠  │
   │ 📊  │
   │ 🛍️  │
@@ -83,19 +68,19 @@ This document defines the complete layout structure and positioning of UI elemen
   │ 📋  │
   │ 🧾  │
   │     │
-  │     │
-  │ [►] │ ← Toggle button at bottom
+  │[👤]│ ← User icon
+  │ [►] │ ← Toggle button
   └─────┘
   ```
 
-#### 3. **Main Content Area**
+#### 2. **Main Content Area**
 - **Position**: `ml-64` (expanded sidebar) or `ml-16` (collapsed sidebar)
-- **Top Offset**: `mt-16` (below 64px topbar)
+- **Top Offset**: No top offset needed (no topbar)
 - **Bottom Offset**: `mb-6` (above 24px status bar - small margin only)
 - **Padding**: `p-6` (24px all sides)
 - **Max Width**: `max-w-7xl mx-auto` (centered, max 1280px)
 
-#### 4. **Status Bar**
+#### 3. **Status Bar**
 - **Position**: `fixed bottom-0 left-64 right-0 z-10` (beside sidebar, not full width)
 - **Position when sidebar collapsed**: `fixed bottom-0 left-16 right-0 z-10`
 - **Height**: `24px` (6 Tailwind units, not 32px)
@@ -127,9 +112,6 @@ This document defines the complete layout structure and positioning of UI elemen
 ### Mobile Application Shell
 ```
 ┌─────────────────────────────────┐
-│        Topbar (64px)            │
-│ [☰] App Name            [👤]   │
-├─────────────────────────────────┤
 │                                 │
 │                                 │
 │         Main Content            │
@@ -138,14 +120,16 @@ This document defines the complete layout structure and positioning of UI elemen
 │                                 │
 │                                 │
 │                                 │
+│                                 │
 ├─────────────────────────────────┤
 │ Anela Heblo v0.1.0  Dev  Mock  │ ← Status Bar (24px, full width on mobile)
 └─────────────────────────────────┘
 
-[Sidebar Overlay - Hidden by default]
+[Sidebar Overlay - Hidden by default, triggered by swipe or floating button]
 ┌─────────────────┐
-│ 🏠 Dashboard    │ ← Slide-in from left
-│ 📊 Analytics    │   when hamburger tapped
+│ Anela Heblo     │ ← App title at top
+│ 🏠 Dashboard    │
+│ 📊 Analytics    │
 │ 🛍️ Katalog      │
 │ 🏭 Výroba       │
 │ 🚚 Doprava      │
@@ -153,43 +137,46 @@ This document defines the complete layout structure and positioning of UI elemen
 │ 🧾 Faktury      │
 │                 │
 │                 │
-│                 │
+│ [👤] Jan Novák  │ ← User info at bottom
 └─────────────────┘
 ```
 
 ### Mobile Layout Elements
 
-#### 1. **Mobile Topbar**
-- **Height**: Same as desktop `64px`
-- **Structure**:
-  ```
-  ┌─────────────────────────────────────┐
-  │ [☰] App Name                 [👤] │
-  │ 16px  Flexible        Right-aligned │
-  └─────────────────────────────────────┘
-  ```
-- **Elements**:
-  - **Hamburger Menu**: `ml-4` - opens sidebar overlay
-  - **App Title**: Centered or left-aligned after hamburger
-  - **User Profile Menu**: Right-aligned user profile with login/logout
-
-#### 2. **Mobile Sidebar (Overlay)**
+#### 1. **Mobile Sidebar (Overlay)**
 - **Position**: `fixed inset-y-0 left-0 z-50`
 - **Width**: `w-64` (256px) - same as desktop expanded
 - **Behavior**: 
   - Hidden by default (`-translate-x-full`)
-  - Slides in when hamburger is tapped (`translate-x-0`)
+  - Slides in when triggered by swipe gesture or floating menu button
   - Backdrop overlay with `bg-black/50`
+  - Contains app title at top and user info at bottom
 - **Animation**: `transition-transform duration-300`
+- **Structure**:
+  ```
+  ┌─────────────────────────┐
+  │ Anela Heblo             │ ← App title at top
+  │ 🏠 Dashboard            │
+  │ 📊 Analytics            │
+  │ 🛍️ Katalog              │
+  │ 🏭 Výroba               │
+  │ 🚚 Doprava              │
+  │ 📋 Nákup                │
+  │ 🧾 Faktury              │
+  │                         │
+  │        (flex-grow)      │
+  │ [👤] Jan Novák          │ ← User info at bottom
+  └─────────────────────────┘
+  ```
 
-#### 3. **Mobile Main Content**
+#### 2. **Mobile Main Content**
 - **Position**: Full width `w-full`
-- **Top Offset**: `mt-16` (below topbar)
+- **Top Offset**: No top offset (no topbar)
 - **Bottom Offset**: `mb-6` (above 24px status bar - small margin only)
 - **Padding**: Reduced padding `p-4` (16px)
 - **No left margin** (sidebar is overlay, not fixed)
 
-#### 4. **Mobile Status Bar**
+#### 3. **Mobile Status Bar**
 - **Position**: `fixed bottom-0 left-0 right-0 z-10` (full width on mobile)
 - **Height**: `24px` (6 Tailwind units)
 - **Content** (condensed for mobile):
@@ -204,9 +191,9 @@ This document defines the complete layout structure and positioning of UI elemen
 
 ### Element Hierarchy & Z-Index
 ```
-z-50: Topbar (highest)
+z-50: Mobile sidebar overlay (highest)
 z-40: Sidebar (desktop fixed)  
-z-30: Status Bar + Mobile sidebar overlay + backdrop
+z-30: Status Bar + backdrop
 z-20: Modal dialogs
 z-10: Dropdown menus, tooltips
 z-0:  Main content (lowest)
@@ -234,18 +221,19 @@ Each nav item (48px height):
 - **Toggle button**: Independent control for manual expand/collapse
 - **Responsive**: On tablet/desktop only (mobile uses overlay)
 
-### Sidebar Toggle Component Layout
+### Sidebar Bottom Component Layout
 ```
 Expanded sidebar (bottom):
 ┌─────────────────────────┐
 │                         │
-│                    [◄] │ ← 48px height, collapse button at bottom
+│ [👤] Jan Novák     [◄] │ ← User info + collapse button at bottom
 └─────────────────────────┘
 
 Collapsed sidebar (bottom):
 ┌─────┐
 │     │
-│ [►] │ ← 48px height, expand button at bottom
+│[👤] │ ← User icon
+│ [►] │ ← Expand button
 └─────┘
 ```
 
@@ -271,22 +259,22 @@ Environment Badge Colors:
 
 ### User Profile Menu Layout
 ```
-Desktop (in topbar, right-aligned):
+Desktop (in sidebar bottom, left side):
 ┌─────────────────────────────┐
-│ [👤] Jan Novák        [▼]  │ ← User dropdown menu
+│ [👤] Jan Novák        [▼]  │ ← User dropdown menu in sidebar bottom
 └─────────────────────────────┘
 
-When clicked - dropdown menu:
+When clicked - dropdown menu (above user area):
 ┌─────────────────────────────┐
 │ Profile Settings            │
 ├─────────────────────────────┤
 │ Sign out                    │ 
 └─────────────────────────────┘
 
-Mobile (in topbar, right-aligned):
-┌─────────────────┐
-│ [👤]      [▼]  │ ← Condensed user menu
-└─────────────────┘
+Mobile (in sidebar overlay bottom):
+┌─────────────────────────────┐
+│ [👤] Jan Novák        [▼]  │ ← User info in sidebar overlay
+└─────────────────────────────┘
 ```
 
 ---
@@ -325,10 +313,10 @@ Mobile (in topbar, right-aligned):
 ### Element Visibility Rules
 | Element | Mobile | Tablet | Desktop |
 |---------|--------|--------|---------|
-| Hamburger Menu | ✅ Visible | ❌ Hidden | ❌ Hidden |
+| App Title | ✅ In Sidebar | ✅ In Sidebar | ✅ In Sidebar |
 | Sidebar Fixed | ❌ Hidden | ✅ Visible | ✅ Visible |
 | Sidebar Overlay | ✅ Available | ❌ Hidden | ❌ Hidden |
-| User Profile Menu | ✅ In Topbar | ✅ In Topbar | ✅ In Topbar |
+| User Profile Menu | ✅ In Sidebar | ✅ In Sidebar | ✅ In Sidebar |
 | Sidebar Toggle | ❌ Hidden | ✅ In Sidebar | ✅ In Sidebar |
 
 ---
@@ -336,17 +324,66 @@ Mobile (in topbar, right-aligned):
 ## 5. 🎨 Layout Styling Specifications
 
 ### Colors & Visual Hierarchy
-- **Topbar**: `bg-white border-b border-gray-200 shadow-sm`
 - **Sidebar**: `bg-white border-r border-gray-200 shadow-sm`
-- **Main Content**: `bg-gray-50` (light background)
+- **Main Content**: `bg-gray-50` (light background, no white container)
 - **Active Nav Item**: `bg-blue-50 text-blue-600 border-r-2 border-blue-600`
+- **App Title**: `text-lg font-semibold text-gray-900`
+- **User Area**: `border-t border-gray-200` (top border separation)
 
 ### Spacing & Dimensions
-- **Topbar Height**: `64px` (h-16)
 - **Sidebar Width**: `256px` expanded (w-64), `64px` collapsed (w-16)
-- **Content Padding**: Desktop `24px` (p-6), Mobile `16px` (p-4)
+- **Content Padding**: Desktop `16px` (p-4), Mobile `12px` (p-3) - direct on background
 - **Nav Item Height**: `48px` (h-12)
 - **Icon Size**: `20px` (w-5 h-5) in navigation
+- **App Title Height**: `64px` (h-16) at top of sidebar
+- **User Area Height**: `64px` (h-16) at bottom of sidebar
+
+### Page Layout Structure Rules
+
+**MANDATORY: All pages MUST follow this standardized structure for consistency:**
+
+#### Standard Page Container Pattern
+```tsx
+<div className="flex flex-col h-full">
+  {/* Header - Fixed */}
+  <div className="flex-shrink-0 mb-3">
+    <h1 className="text-lg font-semibold text-gray-900">Page Title</h1>
+  </div>
+
+  {/* Filters/Controls - Fixed (optional) */}
+  <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+    {/* Filter components */}
+  </div>
+
+  {/* Main Content - Scrollable */}
+  <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+    {/* Scrollable content area */}
+  </div>
+</div>
+```
+
+#### Container Class Requirements
+- **Main Container**: `flex flex-col h-full` - Full height flex container
+- **Header Section**: `flex-shrink-0 mb-3` - Fixed header with 12px bottom margin
+- **Filter Section**: `flex-shrink-0 mb-4` - Fixed filters with 16px bottom margin
+- **Content Section**: `flex-1 min-h-0` - Flexible scrollable content area
+
+#### Spacing Standards
+- **Header Margin**: `mb-3` (12px) - Consistent across all pages
+- **Filter Margin**: `mb-4` (16px) - When filters are present
+- **Filter Padding**: `p-4` (16px) - Internal filter container padding
+- **NO additional padding**: Main container has no internal padding - content uses Layout padding only
+
+#### Background & Styling
+- **Main Background**: Inherit from Layout (`bg-gray-50`)
+- **Content Containers**: `bg-white shadow rounded-lg` - White cards with subtle shadow
+- **Headers**: `text-lg font-semibold text-gray-900` - Consistent typography
+
+#### Common Anti-Patterns to AVOID
+- ❌ **Double padding**: Never add `px-4 py-6` or similar to main page container
+- ❌ **Inconsistent margins**: Always use `mb-3` for headers, `mb-4` for filters
+- ❌ **Fixed height content**: Use `flex-1 min-h-0` for scrollable areas
+- ❌ **Missing container structure**: Always use the three-tier structure (header/filters/content)
 
 ### Animation Specifications
 - **Sidebar Toggle**: `transition-all duration-300 ease-in-out`
@@ -359,18 +396,18 @@ Mobile (in topbar, right-aligned):
 
 This layout definition establishes the precise positioning and behavior of all UI elements:
 
-- **Topbar**: Fixed header with app logo and user profile menu (login/logout)
-- **Sidebar**: Collapsible navigation (fixed on desktop, overlay on mobile) with toggle button only
-- **Main Content**: Responsive content area that adapts to sidebar state
-- **User Profile**: Located in topbar with dropdown menu for all screen sizes
-- **Mobile Adaptations**: Overlay sidebar and condensed topbar layout
+- **Sidebar**: Full-height collapsible navigation (fixed on desktop, overlay on mobile) containing app title, navigation, user info, and toggle button
+- **Main Content**: Responsive content area that adapts to sidebar state, no top offset needed
+- **User Profile**: Located in sidebar bottom with dropdown menu for all screen sizes
+- **Mobile Adaptations**: Overlay sidebar triggered by swipe gesture or floating button
 
-Key changes:
-- Search functionality removed from topbar
-- Settings button removed from topbar  
-- User profile/login moved from sidebar to topbar (right-aligned)
-- Sidebar contains only navigation items and collapse/expand toggle
-- Sidebar toggle button positioned at bottom of sidebar
+Key changes from previous layout:
+- **Topbar completely removed** - no header bar at top of application
+- **App title moved to sidebar top** - "Anela Heblo" displayed at top of sidebar
+- **User profile/login moved to sidebar bottom** - replaces previous topbar location
+- **Main content extends to full height** - no top margin/offset needed
+- **Sidebar contains all UI elements**: app title, navigation, user info, and toggle button
+- **Mobile sidebar overlay** includes app title and user info, same as desktop
 - Auto-expand behavior: clicking menu items in collapsed sidebar expands it
 
 All measurements use Tailwind CSS units for consistent implementation across the application.
