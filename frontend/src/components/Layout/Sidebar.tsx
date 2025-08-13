@@ -8,17 +8,20 @@ import {
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Menu
 } from 'lucide-react';
+import UserProfile from '../auth/UserProfile';
 
 interface SidebarProps {
   isOpen: boolean;
   isCollapsed: boolean;
   onClose: () => void;
   onToggleCollapse: () => void;
+  onMenuClick: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty']);
 
@@ -81,11 +84,41 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 
       {/* Sidebar */}
       <div className={`
-        fixed top-16 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
+        fixed top-0 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
         ${isCollapsed ? 'w-16' : 'w-64'}
       `}>
         <div className="flex flex-col h-full">
+          {/* App Title / Mobile Menu */}
+          <div className={`${isCollapsed ? 'h-16 px-2' : 'h-16 px-4'} flex items-center border-b border-gray-200`}>
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between w-full">
+                {/* Mobile menu button - only visible on mobile */}
+                <button
+                  type="button"
+                  className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary"
+                  onClick={onMenuClick}
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+                
+                {/* App Title */}
+                <div className="flex items-center md:justify-start justify-center flex-1">
+                  <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">AH</span>
+                  </div>
+                  <span className="ml-3 text-lg font-semibold text-gray-900">Anela Heblo</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-full">
+                <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Navigation */}
           <nav className={`flex-1 py-4 ${isCollapsed ? 'px-2' : 'px-3'}`}>
             <div className="space-y-1">
@@ -215,20 +248,37 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
             </div>
           </nav>
 
-          {/* Toggle button at bottom */}
-          <div className={`h-12 border-t border-gray-200 ${isCollapsed ? 'px-2' : 'px-3'} flex items-center ${isCollapsed ? 'justify-center' : 'justify-end'}`}>
-            <button
-              type="button"
-              className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-              onClick={onToggleCollapse}
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
-            </button>
+          {/* User Profile and Toggle button at bottom */}
+          <div className={`border-t border-gray-200 ${isCollapsed ? 'px-2' : 'px-3'} flex flex-col`}>
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between h-16 py-2">
+                <div className="flex-1 min-w-0">
+                  <UserProfile />
+                </div>
+                <button
+                  type="button"
+                  className="hidden md:flex p-1.5 ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
+                  onClick={onToggleCollapse}
+                  title="Collapse sidebar"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-2 space-y-2">
+                <div className="w-full flex justify-center">
+                  <UserProfile compact />
+                </div>
+                <button
+                  type="button"
+                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  onClick={onToggleCollapse}
+                  title="Expand sidebar"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

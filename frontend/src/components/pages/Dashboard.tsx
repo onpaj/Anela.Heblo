@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useRecentAuditLogs, useRecentAuditSummary } from '../../api/hooks/useAudit';
-import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database } from 'lucide-react';
+import { useManualCatalogRefresh, refreshOperations } from '../../api/hooks/useManualCatalogRefresh';
+import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [currentRefreshOperation, setCurrentRefreshOperation] = useState<string | null>(null);
   
   const { 
     data: auditLogs, 
@@ -16,6 +18,23 @@ const Dashboard: React.FC = () => {
     isLoading: isSummaryLoading, 
     error: summaryError 
   } = useRecentAuditSummary();
+
+  const manualRefreshMutation = useManualCatalogRefresh();
+
+  const handleManualRefresh = async (methodName: string, operationKey: string) => {
+    setCurrentRefreshOperation(operationKey);
+    
+    try {
+      await manualRefreshMutation.mutateAsync(methodName);
+      // Optionally refresh audit data after successful operation
+      // You could add success notification here
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+      // You could add error notification here
+    } finally {
+      setCurrentRefreshOperation(null);
+    }
+  };
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString('cs-CZ', {
@@ -121,6 +140,17 @@ const Dashboard: React.FC = () => {
           >
             <Database className="w-4 h-4 inline mr-2" />
             Audit logy
+          </button>
+          <button
+            onClick={() => setActiveTab('manual-refresh')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'manual-refresh'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Settings className="w-4 h-4 inline mr-2" />
+            Manuální načítání
           </button>
         </nav>
       </div>
@@ -370,6 +400,84 @@ const Dashboard: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Refresh Tab */}
+      {activeTab === 'manual-refresh' && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Manuální načítání dat
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Spustit načítání jednotlivých typů dat z externích zdrojů
+            </p>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {refreshOperations.map((operation) => (
+                <div key={operation.key} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                      {operation.name}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      {operation.description}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleManualRefresh(operation.methodName, operation.key)}
+                    disabled={currentRefreshOperation === operation.key || manualRefreshMutation.isPending}
+                    className={`w-full inline-flex items-center justify-center px-3 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                      currentRefreshOperation === operation.key
+                        ? 'border-indigo-300 text-indigo-700 bg-indigo-50 cursor-not-allowed'
+                        : manualRefreshMutation.isPending
+                        ? 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
+                        : 'border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50'
+                    }`}
+                  >
+                    {currentRefreshOperation === operation.key ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Načítá...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Načíst
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            {/* Status Messages */}
+            {manualRefreshMutation.isError && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center">
+                  <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+                  <h4 className="text-red-800 font-medium">Chyba při načítání dat</h4>
+                </div>
+                <p className="mt-1 text-red-700 text-sm">
+                  {manualRefreshMutation.error?.message || 'Neznámá chyba'}
+                </p>
+              </div>
+            )}
+            
+            {manualRefreshMutation.isSuccess && !currentRefreshOperation && (
+              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 mr-2" />
+                  <h4 className="text-emerald-800 font-medium">Data úspěšně načtena</h4>
+                </div>
+                <p className="mt-1 text-emerald-700 text-sm">
+                  Operace byla dokončena úspěšně.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import TopBar from './TopBar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,19 +18,15 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
         isCollapsed={sidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      
-      {/* Top bar */}
-      <TopBar 
         onMenuClick={() => setSidebarOpen(true)}
       />
       
       {/* Main content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 pt-16 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'} min-h-0`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'} min-h-0`}>
         {/* Page content */}
         <main className="flex-1 relative overflow-hidden">
-          <div className="h-full p-6 bg-gray-50 flex flex-col">
-            <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-7xl mx-auto w-full flex flex-col min-h-0">
+          <div className="h-full p-3 md:p-4 bg-gray-50 flex flex-col">
+            <div className="flex-1 max-w-7xl mx-auto w-full flex flex-col min-h-0">
               {children}
             </div>
           </div>
