@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  TrendingUp,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -19,7 +20,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty']);
 
   // Navigation sections - only implemented pages
   const navigationSections = [
@@ -45,6 +46,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       items: [
         { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/nakup/objednavky' },
         { id: 'analyza-skladu', name: 'Analýza skladů', href: '/nakup/analyza-skladu' }
+      ]
+    },
+    {
+      id: 'produkty',
+      name: 'Produkty',
+      icon: TrendingUp,
+      type: 'section' as const,
+      items: [
+        { id: 'marze-produktu', name: 'Marže produktů', href: '/produkty/marze' }
       ]
     }
   ];

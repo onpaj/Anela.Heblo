@@ -58,7 +58,8 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             analysisItems = analysisItems
                 .Where(i => i.ProductCode.ToLower().Contains(searchTerm) ||
                            i.ProductName.ToLower().Contains(searchTerm) ||
-                           i.Suppliers.Any(s => s.ToLower().Contains(searchTerm)))
+                           i.Suppliers.Any(s => s.ToLower().Contains(searchTerm)) ||
+                           (i.LastPurchase?.SupplierName?.ToLower().Contains(searchTerm) ?? false))
                 .ToList();
         }
 

@@ -801,6 +801,52 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetProductMarginsResponse> {
+        let url_ = this.baseUrl + "/api/ProductMargins?";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (productName !== undefined && productName !== null)
+            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processProductMargins_GetProductMargins(_response);
+        });
+    }
+
+    protected processProductMargins_GetProductMargins(response: Response): Promise<GetProductMarginsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductMarginsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductMarginsResponse>(null as any);
+    }
+
     purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders?";
         if (searchTerm !== undefined && searchTerm !== null)
@@ -1949,6 +1995,130 @@ export interface IGetConfigurationResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+}
+
+export class GetProductMarginsResponse implements IGetProductMarginsResponse {
+    items?: ProductMarginDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetProductMarginsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ProductMarginDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static fromJS(data: any): GetProductMarginsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductMarginsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        return data;
+    }
+}
+
+export interface IGetProductMarginsResponse {
+    items?: ProductMarginDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class ProductMarginDto implements IProductMarginDto {
+    productCode?: string;
+    productName?: string;
+    priceWithVat?: number | undefined;
+    purchasePrice?: number | undefined;
+    averageCost?: number | undefined;
+    cost30Days?: number | undefined;
+    averageMargin?: number | undefined;
+    margin30Days?: number | undefined;
+
+    constructor(data?: IProductMarginDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.priceWithVat = _data["priceWithVat"];
+            this.purchasePrice = _data["purchasePrice"];
+            this.averageCost = _data["averageCost"];
+            this.cost30Days = _data["cost30Days"];
+            this.averageMargin = _data["averageMargin"];
+            this.margin30Days = _data["margin30Days"];
+        }
+    }
+
+    static fromJS(data: any): ProductMarginDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductMarginDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["priceWithVat"] = this.priceWithVat;
+        data["purchasePrice"] = this.purchasePrice;
+        data["averageCost"] = this.averageCost;
+        data["cost30Days"] = this.cost30Days;
+        data["averageMargin"] = this.averageMargin;
+        data["margin30Days"] = this.margin30Days;
+        return data;
+    }
+}
+
+export interface IProductMarginDto {
+    productCode?: string;
+    productName?: string;
+    priceWithVat?: number | undefined;
+    purchasePrice?: number | undefined;
+    averageCost?: number | undefined;
+    cost30Days?: number | undefined;
+    averageMargin?: number | undefined;
+    margin30Days?: number | undefined;
 }
 
 export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {

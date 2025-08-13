@@ -163,6 +163,42 @@ Tablet: 768px+
 Desktop: 1024px+
 Large: 1200px+
 
+## Pagination Component Standards
+
+### Compact Pagination Design
+All data tables and list views should use consistent, space-efficient pagination:
+
+**Container Styling:**
+```css
+padding: 8px 12px (py-2 px-3)
+font-size: 12px (text-xs)
+background: #FFFFFF
+border-top: 1px solid #E2E8F0
+```
+
+**Information Display:**
+- Format: "1-20 z 150" (compact format instead of verbose text)
+- Color: #6B7280 (text-gray-600)
+- Include filter indicator when applicable: "(filtrováno)"
+
+**Navigation Controls:**
+- Page size selector: Compact dropdown with options 10, 20, 50, 100
+- Navigation arrows: 12px icons (h-3 w-3) with minimal padding (px-1 py-1)
+- Page numbers: Maximum 5 visible pages, compact padding (px-2 py-1)
+- Active page: #EFF6FF background with #2563EB border and text
+
+**Responsive Behavior:**
+- Mobile: Show only Previous/Next buttons
+- Desktop: Full pagination with page numbers and controls
+
+**Implementation Guidelines:**
+- Always use `text-xs` font size throughout pagination
+- Maintain consistent spacing with `space-x-3` between elements
+- Use semantic navigation with proper ARIA labels
+- Ensure proper disabled states with `opacity-50` and `cursor-not-allowed`
+
+This standardized approach ensures consistent user experience across all data-heavy interfaces while maximizing screen space for actual content.
+
 
 
 This design system prioritizes clarity and efficiency for logistics and manufacturing workflows while maintaining the clean, tech-forward aesthetic with strategic blue accents throughout the cosmetics ERP platform.

@@ -28,10 +28,41 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
         {
             csv.Context.RegisterClassMap<ProductPriceImportMap>();
-            priceList = csv.GetRecords<ProductPriceEshop>().ToList();
-        }
 
-        // Removed OriginalPrice and OriginalPurchasePrice assignments as these properties don't exist in simplified model
+            // Read records and calculate PriceWithoutVat
+            var rawRecords = csv.GetRecords<ProductPriceImportRecord>().ToList();
+
+            foreach (var record in rawRecords)
+            {
+                var product = new ProductPriceEshop
+                {
+                    ProductCode = record.ProductCode,
+                    PriceWithVat = record.PriceWithVat,
+                    PurchasePrice = record.PurchasePrice
+                };
+
+                // Calculate PriceWithoutVat based on VAT information
+                // Only calculate if we have all required values AND they are valid
+                if (record.PriceWithVat.HasValue && record.PercentVat.HasValue && record.IncludingVat.HasValue && record.PercentVat.Value >= 0)
+                {
+                    if (record.IncludingVat == true)
+                    {
+                        // Price includes VAT, calculate price without VAT
+                        product.PriceWithoutVat = record.PriceWithVat.Value / (1 + record.PercentVat.Value / 100);
+                    }
+                    else if (record.IncludingVat == false)
+                    {
+                        // Price doesn't include VAT, so price without VAT is the same as PriceWithVat
+                        product.PriceWithoutVat = record.PriceWithVat.Value;
+                        // And we need to update PriceWithVat to include VAT
+                        product.PriceWithVat = record.PriceWithVat.Value * (1 + record.PercentVat.Value / 100);
+                    }
+                    // If IncludingVat is null or invalid, don't calculate anything
+                }
+
+                priceList.Add(product);
+            }
+        }
 
         return priceList;
     }
@@ -72,7 +103,16 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         return tempFile;
     }
 
-    private class ProductPriceImportMap : ClassMap<ProductPriceEshop>
+    private class ProductPriceImportRecord
+    {
+        public string ProductCode { get; set; } = string.Empty;
+        public decimal? PriceWithVat { get; set; }
+        public decimal? PurchasePrice { get; set; }
+        public bool? IncludingVat { get; set; }
+        public decimal? PercentVat { get; set; }
+    }
+
+    private class ProductPriceImportMap : ClassMap<ProductPriceImportRecord>
     {
         public ProductPriceImportMap()
         {
@@ -94,6 +134,22 @@ public class ShoptetPriceClient : IProductPriceEshopClient
                     return null;
                 return decimal.TryParse(fieldValue.Replace(",", "."), NumberStyles.Number, CultureInfo.InvariantCulture, out var result) ? (decimal?)result : null;
             });
+
+            // Map new columns - assuming they're at indices 5 and 6
+            Map(m => m.IncludingVat).Convert(a =>
+            {
+                var fieldValue = a.Row.GetField(5);
+                if (string.IsNullOrWhiteSpace(fieldValue))
+                    return null;
+                return bool.TryParse(fieldValue, out var result) ? (bool?)result : null;
+            });
+            Map(m => m.PercentVat).Convert(a =>
+            {
+                var fieldValue = a.Row.GetField(6);
+                if (string.IsNullOrWhiteSpace(fieldValue))
+                    return null;
+                return decimal.TryParse(fieldValue.Replace(",", "."), NumberStyles.Number, CultureInfo.InvariantCulture, out var result) ? (decimal?)result : null;
+            });
         }
     }
 
@@ -103,7 +159,8 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         {
             Map(m => m.ProductCode).Index(0);
             Map(m => m.PriceWithVat).Index(1);
-            Map(m => m.PurchasePrice).Index(2);
+            Map(m => m.PriceWithoutVat).Index(2);
+            Map(m => m.PurchasePrice).Index(3);
         }
     }
 }
