@@ -353,6 +353,7 @@ const CatalogList: React.FC = () => {
               <div className="flex items-center space-x-1">
                 <span className="text-xs text-gray-600">Zobrazit:</span>
                 <select
+                  id="pageSize"
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                   className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"

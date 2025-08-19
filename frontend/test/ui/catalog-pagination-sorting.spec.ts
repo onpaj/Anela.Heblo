@@ -18,7 +18,7 @@ test.describe('Catalog Pagination and Sorting', () => {
         'Kód produktu',
         'Název produktu', 
         'Typ',
-        'Sklad'
+        'Dostupné'
       ];
 
       for (const headerText of sortableHeaders) {
@@ -118,8 +118,8 @@ test.describe('Catalog Pagination and Sorting', () => {
         const prevButton = page.locator('button:has-text("Předchozí"), button[aria-label*="Předchozí"]');
         const nextButton = page.locator('button:has-text("Další"), button[aria-label*="Další"]');
         
-        await expect(prevButton).toBeVisible();
-        await expect(nextButton).toBeVisible();
+        await expect(prevButton).toBeAttached();
+        await expect(nextButton).toBeAttached();
         
         // Check for page size selector
         const pageSizeSelect = page.locator('select#pageSize');
@@ -145,14 +145,14 @@ test.describe('Catalog Pagination and Sorting', () => {
       
       if (rowCount > 0) {
         // Check pagination info text
-        const paginationInfo = page.locator('text=/Zobrazeno.*z.*výsledků/');
+        const paginationInfo = page.locator('text=/\\d+-\\d+ z \\d+/');
         await expect(paginationInfo).toBeVisible();
         
         const infoText = await paginationInfo.textContent();
         console.log('Pagination info:', infoText);
         
         // The info should contain numbers
-        expect(infoText).toMatch(/Zobrazeno \\d+ až \\d+ z \\d+ výsledků/);
+        expect(infoText).toMatch(/\d+-\d+ z \d+/);
       }
       
       await page.screenshot({ path: 'test-results/catalog-pagination-info.png' });

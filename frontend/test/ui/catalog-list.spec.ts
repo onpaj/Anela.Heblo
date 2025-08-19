@@ -69,7 +69,7 @@ test.describe('CatalogList Page', () => {
       await expect(page.locator('th:has-text("Kód produktu")')).toBeVisible();
       await expect(page.locator('th:has-text("Název produktu")')).toBeVisible();
       await expect(page.locator('th:has-text("Typ")')).toBeVisible();
-      await expect(page.locator('th:has-text("Sklad")')).toBeVisible();
+      await expect(page.locator('th:has-text("Dostupné")')).toBeVisible();
       
       // Check if there are any rows
       const tableRows = page.locator('tbody tr');

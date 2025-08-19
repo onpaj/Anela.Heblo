@@ -57,7 +57,7 @@ echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
 sleep 8
 
 # Quick health check (no waiting on failure)
-if ! curl -s http://localhost:5001/health > /dev/null 2>&1; then
+if ! curl -s http://localhost:5001/health/live > /dev/null 2>&1; then
     echo -e "${RED}❌ Backend failed to start${NC}"
     cleanup_and_exit 1
 fi
