@@ -52,7 +52,7 @@ const productTypeColors: Record<ProductType, string> = {
 const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, defaultTab = 'basic' }) => {
   const [activeTab, setActiveTab] = useState<'basic' | 'history'>(defaultTab);
   const [showFullHistory, setShowFullHistory] = useState(false);
-  const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('input');
+  const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
 
   // Fetch detailed data from API - use 13 months by default, 999 for full history
   const monthsBack = showFullHistory ? 999 : 13;
@@ -63,7 +63,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
     if (isOpen) {
       setActiveTab(defaultTab);
       setShowFullHistory(false);
-      setActiveChartTab('input');
+      setActiveChartTab('output'); // Default to output tab (sales/consumption)
     }
   }, [isOpen, defaultTab, item?.productCode]);
 
