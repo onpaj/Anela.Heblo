@@ -9,7 +9,7 @@ import {
   formatCurrency
 } from '../../api/hooks/usePurchaseStockAnalysis';
 import { StockSeverity } from '../../api/generated/api-client';
-import { CatalogItemDto } from '../../api/hooks/useCatalog';
+import { CatalogItemDto, StockDto, PriceDto, PropertiesDto, ProductType } from '../../api/generated/api-client';
 import CatalogDetail from './CatalogDetail';
 
 const PurchaseStockAnalysis: React.FC = () => {
@@ -192,31 +192,33 @@ const PurchaseStockAnalysis: React.FC = () => {
   // Modal handlers for product detail
   const handleRowClick = (item: any) => {
     // Convert stock analysis item to catalog item format for the modal
-    const catalogItem: CatalogItemDto = {
-      productCode: item.productCode,
-      productName: item.productName,
-      type: item.productType === 'Material' ? 3 : item.productType === 'Goods' ? 1 : 0, // Use correct ProductType enum values
-      stock: {
-        available: item.availableStock,
-        erp: item.availableStock,
-        eshop: 0,
-        transport: 0,
-        reserve: 0
-      },
-      price: {
-        currentSellingPrice: 0,
-        currentPurchasePrice: item.lastPurchase?.unitPrice || 0
-      },
-      properties: {
-        optimalStockDaysSetup: 0,
-        stockMinSetup: item.minStockLevel || 0,
-        batchSize: 0,
-        seasonMonths: []
-      },
-      location: '', // Not available in stock analysis
-      minimalOrderQuantity: item.minimalOrderQuantity || '',
-      minimalManufactureQuantity: 0 // Not available in stock analysis - use number
-    };
+    const catalogItem = new CatalogItemDto();
+    catalogItem.productCode = item.productCode;
+    catalogItem.productName = item.productName;
+    catalogItem.type = item.productType === 'Material' ? ProductType.Material : 
+                       item.productType === 'Goods' ? ProductType.Goods : ProductType.UNDEFINED;
+    
+    catalogItem.stock = new StockDto();
+    catalogItem.stock.available = item.availableStock;
+    catalogItem.stock.erp = item.availableStock;
+    catalogItem.stock.eshop = 0;
+    catalogItem.stock.transport = 0;
+    catalogItem.stock.reserve = 0;
+    
+    catalogItem.price = new PriceDto();
+    catalogItem.price.currentSellingPrice = 0;
+    catalogItem.price.currentPurchasePrice = item.lastPurchase?.unitPrice || 0;
+    
+    catalogItem.properties = new PropertiesDto();
+    catalogItem.properties.optimalStockDaysSetup = 0;
+    catalogItem.properties.stockMinSetup = item.minStockLevel || 0;
+    catalogItem.properties.batchSize = 0;
+    catalogItem.properties.seasonMonths = [];
+    
+    catalogItem.location = ''; // Not available in stock analysis
+    catalogItem.minimalOrderQuantity = item.minimalOrderQuantity || '';
+    catalogItem.minimalManufactureQuantity = 0; // Not available in stock analysis
+    catalogItem.manufactureDifficulty = 0; // Not available in stock analysis
     
     setSelectedProduct(catalogItem);
     setIsDetailModalOpen(true);

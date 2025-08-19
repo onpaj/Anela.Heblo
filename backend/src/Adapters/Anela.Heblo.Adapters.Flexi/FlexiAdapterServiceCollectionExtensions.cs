@@ -1,4 +1,5 @@
-﻿using Anela.Heblo.Adapters.Flexi.Lots;
+﻿using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
 using Anela.Heblo.Adapters.Flexi.Price;
@@ -6,6 +7,7 @@ using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Price;
@@ -49,12 +51,16 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
         services.AddSingleton<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
+        
         services.AddSingleton<IManufactureRepository, FlexiManufactureRepository>();
+        services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
+        
         services.AddSingleton<ILotsClient, LotsClient>();
         services.AddSingleton<Anela.Heblo.Domain.Features.Catalog.Lots.ILotsClient, FlexiLotsClient>();
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
         services.AddSingleton<IStockTakingClient, StockTakingClient>();
         services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
+        services.AddSingleton<ILedgerService, LedgerService>();
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 

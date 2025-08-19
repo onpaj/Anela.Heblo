@@ -293,12 +293,12 @@ const CatalogList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {productTypeLabels[item.type]}
+                      {productTypeLabels[item.type || ProductType.UNDEFINED]}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                      {Math.round(item.stock.available * 100) / 100}
+                      {Math.round((item.stock?.available || 0) * 100) / 100}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

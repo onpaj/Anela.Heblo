@@ -40,13 +40,13 @@ public class CatalogController : ControllerBase
     }
 
     [HttpGet("{productCode}")]
-    public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode)
+    public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode, [FromQuery] int monthsBack = 13)
     {
-        _logger.LogInformation("Getting catalog detail for product code {ProductCode}", productCode);
+        _logger.LogInformation("Getting catalog detail for product code {ProductCode} with {MonthsBack} months back", productCode, monthsBack);
 
         try
         {
-            var request = new GetCatalogDetailRequest { ProductCode = productCode };
+            var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = monthsBack };
             var response = await _mediator.Send(request);
             _logger.LogInformation("Successfully retrieved catalog detail for product {ProductCode}", productCode);
             return Ok(response);
@@ -107,6 +107,13 @@ public class CatalogController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("refresh/manufacture-history")]
+    public async Task<IActionResult> RefreshManufactureHistoryData()
+    {
+        await _mediator.Send(new RefreshManufactureHistoryDataRequest());
+        return NoContent();
+    }
+
     [HttpPost("refresh/consumed-history")]
     public async Task<IActionResult> RefreshConsumedHistoryData()
     {
@@ -139,6 +146,13 @@ public class CatalogController : ControllerBase
     public async Task<IActionResult> RefreshErpPricesData()
     {
         await _mediator.Send(new RefreshErpPricesDataRequest());
+        return NoContent();
+    }
+
+    [HttpPost("refresh/manufacture-difficulty")]
+    public async Task<IActionResult> RefreshManufactureDifficultyData()
+    {
+        await _mediator.Send(new RefreshManufactureDifficultyDataRequest());
         return NoContent();
     }
 

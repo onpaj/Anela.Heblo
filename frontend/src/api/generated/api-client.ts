@@ -158,11 +158,15 @@ export class ApiClient {
         return Promise.resolve<GetCatalogListResponse>(null as any);
     }
 
-    catalog_GetCatalogDetail(productCode: string): Promise<GetCatalogDetailResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/{productCode}";
+    catalog_GetCatalogDetail(productCode: string, monthsBack: number | undefined): Promise<GetCatalogDetailResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}?";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
         url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        if (monthsBack === null)
+            throw new Error("The parameter 'monthsBack' cannot be null.");
+        else if (monthsBack !== undefined)
+            url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -461,6 +465,44 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    catalog_RefreshManufactureHistoryData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-history";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RefreshManufactureHistoryData(_response);
+        });
+    }
+
+    protected processCatalog_RefreshManufactureHistoryData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     catalog_RefreshConsumedHistoryData(): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Catalog/refresh/consumed-history";
         url_ = url_.replace(/[?&]$/, "");
@@ -630,6 +672,44 @@ export class ApiClient {
     }
 
     protected processCatalog_RefreshErpPricesData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    catalog_RefreshManufactureDifficultyData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-difficulty";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RefreshManufactureDifficultyData(_response);
+        });
+    }
+
+    protected processCatalog_RefreshManufactureDifficultyData(response: Response): Promise<FileResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200 || status === 206) {
@@ -877,7 +957,7 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetProductMarginsResponse> {
+    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
@@ -891,6 +971,16 @@ export class ApiClient {
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -1319,6 +1409,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     location?: string;
     minimalOrderQuantity?: string;
     minimalManufactureQuantity?: number;
+    manufactureDifficulty?: number;
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -1340,6 +1431,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.location = _data["location"];
             this.minimalOrderQuantity = _data["minimalOrderQuantity"];
             this.minimalManufactureQuantity = _data["minimalManufactureQuantity"];
+            this.manufactureDifficulty = _data["manufactureDifficulty"];
         }
     }
 
@@ -1361,6 +1453,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["location"] = this.location;
         data["minimalOrderQuantity"] = this.minimalOrderQuantity;
         data["minimalManufactureQuantity"] = this.minimalManufactureQuantity;
+        data["manufactureDifficulty"] = this.manufactureDifficulty;
         return data;
     }
 }
@@ -1375,6 +1468,7 @@ export interface ICatalogItemDto {
     location?: string;
     minimalOrderQuantity?: string;
     minimalManufactureQuantity?: number;
+    manufactureDifficulty?: number;
 }
 
 export enum ProductType {
@@ -1681,6 +1775,7 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
     salesHistory?: CatalogSalesRecordDto[];
     purchaseHistory?: CatalogPurchaseRecordDto[];
     consumedHistory?: CatalogConsumedRecordDto[];
+    manufactureHistory?: CatalogManufactureRecordDto[];
 
     constructor(data?: ICatalogHistoricalDataDto) {
         if (data) {
@@ -1707,6 +1802,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
                 this.consumedHistory = [] as any;
                 for (let item of _data["consumedHistory"])
                     this.consumedHistory!.push(CatalogConsumedRecordDto.fromJS(item));
+            }
+            if (Array.isArray(_data["manufactureHistory"])) {
+                this.manufactureHistory = [] as any;
+                for (let item of _data["manufactureHistory"])
+                    this.manufactureHistory!.push(CatalogManufactureRecordDto.fromJS(item));
             }
         }
     }
@@ -1735,6 +1835,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
             for (let item of this.consumedHistory)
                 data["consumedHistory"].push(item.toJSON());
         }
+        if (Array.isArray(this.manufactureHistory)) {
+            data["manufactureHistory"] = [];
+            for (let item of this.manufactureHistory)
+                data["manufactureHistory"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -1743,6 +1848,7 @@ export interface ICatalogHistoricalDataDto {
     salesHistory?: CatalogSalesRecordDto[];
     purchaseHistory?: CatalogPurchaseRecordDto[];
     consumedHistory?: CatalogConsumedRecordDto[];
+    manufactureHistory?: CatalogManufactureRecordDto[];
 }
 
 export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
@@ -1919,6 +2025,70 @@ export interface ICatalogConsumedRecordDto {
     month?: number;
     amount?: number;
     productName?: string;
+}
+
+export class CatalogManufactureRecordDto implements ICatalogManufactureRecordDto {
+    date?: Date;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    productCode?: string;
+    documentNumber?: string;
+    year?: number | undefined;
+    month?: number | undefined;
+
+    constructor(data?: ICatalogManufactureRecordDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.amount = _data["amount"];
+            this.pricePerPiece = _data["pricePerPiece"];
+            this.priceTotal = _data["priceTotal"];
+            this.productCode = _data["productCode"];
+            this.documentNumber = _data["documentNumber"];
+            this.year = _data["year"];
+            this.month = _data["month"];
+        }
+    }
+
+    static fromJS(data: any): CatalogManufactureRecordDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogManufactureRecordDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["amount"] = this.amount;
+        data["pricePerPiece"] = this.pricePerPiece;
+        data["priceTotal"] = this.priceTotal;
+        data["productCode"] = this.productCode;
+        data["documentNumber"] = this.documentNumber;
+        data["year"] = this.year;
+        data["month"] = this.month;
+        return data;
+    }
+}
+
+export interface ICatalogManufactureRecordDto {
+    date?: Date;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    productCode?: string;
+    documentNumber?: string;
+    year?: number | undefined;
+    month?: number | undefined;
 }
 
 export class GetMaterialsForPurchaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -2136,12 +2306,12 @@ export interface IGetProductMarginsResponse {
 export class ProductMarginDto implements IProductMarginDto {
     productCode?: string;
     productName?: string;
-    priceWithVat?: number | undefined;
+    priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    averageCost?: number | undefined;
-    cost30Days?: number | undefined;
+    manufactureCost?: number | undefined;
+    materialCost?: number | undefined;
+    manufactureDifficulty?: number;
     averageMargin?: number | undefined;
-    margin30Days?: number | undefined;
 
     constructor(data?: IProductMarginDto) {
         if (data) {
@@ -2156,12 +2326,12 @@ export class ProductMarginDto implements IProductMarginDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
-            this.priceWithVat = _data["priceWithVat"];
+            this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
-            this.averageCost = _data["averageCost"];
-            this.cost30Days = _data["cost30Days"];
+            this.manufactureCost = _data["manufactureCost"];
+            this.materialCost = _data["materialCost"];
+            this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.averageMargin = _data["averageMargin"];
-            this.margin30Days = _data["margin30Days"];
         }
     }
 
@@ -2176,12 +2346,12 @@ export class ProductMarginDto implements IProductMarginDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
-        data["priceWithVat"] = this.priceWithVat;
+        data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
-        data["averageCost"] = this.averageCost;
-        data["cost30Days"] = this.cost30Days;
+        data["manufactureCost"] = this.manufactureCost;
+        data["materialCost"] = this.materialCost;
+        data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["averageMargin"] = this.averageMargin;
-        data["margin30Days"] = this.margin30Days;
         return data;
     }
 }
@@ -2189,12 +2359,12 @@ export class ProductMarginDto implements IProductMarginDto {
 export interface IProductMarginDto {
     productCode?: string;
     productName?: string;
-    priceWithVat?: number | undefined;
+    priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    averageCost?: number | undefined;
-    cost30Days?: number | undefined;
+    manufactureCost?: number | undefined;
+    materialCost?: number | undefined;
+    manufactureDifficulty?: number;
     averageMargin?: number | undefined;
-    margin30Days?: number | undefined;
 }
 
 export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {

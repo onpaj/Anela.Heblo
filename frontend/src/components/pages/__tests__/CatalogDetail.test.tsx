@@ -66,6 +66,7 @@ const mockCatalogItem: CatalogItemDto = {
   location: 'A1-01',
   minimalOrderQuantity: '10',
   minimalManufactureQuantity: 20,
+  manufactureDifficulty: 2.5,
 };
 
 const mockSalesData = [
@@ -300,5 +301,175 @@ describe('CatalogDetail', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  describe('ManufactureDifficulty', () => {
+    it('should display manufacture difficulty for products with difficulty > 0', () => {
+      const productWithDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 3.75,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('3.75')).toBeInTheDocument();
+    });
+
+    it('should display manufacture difficulty for semi-products with difficulty > 0', () => {
+      const semiProductWithDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.SemiProduct,
+        manufactureDifficulty: 1.25,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: semiProductWithDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={semiProductWithDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('1.25')).toBeInTheDocument();
+    });
+
+    it('should display dash when manufacture difficulty is 0', () => {
+      const productWithZeroDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 0,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithZeroDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithZeroDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getAllByText('-')).toContainEqual(
+        expect.objectContaining({
+          textContent: '-'
+        })
+      );
+    });
+
+    it('should display dash when manufacture difficulty is undefined', () => {
+      const productWithoutDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Material,
+        manufactureDifficulty: undefined,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithoutDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithoutDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getAllByText('-')).toContainEqual(
+        expect.objectContaining({
+          textContent: '-'
+        })
+      );
+    });
+
+    it('should round manufacture difficulty to 2 decimal places', () => {
+      const productWithPreciseDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 2.66666666,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithPreciseDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithPreciseDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('2.67')).toBeInTheDocument();
+    });
   });
 });

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useProductMarginsQuery, ProductMarginDto } from '../../api/hooks/useProductMargins';
+import { useProductMarginsQuery } from '../../api/hooks/useProductMargins';
 
 const ProductMarginsList: React.FC = () => {
   
@@ -13,13 +13,19 @@ const ProductMarginsList: React.FC = () => {
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // Sorting states
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortDescending, setSortDescending] = useState(false);
 
   // Use the API call
   const { data, isLoading: loading, error, refetch } = useProductMarginsQuery(
     productCodeFilter,
     productNameFilter,
     pageNumber,
-    pageSize
+    pageSize,
+    sortBy,
+    sortDescending
   );
 
   const filteredItems = data?.items || [];
@@ -66,6 +72,56 @@ const ProductMarginsList: React.FC = () => {
     setPageSize(newPageSize);
     setPageNumber(1); // Reset to first page when changing page size
   };
+  
+  // Sorting handler
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(column);
+      setSortDescending(false);
+    }
+    setPageNumber(1); // Reset to first page when sorting
+  };
+  
+  // Sortable header component
+  const SortableHeader: React.FC<{ column: string; children: React.ReactNode; align?: 'left' | 'right' }> = ({ column, children, align = 'left' }) => {
+    const isActive = sortBy === column;
+    const isAscending = isActive && !sortDescending;
+    const isDescending = isActive && sortDescending;
+
+    return (
+      <th
+        scope="col"
+        className={`px-6 py-3 text-${align} text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none`}
+        onClick={() => handleSort(column)}
+      >
+        <div className={`flex items-center ${align === 'right' ? 'justify-end' : ''} space-x-1`}>
+          {align === 'right' && (
+            <div className="flex flex-col">
+              <ChevronUp
+                className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`}
+              />
+              <ChevronDown
+                className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+              />
+            </div>
+          )}
+          <span>{children}</span>
+          {align === 'left' && (
+            <div className="flex flex-col">
+              <ChevronUp
+                className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`}
+              />
+              <ChevronDown
+                className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+              />
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
 
   // Format currency
   const formatCurrency = (value?: number | null) => {
@@ -90,9 +146,9 @@ const ProductMarginsList: React.FC = () => {
   const getMarginColor = (margin?: number | null) => {
     if (margin === null || margin === undefined) return 'text-gray-500';
     if (!isFinite(margin)) return 'text-gray-500'; // Handle Infinity, -Infinity, NaN
-    if (margin < 10) return 'text-red-600';
-    if (margin < 20) return 'text-orange-600';
-    if (margin < 30) return 'text-yellow-600';
+    if (margin < 30) return 'text-red-600';
+    if (margin < 50) return 'text-orange-600';
+    if (margin < 80) return 'text-yellow-600';
     return 'text-green-600';
   };
 
@@ -192,29 +248,15 @@ const ProductMarginsList: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kód produktu
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Název produktu
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cena s DPH
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nákupní cena
-                </th>
+                <SortableHeader column="productCode">Kód produktu</SortableHeader>
+                <SortableHeader column="productName">Název produktu</SortableHeader>
+                <SortableHeader column="priceWithoutVat" align="right">Cena bez DPH</SortableHeader>
+                <SortableHeader column="purchasePrice" align="right">Nákupní cena</SortableHeader>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Náklad průměr
                 </th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Náklad 30 dní
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Marže průměr
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Marže 30 dní
                 </th>
               </tr>
             </thead>
@@ -231,22 +273,16 @@ const ProductMarginsList: React.FC = () => {
                     {item.productName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                    {formatCurrency(item.priceWithVat)}
+                    {formatCurrency(item.priceWithoutVat)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                     {formatCurrency(item.purchasePrice)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {formatCurrency(item.averageCost)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {formatCurrency(item.cost30Days)}
+                    {formatCurrency((item.materialCost || 0) + (item.manufactureCost || 0))}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.averageMargin)}`}>
                     {formatPercentage(item.averageMargin)}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.margin30Days)}`}>
-                    {formatPercentage(item.margin30Days)}
                   </td>
                 </tr>
               ))}
@@ -254,31 +290,41 @@ const ProductMarginsList: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination - Fixed at bottom */}
-        <div className="bg-white px-4 py-3 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-sm text-gray-700">
-              <span>Zobrazeno </span>
-              <span className="font-medium mx-1">
-                {(pageNumber - 1) * pageSize + 1}
-              </span>
-              <span> - </span>
-              <span className="font-medium mx-1">
-                {Math.min(pageNumber * pageSize, totalCount)}
-              </span>
-              <span> z </span>
-              <span className="font-medium mx-1">{totalCount}</span>
-              <span> výsledků</span>
-              
-              <div className="ml-4 flex items-center">
-                <label htmlFor="pageSize" className="mr-2">
-                  Zobrazit:
-                </label>
+      </div>
+      
+      {/* Pagination - Compact */}
+      {totalCount > 0 && (
+        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => handlePageChange(pageNumber - 1)}
+              disabled={pageNumber <= 1}
+              className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Předchozí
+            </button>
+            <button
+              onClick={() => handlePageChange(pageNumber + 1)}
+              disabled={pageNumber >= totalPages}
+              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Další
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-3">
+              <p className="text-xs text-gray-600">
+                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
+                {productNameFilter || productCodeFilter ? (
+                  <span className="text-gray-500"> (filtrováno)</span>
+                ) : ''}
+              </p>
+              <div className="flex items-center space-x-1">
+                <span className="text-xs text-gray-600">Zobrazit:</span>
                 <select
-                  id="pageSize"
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -287,18 +333,18 @@ const ProductMarginsList: React.FC = () => {
                 </select>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handlePageChange(pageNumber - 1)}
-                disabled={pageNumber === 1}
-                className="p-2 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            <div>
+              <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => handlePageChange(pageNumber - 1)}
+                  disabled={pageNumber <= 1}
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum: number;
                   if (totalPages <= 5) {
                     pageNum = i + 1;
@@ -314,29 +360,29 @@ const ProductMarginsList: React.FC = () => {
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1 rounded-md text-sm ${
+                      className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNumber === pageNum
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                       }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-              </div>
-              
-              <button
-                onClick={() => handlePageChange(pageNumber + 1)}
-                disabled={pageNumber === totalPages}
-                className="p-2 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+                
+                <button
+                  onClick={() => handlePageChange(pageNumber + 1)}
+                  disabled={pageNumber >= totalPages}
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              </nav>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

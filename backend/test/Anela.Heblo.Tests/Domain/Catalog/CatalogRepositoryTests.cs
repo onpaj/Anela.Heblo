@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -7,6 +8,7 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -29,6 +31,9 @@ public class CatalogRepositoryTests
     private readonly Mock<IProductPriceErpClient> _productPriceErpClientMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
+    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
+    private readonly Mock<ILedgerService> _ledgerServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<CatalogRepositoryOptions>> _optionsMock;
@@ -49,6 +54,9 @@ public class CatalogRepositoryTests
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
+        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
+        _ledgerServiceMock = new Mock<ILedgerService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<CatalogRepositoryOptions>>();
@@ -58,7 +66,8 @@ public class CatalogRepositoryTests
         {
             SalesHistoryDays = 30,
             PurchaseHistoryDays = 30,
-            ConsumedHistoryDays = 30
+            ConsumedHistoryDays = 30,
+            ManufactureHistoryDays = 30
         };
         _optionsMock.Setup(x => x.Value).Returns(options);
 
@@ -76,6 +85,9 @@ public class CatalogRepositoryTests
             _productPriceErpClientMock.Object,
             _transportBoxRepositoryMock.Object,
             _stockTakingRepositoryMock.Object,
+            _manufactureRepositoryMock.Object,
+            _manufactureHistoryClientMock.Object,
+            _ledgerServiceMock.Object,
             _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,
