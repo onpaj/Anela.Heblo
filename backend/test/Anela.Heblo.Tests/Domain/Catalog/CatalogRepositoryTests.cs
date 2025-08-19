@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Catalog;
-using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -33,7 +32,7 @@ public class CatalogRepositoryTests
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
-    private readonly Mock<ILedgerService> _ledgerServiceMock;
+    private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<CatalogRepositoryOptions>> _optionsMock;
@@ -56,7 +55,7 @@ public class CatalogRepositoryTests
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
-        _ledgerServiceMock = new Mock<ILedgerService>();
+        _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<CatalogRepositoryOptions>>();
@@ -87,7 +86,7 @@ public class CatalogRepositoryTests
             _stockTakingRepositoryMock.Object,
             _manufactureRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
-            _ledgerServiceMock.Object,
+            _manufactureCostCalculationServiceMock.Object,
             _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,

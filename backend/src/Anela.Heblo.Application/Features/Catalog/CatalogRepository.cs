@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -31,7 +30,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly IManufactureRepository _manufactureRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
-    private readonly ILedgerService _ledgerService;
+    private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
 
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
@@ -53,7 +52,7 @@ public class CatalogRepository : ICatalogRepository
         IStockTakingRepository stockTakingRepository,
         IManufactureRepository manufactureRepository,
         IManufactureHistoryClient manufactureHistoryClient,
-        ILedgerService ledgerService,
+        IManufactureCostCalculationService manufactureCostCalculationService,
         IMemoryCache cache,
         TimeProvider timeProvider,
         IOptions<CatalogRepositoryOptions> _options,
@@ -72,7 +71,7 @@ public class CatalogRepository : ICatalogRepository
         _stockTakingRepository = stockTakingRepository;
         _manufactureRepository = manufactureRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
-        _ledgerService = ledgerService;
+        _manufactureCostCalculationService = manufactureCostCalculationService;
         _cache = cache;
         _timeProvider = timeProvider;
         this._options = _options;
@@ -159,6 +158,44 @@ public class CatalogRepository : ICatalogRepository
             .ToList();
     }
 
+    public async Task RefreshManufactureCostData(CancellationToken ct)
+    {
+        // This must be called AFTER RefreshManufactureDifficultyData and RefreshManufactureHistoryData
+        // Build temporary products list with data needed for cost calculation
+        var products = CachedErpStockData.Select(s => new CatalogAggregate()
+        {
+            ProductCode = s.ProductCode,
+            Type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED,
+        }).ToList();
+
+        // Add ManufactureDifficulty data
+        foreach (var product in products)
+        {
+            if (product.Type == ProductType.Product || product.Type == ProductType.SemiProduct)
+            {
+                if (CachedManufactureDifficultyData.TryGetValue(product.ProductCode, out var difficulty))
+                {
+                    product.ManufactureDifficulty = difficulty;
+                }
+            }
+        }
+
+        // Add ManufactureHistory data
+        var manufactureMap = CachedManufactureHistoryData
+            .GroupBy(p => p.ProductCode)
+            .ToDictionary(k => k.Key, v => v.ToList());
+            
+        foreach (var product in products)
+        {
+            if (manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
+            {
+                product.ManufactureHistory = manufactures.ToList();
+            }
+        }
+
+        // Calculate costs
+        CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(products, ct);
+    }
 
     private List<CatalogAggregate> CatalogData => _cache.GetOrCreate(nameof(CatalogData), c => Merge())!;
 
@@ -181,6 +218,7 @@ public class CatalogRepository : ICatalogRepository
             Weight = s.Weight,
         }).ToList();
 
+        // First populate all other data for products
         var attributesMap = CachedCatalogAttributesData.ToDictionary(k => k.ProductCode, v => v);
         var eshopProductsMap = CachedEshopStockData.ToDictionary(k => k.Code, v => v);
         var consumedMap = CachedConsumedData
@@ -276,6 +314,14 @@ public class CatalogRepository : ICatalogRepository
                     product.ManufactureDifficulty = difficulty;
                 }
             }
+            
+            if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
+            {
+                product.ManufactureCostHistory = costHistory.ToList();
+            }
+            
+            // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
+            product.UpdateMarginCalculation();
         }
 
         return products.ToList();
@@ -423,6 +469,15 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IDictionary<string, List<ManufactureCost>> CachedManufactureCostData
+    {
+        get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(nameof(CachedManufactureCostData)) ?? new Dictionary<string, List<ManufactureCost>>();
+        set
+        {
+            _cache.Set(nameof(CachedManufactureCostData), value);
+            Invalidate();
+        }
+    }
 
     private async Task<Dictionary<string, int>> GetProductsInTransport(CancellationToken ct)
     {
@@ -447,6 +502,7 @@ public class CatalogRepository : ICatalogRepository
     public Task<bool> AnyAsync(Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.AsQueryable().Any(predicate));
     public Task<int> CountAsync(Expression<Func<CatalogAggregate, bool>>? predicate = null, CancellationToken cancellationToken = default) =>
         Task.FromResult(predicate == null ? CatalogData.Count : CatalogData.AsQueryable().Count(predicate));
+
 }
 
 

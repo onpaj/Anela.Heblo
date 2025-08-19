@@ -14,6 +14,7 @@ public class EshopPriceDto
 {
     public decimal PriceWithVat { get; set; }
     public decimal PurchasePrice { get; set; }
+    public decimal PriceWithoutVat { get; set; }
 }
 
 public class ErpPriceDto

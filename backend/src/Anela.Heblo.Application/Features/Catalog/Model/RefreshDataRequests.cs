@@ -16,3 +16,4 @@ public record RefreshLotsDataRequest() : IRequest;
 public record RefreshEshopPricesDataRequest() : IRequest;
 public record RefreshErpPricesDataRequest() : IRequest;
 public record RefreshManufactureDifficultyDataRequest() : IRequest;
+public record RefreshManufactureCostDataRequest() : IRequest;

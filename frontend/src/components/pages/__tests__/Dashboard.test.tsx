@@ -147,17 +147,15 @@ describe('Dashboard', () => {
       expect(screen.getByText('Manufacture Difficulty')).toBeInTheDocument();
       expect(screen.getByText('Obnovit náročnost výroby')).toBeInTheDocument();
       
-      // Get all refresh buttons - for this test we'll just click the first enabled one
-      // since we know it corresponds to our manufacture difficulty
+      // Find all "Načíst" buttons and use the last one (Manufacture Difficulty is last in the list)
       const refreshButtons = screen.getAllByText('Načíst');
-      const enabledButton = refreshButtons.find(button => !button.hasAttribute('disabled'));
+      expect(refreshButtons.length).toBeGreaterThan(0);
       
-      expect(enabledButton).toBeInTheDocument();
-      expect(enabledButton).not.toBeDisabled();
+      const manufactureDifficultyButton = refreshButtons[refreshButtons.length - 1];
+      expect(manufactureDifficultyButton).toBeInTheDocument();
+      expect(manufactureDifficultyButton).not.toBeDisabled();
       
-      if (enabledButton) {
-        fireEvent.click(enabledButton);
-      }
+      fireEvent.click(manufactureDifficultyButton);
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith('catalog_RefreshManufactureDifficultyData');

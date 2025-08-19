@@ -282,9 +282,8 @@ describe('CatalogList', () => {
 
     renderWithQueryClient(<CatalogList />);
 
-    // Check pagination info
-    expect(screen.getByText(/Zobrazeno/)).toBeInTheDocument();
-    expect(screen.getByText(/výsledků/)).toBeInTheDocument();
+    // Check pagination info - format is "1-20 z 50"
+    expect(screen.getByText(/\d+-\d+ z \d+/)).toBeInTheDocument();
 
     // Check page size selector
     const pageSizeSelect = screen.getByDisplayValue('20');
@@ -429,7 +428,7 @@ describe('CatalogList', () => {
     const filterButton = screen.getByText('Filtrovat');
     fireEvent.click(filterButton);
 
-    // The pagination info should show filter status
-    expect(screen.getByText(/s aplikovanými filtry/)).toBeInTheDocument();
+    // The pagination info should show filter status - format is "1-2 z 2 (filtrováno)"
+    expect(screen.getByText(/\(filtrováno\)/)).toBeInTheDocument();
   });
 });

@@ -84,6 +84,10 @@ public class CatalogAggregate : Entity<string>
     public double ManufactureDifficulty { get; set; } = 0;
 
     public List<ManufactureCost> ManufactureCostHistory { get; set; } = new();
+    
+    // Margin properties - calculated after ManufactureCostHistory is populated
+    public decimal MarginPercentage { get; set; } = 0;
+    public decimal MarginAmount { get; set; } = 0;
 
     // Readonly PROPS
     public string? PrimarySupplier => SupplierNames.FirstOrDefault();
@@ -215,6 +219,34 @@ public class CatalogAggregate : Entity<string>
         UpdateSaleHistorySummary();
         UpdatePurchaseHistorySummary();
         UpdateConsumedHistorySummary();
+    }
+    
+    public void UpdateMarginCalculation()
+    {
+        if (ManufactureCostHistory.Count == 0)
+        {
+            MarginPercentage = 0;
+            MarginAmount = 0;
+            return;
+        }
+        
+        // Calculate average total cost from manufacturing cost history
+        var averageTotalCost = ManufactureCostHistory
+            .Average(record => record.Total);
+        
+        // Get selling price without VAT from eshop
+        var sellingPrice = EshopPrice?.PriceWithoutVat ?? 0;
+        
+        if (sellingPrice > 0 && averageTotalCost > 0)
+        {
+            MarginAmount = sellingPrice - averageTotalCost;
+            MarginPercentage = (MarginAmount / sellingPrice) * 100;
+        }
+        else
+        {
+            MarginPercentage = 0;
+            MarginAmount = 0;
+        }
     }
 
 }

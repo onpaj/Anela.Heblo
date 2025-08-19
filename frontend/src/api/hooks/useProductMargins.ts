@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import { GetProductMarginsResponse, ProductMarginDto } from '../generated/api-client';
 
 // Re-export the generated types for convenience
@@ -16,7 +16,7 @@ export const useProductMarginsQuery = (
   dateTo?: Date
 ) => {
   return useQuery<GetProductMarginsResponse, Error>({
-    queryKey: ['productMargins', productCode, productName, pageNumber, pageSize, sortBy, sortDescending, dateFrom, dateTo],
+    queryKey: [...QUERY_KEYS.productMargins, productCode, productName, pageNumber, pageSize, sortBy, sortDescending, dateFrom, dateTo],
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
       return apiClient.productMargins_GetProductMargins(

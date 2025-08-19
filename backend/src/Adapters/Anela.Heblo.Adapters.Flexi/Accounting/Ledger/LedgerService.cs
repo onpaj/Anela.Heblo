@@ -39,7 +39,7 @@ public class LedgerService : ILedgerService
             department,
             cancellationToken: cancellationToken);
             
-        var result = _mapper.Map<IList<LedgerItem>>(flexiData);
+        var result = _mapper.Map<List<LedgerItem>>(flexiData);
 
         // Cache na 15 minut
         var cacheOptions = new MemoryCacheEntryOptions

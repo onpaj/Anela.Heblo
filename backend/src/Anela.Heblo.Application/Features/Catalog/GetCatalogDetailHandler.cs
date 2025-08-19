@@ -38,6 +38,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var purchaseHistory = GetPurchaseHistoryFromAggregate(catalogItem, request.MonthsBack);
         var consumedHistory = GetConsumedHistoryFromAggregate(catalogItem, request.MonthsBack);
         var manufactureHistory = GetManufactureHistoryFromAggregate(catalogItem, request.MonthsBack);
+        var manufactureCostHistory = GetManufactureCostHistoryFromAggregate(catalogItem, request.MonthsBack);
 
         return new GetCatalogDetailResponse
         {
@@ -47,7 +48,8 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 SalesHistory = salesHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),
                 PurchaseHistory = purchaseHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),
                 ConsumedHistory = consumedHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),
-                ManufactureHistory = manufactureHistory.OrderByDescending(x => x.Date).ToList()
+                ManufactureHistory = manufactureHistory.OrderByDescending(x => x.Date).ToList(),
+                ManufactureCostHistory = manufactureCostHistory.OrderByDescending(x => x.Date).ToList()
             }
         };
     }
@@ -165,6 +167,39 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 PriceTotal = m.PriceTotal,
                 ProductCode = m.ProductCode,
                 DocumentNumber = m.DocumentNumber
+            }).ToList();
+    }
+
+    private List<ManufactureCostDto> GetManufactureCostHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
+    {
+        // Return individual manufacture cost records
+        var currentDate = _timeProvider.GetUtcNow().Date;
+
+        // For very high monthsBack values (like 999), return all records without date filtering
+        if (monthsBack >= 999)
+        {
+            return catalogItem.ManufactureCostHistory
+                .OrderByDescending(mc => mc.Date)
+                .Select(mc => new ManufactureCostDto
+                {
+                    Date = mc.Date,
+                    MaterialCost = mc.MaterialCost,
+                    HandlingCost = mc.HandlingCost,
+                    Total = mc.Total
+                }).ToList();
+        }
+
+        var fromDate = currentDate.AddMonths(-monthsBack);
+
+        return catalogItem.ManufactureCostHistory
+            .Where(mc => mc.Date >= fromDate)
+            .OrderByDescending(mc => mc.Date)
+            .Select(mc => new ManufactureCostDto
+            {
+                Date = mc.Date,
+                MaterialCost = mc.MaterialCost,
+                HandlingCost = mc.HandlingCost,
+                Total = mc.Total
             }).ToList();
     }
 }

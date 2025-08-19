@@ -26,6 +26,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private DateTime _lastEshopPricesRefresh = DateTime.MinValue;
     private DateTime _lastErpPricesRefresh = DateTime.MinValue;
     private DateTime _lastManufactureDifficultyRefresh = DateTime.MinValue;
+    private DateTime _lastManufactureCostRefresh = DateTime.MinValue;
 
     public CatalogRefreshBackgroundService(
         IServiceProvider serviceProvider,
@@ -161,6 +162,20 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     now, stoppingToken))
                 {
                     _lastManufactureDifficultyRefresh = now;
+                }
+
+                // Refresh ManufactureCostData after ManufactureDifficulty and ManufactureHistory are refreshed
+                // Use the same interval as ManufactureHistory since both need to be fresh
+                if (_lastManufactureDifficultyRefresh >= _lastManufactureCostRefresh &&
+                    _lastManufactureHistoryRefresh >= _lastManufactureCostRefresh)
+                {
+                    if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
+                        _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
+                        async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastManufactureCostRefresh = now;
+                    }
                 }
 
                 // Wait before next cycle (check every minute)

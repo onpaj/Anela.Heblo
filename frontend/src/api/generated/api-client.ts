@@ -1410,6 +1410,8 @@ export class CatalogItemDto implements ICatalogItemDto {
     minimalOrderQuantity?: string;
     minimalManufactureQuantity?: number;
     manufactureDifficulty?: number;
+    marginPercentage?: number;
+    marginAmount?: number;
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -1432,6 +1434,8 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.minimalOrderQuantity = _data["minimalOrderQuantity"];
             this.minimalManufactureQuantity = _data["minimalManufactureQuantity"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
+            this.marginPercentage = _data["marginPercentage"];
+            this.marginAmount = _data["marginAmount"];
         }
     }
 
@@ -1454,6 +1458,8 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["minimalOrderQuantity"] = this.minimalOrderQuantity;
         data["minimalManufactureQuantity"] = this.minimalManufactureQuantity;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
+        data["marginPercentage"] = this.marginPercentage;
+        data["marginAmount"] = this.marginAmount;
         return data;
     }
 }
@@ -1469,6 +1475,8 @@ export interface ICatalogItemDto {
     minimalOrderQuantity?: string;
     minimalManufactureQuantity?: number;
     manufactureDifficulty?: number;
+    marginPercentage?: number;
+    marginAmount?: number;
 }
 
 export enum ProductType {
@@ -1590,6 +1598,7 @@ export interface IPriceDto {
 export class EshopPriceDto implements IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
+    priceWithoutVat?: number;
 
     constructor(data?: IEshopPriceDto) {
         if (data) {
@@ -1604,6 +1613,7 @@ export class EshopPriceDto implements IEshopPriceDto {
         if (_data) {
             this.priceWithVat = _data["priceWithVat"];
             this.purchasePrice = _data["purchasePrice"];
+            this.priceWithoutVat = _data["priceWithoutVat"];
         }
     }
 
@@ -1618,6 +1628,7 @@ export class EshopPriceDto implements IEshopPriceDto {
         data = typeof data === 'object' ? data : {};
         data["priceWithVat"] = this.priceWithVat;
         data["purchasePrice"] = this.purchasePrice;
+        data["priceWithoutVat"] = this.priceWithoutVat;
         return data;
     }
 }
@@ -1625,6 +1636,7 @@ export class EshopPriceDto implements IEshopPriceDto {
 export interface IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
+    priceWithoutVat?: number;
 }
 
 export class ErpPriceDto implements IErpPriceDto {
@@ -1776,6 +1788,7 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
     purchaseHistory?: CatalogPurchaseRecordDto[];
     consumedHistory?: CatalogConsumedRecordDto[];
     manufactureHistory?: CatalogManufactureRecordDto[];
+    manufactureCostHistory?: ManufactureCostDto[];
 
     constructor(data?: ICatalogHistoricalDataDto) {
         if (data) {
@@ -1807,6 +1820,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
                 this.manufactureHistory = [] as any;
                 for (let item of _data["manufactureHistory"])
                     this.manufactureHistory!.push(CatalogManufactureRecordDto.fromJS(item));
+            }
+            if (Array.isArray(_data["manufactureCostHistory"])) {
+                this.manufactureCostHistory = [] as any;
+                for (let item of _data["manufactureCostHistory"])
+                    this.manufactureCostHistory!.push(ManufactureCostDto.fromJS(item));
             }
         }
     }
@@ -1840,6 +1858,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
             for (let item of this.manufactureHistory)
                 data["manufactureHistory"].push(item.toJSON());
         }
+        if (Array.isArray(this.manufactureCostHistory)) {
+            data["manufactureCostHistory"] = [];
+            for (let item of this.manufactureCostHistory)
+                data["manufactureCostHistory"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -1849,6 +1872,7 @@ export interface ICatalogHistoricalDataDto {
     purchaseHistory?: CatalogPurchaseRecordDto[];
     consumedHistory?: CatalogConsumedRecordDto[];
     manufactureHistory?: CatalogManufactureRecordDto[];
+    manufactureCostHistory?: ManufactureCostDto[];
 }
 
 export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
@@ -2089,6 +2113,54 @@ export interface ICatalogManufactureRecordDto {
     documentNumber?: string;
     year?: number | undefined;
     month?: number | undefined;
+}
+
+export class ManufactureCostDto implements IManufactureCostDto {
+    date?: Date;
+    materialCost?: number;
+    handlingCost?: number;
+    total?: number;
+
+    constructor(data?: IManufactureCostDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.materialCost = _data["materialCost"];
+            this.handlingCost = _data["handlingCost"];
+            this.total = _data["total"];
+        }
+    }
+
+    static fromJS(data: any): ManufactureCostDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureCostDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["materialCost"] = this.materialCost;
+        data["handlingCost"] = this.handlingCost;
+        data["total"] = this.total;
+        return data;
+    }
+}
+
+export interface IManufactureCostDto {
+    date?: Date;
+    materialCost?: number;
+    handlingCost?: number;
+    total?: number;
 }
 
 export class GetMaterialsForPurchaseResponse implements IGetMaterialsForPurchaseResponse {

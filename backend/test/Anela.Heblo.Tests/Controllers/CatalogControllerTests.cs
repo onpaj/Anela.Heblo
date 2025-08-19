@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Anela.Heblo.Tests.Features.Catalog;
+namespace Anela.Heblo.Tests.Controllers;
 
 public class CatalogControllerTests
 {

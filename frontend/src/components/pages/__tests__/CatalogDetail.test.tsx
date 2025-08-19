@@ -8,7 +8,7 @@ import { useCatalogDetail } from '../../../api/hooks/useCatalog';
 
 // Mock the chart components to avoid canvas issues in tests
 jest.mock('react-chartjs-2', () => ({
-  Line: ({ data }: any) => (
+  Line: ({ data, options }: any) => (
     <div data-testid="chart">
       Chart with {data.datasets[0].data.length} data points
     </div>
@@ -69,16 +69,21 @@ const mockCatalogItem: CatalogItemDto = {
   manufactureDifficulty: 2.5,
 };
 
+// Create mock data for current year/month to ensure it falls within the 13-month window
+const currentDate = new Date();
+const currentYear = currentDate.getFullYear();
+const currentMonth = currentDate.getMonth() + 1; // Convert to 1-based
+
 const mockSalesData = [
-  { year: 2024, month: 7, amountTotal: 15, amountB2B: 10, amountB2C: 5, sumTotal: 1500, sumB2B: 1000, sumB2C: 500 },
-  { year: 2024, month: 6, amountTotal: 20, amountB2B: 12, amountB2C: 8, sumTotal: 2000, sumB2B: 1200, sumB2C: 800 },
-  { year: 2024, month: 5, amountTotal: 25, amountB2B: 15, amountB2C: 10, sumTotal: 2500, sumB2B: 1500, sumB2C: 1000 },
+  { year: currentYear, month: currentMonth, amountTotal: 15, amountB2B: 10, amountB2C: 5, sumTotal: 1500, sumB2B: 1000, sumB2C: 500 },
+  { year: currentYear, month: currentMonth - 1 > 0 ? currentMonth - 1 : 12, amountTotal: 20, amountB2B: 12, amountB2C: 8, sumTotal: 2000, sumB2B: 1200, sumB2C: 800 },
+  { year: currentYear, month: currentMonth - 2 > 0 ? currentMonth - 2 : 12, amountTotal: 25, amountB2B: 15, amountB2C: 10, sumTotal: 2500, sumB2B: 1500, sumB2C: 1000 },
 ];
 
 const mockConsumedData = [
-  { year: 2024, month: 7, amount: 8, productName: 'Test Material' },
-  { year: 2024, month: 6, amount: 12, productName: 'Test Material' },
-  { year: 2024, month: 5, amount: 15, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth, amount: 8, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth - 1 > 0 ? currentMonth - 1 : 12, amount: 12, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth - 2 > 0 ? currentMonth - 2 : 12, amount: 15, productName: 'Test Material' },
 ];
 
 const renderWithQueryClient = (component: React.ReactElement) => {
@@ -103,6 +108,7 @@ describe('CatalogDetail', () => {
           salesHistory: mockSalesData,
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -131,6 +137,7 @@ describe('CatalogDetail', () => {
           salesHistory: mockSalesData,
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -145,7 +152,7 @@ describe('CatalogDetail', () => {
       />
     );
 
-    expect(screen.getByText('Prodeje za posledních 13 měsíců')).toBeInTheDocument();
+    expect(screen.getByText('Prodeje')).toBeInTheDocument();
     expect(screen.getByTestId('chart')).toBeInTheDocument();
   });
 
@@ -159,6 +166,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: mockConsumedData,
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -173,7 +181,7 @@ describe('CatalogDetail', () => {
       />
     );
 
-    expect(screen.getByText('Spotřeba za posledních 13 měsíců')).toBeInTheDocument();
+    expect(screen.getByText('Spotřeba')).toBeInTheDocument();
     expect(screen.getByTestId('chart')).toBeInTheDocument();
   });
 
@@ -185,6 +193,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -258,6 +267,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -286,6 +296,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -318,6 +329,7 @@ describe('CatalogDetail', () => {
             salesHistory: [],
             purchaseHistory: [],
             consumedHistory: [],
+            manufactureHistory: [],
           },
         },
         isLoading: false,
@@ -350,6 +362,7 @@ describe('CatalogDetail', () => {
             salesHistory: [],
             purchaseHistory: [],
             consumedHistory: [],
+            manufactureHistory: [],
           },
         },
         isLoading: false,
@@ -382,6 +395,7 @@ describe('CatalogDetail', () => {
             salesHistory: [],
             purchaseHistory: [],
             consumedHistory: [],
+            manufactureHistory: [],
           },
         },
         isLoading: false,
@@ -418,6 +432,7 @@ describe('CatalogDetail', () => {
             salesHistory: [],
             purchaseHistory: [],
             consumedHistory: [],
+            manufactureHistory: [],
           },
         },
         isLoading: false,
@@ -454,6 +469,7 @@ describe('CatalogDetail', () => {
             salesHistory: [],
             purchaseHistory: [],
             consumedHistory: [],
+            manufactureHistory: [],
           },
         },
         isLoading: false,

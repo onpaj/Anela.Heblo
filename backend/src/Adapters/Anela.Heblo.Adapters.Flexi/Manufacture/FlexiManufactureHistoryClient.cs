@@ -42,6 +42,8 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
             {
                 Date = g.Key.Date,
                 ProductCode = g.Key.ProductCode,
+                PricePerPiece = (decimal)g.Average(a => a.PricePerUnit),
+                PriceTotal = (decimal)g.Sum(s => s.TotalSum),
                 Amount = g.Sum(m => m.Amount)
             })
             .OrderBy(s => s.Date)
