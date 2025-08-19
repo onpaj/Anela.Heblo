@@ -78,7 +78,7 @@ This document defines the complete layout structure and positioning of UI elemen
 - **Top Offset**: No top offset needed (no topbar)
 - **Bottom Offset**: `mb-6` (above 24px status bar - small margin only)
 - **Padding**: `p-6` (24px all sides)
-- **Max Width**: `max-w-7xl mx-auto` (centered, max 1280px)
+- **Max Width**: **REMOVED** - Content now uses full available width for optimal use of screen real estate on large monitors
 
 #### 3. **Status Bar**
 - **Position**: `fixed bottom-0 left-64 right-0 z-10` (beside sidebar, not full width)
@@ -344,7 +344,7 @@ Mobile (in sidebar overlay bottom):
 
 #### Standard Page Container Pattern
 ```tsx
-<div className="flex flex-col h-full">
+<div className="flex flex-col h-full w-full">
   {/* Header - Fixed */}
   <div className="flex-shrink-0 mb-3">
     <h1 className="text-lg font-semibold text-gray-900">Page Title</h1>
@@ -363,7 +363,7 @@ Mobile (in sidebar overlay bottom):
 ```
 
 #### Container Class Requirements
-- **Main Container**: `flex flex-col h-full` - Full height flex container
+- **Main Container**: `flex flex-col h-full w-full` - Full height and width flex container for responsive layout
 - **Header Section**: `flex-shrink-0 mb-3` - Fixed header with 12px bottom margin
 - **Filter Section**: `flex-shrink-0 mb-4` - Fixed filters with 16px bottom margin
 - **Content Section**: `flex-1 min-h-0` - Flexible scrollable content area
@@ -379,11 +379,21 @@ Mobile (in sidebar overlay bottom):
 - **Content Containers**: `bg-white shadow rounded-lg` - White cards with subtle shadow
 - **Headers**: `text-lg font-semibold text-gray-900` - Consistent typography
 
+#### Responsive Width Requirements
+**CRITICAL**: All page components MUST use full available width for optimal large monitor support:
+
+- **Layout Container**: Uses `w-full` instead of `max-w-7xl mx-auto` - no width restrictions in main layout
+- **Page Components**: MUST include `w-full` class in root container: `<div className="flex flex-col h-full w-full">`
+- **Content Expansion**: All tables, forms, and content areas should utilize full available width
+- **Large Monitor Optimization**: Content expands to fill ultra-wide monitors (>1920px)
+
 #### Common Anti-Patterns to AVOID
 - ❌ **Double padding**: Never add `px-4 py-6` or similar to main page container
 - ❌ **Inconsistent margins**: Always use `mb-3` for headers, `mb-4` for filters
 - ❌ **Fixed height content**: Use `flex-1 min-h-0` for scrollable areas
 - ❌ **Missing container structure**: Always use the three-tier structure (header/filters/content)
+- ❌ **Fixed width containers**: Never use `max-w-7xl mx-auto` or similar width restrictions on page components
+- ❌ **Missing `w-full` class**: All page root containers must include `w-full` for responsive expansion
 
 ### Animation Specifications
 - **Sidebar Toggle**: `transition-all duration-300 ease-in-out`

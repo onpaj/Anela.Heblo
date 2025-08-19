@@ -9,7 +9,6 @@ import {
   formatCurrency
 } from '../../api/hooks/usePurchaseStockAnalysis';
 import { StockSeverity } from '../../api/generated/api-client';
-import { CatalogItemDto, StockDto, PriceDto, PropertiesDto, ProductType } from '../../api/generated/api-client';
 import CatalogDetail from './CatalogDetail';
 
 const PurchaseStockAnalysis: React.FC = () => {
@@ -27,7 +26,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   });
 
   // State for product detail modal
-  const [selectedProduct, setSelectedProduct] = useState<CatalogItemDto | null>(null);
+  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // State for collapsible sections
@@ -191,42 +190,13 @@ const PurchaseStockAnalysis: React.FC = () => {
 
   // Modal handlers for product detail
   const handleRowClick = (item: any) => {
-    // Convert stock analysis item to catalog item format for the modal
-    const catalogItem = new CatalogItemDto();
-    catalogItem.productCode = item.productCode;
-    catalogItem.productName = item.productName;
-    catalogItem.type = item.productType === 'Material' ? ProductType.Material : 
-                       item.productType === 'Goods' ? ProductType.Goods : ProductType.UNDEFINED;
-    
-    catalogItem.stock = new StockDto();
-    catalogItem.stock.available = item.availableStock;
-    catalogItem.stock.erp = item.availableStock;
-    catalogItem.stock.eshop = 0;
-    catalogItem.stock.transport = 0;
-    catalogItem.stock.reserve = 0;
-    
-    catalogItem.price = new PriceDto();
-    catalogItem.price.currentSellingPrice = 0;
-    catalogItem.price.currentPurchasePrice = item.lastPurchase?.unitPrice || 0;
-    
-    catalogItem.properties = new PropertiesDto();
-    catalogItem.properties.optimalStockDaysSetup = 0;
-    catalogItem.properties.stockMinSetup = item.minStockLevel || 0;
-    catalogItem.properties.batchSize = 0;
-    catalogItem.properties.seasonMonths = [];
-    
-    catalogItem.location = ''; // Not available in stock analysis
-    catalogItem.minimalOrderQuantity = item.minimalOrderQuantity || '';
-    catalogItem.minimalManufactureQuantity = 0; // Not available in stock analysis
-    catalogItem.manufactureDifficulty = 0; // Not available in stock analysis
-    
-    setSelectedProduct(catalogItem);
+    setSelectedProductCode(item.productCode);
     setIsDetailModalOpen(true);
   };
 
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
-    setSelectedProduct(null);
+    setSelectedProductCode(null);
   };
 
   // Get color strip for product based on severity (only when not filtering by status)
@@ -277,7 +247,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">Analýza skladových zásob</h1>
@@ -823,7 +793,7 @@ const PurchaseStockAnalysis: React.FC = () => {
 
       {/* Product Detail Modal */}
       <CatalogDetail 
-        item={selectedProduct}
+        productCode={selectedProductCode}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
         defaultTab="history"

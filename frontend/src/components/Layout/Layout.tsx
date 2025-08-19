@@ -26,7 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
         {/* Page content */}
         <main className="flex-1 relative overflow-hidden">
           <div className="h-full p-3 md:p-4 bg-gray-50 flex flex-col">
-            <div className="flex-1 max-w-7xl mx-auto w-full flex flex-col min-h-0">
+            <div className="flex-1 w-full flex flex-col min-h-0">
               {children}
             </div>
           </div>

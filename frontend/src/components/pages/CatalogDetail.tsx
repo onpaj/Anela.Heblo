@@ -27,7 +27,8 @@ ChartJS.register(
 );
 
 interface CatalogDetailProps {
-  item: CatalogItemDto | null;
+  item?: CatalogItemDto | null;
+  productCode?: string | null;
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'basic' | 'history' | 'margins';
@@ -50,14 +51,20 @@ const productTypeColors: Record<ProductType, string> = {
   [ProductType.UNDEFINED]: 'bg-gray-100 text-gray-800',
 };
 
-const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, defaultTab = 'basic' }) => {
+const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen, onClose, defaultTab = 'basic' }) => {
   const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins'>(defaultTab);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
 
+  // Determine which productCode to use - from prop or from item
+  const effectiveProductCode = productCode || item?.productCode || '';
+  
   // Fetch detailed data from API - use 13 months by default, 999 for full history
   const monthsBack = showFullHistory ? 999 : 13;
-  const { data: detailData, isLoading: detailLoading, error: detailError } = useCatalogDetail(item?.productCode || '', monthsBack);
+  const { data: detailData, isLoading: detailLoading, error: detailError } = useCatalogDetail(effectiveProductCode, monthsBack);
+  
+  // Use item from prop if provided, otherwise use item from API detail data
+  const effectiveItem = item || detailData?.item;
 
   // Reset tab and history state when modal opens with new item or different default tab
   React.useEffect(() => {
@@ -66,7 +73,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
       setShowFullHistory(false);
       setActiveChartTab('output'); // Default to output tab (sales/consumption)
     }
-  }, [isOpen, defaultTab, item?.productCode]);
+  }, [isOpen, defaultTab, effectiveProductCode]);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
@@ -85,15 +92,35 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !item) {
-    return null;
-  }
-
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
+
+  if (!isOpen || (!effectiveItem && !detailLoading)) {
+    return null;
+  }
+  
+  // Show loading spinner while fetching data
+  if (!effectiveItem && detailLoading) {
+    return (
+      <div 
+        onClick={handleBackdropClick}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      >
+        <div className="bg-white rounded-lg p-8 flex items-center space-x-3">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+          <span className="text-gray-600">Načítám detail produktu...</span>
+        </div>
+      </div>
+    );
+  }
+  
+  // Return null if no effective item available
+  if (!effectiveItem) {
+    return null;
+  }
 
   // Helper functions for chart tabs based on ProductType
   const getInputTabName = (productType: ProductType) => {
@@ -136,8 +163,8 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
           <div className="flex items-center space-x-3">
             <Package className="h-6 w-6 text-indigo-600" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{item.productName}</h2>
-              <p className="text-sm text-gray-500">Kód: {item.productCode}</p>
+              <h2 className="text-xl font-semibold text-gray-900">{effectiveItem.productName}</h2>
+              <p className="text-sm text-gray-500">Kód: {effectiveItem.productCode}</p>
             </div>
           </div>
           <button
@@ -193,7 +220,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                       <ShoppingCart className="h-4 w-4" />
                       <span>Historie nákupů</span>
                     </button>
-                    {(item?.type === ProductType.Product || item?.type === ProductType.SemiProduct) && (
+                    {(effectiveItem?.type === ProductType.Product || effectiveItem?.type === ProductType.SemiProduct) && (
                       <button
                         onClick={() => setActiveTab('margins')}
                         className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
@@ -211,7 +238,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                   {/* Tab Content */}
                   <div className="flex-1 overflow-y-auto">
                     {activeTab === 'basic' ? (
-                      <BasicInfoTab item={item} />
+                      <BasicInfoTab item={effectiveItem} />
                     ) : activeTab === 'history' ? (
                       <PurchaseHistoryTab 
                         purchaseHistory={detailData?.historicalData?.purchaseHistory || []} 
@@ -221,7 +248,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                       />
                     ) : (
                       <MarginsTab 
-                        item={item}
+                        item={effectiveItem}
                         manufactureCostHistory={detailData?.historicalData?.manufactureCostHistory || []}
                         isLoading={detailLoading}
                       />
@@ -232,7 +259,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                 {/* Right Column - Charts with Tabs */}
                 <div className="space-y-4">
                   <div className="h-full flex flex-col">
-                    {shouldShowChartTabs(item.type || ProductType.UNDEFINED) ? (
+                    {shouldShowChartTabs(effectiveItem.type || ProductType.UNDEFINED) ? (
                       <>
                         {/* Chart Tab Navigation */}
                         <div className="flex border-b border-gray-200 mb-4">
@@ -245,7 +272,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                             }`}
                           >
                             <BarChart3 className="h-4 w-4" />
-                            <span>{getInputTabName(item.type || ProductType.UNDEFINED)}</span>
+                            <span>{getInputTabName(effectiveItem.type || ProductType.UNDEFINED)}</span>
                           </button>
                           <button
                             onClick={() => setActiveChartTab('output')}
@@ -256,13 +283,13 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                             }`}
                           >
                             <BarChart3 className="h-4 w-4" />
-                            <span>{getOutputTabName(item.type || ProductType.UNDEFINED)}</span>
+                            <span>{getOutputTabName(effectiveItem.type || ProductType.UNDEFINED)}</span>
                           </button>
                         </div>
 
                         {/* Summary Section */}
                         <ProductSummaryTabs
-                          productType={item.type || ProductType.UNDEFINED}
+                          productType={effectiveItem.type || ProductType.UNDEFINED}
                           activeTab={activeChartTab}
                           salesData={detailData?.historicalData?.salesHistory || []}
                           consumedData={detailData?.historicalData?.consumedHistory || []}
@@ -273,7 +300,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, isOpen, onClose, de
                         {/* Chart Content */}
                         <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4">
                           <ProductChartTabs
-                            productType={item.type || ProductType.UNDEFINED}
+                            productType={effectiveItem.type || ProductType.UNDEFINED}
                             activeTab={activeChartTab}
                             salesData={detailData?.historicalData?.salesHistory || []}
                             consumedData={detailData?.historicalData?.consumedHistory || []}
@@ -672,8 +699,8 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-600">Typ produktu:</span>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${productTypeColors[item.type || ProductType.UNDEFINED]}`}>
-              {productTypeLabels[item.type || ProductType.UNDEFINED]}
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${productTypeColors[(item.type || ProductType.UNDEFINED) as ProductType]}`}>
+              {productTypeLabels[(item.type || ProductType.UNDEFINED) as ProductType]}
             </span>
           </div>
           

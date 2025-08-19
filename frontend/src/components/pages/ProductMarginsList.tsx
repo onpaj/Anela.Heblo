@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProductMarginsQuery } from '../../api/hooks/useProductMargins';
 import CatalogDetail from './CatalogDetail';
-import { CatalogItemDto, StockDto, PriceDto, PropertiesDto } from '../../api/hooks/useCatalog';
 
 const ProductMarginsList: React.FC = () => {
   
@@ -21,7 +20,7 @@ const ProductMarginsList: React.FC = () => {
   const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
 
   // Modal states
-  const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
+  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use the API call
@@ -91,44 +90,14 @@ const ProductMarginsList: React.FC = () => {
   };
 
   // Modal handlers
-  const handleItemClick = async (productCode: string) => {
-    // Create minimal catalog item using proper constructors from generated API client
-    const currentItem = filteredItems.find(item => item.productCode === productCode);
-    
-    const mockCatalogItem = new CatalogItemDto({
-      productCode: productCode,
-      productName: currentItem?.productName || '',
-      type: 0, // ProductType.Product
-      stock: new StockDto({
-        available: 0,
-        reserve: 0,
-        eshop: 0,
-        erp: 0,
-        transport: 0
-      }),
-      price: new PriceDto({
-        currentSellingPrice: currentItem?.priceWithoutVat || 0
-      }),
-      properties: new PropertiesDto({
-        stockMinSetup: 0,
-        optimalStockDaysSetup: 0,
-        seasonMonths: []
-      }),
-      location: '',
-      minimalOrderQuantity: '',
-      minimalManufactureQuantity: 0,
-      manufactureDifficulty: currentItem?.manufactureDifficulty || 0,
-      marginPercentage: currentItem?.marginPercentage || 0,
-      marginAmount: currentItem?.marginAmount || 0
-    });
-    
-    setSelectedItem(mockCatalogItem);
+  const handleItemClick = (productCode: string) => {
+    setSelectedProductCode(productCode);
     setIsDetailModalOpen(true);
   };
 
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
-    setSelectedItem(null);
+    setSelectedProductCode(null);
   };
   
   // Sortable header component
@@ -222,7 +191,7 @@ const ProductMarginsList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">Marže produktů</h1>
@@ -435,10 +404,10 @@ const ProductMarginsList: React.FC = () => {
 
       {/* Modal for Product Detail */}
       <CatalogDetail 
-        item={selectedItem}
+        productCode={selectedProductCode}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
-        defaultTab="basic"
+        defaultTab="margins"
       />
     </div>
   );

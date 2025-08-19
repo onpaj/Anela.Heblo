@@ -241,7 +241,7 @@ const PurchaseOrderList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900">Nákupní objednávky</h1>
