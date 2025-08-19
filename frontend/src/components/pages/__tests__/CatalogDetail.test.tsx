@@ -8,7 +8,7 @@ import { useCatalogDetail } from '../../../api/hooks/useCatalog';
 
 // Mock the chart components to avoid canvas issues in tests
 jest.mock('react-chartjs-2', () => ({
-  Line: ({ data }: any) => (
+  Line: ({ data, options }: any) => (
     <div data-testid="chart">
       Chart with {data.datasets[0].data.length} data points
     </div>
@@ -66,18 +66,24 @@ const mockCatalogItem: CatalogItemDto = {
   location: 'A1-01',
   minimalOrderQuantity: '10',
   minimalManufactureQuantity: 20,
+  manufactureDifficulty: 2.5,
 };
 
+// Create mock data for current year/month to ensure it falls within the 13-month window
+const currentDate = new Date();
+const currentYear = currentDate.getFullYear();
+const currentMonth = currentDate.getMonth() + 1; // Convert to 1-based
+
 const mockSalesData = [
-  { year: 2024, month: 7, amountTotal: 15, amountB2B: 10, amountB2C: 5, sumTotal: 1500, sumB2B: 1000, sumB2C: 500 },
-  { year: 2024, month: 6, amountTotal: 20, amountB2B: 12, amountB2C: 8, sumTotal: 2000, sumB2B: 1200, sumB2C: 800 },
-  { year: 2024, month: 5, amountTotal: 25, amountB2B: 15, amountB2C: 10, sumTotal: 2500, sumB2B: 1500, sumB2C: 1000 },
+  { year: currentYear, month: currentMonth, amountTotal: 15, amountB2B: 10, amountB2C: 5, sumTotal: 1500, sumB2B: 1000, sumB2C: 500 },
+  { year: currentYear, month: currentMonth - 1 > 0 ? currentMonth - 1 : 12, amountTotal: 20, amountB2B: 12, amountB2C: 8, sumTotal: 2000, sumB2B: 1200, sumB2C: 800 },
+  { year: currentYear, month: currentMonth - 2 > 0 ? currentMonth - 2 : 12, amountTotal: 25, amountB2B: 15, amountB2C: 10, sumTotal: 2500, sumB2B: 1500, sumB2C: 1000 },
 ];
 
 const mockConsumedData = [
-  { year: 2024, month: 7, amount: 8, productName: 'Test Material' },
-  { year: 2024, month: 6, amount: 12, productName: 'Test Material' },
-  { year: 2024, month: 5, amount: 15, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth, amount: 8, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth - 1 > 0 ? currentMonth - 1 : 12, amount: 12, productName: 'Test Material' },
+  { year: currentYear, month: currentMonth - 2 > 0 ? currentMonth - 2 : 12, amount: 15, productName: 'Test Material' },
 ];
 
 const renderWithQueryClient = (component: React.ReactElement) => {
@@ -102,6 +108,7 @@ describe('CatalogDetail', () => {
           salesHistory: mockSalesData,
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -130,6 +137,7 @@ describe('CatalogDetail', () => {
           salesHistory: mockSalesData,
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -144,7 +152,7 @@ describe('CatalogDetail', () => {
       />
     );
 
-    expect(screen.getByText('Prodeje za posledních 13 měsíců')).toBeInTheDocument();
+    expect(screen.getByText('Prodeje')).toBeInTheDocument();
     expect(screen.getByTestId('chart')).toBeInTheDocument();
   });
 
@@ -158,6 +166,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: mockConsumedData,
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -172,7 +181,7 @@ describe('CatalogDetail', () => {
       />
     );
 
-    expect(screen.getByText('Spotřeba za posledních 13 měsíců')).toBeInTheDocument();
+    expect(screen.getByText('Spotřeba')).toBeInTheDocument();
     expect(screen.getByTestId('chart')).toBeInTheDocument();
   });
 
@@ -184,6 +193,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -257,6 +267,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -285,6 +296,7 @@ describe('CatalogDetail', () => {
           salesHistory: [],
           purchaseHistory: [],
           consumedHistory: [],
+          manufactureHistory: [],
         },
       },
       isLoading: false,
@@ -300,5 +312,180 @@ describe('CatalogDetail', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  describe('ManufactureDifficulty', () => {
+    it('should display manufacture difficulty for products with difficulty > 0', () => {
+      const productWithDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 3.75,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+            manufactureHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('3.75')).toBeInTheDocument();
+    });
+
+    it('should display manufacture difficulty for semi-products with difficulty > 0', () => {
+      const semiProductWithDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.SemiProduct,
+        manufactureDifficulty: 1.25,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: semiProductWithDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+            manufactureHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={semiProductWithDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('1.25')).toBeInTheDocument();
+    });
+
+    it('should display dash when manufacture difficulty is 0', () => {
+      const productWithZeroDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 0,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithZeroDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+            manufactureHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithZeroDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getAllByText('-')).toContainEqual(
+        expect.objectContaining({
+          textContent: '-'
+        })
+      );
+    });
+
+    it('should display dash when manufacture difficulty is undefined', () => {
+      const productWithoutDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Material,
+        manufactureDifficulty: undefined,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithoutDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+            manufactureHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithoutDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getAllByText('-')).toContainEqual(
+        expect.objectContaining({
+          textContent: '-'
+        })
+      );
+    });
+
+    it('should round manufacture difficulty to 2 decimal places', () => {
+      const productWithPreciseDifficulty = {
+        ...mockCatalogItem,
+        type: ProductType.Product,
+        manufactureDifficulty: 2.66666666,
+      };
+
+      mockUseCatalogDetail.mockReturnValue({
+        data: {
+          item: productWithPreciseDifficulty,
+          historicalData: {
+            salesHistory: [],
+            purchaseHistory: [],
+            consumedHistory: [],
+            manufactureHistory: [],
+          },
+        },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      renderWithQueryClient(
+        <CatalogDetail
+          item={productWithPreciseDifficulty}
+          isOpen={true}
+          onClose={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
+      expect(screen.getByText('2.67')).toBeInTheDocument();
+    });
   });
 });

@@ -22,8 +22,8 @@ public class ProductMarginsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<GetProductMarginsResponse>> GetProductMargins([FromQuery] GetProductMarginsRequest request)
     {
-        _logger.LogInformation("Getting product margins with page {PageNumber}, size {PageSize}, product code {ProductCode}, product name {ProductName}",
-            request.PageNumber, request.PageSize, request.ProductCode, request.ProductName);
+        _logger.LogInformation("Getting product margins with page {PageNumber}, size {PageSize}, product code {ProductCode}, product name {ProductName}, sort by {SortBy}, descending {SortDescending}",
+            request.PageNumber, request.PageSize, request.ProductCode, request.ProductName, request.SortBy, request.SortDescending);
 
         try
         {

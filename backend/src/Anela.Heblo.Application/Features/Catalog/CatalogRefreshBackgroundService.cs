@@ -19,11 +19,14 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private DateTime _lastErpStockRefresh = DateTime.MinValue;
     private DateTime _lastEshopStockRefresh = DateTime.MinValue;
     private DateTime _lastPurchaseHistoryRefresh = DateTime.MinValue;
+    private DateTime _lastManufactureHistoryRefresh = DateTime.MinValue;
     private DateTime _lastConsumedRefresh = DateTime.MinValue;
     private DateTime _lastStockTakingRefresh = DateTime.MinValue;
     private DateTime _lastLotsRefresh = DateTime.MinValue;
     private DateTime _lastEshopPricesRefresh = DateTime.MinValue;
     private DateTime _lastErpPricesRefresh = DateTime.MinValue;
+    private DateTime _lastManufactureDifficultyRefresh = DateTime.MinValue;
+    private DateTime _lastManufactureCostRefresh = DateTime.MinValue;
 
     public CatalogRefreshBackgroundService(
         IServiceProvider serviceProvider,
@@ -105,6 +108,14 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     _lastPurchaseHistoryRefresh = now;
                 }
 
+                if (await RefreshIfNeeded(catalogRepository, "Manufacture History",
+                    _lastManufactureHistoryRefresh, _options.ManufactureHistoryRefreshInterval,
+                    async ct => await catalogRepository.RefreshManufactureHistoryData(ct),
+                    now, stoppingToken))
+                {
+                    _lastManufactureHistoryRefresh = now;
+                }
+
                 if (await RefreshIfNeeded(catalogRepository, "Consumed History",
                     _lastConsumedRefresh, _options.ConsumedRefreshInterval,
                     async ct => await catalogRepository.RefreshConsumedHistoryData(ct),
@@ -143,6 +154,28 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     now, stoppingToken))
                 {
                     _lastErpPricesRefresh = now;
+                }
+
+                if (await RefreshIfNeeded(catalogRepository, "Manufacture Difficulty",
+                    _lastManufactureDifficultyRefresh, _options.ManufactureDifficultyRefreshInterval,
+                    async ct => await catalogRepository.RefreshManufactureDifficultyData(ct),
+                    now, stoppingToken))
+                {
+                    _lastManufactureDifficultyRefresh = now;
+                }
+
+                // Refresh ManufactureCostData after ManufactureDifficulty and ManufactureHistory are refreshed
+                // Use the same interval as ManufactureHistory since both need to be fresh
+                if (_lastManufactureDifficultyRefresh >= _lastManufactureCostRefresh &&
+                    _lastManufactureHistoryRefresh >= _lastManufactureCostRefresh)
+                {
+                    if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
+                        _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
+                        async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastManufactureCostRefresh = now;
+                    }
                 }
 
                 // Wait before next cycle (check every minute)

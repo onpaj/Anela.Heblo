@@ -324,10 +324,14 @@ describe('PurchaseStockAnalysis', () => {
 
     // Click on Product column header to sort
     const productHeader = screen.getByText('Produkt');
+    expect(productHeader).toBeInTheDocument();
     fireEvent.click(productHeader);
 
-    // Test sorting instructions text
-    expect(screen.getByText('Klikněte na záhlaví sloupce pro řazení')).toBeInTheDocument();
+    // Test that the header is clickable (sorting functionality)
+    // Find the th element that contains the Product header
+    const tableHeaders = screen.getAllByRole('columnheader');
+    const productHeaderTh = tableHeaders.find(th => th.textContent?.includes('Produkt'));
+    expect(productHeaderTh).toHaveClass('cursor-pointer');
   });
 
   it('displays formatted numbers correctly', () => {

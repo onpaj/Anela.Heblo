@@ -24,7 +24,8 @@ public static class CatalogModule
         {
             services.AddTransient<ICatalogRepository, CatalogRepository>();
         }
-        // Register any catalog-specific services here if needed
+        // Register catalog-specific services
+        services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
 
         services.AddTransient<ITransportBoxRepository, EmptyTransportBoxRepository>();
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();

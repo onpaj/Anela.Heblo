@@ -13,4 +13,7 @@ public class CatalogItemDto
     public string Location { get; set; } = string.Empty;
     public string MinimalOrderQuantity { get; set; } = string.Empty;
     public double MinimalManufactureQuantity { get; set; }
+    public double ManufactureDifficulty { get; set; }
+    public decimal MarginPercentage { get; set; }
+    public decimal MarginAmount { get; set; }
 }

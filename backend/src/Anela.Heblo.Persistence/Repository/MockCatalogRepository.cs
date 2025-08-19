@@ -250,9 +250,11 @@ public class MockCatalogRepository : ICatalogRepository
     public Task RefreshErpStockData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopStockData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshPurchaseHistoryData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshManufactureHistoryData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshConsumedHistoryData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshStockTakingData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshLotsData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshManufactureDifficultyData(CancellationToken ct) => Task.CompletedTask;
 }

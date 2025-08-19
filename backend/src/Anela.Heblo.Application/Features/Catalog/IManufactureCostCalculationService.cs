@@ -1,0 +1,10 @@
+using Anela.Heblo.Domain.Features.Catalog;
+
+namespace Anela.Heblo.Application.Features.Catalog;
+
+public interface IManufactureCostCalculationService
+{
+    Task<Dictionary<string, List<ManufactureCost>>> CalculateManufactureCostHistoryAsync(
+        List<CatalogAggregate> products, 
+        CancellationToken cancellationToken = default);
+}

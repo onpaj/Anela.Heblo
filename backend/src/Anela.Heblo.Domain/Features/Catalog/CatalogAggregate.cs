@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Domain;
 
@@ -30,6 +31,7 @@ public class CatalogAggregate : Entity<string>
     private IList<CatalogSaleRecord> _salesHistory = new List<CatalogSaleRecord>();
     private IList<ConsumedMaterialRecord> _consumedHistory = new List<ConsumedMaterialRecord>();
     private IReadOnlyList<CatalogPurchaseRecord> _purchaseHistory = new List<CatalogPurchaseRecord>();
+    private IReadOnlyList<ManufactureHistoryRecord> _manufactureHistory = new List<ManufactureHistoryRecord>();
 
     public IList<CatalogSaleRecord> SalesHistory
     {
@@ -61,6 +63,16 @@ public class CatalogAggregate : Entity<string>
         }
     }
 
+    public IReadOnlyList<ManufactureHistoryRecord> ManufactureHistory
+    {
+        get => _manufactureHistory;
+        set
+        {
+            _manufactureHistory = value;
+            // No summary update needed for manufacture history yet
+        }
+    }
+
     public SaleHistorySummary SaleHistorySummary { get; set; } = new();
     public ConsumedHistorySummary ConsumedHistorySummary { get; set; } = new();
     public PurchaseHistorySummary PurchaseHistorySummary { get; set; } = new();
@@ -69,8 +81,13 @@ public class CatalogAggregate : Entity<string>
 
     public string MinimalOrderQuantity { get; set; } = "";
     public double MinimalManufactureQuantity { get; set; } = 0;
+    public double ManufactureDifficulty { get; set; } = 0;
 
-
+    public List<ManufactureCost> ManufactureCostHistory { get; set; } = new();
+    
+    // Margin properties - calculated after ManufactureCostHistory is populated
+    public decimal MarginPercentage { get; set; } = 0;
+    public decimal MarginAmount { get; set; } = 0;
 
     // Readonly PROPS
     public string? PrimarySupplier => SupplierNames.FirstOrDefault();
@@ -202,6 +219,34 @@ public class CatalogAggregate : Entity<string>
         UpdateSaleHistorySummary();
         UpdatePurchaseHistorySummary();
         UpdateConsumedHistorySummary();
+    }
+    
+    public void UpdateMarginCalculation()
+    {
+        if (ManufactureCostHistory.Count == 0)
+        {
+            MarginPercentage = 0;
+            MarginAmount = 0;
+            return;
+        }
+        
+        // Calculate average total cost from manufacturing cost history
+        var averageTotalCost = ManufactureCostHistory
+            .Average(record => record.Total);
+        
+        // Get selling price without VAT from eshop
+        var sellingPrice = EshopPrice?.PriceWithoutVat ?? 0;
+        
+        if (sellingPrice > 0 && averageTotalCost > 0)
+        {
+            MarginAmount = sellingPrice - averageTotalCost;
+            MarginPercentage = (MarginAmount / sellingPrice) * 100;
+        }
+        else
+        {
+            MarginPercentage = 0;
+            MarginAmount = 0;
+        }
     }
 
 }

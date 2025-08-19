@@ -52,6 +52,12 @@ export const refreshOperations: RefreshOperation[] = [
     description: 'Obnovit historii nákupů'
   },
   {
+    key: 'manufacture-history',
+    name: 'Manufacture History',
+    methodName: 'catalog_RefreshManufactureHistoryData',
+    description: 'Obnovit historii výroby'
+  },
+  {
     key: 'consumed-history',
     name: 'Consumed History',
     methodName: 'catalog_RefreshConsumedHistoryData',
@@ -80,6 +86,12 @@ export const refreshOperations: RefreshOperation[] = [
     name: 'ERP Prices',
     methodName: 'catalog_RefreshErpPricesData',
     description: 'Obnovit ceny z ERP'
+  },
+  {
+    key: 'manufacture-difficulty',
+    name: 'Manufacture Difficulty',
+    methodName: 'catalog_RefreshManufactureDifficultyData',
+    description: 'Obnovit náročnost výroby'
   }
 ];
 

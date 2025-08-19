@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.Manufacture;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
+using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
@@ -7,7 +9,9 @@ public class FlexiManufactureRepository : IManufactureRepository
 {
     private readonly IBoMClient _bomClient;
 
-    public FlexiManufactureRepository(IBoMClient bomClient)
+    public FlexiManufactureRepository(
+        IBoMClient bomClient
+        )
     {
         _bomClient = bomClient;
     }

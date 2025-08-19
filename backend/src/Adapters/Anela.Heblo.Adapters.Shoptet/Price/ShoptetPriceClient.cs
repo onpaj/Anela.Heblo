@@ -38,27 +38,9 @@ public class ShoptetPriceClient : IProductPriceEshopClient
                 {
                     ProductCode = record.ProductCode,
                     PriceWithVat = record.PriceWithVat,
+                    PriceWithoutVat = (decimal)((double)(record.PriceWithVat ?? 0) / (double)((record?.PercentVat ?? 21) / 100 + 1)),
                     PurchasePrice = record.PurchasePrice
                 };
-
-                // Calculate PriceWithoutVat based on VAT information
-                // Only calculate if we have all required values AND they are valid
-                if (record.PriceWithVat.HasValue && record.PercentVat.HasValue && record.IncludingVat.HasValue && record.PercentVat.Value >= 0)
-                {
-                    if (record.IncludingVat == true)
-                    {
-                        // Price includes VAT, calculate price without VAT
-                        product.PriceWithoutVat = record.PriceWithVat.Value / (1 + record.PercentVat.Value / 100);
-                    }
-                    else if (record.IncludingVat == false)
-                    {
-                        // Price doesn't include VAT, so price without VAT is the same as PriceWithVat
-                        product.PriceWithoutVat = record.PriceWithVat.Value;
-                        // And we need to update PriceWithVat to include VAT
-                        product.PriceWithVat = record.PriceWithVat.Value * (1 + record.PercentVat.Value / 100);
-                    }
-                    // If IncludingVat is null or invalid, don't calculate anything
-                }
 
                 priceList.Add(product);
             }

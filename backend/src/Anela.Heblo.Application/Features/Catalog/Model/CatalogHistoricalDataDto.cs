@@ -12,4 +12,10 @@ public class CatalogHistoricalDataDto
 
     [JsonPropertyName("consumedHistory")]
     public List<CatalogConsumedRecordDto> ConsumedHistory { get; set; } = new();
+
+    [JsonPropertyName("manufactureHistory")]
+    public List<CatalogManufactureRecordDto> ManufactureHistory { get; set; } = new();
+
+    [JsonPropertyName("manufactureCostHistory")]
+    public List<ManufactureCostDto> ManufactureCostHistory { get; set; } = new();
 }

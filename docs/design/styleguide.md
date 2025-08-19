@@ -1,6 +1,8 @@
-Design System for Cosmetics ERP Platform
-Color Palette
-Primary Colors
+# Design System for Cosmetics ERP Platform
+
+## Color Palette
+
+### Primary Colors
 
 Primary White - #FFFFFF (Clean surfaces, main backgrounds, and container fills)
 Primary Blue - #2563EB (Primary brand color for CTAs, navigation, and key interactions)
@@ -200,5 +202,51 @@ border-top: 1px solid #E2E8F0
 This standardized approach ensures consistent user experience across all data-heavy interfaces while maximizing screen space for actual content.
 
 
+
+## Data Table Components
+
+### Sortable Column Headers
+
+All sortable columns should implement the standard dual-arrow sorting pattern:
+
+**Visual Design:**
+- Use `ChevronUp` and `ChevronDown` icons from Lucide React
+- Icon size: 12px (h-3 w-3)
+- Vertical stack with -mt-1 to reduce spacing
+- Position arrows to the right of text for left-aligned columns
+- Position arrows to the left of text for right-aligned columns
+
+**Color States:**
+- Inactive state: `text-gray-300` (subtle, non-distracting)
+- Active ascending: `text-indigo-600` (blue accent)
+- Active descending: `text-indigo-600` (blue accent)
+
+**Interaction:**
+- Entire header cell is clickable
+- Hover state: `hover:bg-gray-100`
+- Add `select-none` to prevent text selection
+- Use `cursor-pointer` to indicate interactivity
+
+**Layout Pattern:**
+```tsx
+<div className="flex items-center space-x-1">
+  {align === 'right' && sortIcons}
+  <span>{columnTitle}</span>
+  {align === 'left' && sortIcons}
+</div>
+```
+
+**Reusable Component Structure:**
+```tsx
+const SortableHeader: React.FC<{ 
+  column: string; 
+  children: React.ReactNode; 
+  align?: 'left' | 'right' 
+}> = ({ column, children, align = 'left' }) => {
+  // Implementation with consistent styling and behavior
+};
+```
+
+This pattern ensures predictable sorting behavior and visual consistency across all data tables in the application.
 
 This design system prioritizes clarity and efficiency for logistics and manufacturing workflows while maintaining the clean, tech-forward aesthetic with strategic blue accents throughout the cosmetics ERP platform.
