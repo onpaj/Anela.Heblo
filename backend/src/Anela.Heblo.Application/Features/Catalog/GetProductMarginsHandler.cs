@@ -2,6 +2,7 @@ using MediatR;
 using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Catalog;
 
@@ -39,15 +40,12 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
 
         query = query.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
 
-        var totalCount = query.Count();
+        // Convert to list first to enable in-memory operations for complex sorting
+        var filteredItems = query.ToList();
+        var totalCount = filteredItems.Count;
 
-        // Apply sorting
-        query = ApplySorting(query, request.SortBy, request.SortDescending);
-
-        var items = query
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToList()
+        // Create DTOs with calculated values
+        var itemsWithCalculatedValues = filteredItems
             .Select(x => new ProductMarginDto
             {
                 ProductCode = x.ProductCode,
@@ -55,10 +53,20 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 PriceWithoutVat = x.EshopPrice?.PriceWithoutVat,
                 PurchasePrice = x.ErpPrice?.PurchasePrice,
                 ManufactureDifficulty = x.ManufactureDifficulty,
-                MaterialCost = x.ErpPrice?.PurchasePrice ?? 0,
-                ManufactureCost = CalculateManufactureCost(request.DateFrom ?? _timeProvider.GetUtcNow().AddYears(-1), request.DateTo ?? _timeProvider.GetUtcNow(), x.ManufactureDifficulty),
-                AverageMargin = CalculateMargin(x.EshopPrice?.PriceWithoutVat, CalculateTotalCost(x.ErpPrice?.PurchasePrice, CalculateManufactureCost(request.DateFrom ?? _timeProvider.GetUtcNow().AddYears(-1), request.DateTo ?? _timeProvider.GetUtcNow(), x.ManufactureDifficulty)))
+                AverageMaterialCost = CalculateAverageMaterialCostFromHistory(x.ManufactureCostHistory),
+                AverageHandlingCost = CalculateAverageHandlingCostFromHistory(x.ManufactureCostHistory),
+                MarginPercentage = x.MarginPercentage,
+                MarginAmount = x.MarginAmount
             })
+            .ToList();
+
+        // Apply sorting in memory
+        itemsWithCalculatedValues = ApplySortingInMemory(itemsWithCalculatedValues, request.SortBy, request.SortDescending);
+
+        // Apply pagination
+        var items = itemsWithCalculatedValues
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToList();
 
         return new GetProductMarginsResponse
@@ -70,45 +78,82 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         };
     }
 
-    private decimal? CalculateManufactureCost(DateTimeOffset requestDateFrom, DateTimeOffset requestDateTo, double argManufactureDifficulty)
+    private static decimal? CalculateAverageMaterialCostFromHistory(List<ManufactureCost> manufactureCostHistory)
     {
-        // TODO: Implementovat async výpočet výrobních nákladů pomocí _ledgerService.GetTotalPersonalCosts
-        // Pro nyní vrátíme null - implementace bude dokončena později
-        return null;
+        if (manufactureCostHistory == null || manufactureCostHistory.Count == 0)
+        {
+            return null;
+        }
+
+        // Exclude zero values as requested
+        var nonZeroCosts = manufactureCostHistory
+            .Where(c => c.MaterialCost > 0)
+            .ToList();
+
+        if (nonZeroCosts.Count == 0)
+        {
+            return null;
+        }
+
+        return nonZeroCosts.Average(c => c.MaterialCost);
     }
 
-    private static decimal? CalculateTotalCost(decimal? materialCost, decimal? manufactureCost)
+    private static decimal? CalculateAverageHandlingCostFromHistory(List<ManufactureCost> manufactureCostHistory)
     {
-        return (materialCost ?? 0) + (manufactureCost ?? 0);
+        if (manufactureCostHistory == null || manufactureCostHistory.Count == 0)
+        {
+            return null;
+        }
+
+        // Exclude zero values as requested
+        var nonZeroCosts = manufactureCostHistory
+            .Where(c => c.HandlingCost > 0)
+            .ToList();
+
+        if (nonZeroCosts.Count == 0)
+        {
+            return null;
+        }
+
+        return nonZeroCosts.Average(c => c.HandlingCost);
     }
 
-    private static decimal? CalculateMargin(decimal? price, decimal? cost)
-    {
-        if (price == null || cost == null || price == 0) return null;
-
-        var margin = ((price.Value - cost.Value) / price.Value) * 100;
-
-        return Math.Round(margin, 2);
-    }
-
-    private static IQueryable<CatalogAggregate> ApplySorting(IQueryable<CatalogAggregate> query, string? sortBy, bool sortDescending)
+    private static List<ProductMarginDto> ApplySortingInMemory(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
         {
-            return query.OrderBy(x => x.ProductCode);
+            // Default sorting by MarginPercentage descending (highest margins first)
+            return sortDescending 
+                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
+                : items.OrderBy(x => x.MarginPercentage).ToList();
         }
 
         return sortBy.ToLower() switch
         {
-            "productcode" => sortDescending ? query.OrderByDescending(x => x.ProductCode) : query.OrderBy(x => x.ProductCode),
-            "productname" => sortDescending ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+            "productcode" => sortDescending 
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList(),
+            "productname" => sortDescending 
+                ? items.OrderByDescending(x => x.ProductName).ToList()
+                : items.OrderBy(x => x.ProductName).ToList(),
             "pricewithoutVat" => sortDescending
-                ? query.OrderByDescending(x => x.EshopPrice != null ? x.EshopPrice.PriceWithoutVat : (decimal?)null)
-                : query.OrderBy(x => x.EshopPrice != null ? x.EshopPrice.PriceWithoutVat : (decimal?)null),
+                ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
+                : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
             "purchaseprice" => sortDescending
-                ? query.OrderByDescending(x => x.ErpPrice != null ? x.ErpPrice.PurchasePrice : (decimal?)null)
-                : query.OrderBy(x => x.ErpPrice != null ? x.ErpPrice.PurchasePrice : (decimal?)null),
-            _ => query.OrderBy(x => x.ProductCode)
+                ? items.OrderByDescending(x => x.PurchasePrice ?? 0).ToList()
+                : items.OrderBy(x => x.PurchasePrice ?? 0).ToList(),
+            "averagematerialcost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageMaterialCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageMaterialCost ?? 0).ToList(),
+            "averagehandlingcost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageHandlingCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageHandlingCost ?? 0).ToList(),
+            "marginpercentage" => sortDescending
+                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
+                : items.OrderBy(x => x.MarginPercentage).ToList(),
+            _ => sortDescending 
+                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
+                : items.OrderBy(x => x.MarginPercentage).ToList()
         };
     }
 }

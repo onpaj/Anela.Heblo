@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  TrendingUp,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -35,11 +34,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'single' as const
     },
     {
-      id: 'catalog',
-      name: 'Katalog',
-      href: '/catalog',
+      id: 'produkty',
+      name: 'Produkty',
       icon: Package,
-      type: 'single' as const
+      type: 'section' as const,
+      items: [
+        { id: 'catalog', name: 'Katalog', href: '/catalog' },
+        { id: 'marze-produktu', name: 'Marže', href: '/produkty/marze' }
+      ]
     },
     {
       id: 'nakup',
@@ -49,15 +51,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       items: [
         { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/nakup/objednavky' },
         { id: 'analyza-skladu', name: 'Analýza skladů', href: '/nakup/analyza-skladu' }
-      ]
-    },
-    {
-      id: 'produkty',
-      name: 'Produkty',
-      icon: TrendingUp,
-      type: 'section' as const,
-      items: [
-        { id: 'marze-produktu', name: 'Marže produktů', href: '/produkty/marze' }
       ]
     }
   ];

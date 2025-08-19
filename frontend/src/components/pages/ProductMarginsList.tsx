@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProductMarginsQuery } from '../../api/hooks/useProductMargins';
+import CatalogDetail from './CatalogDetail';
+import { CatalogItemDto, StockDto, PriceDto, PropertiesDto } from '../../api/hooks/useCatalog';
 
 const ProductMarginsList: React.FC = () => {
   
@@ -15,8 +17,12 @@ const ProductMarginsList: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>('');
-  const [sortDescending, setSortDescending] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('marginPercentage');
+  const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
+
+  // Modal states
+  const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use the API call
   const { data, isLoading: loading, error, refetch } = useProductMarginsQuery(
@@ -82,6 +88,47 @@ const ProductMarginsList: React.FC = () => {
       setSortDescending(false);
     }
     setPageNumber(1); // Reset to first page when sorting
+  };
+
+  // Modal handlers
+  const handleItemClick = async (productCode: string) => {
+    // Create minimal catalog item using proper constructors from generated API client
+    const currentItem = filteredItems.find(item => item.productCode === productCode);
+    
+    const mockCatalogItem = new CatalogItemDto({
+      productCode: productCode,
+      productName: currentItem?.productName || '',
+      type: 0, // ProductType.Product
+      stock: new StockDto({
+        available: 0,
+        reserve: 0,
+        eshop: 0,
+        erp: 0,
+        transport: 0
+      }),
+      price: new PriceDto({
+        currentSellingPrice: currentItem?.priceWithoutVat || 0
+      }),
+      properties: new PropertiesDto({
+        stockMinSetup: 0,
+        optimalStockDaysSetup: 0,
+        seasonMonths: []
+      }),
+      location: '',
+      minimalOrderQuantity: '',
+      minimalManufactureQuantity: 0,
+      manufactureDifficulty: currentItem?.manufactureDifficulty || 0,
+      marginPercentage: currentItem?.marginPercentage || 0,
+      marginAmount: currentItem?.marginAmount || 0
+    });
+    
+    setSelectedItem(mockCatalogItem);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailModalOpen(false);
+    setSelectedItem(null);
   };
   
   // Sortable header component
@@ -252,19 +299,18 @@ const ProductMarginsList: React.FC = () => {
                 <SortableHeader column="productName">Název produktu</SortableHeader>
                 <SortableHeader column="priceWithoutVat" align="right">Cena bez DPH</SortableHeader>
                 <SortableHeader column="purchasePrice" align="right">Nákupní cena</SortableHeader>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Náklad průměr
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Marže průměr
-                </th>
+                <SortableHeader column="averageMaterialCost" align="right">Materiál</SortableHeader>
+                <SortableHeader column="averageHandlingCost" align="right">Výroba průměr</SortableHeader>
+                <SortableHeader column="marginPercentage" align="right">Marže %</SortableHeader>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => (
                 <tr 
                   key={item.productCode} 
-                  className="hover:bg-gray-50 transition-colors duration-150"
+                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  onClick={() => handleItemClick(item.productCode!)}
+                  title="Klikněte pro zobrazení detailu"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {item.productCode}
@@ -279,10 +325,13 @@ const ProductMarginsList: React.FC = () => {
                     {formatCurrency(item.purchasePrice)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {formatCurrency((item.materialCost || 0) + (item.manufactureCost || 0))}
+                    {formatCurrency(item.averageMaterialCost)}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.averageMargin)}`}>
-                    {formatPercentage(item.averageMargin)}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                    {formatCurrency(item.averageHandlingCost)}
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}>
+                    {formatPercentage(item.marginPercentage)}
                   </td>
                 </tr>
               ))}
@@ -383,6 +432,14 @@ const ProductMarginsList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal for Product Detail */}
+      <CatalogDetail 
+        item={selectedItem}
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetail}
+        defaultTab="basic"
+      />
     </div>
   );
 };

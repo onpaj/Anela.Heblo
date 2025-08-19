@@ -2380,10 +2380,11 @@ export class ProductMarginDto implements IProductMarginDto {
     productName?: string;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    manufactureCost?: number | undefined;
-    materialCost?: number | undefined;
+    averageMaterialCost?: number | undefined;
+    averageHandlingCost?: number | undefined;
     manufactureDifficulty?: number;
-    averageMargin?: number | undefined;
+    marginPercentage?: number;
+    marginAmount?: number;
 
     constructor(data?: IProductMarginDto) {
         if (data) {
@@ -2400,10 +2401,11 @@ export class ProductMarginDto implements IProductMarginDto {
             this.productName = _data["productName"];
             this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
-            this.manufactureCost = _data["manufactureCost"];
-            this.materialCost = _data["materialCost"];
+            this.averageMaterialCost = _data["averageMaterialCost"];
+            this.averageHandlingCost = _data["averageHandlingCost"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
-            this.averageMargin = _data["averageMargin"];
+            this.marginPercentage = _data["marginPercentage"];
+            this.marginAmount = _data["marginAmount"];
         }
     }
 
@@ -2420,10 +2422,11 @@ export class ProductMarginDto implements IProductMarginDto {
         data["productName"] = this.productName;
         data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
-        data["manufactureCost"] = this.manufactureCost;
-        data["materialCost"] = this.materialCost;
+        data["averageMaterialCost"] = this.averageMaterialCost;
+        data["averageHandlingCost"] = this.averageHandlingCost;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
-        data["averageMargin"] = this.averageMargin;
+        data["marginPercentage"] = this.marginPercentage;
+        data["marginAmount"] = this.marginAmount;
         return data;
     }
 }
@@ -2433,10 +2436,11 @@ export interface IProductMarginDto {
     productName?: string;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    manufactureCost?: number | undefined;
-    materialCost?: number | undefined;
+    averageMaterialCost?: number | undefined;
+    averageHandlingCost?: number | undefined;
     manufactureDifficulty?: number;
-    averageMargin?: number | undefined;
+    marginPercentage?: number;
+    marginAmount?: number;
 }
 
 export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {
