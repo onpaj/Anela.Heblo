@@ -19,11 +19,11 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private readonly ILedgerService _mockLedgerService;
-    
+
     public FinancialOverviewTests(WebApplicationFactory<Program> factory)
     {
         _mockLedgerService = Substitute.For<ILedgerService>();
-        
+
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Test");
@@ -44,12 +44,12 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
                 services.AddSingleton(_mockLedgerService);
             });
         });
-        
+
         _client = _factory.CreateClient();
-        
+
         SetupDefaultMockData();
     }
-    
+
     private void SetupDefaultMockData()
     {
         var testData = new List<LedgerItem>
@@ -83,7 +83,7 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
                 Amount = 7000m
             }
         };
-        
+
         _mockLedgerService.GetLedgerItems(
             Arg.Any<DateTime>(),
             Arg.Any<DateTime>(),
@@ -93,45 +93,45 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
             Arg.Any<CancellationToken>())
             .Returns(testData);
     }
-    
+
     [Fact]
     public async Task GetFinancialOverview_WithValidPermission_ReturnsSuccessAndData()
     {
         var response = await _client.GetAsync("/api/financialoverview");
-        
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<GetFinancialOverviewResponse>();
         content.Should().NotBeNull();
         content!.Data.Should().NotBeNull();
         content.Summary.Should().NotBeNull();
     }
-    
+
     [Fact]
     public async Task GetFinancialOverview_WithCustomMonths_ReturnsData()
     {
         var response = await _client.GetAsync("/api/financialoverview?months=12");
-        
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<GetFinancialOverviewResponse>();
         content.Should().NotBeNull();
         content!.Data.Should().NotBeNull();
     }
-    
+
     // TODO: Implement permission test when MockAuthenticationHandler supports dynamic claims
     // For now, the handler always includes the FinancialOverview.View permission
-    
+
     [Fact]
     public async Task GetFinancialOverview_ReturnsCorrectDataStructure()
     {
         var response = await _client.GetAsync("/api/financialoverview?months=3");
-        
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<GetFinancialOverviewResponse>();
         content.Should().NotBeNull();
-        
+
         if (content!.Data.Any())
         {
             var firstMonth = content.Data.First();
@@ -140,21 +140,21 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
             firstMonth.MonthYearDisplay.Should().NotBeNullOrEmpty();
             firstMonth.FinancialBalance.Should().Be(firstMonth.Income - firstMonth.Expenses);
         }
-        
+
         content.Summary.TotalBalance.Should().Be(content.Summary.TotalIncome - content.Summary.TotalExpenses);
     }
-    
+
     [Fact]
     public async Task GetFinancialOverview_WithIncludeStockDataFalse_ReturnsOnlyFinancialData()
     {
         var response = await _client.GetAsync("/api/financialoverview?months=6&includeStockData=false");
-        
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<GetFinancialOverviewResponse>();
         content.Should().NotBeNull();
         content!.Data.Should().NotBeNull();
-        
+
         // Verify stock data is not included
         if (content.Data.Any())
         {
@@ -163,21 +163,21 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
             monthData.TotalStockValueChange.Should().BeNull();
             monthData.TotalBalance.Should().BeNull();
         }
-        
+
         content.Summary.StockSummary.Should().BeNull();
     }
-    
+
     [Fact]
     public async Task GetFinancialOverview_WithIncludeStockDataTrue_ReturnsFinancialAndStockData()
     {
         var response = await _client.GetAsync("/api/financialoverview?months=6&includeStockData=true");
-        
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<GetFinancialOverviewResponse>();
         content.Should().NotBeNull();
         content!.Data.Should().NotBeNull();
-        
+
         // Verify stock data is included (even if empty with placeholder service)
         if (content.Data.Any())
         {
@@ -186,7 +186,7 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
             monthData.TotalStockValueChange.Should().NotBeNull();
             monthData.TotalBalance.Should().NotBeNull();
         }
-        
+
         content.Summary.StockSummary.Should().NotBeNull();
     }
 }

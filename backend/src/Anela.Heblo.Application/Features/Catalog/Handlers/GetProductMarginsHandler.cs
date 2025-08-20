@@ -123,17 +123,17 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         if (string.IsNullOrWhiteSpace(sortBy))
         {
             // Default sorting by MarginPercentage descending (highest margins first)
-            return sortDescending 
+            return sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList();
         }
 
         return sortBy.ToLower() switch
         {
-            "productcode" => sortDescending 
+            "productcode" => sortDescending
                 ? items.OrderByDescending(x => x.ProductCode).ToList()
                 : items.OrderBy(x => x.ProductCode).ToList(),
-            "productname" => sortDescending 
+            "productname" => sortDescending
                 ? items.OrderByDescending(x => x.ProductName).ToList()
                 : items.OrderBy(x => x.ProductName).ToList(),
             "pricewithoutVat" => sortDescending
@@ -151,7 +151,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "marginpercentage" => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList(),
-            _ => sortDescending 
+            _ => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList()
         };

@@ -22,4 +22,9 @@
     <ProjectReference Include="../Anela.Heblo.Persistence/Anela.Heblo.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Features\FinancialOverview\Handlers\" />
+    <Folder Include="Features\FinancialOverview\Services\" />
+  </ItemGroup>
+
 </Project>

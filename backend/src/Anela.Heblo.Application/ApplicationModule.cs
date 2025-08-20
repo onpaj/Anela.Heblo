@@ -26,7 +26,7 @@ public static class ApplicationModule
         services.AddAuditModule();
         services.AddCatalogModule(environment);
         services.AddPurchaseModule();
-        services.AddFinancialOverviewModule();
+        services.AddFinancialOverviewModule(environment);
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
         // services.AddManufactureModule();
