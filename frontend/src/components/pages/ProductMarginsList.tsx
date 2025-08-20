@@ -8,8 +8,10 @@ const ProductMarginsList: React.FC = () => {
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState('');
   const [productCodeInput, setProductCodeInput] = useState('');
+  const [productTypeInput, setProductTypeInput] = useState<string>('Product'); // Default to Product
   const [productNameFilter, setProductNameFilter] = useState('');
   const [productCodeFilter, setProductCodeFilter] = useState('');
+  const [productTypeFilter, setProductTypeFilter] = useState<string>('Product');
   
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
@@ -27,6 +29,7 @@ const ProductMarginsList: React.FC = () => {
   const { data, isLoading: loading, error, refetch } = useProductMarginsQuery(
     productCodeFilter,
     productNameFilter,
+    productTypeFilter,
     pageNumber,
     pageSize,
     sortBy,
@@ -41,6 +44,7 @@ const ProductMarginsList: React.FC = () => {
   const handleApplyFilters = async () => {
     setProductNameFilter(productNameInput);
     setProductCodeFilter(productCodeInput);
+    setProductTypeFilter(productTypeInput);
     setPageNumber(1); // Reset to first page when applying filters
     
     // Force data reload by refetching
@@ -58,8 +62,10 @@ const ProductMarginsList: React.FC = () => {
   const handleClearFilters = async () => {
     setProductNameInput('');
     setProductCodeInput('');
+    setProductTypeInput('Product'); // Reset to default
     setProductNameFilter('');
     setProductCodeFilter('');
+    setProductTypeFilter('Product');
     setPageNumber(1); // Reset to first page when clearing filters
     
     // Force data reload by refetching
@@ -213,12 +219,12 @@ const ProductMarginsList: React.FC = () => {
                 </div>
                 <input
                   type="text"
-                  id="productCode"
-                  value={productCodeInput}
-                  onChange={(e) => setProductCodeInput(e.target.value)}
+                  id="productName"
+                  value={productNameInput}
+                  onChange={(e) => setProductNameInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Kód produktu..."
+                  placeholder="Název produktu..."
                 />
               </div>
             </div>
@@ -230,14 +236,30 @@ const ProductMarginsList: React.FC = () => {
                 </div>
                 <input
                   type="text"
-                  id="productName"
-                  value={productNameInput}
-                  onChange={(e) => setProductNameInput(e.target.value)}
+                  id="productCode"
+                  value={productCodeInput}
+                  onChange={(e) => setProductCodeInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Název produktu..."
+                  placeholder="Kód produktu..."
                 />
               </div>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <select
+                value={productTypeInput}
+                onChange={(e) => {
+                  setProductTypeInput(e.target.value);
+                  // Auto-refresh when product type changes
+                  setProductTypeFilter(e.target.value);
+                  setPageNumber(1);
+                }}
+                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full py-2 px-3 sm:text-sm border-gray-300 rounded-md"
+              >
+                <option value="Product">Výrobky</option>
+                <option value="Goods">Zboží</option>
+              </select>
             </div>
           </div>
 
@@ -333,7 +355,7 @@ const ProductMarginsList: React.FC = () => {
             <div className="flex items-center space-x-3">
               <p className="text-xs text-gray-600">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                {productNameFilter || productCodeFilter ? (
+                {productNameFilter || productCodeFilter || productTypeFilter !== 'Product' ? (
                   <span className="text-gray-500"> (filtrováno)</span>
                 ) : ''}
               </p>

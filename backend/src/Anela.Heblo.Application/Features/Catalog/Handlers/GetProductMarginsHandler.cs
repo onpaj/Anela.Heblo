@@ -38,7 +38,15 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             query = query.Where(x => x.ProductName.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase));
         }
 
-        query = query.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
+        if (request.ProductType.HasValue)
+        {
+            query = query.Where(x => x.Type == request.ProductType.Value);
+        }
+        else
+        {
+            // Default filter: only Product and Goods
+            query = query.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
+        }
 
         // Convert to list first to enable in-memory operations for complex sorting
         var filteredItems = query.ToList();

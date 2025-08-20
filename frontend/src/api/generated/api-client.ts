@@ -1004,12 +1004,14 @@ export class ApiClient {
         return Promise.resolve<GetFinancialOverviewResponse>(null as any);
     }
 
-    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
+    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         if (productName !== undefined && productName !== null)
             url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+        if (productType !== undefined && productType !== null)
+            url_ += "ProductType=" + encodeURIComponent("" + productType) + "&";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)

@@ -223,21 +223,32 @@ public class CatalogAggregate : Entity<string>
 
     public void UpdateMarginCalculation()
     {
-        if (ManufactureCostHistory.Count == 0)
+        decimal averageTotalCost = 0;
+
+        // First try to use manufacturing cost history for manufactured products
+        if (ManufactureCostHistory.Count > 0)
+        {
+            averageTotalCost = ManufactureCostHistory
+                .Average(record => record.Total);
+        }
+        // Fallback to ERP purchase price for purchased products
+        else if (ErpPrice?.PurchasePrice > 0)
+        {
+            averageTotalCost = ErpPrice.PurchasePrice;
+        }
+
+        // If no cost data available, set margins to zero
+        if (averageTotalCost == 0)
         {
             MarginPercentage = 0;
             MarginAmount = 0;
             return;
         }
 
-        // Calculate average total cost from manufacturing cost history
-        var averageTotalCost = ManufactureCostHistory
-            .Average(record => record.Total);
-
         // Get selling price without VAT from eshop
         var sellingPrice = EshopPrice?.PriceWithoutVat ?? 0;
 
-        if (sellingPrice > 0 && averageTotalCost > 0)
+        if (sellingPrice > 0)
         {
             MarginAmount = sellingPrice - averageTotalCost;
             MarginPercentage = (MarginAmount / sellingPrice) * 100;
