@@ -1,31 +1,8 @@
 import React, { useState } from 'react';
 import { Chart } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions,
-} from 'chart.js';
+import { ChartOptions } from 'chart.js';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Calendar, Package, BarChart3 } from 'lucide-react';
 import { useFinancialOverviewQuery } from '../../api/hooks/useFinancialOverview';
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 type PeriodType = 'current-year' | 'current-and-previous-year' | 'last-6-months' | 'last-13-months' | 'last-26-months';
 
