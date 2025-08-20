@@ -7,9 +7,9 @@ namespace Anela.Heblo.Adapters.Flexi.Stock;
 
 public class FlexiStockClient : IErpStockClient
 {
-    private const int MaterialWarehouseId = 5;
-    private const int SemiProductsWarehouseId = 20;
-    private const int ProductsWarehouseId = 4;
+    public const int MaterialWarehouseId = 5;
+    public const int SemiProductsWarehouseId = 20;
+    public const int ProductsWarehouseId = 4;
 
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
@@ -36,6 +36,61 @@ public class FlexiStockClient : IErpStockClient
             .ToList();
     }
 
+    public async Task<IReadOnlyList<ErpStock>> StockToDateAsync(DateTime date, int warehouseId, CancellationToken cancellationToken)
+    {
+        var startTime = DateTime.UtcNow;
+        var parameters = new Dictionary<string, object>
+        {
+            ["date"] = date,
+            ["warehouseId"] = warehouseId
+        };
+
+        try
+        {
+            // Map store code to warehouse ID
+            var stockToDate = await _stockClient
+                .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
+
+            var stock = stockToDate
+                .Select(s => new ErpStock
+                {
+                    ProductCode = s.ProductCode,
+                    ProductName = s.ProductName,
+                    ProductTypeId = s.ProductTypeId,
+                    ProductId = s.ProductId,
+                    Stock = (decimal)s.OnStock,
+                    MOQ = s.MoqName,
+                    HasLots = s.HasLots,
+                    HasExpiration = s.HasExpiration,
+                    Volume = s.Volume,
+                    Weight = s.Weight
+                }).ToList();
+
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "StockToDate",
+                source: "Flexi ERP",
+                recordCount: stock.Count,
+                success: true,
+                parameters: parameters,
+                duration: duration);
+
+            return stock;
+        }
+        catch (Exception ex)
+        {
+            var duration = DateTime.UtcNow - startTime;
+            await _auditService.LogDataLoadAsync(
+                dataType: "StockToDate",
+                source: "Flexi ERP",
+                recordCount: 0,
+                success: false,
+                parameters: parameters,
+                errorMessage: ex.Message,
+                duration: duration);
+            throw;
+        }
+    }
 
     private Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType productType,
         CancellationToken cancellationToken)

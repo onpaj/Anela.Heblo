@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Anela.Heblo.Domain.Features.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -31,8 +32,10 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             // Add Entra ID specific claims
             new Claim("oid", "00000000-0000-0000-0000-000000000000"), // Object ID
             new Claim("tid", "11111111-1111-1111-1111-111111111111"), // Tenant ID
-            new Claim("roles", "User"), // Add roles as needed
-            new Claim("scp", "access_as_user") // Scopes
+            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
+            new Claim("scp", "access_as_user"), // Scopes
+            // Add permission claims for testing
+            new Claim("permission", "FinancialOverview.View")
         };
 
         var identity = new ClaimsIdentity(claims, "Mock");

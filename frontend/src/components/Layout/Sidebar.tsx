@@ -4,13 +4,16 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  TrendingUp,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Menu
+  Menu,
+  DollarSign
 } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
+import { useAuth } from '../../auth/useAuth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,6 +26,13 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty']);
+  const { getUserInfo } = useAuth();
+  const userInfo = getUserInfo();
+
+  // Helper function to check if user has a specific role
+  const hasRole = (role: string): boolean => {
+    return userInfo?.roles?.includes(role) || false;
+  };
 
   // Navigation sections - only implemented pages
   const navigationSections = [
@@ -33,6 +43,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: LayoutDashboard,
       type: 'single' as const
     },
+    // Finance section - only visible for finance_reader role
+    ...(hasRole('finance_reader') ? [{
+      id: 'finance',
+      name: 'Finance',
+      icon: DollarSign,
+      type: 'section' as const,
+      items: [
+        { id: 'financni-prehled', name: 'Finanční přehled', href: '/finance/overview' }
+      ]
+    }] : []),
     {
       id: 'produkty',
       name: 'Produkty',
@@ -40,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'section' as const,
       items: [
         { id: 'catalog', name: 'Katalog', href: '/catalog' },
-        { id: 'marze-produktu', name: 'Marže', href: '/produkty/marze' }
+        { id: 'marze-produktu', name: 'Marže', href: '/products/margins' }
       ]
     },
     {
@@ -49,8 +69,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: ShoppingCart,
       type: 'section' as const,
       items: [
-        { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/nakup/objednavky' },
-        { id: 'analyza-skladu', name: 'Analýza skladů', href: '/nakup/analyza-skladu' }
+        { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/purchase/orders' },
+        { id: 'analyza-skladu', name: 'Analýza skladů', href: '/purchase/stock-analysis' }
       ]
     }
   ];

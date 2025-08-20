@@ -957,6 +957,53 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
+        let url_ = this.baseUrl + "/api/FinancialOverview?";
+        if (months !== undefined && months !== null)
+            url_ += "months=" + encodeURIComponent("" + months) + "&";
+        if (includeStockData === null)
+            throw new Error("The parameter 'includeStockData' cannot be null.");
+        else if (includeStockData !== undefined)
+            url_ += "includeStockData=" + encodeURIComponent("" + includeStockData) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFinancialOverview_GetFinancialOverview(_response);
+        });
+    }
+
+    protected processFinancialOverview_GetFinancialOverview(response: Response): Promise<GetFinancialOverviewResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetFinancialOverviewResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetFinancialOverviewResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -2313,6 +2360,342 @@ export interface IGetConfigurationResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+}
+
+export class GetFinancialOverviewResponse implements IGetFinancialOverviewResponse {
+    data!: MonthlyFinancialDataDto[];
+    summary!: FinancialSummaryDto;
+
+    constructor(data?: IGetFinancialOverviewResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.data = [];
+            this.summary = new FinancialSummaryDto();
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["data"])) {
+                this.data = [] as any;
+                for (let item of _data["data"])
+                    this.data!.push(MonthlyFinancialDataDto.fromJS(item));
+            }
+            this.summary = _data["summary"] ? FinancialSummaryDto.fromJS(_data["summary"]) : new FinancialSummaryDto();
+        }
+    }
+
+    static fromJS(data: any): GetFinancialOverviewResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetFinancialOverviewResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.data)) {
+            data["data"] = [];
+            for (let item of this.data)
+                data["data"].push(item.toJSON());
+        }
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetFinancialOverviewResponse {
+    data: MonthlyFinancialDataDto[];
+    summary: FinancialSummaryDto;
+}
+
+export class MonthlyFinancialDataDto implements IMonthlyFinancialDataDto {
+    year!: number;
+    month!: number;
+    monthYearDisplay!: string;
+    income!: number;
+    expenses!: number;
+    financialBalance!: number;
+    stockChanges?: StockChangeDto | undefined;
+    totalStockValueChange?: number | undefined;
+    totalBalance?: number | undefined;
+
+    constructor(data?: IMonthlyFinancialDataDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.monthYearDisplay = _data["monthYearDisplay"];
+            this.income = _data["income"];
+            this.expenses = _data["expenses"];
+            this.financialBalance = _data["financialBalance"];
+            this.stockChanges = _data["stockChanges"] ? StockChangeDto.fromJS(_data["stockChanges"]) : <any>undefined;
+            this.totalStockValueChange = _data["totalStockValueChange"];
+            this.totalBalance = _data["totalBalance"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyFinancialDataDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyFinancialDataDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["monthYearDisplay"] = this.monthYearDisplay;
+        data["income"] = this.income;
+        data["expenses"] = this.expenses;
+        data["financialBalance"] = this.financialBalance;
+        data["stockChanges"] = this.stockChanges ? this.stockChanges.toJSON() : <any>undefined;
+        data["totalStockValueChange"] = this.totalStockValueChange;
+        data["totalBalance"] = this.totalBalance;
+        return data;
+    }
+}
+
+export interface IMonthlyFinancialDataDto {
+    year: number;
+    month: number;
+    monthYearDisplay: string;
+    income: number;
+    expenses: number;
+    financialBalance: number;
+    stockChanges?: StockChangeDto | undefined;
+    totalStockValueChange?: number | undefined;
+    totalBalance?: number | undefined;
+}
+
+export class StockChangeDto implements IStockChangeDto {
+    materials?: number;
+    semiProducts?: number;
+    products?: number;
+
+    constructor(data?: IStockChangeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.materials = _data["materials"];
+            this.semiProducts = _data["semiProducts"];
+            this.products = _data["products"];
+        }
+    }
+
+    static fromJS(data: any): StockChangeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockChangeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["materials"] = this.materials;
+        data["semiProducts"] = this.semiProducts;
+        data["products"] = this.products;
+        return data;
+    }
+}
+
+export interface IStockChangeDto {
+    materials?: number;
+    semiProducts?: number;
+    products?: number;
+}
+
+export class FinancialSummaryDto implements IFinancialSummaryDto {
+    totalIncome!: number;
+    totalExpenses!: number;
+    totalBalance!: number;
+    averageMonthlyIncome!: number;
+    averageMonthlyExpenses!: number;
+    averageMonthlyBalance!: number;
+    stockSummary?: StockSummaryDto | undefined;
+
+    constructor(data?: IFinancialSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalIncome = _data["totalIncome"];
+            this.totalExpenses = _data["totalExpenses"];
+            this.totalBalance = _data["totalBalance"];
+            this.averageMonthlyIncome = _data["averageMonthlyIncome"];
+            this.averageMonthlyExpenses = _data["averageMonthlyExpenses"];
+            this.averageMonthlyBalance = _data["averageMonthlyBalance"];
+            this.stockSummary = _data["stockSummary"] ? StockSummaryDto.fromJS(_data["stockSummary"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): FinancialSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new FinancialSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalIncome"] = this.totalIncome;
+        data["totalExpenses"] = this.totalExpenses;
+        data["totalBalance"] = this.totalBalance;
+        data["averageMonthlyIncome"] = this.averageMonthlyIncome;
+        data["averageMonthlyExpenses"] = this.averageMonthlyExpenses;
+        data["averageMonthlyBalance"] = this.averageMonthlyBalance;
+        data["stockSummary"] = this.stockSummary ? this.stockSummary.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IFinancialSummaryDto {
+    totalIncome: number;
+    totalExpenses: number;
+    totalBalance: number;
+    averageMonthlyIncome: number;
+    averageMonthlyExpenses: number;
+    averageMonthlyBalance: number;
+    stockSummary?: StockSummaryDto | undefined;
+}
+
+export class StockSummaryDto implements IStockSummaryDto {
+    totalStockValueChange?: number;
+    averageMonthlyStockChange?: number;
+    totalBalanceWithStock?: number;
+    averageMonthlyTotalBalance?: number;
+
+    constructor(data?: IStockSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalStockValueChange = _data["totalStockValueChange"];
+            this.averageMonthlyStockChange = _data["averageMonthlyStockChange"];
+            this.totalBalanceWithStock = _data["totalBalanceWithStock"];
+            this.averageMonthlyTotalBalance = _data["averageMonthlyTotalBalance"];
+        }
+    }
+
+    static fromJS(data: any): StockSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalStockValueChange"] = this.totalStockValueChange;
+        data["averageMonthlyStockChange"] = this.averageMonthlyStockChange;
+        data["totalBalanceWithStock"] = this.totalBalanceWithStock;
+        data["averageMonthlyTotalBalance"] = this.averageMonthlyTotalBalance;
+        return data;
+    }
+}
+
+export interface IStockSummaryDto {
+    totalStockValueChange?: number;
+    averageMonthlyStockChange?: number;
+    totalBalanceWithStock?: number;
+    averageMonthlyTotalBalance?: number;
+}
+
+export class ProblemDetails implements IProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IProblemDetails) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.type = _data["type"];
+            this.title = _data["title"];
+            this.status = _data["status"];
+            this.detail = _data["detail"];
+            this.instance = _data["instance"];
+        }
+    }
+
+    static fromJS(data: any): ProblemDetails {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProblemDetails();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["type"] = this.type;
+        data["title"] = this.title;
+        data["status"] = this.status;
+        data["detail"] = this.detail;
+        data["instance"] = this.instance;
+        return data;
+    }
+}
+
+export interface IProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
 }
 
 export class GetProductMarginsResponse implements IGetProductMarginsResponse {
