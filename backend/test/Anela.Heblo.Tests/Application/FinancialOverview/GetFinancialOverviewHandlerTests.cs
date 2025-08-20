@@ -1,7 +1,5 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
-using Anela.Heblo.Domain.Accounting.Ledger;
-using Anela.Heblo.Domain.Features.FinancialOverview;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -9,87 +7,74 @@ namespace Anela.Heblo.Tests.Application.FinancialOverview;
 
 public class GetFinancialOverviewHandlerTests
 {
-    private readonly Mock<ILedgerService> _ledgerServiceMock;
-    private readonly Mock<IStockValueService> _stockValueServiceMock;
+    private readonly Mock<IFinancialAnalysisService> _financialAnalysisServiceMock;
     private readonly Mock<ILogger<GetFinancialOverviewHandler>> _loggerMock;
     private readonly GetFinancialOverviewHandler _handler;
 
     public GetFinancialOverviewHandlerTests()
     {
-        _ledgerServiceMock = new Mock<ILedgerService>();
-        _stockValueServiceMock = new Mock<IStockValueService>();
+        _financialAnalysisServiceMock = new Mock<IFinancialAnalysisService>();
         _loggerMock = new Mock<ILogger<GetFinancialOverviewHandler>>();
-        
+
         _handler = new GetFinancialOverviewHandler(
-            _ledgerServiceMock.Object,
-            _stockValueServiceMock.Object,
+            _financialAnalysisServiceMock.Object,
             _loggerMock.Object);
     }
 
     [Fact]
-    public async Task Handle_ExcludesCurrentMonth_WhenCalculatingDateRange()
+    public async Task Handle_CallsFinancialAnalysisService()
     {
         // Arrange
         var request = new GetFinancialOverviewRequest { Months = 6, IncludeStockData = false };
-        
-        // Setup empty data to focus on date logic
-        _ledgerServiceMock.Setup(x => x.GetLedgerItems(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LedgerItem>());
-        
-        _stockValueServiceMock.Setup(x => x.GetStockValueChangesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<MonthlyStockChange>());
 
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
+        var expectedResponse = new GetFinancialOverviewResponse
+        {
+            Data = Enumerable.Range(1, 6).Select(i =>
+            {
+                var monthDate = DateTime.UtcNow.AddMonths(-i);
+                return new MonthlyFinancialDataDto
+                {
+                    Year = monthDate.Year,
+                    Month = monthDate.Month,
+                    Income = 1000m * i,
+                    Expenses = 800m * i,
+                    FinancialBalance = 200m * i
+                };
+            }).ToList(),
+            Summary = new FinancialSummaryDto()
+        };
 
-        // Assert - Verify that the endDate was set to last day of previous month
-        var now = DateTime.UtcNow;
-        var expectedEndDate = new DateTime(now.Year, now.Month, 1).AddDays(-1); // Last day of previous month
-        var expectedStartDate = expectedEndDate.AddMonths(-6 + 1);
-        expectedStartDate = new DateTime(expectedStartDate.Year, expectedStartDate.Month, 1); // First day of start month
-
-        // Verify ledger service was called with correct date range
-        _ledgerServiceMock.Verify(x => x.GetLedgerItems(
-            It.Is<DateTime>(d => d.Date == expectedStartDate.Date),
-            It.Is<DateTime>(d => d.Date == expectedEndDate.Date),
-            It.IsAny<IEnumerable<string>>(),
-            It.IsAny<IEnumerable<string>>(),
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.AtLeast(2)); // Called twice for debit and credit
-    }
-
-    [Fact]
-    public async Task Handle_Returns6MonthsOfData_ExcludingCurrentMonth()
-    {
-        // Arrange
-        var request = new GetFinancialOverviewRequest { Months = 6, IncludeStockData = false };
-        
-        // Setup empty data
-        _ledgerServiceMock.Setup(x => x.GetLedgerItems(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LedgerItem>());
-        
-        _stockValueServiceMock.Setup(x => x.GetStockValueChangesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<MonthlyStockChange>());
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         Assert.Equal(6, result.Data.Count);
-        
-        // Verify that none of the returned months is the current month
-        var currentMonth = DateTime.UtcNow.Month;
-        var currentYear = DateTime.UtcNow.Year;
-        
-        var hasCurrentMonth = result.Data.Any(d => d.Month == currentMonth && d.Year == currentYear);
-        Assert.False(hasCurrentMonth, "Result should not include the current month");
-        
-        // Verify that the latest month in result is the previous month
-        var latestMonth = result.Data.OrderByDescending(d => d.Year).ThenByDescending(d => d.Month).First();
-        var previousMonth = DateTime.UtcNow.AddMonths(-1);
-        
-        Assert.Equal(previousMonth.Month, latestMonth.Month);
-        Assert.Equal(previousMonth.Year, latestMonth.Year);
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_UsesCorrectMonthsParameter()
+    {
+        // Arrange
+        var request = new GetFinancialOverviewRequest { Months = 3, IncludeStockData = false };
+
+        var expectedResponse = new GetFinancialOverviewResponse
+        {
+            Data = new List<MonthlyFinancialDataDto>(),
+            Summary = new FinancialSummaryDto()
+        };
+
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -97,22 +82,42 @@ public class GetFinancialOverviewHandlerTests
     {
         // Arrange
         var request = new GetFinancialOverviewRequest { Months = 3, IncludeStockData = true };
-        
-        _ledgerServiceMock.Setup(x => x.GetLedgerItems(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LedgerItem>());
-        
-        var stockChanges = new List<MonthlyStockChange>
+
+        var expectedResponse = new GetFinancialOverviewResponse
         {
-            new() { Year = 2024, Month = 7, StockChanges = new() { Materials = 100m } }
+            Data = new List<MonthlyFinancialDataDto>
+            {
+                new()
+                {
+                    Year = 2024,
+                    Month = 7,
+                    Income = 1000m,
+                    Expenses = 800m,
+                    StockChanges = new StockChangeDto { Materials = 100m },
+                    TotalStockValueChange = 100m
+                }
+            },
+            Summary = new FinancialSummaryDto
+            {
+                StockSummary = new StockSummaryDto { TotalStockValueChange = 100m }
+            }
         };
-        _stockValueServiceMock.Setup(x => x.GetStockValueChangesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(stockChanges);
+
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result.Summary.StockSummary);
-        _stockValueServiceMock.Verify(x => x.GetStockValueChangesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(100m, result.Summary.StockSummary.TotalStockValueChange);
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<CancellationToken>()), Times.Once);
+
+        // Verify stock data was included in response
+        var monthWithStock = result.Data.FirstOrDefault(d => d.StockChanges != null);
+        Assert.NotNull(monthWithStock);
+        Assert.NotNull(monthWithStock.StockChanges);
+        Assert.Equal(100m, monthWithStock.StockChanges.Materials);
     }
 }

@@ -13,7 +13,7 @@ public interface IStockValueService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Monthly stock value changes by warehouse type</returns>
     Task<IReadOnlyList<MonthlyStockChange>> GetStockValueChangesAsync(
-        DateTime startDate, 
-        DateTime endDate, 
+        DateTime startDate,
+        DateTime endDate,
         CancellationToken cancellationToken);
 }

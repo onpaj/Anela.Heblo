@@ -14,17 +14,17 @@ public static class AuthorizationConstants
         /// Role for accessing financial overview and reports
         /// </summary>
         public const string FinanceReader = "finance_reader";
-        
+
         /// <summary>
         /// Role for managing catalog data and products
         /// </summary>
         public const string CatalogManager = "catalog_manager";
-        
+
         /// <summary>
         /// Role for managing purchase orders
         /// </summary>
         public const string PurchaseManager = "purchase_manager";
-        
+
         /// <summary>
         /// Role for administrative functions
         /// </summary>

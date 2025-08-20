@@ -184,7 +184,7 @@ public class CatalogRepository : ICatalogRepository
         var manufactureMap = CachedManufactureHistoryData
             .GroupBy(p => p.ProductCode)
             .ToDictionary(k => k.Key, v => v.ToList());
-            
+
         foreach (var product in products)
         {
             if (manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
@@ -314,12 +314,12 @@ public class CatalogRepository : ICatalogRepository
                     product.ManufactureDifficulty = difficulty;
                 }
             }
-            
+
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
             }
-            
+
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
         }

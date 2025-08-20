@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.Catalog;
 
-public class ManufactureCost    
+public class ManufactureCost
 {
     public DateTime Date { get; set; }
     public decimal MaterialCost { get; set; }

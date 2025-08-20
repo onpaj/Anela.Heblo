@@ -1222,9 +1222,9 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         
         {/* Compact cost breakdown */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="text-center p-2 bg-orange-50 rounded border border-orange-200">
+          <div className="text-center p-2 bg-green-50 rounded border border-green-200">
             <div className="text-xs font-medium text-gray-600 mb-1">Materiál</div>
-            <div className="text-lg font-bold text-orange-900">
+            <div className="text-lg font-bold text-green-900">
               {averageMaterialCost.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-gray-500">Kč/ks</div>
@@ -1238,17 +1238,17 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
             <div className="text-xs text-gray-500">Kč/ks</div>
           </div>
           
-          <div className="text-center p-2 bg-red-50 rounded border border-red-200">
+          <div className="text-center p-2 bg-purple-50 rounded border border-purple-200">
             <div className="text-xs font-medium text-gray-600 mb-1">Celkem náklady</div>
-            <div className="text-lg font-bold text-red-900">
+            <div className="text-lg font-bold text-purple-900">
               {averageTotalCost.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-gray-500">Kč/ks</div>
           </div>
           
-          <div className="text-center p-2 bg-purple-50 rounded border border-purple-200">
+          <div className="text-center p-2 bg-orange-50 rounded border border-orange-200">
             <div className="text-xs font-medium text-gray-600 mb-1">Prodej (bez DPH)</div>
-            <div className="text-lg font-bold text-purple-900">
+            <div className="text-lg font-bold text-orange-900">
               {sellingPrice.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-gray-500">Kč/ks</div>
@@ -1257,11 +1257,11 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         
         {/* Margin summary */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
             <div className="text-sm font-medium text-gray-600 mb-1">
               Marže v %
             </div>
-            <div className={`text-2xl font-bold ${margin >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+            <div className={`text-2xl font-bold ${margin >= 0 ? 'text-amber-900' : 'text-red-900'}`}>
               {margin.toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
             </div>
             <div className="text-xs text-gray-500 mt-1">
@@ -1269,11 +1269,11 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
             </div>
           </div>
           
-          <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+          <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
             <div className="text-sm font-medium text-gray-600 mb-1">
               Marže v Kč
             </div>
-            <div className={`text-2xl font-bold ${marginAmount >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>
+            <div className={`text-2xl font-bold ${marginAmount >= 0 ? 'text-amber-900' : 'text-red-900'}`}>
               {marginAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
             </div>
             <div className="text-xs text-gray-500 mt-1">

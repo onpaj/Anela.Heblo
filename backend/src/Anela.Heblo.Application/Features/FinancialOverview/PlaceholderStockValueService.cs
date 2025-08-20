@@ -17,13 +17,13 @@ public class PlaceholderStockValueService : IStockValueService
     }
 
     public Task<IReadOnlyList<MonthlyStockChange>> GetStockValueChangesAsync(
-        DateTime startDate, 
-        DateTime endDate, 
+        DateTime startDate,
+        DateTime endDate,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Placeholder stock value service called - returning empty changes from {StartDate} to {EndDate}", 
+        _logger.LogInformation("Placeholder stock value service called - returning empty changes from {StartDate} to {EndDate}",
             startDate, endDate);
-            
+
         // Return empty list for now - real implementation will be in adapter layer
         var emptyChanges = new List<MonthlyStockChange>();
         return Task.FromResult<IReadOnlyList<MonthlyStockChange>>(emptyChanges);

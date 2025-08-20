@@ -117,7 +117,7 @@ public class ShoptetPriceClientTests
     }
 
 
-   
+
 
     [Theory]
     [InlineData(15)]
@@ -141,7 +141,7 @@ public class ShoptetPriceClientTests
 
         var product = products.First();
         product.PriceWithVat.Should().Be(121.00m);
-        
+
         // Calculate expected price without VAT: PriceWithVat / (1 + VatRate)
         var expectedPriceWithoutVat = 121.00m / (1 + vatPercent / 100);
         product.PriceWithoutVat.Should().BeApproximately(expectedPriceWithoutVat, 0.01m);
@@ -297,7 +297,7 @@ public class ShoptetPriceClientTests
 
         var product = products.First();
         product.PriceWithVat.Should().Be(expectedPrice);
-        
+
         var expectedPriceWithoutVat = expectedPrice > 0 ? expectedPrice / 1.20m : 0;
         product.PriceWithoutVat.Should().BeApproximately(expectedPriceWithoutVat, 0.01m);
     }
@@ -350,10 +350,10 @@ public class ShoptetPriceClientTests
         result.Should().NotBeNull();
         result.FilePath.Should().NotBeNullOrEmpty();
         result.Data.Should().NotBeNullOrEmpty();
-        
+
         // Verify file exists
         File.Exists(result.FilePath).Should().BeTrue();
-        
+
         // Verify CSV content
         var csvContent = Encoding.UTF8.GetString(result.Data);
         csvContent.Should().Contain("PROD001");
@@ -387,10 +387,10 @@ public class ShoptetPriceClientTests
         result.Should().NotBeNull();
         result.FilePath.Should().NotBeNullOrEmpty();
         result.Data.Should().NotBeNullOrEmpty();
-        
+
         // Verify file exists and contains only header
         File.Exists(result.FilePath).Should().BeTrue();
-        
+
         var csvContent = Encoding.UTF8.GetString(result.Data);
         var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         lines.Length.Should().Be(1); // Only header line
@@ -427,7 +427,7 @@ public class ShoptetPriceClientTests
         // Assert
         result.Should().NotBeNull();
         result.FilePath.Should().NotBeNullOrEmpty();
-        
+
         var csvContent = Encoding.UTF8.GetString(result.Data);
         csvContent.Should().Contain("PROD-001_TEST");
         csvContent.Should().Contain("1234.56");
@@ -466,7 +466,7 @@ public class ShoptetPriceClientTests
         // Assert
         result.Should().NotBeNull();
         result.FilePath.Should().NotBeNullOrEmpty();
-        
+
         var csvContent = Encoding.UTF8.GetString(result.Data);
         csvContent.Should().Contain("PROD001");
 

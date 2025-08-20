@@ -201,12 +201,12 @@ public class ManufactureCostCalculationServiceTests
     {
         // Arrange
         var products = CreateTestProducts();
-        
+
         var directCosts = new List<CostStatistics>
         {
             new CostStatistics { Date = _testDateTime.AddMonths(-1), Cost = 100m, Department = "VYROBA" }
         };
-        
+
         var personalCosts = new List<CostStatistics>
         {
             new CostStatistics { Date = _testDateTime.AddMonths(-1), Cost = 200m, Department = "HR" }
@@ -277,7 +277,7 @@ public class ManufactureCostCalculationServiceTests
         result.Should().ContainKey("PROD001");
         var productCosts = result["PROD001"];
         productCosts.Should().HaveCount(1);
-        
+
         var materialCost = productCosts[0].MaterialCost;
         materialCost.Should().BeApproximately(3.67m, 0.01m); // Weighted average should be ~3.67
     }
