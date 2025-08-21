@@ -10,6 +10,9 @@ import PurchaseOrderList from './components/pages/PurchaseOrderList';
 import PurchaseStockAnalysis from './components/pages/PurchaseStockAnalysis';
 import ProductMarginsList from './components/pages/ProductMarginsList';
 import FinancialOverview from './components/pages/FinancialOverview';
+import JournalList from './components/pages/Journal/JournalList';
+import JournalEntryNew from './components/pages/JournalEntryNew';
+import JournalEntryEdit from './components/pages/JournalEntryEdit';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
@@ -189,6 +192,9 @@ function App() {
                   <Route path="/purchase/orders" element={<PurchaseOrderList />} />
                   <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
                   <Route path="/products/margins" element={<ProductMarginsList />} />
+                  <Route path="/journal" element={<JournalList />} />
+                  <Route path="/journal/new" element={<JournalEntryNew />} />
+                  <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
                 </Routes>
               </Layout>
             </AuthGuard>

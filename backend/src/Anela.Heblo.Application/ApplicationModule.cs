@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
+using Anela.Heblo.Application.Features.Journal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -27,6 +28,7 @@ public static class ApplicationModule
         services.AddCatalogModule(environment);
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(environment);
+        services.AddJournalModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
         // services.AddManufactureModule();

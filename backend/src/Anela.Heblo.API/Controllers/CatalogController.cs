@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
@@ -171,6 +172,43 @@ public class CatalogController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get materials for purchase");
+            throw;
+        }
+    }
+
+    [HttpGet("autocomplete")]
+    public async Task<ActionResult<GetCatalogListResponse>> GetProductsForAutocomplete(
+        [FromQuery] string? searchTerm,
+        [FromQuery] int limit = 20,
+        [FromQuery] ProductType[]? productTypes = null)
+    {
+        _logger.LogInformation("Getting products for autocomplete with search term '{SearchTerm}', limit {Limit}, types {ProductTypes}",
+            searchTerm, limit, productTypes != null ? string.Join(",", productTypes) : "all");
+
+        try
+        {
+            var request = new GetCatalogListRequest
+            {
+                SearchTerm = searchTerm, // OR search in both ProductName and ProductCode
+                PageSize = limit,
+                PageNumber = 1
+            };
+
+            var response = await _mediator.Send(request);
+
+            // Filter by product types if specified
+            if (productTypes != null && productTypes.Length > 0)
+            {
+                response.Items = response.Items.Where(item => productTypes.Contains(item.Type)).ToList();
+                response.TotalCount = response.Items.Count;
+            }
+
+            _logger.LogInformation("Successfully retrieved {Count} products for autocomplete", response.Items.Count);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get products for autocomplete");
             throw;
         }
     }

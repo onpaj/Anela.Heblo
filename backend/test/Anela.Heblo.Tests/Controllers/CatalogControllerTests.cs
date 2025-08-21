@@ -321,4 +321,138 @@ public class CatalogControllerTests
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task GetProductsForAutocomplete_Should_Return_Ok_With_Filtered_Results()
+    {
+        // Arrange
+        var searchTerm = "test";
+        var limit = 10;
+
+        var expectedResponse = new GetCatalogListResponse
+        {
+            Items = new List<CatalogItemDto>
+            {
+                new CatalogItemDto
+                {
+                    ProductCode = "TEST001",
+                    ProductName = "Test Product",
+                    Type = ProductType.Material,
+                    Location = "A1",
+                    Stock = new StockDto
+                    {
+                        Available = 100,
+                        Erp = 50,
+                        Eshop = 30
+                    }
+                },
+                new CatalogItemDto
+                {
+                    ProductCode = "TEST002",
+                    ProductName = "Another Test",
+                    Type = ProductType.Product,
+                    Location = "B2",
+                    Stock = new StockDto
+                    {
+                        Available = 50,
+                        Erp = 25,
+                        Eshop = 15
+                    }
+                }
+            },
+            TotalCount = 2,
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.Is<GetCatalogListRequest>(r =>
+                r.SearchTerm == searchTerm &&
+                r.PageSize == limit &&
+                r.PageNumber == 1), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.GetProductsForAutocomplete(searchTerm, limit);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+
+        Assert.Equal(2, response.Items.Count);
+        Assert.Equal(2, response.TotalCount);
+        Assert.Equal("TEST001", response.Items[0].ProductCode);
+        Assert.Equal("Test Product", response.Items[0].ProductName);
+
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductsForAutocomplete_Should_Use_Default_Limit_When_Not_Provided()
+    {
+        // Arrange
+        var searchTerm = "test";
+
+        var expectedResponse = new GetCatalogListResponse
+        {
+            Items = new List<CatalogItemDto>(),
+            TotalCount = 0,
+            PageNumber = 1,
+            PageSize = 20 // Default limit
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.Is<GetCatalogListRequest>(r =>
+                r.SearchTerm == searchTerm &&
+                r.PageSize == 20 && // Default limit
+                r.PageNumber == 1), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.GetProductsForAutocomplete(searchTerm);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+
+        Assert.Equal(20, response.PageSize);
+
+        _mediatorMock.Verify(m => m.Send(It.Is<GetCatalogListRequest>(r => r.PageSize == 20), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductsForAutocomplete_Should_Handle_Null_Search_Term()
+    {
+        // Arrange
+        string? searchTerm = null;
+        var limit = 5;
+
+        var expectedResponse = new GetCatalogListResponse
+        {
+            Items = new List<CatalogItemDto>(),
+            TotalCount = 0,
+            PageNumber = 1,
+            PageSize = 5
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.Is<GetCatalogListRequest>(r =>
+                r.ProductName == null &&
+                r.ProductCode == null &&
+                r.PageSize == limit &&
+                r.PageNumber == 1), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.GetProductsForAutocomplete(searchTerm, limit);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+
+        Assert.Equal(0, response.TotalCount);
+        Assert.Equal(5, response.PageSize);
+
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
 }

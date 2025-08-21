@@ -1,10 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronDown, Check, Package, AlertCircle } from 'lucide-react';
-import { useMaterialsForPurchase, MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
+import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
+import { CatalogItemDto, ProductType } from '../../api/generated/api-client';
+import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
+
+// Adapter function to convert CatalogItemDto to MaterialForPurchaseDto
+const catalogItemToMaterial = (item: CatalogItemDto): MaterialForPurchaseDto => ({
+  productCode: item.productCode,
+  productName: item.productName,
+  productType: item.type?.toString() || 'Material',
+  location: item.location,
+  currentStock: item.stock?.available,
+  minimalOrderQuantity: item.minimalOrderQuantity,
+  lastPurchasePrice: item.price?.currentPurchasePrice ? Number(item.price.currentPurchasePrice) : undefined
+});
 
 interface MaterialAutocompleteProps {
   value?: MaterialForPurchaseDto | null;
-  onSelect: (material: MaterialForPurchaseDto | null) => void;
+  onSelect: (item: MaterialForPurchaseDto | null) => void;
   placeholder?: string;
   disabled?: boolean;
   error?: string;
@@ -14,7 +27,7 @@ interface MaterialAutocompleteProps {
 export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
   value,
   onSelect,
-  placeholder = "Vyberte materiál nebo zboží...",
+  placeholder = "Vyberte položku z katalogu...",
   disabled = false,
   error,
   className = ""
@@ -36,11 +49,15 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Fetch materials based on debounced search term
-  const { data: materials, isLoading, error: fetchError } = useMaterialsForPurchase(
+  // Fetch catalog items using autocomplete - filter only Material and Goods for purchases
+  const { data: autocompleteData, isLoading, error: fetchError } = useCatalogAutocomplete(
     debouncedSearchTerm || undefined,
-    50
+    50,
+    [ProductType.Material, ProductType.Goods] // Only show materials and goods for purchase orders
   );
+
+  // Extract items directly from autocomplete response using useMemo to stabilize reference
+  const items = useMemo(() => autocompleteData?.items || [], [autocompleteData?.items]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,10 +72,10 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset highlighted index when materials change
+  // Reset highlighted index when items change
   useEffect(() => {
     setHighlightedIndex(-1);
-  }, [materials]);
+  }, [items]);
 
   // Scroll highlighted item into view
   useEffect(() => {
@@ -84,9 +101,10 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
     setIsOpen(true);
   };
 
-  const handleSelectMaterial = useCallback((material: MaterialForPurchaseDto) => {
+  const handleSelectItem = useCallback((item: CatalogItemDto) => {
+    const material = catalogItemToMaterial(item);
     onSelect(material);
-    setSearchTerm(material.productName || '');
+    setSearchTerm(item.productName || '');
     setIsOpen(false);
     setHighlightedIndex(-1);
   }, [onSelect]);
@@ -99,13 +117,11 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
       return;
     }
 
-    const materialsList = materials?.materials || [];
-    
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
         setHighlightedIndex(prev => 
-          prev < materialsList.length - 1 ? prev + 1 : prev
+          prev < items.length - 1 ? prev + 1 : prev
         );
         break;
         
@@ -116,8 +132,8 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
         
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < materialsList.length) {
-          handleSelectMaterial(materialsList[highlightedIndex]);
+        if (highlightedIndex >= 0 && highlightedIndex < items.length) {
+          handleSelectItem(items[highlightedIndex]);
         }
         break;
         
@@ -127,7 +143,7 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
         setHighlightedIndex(-1);
         break;
     }
-  }, [isOpen, materials, highlightedIndex, handleSelectMaterial]);
+  }, [isOpen, items, highlightedIndex, handleSelectItem]);
 
   const handleClear = () => {
     onSelect(null);
@@ -204,17 +220,17 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
           
           {fetchError && (
             <div className="px-3 py-2 text-sm text-red-600">
-              Chyba při načítání materiálů
+              Chyba při načítání položek katalogu
             </div>
           )}
           
-          {materials && materials.materials && materials.materials.length > 0 ? (
+          {items.length > 0 ? (
             <div className="py-1" ref={listRef}>
-              {materials.materials.map((material, index) => (
+              {items.map((item, index) => (
                 <button
-                  key={material.productCode}
+                  key={item.productCode}
                   data-item-index={index}
-                  onClick={() => handleSelectMaterial(material)}
+                  onClick={() => handleSelectItem(item)}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   className={`w-full px-3 py-2 text-left focus:outline-none transition-colors ${
                     index === highlightedIndex 
@@ -222,44 +238,12 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  <div className="flex items-start space-x-3">
-                    <Package className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-center space-x-3">
+                    <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900 truncate">
-                          {material.productName}
-                        </span>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                          {material.productType}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500 mt-0.5">
-                        <span className="font-mono">{material.productCode}</span>
-                        {material.location && (
-                          <>
-                            {' • '}
-                            <span>{material.location}</span>
-                          </>
-                        )}
-                        {material.currentStock !== undefined && (
-                          <>
-                            {' • '}
-                            <span>Sklad: {material.currentStock}</span>
-                          </>
-                        )}
-                        {material.minimalOrderQuantity && (
-                          <>
-                            {' • '}
-                            <span>MOQ: {material.minimalOrderQuantity}</span>
-                          </>
-                        )}
-                        {material.lastPurchasePrice && (
-                          <>
-                            {' • '}
-                            <span>Posl. cena: {material.lastPurchasePrice.toFixed(2)} Kč</span>
-                          </>
-                        )}
-                      </div>
+                      <span className="text-gray-900 truncate">
+                        {item.productName} <span className="text-gray-500 font-mono">({item.productCode})</span>
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -268,7 +252,7 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
           ) : (
             !isLoading && !fetchError && (
               <div className="px-3 py-2 text-sm text-gray-500">
-                {searchTerm ? 'Žádné materiály nenalezeny' : 'Začněte psát pro vyhledávání'}
+                {searchTerm ? 'Žádné položky nenalezeny' : 'Začněte psát pro vyhledávání'}
               </div>
             )
           )}

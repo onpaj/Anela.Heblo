@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Purchase;
-using Microsoft.EntityFrameworkCore;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Repository;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Purchase.Infrastructure;
 
