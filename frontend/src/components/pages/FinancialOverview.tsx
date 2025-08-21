@@ -180,7 +180,7 @@ const FinancialOverview: React.FC = () => {
       intersect: false,
       mode: 'index',
     },
-  }), [selectedPeriod, includeStockData, windowWidth]);
+  }), [windowWidth]);
 
   const getPeriodLabel = (period: PeriodType): string => {
     switch (period) {

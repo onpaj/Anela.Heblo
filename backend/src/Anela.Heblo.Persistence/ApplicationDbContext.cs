@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
+
+    // Journal module
+    public DbSet<JournalEntry> JournalEntries { get; set; } = null!;
+    public DbSet<JournalEntryProduct> JournalEntryProducts { get; set; } = null!;
+    public DbSet<JournalEntryProductFamily> JournalEntryProductFamilies { get; set; } = null!;
+    public DbSet<JournalEntryTag> JournalEntryTags { get; set; } = null!;
+    public DbSet<JournalEntryTagAssignment> JournalEntryTagAssignments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  TrendingUp,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -60,7 +59,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'section' as const,
       items: [
         { id: 'catalog', name: 'Katalog', href: '/catalog' },
-        { id: 'marze-produktu', name: 'Marže', href: '/products/margins' }
+        { id: 'marze-produktu', name: 'Marže', href: '/products/margins' },
+        { id: 'journal', name: 'Deník', href: '/journal' }
       ]
     },
     {

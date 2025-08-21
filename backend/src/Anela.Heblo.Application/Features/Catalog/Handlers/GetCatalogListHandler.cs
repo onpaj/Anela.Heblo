@@ -29,6 +29,16 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             filter = filter.And(x => x.Type == typeValue);
         }
 
+        // Autocomplete search with OR logic (SearchTerm in ProductName OR ProductCode)
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
+            filter = filter.And(x =>
+                x.ProductName.ToLowerInvariant().Contains(searchTerm) ||
+                x.ProductCode.ToLowerInvariant().Contains(searchTerm));
+        }
+
+        // Individual filters (for other use cases)
         if (!string.IsNullOrWhiteSpace(request.ProductName))
         {
             var productName = request.ProductName.Trim();

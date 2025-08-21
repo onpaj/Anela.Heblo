@@ -25,6 +25,7 @@
   <ItemGroup>
     <Folder Include="Features\FinancialOverview\Handlers\" />
     <Folder Include="Features\FinancialOverview\Services\" />
+    <Folder Include="Features\Journal\Model\" />
   </ItemGroup>
 
 </Project>

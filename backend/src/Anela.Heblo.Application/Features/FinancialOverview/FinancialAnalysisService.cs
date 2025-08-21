@@ -267,7 +267,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
                     SemiProducts = cachedStockData.StockChanges.SemiProducts,
                     Products = cachedStockData.StockChanges.Products
                 } : null,
-                TotalStockValueChange = includeStockData ? cachedStockData?.TotalStockValueChange : null,
+                TotalStockValueChange = includeStockData ? (cachedStockData?.TotalStockValueChange ?? 0) : null,
                 TotalBalance = includeStockData
                     ? cachedFinancialData.FinancialBalance + (cachedStockData?.TotalStockValueChange ?? 0)
                     : null

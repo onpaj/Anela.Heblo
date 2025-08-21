@@ -16,14 +16,16 @@ public static class PersistenceModule
         services.AddDbContext<ApplicationDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("Default");
-            if (!string.IsNullOrEmpty(connectionString))
-            {
-                options.UseNpgsql(connectionString);
-            }
-            else
+            var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
+
+            if (useInMemory || string.IsNullOrEmpty(connectionString) || connectionString == "InMemory")
             {
                 // For testing scenarios where no real database is needed
                 options.UseInMemoryDatabase("TestDatabase");
+            }
+            else
+            {
+                options.UseNpgsql(connectionString);
             }
         });
 

@@ -771,6 +771,48 @@ export class ApiClient {
         return Promise.resolve<GetMaterialsForPurchaseResponse>(null as any);
     }
 
+    catalog_GetProductsForAutocomplete(searchTerm: string | null | undefined, limit: number | undefined, productTypes: ProductType[] | null | undefined): Promise<GetCatalogListResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/autocomplete?";
+        if (searchTerm !== undefined && searchTerm !== null)
+            url_ += "searchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (limit === null)
+            throw new Error("The parameter 'limit' cannot be null.");
+        else if (limit !== undefined)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        if (productTypes !== undefined && productTypes !== null)
+            productTypes && productTypes.forEach(item => { url_ += "productTypes=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetProductsForAutocomplete(_response);
+        });
+    }
+
+    protected processCatalog_GetProductsForAutocomplete(response: Response): Promise<GetCatalogListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCatalogListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCatalogListResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -1002,6 +1044,383 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetFinancialOverviewResponse>(null as any);
+    }
+
+    journal_GetJournalEntries(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<GetJournalEntriesResponse> {
+        let url_ = this.baseUrl + "/api/Journal?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDirection === null)
+            throw new Error("The parameter 'sortDirection' cannot be null.");
+        else if (sortDirection !== undefined)
+            url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_GetJournalEntries(_response);
+        });
+    }
+
+    protected processJournal_GetJournalEntries(response: Response): Promise<GetJournalEntriesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetJournalEntriesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetJournalEntriesResponse>(null as any);
+    }
+
+    journal_CreateJournalEntry(request: CreateJournalEntryRequest): Promise<CreateJournalEntryResponse> {
+        let url_ = this.baseUrl + "/api/Journal";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_CreateJournalEntry(_response);
+        });
+    }
+
+    protected processJournal_CreateJournalEntry(response: Response): Promise<CreateJournalEntryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateJournalEntryResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateJournalEntryResponse>(null as any);
+    }
+
+    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodes: string[] | null | undefined, productCodePrefixes: string[] | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
+        let url_ = this.baseUrl + "/api/Journal/search?";
+        if (searchText !== undefined && searchText !== null)
+            url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
+        if (productCodes !== undefined && productCodes !== null)
+            productCodes && productCodes.forEach(item => { url_ += "ProductCodes=" + encodeURIComponent("" + item) + "&"; });
+        if (productCodePrefixes !== undefined && productCodePrefixes !== null)
+            productCodePrefixes && productCodePrefixes.forEach(item => { url_ += "ProductCodePrefixes=" + encodeURIComponent("" + item) + "&"; });
+        if (tagIds !== undefined && tagIds !== null)
+            tagIds && tagIds.forEach(item => { url_ += "TagIds=" + encodeURIComponent("" + item) + "&"; });
+        if (createdByUserId !== undefined && createdByUserId !== null)
+            url_ += "CreatedByUserId=" + encodeURIComponent("" + createdByUserId) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDirection === null)
+            throw new Error("The parameter 'sortDirection' cannot be null.");
+        else if (sortDirection !== undefined)
+            url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_SearchJournalEntries(_response);
+        });
+    }
+
+    protected processJournal_SearchJournalEntries(response: Response): Promise<SearchJournalEntriesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SearchJournalEntriesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SearchJournalEntriesResponse>(null as any);
+    }
+
+    journal_GetJournalEntry(id: number): Promise<JournalEntryDto> {
+        let url_ = this.baseUrl + "/api/Journal/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_GetJournalEntry(_response);
+        });
+    }
+
+    protected processJournal_GetJournalEntry(response: Response): Promise<JournalEntryDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = JournalEntryDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<JournalEntryDto>(null as any);
+    }
+
+    journal_UpdateJournalEntry(id: number, request: UpdateJournalEntryRequest): Promise<UpdateJournalEntryResponse> {
+        let url_ = this.baseUrl + "/api/Journal/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_UpdateJournalEntry(_response);
+        });
+    }
+
+    protected processJournal_UpdateJournalEntry(response: Response): Promise<UpdateJournalEntryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateJournalEntryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateJournalEntryResponse>(null as any);
+    }
+
+    journal_DeleteJournalEntry(id: number): Promise<void> {
+        let url_ = this.baseUrl + "/api/Journal/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_DeleteJournalEntry(_response);
+        });
+    }
+
+    protected processJournal_DeleteJournalEntry(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    journal_GetJournalTags(): Promise<GetJournalTagsResponse> {
+        let url_ = this.baseUrl + "/api/Journal/tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_GetJournalTags(_response);
+        });
+    }
+
+    protected processJournal_GetJournalTags(response: Response): Promise<GetJournalTagsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetJournalTagsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetJournalTagsResponse>(null as any);
+    }
+
+    journal_CreateJournalTag(request: CreateJournalTagRequest): Promise<CreateJournalTagResponse> {
+        let url_ = this.baseUrl + "/api/Journal/tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processJournal_CreateJournalTag(_response);
+        });
+    }
+
+    protected processJournal_CreateJournalTag(response: Response): Promise<CreateJournalTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateJournalTagResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
@@ -2698,6 +3117,646 @@ export interface IProblemDetails {
     instance?: string | undefined;
 
     [key: string]: any;
+}
+
+export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {
+    entries?: JournalEntryDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+
+    constructor(data?: IGetJournalEntriesResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["entries"])) {
+                this.entries = [] as any;
+                for (let item of _data["entries"])
+                    this.entries!.push(JournalEntryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.hasNextPage = _data["hasNextPage"];
+            this.hasPreviousPage = _data["hasPreviousPage"];
+        }
+    }
+
+    static fromJS(data: any): GetJournalEntriesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetJournalEntriesResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.entries)) {
+            data["entries"] = [];
+            for (let item of this.entries)
+                data["entries"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["hasNextPage"] = this.hasNextPage;
+        data["hasPreviousPage"] = this.hasPreviousPage;
+        return data;
+    }
+}
+
+export interface IGetJournalEntriesResponse {
+    entries?: JournalEntryDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+}
+
+export class JournalEntryDto implements IJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    content?: string;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    modifiedByUserId?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string | undefined;
+    highlightedTerms?: string[];
+
+    constructor(data?: IJournalEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.content = _data["content"];
+            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.createdByUserId = _data["createdByUserId"];
+            this.modifiedByUserId = _data["modifiedByUserId"];
+            if (Array.isArray(_data["associatedProducts"])) {
+                this.associatedProducts = [] as any;
+                for (let item of _data["associatedProducts"])
+                    this.associatedProducts!.push(item);
+            }
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(JournalEntryTagDto.fromJS(item));
+            }
+            this.contentPreview = _data["contentPreview"];
+            if (Array.isArray(_data["highlightedTerms"])) {
+                this.highlightedTerms = [] as any;
+                for (let item of _data["highlightedTerms"])
+                    this.highlightedTerms!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): JournalEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new JournalEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["content"] = this.content;
+        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["createdByUserId"] = this.createdByUserId;
+        data["modifiedByUserId"] = this.modifiedByUserId;
+        if (Array.isArray(this.associatedProducts)) {
+            data["associatedProducts"] = [];
+            for (let item of this.associatedProducts)
+                data["associatedProducts"].push(item);
+        }
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        data["contentPreview"] = this.contentPreview;
+        if (Array.isArray(this.highlightedTerms)) {
+            data["highlightedTerms"] = [];
+            for (let item of this.highlightedTerms)
+                data["highlightedTerms"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    content?: string;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    modifiedByUserId?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string | undefined;
+    highlightedTerms?: string[];
+}
+
+export class JournalEntryTagDto implements IJournalEntryTagDto {
+    id?: number;
+    name?: string;
+    color?: string;
+
+    constructor(data?: IJournalEntryTagDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.color = _data["color"];
+        }
+    }
+
+    static fromJS(data: any): JournalEntryTagDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new JournalEntryTagDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["color"] = this.color;
+        return data;
+    }
+}
+
+export interface IJournalEntryTagDto {
+    id?: number;
+    name?: string;
+    color?: string;
+}
+
+export class SearchJournalEntriesResponse implements ISearchJournalEntriesResponse {
+    entries?: JournalEntryDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+
+    constructor(data?: ISearchJournalEntriesResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["entries"])) {
+                this.entries = [] as any;
+                for (let item of _data["entries"])
+                    this.entries!.push(JournalEntryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.hasNextPage = _data["hasNextPage"];
+            this.hasPreviousPage = _data["hasPreviousPage"];
+        }
+    }
+
+    static fromJS(data: any): SearchJournalEntriesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchJournalEntriesResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.entries)) {
+            data["entries"] = [];
+            for (let item of this.entries)
+                data["entries"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["hasNextPage"] = this.hasNextPage;
+        data["hasPreviousPage"] = this.hasPreviousPage;
+        return data;
+    }
+}
+
+export interface ISearchJournalEntriesResponse {
+    entries?: JournalEntryDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+}
+
+export class CreateJournalEntryResponse implements ICreateJournalEntryResponse {
+    id?: number;
+    createdAt?: Date;
+    message?: string;
+
+    constructor(data?: ICreateJournalEntryResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): CreateJournalEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateJournalEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface ICreateJournalEntryResponse {
+    id?: number;
+    createdAt?: Date;
+    message?: string;
+}
+
+export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
+    title?: string | undefined;
+    content!: string;
+    entryDate!: Date;
+    associatedProducts?: string[] | undefined;
+    tagIds?: number[] | undefined;
+
+    constructor(data?: ICreateJournalEntryRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.title = _data["title"];
+            this.content = _data["content"];
+            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
+            if (Array.isArray(_data["associatedProducts"])) {
+                this.associatedProducts = [] as any;
+                for (let item of _data["associatedProducts"])
+                    this.associatedProducts!.push(item);
+            }
+            if (Array.isArray(_data["tagIds"])) {
+                this.tagIds = [] as any;
+                for (let item of _data["tagIds"])
+                    this.tagIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): CreateJournalEntryRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateJournalEntryRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["title"] = this.title;
+        data["content"] = this.content;
+        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
+        if (Array.isArray(this.associatedProducts)) {
+            data["associatedProducts"] = [];
+            for (let item of this.associatedProducts)
+                data["associatedProducts"].push(item);
+        }
+        if (Array.isArray(this.tagIds)) {
+            data["tagIds"] = [];
+            for (let item of this.tagIds)
+                data["tagIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ICreateJournalEntryRequest {
+    title?: string | undefined;
+    content: string;
+    entryDate: Date;
+    associatedProducts?: string[] | undefined;
+    tagIds?: number[] | undefined;
+}
+
+export class UpdateJournalEntryResponse implements IUpdateJournalEntryResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+
+    constructor(data?: IUpdateJournalEntryResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): UpdateJournalEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateJournalEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IUpdateJournalEntryResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+}
+
+export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
+    id?: number;
+    title?: string | undefined;
+    content!: string;
+    entryDate!: Date;
+    associatedProducts?: string[] | undefined;
+    tagIds?: number[] | undefined;
+
+    constructor(data?: IUpdateJournalEntryRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.content = _data["content"];
+            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
+            if (Array.isArray(_data["associatedProducts"])) {
+                this.associatedProducts = [] as any;
+                for (let item of _data["associatedProducts"])
+                    this.associatedProducts!.push(item);
+            }
+            if (Array.isArray(_data["tagIds"])) {
+                this.tagIds = [] as any;
+                for (let item of _data["tagIds"])
+                    this.tagIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): UpdateJournalEntryRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateJournalEntryRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["content"] = this.content;
+        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
+        if (Array.isArray(this.associatedProducts)) {
+            data["associatedProducts"] = [];
+            for (let item of this.associatedProducts)
+                data["associatedProducts"].push(item);
+        }
+        if (Array.isArray(this.tagIds)) {
+            data["tagIds"] = [];
+            for (let item of this.tagIds)
+                data["tagIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IUpdateJournalEntryRequest {
+    id?: number;
+    title?: string | undefined;
+    content: string;
+    entryDate: Date;
+    associatedProducts?: string[] | undefined;
+    tagIds?: number[] | undefined;
+}
+
+export class GetJournalTagsResponse implements IGetJournalTagsResponse {
+    tags?: JournalEntryTagDto[];
+
+    constructor(data?: IGetJournalTagsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(JournalEntryTagDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GetJournalTagsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetJournalTagsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGetJournalTagsResponse {
+    tags?: JournalEntryTagDto[];
+}
+
+export class CreateJournalTagResponse implements ICreateJournalTagResponse {
+    id?: number;
+    name?: string;
+    color?: string;
+
+    constructor(data?: ICreateJournalTagResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.color = _data["color"];
+        }
+    }
+
+    static fromJS(data: any): CreateJournalTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateJournalTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["color"] = this.color;
+        return data;
+    }
+}
+
+export interface ICreateJournalTagResponse {
+    id?: number;
+    name?: string;
+    color?: string;
+}
+
+export class CreateJournalTagRequest implements ICreateJournalTagRequest {
+    name!: string;
+    color?: string;
+
+    constructor(data?: ICreateJournalTagRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.color = _data["color"];
+        }
+    }
+
+    static fromJS(data: any): CreateJournalTagRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateJournalTagRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["color"] = this.color;
+        return data;
+    }
+}
+
+export interface ICreateJournalTagRequest {
+    name: string;
+    color?: string;
 }
 
 export class GetProductMarginsResponse implements IGetProductMarginsResponse {

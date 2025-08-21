@@ -22,6 +22,158 @@ namespace Anela.Heblo.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("IX_JournalEntries_CreatedByUserId");
+
+                    b.HasIndex("EntryDate")
+                        .HasDatabaseName("IX_JournalEntries_EntryDate");
+
+                    b.HasIndex("IsDeleted", "EntryDate")
+                        .HasDatabaseName("IX_JournalEntries_IsDeleted_EntryDate");
+
+                    b.ToTable("JournalEntries", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>
+                {
+                    b.Property<int>("JournalEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("JournalEntryId", "ProductCode");
+
+                    b.HasIndex("ProductCode")
+                        .HasDatabaseName("IX_JournalEntryProducts_ProductCode");
+
+                    b.ToTable("JournalEntryProducts", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProductFamily", b =>
+                {
+                    b.Property<int>("JournalEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductCodePrefix")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("JournalEntryId", "ProductCodePrefix");
+
+                    b.HasIndex("ProductCodePrefix")
+                        .HasDatabaseName("IX_JournalEntryProductFamilies_ProductCodePrefix");
+
+                    b.ToTable("JournalEntryProductFamilies", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_JournalEntryTags_Name");
+
+                    b.ToTable("JournalEntryTags", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTagAssignment", b =>
+                {
+                    b.Property<int>("JournalEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("JournalEntryId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("JournalEntryTagAssignments", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
                 {
                     b.Property<int>("Id")
@@ -259,6 +411,47 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PurchaseOrderLines", "dbo");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntry", "JournalEntry")
+                        .WithMany("ProductAssociations")
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProductFamily", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntry", "JournalEntry")
+                        .WithMany("ProductFamilyAssociations")
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTagAssignment", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntry", "JournalEntry")
+                        .WithMany("TagAssignments")
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntryTag", "Tag")
+                        .WithMany("TagAssignments")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JournalEntry");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", null)
@@ -291,6 +484,20 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>
+                {
+                    b.Navigation("ProductAssociations");
+
+                    b.Navigation("ProductFamilyAssociations");
+
+                    b.Navigation("TagAssignments");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTag", b =>
+                {
+                    b.Navigation("TagAssignments");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>

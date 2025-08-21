@@ -12,4 +12,9 @@ public class GetCatalogListRequest : IRequest<GetCatalogListResponse>
     public bool SortDescending { get; set; } = false;
     public string? ProductName { get; set; }
     public string? ProductCode { get; set; }
+
+    /// <summary>
+    /// Search term for autocomplete - searches in both ProductName and ProductCode with OR logic
+    /// </summary>
+    public string? SearchTerm { get; set; }
 }
