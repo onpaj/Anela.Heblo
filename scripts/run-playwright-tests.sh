@@ -54,16 +54,38 @@ FRONTEND_PID=$!
 
 # Wait for both services to be ready
 echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
-sleep 8
 
-# Quick health check (no waiting on failure)
-if ! curl -s http://localhost:5001/health/live > /dev/null 2>&1; then
-    echo -e "${RED}❌ Backend failed to start${NC}"
+# Wait for backend with retry logic (up to 30 seconds)
+BACKEND_READY=false
+for i in {1..30}; do
+    if curl -s http://localhost:5001/health/live > /dev/null 2>&1; then
+        BACKEND_READY=true
+        echo -e "${GREEN}✅ Backend is ready${NC}"
+        break
+    fi
+    echo -e "${YELLOW}   Waiting for backend... ($i/30)${NC}"
+    sleep 1
+done
+
+if [ "$BACKEND_READY" = false ]; then
+    echo -e "${RED}❌ Backend failed to start after 30 seconds${NC}"
     cleanup_and_exit 1
 fi
 
-if ! curl -s http://localhost:3001 > /dev/null 2>&1; then
-    echo -e "${RED}❌ Frontend failed to start${NC}"
+# Wait for frontend with retry logic (up to 20 seconds)
+FRONTEND_READY=false
+for i in {1..20}; do
+    if curl -s http://localhost:3001 > /dev/null 2>&1; then
+        FRONTEND_READY=true
+        echo -e "${GREEN}✅ Frontend is ready${NC}"
+        break
+    fi
+    echo -e "${YELLOW}   Waiting for frontend... ($i/20)${NC}"
+    sleep 1
+done
+
+if [ "$FRONTEND_READY" = false ]; then
+    echo -e "${RED}❌ Frontend failed to start after 20 seconds${NC}"
     cleanup_and_exit 1
 fi
 
