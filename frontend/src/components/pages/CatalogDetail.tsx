@@ -1411,6 +1411,27 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
   const monthLabels = generateMonthLabels();
   const { materialCostData, handlingCostData, totalCostData } = mapCostDataToMonthlyArrays();
   
+  // Generate arrays for dynamic point styling based on journal entries
+  const pointBackgroundColors = materialCostData.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? '#F97316' : 'rgba(34, 197, 94, 1)'; // Orange for months with journal entries
+  });
+  
+  const pointBackgroundColorsBlue = handlingCostData.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? '#F97316' : 'rgba(59, 130, 246, 1)'; // Orange for months with journal entries
+  });
+  
+  const pointBackgroundColorsPurple = totalCostData.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? '#F97316' : 'rgba(168, 85, 247, 1)'; // Orange for months with journal entries
+  });
+  
+  const pointRadiuses = materialCostData.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? 6 : 3; // Larger radius for months with journal entries
+  });
+  
   const chartData = {
     labels: monthLabels,
     datasets: [
@@ -1421,6 +1442,10 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         borderColor: 'rgba(34, 197, 94, 1)',
         borderWidth: 2,
         tension: 0.1,
+        pointBackgroundColor: pointBackgroundColors,
+        pointBorderColor: pointBackgroundColors,
+        pointRadius: pointRadiuses,
+        pointHoverRadius: pointRadiuses.map(r => r + 2),
       },
       {
         label: 'Náklady na zpracování (Kč/ks)',
@@ -1429,6 +1454,10 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 2,
         tension: 0.1,
+        pointBackgroundColor: pointBackgroundColorsBlue,
+        pointBorderColor: pointBackgroundColorsBlue,
+        pointRadius: pointRadiuses,
+        pointHoverRadius: pointRadiuses.map(r => r + 2),
       },
       {
         label: 'Celkové náklady (Kč/ks)',
@@ -1437,6 +1466,10 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         borderColor: 'rgba(168, 85, 247, 1)',
         borderWidth: 2,
         tension: 0.1,
+        pointBackgroundColor: pointBackgroundColorsPurple,
+        pointBorderColor: pointBackgroundColorsPurple,
+        pointRadius: pointRadiuses,
+        pointHoverRadius: pointRadiuses.map(r => r + 2),
       },
     ],
   };
