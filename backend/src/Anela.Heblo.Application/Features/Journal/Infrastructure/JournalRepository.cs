@@ -209,7 +209,7 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
                 result[da.ProductCode].DirectEntries = da.Count;
                 result[da.ProductCode].LastEntryDate = da.LastEntryDate;
             }
-           
+
 
             // Calculate recent entries (within last 30 days)
             var thirtyDaysAgo = DateTime.Today.AddDays(-30);

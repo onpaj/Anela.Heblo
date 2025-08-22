@@ -257,4 +257,10 @@ public class MockCatalogRepository : ICatalogRepository
     public Task RefreshEshopPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultyData(CancellationToken ct) => Task.CompletedTask;
+
+    public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

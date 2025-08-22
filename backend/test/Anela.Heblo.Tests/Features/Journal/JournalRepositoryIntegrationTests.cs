@@ -116,7 +116,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
     {
         // This is the critical test for the issue:
         // Product "TON002030" should find entries with prefix "TON002"
-        
+
         // Arrange
         var entry = new JournalEntry
         {
@@ -186,10 +186,10 @@ public class JournalRepositoryIntegrationTests : IDisposable
         // Assert
         result1.Should().HaveCount(1);
         result1.First().Title.Should().Be("TON001 family note");
-        
+
         result2.Should().HaveCount(1);
         result2.First().Title.Should().Be("TON002 family note");
-        
+
         result3.Should().HaveCount(1);
         result3.First().Title.Should().Be("CREAM family note");
     }

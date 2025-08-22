@@ -24,7 +24,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance']);
   const { getUserInfo } = useAuth();
   const userInfo = getUserInfo();
 
@@ -49,7 +49,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: DollarSign,
       type: 'section' as const,
       items: [
-        { id: 'financni-prehled', name: 'Finanční přehled', href: '/finance/overview' }
+        { id: 'financni-prehled', name: 'Finanční přehled', href: '/finance/overview' },
+        { id: 'analyza-marzovosti', name: 'Analýza marže', href: '/analytics/product-margin-summary' }
       ]
     }] : []),
     {

@@ -175,6 +175,7 @@ export const QUERY_KEYS = {
   catalog: ['catalog'] as const,
   audit: ['audit'] as const,
   productMargins: ['productMargins'] as const,
+  productMarginSummary: ['productMarginSummary'] as const,
   financialOverview: ['financialOverview'] as const,
   journal: ['journal'] as const,
   // Add more query keys as needed

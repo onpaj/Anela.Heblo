@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
+using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
@@ -25,6 +26,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAuditModule();
+        services.AddAnalyticsModule();
         services.AddCatalogModule(environment);
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(environment);

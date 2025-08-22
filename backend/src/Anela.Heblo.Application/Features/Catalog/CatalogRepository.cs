@@ -503,6 +503,20 @@ public class CatalogRepository : ICatalogRepository
     public Task<int> CountAsync(Expression<Func<CatalogAggregate, bool>>? predicate = null, CancellationToken cancellationToken = default) =>
         Task.FromResult(predicate == null ? CatalogData.Count : CatalogData.AsQueryable().Count(predicate));
 
+    public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(
+        DateTime fromDate,
+        DateTime toDate,
+        ProductType[] productTypes,
+        CancellationToken cancellationToken = default)
+    {
+        var products = CatalogData
+            .Where(p => productTypes.Contains(p.Type))
+            .Where(p => p.SalesHistory.Any(s => s.Date >= fromDate && s.Date <= toDate))
+            .ToList();
+
+        return Task.FromResult(products);
+    }
+
 }
 
 

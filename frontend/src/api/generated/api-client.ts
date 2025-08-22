@@ -18,6 +18,59 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined): Promise<GetProductMarginSummaryResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
+        if (timeWindow === null)
+            throw new Error("The parameter 'timeWindow' cannot be null.");
+        else if (timeWindow !== undefined)
+            url_ += "TimeWindow=" + encodeURIComponent("" + timeWindow) + "&";
+        if (topProductCount === null)
+            throw new Error("The parameter 'topProductCount' cannot be null.");
+        else if (topProductCount !== undefined)
+            url_ += "TopProductCount=" + encodeURIComponent("" + topProductCount) + "&";
+        if (groupingMode === null)
+            throw new Error("The parameter 'groupingMode' cannot be null.");
+        else if (groupingMode !== undefined)
+            url_ += "GroupingMode=" + encodeURIComponent("" + groupingMode) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetProductMarginSummary(_response);
+        });
+    }
+
+    protected processAnalytics_GetProductMarginSummary(response: Response): Promise<GetProductMarginSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductMarginSummaryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductMarginSummaryResponse>(null as any);
+    }
+
     audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Audit/data-loads?";
         if (limit !== undefined && limit !== null)
@@ -1807,6 +1860,376 @@ export class ApiClient {
     }
 }
 
+export class GetProductMarginSummaryResponse implements IGetProductMarginSummaryResponse {
+    monthlyData?: MonthlyProductMarginDto[];
+    topProducts?: TopProductDto[];
+    totalMargin?: number;
+    timeWindow?: string;
+    groupingMode?: ProductGroupingMode;
+    fromDate?: Date;
+    toDate?: Date;
+
+    constructor(data?: IGetProductMarginSummaryResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["monthlyData"])) {
+                this.monthlyData = [] as any;
+                for (let item of _data["monthlyData"])
+                    this.monthlyData!.push(MonthlyProductMarginDto.fromJS(item));
+            }
+            if (Array.isArray(_data["topProducts"])) {
+                this.topProducts = [] as any;
+                for (let item of _data["topProducts"])
+                    this.topProducts!.push(TopProductDto.fromJS(item));
+            }
+            this.totalMargin = _data["totalMargin"];
+            this.timeWindow = _data["timeWindow"];
+            this.groupingMode = _data["groupingMode"];
+            this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
+            this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetProductMarginSummaryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductMarginSummaryResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.monthlyData)) {
+            data["monthlyData"] = [];
+            for (let item of this.monthlyData)
+                data["monthlyData"].push(item.toJSON());
+        }
+        if (Array.isArray(this.topProducts)) {
+            data["topProducts"] = [];
+            for (let item of this.topProducts)
+                data["topProducts"].push(item.toJSON());
+        }
+        data["totalMargin"] = this.totalMargin;
+        data["timeWindow"] = this.timeWindow;
+        data["groupingMode"] = this.groupingMode;
+        data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
+        data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetProductMarginSummaryResponse {
+    monthlyData?: MonthlyProductMarginDto[];
+    topProducts?: TopProductDto[];
+    totalMargin?: number;
+    timeWindow?: string;
+    groupingMode?: ProductGroupingMode;
+    fromDate?: Date;
+    toDate?: Date;
+}
+
+export class MonthlyProductMarginDto implements IMonthlyProductMarginDto {
+    year?: number;
+    month?: number;
+    monthDisplay?: string;
+    productSegments?: ProductMarginSegmentDto[];
+    totalMonthMargin?: number;
+
+    constructor(data?: IMonthlyProductMarginDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.monthDisplay = _data["monthDisplay"];
+            if (Array.isArray(_data["productSegments"])) {
+                this.productSegments = [] as any;
+                for (let item of _data["productSegments"])
+                    this.productSegments!.push(ProductMarginSegmentDto.fromJS(item));
+            }
+            this.totalMonthMargin = _data["totalMonthMargin"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyProductMarginDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyProductMarginDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["monthDisplay"] = this.monthDisplay;
+        if (Array.isArray(this.productSegments)) {
+            data["productSegments"] = [];
+            for (let item of this.productSegments)
+                data["productSegments"].push(item.toJSON());
+        }
+        data["totalMonthMargin"] = this.totalMonthMargin;
+        return data;
+    }
+}
+
+export interface IMonthlyProductMarginDto {
+    year?: number;
+    month?: number;
+    monthDisplay?: string;
+    productSegments?: ProductMarginSegmentDto[];
+    totalMonthMargin?: number;
+}
+
+export class ProductMarginSegmentDto implements IProductMarginSegmentDto {
+    groupKey?: string;
+    displayName?: string;
+    marginContribution?: number;
+    percentage?: number;
+    colorCode?: string;
+    isOther?: boolean;
+    averageMarginPerPiece?: number;
+    unitsSold?: number;
+    averageSellingPriceWithoutVat?: number;
+    averageMaterialCosts?: number;
+    averageLaborCosts?: number;
+    productCount?: number;
+    productCode?: string;
+    productName?: string;
+    marginPerPiece?: number;
+    sellingPriceWithoutVat?: number;
+    materialCosts?: number;
+    laborCosts?: number;
+
+    constructor(data?: IProductMarginSegmentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.groupKey = _data["groupKey"];
+            this.displayName = _data["displayName"];
+            this.marginContribution = _data["marginContribution"];
+            this.percentage = _data["percentage"];
+            this.colorCode = _data["colorCode"];
+            this.isOther = _data["isOther"];
+            this.averageMarginPerPiece = _data["averageMarginPerPiece"];
+            this.unitsSold = _data["unitsSold"];
+            this.averageSellingPriceWithoutVat = _data["averageSellingPriceWithoutVat"];
+            this.averageMaterialCosts = _data["averageMaterialCosts"];
+            this.averageLaborCosts = _data["averageLaborCosts"];
+            this.productCount = _data["productCount"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.marginPerPiece = _data["marginPerPiece"];
+            this.sellingPriceWithoutVat = _data["sellingPriceWithoutVat"];
+            this.materialCosts = _data["materialCosts"];
+            this.laborCosts = _data["laborCosts"];
+        }
+    }
+
+    static fromJS(data: any): ProductMarginSegmentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductMarginSegmentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["groupKey"] = this.groupKey;
+        data["displayName"] = this.displayName;
+        data["marginContribution"] = this.marginContribution;
+        data["percentage"] = this.percentage;
+        data["colorCode"] = this.colorCode;
+        data["isOther"] = this.isOther;
+        data["averageMarginPerPiece"] = this.averageMarginPerPiece;
+        data["unitsSold"] = this.unitsSold;
+        data["averageSellingPriceWithoutVat"] = this.averageSellingPriceWithoutVat;
+        data["averageMaterialCosts"] = this.averageMaterialCosts;
+        data["averageLaborCosts"] = this.averageLaborCosts;
+        data["productCount"] = this.productCount;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["marginPerPiece"] = this.marginPerPiece;
+        data["sellingPriceWithoutVat"] = this.sellingPriceWithoutVat;
+        data["materialCosts"] = this.materialCosts;
+        data["laborCosts"] = this.laborCosts;
+        return data;
+    }
+}
+
+export interface IProductMarginSegmentDto {
+    groupKey?: string;
+    displayName?: string;
+    marginContribution?: number;
+    percentage?: number;
+    colorCode?: string;
+    isOther?: boolean;
+    averageMarginPerPiece?: number;
+    unitsSold?: number;
+    averageSellingPriceWithoutVat?: number;
+    averageMaterialCosts?: number;
+    averageLaborCosts?: number;
+    productCount?: number;
+    productCode?: string;
+    productName?: string;
+    marginPerPiece?: number;
+    sellingPriceWithoutVat?: number;
+    materialCosts?: number;
+    laborCosts?: number;
+}
+
+export class TopProductDto implements ITopProductDto {
+    groupKey?: string;
+    displayName?: string;
+    totalMargin?: number;
+    colorCode?: string;
+    rank?: number;
+    productCode?: string;
+    productName?: string;
+
+    constructor(data?: ITopProductDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.groupKey = _data["groupKey"];
+            this.displayName = _data["displayName"];
+            this.totalMargin = _data["totalMargin"];
+            this.colorCode = _data["colorCode"];
+            this.rank = _data["rank"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+        }
+    }
+
+    static fromJS(data: any): TopProductDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TopProductDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["groupKey"] = this.groupKey;
+        data["displayName"] = this.displayName;
+        data["totalMargin"] = this.totalMargin;
+        data["colorCode"] = this.colorCode;
+        data["rank"] = this.rank;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        return data;
+    }
+}
+
+export interface ITopProductDto {
+    groupKey?: string;
+    displayName?: string;
+    totalMargin?: number;
+    colorCode?: string;
+    rank?: number;
+    productCode?: string;
+    productName?: string;
+}
+
+export enum ProductGroupingMode {
+    Products = 0,
+    ProductFamily = 1,
+    ProductCategory = 2,
+}
+
+export class ProblemDetails implements IProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IProblemDetails) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.type = _data["type"];
+            this.title = _data["title"];
+            this.status = _data["status"];
+            this.detail = _data["detail"];
+            this.instance = _data["instance"];
+        }
+    }
+
+    static fromJS(data: any): ProblemDetails {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProblemDetails();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["type"] = this.type;
+        data["title"] = this.title;
+        data["status"] = this.status;
+        data["detail"] = this.detail;
+        data["instance"] = this.instance;
+        return data;
+    }
+}
+
+export interface IProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
+}
+
 export class GetCatalogListResponse implements IGetCatalogListResponse {
     items?: CatalogItemDto[];
     totalCount?: number;
@@ -3053,70 +3476,6 @@ export interface IStockSummaryDto {
     averageMonthlyStockChange?: number;
     totalBalanceWithStock?: number;
     averageMonthlyTotalBalance?: number;
-}
-
-export class ProblemDetails implements IProblemDetails {
-    type?: string | undefined;
-    title?: string | undefined;
-    status?: number | undefined;
-    detail?: string | undefined;
-    instance?: string | undefined;
-
-    [key: string]: any;
-
-    constructor(data?: IProblemDetails) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            for (var property in _data) {
-                if (_data.hasOwnProperty(property))
-                    this[property] = _data[property];
-            }
-            this.type = _data["type"];
-            this.title = _data["title"];
-            this.status = _data["status"];
-            this.detail = _data["detail"];
-            this.instance = _data["instance"];
-        }
-    }
-
-    static fromJS(data: any): ProblemDetails {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProblemDetails();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        for (var property in this) {
-            if (this.hasOwnProperty(property))
-                data[property] = this[property];
-        }
-        data["type"] = this.type;
-        data["title"] = this.title;
-        data["status"] = this.status;
-        data["detail"] = this.detail;
-        data["instance"] = this.instance;
-        return data;
-    }
-}
-
-export interface IProblemDetails {
-    type?: string | undefined;
-    title?: string | undefined;
-    status?: number | undefined;
-    detail?: string | undefined;
-    instance?: string | undefined;
-
-    [key: string]: any;
 }
 
 export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {

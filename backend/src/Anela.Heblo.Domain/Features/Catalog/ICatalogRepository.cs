@@ -18,4 +18,11 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshEshopPricesData(CancellationToken ct);
     Task RefreshErpPricesData(CancellationToken ct);
     Task RefreshManufactureDifficultyData(CancellationToken ct);
+
+    // Analytics methods
+    Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(
+        DateTime fromDate,
+        DateTime toDate,
+        ProductType[] productTypes,
+        CancellationToken cancellationToken = default);
 }

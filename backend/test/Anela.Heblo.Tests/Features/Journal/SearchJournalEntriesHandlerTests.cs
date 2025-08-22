@@ -39,7 +39,7 @@ public class SearchJournalEntriesHandlerTests
             ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "user123"
         };
-        
+
         // Add product prefix association
         journalEntry.AssociateWithProduct("TON002");
 
@@ -63,9 +63,9 @@ public class SearchJournalEntriesHandlerTests
         result.Entries.Should().HaveCount(1);
         result.Entries.First().Title.Should().Be("Test Entry for TON002");
         result.Entries.First().AssociatedProducts.Should().Contain("TON002");
-        
+
         _repositoryMock.Verify(x => x.SearchEntriesAsync(
-            It.Is<SearchJournalEntriesRequest>(r => 
+            It.Is<SearchJournalEntriesRequest>(r =>
                 r.ProductCodePrefix == "TON002"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -75,7 +75,7 @@ public class SearchJournalEntriesHandlerTests
     {
         // This test verifies that when searching for product "TON002030",
         // it should find entries associated with prefix "TON002"
-        
+
         // Arrange
         var productCode = "TON002030";
         var journalEntry = new JournalEntry
@@ -88,20 +88,20 @@ public class SearchJournalEntriesHandlerTests
             ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "user123"
         };
-        
+
         // Entry is associated with product prefix "TON002"
         journalEntry.AssociateWithProduct("TON002");
 
         // Test that the product code starts with the prefix
         productCode.StartsWith("TON002").Should().BeTrue();
-        
+
         // The repository should find this entry when searching for TON002030
         // because TON002030 starts with TON002
         journalEntry.ProductAssociations.Should().HaveCount(1);
         journalEntry.ProductAssociations.First().ProductCodePrefix.Should().Be("TON002");
     }
 
-    [Fact] 
+    [Fact]
     public async Task SearchByProductCodePrefix_ShouldReturnMatchingEntry()
     {
         // Arrange - test single prefix search

@@ -92,9 +92,9 @@ public class CatalogAggregate : Entity<string>
     // Readonly PROPS
     public string? PrimarySupplier => SupplierNames.FirstOrDefault();
     public bool IsSameFamily(CatalogAggregate product) => product.ProductFamily == this.ProductFamily;
-    public bool IsSameType(CatalogAggregate product) => product.ProductType == this.ProductType;
+    public bool IsSameCategory(CatalogAggregate product) => product.ProductCategory == this.ProductCategory;
     public string? ProductFamily => ProductCode?.Left(Math.Min(6, ProductCode.Length));
-    public string? ProductType => ProductCode?.Left(Math.Min(3, ProductCode.Length));
+    public string? ProductCategory => ProductCode?.Left(Math.Min(3, ProductCode.Length));
     public string? SizeCode => ProductCode?.Substring(Math.Min(6, ProductCode.Length));
 
 

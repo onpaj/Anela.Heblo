@@ -140,6 +140,8 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
         return 'Nákup';
       case ProductType.Product:
         return 'Výroba';
+      case ProductType.SemiProduct:
+        return 'Výroba';
       default:
         return '';
     }
@@ -152,13 +154,15 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
       case ProductType.Product:
       case ProductType.Goods:
         return 'Prodeje';
+      case ProductType.SemiProduct:
+        return 'Spotřeba';
       default:
         return '';
     }
   };
 
   const shouldShowChartTabs = (productType: ProductType) => {
-    return productType !== ProductType.SemiProduct && productType !== ProductType.UNDEFINED;
+    return productType !== ProductType.UNDEFINED;
   };
 
 
@@ -219,17 +223,20 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                       <FileText className="h-4 w-4" />
                       <span>Základní informace</span>
                     </button>
-                    <button
-                      onClick={() => setActiveTab('history')}
-                      className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
-                        activeTab === 'history'
-                          ? 'border-indigo-500 text-indigo-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      <span>Historie nákupů</span>
-                    </button>
+                    {/* Historie nákupů - pouze pro Material a Goods */}
+                    {(effectiveItem?.type === ProductType.Material || effectiveItem?.type === ProductType.Goods) && (
+                      <button
+                        onClick={() => setActiveTab('history')}
+                        className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+                          activeTab === 'history'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>Historie nákupů</span>
+                      </button>
+                    )}
                     {(effectiveItem?.type === ProductType.Product || effectiveItem?.type === ProductType.SemiProduct || effectiveItem?.type === ProductType.Goods) && (
                       <button
                         onClick={() => setActiveTab('margins')}
@@ -500,7 +507,7 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
   // Determine which data to use based on product type and active tab
   const getChartData = () => {
     if (activeTab === 'input') {
-      // Input tab - Purchase for Material/Goods, no data for Product (Manufacture not implemented yet)
+      // Input tab - Purchase for Material/Goods, Manufacture for Product/SemiProduct
       if (productType === ProductType.Material || productType === ProductType.Goods) {
         return {
           labels: monthLabels,
@@ -510,8 +517,8 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
           borderColor: 'rgba(34, 197, 94, 1)',
           yAxisLabel: 'Kusů nakoupeno'
         };
-      } else if (productType === ProductType.Product) {
-        // Use actual manufacture data for Product
+      } else if (productType === ProductType.Product || productType === ProductType.SemiProduct) {
+        // Use actual manufacture data for Product and SemiProduct
         return {
           labels: monthLabels,
           data: mapDataToMonthlyArray(manufactureData, 'amount'),
@@ -523,7 +530,7 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
       }
     } else {
       // Output tab
-      if (productType === ProductType.Material) {
+      if (productType === ProductType.Material || productType === ProductType.SemiProduct) {
         return {
           labels: monthLabels,
           data: mapDataToMonthlyArray(consumedData, 'amount'),
@@ -702,7 +709,7 @@ const ProductSummaryTabs: React.FC<ProductSummaryTabsProps> = ({
         });
         dataLabel = 'nákup';
         unitLabel = 'kusů';
-      } else if (productType === ProductType.Product) {
+      } else if (productType === ProductType.Product || productType === ProductType.SemiProduct) {
         // Manufacture data
         manufactureData.forEach(record => {
           if (record.year && record.month) {
@@ -718,7 +725,7 @@ const ProductSummaryTabs: React.FC<ProductSummaryTabsProps> = ({
       }
     } else {
       // Output tab
-      if (productType === ProductType.Material) {
+      if (productType === ProductType.Material || productType === ProductType.SemiProduct) {
         // Consumption data
         consumedData.forEach(record => {
           if (record.year && record.month) {

@@ -14,7 +14,8 @@ public static class CatalogModule
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        // Register catalog repository - use mock for Automation environment
+        // Register catalog repository - use mock only for Automation environment (testing)
+        // Real repository for Development, Test, and Production environments
         var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         if (environmentName == "Automation")
         {
@@ -31,7 +32,7 @@ public static class CatalogModule
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
         // Register background service for periodic refresh operations
-        // Skip background services in automation environment to avoid external service dependencies
+        // Skip background services only in Automation environment to avoid external service dependencies during testing
         if (environmentName != "Automation")
         {
             services.AddHostedService<CatalogRefreshBackgroundService>();

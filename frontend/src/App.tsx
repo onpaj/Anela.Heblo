@@ -9,6 +9,7 @@ import CatalogList from './components/pages/CatalogList';
 import PurchaseOrderList from './components/pages/PurchaseOrderList';
 import PurchaseStockAnalysis from './components/pages/PurchaseStockAnalysis';
 import ProductMarginsList from './components/pages/ProductMarginsList';
+import ProductMarginSummary from './components/pages/ProductMarginSummary';
 import FinancialOverview from './components/pages/FinancialOverview';
 import JournalList from './components/pages/Journal/JournalList';
 import JournalEntryNew from './components/pages/JournalEntryNew';
@@ -188,6 +189,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/finance/overview" element={<FinancialOverview />} />
+                  <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
                   <Route path="/catalog" element={<CatalogList />} />
                   <Route path="/purchase/orders" element={<PurchaseOrderList />} />
                   <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
