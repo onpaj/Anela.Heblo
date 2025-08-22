@@ -72,6 +72,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   
   // Use item from prop if provided, otherwise use item from API detail data
   const effectiveItem = item || detailData?.item;
+  
+  // Fetch journal entries for the product
+  const { data: journalData } = useJournalEntriesByProduct(effectiveProductCode);
 
   // Reset tab and history state when modal opens with new item or different default tab
   React.useEffect(() => {
@@ -269,6 +272,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                         item={effectiveItem}
                         manufactureCostHistory={detailData?.historicalData?.manufactureCostHistory || []}
                         isLoading={detailLoading}
+                        journalEntries={journalData?.entries || []}
                       />
                     ) : (
                       <JournalTab
@@ -337,6 +341,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                             consumedData={detailData?.historicalData?.consumedHistory || []}
                             purchaseData={detailData?.historicalData?.purchaseHistory || []}
                             manufactureData={detailData?.historicalData?.manufactureHistory || []}
+                            journalEntries={journalData?.entries || []}
                           />
                         </div>
                       </>
@@ -398,6 +403,7 @@ interface ProductChartTabsProps {
   consumedData: CatalogConsumedRecordDto[];
   purchaseData: CatalogPurchaseRecordDto[];
   manufactureData: CatalogManufactureRecordDto[];
+  journalEntries: JournalEntryDto[];
 }
 
 const ProductChartTabs: React.FC<ProductChartTabsProps> = ({ 
@@ -406,7 +412,8 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
   salesData, 
   consumedData, 
   purchaseData,
-  manufactureData 
+  manufactureData,
+  journalEntries 
 }) => {
   // Generate last 13 months labels
   const generateMonthLabels = () => {
@@ -419,6 +426,37 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
     }
     
     return months;
+  };
+
+  // Helper function to get journal entries for a specific month
+  const getJournalEntriesForMonth = (monthIndex: number) => {
+    if (!journalEntries || journalEntries.length === 0) return [];
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based, convert to 1-based
+    
+    // Calculate the target year and month for the given monthIndex
+    const monthsBack = 12 - monthIndex; // 12 months back to current month
+    let targetYear = currentYear;
+    let targetMonth = currentMonth - monthsBack;
+    
+    // Handle year transitions
+    if (targetMonth <= 0) {
+      targetYear--;
+      targetMonth += 12;
+    }
+    
+    // Filter journal entries for this specific month and year
+    return journalEntries.filter(entry => {
+      if (!entry.entryDate) return false;
+      
+      const entryDate = new Date(entry.entryDate);
+      const entryYear = entryDate.getFullYear();
+      const entryMonth = entryDate.getMonth() + 1; // Convert to 1-based
+      
+      return entryYear === targetYear && entryMonth === targetMonth;
+    });
   };
 
   // Map data to monthly array based on year/month
@@ -519,6 +557,17 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
 
   const chartConfig = getChartData();
   
+  // Generate arrays for dynamic point styling based on journal entries
+  const pointBackgroundColors = chartConfig.data.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? '#F97316' : chartConfig.borderColor; // Orange for months with journal entries
+  });
+  
+  const pointRadiuses = chartConfig.data.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? 6 : 3; // Larger radius for months with journal entries
+  });
+  
   const chartData = {
     labels: chartConfig.labels,
     datasets: [
@@ -529,6 +578,10 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
         borderColor: chartConfig.borderColor,
         borderWidth: 2,
         tension: 0.1,
+        pointBackgroundColor: pointBackgroundColors,
+        pointBorderColor: pointBackgroundColors,
+        pointRadius: pointRadiuses,
+        pointHoverRadius: pointRadiuses.map(r => r + 2), // Slightly larger on hover
       },
     ],
   };
@@ -543,6 +596,30 @@ const ProductChartTabs: React.FC<ProductChartTabsProps> = ({
       title: {
         display: false,
       },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        callbacks: {
+          afterBody: (context: any[]) => {
+            if (context.length === 0) return [];
+            
+            // Get the month index from the first context item
+            const monthIndex = context[0].dataIndex;
+            const monthEntries = getJournalEntriesForMonth(monthIndex);
+            
+            if (monthEntries.length === 0) return [];
+            
+            const journalLines = ['', 'Záznamy deníku:'];
+            monthEntries.forEach(entry => {
+              const date = entry.entryDate ? new Date(entry.entryDate).toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit' }) : '';
+              const title = entry.title || 'Bez názvu';
+              journalLines.push(`• ${date}: ${title}`);
+            });
+            
+            return journalLines;
+          }
+        }
+      }
     },
     scales: {
       y: {
@@ -1220,9 +1297,10 @@ interface MarginsTabProps {
   item: CatalogItemDto | null;
   manufactureCostHistory: ManufactureCostDto[];
   isLoading: boolean;
+  journalEntries: JournalEntryDto[];
 }
 
-const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, isLoading }) => {
+const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, isLoading, journalEntries }) => {
   // Calculate average manufacturing costs for display
   const averageMaterialCost = manufactureCostHistory.length > 0 
     ? manufactureCostHistory.reduce((sum, record) => sum + (record.materialCost || 0), 0) / manufactureCostHistory.length 
@@ -1252,6 +1330,37 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
     }
     
     return months;
+  };
+
+  // Helper function to get journal entries for a specific month (same as in ProductChartTabs)
+  const getJournalEntriesForMonth = (monthIndex: number) => {
+    if (!journalEntries || journalEntries.length === 0) return [];
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based, convert to 1-based
+    
+    // Calculate the target year and month for the given monthIndex
+    const monthsBack = 12 - monthIndex; // 12 months back to current month
+    let targetYear = currentYear;
+    let targetMonth = currentMonth - monthsBack;
+    
+    // Handle year transitions
+    if (targetMonth <= 0) {
+      targetYear--;
+      targetMonth += 12;
+    }
+    
+    // Filter journal entries for this specific month and year
+    return journalEntries.filter(entry => {
+      if (!entry.entryDate) return false;
+      
+      const entryDate = new Date(entry.entryDate);
+      const entryYear = entryDate.getFullYear();
+      const entryMonth = entryDate.getMonth() + 1; // Convert to 1-based
+      
+      return entryYear === targetYear && entryMonth === targetMonth;
+    });
   };
 
   // Map manufacturing cost data to monthly arrays
@@ -1342,6 +1451,30 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
       title: {
         display: false,
       },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        callbacks: {
+          afterBody: (context: any[]) => {
+            if (context.length === 0) return [];
+            
+            // Get the month index from the first context item
+            const monthIndex = context[0].dataIndex;
+            const monthEntries = getJournalEntriesForMonth(monthIndex);
+            
+            if (monthEntries.length === 0) return [];
+            
+            const journalLines = ['', 'Záznamy deníku:'];
+            monthEntries.forEach(entry => {
+              const date = entry.entryDate ? new Date(entry.entryDate).toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit' }) : '';
+              const title = entry.title || 'Bez názvu';
+              journalLines.push(`• ${date}: ${title}`);
+            });
+            
+            return journalLines;
+          }
+        }
+      }
     },
     scales: {
       y: {
