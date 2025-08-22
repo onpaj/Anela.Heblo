@@ -29,9 +29,7 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
                 CreatedByUserId = entry.CreatedByUserId,
                 ModifiedByUserId = entry.ModifiedByUserId,
                 AssociatedProducts = entry.ProductAssociations
-                    .Select(pa => pa.ProductCode)
-                    .Concat(entry.ProductFamilyAssociations
-                        .Select(pfa => pfa.ProductCodePrefix))
+                    .Select(pa => pa.ProductCodePrefix)
                     .Distinct()
                     .ToList(),
                 Tags = entry.TagAssignments

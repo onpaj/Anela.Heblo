@@ -4,6 +4,7 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace Anela.Heblo.Application.Features.Journal.Infrastructure
 {
@@ -21,7 +22,6 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
         {
             return await Context.Set<JournalEntry>()
                 .Include(x => x.ProductAssociations)
-                .Include(x => x.ProductFamilyAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
@@ -44,7 +44,6 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
         {
             var query = Context.Set<JournalEntry>()
                 .Include(x => x.ProductAssociations)
-                .Include(x => x.ProductFamilyAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
                 .Where(x => !x.IsDeleted)
@@ -86,7 +85,6 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
         {
             var query = Context.Set<JournalEntry>()
                 .Include(x => x.ProductAssociations)
-                .Include(x => x.ProductFamilyAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
                 .Where(x => !x.IsDeleted)
@@ -112,19 +110,13 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
                 query = query.Where(x => x.EntryDate <= request.DateTo.Value.Date);
             }
 
-            // Product filtering
-            if (request.ProductCodes?.Any() == true)
+            // Product filtering - check if requested product code prefix starts with any stored prefix
+            if (!string.IsNullOrEmpty(request.ProductCodePrefix))
             {
                 query = query.Where(x => x.ProductAssociations
-                    .Any(pa => request.ProductCodes.Contains(pa.ProductCode)));
+                    .Any(pa => request.ProductCodePrefix.StartsWith(pa.ProductCodePrefix)));
             }
 
-            // Product family filtering
-            if (request.ProductCodePrefixes?.Any() == true)
-            {
-                query = query.Where(x => x.ProductFamilyAssociations
-                    .Any(pfa => request.ProductCodePrefixes.Contains(pfa.ProductCodePrefix)));
-            }
 
             // Tag filtering
             if (request.TagIds?.Any() == true)
@@ -175,12 +167,9 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
         {
             return await Context.Set<JournalEntry>()
                 .Include(x => x.ProductAssociations)
-                .Include(x => x.ProductFamilyAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted &&
-                    (x.ProductAssociations.Any(pa => pa.ProductCode == productCode) ||
-                     x.ProductFamilyAssociations.Any(pfa => productCode.StartsWith(pfa.ProductCodePrefix))))
+                .Where(x => !x.IsDeleted && (x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix))))
                 .OrderByDescending(x => x.EntryDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -201,11 +190,11 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
 
             // Get direct associations
             var directAssociations = await Context.Set<JournalEntryProduct>()
-                .Where(jep => productCodeList.Contains(jep.ProductCode))
+                .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
                 .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
                     jep => jep.JournalEntryId,
                     je => je.Id,
-                    (jep, je) => new { jep.ProductCode, je.EntryDate, je.CreatedAt })
+                    (jep, je) => new { ProductCode = jep.ProductCodePrefix, je.EntryDate, je.CreatedAt })
                 .GroupBy(x => x.ProductCode)
                 .Select(g => new
                 {
@@ -220,33 +209,7 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
                 result[da.ProductCode].DirectEntries = da.Count;
                 result[da.ProductCode].LastEntryDate = da.LastEntryDate;
             }
-
-            // Get family associations
-            var familyAssociations = await Context.Set<JournalEntryProductFamily>()
-                .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
-                    jepf => jepf.JournalEntryId,
-                    je => je.Id,
-                    (jepf, je) => new { jepf.ProductCodePrefix, je.EntryDate, je.CreatedAt })
-                .ToListAsync(cancellationToken);
-
-            foreach (var productCode in productCodeList)
-            {
-                var matchingFamilies = familyAssociations
-                    .Where(fa => productCode.StartsWith(fa.ProductCodePrefix))
-                    .ToList();
-
-                if (matchingFamilies.Any())
-                {
-                    result[productCode].FamilyEntries = matchingFamilies.Count;
-
-                    var familyLastDate = matchingFamilies.Max(x => x.EntryDate);
-                    if (!result[productCode].LastEntryDate.HasValue ||
-                        familyLastDate > result[productCode].LastEntryDate)
-                    {
-                        result[productCode].LastEntryDate = familyLastDate;
-                    }
-                }
-            }
+           
 
             // Calculate recent entries (within last 30 days)
             var thirtyDaysAgo = DateTime.Today.AddDays(-30);

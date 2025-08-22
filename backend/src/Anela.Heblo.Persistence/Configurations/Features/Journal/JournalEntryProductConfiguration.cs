@@ -11,9 +11,9 @@ namespace Anela.Heblo.Persistence.Configurations.Features.Journal
             builder.ToTable("JournalEntryProducts");
 
             // Composite primary key
-            builder.HasKey(x => new { x.JournalEntryId, x.ProductCode });
+            builder.HasKey(x => new { x.JournalEntryId, ProductCode = x.ProductCodePrefix });
 
-            builder.Property(x => x.ProductCode)
+            builder.Property(x => x.ProductCodePrefix)
                 .HasMaxLength(50)
                 .IsRequired();
 
@@ -21,7 +21,7 @@ namespace Anela.Heblo.Persistence.Configurations.Features.Journal
                 .IsRequired();
 
             // Index for product code lookups
-            builder.HasIndex(x => x.ProductCode)
+            builder.HasIndex(x => x.ProductCodePrefix)
                 .HasDatabaseName("IX_JournalEntryProducts_ProductCode");
         }
     }

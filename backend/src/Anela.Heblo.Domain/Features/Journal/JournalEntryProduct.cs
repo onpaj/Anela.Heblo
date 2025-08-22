@@ -9,7 +9,7 @@ namespace Anela.Heblo.Domain.Features.Journal
 
         [Required]
         [MaxLength(50)]
-        public string ProductCode { get; set; } = null!;
+        public string ProductCodePrefix { get; set; } = null!;
 
         public DateTime CreatedAt { get; set; }
 

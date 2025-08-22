@@ -60,11 +60,6 @@ namespace Anela.Heblo.Persistence.Configurations.Features.Journal
                 .HasForeignKey(x => x.JournalEntryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasMany(x => x.ProductFamilyAssociations)
-                .WithOne(x => x.JournalEntry)
-                .HasForeignKey(x => x.JournalEntryId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             builder.HasMany(x => x.TagAssignments)
                 .WithOne(x => x.JournalEntry)
                 .HasForeignKey(x => x.JournalEntryId)

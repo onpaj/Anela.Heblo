@@ -17,8 +17,7 @@ interface SearchJournalParams {
   searchText?: string;
   dateFrom?: Date;
   dateTo?: Date;
-  productCodes?: string[];
-  productCodePrefixes?: string[];
+  productCodePrefix?: string;
   tagIds?: number[];
   createdByUserId?: string;
   pageNumber?: number;
@@ -51,8 +50,7 @@ export const useSearchJournalEntries = (params: SearchJournalParams) => {
         params.searchText || undefined,
         params.dateFrom || undefined,
         params.dateTo || undefined,
-        params.productCodes || undefined,
-        params.productCodePrefixes || undefined,
+        params.productCodePrefix || undefined,
         params.tagIds || undefined,
         params.createdByUserId || undefined,
         params.pageNumber,
@@ -87,6 +85,7 @@ export const useCreateJournalEntry = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'entries'] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'search'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'byProduct'] });
     }
   });
 };
@@ -102,6 +101,7 @@ export const useUpdateJournalEntry = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'entries'] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'search'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'byProduct'] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'entry', id] });
     }
   });
@@ -118,6 +118,7 @@ export const useDeleteJournalEntry = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'entries'] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'search'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'byProduct'] });
     }
   });
 };
@@ -143,5 +144,31 @@ export const useCreateJournalTag = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.journal, 'tags'] });
     }
+  });
+};
+
+export const useJournalEntriesByProduct = (productCode: string) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.journal, 'byProduct', productCode],
+    queryFn: async () => {
+      const client = await getAuthenticatedApiClient();
+      
+      // Search for entries where the productCode starts with any stored prefix
+      // This allows finding entries associated with product families/prefixes
+      
+      return await client.journal_SearchJournalEntries(
+        undefined, // searchText
+        undefined, // dateFrom
+        undefined, // dateTo
+        productCode, // productCodePrefix - backend will check if this starts with stored prefixes
+        undefined, // tagIds
+        undefined, // createdByUserId
+        1, // pageNumber
+        100, // pageSize - get more entries for detail view
+        'entryDate', // sortBy
+        'desc' // sortDirection - newest first
+      );
+    },
+    enabled: !!productCode
   });
 };

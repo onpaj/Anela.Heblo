@@ -104,7 +104,7 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (type !== undefined && type !== null)
             url_ += "Type=" + encodeURIComponent("" + type) + "&";
@@ -126,6 +126,8 @@ export class ApiClient {
             url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (searchTerm !== undefined && searchTerm !== null)
+            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -1141,7 +1143,7 @@ export class ApiClient {
         return Promise.resolve<CreateJournalEntryResponse>(null as any);
     }
 
-    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodes: string[] | null | undefined, productCodePrefixes: string[] | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
+    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
         let url_ = this.baseUrl + "/api/Journal/search?";
         if (searchText !== undefined && searchText !== null)
             url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
@@ -1149,10 +1151,8 @@ export class ApiClient {
             url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
         if (dateTo !== undefined && dateTo !== null)
             url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
-        if (productCodes !== undefined && productCodes !== null)
-            productCodes && productCodes.forEach(item => { url_ += "ProductCodes=" + encodeURIComponent("" + item) + "&"; });
-        if (productCodePrefixes !== undefined && productCodePrefixes !== null)
-            productCodePrefixes && productCodePrefixes.forEach(item => { url_ += "ProductCodePrefixes=" + encodeURIComponent("" + item) + "&"; });
+        if (productCodePrefix !== undefined && productCodePrefix !== null)
+            url_ += "ProductCodePrefix=" + encodeURIComponent("" + productCodePrefix) + "&";
         if (tagIds !== undefined && tagIds !== null)
             tagIds && tagIds.forEach(item => { url_ += "TagIds=" + encodeURIComponent("" + item) + "&"; });
         if (createdByUserId !== undefined && createdByUserId !== null)
