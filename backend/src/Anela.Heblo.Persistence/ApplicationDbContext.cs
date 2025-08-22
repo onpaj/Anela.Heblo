@@ -29,7 +29,6 @@ public class ApplicationDbContext : DbContext
     // Journal module
     public DbSet<JournalEntry> JournalEntries { get; set; } = null!;
     public DbSet<JournalEntryProduct> JournalEntryProducts { get; set; } = null!;
-    public DbSet<JournalEntryProductFamily> JournalEntryProductFamilies { get; set; } = null!;
     public DbSet<JournalEntryTag> JournalEntryTags { get; set; } = null!;
     public DbSet<JournalEntryTagAssignment> JournalEntryTagAssignments { get; set; } = null!;
 

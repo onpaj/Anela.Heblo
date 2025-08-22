@@ -1,10 +1,25 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
 import CatalogDetail from '../CatalogDetail';
 import { CatalogItemDto, ProductType } from '../../../api/hooks/useCatalog';
 
 import { useCatalogDetail } from '../../../api/hooks/useCatalog';
+import { useJournalEntriesByProduct } from '../../../api/hooks/useJournal';
+
+// Mock the Journal hooks
+jest.mock('../../../api/hooks/useJournal', () => ({
+  useJournalEntriesByProduct: jest.fn(),
+  useJournalEntries: jest.fn(),
+  useJournalEntry: jest.fn(),
+  useSearchJournalEntries: jest.fn(),
+  useCreateJournalEntry: jest.fn(),
+  useUpdateJournalEntry: jest.fn(),
+  useDeleteJournalEntry: jest.fn(),
+  useJournalTags: jest.fn(),
+  useCreateJournalTag: jest.fn(),
+}));
 
 // Mock the chart components to avoid canvas issues in tests
 jest.mock('react-chartjs-2', () => ({
@@ -36,6 +51,7 @@ jest.mock('../../../api/hooks/useCatalog', () => ({
 }));
 
 const mockUseCatalogDetail = useCatalogDetail as jest.MockedFunction<typeof useCatalogDetail>;
+const mockUseJournalEntriesByProduct = useJournalEntriesByProduct as jest.MockedFunction<typeof useJournalEntriesByProduct>;
 
 const createQueryClient = () =>
   new QueryClient({
@@ -89,15 +105,24 @@ const mockConsumedData = [
 const renderWithQueryClient = (component: React.ReactElement) => {
   const queryClient = createQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 };
 
 describe('CatalogDetail', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup default mock for Journal hook
+    mockUseJournalEntriesByProduct.mockReturnValue({
+      data: { entries: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+      isLoading: false,
+      error: null,
+    } as any);
   });
 
   it('should display product information correctly', () => {

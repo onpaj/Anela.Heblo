@@ -51,14 +51,12 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
 
             // Update product associations (both products and families)
             entry.ProductAssociations.Clear();
-            entry.ProductFamilyAssociations.Clear();
             if (request.AssociatedProducts?.Any() == true)
             {
                 foreach (var productIdentifier in request.AssociatedProducts.Distinct())
                 {
                     // Try as full product code first, then as prefix
                     entry.AssociateWithProduct(productIdentifier);
-                    entry.AssociateWithProductFamily(productIdentifier);
                 }
             }
 

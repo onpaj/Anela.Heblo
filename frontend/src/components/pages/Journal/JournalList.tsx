@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useJournalEntries, useSearchJournalEntries, useJournalEntry } from '../../../api/hooks/useJournal';
 import { Plus, Search, Filter, Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
-import { cs } from 'date-fns/locale';
+// Import removed - using default date format for now to fix Jest test issues
 import type { JournalEntryDto } from '../../../api/generated/api-client';
 import JournalEntryModal from '../../JournalEntryModal';
 
@@ -297,7 +297,7 @@ const JournalList: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(entry.entryDate!), 'dd.MM.yyyy', { locale: cs })}
+                      {format(new Date(entry.entryDate!), 'dd.MM.yyyy')}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="max-w-32 truncate">

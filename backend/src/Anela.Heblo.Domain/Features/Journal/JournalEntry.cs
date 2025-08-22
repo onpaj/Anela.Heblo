@@ -40,7 +40,6 @@ namespace Anela.Heblo.Domain.Features.Journal
 
         // Navigation properties
         public virtual ICollection<JournalEntryProduct> ProductAssociations { get; set; } = new List<JournalEntryProduct>();
-        public virtual ICollection<JournalEntryProductFamily> ProductFamilyAssociations { get; set; } = new List<JournalEntryProductFamily>();
         public virtual ICollection<JournalEntryTagAssignment> TagAssignments { get; set; } = new List<JournalEntryTagAssignment>();
 
         // Domain methods
@@ -49,28 +48,13 @@ namespace Anela.Heblo.Domain.Features.Journal
             if (string.IsNullOrWhiteSpace(productCode))
                 throw new ArgumentException("Product code cannot be empty", nameof(productCode));
 
-            if (ProductAssociations.Any(pa => pa.ProductCode == productCode))
+            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == productCode))
                 return; // Already associated
 
             ProductAssociations.Add(new JournalEntryProduct
             {
                 JournalEntryId = Id,
-                ProductCode = productCode.Trim().ToUpperInvariant()
-            });
-        }
-
-        public void AssociateWithProductFamily(string productCodePrefix)
-        {
-            if (string.IsNullOrWhiteSpace(productCodePrefix))
-                throw new ArgumentException("Product code prefix cannot be empty", nameof(productCodePrefix));
-
-            if (ProductFamilyAssociations.Any(pfa => pfa.ProductCodePrefix == productCodePrefix))
-                return; // Already associated
-
-            ProductFamilyAssociations.Add(new JournalEntryProductFamily
-            {
-                JournalEntryId = Id,
-                ProductCodePrefix = productCodePrefix.Trim().ToUpperInvariant()
+                ProductCodePrefix = productCode.Trim().ToUpperInvariant()
             });
         }
 
@@ -97,8 +81,7 @@ namespace Anela.Heblo.Domain.Features.Journal
 
         public bool IsAssociatedWithProduct(string productCode)
         {
-            return ProductAssociations.Any(pa => pa.ProductCode == productCode) ||
-                   ProductFamilyAssociations.Any(pfa => productCode.StartsWith(pfa.ProductCodePrefix));
+            return ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix));
         }
     }
 }

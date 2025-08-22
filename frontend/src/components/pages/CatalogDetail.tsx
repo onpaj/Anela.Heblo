@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp } from 'lucide-react';
+import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink } from 'lucide-react';
 import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto, CatalogPurchaseRecordDto, CatalogManufactureRecordDto } from '../../api/hooks/useCatalog';
-import { ManufactureCostDto } from '../../api/generated/api-client';
+import { ManufactureCostDto, JournalEntryDto } from '../../api/generated/api-client';
+import JournalEntryModal from '../JournalEntryModal';
+import { useJournalEntriesByProduct } from '../../api/hooks/useJournal';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -52,9 +56,12 @@ const productTypeColors: Record<ProductType, string> = {
 };
 
 const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen, onClose, defaultTab = 'basic' }) => {
-  const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins' | 'journal'>(defaultTab as any);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
+  const [showJournalModal, setShowJournalModal] = useState(false);
+  const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntryDto | undefined>(undefined);
+  const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item
   const effectiveProductCode = productCode || item?.productCode || '';
@@ -233,6 +240,17 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                         <span>Marže</span>
                       </button>
                     )}
+                    <button
+                      onClick={() => setActiveTab('journal')}
+                      className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+                        activeTab === 'journal'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      <span>Deník</span>
+                    </button>
                   </div>
 
                   {/* Tab Content */}
@@ -246,11 +264,24 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                         onToggleFullHistory={() => setShowFullHistory(!showFullHistory)}
                         isLoading={detailLoading}
                       />
-                    ) : (
+                    ) : activeTab === 'margins' ? (
                       <MarginsTab 
                         item={effectiveItem}
                         manufactureCostHistory={detailData?.historicalData?.manufactureCostHistory || []}
                         isLoading={detailLoading}
+                      />
+                    ) : (
+                      <JournalTab
+                        productCode={effectiveItem.productCode || ''}
+                        onAddEntry={() => setShowJournalModal(true)}
+                        onEditEntry={(entry) => {
+                          setSelectedJournalEntry(entry);
+                          setShowJournalModal(true);
+                        }}
+                        onViewAllEntries={() => {
+                          navigate(`/journal?productCode=${effectiveItem.productCode}`);
+                          onClose();
+                        }}
                       />
                     )}
                   </div>
@@ -341,6 +372,19 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
           </button>
         </div>
       </div>
+      
+      {/* Journal Entry Modal */}
+      <JournalEntryModal 
+        isOpen={showJournalModal}
+        onClose={() => {
+          setShowJournalModal(false);
+          setSelectedJournalEntry(undefined);
+        }}
+        entry={selectedJournalEntry || {
+          associatedProducts: [effectiveItem.productCode]
+        } as any}
+        isEdit={!!selectedJournalEntry}
+      />
     </div>
   );
 };
@@ -1036,6 +1080,137 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({ purchaseHistory
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// JournalTab Component - displays journal entries related to the product
+interface JournalTabProps {
+  productCode: string;
+  onAddEntry: () => void;
+  onEditEntry: (entry: JournalEntryDto) => void;
+  onViewAllEntries: () => void;
+}
+
+const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEditEntry, onViewAllEntries }) => {
+  const { data, isLoading, error } = useJournalEntriesByProduct(productCode);
+  const entries = data?.entries || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+          <div className="text-gray-500">Načítání záznamů deníku...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2 text-red-600">
+          <AlertCircle className="h-5 w-5" />
+          <div>Chyba při načítání deníku: {(error as any).message}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header with Add button */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <BookOpen className="h-5 w-5 mr-2 text-gray-500" />
+          Záznamy deníku ({entries.length})
+        </h3>
+        <button
+          onClick={onAddEntry}
+          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Přidat záznam
+        </button>
+      </div>
+
+      {/* Journal entries list */}
+      {entries.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <p className="text-gray-500 mb-4">Žádné záznamy deníku pro tento produkt</p>
+          <button
+            onClick={onAddEntry}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Vytvořit první záznam
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {entries.map((entry) => (
+            <div
+              key={entry.id}
+              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => onEditEntry(entry)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {entry.title || 'Bez názvu'}
+                    </h4>
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {entry.entryDate ? format(new Date(entry.entryDate), 'dd.MM.yyyy') : ''}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {entry.content}
+                  </p>
+                  {entry.tags && entry.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {entry.tags.map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditEntry(entry);
+                  }}
+                  className="ml-3 text-gray-400 hover:text-gray-600"
+                  title="Upravit záznam"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          
+          {/* Show more button if there are many entries */}
+          {entries.length >= 10 && (
+            <div className="text-center pt-2">
+              <button
+                onClick={onViewAllEntries}
+                className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Zobrazit všechny záznamy v deníku
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

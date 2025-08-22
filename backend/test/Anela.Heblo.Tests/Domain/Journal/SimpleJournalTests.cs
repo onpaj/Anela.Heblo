@@ -43,7 +43,7 @@ public class SimpleJournalTests
 
         // Assert
         entry.ProductAssociations.Should().HaveCount(1);
-        entry.ProductAssociations.First().ProductCode.Should().Be("PROD123");
+        entry.ProductAssociations.First().ProductCodePrefix.Should().Be("PROD123");
     }
 
     [Fact]
@@ -58,11 +58,11 @@ public class SimpleJournalTests
         };
 
         // Act
-        entry.AssociateWithProductFamily("CREAM");
+        entry.AssociateWithProduct("CREAM");
 
         // Assert
-        entry.ProductFamilyAssociations.Should().HaveCount(1);
-        entry.ProductFamilyAssociations.First().ProductCodePrefix.Should().Be("CREAM");
+        entry.ProductAssociations.Should().HaveCount(1);
+        entry.ProductAssociations.First().ProductCodePrefix.Should().Be("CREAM");
     }
 
     [Fact]

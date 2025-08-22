@@ -52,7 +52,6 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
                 {
                     // Try as full product code first, then as prefix
                     entry.AssociateWithProduct(productIdentifier);
-                    entry.AssociateWithProductFamily(productIdentifier);
                 }
             }
 
