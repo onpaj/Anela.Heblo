@@ -33,16 +33,16 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         // 3. Calculate total margin per group across entire period
         var groupMarginMap = _marginAnalysisService.CalculateGroupTotalMargin(products, fromDate, toDate, request.GroupingMode);
 
-        // 4. Get top N groups by margin and assign colors (highest first)
-        var topGroups = GetTopGroupsWithColors(groupMarginMap, products, request.TopProductCount, request.GroupingMode);
+        // 4. Get ALL groups by margin (highest first) - frontend will handle limiting for chart
+        var allGroups = GetAllGroupsWithColors(groupMarginMap, products, request.GroupingMode);
 
-        // 5. Generate monthly breakdown with group segments
-        var monthlyData = GenerateMonthlyBreakdown(products, fromDate, toDate, topGroups, request.GroupingMode);
+        // 5. Generate monthly breakdown with ALL group segments (no "Other" category)
+        var monthlyData = GenerateMonthlyBreakdown(products, fromDate, toDate, request.GroupingMode);
 
         return new GetProductMarginSummaryResponse
         {
             MonthlyData = monthlyData,
-            TopProducts = topGroups,
+            TopProducts = allGroups,
             TotalMargin = groupMarginMap.Values.Sum(),
             TimeWindow = request.TimeWindow,
             GroupingMode = request.GroupingMode,
@@ -51,15 +51,13 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         };
     }
 
-    private List<TopProductDto> GetTopGroupsWithColors(
+    private List<TopProductDto> GetAllGroupsWithColors(
         Dictionary<string, decimal> groupMarginMap,
         List<CatalogAggregate> products,
-        int topCount,
         ProductGroupingMode groupingMode)
     {
-        var topGroups = groupMarginMap
+        var allGroups = groupMarginMap
             .OrderByDescending(kvp => kvp.Value)
-            .Take(topCount)
             .Select((kvp, index) =>
             {
                 var displayName = _marginAnalysisService.GetGroupDisplayName(kvp.Key, groupingMode, products);
@@ -74,18 +72,16 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             })
             .ToList();
 
-        return topGroups;
+        return allGroups;
     }
 
     private List<MonthlyProductMarginDto> GenerateMonthlyBreakdown(
         List<CatalogAggregate> products,
         DateTime fromDate,
         DateTime toDate,
-        List<TopProductDto> topGroups,
         ProductGroupingMode groupingMode)
     {
         var monthlyData = new List<MonthlyProductMarginDto>();
-        var topGroupKeys = topGroups.Select(tg => tg.GroupKey).ToHashSet();
 
         // Generate all months in the date range
         var current = new DateTime(fromDate.Year, fromDate.Month, 1);
@@ -126,66 +122,42 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 groupData.ProductSales.Add((product, unitsSold));
             }
 
-            // Create segments for this month (using consistent order from topGroups by total period margin)
+            // Create segments for ALL groups that have data in this month
             var segments = new List<ProductMarginSegmentDto>();
-            var otherMargin = 0m;
-
-            // First, add segments for top groups in their predefined order (highest total margin first)
-            foreach (var topGroup in topGroups)
+            
+            foreach (var groupKey in monthlyGroupData.Keys)
             {
-                if (monthlyGroupData.TryGetValue(topGroup.GroupKey, out var groupData))
-                {
-                    
-                    // Calculate averages for the group
-                    var avgMarginPerPiece = groupData.Products.Count > 0 ? 
-                        groupData.Products.Average(p => p.MarginAmount) : 0;
-                    var avgSellingPrice = groupData.Products.Count > 0 ? 
-                        groupData.Products.Average(p => p.EshopPrice?.PriceWithoutVat ?? 0) : 0;
-                    var avgMaterialCosts = groupData.Products.Count > 0 ?
-                        groupData.Products.Average(p => _marginAnalysisService.CalculateMaterialCosts(p)) : 0;
-                    var avgLaborCosts = groupData.Products.Count > 0 ?
-                        groupData.Products.Average(p => _marginAnalysisService.CalculateLaborCosts(p)) : 0;
+                var groupData = monthlyGroupData[groupKey];
+                var displayName = _marginAnalysisService.GetGroupDisplayName(groupKey, groupingMode, products);
+                
+                // Calculate averages for the group
+                var avgMarginPerPiece = groupData.Products.Count > 0 ? 
+                    groupData.Products.Average(p => p.MarginAmount) : 0;
+                var avgSellingPrice = groupData.Products.Count > 0 ? 
+                    groupData.Products.Average(p => p.EshopPrice?.PriceWithoutVat ?? 0) : 0;
+                var avgMaterialCosts = groupData.Products.Count > 0 ?
+                    groupData.Products.Average(p => _marginAnalysisService.CalculateMaterialCosts(p)) : 0;
+                var avgLaborCosts = groupData.Products.Count > 0 ?
+                    groupData.Products.Average(p => _marginAnalysisService.CalculateLaborCosts(p)) : 0;
 
-                    segments.Add(new ProductMarginSegmentDto
-                    {
-                        GroupKey = topGroup.GroupKey,
-                        DisplayName = topGroup.DisplayName,
-                        MarginContribution = groupData.TotalMargin,
-                        ColorCode = "", // Color will be assigned on frontend
-                        AverageMarginPerPiece = avgMarginPerPiece,
-                        UnitsSold = groupData.TotalUnitsSold,
-                        AverageSellingPriceWithoutVat = avgSellingPrice,
-                        AverageMaterialCosts = avgMaterialCosts,
-                        AverageLaborCosts = avgLaborCosts,
-                        ProductCount = groupData.Products.Count,
-                        IsOther = false
-                    });
-                }
-            }
-
-            // Add margin from groups not in top list to "Other" category
-            foreach (var kvp in monthlyGroupData)
-            {
-                if (!topGroupKeys.Contains(kvp.Key))
-                {
-                    otherMargin += kvp.Value.TotalMargin;
-                }
-            }
-
-            // Add "Other" segment if there's margin from non-top groups
-            if (otherMargin > 0)
-            {
                 segments.Add(new ProductMarginSegmentDto
                 {
-                    GroupKey = "OTHER",
-                    DisplayName = "Ostatní",
-                    MarginContribution = otherMargin,
-                    ColorCode = OtherColor,
-                    IsOther = true
+                    GroupKey = groupKey,
+                    DisplayName = displayName,
+                    MarginContribution = groupData.TotalMargin,
+                    ColorCode = "", // Color will be assigned on frontend
+                    AverageMarginPerPiece = avgMarginPerPiece,
+                    UnitsSold = groupData.TotalUnitsSold,
+                    AverageSellingPriceWithoutVat = avgSellingPrice,
+                    AverageMaterialCosts = avgMaterialCosts,
+                    AverageLaborCosts = avgLaborCosts,
+                    ProductCount = groupData.Products.Count,
+                    IsOther = false
                 });
             }
 
-            // No need to reverse - frontend will handle ordering as needed
+            // Sort segments by margin contribution in THIS month (highest first)
+            segments = segments.OrderByDescending(s => s.MarginContribution).ToList();
 
             // Calculate percentages
             if (totalMonthMargin > 0)

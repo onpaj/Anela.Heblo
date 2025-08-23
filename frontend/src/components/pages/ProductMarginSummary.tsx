@@ -32,7 +32,7 @@ const ProductMarginSummary: React.FC = () => {
   const [selectedTimeWindow, setSelectedTimeWindow] = useState<TimeWindowType>('current-year');
   const [selectedGroupingMode, setSelectedGroupingMode] = useState<ProductGroupingMode>(ProductGroupingMode.Products);
   
-  const { data, isLoading, error } = useProductMarginSummaryQuery(selectedTimeWindow, 15, selectedGroupingMode);
+  const { data, isLoading, error } = useProductMarginSummaryQuery(selectedTimeWindow, selectedGroupingMode);
 
   const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat('cs-CZ', {
@@ -51,45 +51,47 @@ const ProductMarginSummary: React.FC = () => {
     // Create a map of products to consistent colors based on total margin ranking
     const sortedByTotalMargin = [...data.topProducts].sort((a, b) => (b.totalMargin || 0) - (a.totalMargin || 0));
     const productColorMap = new Map<string, string>();
-    sortedByTotalMargin.forEach((product, index) => {
+    
+    // For chart, we want to show only top 15 products and group the rest as "Other"
+    const TOP_CHART_PRODUCTS = 15;
+    const topProductsForChart = sortedByTotalMargin.slice(0, TOP_CHART_PRODUCTS);
+    const otherProductsForChart = sortedByTotalMargin.slice(TOP_CHART_PRODUCTS);
+    
+    // Assign colors to top products
+    topProductsForChart.forEach((product, index) => {
       if (product.groupKey) {
         productColorMap.set(product.groupKey, PRODUCT_COLORS[index % PRODUCT_COLORS.length]);
       }
     });
     
-    // For Chart.js stacked bar, we need datasets in order
-    // Each month's segments are already ordered by margin from backend
-    // We'll create datasets that respect per-month ordering
-    
-    // Collect all unique products
-    const allProductKeys = new Set<string>();
+    // Collect product display names
     const productDisplayNames = new Map<string, string>();
-    
     data.monthlyData.forEach(month => {
       month.productSegments?.forEach(segment => {
-        if (segment.groupKey) {
-          allProductKeys.add(segment.groupKey);
-          if (segment.displayName) {
-            productDisplayNames.set(segment.groupKey, segment.displayName);
-          }
+        if (segment.groupKey && segment.displayName) {
+          productDisplayNames.set(segment.groupKey, segment.displayName);
         }
       });
     });
     
-    // Create datasets for each product
+    // Create datasets for chart
     const datasets: any[] = [];
     
-    // Process products - "Other" should be at the bottom (added first in datasets)
-    const otherKey = Array.from(allProductKeys).find(key => key === 'OTHER');
-    const regularKeys = Array.from(allProductKeys).filter(key => key !== 'OTHER');
-    
-    // Add "Other" first (will be at bottom of stack)
-    if (otherKey) {
+    // Add "Other" category first (will be at bottom of stack)
+    if (otherProductsForChart.length > 0) {
+      const otherKeys = new Set(otherProductsForChart.map(p => p.groupKey).filter(Boolean));
+      
       datasets.push({
         label: 'Ostatní produkty',
         data: data.monthlyData!.map(month => {
-          const segment = month.productSegments?.find(s => s.groupKey === otherKey);
-          return segment?.marginContribution || 0;
+          // Sum up margin contributions for all "other" products in this month
+          const otherMargin = month.productSegments?.reduce((sum, segment) => {
+            if (segment.groupKey && otherKeys.has(segment.groupKey)) {
+              return sum + (segment.marginContribution || 0);
+            }
+            return sum;
+          }, 0) || 0;
+          return otherMargin;
         }),
         backgroundColor: OTHER_COLOR,
         borderColor: OTHER_COLOR,
@@ -97,16 +99,18 @@ const ProductMarginSummary: React.FC = () => {
       });
     }
     
-    // Sort regular products by total margin for consistent dataset order
-    // But each month's actual values will respect that month's ordering
-    regularKeys.sort((a, b) => {
+    // Sort top products by total margin for consistent dataset order
+    // Highest margin products should be added last to appear at the top of the stack
+    const topProductKeys = topProductsForChart.map(p => p.groupKey).filter(Boolean);
+    topProductKeys.sort((a, b) => {
       const aTotal = sortedByTotalMargin.find(p => p.groupKey === a)?.totalMargin || 0;
       const bTotal = sortedByTotalMargin.find(p => p.groupKey === b)?.totalMargin || 0;
-      return aTotal - bTotal; // Lower total margin first (for proper stacking)
+      return aTotal - bTotal; // Lower total margin first, will be at bottom of stack
     });
     
-    // Add regular products
-    regularKeys.forEach(productKey => {
+    // Add top products
+    topProductKeys.forEach(productKey => {
+      if (!productKey) return;
       const color = productColorMap.get(productKey) || DEFAULT_COLOR;
       const displayName = productDisplayNames.get(productKey) || productKey;
       
@@ -134,7 +138,7 @@ const ProductMarginSummary: React.FC = () => {
     
     data.monthlyData.forEach(month => {
       month.productSegments?.forEach(segment => {
-        if (!segment.isOther && segment.groupKey && segment.displayName && !allProducts.has(segment.groupKey)) {
+        if (segment.groupKey && segment.displayName && !allProducts.has(segment.groupKey)) {
           // Find if this product is in top products to get proper color
           // First sort products by total margin to get consistent ordering
           const sortedTopProducts = data.topProducts ? 
@@ -165,7 +169,7 @@ const ProductMarginSummary: React.FC = () => {
 
       data.monthlyData!.forEach(month => {
         const segment = month.productSegments?.find(s => s.groupKey === groupKey);
-        if (segment && !segment.isOther) {
+        if (segment) {
           totalMargin += segment.marginContribution || 0;
           totalUnits += segment.unitsSold || 0;
           totalRevenue += (segment.unitsSold || 0) * (segment.averageSellingPriceWithoutVat || 0);
@@ -217,20 +221,30 @@ const ProductMarginSummary: React.FC = () => {
             const productName = context.dataset.label;
             const margin = formatCurrency(context.parsed.y);
             const monthData = data?.monthlyData?.[context.dataIndex];
-            const segment = monthData?.productSegments?.find(s => 
-              s.displayName === productName || (s.isOther && productName === 'Ostatní produkty')
-            );
-            const percentage = segment?.percentage || 0;
+            let tooltip = `${productName}: ${margin}`;
             
-            // Enhanced tooltip with detailed margin information
-            let tooltip = `${productName}: ${margin} (${percentage.toFixed(1)}%)`;
-            if (segment && !segment.isOther) {
-              tooltip += `\nPrůměrná marže za kus: ${formatCurrency(segment.averageMarginPerPiece || 0)}`;
-              tooltip += `\nPrůměrná cena za kus: ${formatCurrency(segment.averageSellingPriceWithoutVat || 0)}`;
-              tooltip += `\nProdano kusů: ${segment.unitsSold || 0}`;
-              tooltip += `\nPočet produktů: ${segment.productCount || 0}`;
-              tooltip += `\nPrůměrné náklady materiál: ${formatCurrency(segment.averageMaterialCosts || 0)}`;
-              tooltip += `\nPrůměrné náklady práce: ${formatCurrency(segment.averageLaborCosts || 0)}`;
+            // For "Other" products, we need to calculate aggregated tooltip data
+            if (productName === 'Ostatní produkty') {
+              const monthData = data?.monthlyData?.[context.dataIndex];
+              const totalMargin = context.parsed.y;
+              const totalMonthMargin = monthData?.totalMonthMargin || 0;
+              const percentage = totalMonthMargin > 0 ? (totalMargin / totalMonthMargin) * 100 : 0;
+              tooltip = `${productName}: ${margin} (${percentage.toFixed(1)}%)`;
+            } else {
+              // For individual products
+              const segment = monthData?.productSegments?.find(s => s.displayName === productName);
+              const percentage = segment?.percentage || 0;
+              
+              // Enhanced tooltip with detailed margin information
+              tooltip = `${productName}: ${margin} (${percentage.toFixed(1)}%)`;
+              if (segment) {
+                tooltip += `\nPrůměrná marže za kus: ${formatCurrency(segment.averageMarginPerPiece || 0)}`;
+                tooltip += `\nPrůměrná cena za kus: ${formatCurrency(segment.averageSellingPriceWithoutVat || 0)}`;
+                tooltip += `\nProdano kusů: ${segment.unitsSold || 0}`;
+                tooltip += `\nPočet produktů: ${segment.productCount || 0}`;
+                tooltip += `\nPrůměrné náklady materiál: ${formatCurrency(segment.averageMaterialCosts || 0)}`;
+                tooltip += `\nPrůměrné náklady práce: ${formatCurrency(segment.averageLaborCosts || 0)}`;
+              }
             }
             return tooltip.split('\n');
           }
@@ -375,7 +389,7 @@ const ProductMarginSummary: React.FC = () => {
               <strong>Období:</strong> {data.fromDate ? new Date(data.fromDate).toLocaleDateString('cs-CZ') : ''} - {data.toDate ? new Date(data.toDate).toLocaleDateString('cs-CZ') : ''}
             </span>
             <span>
-              <strong>Zobrazených skupin:</strong> {data.topProducts?.length || 0} (top 15)
+              <strong>Celkem skupin:</strong> {data.topProducts?.length || 0} (graf: top 15 + ostatní, tabulka: všechny)
             </span>
           </div>
         )}

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
 import { useAuth } from '../../auth/useAuth';
+import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,7 +26,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance']);
-  const { getUserInfo } = useAuth();
+  
+  // Use mock auth if enabled, otherwise use real auth
+  const realAuth = useAuth();
+  const mockAuth = useMockAuth();
+  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
+  const { getUserInfo } = auth;
   const userInfo = getUserInfo();
 
   // Helper function to check if user has a specific role
