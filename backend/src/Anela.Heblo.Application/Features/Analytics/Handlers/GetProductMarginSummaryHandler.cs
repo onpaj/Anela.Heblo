@@ -124,16 +124,16 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
 
             // Create segments for ALL groups that have data in this month
             var segments = new List<ProductMarginSegmentDto>();
-            
+
             foreach (var groupKey in monthlyGroupData.Keys)
             {
                 var groupData = monthlyGroupData[groupKey];
                 var displayName = _marginAnalysisService.GetGroupDisplayName(groupKey, groupingMode, products);
-                
+
                 // Calculate averages for the group
-                var avgMarginPerPiece = groupData.Products.Count > 0 ? 
+                var avgMarginPerPiece = groupData.Products.Count > 0 ?
                     groupData.Products.Average(p => p.MarginAmount) : 0;
-                var avgSellingPrice = groupData.Products.Count > 0 ? 
+                var avgSellingPrice = groupData.Products.Count > 0 ?
                     groupData.Products.Average(p => p.EshopPrice?.PriceWithoutVat ?? 0) : 0;
                 var avgMaterialCosts = groupData.Products.Count > 0 ?
                     groupData.Products.Average(p => _marginAnalysisService.CalculateMaterialCosts(p)) : 0;

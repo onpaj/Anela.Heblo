@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
+using Anela.Heblo.Application.Features.Manufacture;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -31,9 +32,9 @@ public static class ApplicationModule
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(environment);
         services.AddJournalModule();
+        services.AddManufactureModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
-        // services.AddManufactureModule();
         // services.AddTransportModule();
 
         return services;

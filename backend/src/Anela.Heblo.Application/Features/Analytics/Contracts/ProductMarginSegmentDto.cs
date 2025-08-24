@@ -16,7 +16,7 @@ public class ProductMarginSegmentDto
     public decimal AverageMaterialCosts { get; set; } // Average material costs in group
     public decimal AverageLaborCosts { get; set; } // Average labor costs in group
     public int ProductCount { get; set; } // Number of products in this group
-    
+
     // Keep for backward compatibility
     public string ProductCode => GroupKey;
     public string ProductName => DisplayName;
