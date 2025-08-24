@@ -153,7 +153,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
             : 0;
 
         // Determine severity based on business rules
-        var severity = DetermineManufacturingSeverity(item, stockDaysAvailable, overstockPercentage);
+        var severity = DetermineManufacturingSeverity(item, dailySalesRate, overstockPercentage);
 
         return new ManufacturingStockItemDto
         {
@@ -175,7 +175,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
     private ManufacturingStockSeverity DetermineManufacturingSeverity(
         CatalogAggregate catalogAggregate,
-        double stockDaysAvailable,
+        double dailySalesRate,
         double overstockPercentage)
     {
         // Gray - Missing optimalStockDaysSetup configuration (Unconfigured)
@@ -186,7 +186,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         }
 
         // Red - Overstock < 100% (Critical) - only for products with optimalStockDaysSetup > 0
-        if (overstockPercentage < 100)
+        if (overstockPercentage < 100 && dailySalesRate > 0)
         {
             return ManufacturingStockSeverity.Critical;
         }

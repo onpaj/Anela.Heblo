@@ -11,6 +11,7 @@ import {
   calculateTimePeriodRange,
   getTimePeriodDisplayText
 } from '../../api/hooks/useManufacturingStockAnalysis';
+import { getAuthenticatedApiClient } from '../../api/client';
 import CatalogDetail from './CatalogDetail';
 
 const ManufacturingStockAnalysis: React.FC = () => {
@@ -18,8 +19,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const [filters, setFilters] = useState<GetManufacturingStockAnalysisRequest>({
     timePeriod: TimePeriodFilter.PreviousQuarter,
     productFamily: undefined,
-    criticalItemsOnly: false,
-    majorItemsOnly: false,
+    criticalItemsOnly: true,
+    majorItemsOnly: true,
     adequateItemsOnly: false,
     unconfiguredOnly: false,
     searchTerm: '',
@@ -35,6 +36,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  // State for expandable rows (ProductFamily subgrids)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  
+  // State for loaded ProductFamily data
+  const [subgridData, setSubgridData] = useState<Record<string, any[]>>({});
+  const [loadingSubgrids, setLoadingSubgrids] = useState<Set<string>>(new Set());
 
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } = useManufacturingStockAnalysisQuery(filters);
@@ -127,22 +135,34 @@ const ManufacturingStockAnalysis: React.FC = () => {
   };
 
   // Get row background color based on severity (subtle coloring)
-  const getRowColorClass = (severity: ManufacturingStockSeverity) => {
-    switch (severity) {
-      case ManufacturingStockSeverity.Critical:
-        // Red - Overstock < 100%
-        return 'bg-red-50 hover:bg-red-100';
-      case ManufacturingStockSeverity.Major:
-        // Orange - Below minimum stock
-        return 'bg-orange-50 hover:bg-orange-100';
-      case ManufacturingStockSeverity.Adequate:
-        // Green - All conditions OK
-        return 'bg-emerald-50 hover:bg-emerald-100';
-      case ManufacturingStockSeverity.Unconfigured:
-        // Gray - Missing configuration
-        return 'bg-gray-50 hover:bg-gray-100';
-      default:
-        return 'hover:bg-gray-50';
+  const getRowColorClass = (severity: ManufacturingStockSeverity, isSubgridRow: boolean = false) => {
+    // Subgrid rows have slightly darker background for better visual separation
+    if (isSubgridRow) {
+      switch (severity) {
+        case ManufacturingStockSeverity.Critical:
+          return 'bg-red-100 hover:bg-red-200';
+        case ManufacturingStockSeverity.Major:
+          return 'bg-orange-100 hover:bg-orange-200';
+        case ManufacturingStockSeverity.Adequate:
+          return 'bg-emerald-100 hover:bg-emerald-200';
+        case ManufacturingStockSeverity.Unconfigured:
+          return 'bg-gray-100 hover:bg-gray-200';
+        default:
+          return 'bg-gray-100 hover:bg-gray-200';
+      }
+    } else {
+      switch (severity) {
+        case ManufacturingStockSeverity.Critical:
+          return 'bg-red-50 hover:bg-red-100';
+        case ManufacturingStockSeverity.Major:
+          return 'bg-orange-50 hover:bg-orange-100';
+        case ManufacturingStockSeverity.Adequate:
+          return 'bg-emerald-50 hover:bg-emerald-100';
+        case ManufacturingStockSeverity.Unconfigured:
+          return 'bg-gray-50 hover:bg-gray-100';
+        default:
+          return 'hover:bg-gray-50';
+      }
     }
   };
 
@@ -165,7 +185,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
   };
 
   // Modal handlers for product detail
-  const handleRowClick = (item: any) => {
+  const handleRowClick = (item: any, event?: React.MouseEvent) => {
+    // Don't open detail if clicking expand button
+    if (event?.target && (event.target as HTMLElement).closest('.expand-button')) {
+      return;
+    }
     setSelectedProductCode(item.code);
     setIsDetailModalOpen(true);
   };
@@ -173,6 +197,173 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
     setSelectedProductCode(null);
+  };
+
+  // Handler for expanding/collapsing rows
+  const handleRowExpand = async (productFamily: string, currentProductCode: string) => {
+    const newExpandedRows = new Set(expandedRows);
+    
+    if (expandedRows.has(productFamily)) {
+      // Collapse row
+      newExpandedRows.delete(productFamily);
+      setExpandedRows(newExpandedRows);
+    } else {
+      // Expand row and load data if not already loaded
+      newExpandedRows.add(productFamily);
+      setExpandedRows(newExpandedRows);
+      
+      // Check if data is already loaded
+      if (!subgridData[productFamily] && !loadingSubgrids.has(productFamily)) {
+        // Start loading
+        const newLoadingSubgrids = new Set(loadingSubgrids);
+        newLoadingSubgrids.add(productFamily);
+        setLoadingSubgrids(newLoadingSubgrids);
+        
+        try {
+          // Fetch products for this ProductFamily
+          const apiClient = getAuthenticatedApiClient();
+          const relativeUrl = `/api/manufacturing-stock-analysis`;
+          const params = new URLSearchParams();
+          params.append('productFamily', productFamily);
+          params.append('pageSize', '100'); // Get all products in family
+          
+          const queryString = params.toString();
+          const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}?${queryString}`;
+          
+          const response = await (apiClient as any).http.fetch(fullUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Filter out the current product from subgrid
+            const filteredItems = data.items.filter((item: any) => item.code !== currentProductCode);
+            
+            setSubgridData(prev => ({
+              ...prev,
+              [productFamily]: filteredItems
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading product family data:', error);
+        } finally {
+          // Remove from loading set
+          const newLoadingSubgrids = new Set(loadingSubgrids);
+          newLoadingSubgrids.delete(productFamily);
+          setLoadingSubgrids(newLoadingSubgrids);
+        }
+      }
+    }
+  };
+
+  // Check if row should show expand button (all products with ProductFamily)
+  const shouldShowExpandButton = (item: any) => {
+    return !!item.productFamily;
+  };
+
+  // Subgrid component for ProductFamily products
+  const ProductFamilySubgrid: React.FC<{ productFamily: string; isLoading: boolean }> = ({ productFamily, isLoading }) => {
+    const items = subgridData[productFamily] || [];
+    
+    if (isLoading) {
+      return (
+        <tr className="bg-gray-50">
+          <td colSpan={9} className="px-6 py-4">
+            <div className="flex items-center justify-center">
+              <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
+              <span className="text-sm text-gray-600">Načítání produktů stejné řady...</span>
+            </div>
+          </td>
+        </tr>
+      );
+    }
+    
+    if (items.length === 0) {
+      return (
+        <tr className="bg-gray-50">
+          <td colSpan={9} className="px-6 py-3">
+            <div className="text-sm text-gray-500 text-center">
+              Žádné další produkty v této řadě
+            </div>
+          </td>
+        </tr>
+      );
+    }
+
+    return (
+      <>
+        {items.map((subItem) => (
+          <tr 
+            key={`sub-${subItem.code}`}
+            className={`${getRowColorClass(subItem.severity, true)} cursor-pointer transition-colors duration-150 border-l-8 border-indigo-300`}
+            onClick={(e) => handleRowClick(subItem, e)}
+            title="Klikněte pro zobrazení detailu produktu"
+          >
+            {/* Product Info - matching main table column width */}
+            <td className="px-6 py-3 whitespace-nowrap w-40">
+              <div className="flex items-center">
+                <div className="w-10 mr-2"></div>
+                {/* Color strip based on severity */}
+                <div className={`w-1 h-6 mr-3 rounded-sm ${getSeverityStripColor(subItem.severity)}`}></div>
+                <div className="flex-1 min-w-0 pl-6">
+                  <div className="text-xs text-gray-700 truncate">
+                    {subItem.name}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {subItem.code}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            {/* Current Stock */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700">
+              <div className="font-medium">{formatNumber(subItem.currentStock, 0)}</div>
+            </td>
+
+            {/* Sales in Period - Hidden on tablet and below */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden lg:table-cell">
+              {formatNumber(subItem.salesInPeriod, 0)}
+            </td>
+
+            {/* Daily Sales - Hidden on mobile */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden md:table-cell">
+              {formatNumber(subItem.dailySalesRate, 2)}
+            </td>
+
+            {/* Optimal Days Setup - Hidden on large and below */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden xl:table-cell">
+              {subItem.optimalDaysSetup > 0 ? `${subItem.optimalDaysSetup} dní` : '—'}
+            </td>
+
+            {/* Stock Days Available */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700">
+              <div className="font-medium">
+                {subItem.stockDaysAvailable > 999 ? '∞' : formatNumber(subItem.stockDaysAvailable, 0)}
+              </div>
+            </td>
+
+            {/* Minimum Stock - Hidden on mobile */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden md:table-cell">
+              {formatNumber(subItem.minimumStock, 0)}
+            </td>
+
+            {/* Overstock Percentage - Hidden on tablet and below */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden lg:table-cell">
+              {formatPercentage(subItem.overstockPercentage)}
+            </td>
+
+            {/* Batch Size - Hidden on large and below */}
+            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden xl:table-cell">
+              {subItem.batchSize || '—'}
+            </td>
+          </tr>
+        ))}
+      </>
+    );
   };
 
   // Get color strip for product based on severity
@@ -561,35 +752,60 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {tableData.map((item) => (
-                    <tr 
-                      key={item.code} 
-                      className={`${getRowColorClass(item.severity)} cursor-pointer transition-colors duration-150`}
-                      onClick={() => handleRowClick(item)}
-                      title="Klikněte pro zobrazení detailu produktu"
-                    >
-                      {/* Product Info */}
-                      <td className="px-6 py-4 whitespace-nowrap w-40">
-                        <div className="flex items-center">
-                          {/* Color strip based on severity */}
-                          <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}></div>
-                          <div className="flex-1 min-w-0">
-                            {/* Product name first - main info */}
-                            <div className="text-sm text-gray-900 truncate">
-                              {item.name}
-                            </div>
-                            {/* Product code second - smaller */}
-                            <div className="text-xs text-gray-500">
-                              {item.code}
-                            </div>
-                            {item.productFamily && (
-                              <div className="text-xs text-gray-500 md:hidden">
-                                {item.productFamily}
+                  {tableData.map((item) => {
+                    const hasSubItems = shouldShowExpandButton(item);
+                    const isExpanded = item.productFamily && expandedRows.has(item.productFamily);
+                    const isLoading = !!(item.productFamily && loadingSubgrids.has(item.productFamily));
+                    
+                    return (
+                      <React.Fragment key={item.code}>
+                        <tr 
+                          className={`${getRowColorClass(item.severity)} cursor-pointer transition-colors duration-150`}
+                          onClick={(e) => handleRowClick(item, e)}
+                          title="Klikněte pro zobrazení detailu produktu"
+                        >
+                          {/* Product Info */}
+                          <td className="px-6 py-4 whitespace-nowrap w-40">
+                            <div className="flex items-center">
+                              {/* Expand/Collapse button */}
+                              {hasSubItems ? (
+                                <button
+                                  className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRowExpand(item.productFamily!, item.code);
+                                  }}
+                                  title={isExpanded ? 'Skrýt ostatní produkty řady' : 'Zobrazit ostatní produkty řady'}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </button>
+                              ) : (
+                                <div className="w-6 mr-2"></div>
+                              )}
+                              
+                              {/* Color strip based on severity */}
+                              <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}></div>
+                              <div className="flex-1 min-w-0">
+                                {/* Product name first - main info */}
+                                <div className="text-sm text-gray-900 truncate">
+                                  {item.name}
+                                </div>
+                                {/* Product code second - smaller */}
+                                <div className="text-xs text-gray-500">
+                                  {item.code}
+                                </div>
+                                {item.productFamily && (
+                                  <div className="text-xs text-gray-500 md:hidden">
+                                    {item.productFamily}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
+                            </div>
+                          </td>
 
                       {/* Current Stock */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
@@ -631,15 +847,22 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
                       {/* Overstock Percentage - Hidden on tablet and below */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden lg:table-cell">
-                        {item.overstockPercentage > 0 ? formatPercentage(item.overstockPercentage) : '—'}
+                        {formatPercentage(item.overstockPercentage)}
                       </td>
 
-                      {/* Batch Size - Hidden on large and below */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden xl:table-cell">
-                        {item.batchSize || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                          {/* Batch Size - Hidden on large and below */}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden xl:table-cell">
+                            {item.batchSize || '—'}
+                          </td>
+                        </tr>
+                        
+                        {/* Subgrid for ProductFamily - only show if expanded */}
+                        {hasSubItems && isExpanded && (
+                          <ProductFamilySubgrid productFamily={item.productFamily!} isLoading={isLoading} />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
