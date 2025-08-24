@@ -211,25 +211,25 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         }
 
         // Severity checkbox filters - if any severity filter is enabled, only show matching items
-        bool hasAnySeverityFilter = request.CriticalItemsOnly || request.MajorItemsOnly || 
+        bool hasAnySeverityFilter = request.CriticalItemsOnly || request.MajorItemsOnly ||
                                    request.AdequateItemsOnly || request.UnconfiguredOnly;
-        
+
         if (hasAnySeverityFilter)
         {
             bool matchesSeverityFilter = false;
-            
+
             if (request.CriticalItemsOnly && item.Severity == ManufacturingStockSeverity.Critical)
                 matchesSeverityFilter = true;
-                
+
             if (request.MajorItemsOnly && item.Severity == ManufacturingStockSeverity.Major)
                 matchesSeverityFilter = true;
-                
+
             if (request.AdequateItemsOnly && item.Severity == ManufacturingStockSeverity.Adequate)
                 matchesSeverityFilter = true;
-                
+
             if (request.UnconfiguredOnly && item.Severity == ManufacturingStockSeverity.Unconfigured)
                 matchesSeverityFilter = true;
-            
+
             if (!matchesSeverityFilter)
                 return false;
         }

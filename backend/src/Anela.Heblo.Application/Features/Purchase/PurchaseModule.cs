@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Persistence;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -9,21 +10,39 @@ public static class PurchaseModule
 {
     public static IServiceCollection AddPurchaseModule(this IServiceCollection services)
     {
-        var serviceProvider = services.BuildServiceProvider();
-        var environment = serviceProvider.GetService<IHostEnvironment>();
+        // Register repositories using factory pattern to avoid ServiceProvider antipattern
+        services.AddScoped<IPurchaseOrderRepository>(provider =>
+        {
+            var environment = provider.GetRequiredService<IHostEnvironment>();
 
-        if (environment?.EnvironmentName == "Automation" || environment?.EnvironmentName == "Test")
+            if (environment.EnvironmentName == "Automation" || environment.EnvironmentName == "Test")
+            {
+                // Use in-memory implementations for testing
+                return new InMemoryPurchaseOrderRepository();
+            }
+            else
+            {
+                // Use database implementations for real environments
+                var context = provider.GetRequiredService<ApplicationDbContext>();
+                return new PurchaseOrderRepository(context);
+            }
+        });
+
+        services.AddScoped<IPurchaseOrderNumberGenerator>(provider =>
         {
-            // Use in-memory implementations for testing
-            services.AddSingleton<IPurchaseOrderRepository, InMemoryPurchaseOrderRepository>();
-            services.AddScoped<IPurchaseOrderNumberGenerator, InMemoryPurchaseOrderNumberGenerator>();
-        }
-        else
-        {
-            // Use database implementations for real environments
-            services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
-            services.AddScoped<IPurchaseOrderNumberGenerator, PurchaseOrderNumberGenerator>();
-        }
+            var environment = provider.GetRequiredService<IHostEnvironment>();
+
+            if (environment.EnvironmentName == "Automation" || environment.EnvironmentName == "Test")
+            {
+                // Use in-memory implementation for testing
+                return new InMemoryPurchaseOrderNumberGenerator();
+            }
+            else
+            {
+                // Use standard implementation for real environments
+                return new PurchaseOrderNumberGenerator();
+            }
+        });
 
         // Register stock severity calculator
         services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();

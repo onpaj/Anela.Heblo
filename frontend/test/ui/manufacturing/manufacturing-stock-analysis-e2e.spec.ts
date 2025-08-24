@@ -35,7 +35,7 @@ test.describe('Manufacturing Stock Analysis - E2E Workflow', () => {
     let manufacturingFound = false;
     
     // First try: Look for the exact text
-    const manufacturingLink = page.getByText('Řízení zásob - výroba');
+    const manufacturingLink = page.getByText('Řízení zásob');
     if (await manufacturingLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       await manufacturingLink.click();
       manufacturingFound = true;

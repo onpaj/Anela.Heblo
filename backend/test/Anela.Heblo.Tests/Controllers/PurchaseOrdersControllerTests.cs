@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using Anela.Heblo.API;
+using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -35,11 +37,19 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
             builder.ConfigureServices(services =>
             {
                 // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(
+                var dbContextDescriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (descriptor != null)
+                if (dbContextDescriptor != null)
                 {
-                    services.Remove(descriptor);
+                    services.Remove(dbContextDescriptor);
+                }
+
+                // Remove the existing repository registration from PurchaseModule factory
+                var repositoryDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IPurchaseOrderRepository));
+                if (repositoryDescriptor != null)
+                {
+                    services.Remove(repositoryDescriptor);
                 }
 
                 // Add in-memory database with shared database name
@@ -48,13 +58,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
                     options.UseInMemoryDatabase(DatabaseName); // Shared DB name for all tests in this class
                 });
 
-                // Ensure the database is created
-                var serviceProvider = services.BuildServiceProvider();
-                using (var scope = serviceProvider.CreateScope())
-                {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    dbContext.Database.EnsureCreated();
-                }
+                // Force use of EF Core repository instead of InMemoryPurchaseOrderRepository
+                services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
             });
         });
         _client = _factory.CreateClient();

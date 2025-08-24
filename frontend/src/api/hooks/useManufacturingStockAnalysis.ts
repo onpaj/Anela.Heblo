@@ -100,7 +100,7 @@ export const useManufacturingStockAnalysisQuery = (request: GetManufacturingStoc
   return useQuery({
     queryKey: manufacturingStockAnalysisKeys.list(request),
     queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/manufacturing-stock-analysis`;
       const params = new URLSearchParams();
       

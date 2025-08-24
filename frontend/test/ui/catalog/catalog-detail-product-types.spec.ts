@@ -2,8 +2,18 @@ import { test, expect } from '@playwright/test';
 
 test.describe('CatalogDetail - Product Type specific display logic', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/catalog');
-    await page.waitForLoadState('networkidle');
+    // Navigate to the home page first
+    await page.goto('http://localhost:3001');
+    await expect(page).toHaveTitle(/Anela Heblo/);
+    
+    // Wait for sidebar navigation to be visible
+    await expect(page.locator('nav').first()).toBeVisible();
+    
+    // Navigate to catalog page via sidebar
+    await page.getByText('Katalog').click();
+    
+    // Wait for catalog page to load
+    await expect(page.locator('table')).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(2000);
   });
 
@@ -15,8 +25,8 @@ test.describe('CatalogDetail - Product Type specific display logic', () => {
     const firstRow = page.locator('tbody tr').first();
     await firstRow.click();
     
-    // Wait for detail modal to open
-    await expect(page.getByText('Základní informace')).toBeVisible();
+    // Wait for detail modal to open by looking for the tab button specifically
+    await expect(page.getByRole('button', { name: 'Základní informace' })).toBeVisible();
     
     // Check the product type badge to determine expected behavior
     const productTypeBadge = page.locator('.bg-blue-100, .bg-purple-100, .bg-green-100, .bg-orange-100').first();
@@ -158,7 +168,7 @@ test.describe('CatalogDetail - Product Type specific display logic', () => {
         await row.click();
         
         // Wait for detail modal to open
-        await expect(page.getByText('Základní informace')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Základní informace' })).toBeVisible();
         
         // Check that purchase history tab is NOT visible for Product type
         await expect(page.getByRole('button', { name: 'Historie nákupů' })).not.toBeVisible();

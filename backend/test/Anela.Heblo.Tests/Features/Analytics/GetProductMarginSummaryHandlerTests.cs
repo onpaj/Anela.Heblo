@@ -68,7 +68,7 @@ public class GetProductMarginSummaryHandlerTests
             .ReturnsAsync(products);
 
         _marginAnalysisServiceMock
-            .Setup(x => x.CalculateProductTotalMargin(products, fromDate, toDate))
+            .Setup(x => x.CalculateGroupTotalMargin(products, fromDate, toDate, It.IsAny<ProductGroupingMode>()))
             .Returns(marginMap);
 
         _marginAnalysisServiceMock
@@ -78,6 +78,15 @@ public class GetProductMarginSummaryHandlerTests
         _marginAnalysisServiceMock
             .Setup(x => x.CalculateLaborCosts(It.IsAny<CatalogAggregate>()))
             .Returns(15m);
+
+        _marginAnalysisServiceMock
+            .Setup(x => x.GetGroupKey(It.IsAny<CatalogAggregate>(), It.IsAny<ProductGroupingMode>()))
+            .Returns<CatalogAggregate, ProductGroupingMode>((product, mode) => product.ProductCode);
+
+        _marginAnalysisServiceMock
+            .Setup(x => x.GetGroupDisplayName(It.IsAny<string>(), It.IsAny<ProductGroupingMode>(), It.IsAny<List<CatalogAggregate>>()))
+            .Returns<string, ProductGroupingMode, List<CatalogAggregate>>((groupKey, mode, products) => 
+                products.FirstOrDefault(p => p.ProductCode == groupKey)?.ProductName ?? groupKey);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -112,8 +121,8 @@ public class GetProductMarginSummaryHandlerTests
             .ReturnsAsync(new List<CatalogAggregate>());
 
         _marginAnalysisServiceMock
-            .Setup(x => x.CalculateProductTotalMargin(It.IsAny<List<CatalogAggregate>>(),
-                It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.CalculateGroupTotalMargin(It.IsAny<List<CatalogAggregate>>(),
+                It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<ProductGroupingMode>()))
             .Returns(new Dictionary<string, decimal>());
 
         // Act
