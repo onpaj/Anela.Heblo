@@ -9,7 +9,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
-  DollarSign
+  DollarSign,
+  Cog
 } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
 import { useAuth } from '../../auth/useAuth';
@@ -25,7 +26,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance', 'vyroba']);
   
   // Use mock auth if enabled, otherwise use real auth
   const realAuth = useAuth();
@@ -78,6 +79,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       items: [
         { id: 'nakupni-objednavky', name: 'Nákupní objednávky', href: '/purchase/orders' },
         { id: 'analyza-skladu', name: 'Analýza skladů', href: '/purchase/stock-analysis' }
+      ]
+    },
+    {
+      id: 'vyroba',
+      name: 'Výroba',
+      icon: Cog,
+      type: 'section' as const,
+      items: [
+        { id: 'rizeni-zasob-vyroba', name: 'Řízení zásob', href: '/manufacturing/stock-analysis' }
       ]
     }
   ];

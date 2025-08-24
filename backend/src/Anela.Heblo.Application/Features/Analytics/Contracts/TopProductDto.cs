@@ -7,7 +7,7 @@ public class TopProductDto
     public decimal TotalMargin { get; set; } // Total margin across entire time period
     public string ColorCode { get; set; } = string.Empty;
     public int Rank { get; set; }
-    
+
     // Keep for backward compatibility
     public string ProductCode => GroupKey;
     public string ProductName => DisplayName;
