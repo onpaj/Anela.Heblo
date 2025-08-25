@@ -33,7 +33,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         _mockTimeProvider = new Mock<TimeProvider>();
         _mockMarginCalculator = new Mock<SafeMarginCalculator>(Mock.Of<ILogger<SafeMarginCalculator>>());
         _mockLogger = new Mock<ILogger<GetProductMarginsHandler>>();
-        
+
         _handler = new GetProductMarginsHandler(
             _mockRepository.Object,
             _mockLedgerService.Object,
@@ -53,13 +53,13 @@ public class GetProductMarginsHandlerErrorHandlingTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ProductMarginsException>(
             () => _handler.Handle(request, CancellationToken.None));
-        
+
         Assert.Equal("Failed to retrieve product margins", exception.Message);
-        
+
         // Verify inner exception is DataAccessException
         Assert.IsType<DataAccessException>(exception.InnerException);
         Assert.Equal("Unable to access product catalog", exception.InnerException.Message);
-        
+
         // Verify the original exception is nested deeper
         Assert.IsType<InvalidOperationException>(exception.InnerException.InnerException);
     }
@@ -98,7 +98,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 ManufactureCostHistory = null
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -108,7 +108,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result.Items);
-        
+
         var item = result.Items.First();
         Assert.Equal("UNKNOWN", item.ProductCode);
         Assert.Equal("Unknown Product", item.ProductName);
@@ -136,7 +136,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 }
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -146,12 +146,12 @@ public class GetProductMarginsHandlerErrorHandlingTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result.Items);
-        
+
         var item = result.Items.First();
         Assert.Equal("VALID_PRODUCT", item.ProductCode);
         Assert.Equal(100, item.PriceWithoutVat);
         Assert.Equal(80, item.PurchasePrice);
-        
+
         // Should handle invalid cost history gracefully
         Assert.Null(item.AverageMaterialCost); // Should return null for invalid/negative costs
     }
@@ -189,7 +189,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 ErpPrice = new ProductPriceErp { PurchasePrice = 150 }
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -200,7 +200,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         Assert.NotNull(result);
         Assert.Equal(3, result.Items.Count);
         Assert.Equal(3, result.TotalCount);
-        
+
         // Check that all products are processed (some with fallback values)
         Assert.Contains(result.Items, x => x.ProductCode == "VALID_001");
         Assert.Contains(result.Items, x => x.ProductCode == "UNKNOWN"); // Fallback for null code
@@ -211,13 +211,13 @@ public class GetProductMarginsHandlerErrorHandlingTests
     public async Task Handle_WhenFilteringThrowsException_ThrowsProductMarginsException()
     {
         // Arrange
-        var request = new GetProductMarginsRequest 
-        { 
-            PageNumber = 1, 
+        var request = new GetProductMarginsRequest
+        {
+            PageNumber = 1,
             PageSize = 10,
             ProductCode = new string('x', 10000) // Very long string that might cause issues
         };
-        
+
         var products = new List<CatalogAggregate>
         {
             new CatalogAggregate
@@ -227,13 +227,13 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 Type = ProductType.Product
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
         // Act & Assert - The test should not throw, as our error handling should catch filtering issues
         var result = await _handler.Handle(request, CancellationToken.None);
-        
+
         // Should return empty result if filtering fails but not throw
         Assert.NotNull(result);
         Assert.Empty(result.Items); // No matches expected for the very long product code
@@ -256,7 +256,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 Type = ProductType.Product
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -274,7 +274,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         // Arrange
         var request = new GetProductMarginsRequest { PageNumber = 1, PageSize = 10 };
         var products = new List<CatalogAggregate>();
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -303,7 +303,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 Type = ProductType.Product
             }
         };
-        
+
         _mockRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
@@ -312,7 +312,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify that debug logging was called for starting and completing the query
         _mockLogger.Verify(
             x => x.Log(

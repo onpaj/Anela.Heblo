@@ -160,13 +160,13 @@ public class SafeMarginCalculatorTests
     {
         // Arrange - This test is harder to trigger naturally since our method is robust
         // But we can verify logging occurs if we had a calculation that somehow failed
-        
+
         // Act
         var result = _calculator.CalculateMargin(100, 50);
 
         // Assert - For valid calculation, no error should be logged
         Assert.True(result.IsSuccess);
-        
+
         // Verify no error logging occurred for valid calculation
         _mockLogger.Verify(
             x => x.Log(
