@@ -34,7 +34,6 @@
 
   <ItemGroup>
     <Folder Include="Mapping\" />
-    <Folder Include="Repository\Features\Journal\" />
   </ItemGroup>
 
 </Project>

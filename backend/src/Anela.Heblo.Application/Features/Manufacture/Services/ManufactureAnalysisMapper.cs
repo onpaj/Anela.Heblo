@@ -1,10 +1,18 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Model;
 using Anela.Heblo.Domain.Features.Catalog;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
 {
+    private readonly ManufactureAnalysisOptions _options;
+
+    public ManufactureAnalysisMapper(IOptions<ManufactureAnalysisOptions> options)
+    {
+        _options = options.Value;
+    }
     public ManufacturingStockItemDto MapToDto(
         CatalogAggregate item,
         DateTime fromDate,
@@ -21,7 +29,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             SalesInPeriod = salesInPeriod,
             DailySalesRate = dailySalesRate,
             OptimalDaysSetup = item.Properties.OptimalStockDaysSetup,
-            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? 999999 : stockDaysAvailable, // Cap infinity for display
+            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? _options.InfiniteStockIndicator : stockDaysAvailable, // Cap infinity for display
             MinimumStock = (double)item.Properties.StockMinSetup,
             OverstockPercentage = double.IsInfinity(overstockPercentage) ? 0 : overstockPercentage,
             BatchSize = item.Properties.BatchSize.ToString(),
