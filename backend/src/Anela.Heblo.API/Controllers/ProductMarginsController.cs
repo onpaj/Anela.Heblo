@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
@@ -32,10 +33,30 @@ public class ProductMarginsController : ControllerBase
                 response.Items.Count, response.TotalCount);
             return Ok(response);
         }
+        catch (DataAccessException ex)
+        {
+            _logger.LogError(ex, "Data access error in product margins");
+            return StatusCode(503, new { error = "Service temporarily unavailable", details = "Data source unavailable" });
+        }
+        catch (MarginCalculationException ex)
+        {
+            _logger.LogError(ex, "Margin calculation error");
+            return BadRequest(new { error = "Unable to calculate product margins", details = ex.Message });
+        }
+        catch (ProductMarginsException ex)
+        {
+            _logger.LogError(ex, "Product margins business logic error");
+            return BadRequest(new { error = "Unable to process margin request", details = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access to product margins");
+            return StatusCode(403, new { error = "Insufficient permissions to access margin data" });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get product margins");
-            throw;
+            _logger.LogError(ex, "Unexpected error in product margins endpoint");
+            return StatusCode(500, new { error = "Internal server error", details = "An unexpected error occurred" });
         }
     }
 }

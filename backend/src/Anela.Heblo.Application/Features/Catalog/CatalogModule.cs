@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Fakes;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -34,6 +35,7 @@ public static class CatalogModule
         // Register catalog-specific services
         services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
+        services.AddTransient<SafeMarginCalculator>();
 
         // Configure feature flags from configuration
         services.Configure<CatalogFeatureFlags>(options =>
