@@ -40,10 +40,7 @@ public class ManufactureAnalysisMapperTests
         var severity = ManufacturingStockSeverity.Adequate;
 
         // Make the sales history empty so dailySalesRate is 0 and stockDaysAvailable becomes infinity
-        item.SaleHistorySummary = new Anela.Heblo.Domain.Features.Catalog.Sales.SaleHistorySummary
-        {
-            MonthlyData = new Dictionary<string, Anela.Heblo.Domain.Features.Catalog.Sales.MonthlySalesSummary>()
-        };
+        item.SalesHistory = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
 
         // Act
         var result = _sut.MapToDto(item, fromDate, toDate, severity);
@@ -62,18 +59,19 @@ public class ManufactureAnalysisMapperTests
         var severity = ManufacturingStockSeverity.Adequate;
 
         // Set up some sales history to get a finite dailySalesRate
-        var monthKey = $"{fromDate.Year:D4}-{fromDate.Month:D2}";
-        item.SaleHistorySummary = new Anela.Heblo.Domain.Features.Catalog.Sales.SaleHistorySummary
+        item.SalesHistory = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>
         {
-            MonthlyData = new Dictionary<string, Anela.Heblo.Domain.Features.Catalog.Sales.MonthlySalesSummary>
+            new()
             {
-                [monthKey] = new Anela.Heblo.Domain.Features.Catalog.Sales.MonthlySalesSummary
-                {
-                    Year = fromDate.Year,
-                    Month = fromDate.Month,
-                    TotalAmount = 10, // 10 units sold
-                    TotalRevenue = 100
-                }
+                Date = fromDate.AddDays(5), // Within the date range
+                ProductCode = item.ProductCode,
+                ProductName = item.ProductName,
+                AmountB2B = 5, // 5 units sold B2B
+                AmountB2C = 5, // 5 units sold B2C (total 10 units)
+                AmountTotal = 10,
+                SumB2B = 50, // 50 revenue from B2B
+                SumB2C = 50, // 50 revenue from B2C
+                SumTotal = 100
             }
         };
 
@@ -103,10 +101,7 @@ public class ManufactureAnalysisMapperTests
         var severity = ManufacturingStockSeverity.Adequate;
 
         // Make sales history empty so stockDaysAvailable becomes infinity
-        item.SaleHistorySummary = new Anela.Heblo.Domain.Features.Catalog.Sales.SaleHistorySummary
-        {
-            MonthlyData = new Dictionary<string, Anela.Heblo.Domain.Features.Catalog.Sales.MonthlySalesSummary>()
-        };
+        item.SalesHistory = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
 
         // Act
         var result = mapper.MapToDto(item, fromDate, toDate, severity);
