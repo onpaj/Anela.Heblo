@@ -15,6 +15,7 @@ import FinancialOverview from './components/pages/FinancialOverview';
 import JournalList from './components/pages/Journal/JournalList';
 import JournalEntryNew from './components/pages/JournalEntryNew';
 import JournalEntryEdit from './components/pages/JournalEntryEdit';
+import TransportBoxList from './components/pages/TransportBoxList';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
@@ -199,6 +200,7 @@ function App() {
                   <Route path="/journal" element={<JournalList />} />
                   <Route path="/journal/new" element={<JournalEntryNew />} />
                   <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
+                  <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                 </Routes>
               </Layout>
             </AuthGuard>

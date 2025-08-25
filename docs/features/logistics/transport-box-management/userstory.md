@@ -1,736 +1,144 @@
 # Transport Box Management User Story
 
 ## Feature Overview
-The Transport Box Management feature provides comprehensive lifecycle management for shipping containers throughout the supply chain. This system implements a sophisticated finite state machine to track boxes from creation through delivery, managing inventory movements, state transitions, and complete audit trails while integrating with ERP and e-commerce systems for real-time stock synchronization.
+The Transport Box Management feature provides lifecycle management for shipping containers throughout the supply chain. This system tracks boxes from creation through delivery, managing inventory movements with proper state validation and complete audit trails while integrating with ERP and e-commerce systems for real-time stock synchronization.
 
-## Business Requirements
+## User Stories
 
-### Primary Use Case
-As a warehouse operator, I want to manage transport boxes through their complete lifecycle from receipt to delivery so that I can track inventory movements accurately, maintain audit trails for compliance, and ensure proper stock synchronization across all systems while preventing duplicate box codes and invalid state transitions.
+### Primary User Stories
 
-### Acceptance Criteria
-1. The system shall enforce unique box codes across all active transport boxes
-2. The system shall implement a finite state machine with validated state transitions
-3. The system shall maintain complete audit trails of all state changes with user tracking
-4. The system shall automatically close conflicting boxes when reusing codes
-5. The system shall synchronize stock levels with ERP and e-commerce systems
-6. The system shall track individual items within boxes with quantities and users
-7. The system shall prevent invalid operations based on current box state
-8. The system shall support error recovery with comprehensive error logging
+**As a warehouse operator**, I want to manage transport boxes through their complete lifecycle so that I can track inventory movements accurately and maintain audit trails for compliance.
 
-## Technical Contracts
+**As a receiving clerk**, I want to receive boxes from both InTransit and Reserve states so that I can process incoming shipments and reserved inventory flexibly.
 
-### Domain Model
+**As a stock manager**, I want to prevent duplicate box codes in active states so that I can maintain data integrity across the warehouse system.
 
-```csharp
-// Primary aggregate root implementing state machine
-public class TransportBox : AuditedAggregateRoot<int>
-{
-    private List<TransportBoxItem> _items = new();
-    private List<TransportBoxStateLog> _stateLog = new();
-    
-    // Properties
-    public string? Code { get; private set; }
-    public TransportBoxState State { get; private set; } = TransportBoxState.New;
-    public TransportBoxState DefaultReceiveState { get; private set; } = TransportBoxState.Stocked;
-    public string? Description { get; set; }
-    public DateTime? LastStateChanged { get; set; }
-    public string? Location { get; set; }
-    
-    // Collections
-    public IReadOnlyList<TransportBoxItem> Items => _items;
-    public IReadOnlyList<TransportBoxStateLog> StateLog => _stateLog;
-    
-    // Computed properties
-    public bool IsInTransit => State == TransportBoxState.InTransit || 
-                              State == TransportBoxState.Received || 
-                              State == TransportBoxState.Opened;
-    
-    public bool IsInReserve => State == TransportBoxState.Reserve;
-    
-    // State machine navigation
-    public TransportBoxState? NextState => TransitionNode.NextState?.NewState;
-    public TransportBoxState? PreviousState => TransitionNode.PreviousState?.NewState;
-    public TransportBoxStateNode TransitionNode => _transitions[State];
-    
-    // Business Methods
-    public void Open(string boxCode, DateTime date, string userName)
-    {
-        ChangeState(TransportBoxState.Opened, date, userName, 
-            TransportBoxState.New, TransportBoxState.InTransit, TransportBoxState.Reserve);
-        Code = boxCode;
-        Location = null;
-    }
-    
-    public TransportBoxItem AddItem(string productCode, string productName, double amount, 
-        DateTime date, string userName)
-    {
-        CheckState(TransportBoxState.Opened, TransportBoxState.Opened);
-        var newItem = new TransportBoxItem(productCode, productName, amount, date, userName);
-        _items.Add(newItem);
-        return newItem;
-    }
-    
-    public TransportBoxItem? DeleteItem(int itemId)
-    {
-        CheckState(TransportBoxState.Opened, TransportBoxState.Opened);
-        var toDelete = _items.SingleOrDefault(s => s.Id == itemId);
-        if (toDelete != null)
-            _items.Remove(toDelete);
-        return toDelete;
-    }
-    
-    public void Reset(DateTime date, string userName)
-    {
-        _items.Clear();
-        Code = null;
-        ChangeState(TransportBoxState.New, date, userName);
-    }
-    
-    public void ToTransit(DateTime date, string userName)
-    {
-        ChangeState(TransportBoxState.InTransit, date, userName, 
-            TransportBoxState.Opened, TransportBoxState.Error);
-    }
-    
-    public void ToReserve(DateTime date, string userName, TransportBoxLocation location)
-    {
-        Location = location.ToString();
-        ChangeState(TransportBoxState.Reserve, date, userName, 
-            TransportBoxState.Opened, TransportBoxState.Error);
-    }
-    
-    public void Receive(DateTime date, string userName, 
-        TransportBoxState receiveState = TransportBoxState.Stocked)
-    {
-        DefaultReceiveState = receiveState;
-        ChangeState(TransportBoxState.Received, date, userName, 
-            TransportBoxState.InTransit, TransportBoxState.Reserve);
-    }
-    
-    public void ToSwap(DateTime date, string userName)
-    {
-        ChangeState(TransportBoxState.InSwap, date, userName, 
-            TransportBoxState.Received, TransportBoxState.Stocked);
-    }
-    
-    public void ToPick(DateTime date, string userName)
-    {
-        ChangeState(TransportBoxState.Stocked, date, userName, 
-            TransportBoxState.InSwap, TransportBoxState.Received);
-    }
-    
-    public void Close(DateTime date, string userName)
-    {
-        ChangeState(TransportBoxState.Closed, date, userName);
-    }
-    
-    public void Error(DateTime date, string userName, string exMessage)
-    {
-        ChangeState(TransportBoxState.Error, date, userName, exMessage, 
-            Array.Empty<TransportBoxState>());
-    }
-    
-    private void ChangeState(TransportBoxState newState, DateTime now, string userName, 
-        params TransportBoxState[] allowedStates)
-    {
-        CheckState(newState, allowedStates);
-        
-        State = newState;
-        LastStateChanged = now;
-        _stateLog.Add(new TransportBoxStateLog(newState, now, userName, null));
-    }
-    
-    private void CheckState(TransportBoxState newState, params TransportBoxState[] allowedStates)
-    {
-        if (allowedStates.Any() && !allowedStates.Contains(State))
-        {
-            throw new AbpValidationException($"Invalid state transition", 
-                new List<ValidationResult>() 
-                { 
-                    new($"Unable to change state from {State} to {newState} " +
-                        $"({string.Join(", ", allowedStates)} state is required for this action)")
-                });
-        }
-    }
-    
-    // Static state machine configuration
-    private static readonly Dictionary<TransportBoxState, TransportBoxStateNode> _transitions = new();
-    
-    static TransportBox()
-    {
-        ConfigureStateMachine();
-    }
-}
+**As a compliance officer**, I want complete audit trails of all box state changes so that I can track user activities and maintain regulatory compliance.
 
-// Entity representing items within transport box
-public class TransportBoxItem : Entity<int>
-{
-    public string ProductCode { get; private set; }
-    public string ProductName { get; private set; }
-    public double Amount { get; private set; }
-    public DateTime DateAdded { get; private set; }
-    public string UserAdded { get; private set; }
-    
-    public TransportBoxItem(string productCode, string productName, double amount, 
-        DateTime dateAdded, string userAdded)
-    {
-        if (string.IsNullOrEmpty(productCode))
-            throw new BusinessException("Product code is required");
-        
-        if (string.IsNullOrEmpty(productName))
-            throw new BusinessException("Product name is required");
-        
-        if (amount <= 0)
-            throw new BusinessException("Amount must be positive");
-        
-        ProductCode = productCode;
-        ProductName = productName;
-        Amount = amount;
-        DateAdded = dateAdded;
-        UserAdded = userAdded;
-    }
-}
+**As a system integrator**, I want automatic stock synchronization with ERP and e-commerce systems so that inventory levels remain consistent across all platforms.
 
-// Audit trail entity
-public class TransportBoxStateLog : Entity<int>
-{
-    public TransportBoxState State { get; private set; }
-    public DateTime Timestamp { get; private set; }
-    public string UserName { get; private set; }
-    public string? Description { get; private set; }
-    
-    public TransportBoxStateLog(TransportBoxState state, DateTime timestamp, 
-        string userName, string? description)
-    {
-        State = state;
-        Timestamp = timestamp;
-        UserName = userName;
-        Description = description;
-    }
-}
+## Acceptance Criteria
 
-// State machine node configuration
-public class TransportBoxStateNode
-{
-    public TransportBoxAction? NextState { get; set; }
-    public TransportBoxAction? PreviousState { get; set; }
-}
+### Core Functionality
+1. **Box Lifecycle Management**: System shall support complete box lifecycle from creation to closure
+2. **Unique Code Enforcement**: System shall enforce unique box codes across all active transport boxes (excluding Closed/Error states)
+3. **State Validation**: System shall prevent invalid state transitions with clear error messages
+4. **Audit Trails**: System shall maintain complete audit trails of all state changes with user and timestamp tracking
+5. **Item Management**: System shall track individual items within boxes with quantities and user information
 
-// State transition action
-public class TransportBoxAction
-{
-    public TransportBoxState NewState { get; set; }
-    public Action<TransportBox, DateTime, string> Action { get; set; }
-    public Func<TransportBox, bool>? Condition { get; set; }
-    
-    public TransportBoxAction(TransportBoxState newState, 
-        Action<TransportBox, DateTime, string> action, 
-        Func<TransportBox, bool>? condition = null)
-    {
-        NewState = newState;
-        Action = action;
-        Condition = condition;
-    }
-}
+### Enhanced Receiving Capabilities
+6. **Flexible Receiving**: System shall allow receiving boxes from both InTransit and Reserve states
+7. **State Recovery**: System shall support receiving boxes that were previously in Reserve state
+8. **Automatic Code Management**: System shall automatically close conflicting boxes when reusing codes
 
-// State enumeration
-public enum TransportBoxState
-{
-    New = 0,
-    Opened = 1,
-    InTransit = 2,
-    Received = 3,
-    InSwap = 4,
-    Stocked = 5,
-    Reserve = 6,
-    Closed = 7,
-    Error = 8
-}
+### Data Integrity & Error Handling
+9. **Error Recovery**: System shall support comprehensive error logging and recovery mechanisms  
+10. **Positive Quantities**: System shall validate that all item amounts are positive values
+11. **Required Fields**: System shall enforce required fields (product codes, names, user information)
 
-// Location enumeration
-public enum TransportBoxLocation
-{
-    Warehouse = 0,
-    Transit = 1,
-    Store = 2,
-    Reserve = 3
-}
-```
+### Integration Requirements
+12. **ERP Synchronization**: System shall synchronize stock levels with ERP systems in real-time
+13. **E-commerce Integration**: System shall update e-commerce platform inventory levels
+14. **External System Resilience**: System shall handle integration failures gracefully with retry mechanisms
 
-### Application Layer Contracts
+## Business Flow
 
-```csharp
-// Application service interface
-public interface ITransportBoxAppService : ICrudAppService<TransportBoxDto, int, TransportBoxRequestDto, 
-    TransportBoxCreateDto, TransportBoxUpdateDto>
-{
-    Task<TransportBoxDto> OpenAsync(OpenBoxDto dto);
-    Task<TransportBoxDto> ResetAsync(ResetBoxDto dto);
-    Task<TransportBoxDto> ToTransitAsync(ToTransitBoxDto dto);
-    Task<TransportBoxDto> CloseAsync(CloseBoxDto dto);
-    Task<TransportBoxDto> ReceiveAsync(ReceiveBoxDto dto);
-    Task<TransportBoxDto> ToReserveAsync(ToReserveBoxDto dto);
-    Task<TransportBoxDto> StockUpBoxAsync(StockUpBoxDto dto);
-    Task<TransportBoxDto> SwapInAsync(SwapInBoxDto dto);
-    Task<TransportBoxDto> AddItemsAsync(AddItemsDto dto);
-    Task<TransportBoxDto> RemoveItemAsync(RemoveItemDto dto);
-    Task<StockUpResultDto> ExecuteStockUpAsync(ExecuteStockUpDto dto);
-}
+### Core Box Lifecycle
+1. **New**: Empty box created in system
+2. **Opened**: Box assigned unique code and ready for item management  
+3. **InTransit**: Box shipped with tracking information
+4. **Received**: Box arrived at destination (can transition from InTransit OR Reserve)
+5. **Stocked**: Items added to inventory and available for picking
+6. **Closed**: Box lifecycle completed and archived
 
-// DTOs
-public class TransportBoxDto
-{
-    public int Id { get; set; }
-    public string? Code { get; set; }
-    public TransportBoxState State { get; set; }
-    public TransportBoxState DefaultReceiveState { get; set; }
-    public string? Description { get; set; }
-    public DateTime? LastStateChanged { get; set; }
-    public string? Location { get; set; }
-    public List<TransportBoxItemDto> Items { get; set; } = new();
-    public List<TransportBoxStateLogDto> StateLog { get; set; } = new();
-    public bool IsInTransit { get; set; }
-    public bool IsInReserve { get; set; }
-    public TransportBoxState? NextState { get; set; }
-    public TransportBoxState? PreviousState { get; set; }
-    public DateTime CreationTime { get; set; }
-    public DateTime? LastModificationTime { get; set; }
-}
+### Reserve Flow  
+1. **Reserve**: Items held for specific orders (accessible from Opened state)
+2. **Received**: Reserved items can be received directly (bypassing InTransit)
 
-public class TransportBoxItemDto
-{
-    public int Id { get; set; }
-    public string ProductCode { get; set; }
-    public string ProductName { get; set; }
-    public double Amount { get; set; }
-    public DateTime DateAdded { get; set; }
-    public string UserAdded { get; set; }
-}
+### Error Handling
+- **Error**: Terminal state for boxes with unrecoverable issues (accessible from any state)
 
-public class TransportBoxStateLogDto
-{
-    public int Id { get; set; }
-    public TransportBoxState State { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string UserName { get; set; }
-    public string? Description { get; set; }
-}
+## Updated State Transitions
 
-public class OpenBoxDto
-{
-    public int Id { get; set; }
-    [Required]
-    public string Code { get; set; }
-}
+### Allowed State Transitions
+- **New** → Opened, Closed
+- **Opened** → InTransit, Reserve, New (reset)  
+- **InTransit** → Received, Opened (revert)
+- **Reserve** → Received, Opened (revert)
+- **Received** → Stocked, Closed
+- **Stocked** → Closed
+- **Any State** → Error
 
-public class ToTransitBoxDto
-{
-    public int Id { get; set; }
-    [Required]
-    public string Code { get; set; }
-}
+### Removed Transitions
+- ❌ **InSwap state removed completely** (no swap operations supported)
+- ❌ **ToSwap/ToPick operations removed** (simplified stocking process)
+- ❌ **Swap-related state validations removed**
 
-public class ReceiveBoxDto
-{
-    public int Id { get; set; }
-    public double? Weight { get; set; }
-    public TransportBoxState ReceiveState { get; set; } = TransportBoxState.Stocked;
-}
+## Business Rules
 
-public class AddItemsDto
-{
-    public int BoxId { get; set; }
-    public List<TransportBoxItemRequestDto> Items { get; set; } = new();
-}
+### Code Management
+- **Uniqueness**: No duplicate codes allowed in active states (New, Opened, InTransit, Received, Reserve)
+- **Auto-Closure**: System automatically closes existing Stocked boxes when reusing their code
+- **Code Assignment**: Codes assigned during box opening and remain immutable
+- **Validation**: Code required for transit and reserve operations
 
-public class TransportBoxItemRequestDto
-{
-    [Required]
-    public string ProductCode { get; set; }
-    [Required]
-    public string ProductName { get; set; }
-    [Range(0.01, double.MaxValue)]
-    public double Amount { get; set; }
-}
+### State Constraints
+- **Item Management**: Items can only be added/removed in Opened state
+- **Transit Requirements**: Boxes must contain items to transition to InTransit
+- **Receive Sources**: Boxes can be received from InTransit OR Reserve states
+- **Terminal States**: Closed and Error are final states with no outbound transitions
 
-public class StockUpResultDto
-{
-    public bool Success { get; set; }
-    public int ItemsProcessed { get; set; }
-    public List<string> Errors { get; set; } = new();
-    public Dictionary<string, double> StockUpdates { get; set; } = new();
-}
-```
+### Audit & Compliance
+- **User Tracking**: All state changes must record user identity and timestamp
+- **State History**: Complete state transition log maintained for each box
+- **Regulatory Compliance**: Audit trail format suitable for compliance reporting
+- **Data Retention**: Historical data preserved according to regulatory requirements
 
-### Repository Pattern
+## Integration Points
 
-```csharp
-public interface ITransportBoxRepository : IRepository<TransportBox, int>
-{
-    Task<TransportBox?> FindByCodeAsync(string code, params TransportBoxState[] excludeStates);
-    Task<List<TransportBox>> GetActiveBoxesAsync();
-    Task<List<TransportBox>> GetBoxesByStateAsync(TransportBoxState state);
-    Task<List<TransportBox>> GetBoxesRequiringActionAsync();
-    Task<PagedResultDto<TransportBox>> GetPagedListAsync(
-        int skipCount,
-        int maxResultCount,
-        string sorting = null,
-        string? code = null,
-        TransportBoxState? state = null,
-        DateTime? fromDate = null,
-        DateTime? toDate = null);
-}
-```
+### ERP System Integration
+- Real-time stock level synchronization
+- Product master data validation
+- Transaction logging for financial reconciliation
+- Error queuing for failed updates
 
-## Implementation Details
+### E-commerce Platform Integration  
+- Inventory availability updates
+- Order fulfillment status tracking
+- Reserved stock allocation management
+- Multi-channel inventory synchronization
 
-### State Machine Configuration
+### Warehouse Management Integration
+- Physical location tracking
+- Picking list generation
+- Receiving documentation
+- Inventory cycle count integration
 
-```csharp
-public static class TransportBoxStateMachine
-{
-    public static void ConfigureStateMachine()
-    {
-        // New state - can transition to Opened
-        _transitions.Add(TransportBoxState.New, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.Opened, 
-                (box, time, userName) => box.Open(box.Code!, time, userName), 
-                condition: b => b.Code != null),
-            PreviousState = new TransportBoxAction(
-                TransportBoxState.Closed, 
-                (box, time, userName) => box.Close(time, userName))
-        });
-        
-        // Opened state - can add items and transition to transit
-        _transitions.Add(TransportBoxState.Opened, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.InTransit, 
-                (box, time, userName) => box.ToTransit(time, userName)),
-            PreviousState = new TransportBoxAction(
-                TransportBoxState.New, 
-                (box, time, userName) => box.Reset(time, userName))
-        });
-        
-        // InTransit state - awaiting receipt
-        _transitions.Add(TransportBoxState.InTransit, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.Received, 
-                (box, time, userName) => box.Receive(time, userName)),
-            PreviousState = new TransportBoxAction(
-                TransportBoxState.Opened, 
-                (box, time, userName) => box.Open(box.Code!, time, userName), 
-                condition: b => b.Code != null)
-        });
-        
-        // Received state - can go to swap or stocked
-        _transitions.Add(TransportBoxState.Received, new TransportBoxStateNode());
-        
-        // InSwap state - inventory reconciliation
-        _transitions.Add(TransportBoxState.InSwap, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.Stocked, 
-                (box, time, userName) => box.ToPick(time, userName))
-        });
-        
-        // Stocked state - items available for picking
-        _transitions.Add(TransportBoxState.Stocked, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.Closed, 
-                (box, time, userName) => box.Close(time, userName))
-        });
-        
-        // Reserve state - items held for specific orders
-        _transitions.Add(TransportBoxState.Reserve, new TransportBoxStateNode()
-        {
-            NextState = new TransportBoxAction(
-                TransportBoxState.Received, 
-                (box, time, userName) => box.Receive(time, userName)),
-            PreviousState = new TransportBoxAction(
-                TransportBoxState.Opened, 
-                (box, time, userName) => box.Open(box.Code!, time, userName), 
-                condition: b => b.Code != null)
-        });
-        
-        // Terminal states
-        _transitions.Add(TransportBoxState.Closed, new TransportBoxStateNode());
-        _transitions.Add(TransportBoxState.Error, new TransportBoxStateNode());
-    }
-}
-```
+## Non-Functional Requirements
 
-### Application Service Implementation
+### Performance
+- Support 1000+ concurrent active transport boxes
+- Sub-second response times for state transitions
+- Handle 100+ items per box efficiently
+- Real-time stock synchronization within 2 seconds
 
-```csharp
-[Authorize]
-public class TransportBoxAppService : CrudAppService<TransportBox, TransportBoxDto, int, 
-    TransportBoxRequestDto, TransportBoxCreateDto, TransportBoxUpdateDto>, ITransportBoxAppService
-{
-    private readonly IClock _clock;
-    private readonly ICurrentUser _userProvider;
-    private readonly IEshopStockTakingDomainService _stockUpDomainService;
-    private readonly ICatalogRepository _catalogRepository;
-    private readonly ILogger<TransportBoxAppService> _logger;
-    
-    public TransportBoxAppService(
-        IRepository<TransportBox, int> repository,
-        IClock clock,
-        ICurrentUser userProvider,
-        IEshopStockTakingDomainService stockUpService,
-        ICatalogRepository catalogRepository,
-        ILogger<TransportBoxAppService> logger)
-        : base(repository)
-    {
-        _clock = clock;
-        _userProvider = userProvider;
-        _stockUpDomainService = stockUpService;
-        _catalogRepository = catalogRepository;
-        _logger = logger;
-    }
-    
-    public async Task<TransportBoxDto> OpenAsync(OpenBoxDto dto)
-    {
-        var box = await Repository.GetAsync(dto.Id);
-        
-        // Check for duplicate codes in active states
-        var duplicate = await Repository.FindAsync(f => 
-            f.Code == dto.Code && 
-            f.State != TransportBoxState.Stocked && 
-            f.State != TransportBoxState.Closed && 
-            f.Id != dto.Id);
-            
-        if (duplicate != null)
-        {
-            throw new AbpValidationException(
-                "Open box failed", 
-                new List<ValidationResult>() 
-                { 
-                    new($"There is already box with same code {dto.Code} in state {duplicate.State}")
-                });
-        }
-        
-        // Open the box
-        box.Open(dto.Code, _clock.Now, _userProvider.UserName);
-        
-        // Auto-close any stocked boxes with same code
-        var stocked = await Repository.GetListAsync(w => 
-            w.Code == dto.Code && 
-            w.State == TransportBoxState.Stocked);
-            
-        foreach (var s in stocked)
-        {
-            s.Close(_clock.Now, _userProvider.UserName);
-            await Repository.UpdateAsync(s, true);
-        }
-        
-        box = await Repository.UpdateAsync(box, true);
-        
-        _logger.LogInformation("Box {BoxId} opened with code {Code} by user {User}", 
-            box.Id, dto.Code, _userProvider.UserName);
-        
-        return ObjectMapper.Map<TransportBox, TransportBoxDto>(box);
-    }
-    
-    public async Task<TransportBoxDto> AddItemsAsync(AddItemsDto dto)
-    {
-        var box = await Repository.GetAsync(dto.BoxId);
-        
-        foreach (var itemDto in dto.Items)
-        {
-            try
-            {
-                box.AddItem(
-                    itemDto.ProductCode, 
-                    itemDto.ProductName, 
-                    itemDto.Amount, 
-                    _clock.Now, 
-                    _userProvider.UserName);
-                    
-                _logger.LogDebug("Added item {ProductCode} quantity {Amount} to box {BoxId}", 
-                    itemDto.ProductCode, itemDto.Amount, box.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to add item {ProductCode} to box {BoxId}", 
-                    itemDto.ProductCode, box.Id);
-                throw;
-            }
-        }
-        
-        box = await Repository.UpdateAsync(box, true);
-        
-        return ObjectMapper.Map<TransportBox, TransportBoxDto>(box);
-    }
-    
-    public async Task<TransportBoxDto> ToTransitAsync(ToTransitBoxDto dto)
-    {
-        var box = await Repository.GetAsync(dto.Id);
-        
-        if (dto.Code != box.Code)
-        {
-            throw new AbpValidationException(
-                "Close box failed", 
-                new List<ValidationResult>() 
-                { 
-                    new($"Closing box code {dto.Code} is not the same as code " +
-                        $"assigned to box during opening ({box.Code})")
-                });
-        }
-        
-        if (!box.Items.Any())
-        {
-            throw new UserFriendlyException("Cannot transit empty box");
-        }
-        
-        box.ToTransit(_clock.Now, _userProvider.UserName);
-        box = await Repository.UpdateAsync(box, true);
-        
-        _logger.LogInformation("Box {BoxId} transitioned to transit by user {User}", 
-            box.Id, _userProvider.UserName);
-        
-        return ObjectMapper.Map<TransportBox, TransportBoxDto>(box);
-    }
-    
-    public async Task<TransportBoxDto> ReceiveAsync(ReceiveBoxDto dto)
-    {
-        var box = await Repository.GetAsync(dto.Id);
-        
-        box.Receive(_clock.Now, _userProvider.UserName, dto.ReceiveState);
-        
-        if (dto.Weight.HasValue)
-        {
-            box.Description = $"Weight: {dto.Weight}kg";
-        }
-        
-        box = await Repository.UpdateAsync(box, true);
-        
-        _logger.LogInformation("Box {BoxId} received by user {User} with state {State}", 
-            box.Id, _userProvider.UserName, dto.ReceiveState);
-        
-        return ObjectMapper.Map<TransportBox, TransportBoxDto>(box);
-    }
-    
-    public async Task<StockUpResultDto> ExecuteStockUpAsync(ExecuteStockUpDto dto)
-    {
-        var box = await Repository.GetAsync(dto.BoxId, includeDetails: true);
-        
-        if (box.State != TransportBoxState.Received && box.State != TransportBoxState.InSwap)
-        {
-            throw new UserFriendlyException(
-                $"Box must be in Received or InSwap state to stock up (current: {box.State})");
-        }
-        
-        var result = new StockUpResultDto();
-        
-        try
-        {
-            // Process each item for stock update
-            foreach (var item in box.Items)
-            {
-                try
-                {
-                    var catalog = await _catalogRepository.GetAsync(item.ProductCode);
-                    
-                    if (catalog == null)
-                    {
-                        result.Errors.Add($"Product {item.ProductCode} not found in catalog");
-                        continue;
-                    }
-                    
-                    // Update stock levels
-                    var stockUpdate = await _stockUpDomainService.StockUpAsync(
-                        item.ProductCode, 
-                        item.Amount, 
-                        _userProvider.UserName);
-                    
-                    result.StockUpdates[item.ProductCode] = item.Amount;
-                    result.ItemsProcessed++;
-                    
-                    _logger.LogInformation("Stocked up {ProductCode} quantity {Amount}", 
-                        item.ProductCode, item.Amount);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to stock up item {ProductCode}", item.ProductCode);
-                    result.Errors.Add($"Failed to stock up {item.ProductCode}: {ex.Message}");
-                }
-            }
-            
-            // Update box state if successful
-            if (result.ItemsProcessed > 0 && result.ItemsProcessed == box.Items.Count)
-            {
-                box.ToPick(_clock.Now, _userProvider.UserName);
-                await Repository.UpdateAsync(box, true);
-                result.Success = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to execute stock up for box {BoxId}", box.Id);
-            throw new UserFriendlyException("Stock up failed: " + ex.Message);
-        }
-        
-        return result;
-    }
-    
-    protected override async Task<IQueryable<TransportBox>> CreateFilteredQueryAsync(
-        TransportBoxRequestDto input)
-    {
-        var query = await base.CreateFilteredQueryAsync(input);
-        
-        if (!string.IsNullOrWhiteSpace(input.Code))
-        {
-            query = query.Where(x => x.Code.Contains(input.Code));
-        }
-        
-        if (input.State.HasValue)
-        {
-            query = query.Where(x => x.State == input.State.Value);
-        }
-        
-        if (input.FromDate.HasValue)
-        {
-            query = query.Where(x => x.CreationTime >= input.FromDate.Value);
-        }
-        
-        if (input.ToDate.HasValue)
-        {
-            query = query.Where(x => x.CreationTime <= input.ToDate.Value);
-        }
-        
-        return query;
-    }
-}
-```
+### Reliability
+- 99.9% uptime for critical box operations
+- Automatic retry for integration failures
+- Graceful degradation when external systems unavailable
+- Complete data recovery capabilities
 
-## State Transition Flow
+### Security
+- Role-based access control for state transitions
+- Audit trail protection from unauthorized modification
+- Encrypted sensitive data at rest and in transit
+- Secure API endpoints for system integrations
 
-```
-┌─────┐      ┌────────┐      ┌───────────┐      ┌──────────┐
-│ New │ ───> │ Opened │ ───> │ InTransit │ ───> │ Received │
-└─────┘      └────────┘      └───────────┘      └──────────┘
-   │              │                                     │
-   │              ↓                                     ↓
-   │         ┌─────────┐                         ┌─────────┐
-   │         │ Reserve │                         │ InSwap  │
-   │         └─────────┘                         └─────────┘
-   │              │                                     │
-   │              ↓                                     ↓
-   │         ┌──────────┐                       ┌──────────┐
-   └──────> │  Closed   │ <─────────────────── │ Stocked  │
-            └──────────┘                       └──────────┘
-                 ↑
-                 │
-            ┌─────────┐
-            │  Error  │ (Can transition from any state)
-            └─────────┘
-```
+### Scalability
+- Horizontal scaling support for multiple warehouses
+- Load balancing for high-volume operations
+- Efficient database indexing for fast lookups
+- Caching strategies for frequently accessed data
 
 ## Happy Day Scenario
 

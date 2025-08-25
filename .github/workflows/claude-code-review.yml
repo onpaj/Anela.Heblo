@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude Code Review
-        id: claude-review
+        id: claude-review\
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -43,7 +43,9 @@ jobs:
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
             Please review this pull request and provide feedback on:
-            - Code quality and best practices
+            - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
+            - Code complexity and maintainability
+            - Domain and concerns separation (should that be on backend or frontend side?)
             - Potential bugs or issues
             - Performance considerations
             - Security concerns
