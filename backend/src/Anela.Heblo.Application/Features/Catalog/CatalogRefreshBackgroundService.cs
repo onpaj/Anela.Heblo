@@ -42,157 +42,162 @@ public class CatalogRefreshBackgroundService : BackgroundService
     {
         _logger.LogInformation("Catalog Refresh Background Service started");
 
-        while (!stoppingToken.IsCancellationRequested)
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+
+        try
         {
-            try
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                var now = DateTime.UtcNow;
-
-                using var scope = _serviceProvider.CreateScope();
-                var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
-
-                // Check and execute refresh operations based on intervals
-                if (await RefreshIfNeeded(catalogRepository, "Transport",
-                    _lastTransportRefresh, _options.TransportRefreshInterval,
-                    async ct => await catalogRepository.RefreshTransportData(ct),
-                    now, stoppingToken))
+                try
                 {
-                    _lastTransportRefresh = now;
-                }
+                    var now = DateTime.UtcNow;
 
-                if (await RefreshIfNeeded(catalogRepository, "Reserve",
-                    _lastReserveRefresh, _options.ReserveRefreshInterval,
-                    async ct => await catalogRepository.RefreshReserveData(ct),
-                    now, stoppingToken))
-                {
-                    _lastReserveRefresh = now;
-                }
+                    using var scope = _serviceProvider.CreateScope();
+                    var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
 
-                if (await RefreshIfNeeded(catalogRepository, "Sales",
-                    _lastSalesRefresh, _options.SalesRefreshInterval,
-                    async ct => await catalogRepository.RefreshSalesData(ct),
-                    now, stoppingToken))
-                {
-                    _lastSalesRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Attributes",
-                    _lastAttributesRefresh, _options.AttributesRefreshInterval,
-                    async ct => await catalogRepository.RefreshAttributesData(ct),
-                    now, stoppingToken))
-                {
-                    _lastAttributesRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "ERP Stock",
-                    _lastErpStockRefresh, _options.ErpStockRefreshInterval,
-                    async ct => await catalogRepository.RefreshErpStockData(ct),
-                    now, stoppingToken))
-                {
-                    _lastErpStockRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "E-shop Stock",
-                    _lastEshopStockRefresh, _options.EshopStockRefreshInterval,
-                    async ct => await catalogRepository.RefreshEshopStockData(ct),
-                    now, stoppingToken))
-                {
-                    _lastEshopStockRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Purchase History",
-                    _lastPurchaseHistoryRefresh, _options.PurchaseHistoryRefreshInterval,
-                    async ct => await catalogRepository.RefreshPurchaseHistoryData(ct),
-                    now, stoppingToken))
-                {
-                    _lastPurchaseHistoryRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Manufacture History",
-                    _lastManufactureHistoryRefresh, _options.ManufactureHistoryRefreshInterval,
-                    async ct => await catalogRepository.RefreshManufactureHistoryData(ct),
-                    now, stoppingToken))
-                {
-                    _lastManufactureHistoryRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Consumed History",
-                    _lastConsumedRefresh, _options.ConsumedRefreshInterval,
-                    async ct => await catalogRepository.RefreshConsumedHistoryData(ct),
-                    now, stoppingToken))
-                {
-                    _lastConsumedRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Stock Taking",
-                    _lastStockTakingRefresh, _options.StockTakingRefreshInterval,
-                    async ct => await catalogRepository.RefreshStockTakingData(ct),
-                    now, stoppingToken))
-                {
-                    _lastStockTakingRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Lots Data",
-                    _lastLotsRefresh, _options.LotsRefreshInterval,
-                    async ct => await catalogRepository.RefreshLotsData(ct),
-                    now, stoppingToken))
-                {
-                    _lastLotsRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "E-shop Prices",
-                    _lastEshopPricesRefresh, _options.EshopPricesRefreshInterval,
-                    async ct => await catalogRepository.RefreshEshopPricesData(ct),
-                    now, stoppingToken))
-                {
-                    _lastEshopPricesRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "ERP Prices",
-                    _lastErpPricesRefresh, _options.ErpPricesRefreshInterval,
-                    async ct => await catalogRepository.RefreshErpPricesData(ct),
-                    now, stoppingToken))
-                {
-                    _lastErpPricesRefresh = now;
-                }
-
-                if (await RefreshIfNeeded(catalogRepository, "Manufacture Difficulty",
-                    _lastManufactureDifficultyRefresh, _options.ManufactureDifficultyRefreshInterval,
-                    async ct => await catalogRepository.RefreshManufactureDifficultyData(ct),
-                    now, stoppingToken))
-                {
-                    _lastManufactureDifficultyRefresh = now;
-                }
-
-                // Refresh ManufactureCostData after ManufactureDifficulty and ManufactureHistory are refreshed
-                // Use the same interval as ManufactureHistory since both need to be fresh
-                if (_lastManufactureDifficultyRefresh >= _lastManufactureCostRefresh &&
-                    _lastManufactureHistoryRefresh >= _lastManufactureCostRefresh)
-                {
-                    if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
-                        _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
-                        async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
+                    // Check and execute refresh operations based on intervals
+                    if (await RefreshIfNeeded(catalogRepository, "Transport",
+                        _lastTransportRefresh, _options.TransportRefreshInterval,
+                        async ct => await catalogRepository.RefreshTransportData(ct),
                         now, stoppingToken))
                     {
-                        _lastManufactureCostRefresh = now;
+                        _lastTransportRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Reserve",
+                        _lastReserveRefresh, _options.ReserveRefreshInterval,
+                        async ct => await catalogRepository.RefreshReserveData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastReserveRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Sales",
+                        _lastSalesRefresh, _options.SalesRefreshInterval,
+                        async ct => await catalogRepository.RefreshSalesData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastSalesRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Attributes",
+                        _lastAttributesRefresh, _options.AttributesRefreshInterval,
+                        async ct => await catalogRepository.RefreshAttributesData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastAttributesRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "ERP Stock",
+                        _lastErpStockRefresh, _options.ErpStockRefreshInterval,
+                        async ct => await catalogRepository.RefreshErpStockData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastErpStockRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "E-shop Stock",
+                        _lastEshopStockRefresh, _options.EshopStockRefreshInterval,
+                        async ct => await catalogRepository.RefreshEshopStockData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastEshopStockRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Purchase History",
+                        _lastPurchaseHistoryRefresh, _options.PurchaseHistoryRefreshInterval,
+                        async ct => await catalogRepository.RefreshPurchaseHistoryData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastPurchaseHistoryRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Manufacture History",
+                        _lastManufactureHistoryRefresh, _options.ManufactureHistoryRefreshInterval,
+                        async ct => await catalogRepository.RefreshManufactureHistoryData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastManufactureHistoryRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Consumed History",
+                        _lastConsumedRefresh, _options.ConsumedRefreshInterval,
+                        async ct => await catalogRepository.RefreshConsumedHistoryData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastConsumedRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Stock Taking",
+                        _lastStockTakingRefresh, _options.StockTakingRefreshInterval,
+                        async ct => await catalogRepository.RefreshStockTakingData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastStockTakingRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Lots Data",
+                        _lastLotsRefresh, _options.LotsRefreshInterval,
+                        async ct => await catalogRepository.RefreshLotsData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastLotsRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "E-shop Prices",
+                        _lastEshopPricesRefresh, _options.EshopPricesRefreshInterval,
+                        async ct => await catalogRepository.RefreshEshopPricesData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastEshopPricesRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "ERP Prices",
+                        _lastErpPricesRefresh, _options.ErpPricesRefreshInterval,
+                        async ct => await catalogRepository.RefreshErpPricesData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastErpPricesRefresh = now;
+                    }
+
+                    if (await RefreshIfNeeded(catalogRepository, "Manufacture Difficulty",
+                        _lastManufactureDifficultyRefresh, _options.ManufactureDifficultyRefreshInterval,
+                        async ct => await catalogRepository.RefreshManufactureDifficultyData(ct),
+                        now, stoppingToken))
+                    {
+                        _lastManufactureDifficultyRefresh = now;
+                    }
+
+                    // Refresh ManufactureCostData after ManufactureDifficulty and ManufactureHistory are refreshed
+                    // Use the same interval as ManufactureHistory since both need to be fresh
+                    if (_lastManufactureDifficultyRefresh >= _lastManufactureCostRefresh &&
+                        _lastManufactureHistoryRefresh >= _lastManufactureCostRefresh)
+                    {
+                        if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
+                            _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
+                            async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
+                            now, stoppingToken))
+                        {
+                            _lastManufactureCostRefresh = now;
+                        }
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred in Catalog Refresh Background Service");
 
-                // Wait before next cycle (check every minute)
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    // Continue with next cycle - PeriodicTimer will handle the delay
+                }
             }
-            catch (OperationCanceledException)
-            {
-                // Expected when cancellation is requested
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred in Catalog Refresh Background Service");
-
-                // Wait before retrying in case of error
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when service is stopped
         }
 
         _logger.LogInformation("Catalog Refresh Background Service stopped");

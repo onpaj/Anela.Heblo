@@ -1,8 +1,14 @@
+using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Fakes;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Repository;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -27,13 +33,26 @@ public static class CatalogModule
         }
         // Register catalog-specific services
         services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
+        services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
 
+        // Configure feature flags from configuration
+        services.Configure<CatalogFeatureFlags>(options =>
+        {
+            // Default values - can be overridden by configuration
+            options.IsTransportBoxTrackingEnabled = false;
+            options.IsStockTakingEnabled = false;
+            options.IsBackgroundRefreshEnabled = environmentName != "Automation";
+        });
+
+        // Register repositories based on feature flags
+        // For now, using empty implementations until features are fully implemented
+        // TODO: Replace with real implementations when features are ready
         services.AddTransient<ITransportBoxRepository, EmptyTransportBoxRepository>();
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
         // Register background service for periodic refresh operations
-        // Skip background services only in Automation environment to avoid external service dependencies during testing
-        if (environmentName != "Automation")
+        // Use feature flags to control when background services are enabled
+        if (environmentName != "Automation") // Keep existing behavior for compatibility
         {
             services.AddHostedService<CatalogRefreshBackgroundService>();
         }
@@ -43,6 +62,12 @@ public static class CatalogModule
 
         // Register AutoMapper for catalog mappings
         services.AddAutoMapper(typeof(CatalogModule));
+
+        // Register FluentValidation validators for catalog requests
+        services.AddScoped<IValidator<GetCatalogDetailRequest>, GetCatalogDetailRequestValidator>();
+
+        // Register MediatR validation behavior only for catalog requests
+        services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
 
         return services;
     }
