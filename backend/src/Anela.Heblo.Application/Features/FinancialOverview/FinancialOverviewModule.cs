@@ -19,7 +19,7 @@ public static class FinancialOverviewModule
         {
             var env = provider.GetRequiredService<IHostEnvironment>();
             
-            if (env.IsEnvironment("Test") || env.IsEnvironment("Automation"))
+            if (env.EnvironmentName == "Test" || env.EnvironmentName == "Automation")
             {
                 // Use placeholder implementation for test environments
                 var logger = provider.GetRequiredService<ILogger<PlaceholderStockValueService>>();
