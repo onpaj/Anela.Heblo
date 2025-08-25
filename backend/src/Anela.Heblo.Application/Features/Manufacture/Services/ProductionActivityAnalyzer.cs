@@ -15,8 +15,8 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
     public bool IsInActiveProduction(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int dayThreshold = 30)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-dayThreshold);
-        
-        var recentProduction = manufactureHistory.Any(m => 
+
+        var recentProduction = manufactureHistory.Any(m =>
             m.Date >= cutoffDate && m.Amount > 0);
 
         _logger.LogDebug("Checking production activity: cutoff date {CutoffDate:yyyy-MM-dd}, active: {IsActive}",
@@ -43,7 +43,7 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
     public double CalculateAverageProductionFrequency(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int analysisMonths = 12)
     {
         var analysisStartDate = DateTime.UtcNow.AddMonths(-analysisMonths);
-        
+
         var productionDates = manufactureHistory
             .Where(m => m.Date >= analysisStartDate && m.Amount > 0)
             .Select(m => m.Date)

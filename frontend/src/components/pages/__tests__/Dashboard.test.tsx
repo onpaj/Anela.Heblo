@@ -155,6 +155,7 @@ describe('Dashboard', () => {
       expect(manufactureDifficultyButton).toBeInTheDocument();
       expect(manufactureDifficultyButton).not.toBeDisabled();
       
+      // Click the button
       fireEvent.click(manufactureDifficultyButton);
 
       await waitFor(() => {
@@ -162,7 +163,7 @@ describe('Dashboard', () => {
       });
     });
 
-    it('should show loading state when refresh is in progress', () => {
+    it('should show loading state when refresh is in progress', async () => {
       const mockMutateAsync = jest.fn().mockImplementation(() => new Promise(() => {})); // Never resolves
       mockUseManualCatalogRefresh.mockReturnValue({
         mutateAsync: mockMutateAsync,
@@ -187,7 +188,7 @@ describe('Dashboard', () => {
       });
     });
 
-    it('should show success message when refresh completes successfully', () => {
+    it('should show success message when refresh completes successfully', async () => {
       const mockMutateAsync = jest.fn().mockResolvedValue({});
       mockUseManualCatalogRefresh.mockReturnValue({
         mutateAsync: mockMutateAsync,
@@ -208,7 +209,7 @@ describe('Dashboard', () => {
       expect(screen.getByText('Operace byla dokončena úspěšně.')).toBeInTheDocument();
     });
 
-    it('should show error message when refresh fails', () => {
+    it('should show error message when refresh fails', async () => {
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Network error'));
       mockUseManualCatalogRefresh.mockReturnValue({
         mutateAsync: mockMutateAsync,
@@ -253,7 +254,7 @@ describe('Dashboard', () => {
       } as any);
     });
 
-    it('should switch between tabs correctly', () => {
+    it('should switch between tabs correctly', async () => {
       renderWithQueryClient(<Dashboard />);
 
       // Should start on overview tab

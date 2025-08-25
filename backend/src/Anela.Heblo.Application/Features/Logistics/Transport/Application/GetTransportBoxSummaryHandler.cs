@@ -31,7 +31,7 @@ public class GetTransportBoxSummaryHandler : IRequestHandler<GetTransportBoxSumm
         var activeBoxes = allBoxes.Count(b => b.State != TransportBoxState.Closed);
 
         var stateCounts = new Dictionary<string, int>();
-        
+
         // Count boxes by state
         foreach (var state in Enum.GetValues<TransportBoxState>())
         {

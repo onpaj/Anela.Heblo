@@ -26,7 +26,7 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
         // Parse state if provided
         TransportBoxState? stateFilter = null;
         bool isActiveFilter = false;
-        
+
         if (!string.IsNullOrWhiteSpace(request.State))
         {
             if (request.State.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
@@ -82,7 +82,7 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
             }).OrderByDescending(log => log.StateDate).ToList()
         }).ToList();
 
-        _logger.LogInformation("Retrieved {Count} transport boxes out of {TotalCount} total", 
+        _logger.LogInformation("Retrieved {Count} transport boxes out of {TotalCount} total",
             transportBoxDtos.Count, totalCount);
 
         return new GetTransportBoxesResponse

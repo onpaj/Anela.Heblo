@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import { ApiClient as GeneratedApiClient } from '../generated/api-client';
 import { 
   GetTransportBoxesResponse,
@@ -22,11 +22,11 @@ export interface GetTransportBoxesRequest {
 
 // Query keys
 const transportBoxKeys = {
-  all: ['transport-boxes'] as const,
-  lists: () => [...transportBoxKeys.all, 'list'] as const,
-  list: (filters: GetTransportBoxesRequest) => [...transportBoxKeys.lists(), filters] as const,
-  details: () => [...transportBoxKeys.all, 'detail'] as const,
-  detail: (id: number) => [...transportBoxKeys.details(), id] as const,
+  all: QUERY_KEYS.transportBox,
+  lists: () => [...QUERY_KEYS.transportBox, 'list'] as const,
+  list: (filters: GetTransportBoxesRequest) => [...QUERY_KEYS.transportBox, 'list', filters] as const,
+  details: () => [...QUERY_KEYS.transportBox, 'detail'] as const,
+  detail: (id: number) => [...QUERY_KEYS.transportBox, 'detail', id] as const,
 };
 
 // Helper to get the correct API client instance from generated file
@@ -82,7 +82,7 @@ export const useTransportBoxesList = (filters?: Omit<GetTransportBoxesRequest, '
 // Hook for transport box summary
 export const useTransportBoxSummaryQuery = (request: Omit<GetTransportBoxesRequest, 'skip' | 'take' | 'sortBy' | 'sortDescending'>) => {
   return useQuery({
-    queryKey: [...transportBoxKeys.all, 'summary', request],
+    queryKey: [...QUERY_KEYS.transportBox, 'summary', request],
     queryFn: async () => {
       const client = getTransportBoxClient();
       return await client.transportBox_GetTransportBoxSummary(
@@ -113,7 +113,7 @@ export const useChangeTransportBoxState = () => {
       // Invalidate and refetch related queries
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: [...transportBoxKeys.all, 'summary'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.transportBox, 'summary'] });
     },
   });
 };

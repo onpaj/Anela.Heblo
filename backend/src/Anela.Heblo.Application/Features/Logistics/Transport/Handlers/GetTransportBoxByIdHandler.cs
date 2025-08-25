@@ -61,7 +61,7 @@ public class GetTransportBoxByIdHandler : IRequestHandler<GetTransportBoxByIdReq
             }).OrderByDescending(log => log.StateDate).ToList()
         };
 
-        _logger.LogInformation("Retrieved transport box {Id} with {ItemCount} items", 
+        _logger.LogInformation("Retrieved transport box {Id} with {ItemCount} items",
             transportBox.Id, transportBox.Items.Count);
 
         return new GetTransportBoxByIdResponse { TransportBox = dto };

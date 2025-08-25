@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
 import PurchaseStockAnalysis from '../PurchaseStockAnalysis';
 import { StockSeverity, usePurchaseStockAnalysisQuery } from '../../../api/hooks/usePurchaseStockAnalysis';
+import { TestRouterWrapper } from '../../../test-utils/router-wrapper';
 
 // Mock the entire module properly
 jest.mock('../../../api/hooks/usePurchaseStockAnalysis', () => {
@@ -28,9 +28,9 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <TestRouterWrapper>
         {children}
-      </BrowserRouter>
+      </TestRouterWrapper>
     </QueryClientProvider>
   );
 };
