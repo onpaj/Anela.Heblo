@@ -19,7 +19,7 @@ public class TestValidationRequestValidator : AbstractValidator<TestValidationRe
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessage("Name is required");
-            
+
         RuleFor(x => x.Age)
             .GreaterThan(0)
             .WithMessage("Age must be greater than 0")
@@ -48,7 +48,7 @@ public class ValidationBehaviorTests
         // Arrange
         var request = new TestValidationRequest("John Doe", 30);
         var expectedResponse = new TestValidationResponse("Success");
-        
+
         _nextMock.Setup(x => x()).ReturnsAsync(expectedResponse);
 
         // Act
@@ -72,7 +72,7 @@ public class ValidationBehaviorTests
         exception.Errors.Should().HaveCount(2);
         exception.Errors.Should().Contain(e => e.ErrorMessage == "Name is required");
         exception.Errors.Should().Contain(e => e.ErrorMessage == "Age must be greater than 0");
-        
+
         _nextMock.Verify(x => x(), Times.Never);
     }
 
@@ -88,7 +88,7 @@ public class ValidationBehaviorTests
 
         exception.Errors.Should().HaveCount(1);
         exception.Errors.Single().ErrorMessage.Should().Be("Age must be less than 120");
-        
+
         _nextMock.Verify(x => x(), Times.Never);
     }
 
@@ -98,10 +98,10 @@ public class ValidationBehaviorTests
         // Arrange
         var behaviorWithoutValidators = new ValidationBehavior<TestValidationRequest, TestValidationResponse>(
             Enumerable.Empty<IValidator<TestValidationRequest>>());
-        
+
         var request = new TestValidationRequest("", -5); // Would normally be invalid
         var expectedResponse = new TestValidationResponse("Success");
-        
+
         _nextMock.Setup(x => x()).ReturnsAsync(expectedResponse);
 
         // Act
@@ -119,7 +119,7 @@ public class ValidationBehaviorTests
         var secondValidator = new Mock<IValidator<TestValidationRequest>>();
         var validationFailure = new ValidationFailure("CustomProperty", "Custom validation error");
         var validationResult = new ValidationResult(new[] { validationFailure });
-        
+
         secondValidator.Setup(x => x.ValidateAsync(It.IsAny<ValidationContext<TestValidationRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
@@ -136,7 +136,7 @@ public class ValidationBehaviorTests
         exception.Errors.Should().Contain(e => e.ErrorMessage == "Name is required");
         exception.Errors.Should().Contain(e => e.ErrorMessage == "Age must be greater than 0");
         exception.Errors.Should().Contain(e => e.ErrorMessage == "Custom validation error");
-        
+
         _nextMock.Verify(x => x(), Times.Never);
     }
 
@@ -146,7 +146,7 @@ public class ValidationBehaviorTests
         // Arrange
         var faultyValidator = new Mock<IValidator<TestValidationRequest>>();
         var expectedException = new InvalidOperationException("Validator error");
-        
+
         faultyValidator.Setup(x => x.ValidateAsync(It.IsAny<ValidationContext<TestValidationRequest>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
@@ -169,7 +169,7 @@ public class ValidationBehaviorTests
         // Arrange
         using var cts = new CancellationTokenSource();
         var request = new TestValidationRequest("John Doe", 30);
-        
+
         // Set up validator to respect cancellation
         var slowValidator = new Mock<IValidator<TestValidationRequest>>();
         slowValidator.Setup(x => x.ValidateAsync(It.IsAny<ValidationContext<TestValidationRequest>>(), It.IsAny<CancellationToken>()))

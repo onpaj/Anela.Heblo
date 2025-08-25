@@ -1,16 +1,19 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
 {
-    private const double InfiniteStockDisplayLimit = 999999.0;
+    private readonly ManufactureAnalysisOptions _options;
     private readonly ILogger<ManufactureAnalysisMapper> _logger;
 
-    public ManufactureAnalysisMapper(ILogger<ManufactureAnalysisMapper> logger)
+    public ManufactureAnalysisMapper(IOptions<ManufactureAnalysisOptions> options, ILogger<ManufactureAnalysisMapper> logger)
     {
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -31,7 +34,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             SalesInPeriod = salesInPeriod,
             DailySalesRate = dailySalesRate,
             OptimalDaysSetup = catalogItem.Properties.OptimalStockDaysSetup,
-            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? InfiniteStockDisplayLimit : stockDaysAvailable,
+            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? _options.InfiniteStockIndicator : stockDaysAvailable,
             MinimumStock = (double)catalogItem.Properties.StockMinSetup,
             OverstockPercentage = double.IsInfinity(overstockPercentage) ? 0 : overstockPercentage,
             BatchSize = catalogItem.Properties.BatchSize.ToString(),

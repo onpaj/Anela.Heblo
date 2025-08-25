@@ -50,7 +50,7 @@ public class CatalogConstantsTests
         // Arrange & Act
         // This test verifies the constant is properly integrated with validation logic
         // by testing boundary values around the threshold
-        
+
         var justBelowThreshold = CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD - 1; // 998
         var atThreshold = CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD; // 999
         var aboveThreshold = CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD + 1; // 1000

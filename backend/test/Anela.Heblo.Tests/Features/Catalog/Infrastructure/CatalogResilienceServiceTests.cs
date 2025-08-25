@@ -24,7 +24,7 @@ public class CatalogResilienceServiceTests
         // Arrange
         var expectedResult = "test-result";
         var operationName = "TestOperation";
-        
+
         Func<CancellationToken, Task<string>> operation = ct => Task.FromResult(expectedResult);
 
         // Act
@@ -56,7 +56,7 @@ public class CatalogResilienceServiceTests
         // Assert
         result.Should().Be(expectedResult);
         attemptCount.Should().Be(2); // First attempt failed, second succeeded
-        
+
         // Verify retry warning was logged
         _loggerMock.Verify(
             x => x.Log(
@@ -106,7 +106,7 @@ public class CatalogResilienceServiceTests
             () => _service.ExecuteWithResilienceAsync(operation, operationName));
 
         thrownException.Message.Should().Contain("temporarily unavailable");
-        
+
         // Verify multiple retry warnings were logged
         _loggerMock.Verify(
             x => x.Log(
@@ -116,7 +116,7 @@ public class CatalogResilienceServiceTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeast(3)); // Should retry 3 times
-            
+
         // Verify circuit breaker warning was logged
         _loggerMock.Verify(
             x => x.Log(
@@ -142,7 +142,7 @@ public class CatalogResilienceServiceTests
             () => _service.ExecuteWithResilienceAsync(operation, operationName));
 
         thrownException.Should().Be(exception);
-        
+
         // Verify no retry warnings were logged (should fail immediately)
         _loggerMock.Verify(
             x => x.Log(
@@ -161,7 +161,7 @@ public class CatalogResilienceServiceTests
         var operationName = "CancelledOperation";
         var cts = new CancellationTokenSource();
         cts.Cancel(); // Pre-cancelled token
-        
+
         var exception = new OperationCanceledException(cts.Token);
 
         Func<CancellationToken, Task<string>> operation = ct => throw exception;
@@ -171,7 +171,7 @@ public class CatalogResilienceServiceTests
             () => _service.ExecuteWithResilienceAsync(operation, operationName, cts.Token));
 
         thrownException.CancellationToken.Should().Be(cts.Token);
-        
+
         // Verify no retries for properly cancelled operations
         _loggerMock.Verify(
             x => x.Log(
@@ -188,7 +188,7 @@ public class CatalogResilienceServiceTests
     {
         // Arrange
         var operationName = "DebugTestOperation";
-        
+
         Func<CancellationToken, Task<string>> operation = ct => Task.FromResult("result");
 
         // Act

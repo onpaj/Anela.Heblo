@@ -1,13 +1,21 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.Manufacture;
 
 public static class ManufactureModule
 {
-    public static IServiceCollection AddManufactureModule(this IServiceCollection services)
+    public static IServiceCollection AddManufactureModule(this IServiceCollection services, IConfiguration configuration)
     {
         // Register MediatR handlers - they will be automatically discovered
+        
+        // Register configuration options
+        services.Configure<ManufactureAnalysisOptions>(options =>
+        {
+            configuration.GetSection("ManufactureAnalysis").Bind(options);
+        });
         
         // Register domain services for manufacturing stock analysis
         services.AddScoped<ITimePeriodCalculator, TimePeriodCalculator>();

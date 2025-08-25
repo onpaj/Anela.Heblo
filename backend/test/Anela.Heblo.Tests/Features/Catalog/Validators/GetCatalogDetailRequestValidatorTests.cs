@@ -38,7 +38,7 @@ public class GetCatalogDetailRequestValidatorTests
     [InlineData(null)]
     [InlineData("   ")]
     [InlineData("123456789012345678901234567890123456789012345678901")] // 51 characters - too long
-    public void ProductCode_InvalidValues_FailsValidation(string productCode)
+    public void ProductCode_InvalidValues_FailsValidation(string? productCode)
     {
         // Arrange
         var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = 12 };
@@ -68,10 +68,10 @@ public class GetCatalogDetailRequestValidatorTests
     public void ProductCode_TooLong_HasCorrectErrorMessage()
     {
         // Arrange
-        var request = new GetCatalogDetailRequest 
-        { 
+        var request = new GetCatalogDetailRequest
+        {
             ProductCode = "123456789012345678901234567890123456789012345678901", // 51 characters
-            MonthsBack = 12 
+            MonthsBack = 12
         };
 
         // Act
@@ -152,10 +152,10 @@ public class GetCatalogDetailRequestValidatorTests
     public void ValidRequest_PassesAllValidation()
     {
         // Arrange
-        var request = new GetCatalogDetailRequest 
-        { 
-            ProductCode = "PROD-001", 
-            MonthsBack = 12 
+        var request = new GetCatalogDetailRequest
+        {
+            ProductCode = "PROD-001",
+            MonthsBack = 12
         };
 
         // Act
@@ -169,8 +169,8 @@ public class GetCatalogDetailRequestValidatorTests
     public void InvalidRequest_FailsMultipleValidations()
     {
         // Arrange
-        var request = new GetCatalogDetailRequest 
-        { 
+        var request = new GetCatalogDetailRequest
+        {
             ProductCode = "", // Invalid: empty
             MonthsBack = -5   // Invalid: negative
         };
@@ -202,10 +202,10 @@ public class GetCatalogDetailRequestValidatorTests
     public void EdgeCase_MonthsBackAtThreshold_PassesValidation()
     {
         // Arrange
-        var request = new GetCatalogDetailRequest 
-        { 
-            ProductCode = "PROD-001", 
-            MonthsBack = CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD 
+        var request = new GetCatalogDetailRequest
+        {
+            ProductCode = "PROD-001",
+            MonthsBack = CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD
         };
 
         // Act
