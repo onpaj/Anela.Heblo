@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Model;
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -8,13 +9,25 @@ namespace Anela.Heblo.Application.Features.Manufacture.Handlers;
 public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufacturingStockAnalysisRequest, GetManufacturingStockAnalysisResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly IConsumptionRateCalculator _consumptionCalculator;
+    private readonly IProductionActivityAnalyzer _productionAnalyzer;
+    private readonly IManufactureSeverityCalculator _severityCalculator;
+    private readonly IManufactureAnalysisMapper _mapper;
     private readonly ILogger<GetManufacturingStockAnalysisHandler> _logger;
 
     public GetManufacturingStockAnalysisHandler(
         ICatalogRepository catalogRepository,
+        IConsumptionRateCalculator consumptionCalculator,
+        IProductionActivityAnalyzer productionAnalyzer,
+        IManufactureSeverityCalculator severityCalculator,
+        IManufactureAnalysisMapper mapper,
         ILogger<GetManufacturingStockAnalysisHandler> logger)
     {
         _catalogRepository = catalogRepository;
+        _consumptionCalculator = consumptionCalculator;
+        _productionAnalyzer = productionAnalyzer;
+        _severityCalculator = severityCalculator;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -130,76 +143,35 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
     private ManufacturingStockItemDto AnalyzeManufacturingStockItem(CatalogAggregate item, DateTime fromDate, DateTime toDate)
     {
-        var daysDiff = (toDate - fromDate).Days;
-        if (daysDiff <= 0) daysDiff = 1;
-
-        // For finished products, use sales data
+        // Calculate daily sales rate using domain service
+        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, fromDate, toDate);
+        
+        // Calculate total sales in period for display
         var salesInPeriod = item.GetTotalSold(fromDate, toDate);
-        var dailySalesRate = salesInPeriod / (double)daysDiff;
 
-        // Calculate stock days available
-        var stockDaysAvailable = dailySalesRate > 0
-            ? (double)item.Stock.Available / dailySalesRate
-            : double.PositiveInfinity;
+        // Calculate stock days available using domain service
+        var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Available, dailySalesRate);
 
-        // Get configuration from CatalogProperties
-        var optimalStockDaysSetup = item.Properties.OptimalStockDaysSetup;
-        var minStockSetup = item.Properties.StockMinSetup;
-        var batchSize = item.Properties.BatchSize;
+        // Calculate overstock percentage using domain service
+        var overstockPercentage = _severityCalculator.CalculateOverstockPercentage(stockDaysAvailable, item.Properties.OptimalStockDaysSetup);
 
-        // Calculate overstock percentage
-        var overstockPercentage = optimalStockDaysSetup > 0
-            ? (stockDaysAvailable / optimalStockDaysSetup) * 100
-            : 0;
+        // Determine severity using domain service
+        var severity = _severityCalculator.CalculateSeverity(item, dailySalesRate, stockDaysAvailable);
 
-        // Determine severity based on business rules
-        var severity = DetermineManufacturingSeverity(item, dailySalesRate, overstockPercentage);
+        // Check if product is in active production using domain service
+        var isInProduction = _productionAnalyzer.IsInActiveProduction(item.ManufactureHistory);
 
-        return new ManufacturingStockItemDto
-        {
-            Code = item.ProductCode,
-            Name = item.ProductName,
-            CurrentStock = (double)item.Stock.Available,
-            SalesInPeriod = salesInPeriod,
-            DailySalesRate = dailySalesRate,
-            OptimalDaysSetup = optimalStockDaysSetup,
-            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? 999999 : stockDaysAvailable, // Cap infinity for display
-            MinimumStock = (double)minStockSetup,
-            OverstockPercentage = double.IsInfinity(overstockPercentage) ? 0 : overstockPercentage,
-            BatchSize = batchSize.ToString(),
-            ProductFamily = item.ProductFamily ?? string.Empty,
-            Severity = severity,
-            IsConfigured = item.Properties.OptimalStockDaysSetup > 0
-        };
+        // Map to DTO using domain service
+        return _mapper.MapToDto(
+            item,
+            severity,
+            dailySalesRate,
+            salesInPeriod,
+            stockDaysAvailable,
+            overstockPercentage,
+            isInProduction);
     }
 
-    private ManufacturingStockSeverity DetermineManufacturingSeverity(
-        CatalogAggregate catalogAggregate,
-        double dailySalesRate,
-        double overstockPercentage)
-    {
-        // Gray - Missing optimalStockDaysSetup configuration (Unconfigured)
-        // Product MUST have optimalStockDaysSetup to be categorized as Critical/Adequate
-        if (catalogAggregate.Properties.OptimalStockDaysSetup <= 0)
-        {
-            return ManufacturingStockSeverity.Unconfigured;
-        }
-
-        // Red - Overstock < 100% (Critical) - only for products with optimalStockDaysSetup > 0
-        if (overstockPercentage < 100 && dailySalesRate > 0)
-        {
-            return ManufacturingStockSeverity.Critical;
-        }
-
-        // Orange - Below minimum stock (Major) - only for products with minStockSetup > 0
-        if (catalogAggregate.Properties.StockMinSetup > 0 && catalogAggregate.Stock.Available < catalogAggregate.Properties.StockMinSetup)
-        {
-            return ManufacturingStockSeverity.Major;
-        }
-
-        // Green - All conditions OK (Adequate)
-        return ManufacturingStockSeverity.Adequate;
-    }
 
     private bool ShouldIncludeItem(ManufacturingStockItemDto item, GetManufacturingStockAnalysisRequest request)
     {
