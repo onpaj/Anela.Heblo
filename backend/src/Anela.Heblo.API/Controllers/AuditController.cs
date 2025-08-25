@@ -1,20 +1,25 @@
 using Anela.Heblo.Application.Features.Audit.Model;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // 🔒 SECURITY FIX: Require authentication for all audit endpoints
 public class AuditController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ILogger<AuditController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AuditController(IMediator mediator, ILogger<AuditController> logger)
+    public AuditController(IMediator mediator, ILogger<AuditController> logger, ICurrentUserService currentUserService)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
 
     [HttpGet("data-loads")]
@@ -25,6 +30,11 @@ public class AuditController : ControllerBase
     {
         try
         {
+            // 🔒 SECURITY FIX: Meta-auditing - log who accessed audit logs
+            var currentUser = _currentUserService.GetCurrentUser();
+            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit logs at {Timestamp}", 
+                currentUser.Id ?? "Unknown", currentUser.Name, DateTime.UtcNow);
+
             var request = new GetAuditLogsRequest
             {
                 Limit = limit,
@@ -39,10 +49,11 @@ public class AuditController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving data load audit logs");
+            // 🔒 SECURITY FIX: Don't expose internal error details
             return StatusCode(500, new
             {
-                Message = "Error retrieving audit logs",
-                Error = ex.Message
+                Message = "Error retrieving audit logs"
+                // Removed: Error = ex.Message (security risk)
             });
         }
     }
@@ -52,6 +63,11 @@ public class AuditController : ControllerBase
     {
         try
         {
+            // 🔒 SECURITY FIX: Meta-auditing - log who accessed audit summary
+            var currentUser = _currentUserService.GetCurrentUser();
+            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit summary at {Timestamp}", 
+                currentUser.Id ?? "Unknown", currentUser.Name, DateTime.UtcNow);
+
             var request = new GetAuditSummaryRequest
             {
                 FromDate = fromDate,
@@ -65,10 +81,11 @@ public class AuditController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit summary");
+            // 🔒 SECURITY FIX: Don't expose internal error details
             return StatusCode(500, new
             {
-                Message = "Error retrieving audit summary",
-                Error = ex.Message
+                Message = "Error retrieving audit summary"
+                // Removed: Error = ex.Message (security risk)
             });
         }
     }

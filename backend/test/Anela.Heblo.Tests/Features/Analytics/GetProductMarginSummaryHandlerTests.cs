@@ -4,27 +4,39 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Application.Features.Analytics.Domain;
 using Anela.Heblo.Application.Features.Analytics.Handlers;
+using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
+/// <summary>
+/// 🔒 PERFORMANCE FIX: Updated tests for new streaming architecture
+/// Tests now use mocked analytics repository instead of direct catalog dependency
+/// </summary>
 public class GetProductMarginSummaryHandlerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
     private readonly Mock<IProductMarginAnalysisService> _marginAnalysisServiceMock;
+    private readonly MarginCalculator _marginCalculator;
+    private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
     private readonly GetProductMarginSummaryHandler _handler;
 
     public GetProductMarginSummaryHandlerTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _marginAnalysisServiceMock = new Mock<IProductMarginAnalysisService>();
-        _handler = new GetProductMarginSummaryHandler(_catalogRepositoryMock.Object, _marginAnalysisServiceMock.Object);
+        _marginCalculator = new MarginCalculator();
+        _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
+        _handler = new GetProductMarginSummaryHandler(
+            _analyticsRepositoryMock.Object, 
+            _marginAnalysisServiceMock.Object,
+            _marginCalculator,
+            _monthlyBreakdownGenerator);
     }
 
     [Fact]
@@ -34,71 +46,58 @@ public class GetProductMarginSummaryHandlerTests
         var request = new GetProductMarginSummaryRequest
         {
             TimeWindow = "current-year",
-            TopProductCount = 3
+            GroupingMode = ProductGroupingMode.Products
         };
 
         var fromDate = new DateTime(2024, 1, 1);
         var toDate = new DateTime(2024, 12, 31);
 
-        var products = new List<CatalogAggregate>
+        var analyticsProducts = new List<AnalyticsProduct>
         {
-            CreateTestProduct("PROD001", "Product 1", 100m, new[]
+            new AnalyticsProduct
             {
-                new CatalogSaleRecord { Date = new DateTime(2024, 3, 15), AmountB2B = 10, AmountB2C = 5 }
-            }),
-            CreateTestProduct("PROD002", "Product 2", 50m, new[]
+                ProductCode = "PROD001",
+                ProductName = "Product 1", 
+                Type = ProductType.Product,
+                MarginAmount = 100m,
+                SalesHistory = new List<SalesDataPoint>
+                {
+                    new() { Date = new DateTime(2024, 3, 15), AmountB2B = 10, AmountB2C = 5 }
+                }
+            },
+            new AnalyticsProduct
             {
-                new CatalogSaleRecord { Date = new DateTime(2024, 4, 20), AmountB2B = 20, AmountB2C = 10 }
-            })
-        };
-
-        var marginMap = new Dictionary<string, decimal>
-        {
-            { "PROD001", 1500m }, // 15 units * 100 margin
-            { "PROD002", 1500m }  // 30 units * 50 margin
+                ProductCode = "PROD002",
+                ProductName = "Product 2",
+                Type = ProductType.Product,
+                MarginAmount = 50m,
+                SalesHistory = new List<SalesDataPoint>
+                {
+                    new() { Date = new DateTime(2024, 4, 20), AmountB2B = 20, AmountB2C = 10 }
+                }
+            }
         };
 
         _marginAnalysisServiceMock
             .Setup(x => x.ParseTimeWindow("current-year"))
             .Returns((fromDate, toDate));
 
-        _catalogRepositoryMock
-            .Setup(x => x.GetProductsWithSalesInPeriod(fromDate, toDate,
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
                 It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.CalculateGroupTotalMargin(products, fromDate, toDate, It.IsAny<ProductGroupingMode>()))
-            .Returns(marginMap);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.CalculateMaterialCosts(It.IsAny<CatalogAggregate>()))
-            .Returns(20m);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.CalculateLaborCosts(It.IsAny<CatalogAggregate>()))
-            .Returns(15m);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.GetGroupKey(It.IsAny<CatalogAggregate>(), It.IsAny<ProductGroupingMode>()))
-            .Returns<CatalogAggregate, ProductGroupingMode>((product, mode) => product.ProductCode);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.GetGroupDisplayName(It.IsAny<string>(), It.IsAny<ProductGroupingMode>(), It.IsAny<List<CatalogAggregate>>()))
-            .Returns<string, ProductGroupingMode, List<CatalogAggregate>>((groupKey, mode, products) => 
-                products.FirstOrDefault(p => p.ProductCode == groupKey)?.ProductName ?? groupKey);
+            .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(3000m, result.TotalMargin); // Sum of both products
         Assert.Equal("current-year", result.TimeWindow);
         Assert.Equal(fromDate, result.FromDate);
         Assert.Equal(toDate, result.ToDate);
-        Assert.Equal(2, result.TopProducts.Count); // Both products should be in top products
-        Assert.NotEmpty(result.MonthlyData);
+        Assert.Equal(3000m, result.TotalMargin); // (15 * 100) + (30 * 50) = 1500 + 1500
+        Assert.Equal(2, result.TopProducts.Count);
+        Assert.True(result.MonthlyData.Any());
     }
 
     [Theory]
@@ -108,55 +107,68 @@ public class GetProductMarginSummaryHandlerTests
     public async Task Handle_DifferentTimeWindows_ParsesCorrectly(string timeWindow)
     {
         // Arrange
-        var request = new GetProductMarginSummaryRequest { TimeWindow = timeWindow };
+        var request = new GetProductMarginSummaryRequest { TimeWindow = timeWindow, GroupingMode = ProductGroupingMode.Products };
         var expectedDates = (DateTime.Today.AddMonths(-6), DateTime.Today);
 
         _marginAnalysisServiceMock
             .Setup(x => x.ParseTimeWindow(timeWindow))
             .Returns(expectedDates);
 
-        _catalogRepositoryMock
-            .Setup(x => x.GetProductsWithSalesInPeriod(It.IsAny<DateTime>(), It.IsAny<DateTime>(),
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(),
                 It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CatalogAggregate>());
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.CalculateGroupTotalMargin(It.IsAny<List<CatalogAggregate>>(),
-                It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<ProductGroupingMode>()))
-            .Returns(new Dictionary<string, decimal>());
+            .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         Assert.Equal(timeWindow, result.TimeWindow);
-        _marginAnalysisServiceMock.Verify(x => x.ParseTimeWindow(timeWindow), Times.Once);
+        Assert.Equal(expectedDates.Item1, result.FromDate);
+        Assert.Equal(expectedDates.Item2, result.ToDate);
     }
 
-    private static CatalogAggregate CreateTestProduct(string productCode, string productName, decimal marginAmount, CatalogSaleRecord[] salesHistory)
+    [Fact]
+    public async Task Handle_EmptyProductList_ReturnsZeroMargin()
     {
-        return new CatalogAggregate
+        // Arrange
+        var request = new GetProductMarginSummaryRequest
         {
-            ProductCode = productCode,
-            ProductName = productName,
-            Type = ProductType.Product,
-            MarginAmount = marginAmount,
-            SalesHistory = salesHistory.ToList(),
-            EshopPrice = new ProductPriceEshop
-            {
-                ProductCode = productCode,
-                PriceWithoutVat = marginAmount + 50m, // Some selling price
-                PriceWithVat = (marginAmount + 50m) * 1.21m
-            },
-            ManufactureCostHistory = new List<ManufactureCost>
-            {
-                new ManufactureCost
-                {
-                    Date = DateTime.Now.AddDays(-30),
-                    MaterialCost = 20m,
-                    HandlingCost = 15m
-                }
-            }
+            TimeWindow = "current-year",
+            GroupingMode = ProductGroupingMode.Products
         };
+
+        var fromDate = new DateTime(2024, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        _marginAnalysisServiceMock
+            .Setup(x => x.ParseTimeWindow("current-year"))
+            .Returns((fromDate, toDate));
+
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
+                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+            .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(0m, result.TotalMargin);
+        Assert.Empty(result.TopProducts);
+        Assert.Empty(result.MonthlyData);
+    }
+}
+
+// Extension method to convert list to IAsyncEnumerable for testing
+public static class TestExtensions
+{
+    public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source)
+    {
+        foreach (var item in source)
+        {
+            yield return item;
+        }
+        await Task.CompletedTask; // Satisfy async requirement
     }
 }
