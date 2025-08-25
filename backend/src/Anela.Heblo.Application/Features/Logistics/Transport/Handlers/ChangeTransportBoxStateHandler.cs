@@ -47,7 +47,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
             // Get the transition action
             var transition = box.TransitionNode.GetTransition(newState);
-            
+
             // Check condition if exists
             if (transition.Condition != null && !transition.Condition(box))
             {

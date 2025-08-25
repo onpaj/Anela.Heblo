@@ -71,7 +71,7 @@ public class TransportBoxController : ControllerBase
     {
         request.BoxId = id; // Ensure consistency
         var response = await _mediator.Send(request, cancellationToken);
-        
+
         if (!response.Success)
         {
             return BadRequest(response.ErrorMessage);

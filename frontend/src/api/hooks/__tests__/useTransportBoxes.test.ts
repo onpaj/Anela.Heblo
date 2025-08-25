@@ -7,6 +7,9 @@ import * as clientModule from '../../client';
 // Mock the client module
 jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
+  QUERY_KEYS: {
+    transportBox: ['transport-boxes']
+  }
 }));
 
 const mockGetAuthenticatedApiClient = clientModule.getAuthenticatedApiClient as jest.MockedFunction<typeof clientModule.getAuthenticatedApiClient>;

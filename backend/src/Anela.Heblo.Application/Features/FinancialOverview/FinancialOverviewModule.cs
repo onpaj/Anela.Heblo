@@ -18,7 +18,7 @@ public static class FinancialOverviewModule
         services.AddScoped<IStockValueService>(provider =>
         {
             var env = provider.GetRequiredService<IHostEnvironment>();
-            
+
             if (env.EnvironmentName == "Test" || env.EnvironmentName == "Automation")
             {
                 // Use placeholder implementation for test environments

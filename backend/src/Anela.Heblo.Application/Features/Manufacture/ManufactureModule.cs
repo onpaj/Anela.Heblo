@@ -10,13 +10,13 @@ public static class ManufactureModule
     public static IServiceCollection AddManufactureModule(this IServiceCollection services, IConfiguration configuration)
     {
         // Register MediatR handlers - they will be automatically discovered
-        
+
         // Register configuration options
         services.Configure<ManufactureAnalysisOptions>(options =>
         {
             configuration.GetSection("ManufactureAnalysis").Bind(options);
         });
-        
+
         // Register domain services for manufacturing stock analysis
         services.AddScoped<ITimePeriodCalculator, TimePeriodCalculator>();
         services.AddScoped<IConsumptionRateCalculator, ConsumptionRateCalculator>();

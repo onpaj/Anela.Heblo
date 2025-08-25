@@ -91,7 +91,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
     {
         // Calculate daily sales rate using domain service
         var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, fromDate, toDate);
-        
+
         // Calculate total sales in period for display
         var salesInPeriod = item.GetTotalSold(fromDate, toDate);
 

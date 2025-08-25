@@ -18,13 +18,13 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
-        
+
         // Add required dependencies for StockValueService
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
         services.AddSingleton(mockEnvironment.Object);
@@ -36,7 +36,7 @@ public class FinancialOverviewModuleTests
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
         var financialAnalysisService = serviceProvider.GetRequiredService<IFinancialAnalysisService>();
-        
+
         Assert.NotNull(stockValueService);
         Assert.NotNull(financialAnalysisService);
         Assert.IsType<StockValueService>(stockValueService);
@@ -49,7 +49,7 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
         // Cannot mock extension methods - the factory checks EnvironmentName instead
@@ -71,7 +71,7 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Automation");
         // Cannot mock extension methods - the factory checks EnvironmentName instead
@@ -92,13 +92,13 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
-        
+
         // Add required dependencies for StockValueService
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production");
         // Cannot mock extension methods - the factory checks EnvironmentName instead
@@ -119,13 +119,13 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
-        
+
         // Add required dependencies for StockValueService
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
         // Cannot mock extension methods - the factory checks EnvironmentName instead
@@ -147,7 +147,7 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Automation");
 
@@ -165,13 +165,13 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
-        
+
         // Add required dependencies
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
 
@@ -190,7 +190,7 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
         services.AddSingleton(mockEnvironment.Object);
@@ -215,7 +215,7 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        
+
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
 
