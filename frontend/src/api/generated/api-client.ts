@@ -1476,6 +1476,84 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
+    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
+        let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
+        if (timePeriod === null)
+            throw new Error("The parameter 'timePeriod' cannot be null.");
+        else if (timePeriod !== undefined)
+            url_ += "TimePeriod=" + encodeURIComponent("" + timePeriod) + "&";
+        if (customFromDate !== undefined && customFromDate !== null)
+            url_ += "CustomFromDate=" + encodeURIComponent(customFromDate ? "" + customFromDate.toISOString() : "") + "&";
+        if (customToDate !== undefined && customToDate !== null)
+            url_ += "CustomToDate=" + encodeURIComponent(customToDate ? "" + customToDate.toISOString() : "") + "&";
+        if (productFamily !== undefined && productFamily !== null)
+            url_ += "ProductFamily=" + encodeURIComponent("" + productFamily) + "&";
+        if (criticalItemsOnly === null)
+            throw new Error("The parameter 'criticalItemsOnly' cannot be null.");
+        else if (criticalItemsOnly !== undefined)
+            url_ += "CriticalItemsOnly=" + encodeURIComponent("" + criticalItemsOnly) + "&";
+        if (majorItemsOnly === null)
+            throw new Error("The parameter 'majorItemsOnly' cannot be null.");
+        else if (majorItemsOnly !== undefined)
+            url_ += "MajorItemsOnly=" + encodeURIComponent("" + majorItemsOnly) + "&";
+        if (adequateItemsOnly === null)
+            throw new Error("The parameter 'adequateItemsOnly' cannot be null.");
+        else if (adequateItemsOnly !== undefined)
+            url_ += "AdequateItemsOnly=" + encodeURIComponent("" + adequateItemsOnly) + "&";
+        if (unconfiguredOnly === null)
+            throw new Error("The parameter 'unconfiguredOnly' cannot be null.");
+        else if (unconfiguredOnly !== undefined)
+            url_ += "UnconfiguredOnly=" + encodeURIComponent("" + unconfiguredOnly) + "&";
+        if (searchTerm !== undefined && searchTerm !== null)
+            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufacturingStockAnalysis_GetStockAnalysis(_response);
+        });
+    }
+
+    protected processManufacturingStockAnalysis_GetStockAnalysis(response: Response): Promise<GetManufacturingStockAnalysisResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufacturingStockAnalysisResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -1857,6 +1935,180 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
+    }
+
+    transportBox_GetTransportBoxes(skip: number | undefined, take: number | undefined, code: string | null | undefined, state: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetTransportBoxesResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes?";
+        if (skip === null)
+            throw new Error("The parameter 'skip' cannot be null.");
+        else if (skip !== undefined)
+            url_ += "Skip=" + encodeURIComponent("" + skip) + "&";
+        if (take === null)
+            throw new Error("The parameter 'take' cannot be null.");
+        else if (take !== undefined)
+            url_ += "Take=" + encodeURIComponent("" + take) + "&";
+        if (code !== undefined && code !== null)
+            url_ += "Code=" + encodeURIComponent("" + code) + "&";
+        if (state !== undefined && state !== null)
+            url_ += "State=" + encodeURIComponent("" + state) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_GetTransportBoxes(_response);
+        });
+    }
+
+    protected processTransportBox_GetTransportBoxes(response: Response): Promise<GetTransportBoxesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTransportBoxesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTransportBoxesResponse>(null as any);
+    }
+
+    transportBox_GetTransportBoxSummary(code: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetTransportBoxSummaryResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/summary?";
+        if (code !== undefined && code !== null)
+            url_ += "Code=" + encodeURIComponent("" + code) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_GetTransportBoxSummary(_response);
+        });
+    }
+
+    protected processTransportBox_GetTransportBoxSummary(response: Response): Promise<GetTransportBoxSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTransportBoxSummaryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTransportBoxSummaryResponse>(null as any);
+    }
+
+    transportBox_GetTransportBoxById(id: number): Promise<GetTransportBoxByIdResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_GetTransportBoxById(_response);
+        });
+    }
+
+    protected processTransportBox_GetTransportBoxById(response: Response): Promise<GetTransportBoxByIdResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTransportBoxByIdResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTransportBoxByIdResponse>(null as any);
+    }
+
+    transportBox_ChangeTransportBoxState(id: number, request: ChangeTransportBoxStateRequest): Promise<ChangeTransportBoxStateResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/state";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_ChangeTransportBoxState(_response);
+        });
+    }
+
+    protected processTransportBox_ChangeTransportBoxState(response: Response): Promise<ChangeTransportBoxStateResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ChangeTransportBoxStateResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ChangeTransportBoxStateResponse>(null as any);
     }
 }
 
@@ -4118,6 +4370,255 @@ export interface ICreateJournalTagRequest {
     color?: string;
 }
 
+export class GetManufacturingStockAnalysisResponse implements IGetManufacturingStockAnalysisResponse {
+    items?: ManufacturingStockItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    summary?: ManufacturingStockSummaryDto;
+
+    constructor(data?: IGetManufacturingStockAnalysisResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ManufacturingStockItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.summary = _data["summary"] ? ManufacturingStockSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetManufacturingStockAnalysisResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufacturingStockAnalysisResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetManufacturingStockAnalysisResponse {
+    items?: ManufacturingStockItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    summary?: ManufacturingStockSummaryDto;
+}
+
+export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
+    code?: string;
+    name?: string;
+    currentStock?: number;
+    salesInPeriod?: number;
+    dailySalesRate?: number;
+    optimalDaysSetup?: number;
+    stockDaysAvailable?: number;
+    minimumStock?: number;
+    overstockPercentage?: number;
+    batchSize?: string;
+    productFamily?: string | undefined;
+    severity?: ManufacturingStockSeverity;
+    isConfigured?: boolean;
+
+    constructor(data?: IManufacturingStockItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.name = _data["name"];
+            this.currentStock = _data["currentStock"];
+            this.salesInPeriod = _data["salesInPeriod"];
+            this.dailySalesRate = _data["dailySalesRate"];
+            this.optimalDaysSetup = _data["optimalDaysSetup"];
+            this.stockDaysAvailable = _data["stockDaysAvailable"];
+            this.minimumStock = _data["minimumStock"];
+            this.overstockPercentage = _data["overstockPercentage"];
+            this.batchSize = _data["batchSize"];
+            this.productFamily = _data["productFamily"];
+            this.severity = _data["severity"];
+            this.isConfigured = _data["isConfigured"];
+        }
+    }
+
+    static fromJS(data: any): ManufacturingStockItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufacturingStockItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["name"] = this.name;
+        data["currentStock"] = this.currentStock;
+        data["salesInPeriod"] = this.salesInPeriod;
+        data["dailySalesRate"] = this.dailySalesRate;
+        data["optimalDaysSetup"] = this.optimalDaysSetup;
+        data["stockDaysAvailable"] = this.stockDaysAvailable;
+        data["minimumStock"] = this.minimumStock;
+        data["overstockPercentage"] = this.overstockPercentage;
+        data["batchSize"] = this.batchSize;
+        data["productFamily"] = this.productFamily;
+        data["severity"] = this.severity;
+        data["isConfigured"] = this.isConfigured;
+        return data;
+    }
+}
+
+export interface IManufacturingStockItemDto {
+    code?: string;
+    name?: string;
+    currentStock?: number;
+    salesInPeriod?: number;
+    dailySalesRate?: number;
+    optimalDaysSetup?: number;
+    stockDaysAvailable?: number;
+    minimumStock?: number;
+    overstockPercentage?: number;
+    batchSize?: string;
+    productFamily?: string | undefined;
+    severity?: ManufacturingStockSeverity;
+    isConfigured?: boolean;
+}
+
+export enum ManufacturingStockSeverity {
+    Critical = 0,
+    Major = 1,
+    Minor = 2,
+    Adequate = 3,
+    Unconfigured = 4,
+}
+
+export class ManufacturingStockSummaryDto implements IManufacturingStockSummaryDto {
+    totalProducts?: number;
+    criticalCount?: number;
+    majorCount?: number;
+    minorCount?: number;
+    adequateCount?: number;
+    unconfiguredCount?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+    productFamilies?: string[];
+
+    constructor(data?: IManufacturingStockSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalProducts = _data["totalProducts"];
+            this.criticalCount = _data["criticalCount"];
+            this.majorCount = _data["majorCount"];
+            this.minorCount = _data["minorCount"];
+            this.adequateCount = _data["adequateCount"];
+            this.unconfiguredCount = _data["unconfiguredCount"];
+            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
+            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
+            if (Array.isArray(_data["productFamilies"])) {
+                this.productFamilies = [] as any;
+                for (let item of _data["productFamilies"])
+                    this.productFamilies!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ManufacturingStockSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufacturingStockSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalProducts"] = this.totalProducts;
+        data["criticalCount"] = this.criticalCount;
+        data["majorCount"] = this.majorCount;
+        data["minorCount"] = this.minorCount;
+        data["adequateCount"] = this.adequateCount;
+        data["unconfiguredCount"] = this.unconfiguredCount;
+        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
+        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
+        if (Array.isArray(this.productFamilies)) {
+            data["productFamilies"] = [];
+            for (let item of this.productFamilies)
+                data["productFamilies"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IManufacturingStockSummaryDto {
+    totalProducts?: number;
+    criticalCount?: number;
+    majorCount?: number;
+    minorCount?: number;
+    adequateCount?: number;
+    unconfiguredCount?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+    productFamilies?: string[];
+}
+
+export enum TimePeriodFilter {
+    PreviousQuarter = 0,
+    FutureQuarter = 1,
+    Y2Y = 2,
+    PreviousSeason = 3,
+    CustomPeriod = 4,
+}
+
+export enum ManufacturingStockSortBy {
+    ProductCode = 0,
+    ProductName = 1,
+    CurrentStock = 2,
+    SalesInPeriod = 3,
+    DailySales = 4,
+    OptimalDaysSetup = 5,
+    StockDaysAvailable = 6,
+    MinimumStock = 7,
+    OverstockPercentage = 8,
+    BatchSize = 9,
+}
+
 export class GetProductMarginsResponse implements IGetProductMarginsResponse {
     items?: ProductMarginDto[];
     totalCount?: number;
@@ -5445,6 +5946,446 @@ export enum StockAnalysisSortBy {
     Consumption = 3,
     StockEfficiency = 4,
     LastPurchaseDate = 5,
+}
+
+export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {
+    items?: TransportBoxDto[];
+    totalCount?: number;
+    skip?: number;
+    take?: number;
+
+    constructor(data?: IGetTransportBoxesResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(TransportBoxDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.skip = _data["skip"];
+            this.take = _data["take"];
+        }
+    }
+
+    static fromJS(data: any): GetTransportBoxesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTransportBoxesResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["skip"] = this.skip;
+        data["take"] = this.take;
+        return data;
+    }
+}
+
+export interface IGetTransportBoxesResponse {
+    items?: TransportBoxDto[];
+    totalCount?: number;
+    skip?: number;
+    take?: number;
+}
+
+export class TransportBoxDto implements ITransportBoxDto {
+    id?: number;
+    code?: string | undefined;
+    state?: string;
+    defaultReceiveState?: string;
+    description?: string | undefined;
+    lastStateChanged?: Date | undefined;
+    location?: string | undefined;
+    isInTransit?: boolean;
+    isInReserve?: boolean;
+    itemCount?: number;
+    items?: TransportBoxItemDto[];
+    stateLog?: TransportBoxStateLogDto[];
+
+    constructor(data?: ITransportBoxDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.code = _data["code"];
+            this.state = _data["state"];
+            this.defaultReceiveState = _data["defaultReceiveState"];
+            this.description = _data["description"];
+            this.lastStateChanged = _data["lastStateChanged"] ? new Date(_data["lastStateChanged"].toString()) : <any>undefined;
+            this.location = _data["location"];
+            this.isInTransit = _data["isInTransit"];
+            this.isInReserve = _data["isInReserve"];
+            this.itemCount = _data["itemCount"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(TransportBoxItemDto.fromJS(item));
+            }
+            if (Array.isArray(_data["stateLog"])) {
+                this.stateLog = [] as any;
+                for (let item of _data["stateLog"])
+                    this.stateLog!.push(TransportBoxStateLogDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TransportBoxDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransportBoxDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["code"] = this.code;
+        data["state"] = this.state;
+        data["defaultReceiveState"] = this.defaultReceiveState;
+        data["description"] = this.description;
+        data["lastStateChanged"] = this.lastStateChanged ? this.lastStateChanged.toISOString() : <any>undefined;
+        data["location"] = this.location;
+        data["isInTransit"] = this.isInTransit;
+        data["isInReserve"] = this.isInReserve;
+        data["itemCount"] = this.itemCount;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        if (Array.isArray(this.stateLog)) {
+            data["stateLog"] = [];
+            for (let item of this.stateLog)
+                data["stateLog"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ITransportBoxDto {
+    id?: number;
+    code?: string | undefined;
+    state?: string;
+    defaultReceiveState?: string;
+    description?: string | undefined;
+    lastStateChanged?: Date | undefined;
+    location?: string | undefined;
+    isInTransit?: boolean;
+    isInReserve?: boolean;
+    itemCount?: number;
+    items?: TransportBoxItemDto[];
+    stateLog?: TransportBoxStateLogDto[];
+}
+
+export class TransportBoxItemDto implements ITransportBoxItemDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    dateAdded?: Date;
+    userAdded?: string;
+
+    constructor(data?: ITransportBoxItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+            this.dateAdded = _data["dateAdded"] ? new Date(_data["dateAdded"].toString()) : <any>undefined;
+            this.userAdded = _data["userAdded"];
+        }
+    }
+
+    static fromJS(data: any): TransportBoxItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransportBoxItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        data["dateAdded"] = this.dateAdded ? this.dateAdded.toISOString() : <any>undefined;
+        data["userAdded"] = this.userAdded;
+        return data;
+    }
+}
+
+export interface ITransportBoxItemDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    dateAdded?: Date;
+    userAdded?: string;
+}
+
+export class TransportBoxStateLogDto implements ITransportBoxStateLogDto {
+    id?: number;
+    state?: string;
+    stateDate?: Date;
+    user?: string | undefined;
+    description?: string | undefined;
+
+    constructor(data?: ITransportBoxStateLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.state = _data["state"];
+            this.stateDate = _data["stateDate"] ? new Date(_data["stateDate"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): TransportBoxStateLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransportBoxStateLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["state"] = this.state;
+        data["stateDate"] = this.stateDate ? this.stateDate.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface ITransportBoxStateLogDto {
+    id?: number;
+    state?: string;
+    stateDate?: Date;
+    user?: string | undefined;
+    description?: string | undefined;
+}
+
+export class GetTransportBoxSummaryResponse implements IGetTransportBoxSummaryResponse {
+    totalBoxes?: number;
+    activeBoxes?: number;
+    statesCounts?: { [key: string]: number; };
+
+    constructor(data?: IGetTransportBoxSummaryResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalBoxes = _data["totalBoxes"];
+            this.activeBoxes = _data["activeBoxes"];
+            if (_data["statesCounts"]) {
+                this.statesCounts = {} as any;
+                for (let key in _data["statesCounts"]) {
+                    if (_data["statesCounts"].hasOwnProperty(key))
+                        (<any>this.statesCounts)![key] = _data["statesCounts"][key];
+                }
+            }
+        }
+    }
+
+    static fromJS(data: any): GetTransportBoxSummaryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTransportBoxSummaryResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalBoxes"] = this.totalBoxes;
+        data["activeBoxes"] = this.activeBoxes;
+        if (this.statesCounts) {
+            data["statesCounts"] = {};
+            for (let key in this.statesCounts) {
+                if (this.statesCounts.hasOwnProperty(key))
+                    (<any>data["statesCounts"])[key] = (<any>this.statesCounts)[key];
+            }
+        }
+        return data;
+    }
+}
+
+export interface IGetTransportBoxSummaryResponse {
+    totalBoxes?: number;
+    activeBoxes?: number;
+    statesCounts?: { [key: string]: number; };
+}
+
+export class GetTransportBoxByIdResponse implements IGetTransportBoxByIdResponse {
+    transportBox?: TransportBoxDto | undefined;
+
+    constructor(data?: IGetTransportBoxByIdResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetTransportBoxByIdResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTransportBoxByIdResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetTransportBoxByIdResponse {
+    transportBox?: TransportBoxDto | undefined;
+}
+
+export class ChangeTransportBoxStateResponse implements IChangeTransportBoxStateResponse {
+    success?: boolean;
+    errorMessage?: string | undefined;
+    updatedBox?: GetTransportBoxByIdResponse | undefined;
+
+    constructor(data?: IChangeTransportBoxStateResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.errorMessage = _data["errorMessage"];
+            this.updatedBox = _data["updatedBox"] ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ChangeTransportBoxStateResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChangeTransportBoxStateResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["errorMessage"] = this.errorMessage;
+        data["updatedBox"] = this.updatedBox ? this.updatedBox.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IChangeTransportBoxStateResponse {
+    success?: boolean;
+    errorMessage?: string | undefined;
+    updatedBox?: GetTransportBoxByIdResponse | undefined;
+}
+
+export class ChangeTransportBoxStateRequest implements IChangeTransportBoxStateRequest {
+    boxId?: number;
+    newState?: string;
+    description?: string | undefined;
+
+    constructor(data?: IChangeTransportBoxStateRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.newState = _data["newState"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): ChangeTransportBoxStateRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChangeTransportBoxStateRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["newState"] = this.newState;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IChangeTransportBoxStateRequest {
+    boxId?: number;
+    newState?: string;
+    description?: string | undefined;
 }
 
 export interface FileResponse {

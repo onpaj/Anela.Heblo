@@ -1,0 +1,267 @@
+using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
+using Anela.Heblo.Domain.Features.Logistics.Transport;
+using FluentAssertions;
+using MediatR;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+
+namespace Anela.Heblo.Tests.Features.Logistics.Transport;
+
+public class ChangeTransportBoxStateHandlerTests
+{
+    private readonly Mock<ITransportBoxRepository> _repositoryMock;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
+    private readonly ChangeTransportBoxStateHandler _handler;
+
+    public ChangeTransportBoxStateHandlerTests()
+    {
+        _repositoryMock = new Mock<ITransportBoxRepository>();
+        _mediatorMock = new Mock<IMediator>();
+        _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
+
+        _handler = new ChangeTransportBoxStateHandler(
+            _repositoryMock.Object,
+            _mediatorMock.Object,
+            _loggerMock.Object);
+    }
+
+    [Fact]
+    public async Task Handle_BoxNotFound_ReturnsFailureResponse()
+    {
+        // Arrange
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 999,
+            NewState = "Opened"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TransportBox?)null);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Transport box with ID 999 not found.");
+        result.UpdatedBox.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_InvalidState_ReturnsFailureResponse()
+    {
+        // Arrange
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = "InvalidState"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Invalid state: InvalidState");
+        result.UpdatedBox.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ValidTransition_NewToOpened_ReturnsSuccess()
+    {
+        // Arrange
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = "Opened"
+        };
+
+        var updatedBoxResponse = new GetTransportBoxByIdResponse();
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedBoxResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+        result.UpdatedBox.Should().Be(updatedBoxResponse);
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_InvalidTransition_ThrowsValidationException_ReturnsFailure()
+    {
+        // Arrange - try to transition from New directly to Received (invalid transition)
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = "Received"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Unable to change state to Received");
+        result.UpdatedBox.Should().BeNull();
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ConditionNotMet_ReturnsFailure()
+    {
+        // Arrange - try to open a box without code (condition not met)
+        var box = CreateTestBoxWithoutCode(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = "Opened"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Condition not met for transition to Opened");
+        result.UpdatedBox.Should().BeNull();
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Opened", "InTransit")]
+    [InlineData("InTransit", "Received")]
+    [InlineData("InSwap", "Stocked")]
+    [InlineData("Stocked", "Closed")]
+    public async Task Handle_ValidTransitionChain_ReturnsSuccess(string fromState, string toState)
+    {
+        // Arrange
+        var initialState = Enum.Parse<TransportBoxState>(fromState);
+        var box = CreateTestBox(initialState);
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = toState
+        };
+
+        var updatedBoxResponse = new GetTransportBoxByIdResponse();
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedBoxResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+        result.UpdatedBox.Should().Be(updatedBoxResponse);
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ExceptionThrown_ReturnsFailureResponse()
+    {
+        // Arrange
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = "Opened"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database connection failed"));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("An error occurred while changing the box state.");
+        result.UpdatedBox.Should().BeNull();
+    }
+
+    private TransportBox CreateTestBox(TransportBoxState state)
+    {
+        var box = new TransportBox();
+
+        if (state == TransportBoxState.New)
+        {
+            // For New state, set the code using reflection since it needs to be set for the transition
+            var codeField = typeof(TransportBox).GetField("<Code>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            codeField?.SetValue(box, "TEST-BOX-001");
+        }
+        else
+        {
+            // For other states, we need to simulate having gone through proper state transitions
+            // Use reflection to set both state and code
+            var stateProperty = typeof(TransportBox).GetProperty("State");
+            stateProperty?.SetValue(box, state);
+
+            var codeField = typeof(TransportBox).GetField("<Code>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            codeField?.SetValue(box, "TEST-BOX-001");
+        }
+
+        return box;
+    }
+
+    private TransportBox CreateTestBoxWithoutCode(TransportBoxState state)
+    {
+        var box = new TransportBox();
+
+        // Use reflection to set the private state without code for testing condition failures
+        var stateProperty = typeof(TransportBox).GetProperty("State");
+        stateProperty?.SetValue(box, state);
+
+        return box;
+    }
+}
