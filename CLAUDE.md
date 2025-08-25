@@ -337,7 +337,7 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
   - Real Microsoft Entra ID authentication
   - URL: https://heblo.anela.cz
 - **Versioning**: Semantic versioning with conventional commits
-- **CI/CD**: GitHub Actions with unit tests, Playwright UI tests, Docker builds, feature branch testing, main branch auto-deploy
+- **CI/CD**: Enhanced GitHub Actions pipeline with optional UI tests and auto-merge capabilities
 
 ## Design Document Alignment Rules
 
