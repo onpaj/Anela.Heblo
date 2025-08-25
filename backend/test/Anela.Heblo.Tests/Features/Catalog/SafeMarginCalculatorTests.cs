@@ -1,5 +1,6 @@
 using System;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -128,7 +129,7 @@ public class SafeMarginCalculatorTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(expectedMargin, result.Margin.Value, 2); // Allow small rounding differences
+        result.Margin.Value.Should().BeApproximately(expectedMargin, 0.01m); // Allow small rounding differences
         Assert.Null(result.ErrorMessage);
         Assert.Null(result.Exception);
     }

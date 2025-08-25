@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Manufacture.Model;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -220,7 +221,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateOverstockPercentage(stockDaysAvailable, optimalStockDaysSetup);
 
         // Assert
-        Assert.Equal(expectedPercentage, result, precision: 2);
+        result.Should().BeApproximately(expectedPercentage, 0.01);
     }
 
     [Fact]
