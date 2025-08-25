@@ -15,19 +15,23 @@ public static class FinancialOverviewModule
         services.AddMemoryCache();
 
         // Register IStockValueService using factory pattern to avoid ServiceProvider antipattern
+        // Uses environment-specific implementations:
+        // - Test/Automation environments: PlaceholderStockValueService (no external dependencies)
+        // - Production/Development: StockValueService (real ERP integration)
         services.AddScoped<IStockValueService>(provider =>
         {
             var env = provider.GetRequiredService<IHostEnvironment>();
 
             if (env.EnvironmentName == "Test" || env.EnvironmentName == "Automation")
             {
-                // Use placeholder implementation for test environments
+                // PlaceholderStockValueService provides deterministic empty data for consistent testing
+                // This avoids external ERP dependencies during automated testing
                 var logger = provider.GetRequiredService<ILogger<PlaceholderStockValueService>>();
                 return new PlaceholderStockValueService(logger);
             }
             else
             {
-                // Use real implementation for production and development environments
+                // StockValueService provides real stock data integration with ERP systems
                 var stockClient = provider.GetRequiredService<IErpStockClient>();
                 var priceClient = provider.GetRequiredService<IProductPriceErpClient>();
                 var logger = provider.GetRequiredService<ILogger<StockValueService>>();

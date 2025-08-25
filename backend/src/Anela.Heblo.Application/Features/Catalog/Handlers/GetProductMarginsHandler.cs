@@ -144,9 +144,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing product {ProductCode} - {ProductName}. Skipping product.", 
+                _logger.LogError(ex, "Error processing product {ProductCode} - {ProductName}. Skipping product.",
                     product?.ProductCode, product?.ProductName);
-                
+
                 // Add error placeholder to maintain count consistency
                 results.Add(new ProductMarginDto
                 {

@@ -36,11 +36,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
                 var mockMediator = new Mock<IMediator>();
                 mockMediator.Setup(x => x.Send(It.IsAny<GetProductMarginsRequest>(), default))
                     .ThrowsAsync(new DataAccessException("Database connection failed"));
-                
+
                 services.AddScoped(_ => mockMediator.Object);
             });
         });
-        
+
         var client = factory.CreateClient();
 
         // Act
@@ -48,7 +48,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Service temporarily unavailable", content);
         Assert.Contains("Data source unavailable", content);
@@ -66,11 +66,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
                 var mockMediator = new Mock<IMediator>();
                 mockMediator.Setup(x => x.Send(It.IsAny<GetProductMarginsRequest>(), default))
                     .ThrowsAsync(new MarginCalculationException("Invalid margin calculation"));
-                
+
                 services.AddScoped(_ => mockMediator.Object);
             });
         });
-        
+
         var client = factory.CreateClient();
 
         // Act
@@ -78,7 +78,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Unable to calculate product margins", content);
         Assert.Contains("Invalid margin calculation", content);
@@ -96,11 +96,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
                 var mockMediator = new Mock<IMediator>();
                 mockMediator.Setup(x => x.Send(It.IsAny<GetProductMarginsRequest>(), default))
                     .ThrowsAsync(new ProductMarginsException("Business logic error"));
-                
+
                 services.AddScoped(_ => mockMediator.Object);
             });
         });
-        
+
         var client = factory.CreateClient();
 
         // Act
@@ -108,7 +108,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Unable to process margin request", content);
         Assert.Contains("Business logic error", content);
@@ -126,11 +126,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
                 var mockMediator = new Mock<IMediator>();
                 mockMediator.Setup(x => x.Send(It.IsAny<GetProductMarginsRequest>(), default))
                     .ThrowsAsync(new UnauthorizedAccessException("Insufficient permissions"));
-                
+
                 services.AddScoped(_ => mockMediator.Object);
             });
         });
-        
+
         var client = factory.CreateClient();
 
         // Act
@@ -138,7 +138,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Insufficient permissions to access margin data", content);
     }
@@ -155,11 +155,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
                 var mockMediator = new Mock<IMediator>();
                 mockMediator.Setup(x => x.Send(It.IsAny<GetProductMarginsRequest>(), default))
                     .ThrowsAsync(new InvalidOperationException("Unexpected system error"));
-                
+
                 services.AddScoped(_ => mockMediator.Object);
             });
         });
-        
+
         var client = factory.CreateClient();
 
         // Act
@@ -167,7 +167,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Internal server error", content);
         Assert.Contains("An unexpected error occurred", content);
@@ -185,7 +185,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert - Should either succeed (with validation handling) or return appropriate error
         // The actual behavior depends on model validation setup
-        Assert.True(response.StatusCode == HttpStatusCode.OK || 
+        Assert.True(response.StatusCode == HttpStatusCode.OK ||
                    response.StatusCode == HttpStatusCode.BadRequest ||
                    response.StatusCode == HttpStatusCode.ServiceUnavailable); // Due to mock data in tests
     }
@@ -198,7 +198,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
 
         // Assert
         // In test environment with mock data, should succeed or return service unavailable
-        Assert.True(response.StatusCode == HttpStatusCode.OK || 
+        Assert.True(response.StatusCode == HttpStatusCode.OK ||
                    response.StatusCode == HttpStatusCode.ServiceUnavailable); // Due to mock data in automation tests
     }
 
