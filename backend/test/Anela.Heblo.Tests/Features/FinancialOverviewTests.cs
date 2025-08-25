@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features;
@@ -18,11 +18,11 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
-    private readonly ILedgerService _mockLedgerService;
+    private readonly Mock<ILedgerService> _mockLedgerService;
 
     public FinancialOverviewTests(WebApplicationFactory<Program> factory)
     {
-        _mockLedgerService = Substitute.For<ILedgerService>();
+        _mockLedgerService = new Mock<ILedgerService>();
 
         _factory = factory.WithWebHostBuilder(builder =>
         {
@@ -41,7 +41,7 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
                 {
                     services.Remove(descriptor);
                 }
-                services.AddSingleton(_mockLedgerService);
+                services.AddSingleton(_mockLedgerService.Object);
             });
         });
 
@@ -84,14 +84,15 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
             }
         };
 
-        _mockLedgerService.GetLedgerItems(
-            Arg.Any<DateTime>(),
-            Arg.Any<DateTime>(),
-            Arg.Any<IEnumerable<string>>(),
-            Arg.Any<IEnumerable<string>>(),
-            Arg.Any<string>(),
-            Arg.Any<CancellationToken>())
-            .Returns(testData);
+        _mockLedgerService
+            .Setup(x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testData);
     }
 
     [Fact]
