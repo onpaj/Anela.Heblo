@@ -10,23 +10,29 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly ITimePeriodCalculator _timePeriodCalculator;
-    private readonly IManufactureAnalysisMapper _mapper;
+    private readonly IConsumptionRateCalculator _consumptionCalculator;
+    private readonly IProductionActivityAnalyzer _productionAnalyzer;
     private readonly IManufactureSeverityCalculator _severityCalculator;
+    private readonly IManufactureAnalysisMapper _mapper;
     private readonly IItemFilterService _filterService;
     private readonly ILogger<GetManufacturingStockAnalysisHandler> _logger;
 
     public GetManufacturingStockAnalysisHandler(
         ICatalogRepository catalogRepository,
         ITimePeriodCalculator timePeriodCalculator,
-        IManufactureAnalysisMapper mapper,
+        IConsumptionRateCalculator consumptionCalculator,
+        IProductionActivityAnalyzer productionAnalyzer,
         IManufactureSeverityCalculator severityCalculator,
+        IManufactureAnalysisMapper mapper,
         IItemFilterService filterService,
         ILogger<GetManufacturingStockAnalysisHandler> logger)
     {
         _catalogRepository = catalogRepository;
         _timePeriodCalculator = timePeriodCalculator;
-        _mapper = mapper;
+        _consumptionCalculator = consumptionCalculator;
+        _productionAnalyzer = productionAnalyzer;
         _severityCalculator = severityCalculator;
+        _mapper = mapper;
         _filterService = filterService;
         _logger = logger;
     }
@@ -83,8 +89,32 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
     private ManufacturingStockItemDto AnalyzeManufacturingStockItem(CatalogAggregate item, DateTime fromDate, DateTime toDate)
     {
-        var (_, dailySalesRate, _, overstockPercentage) = _mapper.CalculateStockMetrics(item, fromDate, toDate);
-        var severity = _severityCalculator.CalculateSeverity(item, dailySalesRate, overstockPercentage);
-        return _mapper.MapToDto(item, fromDate, toDate, severity);
+        // Calculate daily sales rate using domain service
+        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, fromDate, toDate);
+        
+        // Calculate total sales in period for display
+        var salesInPeriod = item.GetTotalSold(fromDate, toDate);
+
+        // Calculate stock days available using domain service
+        var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Available, dailySalesRate);
+
+        // Calculate overstock percentage using domain service
+        var overstockPercentage = _severityCalculator.CalculateOverstockPercentage(stockDaysAvailable, item.Properties.OptimalStockDaysSetup);
+
+        // Determine severity using domain service
+        var severity = _severityCalculator.CalculateSeverity(item, dailySalesRate, stockDaysAvailable);
+
+        // Check if product is in active production using domain service
+        var isInProduction = _productionAnalyzer.IsInActiveProduction(item.ManufactureHistory);
+
+        // Map to DTO using domain service
+        return _mapper.MapToDto(
+            item,
+            severity,
+            dailySalesRate,
+            salesInPeriod,
+            stockDaysAvailable,
+            overstockPercentage,
+            isInProduction);
     }
 }
