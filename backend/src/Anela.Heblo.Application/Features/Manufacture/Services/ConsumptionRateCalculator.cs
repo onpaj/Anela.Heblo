@@ -20,8 +20,12 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         var daysDiff = (toDate - fromDate).Days;
         if (daysDiff <= 0) daysDiff = 1;
 
+        // Ensure correct date range order for filtering
+        var actualFromDate = fromDate <= toDate ? fromDate : toDate;
+        var actualToDate = fromDate <= toDate ? toDate : fromDate;
+
         var totalSales = salesHistory
-            .Where(s => s.Date >= fromDate && s.Date <= toDate)
+            .Where(s => s.Date >= actualFromDate && s.Date <= actualToDate)
             .Sum(s => s.AmountB2B + s.AmountB2C);
 
         var dailyRate = totalSales / (double)daysDiff;
@@ -37,8 +41,12 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         var daysDiff = (toDate - fromDate).Days;
         if (daysDiff <= 0) daysDiff = 1;
 
+        // Ensure correct date range order for filtering
+        var actualFromDate = fromDate <= toDate ? fromDate : toDate;
+        var actualToDate = fromDate <= toDate ? toDate : fromDate;
+
         var totalConsumption = consumedHistory
-            .Where(c => c.Date >= fromDate && c.Date <= toDate)
+            .Where(c => c.Date >= actualFromDate && c.Date <= actualToDate)
             .Sum(c => c.Amount);
 
         var dailyRate = totalConsumption / (double)daysDiff;
