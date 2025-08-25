@@ -35,12 +35,17 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
             new Claim("scp", "access_as_user"), // Scopes
             // Add permission claims for testing
-            new Claim("permission", "FinancialOverview.View")
+            new Claim("permission", "FinancialOverview.View"),
+            // Add claims for product margins authorization
+            new Claim("auth_scheme", "MockAuthentication"), // Identifier for mock auth
+            new Claim("role", "FinancialManager"), // Mock role for product margins access
+            new Claim("department", "finance"), // Department claim for authorization
+            new Claim("clearance", "confidential") // Clearance level for detailed margins
         };
 
-        var identity = new ClaimsIdentity(claims, "Mock");
+        var identity = new ClaimsIdentity(claims, "MockAuthentication");
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, "Mock");
+        var ticket = new AuthenticationTicket(principal, "MockAuthentication");
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }

@@ -1,11 +1,13 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Application.Features.Catalog.Exceptions;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Application.Features.Catalog;
 
@@ -15,6 +17,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     private readonly ILedgerService _ledgerService;
     private readonly TimeProvider _timeProvider;
     private readonly SafeMarginCalculator _marginCalculator;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<GetProductMarginsHandler> _logger;
 
     public GetProductMarginsHandler(
@@ -22,6 +26,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         ILedgerService ledgerService,
         TimeProvider timeProvider,
         SafeMarginCalculator marginCalculator,
+        IAuthorizationService authorizationService,
+        ICurrentUserService currentUserService,
         ILogger<GetProductMarginsHandler> logger
         )
     {
@@ -29,6 +35,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         _ledgerService = ledgerService;
         _timeProvider = timeProvider;
         _marginCalculator = marginCalculator;
+        _authorizationService = authorizationService;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -36,6 +44,12 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     {
         try
         {
+            var currentUser = _currentUserService.GetCurrentUser();
+            var currentPrincipal = _currentUserService.GetCurrentPrincipal();
+
+            _logger.LogInformation("User {UserId} ({UserName}) accessing product margins data at {Timestamp}",
+                currentUser.Id, currentUser.Name, DateTime.UtcNow);
+
             _logger.LogDebug("Starting product margins query with filters: ProductCode={ProductCode}, ProductName={ProductName}, ProductType={ProductType}",
                 request.ProductCode, request.ProductName, request.ProductType);
 
@@ -49,7 +63,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             var totalCount = filteredItems.Count;
 
             // Create DTOs with calculated values and error handling
-            var itemsWithCalculatedValues = CreateMarginsWithErrorHandling(filteredItems);
+            var itemsWithCalculatedValues = await CreateMarginsWithErrorHandling(filteredItems, currentPrincipal, cancellationToken);
 
             // Apply sorting in memory
             itemsWithCalculatedValues = ApplySortingInMemory(itemsWithCalculatedValues, request.SortBy, request.SortDescending);
@@ -131,15 +145,21 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private List<ProductMarginDto> CreateMarginsWithErrorHandling(List<CatalogAggregate> products)
+    private async Task<List<ProductMarginDto>> CreateMarginsWithErrorHandling(List<CatalogAggregate> products, System.Security.Claims.ClaimsPrincipal currentPrincipal, CancellationToken cancellationToken)
     {
         var results = new List<ProductMarginDto>();
+
+        // Check if user has access to detailed margin data (sensitive cost information)
+        var canViewDetailedMargins = await _authorizationService.AuthorizeAsync(currentPrincipal, "ViewDetailedMargins");
+        var hasDetailedAccess = canViewDetailedMargins.Succeeded;
+
+        _logger.LogDebug("User has detailed margins access: {HasDetailedAccess}", hasDetailedAccess);
 
         foreach (var product in products)
         {
             try
             {
-                var dto = MapToMarginDtoSafely(product);
+                var dto = MapToMarginDtoSafely(product, hasDetailedAccess);
                 results.Add(dto);
             }
             catch (Exception ex)
@@ -166,7 +186,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         return results;
     }
 
-    private ProductMarginDto MapToMarginDtoSafely(CatalogAggregate product)
+    private ProductMarginDto MapToMarginDtoSafely(CatalogAggregate product, bool hasDetailedAccess)
     {
         try
         {
@@ -179,7 +199,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 MarginAmount = product?.MarginAmount ?? 0
             };
 
-            // Safe price extraction
+            // Safe price extraction - always visible to basic margin viewers
             if (product?.EshopPrice?.PriceWithoutVat != null)
             {
                 dto.PriceWithoutVat = product.EshopPrice.PriceWithoutVat;
@@ -190,37 +210,50 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 dto.PriceWithoutVat = null;
             }
 
-            // Safe cost extraction
-            if (product?.ErpPrice?.PurchasePrice != null)
+            // Sensitive cost data - only visible to users with detailed access
+            if (hasDetailedAccess)
             {
-                dto.PurchasePrice = product.ErpPrice.PurchasePrice;
+                // Safe cost extraction - detailed access required
+                if (product?.ErpPrice?.PurchasePrice != null)
+                {
+                    dto.PurchasePrice = product.ErpPrice.PurchasePrice;
+                }
+                else
+                {
+                    _logger.LogDebug("Product {ProductCode} missing ERP purchase price", product?.ProductCode);
+                    dto.PurchasePrice = null;
+                }
+
+                // Safe material cost calculation - detailed access required
+                try
+                {
+                    dto.AverageMaterialCost = CalculateAverageMaterialCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to calculate average material cost for product {ProductCode}", product?.ProductCode);
+                    dto.AverageMaterialCost = null;
+                }
+
+                // Safe handling cost calculation - detailed access required
+                try
+                {
+                    dto.AverageHandlingCost = CalculateAverageHandlingCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to calculate average handling cost for product {ProductCode}", product?.ProductCode);
+                    dto.AverageHandlingCost = null;
+                }
             }
             else
             {
-                _logger.LogDebug("Product {ProductCode} missing ERP purchase price", product?.ProductCode);
+                // Hide sensitive cost data for users without detailed access
                 dto.PurchasePrice = null;
-            }
-
-            // Safe material cost calculation
-            try
-            {
-                dto.AverageMaterialCost = CalculateAverageMaterialCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to calculate average material cost for product {ProductCode}", product?.ProductCode);
                 dto.AverageMaterialCost = null;
-            }
-
-            // Safe handling cost calculation
-            try
-            {
-                dto.AverageHandlingCost = CalculateAverageHandlingCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to calculate average handling cost for product {ProductCode}", product?.ProductCode);
                 dto.AverageHandlingCost = null;
+                
+                _logger.LogDebug("Hiding sensitive cost data for product {ProductCode} - user lacks detailed access", product?.ProductCode);
             }
 
             return dto;

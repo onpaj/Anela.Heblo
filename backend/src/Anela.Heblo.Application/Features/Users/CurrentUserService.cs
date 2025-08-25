@@ -36,4 +36,9 @@ public class CurrentUserService : ICurrentUserService
             IsAuthenticated: isAuthenticated
         );
     }
+
+    public ClaimsPrincipal GetCurrentPrincipal()
+    {
+        return _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
+    }
 }

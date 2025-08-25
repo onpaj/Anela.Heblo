@@ -37,7 +37,8 @@ public static class AuthenticationExtensions
         // Mock authentication - can be used in any environment when UseMockAuth=true
         services.AddAuthentication(ConfigurationConstants.MOCK_AUTH_SCHEME)
             .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
-        services.AddAuthorization();
+
+        ConfigureAuthorizationPolicies(services);
 
         // Register a null GraphServiceClient for mock authentication
         // services.AddSingleton<Microsoft.Graph.GraphServiceClient?>(provider => null);
@@ -52,6 +53,75 @@ public static class AuthenticationExtensions
             .EnableTokenAcquisitionToCallDownstreamApi()
             // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
             .AddInMemoryTokenCaches();
+
+        ConfigureAuthorizationPolicies(services);
+    }
+
+    private static void ConfigureAuthorizationPolicies(IServiceCollection services)
+    {
+        services.AddAuthorization(options =>
+        {
+            // Basic product margins access - requires authentication
+            options.AddPolicy("ViewProductMargins", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireAssertion(context =>
+                {
+                    // For mock authentication, allow all authenticated users
+                    if (context.User.HasClaim("auth_scheme", "MockAuthentication"))
+                    {
+                        return true;
+                    }
+
+                    // For real authentication, require specific roles or claims
+                    return context.User.IsInRole("FinancialManager") ||
+                           context.User.IsInRole("ProductManager") ||
+                           context.User.IsInRole("Admin") ||
+                           context.User.HasClaim("department", "finance") ||
+                           context.User.HasClaim("department", "product") ||
+                           context.User.HasClaim("department", "management");
+                });
+            });
+
+            // Detailed margins access - for sensitive cost data
+            options.AddPolicy("ViewDetailedMargins", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireAssertion(context =>
+                {
+                    // For mock authentication, allow all authenticated users (simplified for development)
+                    if (context.User.HasClaim("auth_scheme", "MockAuthentication"))
+                    {
+                        return true;
+                    }
+
+                    // For real authentication, require higher-level roles
+                    return context.User.IsInRole("FinancialManager") ||
+                           context.User.IsInRole("Admin") ||
+                           context.User.HasClaim("clearance", "confidential");
+                });
+            });
+
+            // Margin management - for future administrative functions
+            options.AddPolicy("ManageMargins", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireAssertion(context =>
+                {
+                    // For mock authentication, restrict to admin-like mock users
+                    if (context.User.HasClaim("auth_scheme", "MockAuthentication"))
+                    {
+                        return context.User.HasClaim("role", "Admin") ||
+                               context.User.HasClaim("role", "FinancialManager");
+                    }
+
+                    // For real authentication, require administrative roles only
+                    return context.User.IsInRole("Admin") ||
+                           (context.User.IsInRole("FinancialManager") &&
+                            context.User.HasClaim("permission", "manage_margins"));
+                });
+            });
+        });
     }
 
 }

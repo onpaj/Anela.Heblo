@@ -21,6 +21,7 @@ public class ProductMarginsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "ViewProductMargins")]
     public async Task<ActionResult<GetProductMarginsResponse>> GetProductMargins([FromQuery] GetProductMarginsRequest request)
     {
         _logger.LogInformation("Getting product margins with page {PageNumber}, size {PageSize}, product code {ProductCode}, product name {ProductName}, sort by {SortBy}, descending {SortDescending}",
@@ -50,7 +51,12 @@ public class ProductMarginsController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access to product margins");
+            var currentUserId = User?.FindFirst("sub")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+            var currentUserName = User?.Identity?.Name ?? "Unknown User";
+
+            _logger.LogWarning(ex, "Unauthorized access to product margins by user {UserId} ({UserName})",
+                currentUserId, currentUserName);
+
             return StatusCode(403, new { error = "Insufficient permissions to access margin data" });
         }
         catch (Exception ex)
