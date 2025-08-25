@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Model;
 using Anela.Heblo.Domain.Features.Catalog;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -8,59 +9,43 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
 {
     private readonly ManufactureAnalysisOptions _options;
+    private readonly ILogger<ManufactureAnalysisMapper> _logger;
 
-    public ManufactureAnalysisMapper(IOptions<ManufactureAnalysisOptions> options)
+    public ManufactureAnalysisMapper(IOptions<ManufactureAnalysisOptions> options, ILogger<ManufactureAnalysisMapper> logger)
     {
         _options = options.Value;
+        _logger = logger;
     }
-    public ManufacturingStockItemDto MapToDto(
-        CatalogAggregate item,
-        DateTime fromDate,
-        DateTime toDate,
-        ManufacturingStockSeverity severity)
-    {
-        var (salesInPeriod, dailySalesRate, stockDaysAvailable, overstockPercentage) = CalculateStockMetrics(item, fromDate, toDate);
 
-        return new ManufacturingStockItemDto
+    public ManufacturingStockItemDto MapToDto(
+        CatalogAggregate catalogItem,
+        ManufacturingStockSeverity severity,
+        double dailySalesRate,
+        double salesInPeriod,
+        double stockDaysAvailable,
+        double overstockPercentage,
+        bool isInProduction)
+    {
+        var dto = new ManufacturingStockItemDto
         {
-            Code = item.ProductCode,
-            Name = item.ProductName,
-            CurrentStock = (double)item.Stock.Available,
+            Code = catalogItem.ProductCode,
+            Name = catalogItem.ProductName,
+            CurrentStock = (double)catalogItem.Stock.Available,
             SalesInPeriod = salesInPeriod,
             DailySalesRate = dailySalesRate,
-            OptimalDaysSetup = item.Properties.OptimalStockDaysSetup,
-            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? _options.InfiniteStockIndicator : stockDaysAvailable, // Cap infinity for display
-            MinimumStock = (double)item.Properties.StockMinSetup,
+            OptimalDaysSetup = catalogItem.Properties.OptimalStockDaysSetup,
+            StockDaysAvailable = double.IsInfinity(stockDaysAvailable) ? _options.InfiniteStockIndicator : stockDaysAvailable,
+            MinimumStock = (double)catalogItem.Properties.StockMinSetup,
             OverstockPercentage = double.IsInfinity(overstockPercentage) ? 0 : overstockPercentage,
-            BatchSize = item.Properties.BatchSize.ToString(),
-            ProductFamily = item.ProductFamily ?? string.Empty,
+            BatchSize = catalogItem.Properties.BatchSize.ToString(),
+            ProductFamily = catalogItem.ProductFamily ?? string.Empty,
             Severity = severity,
-            IsConfigured = item.Properties.OptimalStockDaysSetup > 0
+            IsConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0
         };
-    }
 
-    public (double salesInPeriod, double dailySalesRate, double stockDaysAvailable, double overstockPercentage) CalculateStockMetrics(
-        CatalogAggregate item,
-        DateTime fromDate,
-        DateTime toDate)
-    {
-        var daysDiff = (toDate - fromDate).Days;
-        if (daysDiff <= 0) daysDiff = 1;
+        _logger.LogDebug("Mapped catalog item {Code} to DTO: severity {Severity}, stock days {StockDays}, overstock {Overstock}%",
+            catalogItem.ProductCode, severity, dto.StockDaysAvailable, dto.OverstockPercentage);
 
-        // For finished products, use sales data
-        var salesInPeriod = item.GetTotalSold(fromDate, toDate);
-        var dailySalesRate = salesInPeriod / (double)daysDiff;
-
-        // Calculate stock days available
-        var stockDaysAvailable = dailySalesRate > 0
-            ? (double)item.Stock.Available / dailySalesRate
-            : double.PositiveInfinity;
-
-        // Calculate overstock percentage
-        var overstockPercentage = item.Properties.OptimalStockDaysSetup > 0
-            ? (stockDaysAvailable / item.Properties.OptimalStockDaysSetup) * 100
-            : 0;
-
-        return (salesInPeriod, dailySalesRate, stockDaysAvailable, overstockPercentage);
+        return dto;
     }
 }
