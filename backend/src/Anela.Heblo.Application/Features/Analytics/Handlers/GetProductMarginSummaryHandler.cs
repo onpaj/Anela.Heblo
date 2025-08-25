@@ -46,8 +46,10 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         // 4. Generate top products list from calculated results
         var allGroups = GenerateTopProducts(calculationResult, request.GroupingMode);
 
-        // 5. Generate monthly breakdown using extracted generator
-        var monthlyData = _monthlyBreakdownGenerator.Generate(calculationResult, dateRange, request.GroupingMode);
+        // 5. Generate monthly breakdown using extracted generator (only if we have results)
+        var monthlyData = calculationResult.TotalMargin == 0 && !calculationResult.GroupTotals.Any()
+            ? new List<MonthlyProductMarginDto>()
+            : _monthlyBreakdownGenerator.Generate(calculationResult, dateRange, request.GroupingMode);
 
         return new GetProductMarginSummaryResponse
         {

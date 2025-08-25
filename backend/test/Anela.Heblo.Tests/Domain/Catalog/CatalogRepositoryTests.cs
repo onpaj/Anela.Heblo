@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -33,6 +34,7 @@ public class CatalogRepositoryTests
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
+    private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<CatalogRepositoryOptions>> _optionsMock;
@@ -56,6 +58,7 @@ public class CatalogRepositoryTests
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
+        _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<CatalogRepositoryOptions>>();
@@ -72,6 +75,19 @@ public class CatalogRepositoryTests
 
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
 
+        // Setup resilience service to pass through operations without resilience patterns for testing
+        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+        
+        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            
+        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<ErpStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<List<ErpStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            
+        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+
         _repository = new CatalogRepository(
             _salesClientMock.Object,
             _attributesClientMock.Object,
@@ -87,6 +103,7 @@ public class CatalogRepositoryTests
             _manufactureRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureCostCalculationServiceMock.Object,
+            _resilienceServiceMock.Object,
             _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,

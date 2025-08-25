@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -31,6 +32,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IManufactureRepository _manufactureRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
+    private readonly ICatalogResilienceService _resilienceService;
 
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
@@ -53,6 +55,7 @@ public class CatalogRepository : ICatalogRepository
         IManufactureRepository manufactureRepository,
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureCostCalculationService manufactureCostCalculationService,
+        ICatalogResilienceService resilienceService,
         IMemoryCache cache,
         TimeProvider timeProvider,
         IOptions<CatalogRepositoryOptions> _options,
@@ -72,6 +75,7 @@ public class CatalogRepository : ICatalogRepository
         _manufactureRepository = manufactureRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
         _manufactureCostCalculationService = manufactureCostCalculationService;
+        _resilienceService = resilienceService;
         _cache = cache;
         _timeProvider = timeProvider;
         this._options = _options;
@@ -92,23 +96,33 @@ public class CatalogRepository : ICatalogRepository
 
     public async Task RefreshSalesData(CancellationToken ct)
     {
-        CachedSalesData = await _salesClient.GetAsync(_timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
-            _timeProvider.GetUtcNow().Date, cancellationToken: ct);
+        CachedSalesData = await _resilienceService.ExecuteWithResilienceAsync(
+            async (cancellationToken) => await _salesClient.GetAsync(
+                _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
+                _timeProvider.GetUtcNow().Date,
+                cancellationToken: cancellationToken),
+            "RefreshSalesData", ct);
     }
 
     public async Task RefreshAttributesData(CancellationToken ct)
     {
-        CachedCatalogAttributesData = await _attributesClient.GetAttributesAsync(cancellationToken: ct);
+        CachedCatalogAttributesData = await _resilienceService.ExecuteWithResilienceAsync(
+            async (cancellationToken) => await _attributesClient.GetAttributesAsync(cancellationToken: cancellationToken),
+            "RefreshAttributesData", ct);
     }
 
     public async Task RefreshErpStockData(CancellationToken ct)
     {
-        CachedErpStockData = (await _erpStockClient.ListAsync(ct)).ToList();
+        CachedErpStockData = await _resilienceService.ExecuteWithResilienceAsync(
+            async (cancellationToken) => (await _erpStockClient.ListAsync(cancellationToken)).ToList(),
+            "RefreshErpStockData", ct);
     }
 
     public async Task RefreshEshopStockData(CancellationToken ct)
     {
-        CachedEshopStockData = (await _eshopStockClient.ListAsync(ct)).ToList();
+        CachedEshopStockData = await _resilienceService.ExecuteWithResilienceAsync(
+            async (cancellationToken) => (await _eshopStockClient.ListAsync(cancellationToken)).ToList(),
+            "RefreshEshopStockData", ct);
     }
 
     public async Task RefreshPurchaseHistoryData(CancellationToken ct)

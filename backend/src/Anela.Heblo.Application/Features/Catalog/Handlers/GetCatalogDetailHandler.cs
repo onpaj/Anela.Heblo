@@ -81,9 +81,9 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         // Return individual purchase records instead of monthly summaries
         var currentDate = _timeProvider.GetUtcNow().Date;
 
-        // For very high monthsBack values (like 999), return all records without date filtering
+        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
         // to avoid potential issues with very old dates
-        if (monthsBack >= 999)
+        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
         {
             return catalogItem.PurchaseHistory
                 .OrderByDescending(p => p.Date)
@@ -137,9 +137,9 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         // Return individual manufacture records instead of monthly summaries
         var currentDate = _timeProvider.GetUtcNow().Date;
 
-        // For very high monthsBack values (like 999), return all records without date filtering
+        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
         // to avoid potential issues with very old dates
-        if (monthsBack >= 999)
+        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
         {
             return catalogItem.ManufactureHistory
                 .OrderByDescending(m => m.Date)
