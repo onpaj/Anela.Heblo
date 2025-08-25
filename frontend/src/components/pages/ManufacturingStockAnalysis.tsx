@@ -108,7 +108,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
 
   // Sortable header component
-  const SortableHeader: React.FC<{ column: ManufacturingStockSortBy; children: React.ReactNode; className?: string }> = ({ column, children, className = "" }) => {
+  const SortableHeader: React.FC<{ 
+    column: ManufacturingStockSortBy; 
+    children: React.ReactNode; 
+    className?: string;
+    style?: React.CSSProperties;
+  }> = ({ column, children, className = "", style }) => {
     const isActive = filters.sortBy === column;
     const isAscending = isActive && !filters.sortDescending;
     const isDescending = isActive && filters.sortDescending;
@@ -116,7 +121,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
     return (
       <th
         scope="col"
-        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
+        className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
+        style={style}
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
@@ -271,7 +277,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (isLoading) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={9} className="px-6 py-4">
+          <td colSpan={9} className="px-4 py-4">
             <div className="flex items-center justify-center">
               <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
               <span className="text-sm text-gray-600">Načítání produktů stejné řady...</span>
@@ -284,7 +290,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (items.length === 0) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={9} className="px-6 py-3">
+          <td colSpan={9} className="px-4 py-3">
             <div className="text-sm text-gray-500 text-center">
               Žádné další produkty v této řadě
             </div>
@@ -303,13 +309,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
             title="Klikněte pro zobrazení detailu produktu"
           >
             {/* Product Info - matching main table column width */}
-            <td className="px-6 py-3 whitespace-nowrap w-40">
+            <td className="px-4 py-3 whitespace-nowrap" style={{ minWidth: '200px', width: '25%' }}>
               <div className="flex items-center">
                 <div className="w-10 mr-2"></div>
                 {/* Color strip based on severity */}
-                <div className={`w-1 h-6 mr-3 rounded-sm ${getSeverityStripColor(subItem.severity)}`}></div>
+                <div className={`w-1 h-6 mr-2 rounded-sm ${getSeverityStripColor(subItem.severity)}`}></div>
                 <div className="flex-1 min-w-0 pl-6">
-                  <div className="text-xs text-gray-700 truncate">
+                  <div className="text-xs text-gray-700 truncate font-medium">
                     {subItem.name}
                   </div>
                   <div className="text-xs text-gray-400">
@@ -320,44 +326,44 @@ const ManufacturingStockAnalysis: React.FC = () => {
             </td>
 
             {/* Current Stock */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700">
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               <div className="font-medium">{formatNumber(subItem.currentStock, 0)}</div>
             </td>
 
-            {/* Sales in Period - Hidden on tablet and below */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden lg:table-cell">
+            {/* Sales in Period */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '100px', width: '12%' }}>
               {formatNumber(subItem.salesInPeriod, 0)}
             </td>
 
-            {/* Daily Sales - Hidden on mobile */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden md:table-cell">
+            {/* Daily Sales */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '100px', width: '12%' }}>
               {formatNumber(subItem.dailySalesRate, 2)}
             </td>
 
-            {/* Optimal Days Setup - Hidden on large and below */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden xl:table-cell">
+            {/* Optimal Days Setup */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               {subItem.optimalDaysSetup > 0 ? `${subItem.optimalDaysSetup} dní` : '—'}
             </td>
 
             {/* Stock Days Available */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700">
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               <div className="font-medium">
                 {subItem.stockDaysAvailable > 999 ? '∞' : formatNumber(subItem.stockDaysAvailable, 0)}
               </div>
             </td>
 
-            {/* Minimum Stock - Hidden on mobile */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden md:table-cell">
+            {/* Minimum Stock */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               {formatNumber(subItem.minimumStock, 0)}
             </td>
 
-            {/* Overstock Percentage - Hidden on tablet and below */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden lg:table-cell">
+            {/* Overstock Percentage */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               {formatPercentage(subItem.overstockPercentage)}
             </td>
 
-            {/* Batch Size - Hidden on large and below */}
-            <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-gray-700 hidden xl:table-cell">
+            {/* Batch Size */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '80px', width: '8%' }}>
               {subItem.batchSize || '—'}
             </td>
           </tr>
@@ -718,35 +724,35 @@ const ManufacturingStockAnalysis: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+              <table className="w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <SortableHeader column={ManufacturingStockSortBy.ProductCode} className="text-left w-40">
+                    <SortableHeader column={ManufacturingStockSortBy.ProductCode} className="text-left" style={{ minWidth: '200px', width: '25%' }}>
                       Produkt
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.CurrentStock} className="text-right">
+                    <SortableHeader column={ManufacturingStockSortBy.CurrentStock} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Skladem
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.SalesInPeriod} className="text-right hidden lg:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.SalesInPeriod} className="text-right" style={{ minWidth: '100px', width: '12%' }}>
                       Prodeje období
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.DailySales} className="text-right hidden md:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.DailySales} className="text-right" style={{ minWidth: '100px', width: '12%' }}>
                       Prodeje/den
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.OptimalDaysSetup} className="text-right hidden xl:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.OptimalDaysSetup} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Nadsklad
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.StockDaysAvailable} className="text-right">
+                    <SortableHeader column={ManufacturingStockSortBy.StockDaysAvailable} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Zásoba dni
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.MinimumStock} className="text-right hidden md:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.MinimumStock} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Min zásoba
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.OverstockPercentage} className="text-right hidden lg:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.OverstockPercentage} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Nadsklad %
                     </SortableHeader>
-                    <SortableHeader column={ManufacturingStockSortBy.BatchSize} className="text-right hidden xl:table-cell">
+                    <SortableHeader column={ManufacturingStockSortBy.BatchSize} className="text-right" style={{ minWidth: '80px', width: '8%' }}>
                       ks/šarže
                     </SortableHeader>
                   </tr>
@@ -765,7 +771,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           title="Klikněte pro zobrazení detailu produktu"
                         >
                           {/* Product Info */}
-                          <td className="px-6 py-4 whitespace-nowrap w-40">
+                          <td className="px-4 py-3 whitespace-nowrap" style={{ minWidth: '200px', width: '25%' }}>
                             <div className="flex items-center">
                               {/* Expand/Collapse button */}
                               {hasSubItems ? (
@@ -788,10 +794,10 @@ const ManufacturingStockAnalysis: React.FC = () => {
                               )}
                               
                               {/* Color strip based on severity */}
-                              <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}></div>
+                              <div className={`w-1 h-8 mr-2 rounded-sm ${getSeverityStripColor(item.severity)}`}></div>
                               <div className="flex-1 min-w-0">
                                 {/* Product name first - main info */}
-                                <div className="text-sm text-gray-900 truncate">
+                                <div className="text-xs text-gray-900 truncate font-medium">
                                   {item.name}
                                 </div>
                                 {/* Product code second - smaller */}
@@ -799,7 +805,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                                   {item.code}
                                 </div>
                                 {item.productFamily && (
-                                  <div className="text-xs text-gray-500 md:hidden">
+                                  <div className="text-xs text-gray-400">
                                     {item.productFamily}
                                   </div>
                                 )}
@@ -808,50 +814,44 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           </td>
 
                       {/* Current Stock */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         <div className="font-bold">{formatNumber(item.currentStock, 0)}</div>
                       </td>
 
-                      {/* Sales in Period - Hidden on tablet and below */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden lg:table-cell">
+                      {/* Sales in Period */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '100px', width: '12%' }}>
                         {formatNumber(item.salesInPeriod, 0)}
                       </td>
 
-                      {/* Daily Sales - Hidden on mobile */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
+                      {/* Daily Sales */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '100px', width: '12%' }}>
                         <div>{formatNumber(item.dailySalesRate, 2)}</div>
-                        <div className="text-xs text-gray-500 lg:hidden">
-                          {formatNumber(item.salesInPeriod, 0)}/období
-                        </div>
                       </td>
 
-                      {/* Optimal Days Setup - Hidden on large and below */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden xl:table-cell">
+                      {/* Optimal Days Setup */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         {item.optimalDaysSetup > 0 ? `${item.optimalDaysSetup} dní` : '—'}
                       </td>
 
                       {/* Stock Days Available */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         <div className="font-bold">
                           {item.stockDaysAvailable > 999 ? '∞' : formatNumber(item.stockDaysAvailable, 0)}
                         </div>
-                        <div className="text-xs text-gray-500 md:hidden">
-                          {formatNumber(item.dailySalesRate, 2)}/den
-                        </div>
                       </td>
 
-                      {/* Minimum Stock - Hidden on mobile */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
+                      {/* Minimum Stock */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         {formatNumber(item.minimumStock, 0)}
                       </td>
 
-                      {/* Overstock Percentage - Hidden on tablet and below */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden lg:table-cell">
+                      {/* Overstock Percentage */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         {formatPercentage(item.overstockPercentage)}
                       </td>
 
-                          {/* Batch Size - Hidden on large and below */}
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden xl:table-cell">
+                          {/* Batch Size */}
+                          <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '80px', width: '8%' }}>
                             {item.batchSize || '—'}
                           </td>
                         </tr>
