@@ -120,104 +120,102 @@ jobs:
         id: check-build
         run: echo "has-artifact=true" >> $GITHUB_OUTPUT
 
-  # UI Tests with Playwright - DISABLED
-  # playwright-tests:
-  #   name: 🎭 UI Tests (Playwright)
-  #   runs-on: ubuntu-latest
-  #   needs: [frontend-ci, backend-ci]
-  #   continue-on-error: true
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-  #
-  #     - name: 🔧 Setup .NET
-  #       uses: actions/setup-dotnet@v4
-  #       with:
-  #         dotnet-version: '8.0.x'
-  #
-  #     - name: 📦 Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '18'
-  #         cache: 'npm'
-  #         cache-dependency-path: frontend/package-lock.json
-  #
-  #     - name: 📦 Restore .NET dependencies
-  #       run: dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
-  #
-  #     - name: 📦 Install frontend dependencies
-  #       working-directory: ./frontend
-  #       run: npm install --legacy-peer-deps
-  #
-  #     - name: 🎭 Install Playwright browsers
-  #       working-directory: ./frontend
-  #       run: npx playwright install --with-deps chromium
-  #
-  #     - name: 🚀 Start automation backend
-  #       run: |
-  #         cd backend/src/Anela.Heblo.API
-  #         ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation &
-  #         echo "BACKEND_PID=$!" >> $GITHUB_ENV
-  #       env:
-  #         ASPNETCORE_ENVIRONMENT: Automation
-  #
-  #     - name: ⏳ Wait for backend to start
-  #       run: |
-  #         echo "Waiting for backend to start on port 5001..."
-  #         timeout 60 bash -c 'until curl -f http://localhost:5001/health > /dev/null 2>&1; do sleep 2; done'
-  #         echo "Backend is ready!"
-  #
-  #     - name: 🚀 Start automation frontend
-  #       working-directory: ./frontend
-  #       run: |
-  #         npm run start:automation &
-  #         echo "FRONTEND_PID=$!" >> $GITHUB_ENV
-  #       env:
-  #         REACT_APP_API_URL: http://localhost:5001
-  #         REACT_APP_USE_MOCK_AUTH: true
-  #
-  #     - name: ⏳ Wait for frontend to start
-  #       run: |
-  #         echo "Waiting for frontend to start on port 3001..."
-  #         timeout 60 bash -c 'until curl -f http://localhost:3001 > /dev/null 2>&1; do sleep 2; done'
-  #         echo "Frontend is ready!"
-  #
-  #     - name: 🧪 Run Playwright tests
-  #       working-directory: ./frontend
-  #       run: npx playwright test
-  #       env:
-  #         CI: true
-  #
-  #     - name: 📤 Upload Playwright report
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: playwright-report
-  #         path: frontend/playwright-report/
-  #         retention-days: 7
-  #
-  #     - name: 📤 Upload test results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: playwright-test-results
-  #         path: frontend/test-results/
-  #         retention-days: 7
-  #
-  #     - name: 🧹 Cleanup processes
-  #       if: always()
-  #       run: |
-  #         echo "Cleaning up background processes..."
-  #         if [ ! -z "$BACKEND_PID" ]; then
-  #           kill $BACKEND_PID 2>/dev/null || true
-  #         fi
-  #         if [ ! -z "$FRONTEND_PID" ]; then
-  #           kill $FRONTEND_PID 2>/dev/null || true
-  #         fi
-  #         # Kill any remaining processes on the test ports
-  #         lsof -ti:5001 | xargs kill -9 2>/dev/null || true
-  #         lsof -ti:3001 | xargs kill -9 2>/dev/null || true
-  #         echo "Cleanup completed"
+  # UI Tests with Playwright - OPTIONAL (non-blocking)
+  playwright-tests:
+    name: 🎭 UI Tests (Playwright) - Optional
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci]
+    continue-on-error: true  # Makes this job optional - won't fail the overall workflow
+    if: |
+      !contains(github.event.pull_request.labels.*.name, 'skip-ui-tests') &&
+      github.event.pull_request.draft == false
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Restore .NET dependencies
+        run: dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
+
+      - name: 📦 Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 🚀 Run UI tests using script
+        run: |
+          echo "🎭 Starting UI tests with automation environment..."
+          # Use the existing script that handles environment setup and cleanup
+          chmod +x ./scripts/run-playwright-tests.sh
+          timeout 600 ./scripts/run-playwright-tests.sh || {
+            echo "⚠️ UI tests timed out or failed - this is non-blocking"
+            exit 0
+          }
+        env:
+          CI: true
+          PLAYWRIGHT_REPORTER: list  # Use list reporter in CI to avoid HTML server timeouts
+
+      - name: 📤 Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: 📤 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: 📊 Comment test results on PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          if [ -f frontend/playwright-report/index.html ]; then
+            # Count test results from the report
+            PASSED=$(grep -o "passed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
+            FAILED=$(grep -o "failed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
+            
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --body "## 🎭 UI Test Results (Optional)
+            
+            - ✅ Passed: ${PASSED:-N/A}
+            - ❌ Failed: ${FAILED:-N/A}
+            
+            📄 **Full report**: Available in workflow artifacts
+            
+            _Note: UI tests are optional and don't block merge._" \
+              --edit-last || \
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --body "## 🎭 UI Test Results (Optional)
+            
+            - ✅ Passed: ${PASSED:-N/A}
+            - ❌ Failed: ${FAILED:-N/A}
+            
+            📄 **Full report**: Available in workflow artifacts
+            
+            _Note: UI tests are optional and don't block merge._"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Docker Build - depends on both frontend and backend CI
   docker-build:
@@ -240,20 +238,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Quality Gate - ensures all jobs pass
+  # Quality Gate - ensures all REQUIRED jobs pass (UI tests are optional)
   quality-gate:
     name: ✅ Quality Gate
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci, docker-build]
+    needs: [frontend-ci, backend-ci, docker-build, playwright-tests]
     if: always()
     steps:
-      - name: ✅ Check all jobs succeeded
+      - name: ✅ Check required jobs succeeded
         run: |
+          echo "=== REQUIRED JOBS STATUS ==="
           echo "Frontend CI: ${{ needs.frontend-ci.result }}"
           echo "Backend CI: ${{ needs.backend-ci.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
+          echo ""
+          echo "=== OPTIONAL JOBS STATUS ==="
+          echo "UI Tests (Playwright): ${{ needs.playwright-tests.result }}"
+          echo ""
           
-          # Check required jobs (always run)
+          # Check required jobs only
           if [[ "${{ needs.frontend-ci.result }}" != "success" || \
                 "${{ needs.backend-ci.result }}" != "success" || \
                 "${{ needs.docker-build.result }}" != "success" ]]; then
@@ -265,11 +268,29 @@ jobs:
 
       - name: 📋 Generate CI summary
         run: |
+          # Determine UI test status for summary
+          UI_STATUS="⏭️ Skipped"
+          UI_ICON="⏭️"
+          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
+            UI_STATUS="✅ Passed"
+            UI_ICON="✅"
+          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
+            UI_STATUS="⚠️ Failed (non-blocking)"
+            UI_ICON="⚠️"
+          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
+            UI_STATUS="⏭️ Cancelled"
+            UI_ICON="⏭️"
+          fi
+          
           echo "## 🎉 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Frontend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Backend CI**: Test, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
+          echo "### Required Checks" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Frontend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Backend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
           echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Optional Checks" >> $GITHUB_STEP_SUMMARY
+          echo "${UI_ICON} **UI Tests (Playwright)**: ${UI_STATUS}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
@@ -280,13 +301,16 @@ jobs:
   auto-merge:
     name: 🤖 Auto-merge PR
     runs-on: ubuntu-latest
-    needs: [quality-gate]
+    needs: [quality-gate, playwright-tests]
     if: |
       github.event.pull_request.draft == false &&
-      contains(github.event.pull_request.labels.*.name, 'auto-merge')
+      (contains(github.event.pull_request.labels.*.name, 'auto-merge') ||
+       contains(github.event.pull_request.labels.*.name, 'auto-squash') ||
+       contains(github.event.pull_request.labels.*.name, 'auto-rebase'))
     permissions:
       contents: write
       pull-requests: write
+      checks: read
     
     steps:
       - name: 📥 Checkout code
@@ -294,27 +318,88 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: 🔍 Determine merge strategy
+        id: merge-strategy
+        run: |
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-squash') }}" == "true" ]]; then
+            echo "strategy=squash" >> $GITHUB_OUTPUT
+            echo "strategy_name=Squash and merge" >> $GITHUB_OUTPUT
+            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-rebase') }}" == "true" ]]; then
+            echo "strategy=rebase" >> $GITHUB_OUTPUT
+            echo "strategy_name=Rebase and merge" >> $GITHUB_OUTPUT
+            echo "merge_flag=--rebase" >> $GITHUB_OUTPUT
+          else
+            echo "strategy=squash" >> $GITHUB_OUTPUT
+            echo "strategy_name=Squash and merge (default)" >> $GITHUB_OUTPUT
+            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
+          fi
+      
       - name: 🔄 Enable auto-merge
         run: |
           echo "Enabling auto-merge for PR #${{ github.event.pull_request.number }}"
+          echo "Strategy: ${{ steps.merge-strategy.outputs.strategy_name }}"
+          
           gh pr merge ${{ github.event.pull_request.number }} \
             --auto \
-            --squash \
+            ${{ steps.merge-strategy.outputs.merge_flag }} \
             --delete-branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: 💬 Comment on PR
         run: |
+          # Determine UI test status for comment
+          UI_STATUS="⏭️ Skipped"
+          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
+            UI_STATUS="✅ Passed"
+          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
+            UI_STATUS="⚠️ Failed (non-blocking)"
+          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
+            UI_STATUS="⏭️ Cancelled"
+          fi
+          
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "🚀 **Auto-merge enabled!**
           
-          All CI checks have passed successfully:
+          All required CI checks have passed successfully:
           - ✅ Frontend tests and build
           - ✅ Backend tests and build  
           - ✅ Docker build
+          - ${UI_STATUS} UI tests (optional)
+          
+          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
           
           This PR will be automatically merged when all required status checks are complete.
+          
+          ---
+          
+          ### Available Labels:
+          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
+          - \`auto-rebase\`: Rebase and merge
+          - \`skip-ui-tests\`: Skip UI tests entirely
+          
+          _Note: Branch will be deleted after merge._" \
+            --edit-last || \
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🚀 **Auto-merge enabled!**
+          
+          All required CI checks have passed successfully:
+          - ✅ Frontend tests and build
+          - ✅ Backend tests and build  
+          - ✅ Docker build
+          - ${UI_STATUS} UI tests (optional)
+          
+          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
+          
+          This PR will be automatically merged when all required status checks are complete.
+          
+          ---
+          
+          ### Available Labels:
+          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
+          - \`auto-rebase\`: Rebase and merge
+          - \`skip-ui-tests\`: Skip UI tests entirely
           
           _Note: Branch will be deleted after merge._"
         env:

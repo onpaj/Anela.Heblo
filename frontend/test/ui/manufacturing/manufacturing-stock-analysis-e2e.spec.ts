@@ -233,7 +233,8 @@ test.describe('Manufacturing Stock Analysis - E2E Workflow', () => {
     // Step 6: Test summary cards
     console.log('📍 Step 6: Test summary cards');
     
-    const summaryCards = ['Celkem', 'Kritické', 'Dostatečné'];
+    // Use the actual labels from the implementation
+    const summaryCards = ['Celkem', 'Nadsklad < 100%', 'OK', 'Pod min. zásobou'];
     let summaryCardsFound = 0;
 
     for (const cardText of summaryCards) {
@@ -242,13 +243,18 @@ test.describe('Manufacturing Stock Analysis - E2E Workflow', () => {
         summaryCardsFound++;
         console.log(`✅ Found summary card: ${cardText}`);
         
-        // Try clicking on it (if it's clickable)
+        // Try clicking on it (if it's a button/clickable)
         try {
-          await card.click();
-          await page.waitForTimeout(1000);
-          console.log(`✅ Successfully clicked: ${cardText}`);
+          const clickableButton = page.locator('button').filter({ hasText: cardText });
+          if (await clickableButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await clickableButton.click();
+            await page.waitForTimeout(1000);
+            console.log(`✅ Successfully clicked: ${cardText}`);
+          } else {
+            console.log(`ℹ️  ${cardText} is visible but not clickable (display only)`);
+          }
         } catch (error) {
-          console.log(`⚠️  Could not click: ${cardText} (may not be clickable)`);
+          console.log(`⚠️  Could not click: ${cardText} (${error})`);
         }
       } else {
         console.log(`❌ Missing summary card: ${cardText}`);
