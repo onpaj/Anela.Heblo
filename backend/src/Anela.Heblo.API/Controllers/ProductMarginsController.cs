@@ -51,7 +51,7 @@ public class ProductMarginsController : ControllerBase
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Unauthorized access to product margins");
-            return Forbid("Insufficient permissions to access margin data");
+            return StatusCode(403, new { error = "Insufficient permissions to access margin data" });
         }
         catch (Exception ex)
         {
