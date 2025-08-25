@@ -1,6 +1,9 @@
 using Anela.Heblo.Domain.Features.FinancialOverview;
+using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.FinancialOverview;
 
@@ -11,8 +14,26 @@ public static class FinancialOverviewModule
         // Ensure memory cache is available for financial analysis caching
         services.AddMemoryCache();
 
-        // Register real implementation that uses IErpStockClient and IProductPriceErpClient
-        services.AddScoped<IStockValueService, StockValueService>();
+        // Register IStockValueService using factory pattern to avoid ServiceProvider antipattern
+        services.AddScoped<IStockValueService>(provider =>
+        {
+            var env = provider.GetRequiredService<IHostEnvironment>();
+            
+            if (env.IsEnvironment("Test") || env.IsEnvironment("Automation"))
+            {
+                // Use placeholder implementation for test environments
+                var logger = provider.GetRequiredService<ILogger<PlaceholderStockValueService>>();
+                return new PlaceholderStockValueService(logger);
+            }
+            else
+            {
+                // Use real implementation for production and development environments
+                var stockClient = provider.GetRequiredService<IErpStockClient>();
+                var priceClient = provider.GetRequiredService<IProductPriceErpClient>();
+                var logger = provider.GetRequiredService<ILogger<StockValueService>>();
+                return new StockValueService(stockClient, priceClient, logger);
+            }
+        });
 
         // Register financial analysis service as scoped (uses IMemoryCache for caching)
         services.AddScoped<IFinancialAnalysisService, FinancialAnalysisService>();
