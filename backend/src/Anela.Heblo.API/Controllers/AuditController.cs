@@ -32,7 +32,7 @@ public class AuditController : ControllerBase
         {
             // 🔒 SECURITY FIX: Meta-auditing - log who accessed audit logs
             var currentUser = _currentUserService.GetCurrentUser();
-            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit logs at {Timestamp}", 
+            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit logs at {Timestamp}",
                 currentUser.Id ?? "Unknown", currentUser.Name, DateTime.UtcNow);
 
             var request = new GetAuditLogsRequest
@@ -65,7 +65,7 @@ public class AuditController : ControllerBase
         {
             // 🔒 SECURITY FIX: Meta-auditing - log who accessed audit summary
             var currentUser = _currentUserService.GetCurrentUser();
-            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit summary at {Timestamp}", 
+            _logger.LogWarning("AUDIT ACCESS: User {UserId} ({UserName}) accessed audit summary at {Timestamp}",
                 currentUser.Id ?? "Unknown", currentUser.Name, DateTime.UtcNow);
 
             var request = new GetAuditSummaryRequest

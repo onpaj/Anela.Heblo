@@ -3,6 +3,8 @@ using Microsoft.Extensions.Hosting;
 using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Persistence;
+using FluentValidation;
+using Anela.Heblo.Application.Features.Purchase.Validators;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -46,6 +48,10 @@ public static class PurchaseModule
 
         // Register stock severity calculator
         services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();
+
+        // Register validators
+        services.AddScoped<IValidator<Model.CreatePurchaseOrderRequest>, CreatePurchaseOrderRequestValidator>();
+        services.AddScoped<IValidator<Model.UpdatePurchaseOrderRequest>, UpdatePurchaseOrderRequestValidator>();
 
         return services;
     }

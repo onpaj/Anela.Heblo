@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,6 +13,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
 {
     private readonly Mock<ILogger<UpdatePurchaseOrderStatusHandler>> _loggerMock;
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly UpdatePurchaseOrderStatusHandler _handler;
 
     private static readonly int ValidOrderId = 999;
@@ -21,10 +23,16 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         _loggerMock = new Mock<ILogger<UpdatePurchaseOrderStatusHandler>>();
         _repositoryMock = new Mock<IPurchaseOrderRepository>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
 
         _handler = new UpdatePurchaseOrderStatusHandler(
             _loggerMock.Object,
-            _repositoryMock.Object);
+            _repositoryMock.Object,
+            _currentUserServiceMock.Object);
     }
 
     [Fact]
@@ -51,7 +59,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
         result!.Id.Should().Be(purchaseOrder.Id);
         result.OrderNumber.Should().Be(ValidOrderNumber);
         result.Status.Should().Be("InTransit");
-        result.UpdatedBy.Should().Be("System");
+        result.UpdatedBy.Should().Be("Test User");
         result.UpdatedAt.Should().NotBeNull();
 
         purchaseOrder.Status.Should().Be(PurchaseOrderStatus.InTransit);

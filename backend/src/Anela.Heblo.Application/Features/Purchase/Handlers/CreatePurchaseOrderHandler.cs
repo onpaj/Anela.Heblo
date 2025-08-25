@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Application.Common.Extensions;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -12,17 +14,20 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     private readonly IPurchaseOrderRepository _repository;
     private readonly IPurchaseOrderNumberGenerator _orderNumberGenerator;
     private readonly ICatalogRepository _catalogRepository;
+    private readonly ICurrentUserService _currentUserService;
 
     public CreatePurchaseOrderHandler(
         ILogger<CreatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
         IPurchaseOrderNumberGenerator orderNumberGenerator,
-        ICatalogRepository catalogRepository)
+        ICatalogRepository catalogRepository,
+        ICurrentUserService currentUserService)
     {
         _logger = logger;
         _repository = repository;
         _orderNumberGenerator = orderNumberGenerator;
         _catalogRepository = catalogRepository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CreatePurchaseOrderResponse> Handle(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
@@ -30,14 +35,15 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", request.SupplierName);
 
         // Parse dates from string format and ensure UTC for PostgreSQL compatibility
-        var orderDate = DateTime.SpecifyKind(DateTime.Parse(request.OrderDate).Date, DateTimeKind.Utc);
-        var expectedDeliveryDate = !string.IsNullOrEmpty(request.ExpectedDeliveryDate)
-            ? DateTime.SpecifyKind(DateTime.Parse(request.ExpectedDeliveryDate).Date, DateTimeKind.Utc)
-            : (DateTime?)null;
+        var orderDate = request.OrderDate.ToUtcDateTime();
+        var expectedDeliveryDate = request.ExpectedDeliveryDate.ToUtcDateTimeOrNull();
 
         var orderNumber = !string.IsNullOrEmpty(request.OrderNumber)
             ? request.OrderNumber
             : await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
+
+        var currentUser = _currentUserService.GetCurrentUser();
+        var createdBy = currentUser.Name ?? "System";
 
         var purchaseOrder = new PurchaseOrder(
             orderNumber,
@@ -45,7 +51,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
             orderDate,
             expectedDeliveryDate,
             request.Notes,
-            "System"); // TODO: Get actual user from context
+            createdBy);
 
         // Add lines if provided
         if (request.Lines != null && request.Lines.Any())

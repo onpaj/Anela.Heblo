@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -9,13 +10,16 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
 {
     private readonly ILogger<UpdatePurchaseOrderStatusHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
+    private readonly ICurrentUserService _currentUserService;
 
     public UpdatePurchaseOrderStatusHandler(
         ILogger<UpdatePurchaseOrderStatusHandler> logger,
-        IPurchaseOrderRepository repository)
+        IPurchaseOrderRepository repository,
+        ICurrentUserService currentUserService)
     {
         _logger = logger;
         _repository = repository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<UpdatePurchaseOrderStatusResponse?> Handle(UpdatePurchaseOrderStatusRequest request, CancellationToken cancellationToken)
@@ -39,7 +43,10 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
 
         try
         {
-            purchaseOrder.ChangeStatus(newStatus, "System"); // TODO: Get actual user from context
+            var currentUser = _currentUserService.GetCurrentUser();
+            var updatedBy = currentUser.Name ?? "System";
+
+            purchaseOrder.ChangeStatus(newStatus, updatedBy);
 
             await _repository.UpdateAsync(purchaseOrder, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);

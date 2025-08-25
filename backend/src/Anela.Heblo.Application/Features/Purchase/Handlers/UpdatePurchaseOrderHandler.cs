@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -11,15 +12,18 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
     private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
     private readonly ICatalogRepository _catalogRepository;
+    private readonly ICurrentUserService _currentUserService;
 
     public UpdatePurchaseOrderHandler(
         ILogger<UpdatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
-        ICatalogRepository catalogRepository)
+        ICatalogRepository catalogRepository,
+        ICurrentUserService currentUserService)
     {
         _logger = logger;
         _repository = repository;
         _catalogRepository = catalogRepository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<UpdatePurchaseOrderResponse?> Handle(UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
@@ -36,13 +40,16 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
         try
         {
+            var currentUser = _currentUserService.GetCurrentUser();
+            var updatedBy = currentUser.Name ?? "System";
+
             // Update order number if provided
             if (!string.IsNullOrEmpty(request.OrderNumber) && request.OrderNumber != purchaseOrder.OrderNumber)
             {
-                purchaseOrder.UpdateOrderNumber(request.OrderNumber, "System"); // TODO: Get actual user
+                purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
             }
 
-            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, "System"); // TODO: Get actual user
+            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, updatedBy);
 
             var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
             var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();

@@ -17,7 +17,7 @@ public class AnalyticsProduct
     public decimal? EshopPriceWithoutVat { get; init; }
     public decimal MaterialCost { get; init; }
     public decimal HandlingCost { get; init; }
-    
+
     /// <summary>
     /// Sales history only for the requested period (filtered by repository)
     /// </summary>

@@ -17,7 +17,7 @@ public static class AnalyticsModule
 
         // 🔒 PERFORMANCE FIX: Register new streaming repository
         services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
-        
+
         // 🔒 PERFORMANCE FIX: Register extracted calculators (single responsibility)
         services.AddScoped<MarginCalculator>();
         services.AddScoped<MonthlyBreakdownGenerator>();

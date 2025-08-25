@@ -34,11 +34,11 @@ public class MonthlyBreakdownGenerator
         {
             var monthStart = current;
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-            
+
             var monthlySegments = GenerateMonthlySegments(
-                calculationResult.GroupProducts, 
-                monthStart, 
-                monthEnd, 
+                calculationResult.GroupProducts,
+                monthStart,
+                monthEnd,
                 groupingMode);
 
             monthlyData.Add(new MonthlyProductMarginDto
@@ -71,12 +71,12 @@ public class MonthlyBreakdownGenerator
         foreach (var (groupKey, products) in groupProducts)
         {
             var groupData = ProcessGroupForMonth(products, monthStart, monthEnd);
-            
+
             if (groupData.totalMargin <= 0)
                 continue;
 
             totalMonthMargin += groupData.totalMargin;
-            
+
             var displayName = _marginCalculator.GetGroupDisplayName(groupKey, groupingMode, products);
 
             segments.Add(new ProductMarginSegmentDto
@@ -113,8 +113,8 @@ public class MonthlyBreakdownGenerator
     /// <summary>
     /// Processes a group of products for a specific month
     /// </summary>
-    private (decimal totalMargin, int totalUnitsSold, decimal avgMarginPerPiece, 
-             decimal avgSellingPrice, decimal avgMaterialCosts, decimal avgLaborCosts, 
+    private (decimal totalMargin, int totalUnitsSold, decimal avgMarginPerPiece,
+             decimal avgSellingPrice, decimal avgMaterialCosts, decimal avgLaborCosts,
              int productCount) ProcessGroupForMonth(
         List<AnalyticsProduct> products,
         DateTime monthStart,
@@ -139,11 +139,11 @@ public class MonthlyBreakdownGenerator
 
             var unitsSold = (int)salesInMonth.Sum(s => s.AmountB2B + s.AmountB2C);
             var marginContribution = unitsSold * product.MarginAmount;
-            
+
             totalMargin += marginContribution;
             totalUnitsSold += unitsSold;
             productCount++;
-            
+
             // Accumulate for averages
             totalMarginPerPiece += product.MarginAmount;
             totalSellingPrice += product.EshopPriceWithoutVat ?? 0;

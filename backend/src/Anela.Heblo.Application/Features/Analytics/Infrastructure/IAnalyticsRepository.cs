@@ -14,11 +14,11 @@ public interface IAnalyticsRepository
     /// Streams products with sales data to avoid memory overload
     /// </summary>
     IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
-        DateTime fromDate, 
-        DateTime toDate, 
-        ProductType[] productTypes, 
+        DateTime fromDate,
+        DateTime toDate,
+        ProductType[] productTypes,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets aggregated margin data directly from repository (optimized query)
     /// </summary>

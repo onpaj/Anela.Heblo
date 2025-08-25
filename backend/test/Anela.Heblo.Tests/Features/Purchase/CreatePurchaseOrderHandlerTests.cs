@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,6 +16,7 @@ public class CreatePurchaseOrderHandlerTests
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
     private readonly Mock<IPurchaseOrderNumberGenerator> _orderNumberGeneratorMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly CreatePurchaseOrderHandler _handler;
 
     private const string ValidSupplierName = "Test Supplier";
@@ -32,12 +34,18 @@ public class CreatePurchaseOrderHandlerTests
         _repositoryMock = new Mock<IPurchaseOrderRepository>();
         _orderNumberGeneratorMock = new Mock<IPurchaseOrderNumberGenerator>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
 
         _handler = new CreatePurchaseOrderHandler(
             _loggerMock.Object,
             _repositoryMock.Object,
             _orderNumberGeneratorMock.Object,
-            _catalogRepositoryMock.Object);
+            _catalogRepositoryMock.Object,
+            _currentUserServiceMock.Object);
     }
 
     [Fact]
@@ -67,7 +75,7 @@ public class CreatePurchaseOrderHandlerTests
         result.Notes.Should().Be(ValidNotes);
         result.TotalAmount.Should().Be(255.00m);
         result.Lines.Should().HaveCount(1);
-        result.CreatedBy.Should().Be("System");
+        result.CreatedBy.Should().Be("Test User");
 
         var line = result.Lines.First();
         line.MaterialId.Should().Be(ValidMaterialId);

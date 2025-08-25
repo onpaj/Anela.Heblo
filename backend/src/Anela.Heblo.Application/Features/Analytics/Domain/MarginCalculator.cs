@@ -27,18 +27,18 @@ public class MarginCalculator
                 continue;
 
             var groupKey = GetGroupKey(product, groupingMode);
-            
+
             // Calculate total units sold in the period
             var totalSold = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
             var marginContribution = (decimal)totalSold * product.MarginAmount;
-            
+
             // Update group totals
             if (!groupTotals.ContainsKey(groupKey))
             {
                 groupTotals[groupKey] = 0;
                 groupProducts[groupKey] = new List<AnalyticsProduct>();
             }
-            
+
             groupTotals[groupKey] += marginContribution;
             groupProducts[groupKey].Add(product);
             totalMargin += marginContribution;

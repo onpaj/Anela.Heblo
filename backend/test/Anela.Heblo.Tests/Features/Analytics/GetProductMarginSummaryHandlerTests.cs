@@ -33,7 +33,7 @@ public class GetProductMarginSummaryHandlerTests
         _marginCalculator = new MarginCalculator();
         _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
         _handler = new GetProductMarginSummaryHandler(
-            _analyticsRepositoryMock.Object, 
+            _analyticsRepositoryMock.Object,
             _marginAnalysisServiceMock.Object,
             _marginCalculator,
             _monthlyBreakdownGenerator);
@@ -57,7 +57,7 @@ public class GetProductMarginSummaryHandlerTests
             new AnalyticsProduct
             {
                 ProductCode = "PROD001",
-                ProductName = "Product 1", 
+                ProductName = "Product 1",
                 Type = ProductType.Product,
                 MarginAmount = 100m,
                 SalesHistory = new List<SalesDataPoint>

@@ -22,27 +22,27 @@ public class AnalyticsRepository : IAnalyticsRepository
     /// Converts heavy CatalogAggregate to lightweight AnalyticsProduct
     /// </summary>
     public async IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
-        DateTime fromDate, 
-        DateTime toDate, 
+        DateTime fromDate,
+        DateTime toDate,
         ProductType[] productTypes,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         // TODO: In real implementation, this would stream from database
         // For now, we'll process in batches to reduce memory pressure
         const int batchSize = 100;
-        
+
         // Get total count for batching
         var allProducts = await _catalogRepository.GetProductsWithSalesInPeriod(fromDate, toDate, productTypes, cancellationToken);
-        
+
         // Process in batches to reduce memory usage
         for (int i = 0; i < allProducts.Count; i += batchSize)
         {
             var batch = allProducts.Skip(i).Take(batchSize);
-            
+
             foreach (var product in batch)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 // Convert to lightweight analytics model
                 yield return new AnalyticsProduct
                 {
@@ -66,7 +66,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                         .ToList()
                 };
             }
-            
+
             // Allow garbage collection between batches
             GC.Collect();
         }
@@ -85,7 +85,7 @@ public class AnalyticsRepository : IAnalyticsRepository
         // TODO: This would be optimized SQL query in real database implementation
         // For now, use existing logic but avoid loading full objects
         var groupTotals = new Dictionary<string, decimal>();
-        
+
         await foreach (var product in StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken))
         {
             if (product.MarginAmount <= 0)
@@ -97,7 +97,7 @@ public class AnalyticsRepository : IAnalyticsRepository
 
             if (!groupTotals.ContainsKey(groupKey))
                 groupTotals[groupKey] = 0;
-            
+
             groupTotals[groupKey] += marginContribution;
         }
 
