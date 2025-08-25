@@ -175,8 +175,8 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         // Return individual manufacture cost records
         var currentDate = _timeProvider.GetUtcNow().Date;
 
-        // For very high monthsBack values (like 999), return all records without date filtering
-        if (monthsBack >= 999)
+        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
+        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
         {
             return catalogItem.ManufactureCostHistory
                 .OrderByDescending(mc => mc.Date)

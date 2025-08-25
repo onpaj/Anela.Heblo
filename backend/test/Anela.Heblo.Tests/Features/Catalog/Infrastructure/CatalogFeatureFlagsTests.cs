@@ -20,7 +20,7 @@ public class TestHostEnvironment : IHostEnvironment
         ContentRootPath = "/";
         ContentRootFileProvider = new NullFileProvider();
     }
-    
+
     public string EnvironmentName { get; set; }
     public string ApplicationName { get; set; }
     public string ContentRootPath { get; set; }
