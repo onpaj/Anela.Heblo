@@ -9,7 +9,7 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header data-testid="topbar" className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="flex items-center justify-between h-16 px-4">
         {/* Left side - Mobile menu button and App logo */}
         <div className="flex items-center">
@@ -18,6 +18,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
             type="button"
             className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary mr-2"
             onClick={onMenuClick}
+            aria-label="Open menu"
           >
             <span className="sr-only">Open menu</span>
             <Menu className="h-6 w-6" />
