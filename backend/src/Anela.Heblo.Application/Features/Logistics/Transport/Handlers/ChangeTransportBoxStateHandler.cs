@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -11,15 +12,21 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     private readonly ITransportBoxRepository _repository;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly TimeProvider _timeProvider;
 
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
         IMediator mediator,
-        ILogger<ChangeTransportBoxStateHandler> logger)
+        ILogger<ChangeTransportBoxStateHandler> logger,
+        ICurrentUserService currentUserService,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ChangeTransportBoxStateResponse> Handle(ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
@@ -64,7 +71,11 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             }
 
             // Execute the transition
-            await transition.ChangeStateAsync(box, request.BoxCode, DateTime.UtcNow, "System"); // TODO: Get actual user
+            var currentUser = _currentUserService.GetCurrentUser();
+            var currentTime = _timeProvider.GetUtcNow().UtcDateTime;
+            var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
+            
+            await transition.ChangeStateAsync(box, request.BoxCode, currentTime, userName);
 
             // Save changes
             await _repository.UpdateAsync(box, cancellationToken);
