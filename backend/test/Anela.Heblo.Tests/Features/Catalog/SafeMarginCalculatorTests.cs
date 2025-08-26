@@ -29,10 +29,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(sellingPrice, cost);
 
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(expectedMargin, result.Margin);
-        Assert.Null(result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeTrue();
+        result.Margin.Should().Be(expectedMargin);
+        result.ErrorMessage.Should().BeNull();
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -42,10 +42,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(null, 50m);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Missing price or cost data", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Missing price or cost data");
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -55,10 +55,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(100m, null);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Missing price or cost data", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Missing price or cost data");
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -68,10 +68,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(null, null);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Missing price or cost data", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Missing price or cost data");
+        result.Exception.Should().BeNull();
     }
 
     [Theory]
@@ -84,10 +84,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(sellingPrice, cost);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Negative prices or costs are not allowed", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Negative prices or costs are not allowed");
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -97,10 +97,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(0, 50);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Cannot calculate margin with zero selling price", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Cannot calculate margin with zero selling price");
+        result.Exception.Should().BeNull();
     }
 
     [Theory]
@@ -112,10 +112,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(sellingPrice, cost);
 
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(expectedMargin, result.Margin);
-        Assert.Null(result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeTrue();
+        result.Margin.Should().Be(expectedMargin);
+        result.ErrorMessage.Should().BeNull();
+        result.Exception.Should().BeNull();
     }
 
     [Theory]
@@ -128,10 +128,10 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(sellingPrice, cost);
 
         // Assert
-        Assert.True(result.IsSuccess);
+        result.IsSuccess.Should().BeTrue();
         result.Margin.Value.Should().BeApproximately(expectedMargin, 0.01m); // Allow small rounding differences
-        Assert.Null(result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.ErrorMessage.Should().BeNull();
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -145,14 +145,14 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(sellingPrice, cost);
 
         // Assert - Should either succeed or return invalid (but not throw)
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
         if (result.IsSuccess)
         {
-            Assert.NotNull(result.Margin);
+            result.Margin.Should().NotBeNull();
         }
         else
         {
-            Assert.NotNull(result.ErrorMessage);
+            result.ErrorMessage.Should().NotBeNull();
         }
     }
 
@@ -166,7 +166,7 @@ public class SafeMarginCalculatorTests
         var result = _calculator.CalculateMargin(100, 50);
 
         // Assert - For valid calculation, no error should be logged
-        Assert.True(result.IsSuccess);
+        result.IsSuccess.Should().BeTrue();
 
         // Verify no error logging occurred for valid calculation
         _mockLogger.Verify(
@@ -186,10 +186,10 @@ public class SafeMarginCalculatorTests
         var result = MarginCalculationResult.Success(25.50m);
 
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(25.50m, result.Margin);
-        Assert.Null(result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeTrue();
+        result.Margin.Should().Be(25.50m);
+        result.ErrorMessage.Should().BeNull();
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -199,10 +199,10 @@ public class SafeMarginCalculatorTests
         var result = MarginCalculationResult.Invalid("Test error message");
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Test error message", result.ErrorMessage);
-        Assert.Null(result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Test error message");
+        result.Exception.Should().BeNull();
     }
 
     [Fact]
@@ -215,9 +215,9 @@ public class SafeMarginCalculatorTests
         var result = MarginCalculationResult.Error("Test error", exception);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Margin);
-        Assert.Equal("Test error", result.ErrorMessage);
-        Assert.Equal(exception, result.Exception);
+        result.IsSuccess.Should().BeFalse();
+        result.Margin.Should().BeNull();
+        result.ErrorMessage.Should().Be("Test error");
+        result.Exception.Should().Be(exception);
     }
 }

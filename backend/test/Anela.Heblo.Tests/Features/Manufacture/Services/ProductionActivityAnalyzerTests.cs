@@ -32,7 +32,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold: 30);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold: 30);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold: 30);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold: 30);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.GetLastProductionDate(manufactureHistory);
 
         // Assert
-        Assert.Equal(expectedDate, result);
+        result.Should().Be(expectedDate);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.GetLastProductionDate(manufactureHistory);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.GetLastProductionDate(manufactureHistory);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths: 12);
 
         // Assert
-        Assert.Equal(double.PositiveInfinity, result);
+        result.Should().Be(double.PositiveInfinity);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths: 12);
 
         // Assert
-        Assert.Equal(double.PositiveInfinity, result);
+        result.Should().Be(double.PositiveInfinity);
     }
 
     [Fact]
@@ -211,6 +211,6 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths: 12);
 
         // Assert
-        Assert.Equal(15.0, result); // Only one interval: 15 days
+        result.Should().Be(15.0); // Only one interval: 15 days
     }
 }

@@ -54,7 +54,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.Equal(ManufacturingStockSeverity.Unconfigured, result);
+        result.Should().Be(ManufacturingStockSeverity.Unconfigured);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.Equal(ManufacturingStockSeverity.Critical, result);
+        result.Should().Be(ManufacturingStockSeverity.Critical);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.NotEqual(ManufacturingStockSeverity.Critical, result);
+        result.Should().NotBe(ManufacturingStockSeverity.Critical);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.Equal(ManufacturingStockSeverity.Major, result);
+        result.Should().Be(ManufacturingStockSeverity.Major);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.Equal(ManufacturingStockSeverity.Adequate, result);
+        result.Should().Be(ManufacturingStockSeverity.Adequate);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateOverstockPercentage(stockDaysAvailable, optimalStockDaysSetup);
 
         // Assert
-        Assert.Equal(150.0, result);
+        result.Should().Be(150.0);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateOverstockPercentage(stockDaysAvailable, optimalStockDaysSetup);
 
         // Assert
-        Assert.Equal(0.0, result);
+        result.Should().Be(0.0);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateOverstockPercentage(stockDaysAvailable, optimalStockDaysSetup);
 
         // Assert
-        Assert.Equal(0.0, result);
+        result.Should().Be(0.0);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.IsConfiguredForAnalysis(catalogItem);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.IsConfiguredForAnalysis(catalogItem);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.IsConfiguredForAnalysis(catalogItem);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Theory]
@@ -239,7 +239,7 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert
-        Assert.Equal(ManufacturingStockSeverity.Unconfigured, result);
+        result.Should().Be(ManufacturingStockSeverity.Unconfigured);
     }
 
     [Fact]
@@ -257,6 +257,6 @@ public class ManufactureSeverityCalculatorTests
         var result = _calculator.CalculateSeverity(catalogItem, dailySalesRate, stockDaysAvailable);
 
         // Assert - Should return Critical, not Major
-        Assert.Equal(ManufacturingStockSeverity.Critical, result);
+        result.Should().Be(ManufacturingStockSeverity.Critical);
     }
 }

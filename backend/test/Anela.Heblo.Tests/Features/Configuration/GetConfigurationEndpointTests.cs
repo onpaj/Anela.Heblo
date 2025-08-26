@@ -1,9 +1,15 @@
 using System.Net.Http.Json;
+using FluentAssertions;
 using Anela.Heblo.API;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Configuration.Model;
+using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Configuration;
 
@@ -51,10 +57,10 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         var configResponse = await response.Content.ReadFromJsonAsync<GetConfigurationResponse>();
 
         // Assert
-        Assert.NotNull(configResponse);
-        Assert.NotNull(configResponse.Version);
-        Assert.NotNull(configResponse.Environment);
-        Assert.True(configResponse.Timestamp > DateTime.MinValue);
+        configResponse.Should().NotBeNull();
+        configResponse.Version.Should().NotBeNull();
+        configResponse.Environment.Should().NotBeNull();
+        (configResponse.Timestamp > DateTime.MinValue).Should().BeTrue();
         Assert.True(configResponse.Timestamp <= DateTime.UtcNow.AddMinutes(1)); // Allow 1 minute tolerance
     }
 
@@ -66,9 +72,9 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         var configResponse = await response.Content.ReadFromJsonAsync<GetConfigurationResponse>();
 
         // Assert
-        Assert.NotNull(configResponse);
+        configResponse.Should().NotBeNull();
         // In test environment, mock auth should be enabled
-        Assert.True(configResponse.UseMockAuth);
+        configResponse.UseMockAuth.Should().BeTrue();
     }
 
     [Fact]
@@ -79,9 +85,9 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         var configResponse = await response.Content.ReadFromJsonAsync<GetConfigurationResponse>();
 
         // Assert
-        Assert.NotNull(configResponse);
+        configResponse.Should().NotBeNull();
         // In integration tests, environment should be Test
-        Assert.Equal("Test", configResponse.Environment);
+        configResponse.Environment.Should().Be("Test");
     }
 
     [Fact]
@@ -92,10 +98,10 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         var configResponse = await response.Content.ReadFromJsonAsync<GetConfigurationResponse>();
 
         // Assert
-        Assert.NotNull(configResponse);
-        Assert.NotNull(configResponse.Version);
-        Assert.NotEmpty(configResponse.Version);
+        configResponse.Should().NotBeNull();
+        configResponse.Version.Should().NotBeNull();
+        configResponse.Version.Should().NotBeEmpty();
         // Version should be either from assembly or default fallback
-        Assert.True(configResponse.Version.Length > 0);
+        (configResponse.Version.Length > 0).Should().BeTrue();
     }
 }

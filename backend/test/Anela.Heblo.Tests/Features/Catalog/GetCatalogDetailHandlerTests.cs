@@ -1,11 +1,19 @@
 using Anela.Heblo.Application.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using FluentAssertions;
 using AutoMapper;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
@@ -53,9 +61,9 @@ public class GetCatalogDetailHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(catalogItemDto, result.Item);
-        Assert.NotNull(result.HistoricalData);
+        result.Should().NotBeNull();
+        result.Item.Should().Be(catalogItemDto);
+        result.HistoricalData.Should().NotBeNull();
 
         // Verify that historical data filters to last 13 months (from 2023-05-15 onwards)
         var expectedFromDate = currentDate.AddMonths(-13); // 2023-05-15
@@ -105,7 +113,7 @@ public class GetCatalogDetailHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
 
         var expectedFromDate = currentDate.AddMonths(-monthsBack);
         var expectedFromKey = $"{expectedFromDate.Year:D4}-{expectedFromDate.Month:D2}";
@@ -161,14 +169,14 @@ public class GetCatalogDetailHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.HistoricalData);
+        result.Should().NotBeNull();
+        result.HistoricalData.Should().NotBeNull();
 
         // Should not throw exception even with edge case values
         // Results might be empty or include all data depending on the edge case
-        Assert.NotNull(result.HistoricalData.SalesHistory);
-        Assert.NotNull(result.HistoricalData.PurchaseHistory);
-        Assert.NotNull(result.HistoricalData.ConsumedHistory);
+        result.HistoricalData.SalesHistory.Should().NotBeNull();
+        result.HistoricalData.PurchaseHistory.Should().NotBeNull();
+        result.HistoricalData.ConsumedHistory.Should().NotBeNull();
     }
 
     [Fact]
@@ -188,7 +196,7 @@ public class GetCatalogDetailHandlerTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _handler.Handle(request, CancellationToken.None));
 
-        Assert.Contains("Product with code 'NONEXISTENT' not found", exception.Message);
+        exception.Message.Should().Contain("Product with code 'NONEXISTENT' not found");
     }
 
     [Fact]
@@ -220,7 +228,7 @@ public class GetCatalogDetailHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
 
         // Verify data is ordered by Year DESC, Month DESC
         for (int i = 0; i < result.HistoricalData.SalesHistory.Count - 1; i++)

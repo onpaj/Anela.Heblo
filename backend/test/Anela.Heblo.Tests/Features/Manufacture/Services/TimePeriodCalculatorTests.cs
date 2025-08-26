@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.Manufacture.Model;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
@@ -25,8 +28,8 @@ public class TimePeriodCalculatorTests
             TimePeriodFilter.CustomPeriod, customFromDate, customToDate);
 
         // Assert
-        Assert.Equal(customFromDate, fromDate);
-        Assert.Equal(customToDate, toDate);
+        fromDate.Should().Be(customFromDate);
+        toDate.Should().Be(customToDate);
     }
 
     [Fact]
@@ -37,8 +40,8 @@ public class TimePeriodCalculatorTests
 
         // Assert
         // Should fall back to default (previous quarter)
-        Assert.True(fromDate < toDate);
-        Assert.True(toDate <= DateTime.UtcNow);
+        (fromDate < toDate).Should().BeTrue();
+        (toDate <= DateTime.UtcNow).Should().BeTrue();
     }
 
     [Fact]
@@ -52,8 +55,8 @@ public class TimePeriodCalculatorTests
         var expectedFrom = new DateTime(now.Year, now.Month, 1).AddMonths(-3);
         var expectedTo = new DateTime(now.Year, now.Month, 1).AddDays(-1);
 
-        Assert.Equal(expectedFrom, fromDate);
-        Assert.Equal(expectedTo, toDate);
+        fromDate.Should().Be(expectedFrom);
+        toDate.Should().Be(expectedTo);
     }
 
     [Fact]
@@ -67,8 +70,8 @@ public class TimePeriodCalculatorTests
         var expectedFrom = new DateTime(now.Year, now.Month, 1).AddMonths(-12);
         var expectedTo = new DateTime(now.Year, now.Month, 1).AddDays(-1);
 
-        Assert.Equal(expectedFrom, fromDate);
-        Assert.Equal(expectedTo, toDate);
+        fromDate.Should().Be(expectedFrom);
+        toDate.Should().Be(expectedTo);
     }
 
     [Fact]
@@ -82,8 +85,8 @@ public class TimePeriodCalculatorTests
         var expectedFrom = new DateTime(now.Year - 1, now.Month, 1);
         var expectedTo = expectedFrom.AddMonths(3).AddDays(-1);
 
-        Assert.Equal(expectedFrom, fromDate);
-        Assert.Equal(expectedTo, toDate);
+        fromDate.Should().Be(expectedFrom);
+        toDate.Should().Be(expectedTo);
     }
 
     [Fact]
@@ -97,8 +100,8 @@ public class TimePeriodCalculatorTests
         var expectedFrom = new DateTime(now.Year - 1, 10, 1);
         var expectedTo = new DateTime(now.Year, 1, 31);
 
-        Assert.Equal(expectedFrom, fromDate);
-        Assert.Equal(expectedTo, toDate);
+        fromDate.Should().Be(expectedFrom);
+        toDate.Should().Be(expectedTo);
     }
 
     [Theory]
@@ -113,7 +116,7 @@ public class TimePeriodCalculatorTests
         var expectedFrom = new DateTime(now.Year, now.Month, 1).AddMonths(-3);
         var expectedTo = new DateTime(now.Year, now.Month, 1).AddDays(-1);
 
-        Assert.Equal(expectedFrom, fromDate);
-        Assert.Equal(expectedTo, toDate);
+        fromDate.Should().Be(expectedFrom);
+        toDate.Should().Be(expectedTo);
     }
 }

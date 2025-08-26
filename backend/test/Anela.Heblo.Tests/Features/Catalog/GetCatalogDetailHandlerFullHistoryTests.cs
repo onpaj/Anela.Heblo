@@ -1,11 +1,19 @@
 using Anela.Heblo.Application.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using FluentAssertions;
 using AutoMapper;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
@@ -53,25 +61,25 @@ public class GetCatalogDetailHandlerFullHistoryTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(catalogItemDto, result.Item);
-        Assert.NotNull(result.HistoricalData);
+        result.Should().NotBeNull();
+        result.Item.Should().Be(catalogItemDto);
+        result.HistoricalData.Should().NotBeNull();
 
         // Should return ALL 7 purchase records (including very old ones from 2020)
-        Assert.Equal(7, result.HistoricalData.PurchaseHistory.Count);
+        result.HistoricalData.PurchaseHistory.Count.Should().Be(7);
 
         // Verify that we have records spanning multiple years
         var years = result.HistoricalData.PurchaseHistory.Select(p => p.Date.Year).Distinct().ToList();
-        Assert.Contains(2024, years);
-        Assert.Contains(2023, years);
-        Assert.Contains(2022, years);
-        Assert.Contains(2020, years);
+        years.Should().Contain(2024);
+        years.Should().Contain(2023);
+        years.Should().Contain(2022);
+        years.Should().Contain(2020);
 
         // Verify records are ordered by date descending (newest first)
         var dates = result.HistoricalData.PurchaseHistory.Select(p => p.Date).ToList();
         for (int i = 0; i < dates.Count - 1; i++)
         {
-            Assert.True(dates[i] >= dates[i + 1], "Records should be ordered by date descending");
+            (dates[i] >= dates[i + 1]).Should().BeTrue("Records should be ordered by date descending");
         }
     }
 
@@ -104,7 +112,7 @@ public class GetCatalogDetailHandlerFullHistoryTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
 
         // Should return only records from last 13 months (from 2023-05-15 onwards)
         // This should exclude the very old records from 2020-2022

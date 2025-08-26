@@ -1,9 +1,15 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Price;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.FinancialOverview;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Application.FinancialOverview;
 
@@ -53,21 +59,21 @@ public class StockValueServiceTests
         var result = await _service.GetStockValueChangesAsync(startDate, endDate, CancellationToken.None);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        result.Count.Should().Be(2);
 
         // January changes
         var january = result.First(x => x.Month == 1 && x.Year == 2024);
-        Assert.Equal(1000m, january.StockChanges.Materials); // (20-10) * 100 = 1000
-        Assert.Equal(600m, january.StockChanges.SemiProducts); // (8-5) * 200 = 600
-        Assert.Equal(900m, january.StockChanges.Products); // (7-4) * 300 = 900
-        Assert.Equal(2500m, january.TotalStockValueChange);
+        january.StockChanges.Materials.Should().Be(1000m); // (20-10) * 100 = 1000
+        january.StockChanges.SemiProducts.Should().Be(600m); // (8-5) * 200 = 600
+        january.StockChanges.Products.Should().Be(900m); // (7-4) * 300 = 900
+        january.TotalStockValueChange.Should().Be(2500m);
 
         // February changes
         var february = result.First(x => x.Month == 2 && x.Year == 2024);
-        Assert.Equal(-500m, february.StockChanges.Materials); // (15-20) * 100 = -500
-        Assert.Equal(-400m, february.StockChanges.SemiProducts); // (6-8) * 200 = -400
-        Assert.Equal(-300m, february.StockChanges.Products); // (6-7) * 300 = -300
-        Assert.Equal(-1200m, february.TotalStockValueChange);
+        february.StockChanges.Materials.Should().Be(-500m); // (15-20) * 100 = -500
+        february.StockChanges.SemiProducts.Should().Be(-400m); // (6-8) * 200 = -400
+        february.StockChanges.Products.Should().Be(-300m); // (6-7) * 300 = -300
+        february.TotalStockValueChange.Should().Be(-1200m);
     }
 
     [Fact]
@@ -87,9 +93,9 @@ public class StockValueServiceTests
         var result = await _service.GetStockValueChangesAsync(startDate, endDate, CancellationToken.None);
 
         // Assert
-        Assert.Single(result);
+        result.Should().HaveCount(1);
         var january = result.First();
-        Assert.Equal(0m, january.TotalStockValueChange);
+        january.TotalStockValueChange.Should().Be(0m);
     }
 
     [Fact]
@@ -123,11 +129,11 @@ public class StockValueServiceTests
         var result = await _service.GetStockValueChangesAsync(startDate, endDate, CancellationToken.None);
 
         // Assert
-        Assert.Single(result);
+        result.Should().HaveCount(1);
         var january = result.First();
         // Should only calculate value for MAT001 (which has price data)
         // Since start and end stock are the same, change should be 0
-        Assert.Equal(0m, january.TotalStockValueChange);
+        january.TotalStockValueChange.Should().Be(0m);
     }
 
     private void SetupStockDataForJanuary()
