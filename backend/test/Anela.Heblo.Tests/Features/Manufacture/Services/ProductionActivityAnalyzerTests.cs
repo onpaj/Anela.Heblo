@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Manufacture;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -161,7 +162,7 @@ public class ProductionActivityAnalyzerTests
         var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths: 12);
 
         // Assert
-        Assert.Equal(11.666666666666666, result, precision: 10);
+        result.Should().BeApproximately(11.666666666666666, 0.0000000001);
     }
 
     [Fact]
