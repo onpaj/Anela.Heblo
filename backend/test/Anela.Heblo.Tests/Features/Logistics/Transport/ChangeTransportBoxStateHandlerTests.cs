@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,8 @@ public class ChangeTransportBoxStateHandlerTests
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly ChangeTransportBoxStateHandler _handler;
 
     public ChangeTransportBoxStateHandlerTests()
@@ -22,11 +25,24 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock = new Mock<ITransportBoxRepository>();
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _timeProviderMock = new Mock<TimeProvider>();
+
+        // Setup default returns for the new dependencies
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("test-user", "Test User", "test@example.com", true));
+
+        _timeProviderMock
+            .Setup(x => x.GetUtcNow())
+            .Returns(new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
             _mediatorMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _currentUserServiceMock.Object,
+            _timeProviderMock.Object);
     }
 
     [Fact]
