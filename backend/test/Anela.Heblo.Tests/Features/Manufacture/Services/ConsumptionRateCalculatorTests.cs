@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -36,7 +37,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
 
         // Assert
-        Assert.Equal(2.0, result);
+        result.Should().Be(2.0);
     }
 
     [Fact]
@@ -51,7 +52,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
 
         // Assert
-        Assert.Equal(0.0, result);
+        result.Should().Be(0.0);
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
 
         // Assert
-        Assert.Equal(0.0, result);
+        result.Should().Be(0.0);
     }
 
     [Fact]
@@ -91,7 +92,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateDailyConsumptionRate(consumedHistory, fromDate, toDate);
 
         // Assert
-        Assert.Equal(5.0, result);
+        result.Should().Be(5.0);
     }
 
     [Fact]
@@ -106,7 +107,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateStockDaysAvailable(availableStock, dailyConsumptionRate);
 
         // Assert
-        Assert.Equal(20.0, result);
+        result.Should().Be(20.0);
     }
 
     [Fact]
@@ -120,7 +121,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateStockDaysAvailable(availableStock, dailyConsumptionRate);
 
         // Assert
-        Assert.Equal(999999.0, result); // Defined as infinite stock days
+        result.Should().Be(999999.0); // Defined as infinite stock days
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateStockDaysAvailable(availableStock, dailyConsumptionRate);
 
         // Assert
-        Assert.Equal(999999.0, result);
+        result.Should().Be(999999.0);
     }
 
     [Fact]
@@ -148,7 +149,7 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateStockDaysAvailable(availableStock, dailyConsumptionRate);
 
         // Assert
-        Assert.Equal(0.0, result);
+        result.Should().Be(0.0);
     }
 
     [Theory]
@@ -170,6 +171,6 @@ public class ConsumptionRateCalculatorTests
         var result = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
 
         // Assert
-        Assert.Equal(10.0, result);
+        result.Should().Be(10.0);
     }
 }

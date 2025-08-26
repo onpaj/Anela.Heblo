@@ -1,13 +1,23 @@
 using Microsoft.AspNetCore.Hosting;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using FluentAssertions;
 using Microsoft.ApplicationInsights;
+using FluentAssertions;
 using Microsoft.ApplicationInsights.Extensibility;
+using FluentAssertions;
 using Anela.Heblo.API;
+using FluentAssertions;
 using Anela.Heblo.Xcc.Telemetry;
+using FluentAssertions;
 using Xunit.Abstractions;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests;
 
@@ -61,7 +71,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         using var client = _factory.CreateClient();
 
         // Assert - If we get here, the application started successfully
-        Assert.NotNull(client);
+        client.Should().NotBeNull();
         _output.WriteLine("✅ Application started successfully");
     }
 
@@ -110,7 +120,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
                 }
 
                 var controller = Activator.CreateInstance(controllerType, args);
-                Assert.NotNull(controller);
+                controller.Should().NotBeNull();
                 _output.WriteLine($"✅ Successfully resolved {controllerType.Name}");
             }
             catch (Exception ex)
@@ -141,7 +151,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
             try
             {
                 var service = serviceProvider.GetRequiredService(serviceType);
-                Assert.NotNull(service);
+                service.Should().NotBeNull();
                 _output.WriteLine($"✅ Successfully resolved service {serviceType.Name}");
             }
             catch (Exception ex)
@@ -163,10 +173,10 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         var telemetryService = serviceProvider.GetRequiredService<ITelemetryService>();
 
         // Assert
-        Assert.NotNull(telemetryService);
+        telemetryService.Should().NotBeNull();
 
         // In test environment (no Application Insights), should use NoOpTelemetryService
-        Assert.IsType<NoOpTelemetryService>(telemetryService);
+        telemetryService.Should().BeOfType<NoOpTelemetryService>();
         _output.WriteLine("✅ NoOpTelemetryService is correctly registered for test environment");
     }
 
@@ -218,7 +228,7 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
         var hostEnvironment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
 
         // Assert
-        Assert.NotNull(hostEnvironment);
+        hostEnvironment.Should().NotBeNull();
         _output.WriteLine($"✅ Environment: {hostEnvironment.EnvironmentName}");
 
         // In test environment, mock auth should be enabled

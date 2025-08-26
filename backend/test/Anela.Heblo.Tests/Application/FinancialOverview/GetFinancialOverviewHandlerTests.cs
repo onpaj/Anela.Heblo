@@ -1,7 +1,11 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Application.FinancialOverview;
 
@@ -51,7 +55,7 @@ public class GetFinancialOverviewHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.Equal(6, result.Data.Count);
+        result.Data.Count.Should().Be(6);
         _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -110,14 +114,14 @@ public class GetFinancialOverviewHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result.Summary.StockSummary);
-        Assert.Equal(100m, result.Summary.StockSummary.TotalStockValueChange);
+        result.Summary.StockSummary.Should().NotBeNull();
+        result.Summary.StockSummary.TotalStockValueChange.Should().Be(100m);
         _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify stock data was included in response
         var monthWithStock = result.Data.FirstOrDefault(d => d.StockChanges != null);
-        Assert.NotNull(monthWithStock);
-        Assert.NotNull(monthWithStock.StockChanges);
-        Assert.Equal(100m, monthWithStock.StockChanges.Materials);
+        monthWithStock.Should().NotBeNull();
+        monthWithStock.StockChanges.Should().NotBeNull();
+        monthWithStock.StockChanges.Materials.Should().Be(100m);
     }
 }

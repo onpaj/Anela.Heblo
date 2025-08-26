@@ -1,16 +1,29 @@
 using System;
+using FluentAssertions;
 using System.Collections.Generic;
+using FluentAssertions;
 using System.Linq;
+using FluentAssertions;
 using System.Threading;
+using FluentAssertions;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Domain;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Handlers;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
@@ -91,12 +104,12 @@ public class GetProductMarginSummaryHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("current-year", result.TimeWindow);
-        Assert.Equal(fromDate, result.FromDate);
-        Assert.Equal(toDate, result.ToDate);
-        Assert.Equal(3000m, result.TotalMargin); // (15 * 100) + (30 * 50) = 1500 + 1500
-        Assert.Equal(2, result.TopProducts.Count);
+        result.Should().NotBeNull();
+        result.TimeWindow.Should().Be("current-year");
+        result.FromDate.Should().Be(fromDate);
+        result.ToDate.Should().Be(toDate);
+        result.TotalMargin.Should().Be(3000m); // (15 * 100) + (30 * 50) = 1500 + 1500
+        result.TopProducts.Count.Should().Be(2);
         Assert.True(result.MonthlyData.Any());
     }
 
@@ -123,9 +136,9 @@ public class GetProductMarginSummaryHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.Equal(timeWindow, result.TimeWindow);
-        Assert.Equal(expectedDates.Item1, result.FromDate);
-        Assert.Equal(expectedDates.Item2, result.ToDate);
+        result.TimeWindow.Should().Be(timeWindow);
+        result.FromDate.Should().Be(expectedDates.Item1);
+        result.ToDate.Should().Be(expectedDates.Item2);
     }
 
     [Fact]
@@ -154,9 +167,9 @@ public class GetProductMarginSummaryHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.Equal(0m, result.TotalMargin);
-        Assert.Empty(result.TopProducts);
-        Assert.Empty(result.MonthlyData);
+        result.TotalMargin.Should().Be(0m);
+        result.TopProducts.Should().BeEmpty();
+        result.MonthlyData.Should().BeEmpty();
     }
 }
 

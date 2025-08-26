@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Domain.Catalog;
 
@@ -45,30 +46,30 @@ public class CatalogAggregateTests
         aggregate.SalesHistory = salesData;
 
         // Assert
-        Assert.Equal(2, aggregate.SaleHistorySummary.MonthlyData.Count);
+        aggregate.SaleHistorySummary.MonthlyData.Should().HaveCount(2);
 
         // Check January 2024 summary
         var jan2024 = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
-        Assert.Equal(2024, jan2024.Year);
-        Assert.Equal(1, jan2024.Month);
-        Assert.Equal(1800, jan2024.TotalB2B); // 1000 + 800
-        Assert.Equal(700, jan2024.TotalB2C);  // 500 + 200
-        Assert.Equal(18, jan2024.AmountB2B);  // 10 + 8
-        Assert.Equal(7, jan2024.AmountB2C);   // 5 + 2
-        Assert.Equal(2, jan2024.TransactionCount);
+        jan2024.Year.Should().Be(2024);
+        jan2024.Month.Should().Be(1);
+        jan2024.TotalB2B.Should().Be(1800); // 1000 + 800
+        jan2024.TotalB2C.Should().Be(700);  // 500 + 200
+        jan2024.AmountB2B.Should().Be(18);  // 10 + 8
+        jan2024.AmountB2C.Should().Be(7);   // 5 + 2
+        jan2024.TransactionCount.Should().Be(2);
 
         // Check February 2024 summary
         var feb2024 = aggregate.SaleHistorySummary.MonthlyData["2024-02"];
-        Assert.Equal(2024, feb2024.Year);
-        Assert.Equal(2, feb2024.Month);
-        Assert.Equal(1200, feb2024.TotalB2B);
-        Assert.Equal(600, feb2024.TotalB2C);
-        Assert.Equal(12, feb2024.AmountB2B);
-        Assert.Equal(6, feb2024.AmountB2C);
-        Assert.Equal(1, feb2024.TransactionCount);
+        feb2024.Year.Should().Be(2024);
+        feb2024.Month.Should().Be(2);
+        feb2024.TotalB2B.Should().Be(1200);
+        feb2024.TotalB2C.Should().Be(600);
+        feb2024.AmountB2B.Should().Be(12);
+        feb2024.AmountB2C.Should().Be(6);
+        feb2024.TransactionCount.Should().Be(1);
 
         // Check LastUpdated was set
-        Assert.True(aggregate.SaleHistorySummary.LastUpdated > DateTime.UtcNow.AddMinutes(-1));
+        aggregate.SaleHistorySummary.LastUpdated.Should().BeAfter(DateTime.UtcNow.AddMinutes(-1));
     }
 
     [Fact]
@@ -108,38 +109,38 @@ public class CatalogAggregateTests
         aggregate.PurchaseHistory = purchaseData;
 
         // Assert
-        Assert.Equal(2, aggregate.PurchaseHistorySummary.MonthlyData.Count);
+        aggregate.PurchaseHistorySummary.MonthlyData.Should().HaveCount(2);
 
         // Check March 2024 summary
         var mar2024 = aggregate.PurchaseHistorySummary.MonthlyData["2024-03"];
-        Assert.Equal(2024, mar2024.Year);
-        Assert.Equal(3, mar2024.Month);
-        Assert.Equal(150, mar2024.TotalAmount); // 100 + 50
-        Assert.Equal(2000, mar2024.TotalCost);  // 1000 + 1000
-        Assert.Equal(15, mar2024.AveragePricePerPiece); // (10 + 20) / 2
-        Assert.Equal(2, mar2024.PurchaseCount);
+        mar2024.Year.Should().Be(2024);
+        mar2024.Month.Should().Be(3);
+        mar2024.TotalAmount.Should().Be(150); // 100 + 50
+        mar2024.TotalCost.Should().Be(2000);  // 1000 + 1000
+        mar2024.AveragePricePerPiece.Should().Be(15); // (10 + 20) / 2
+        mar2024.PurchaseCount.Should().Be(2);
 
         // Check supplier breakdown for March
-        Assert.Equal(2, mar2024.SupplierBreakdown.Count);
-        Assert.Contains("Supplier A", mar2024.SupplierBreakdown.Keys);
-        Assert.Contains("Supplier B", mar2024.SupplierBreakdown.Keys);
+        mar2024.SupplierBreakdown.Should().HaveCount(2);
+        mar2024.SupplierBreakdown.Keys.Should().Contain("Supplier A");
+        mar2024.SupplierBreakdown.Keys.Should().Contain("Supplier B");
 
         var supplierA = mar2024.SupplierBreakdown["Supplier A"];
-        Assert.Equal(100, supplierA.Amount);
-        Assert.Equal(1000, supplierA.Cost);
-        Assert.Equal(1, supplierA.PurchaseCount);
+        supplierA.Amount.Should().Be(100);
+        supplierA.Cost.Should().Be(1000);
+        supplierA.PurchaseCount.Should().Be(1);
 
         // Check April 2024 summary
         var apr2024 = aggregate.PurchaseHistorySummary.MonthlyData["2024-04"];
-        Assert.Equal(2024, apr2024.Year);
-        Assert.Equal(4, apr2024.Month);
-        Assert.Equal(200, apr2024.TotalAmount);
-        Assert.Equal(2400, apr2024.TotalCost);
-        Assert.Equal(12, apr2024.AveragePricePerPiece);
-        Assert.Equal(1, apr2024.PurchaseCount);
+        apr2024.Year.Should().Be(2024);
+        apr2024.Month.Should().Be(4);
+        apr2024.TotalAmount.Should().Be(200);
+        apr2024.TotalCost.Should().Be(2400);
+        apr2024.AveragePricePerPiece.Should().Be(12);
+        apr2024.PurchaseCount.Should().Be(1);
 
         // Check LastUpdated was set
-        Assert.True(aggregate.PurchaseHistorySummary.LastUpdated > DateTime.UtcNow.AddMinutes(-1));
+        aggregate.PurchaseHistorySummary.LastUpdated.Should().BeAfter(DateTime.UtcNow.AddMinutes(-1));
     }
 
     [Fact]
@@ -170,26 +171,26 @@ public class CatalogAggregateTests
         aggregate.ConsumedHistory = consumedData;
 
         // Assert
-        Assert.Equal(2, aggregate.ConsumedHistorySummary.MonthlyData.Count);
+        aggregate.ConsumedHistorySummary.MonthlyData.Should().HaveCount(2);
 
         // Check May 2024 summary
         var may2024 = aggregate.ConsumedHistorySummary.MonthlyData["2024-05"];
-        Assert.Equal(2024, may2024.Year);
-        Assert.Equal(5, may2024.Month);
-        Assert.Equal(55, may2024.TotalAmount); // 25 + 30
-        Assert.Equal(2, may2024.ConsumptionCount);
-        Assert.Equal(27.5, may2024.AverageConsumption); // 55 / 2
+        may2024.Year.Should().Be(2024);
+        may2024.Month.Should().Be(5);
+        may2024.TotalAmount.Should().Be(55); // 25 + 30
+        may2024.ConsumptionCount.Should().Be(2);
+        may2024.AverageConsumption.Should().Be(27.5); // 55 / 2
 
         // Check June 2024 summary
         var jun2024 = aggregate.ConsumedHistorySummary.MonthlyData["2024-06"];
-        Assert.Equal(2024, jun2024.Year);
-        Assert.Equal(6, jun2024.Month);
-        Assert.Equal(40, jun2024.TotalAmount);
-        Assert.Equal(1, jun2024.ConsumptionCount);
-        Assert.Equal(40, jun2024.AverageConsumption); // 40 / 1
+        jun2024.Year.Should().Be(2024);
+        jun2024.Month.Should().Be(6);
+        jun2024.TotalAmount.Should().Be(40);
+        jun2024.ConsumptionCount.Should().Be(1);
+        jun2024.AverageConsumption.Should().Be(40); // 40 / 1
 
         // Check LastUpdated was set
-        Assert.True(aggregate.ConsumedHistorySummary.LastUpdated > DateTime.UtcNow.AddMinutes(-1));
+        aggregate.ConsumedHistorySummary.LastUpdated.Should().BeAfter(DateTime.UtcNow.AddMinutes(-1));
     }
 
     [Fact]
@@ -204,14 +205,14 @@ public class CatalogAggregateTests
             new CatalogSaleRecord { Date = DateTime.Now, SumB2B = 100, SumB2C = 50, AmountB2B = 1, AmountB2C = 1 }
         };
 
-        Assert.Single(aggregate.SaleHistorySummary.MonthlyData);
+        aggregate.SaleHistorySummary.MonthlyData.Should().HaveCount(1);
 
         // Act - Set to empty list
         aggregate.SalesHistory = new List<CatalogSaleRecord>();
 
         // Assert
-        Assert.Empty(aggregate.SaleHistorySummary.MonthlyData);
-        Assert.True(aggregate.SaleHistorySummary.LastUpdated > DateTime.UtcNow.AddMinutes(-1));
+        aggregate.SaleHistorySummary.MonthlyData.Should().BeEmpty();
+        aggregate.SaleHistorySummary.LastUpdated.Should().BeAfter(DateTime.UtcNow.AddMinutes(-1));
     }
 
     [Fact]
@@ -227,7 +228,7 @@ public class CatalogAggregateTests
         };
 
         var firstUpdate = aggregate.SaleHistorySummary.LastUpdated;
-        Assert.Single(aggregate.SaleHistorySummary.MonthlyData);
+        aggregate.SaleHistorySummary.MonthlyData.Should().HaveCount(1);
 
         // Wait a bit to ensure timestamp difference
         Thread.Sleep(10);
@@ -240,20 +241,20 @@ public class CatalogAggregateTests
         };
 
         // Assert
-        Assert.Equal(2, aggregate.SaleHistorySummary.MonthlyData.Count);
+        aggregate.SaleHistorySummary.MonthlyData.Should().HaveCount(2);
 
         // January should reflect the new data (200 B2B, not 100)
         var jan2024 = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
-        Assert.Equal(200, jan2024.TotalB2B);
-        Assert.Equal(100, jan2024.TotalB2C);
+        jan2024.TotalB2B.Should().Be(200);
+        jan2024.TotalB2C.Should().Be(100);
 
         // Should have February data
         var feb2024 = aggregate.SaleHistorySummary.MonthlyData["2024-02"];
-        Assert.Equal(300, feb2024.TotalB2B);
-        Assert.Equal(150, feb2024.TotalB2C);
+        feb2024.TotalB2B.Should().Be(300);
+        feb2024.TotalB2C.Should().Be(150);
 
         // LastUpdated should be newer
-        Assert.True(aggregate.SaleHistorySummary.LastUpdated > firstUpdate);
+        aggregate.SaleHistorySummary.LastUpdated.Should().BeAfter(firstUpdate);
     }
 
     [Fact]
@@ -282,13 +283,13 @@ public class CatalogAggregateTests
         aggregate.UpdateAllSummaries();
 
         // Assert
-        Assert.True(aggregate.SaleHistorySummary.LastUpdated > beforeUpdate);
-        Assert.True(aggregate.PurchaseHistorySummary.LastUpdated > beforeUpdate);
-        Assert.True(aggregate.ConsumedHistorySummary.LastUpdated > beforeUpdate);
+        aggregate.SaleHistorySummary.LastUpdated.Should().BeAfter(beforeUpdate);
+        aggregate.PurchaseHistorySummary.LastUpdated.Should().BeAfter(beforeUpdate);
+        aggregate.ConsumedHistorySummary.LastUpdated.Should().BeAfter(beforeUpdate);
 
-        Assert.NotEmpty(aggregate.SaleHistorySummary.MonthlyData);
-        Assert.NotEmpty(aggregate.PurchaseHistorySummary.MonthlyData);
-        Assert.NotEmpty(aggregate.ConsumedHistorySummary.MonthlyData);
+        aggregate.SaleHistorySummary.MonthlyData.Should().NotBeEmpty();
+        aggregate.PurchaseHistorySummary.MonthlyData.Should().NotBeEmpty();
+        aggregate.ConsumedHistorySummary.MonthlyData.Should().NotBeEmpty();
     }
 
     [Fact]
@@ -311,9 +312,9 @@ public class CatalogAggregateTests
         // Act & Assert
         var summary = aggregate.SaleHistorySummary.MonthlyData["2024-01"];
 
-        Assert.Equal("2024-01", summary.MonthKey);
-        Assert.Equal(1500, summary.TotalRevenue); // 1000 + 500
-        Assert.Equal(15, summary.TotalAmount);    // 10 + 5
+        summary.MonthKey.Should().Be("2024-01");
+        summary.TotalRevenue.Should().Be(1500); // 1000 + 500
+        summary.TotalAmount.Should().Be(15);    // 10 + 5
     }
 
     [Fact]
@@ -331,10 +332,10 @@ public class CatalogAggregateTests
         aggregate.EshopPrice = eshopPrice;
 
         // Assert
-        Assert.Equal(100.50m, aggregate.CurrentSellingPrice);
-        Assert.Equal(80.25m, aggregate.CurrentPurchasePrice);
-        Assert.Equal(100.50m, aggregate.SellingPriceWithVat);
-        Assert.Null(aggregate.PurchasePriceWithVat);
+        aggregate.CurrentSellingPrice.Should().Be(100.50m);
+        aggregate.CurrentPurchasePrice.Should().Be(80.25m);
+        aggregate.SellingPriceWithVat.Should().Be(100.50m);
+        aggregate.PurchasePriceWithVat.Should().BeNull();
     }
 
     [Fact]
@@ -354,10 +355,10 @@ public class CatalogAggregateTests
         aggregate.ErpPrice = erpPrice;
 
         // Assert
-        Assert.Equal(90.00m, aggregate.CurrentSellingPrice);
-        Assert.Equal(70.00m, aggregate.CurrentPurchasePrice);
-        Assert.Equal(108.90m, aggregate.SellingPriceWithVat);
-        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+        aggregate.CurrentSellingPrice.Should().Be(90.00m);
+        aggregate.CurrentPurchasePrice.Should().Be(70.00m);
+        aggregate.SellingPriceWithVat.Should().Be(108.90m);
+        aggregate.PurchasePriceWithVat.Should().Be(84.70m);
     }
 
     [Fact]
@@ -383,12 +384,12 @@ public class CatalogAggregateTests
         aggregate.ErpPrice = erpPrice;
 
         // Assert - Should prefer eshop prices for current prices
-        Assert.Equal(100.50m, aggregate.CurrentSellingPrice);
-        Assert.Equal(80.25m, aggregate.CurrentPurchasePrice);
+        aggregate.CurrentSellingPrice.Should().Be(100.50m);
+        aggregate.CurrentPurchasePrice.Should().Be(80.25m);
 
         // Should prefer eshop VAT price over ERP VAT price
-        Assert.Equal(100.50m, aggregate.SellingPriceWithVat);
-        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+        aggregate.SellingPriceWithVat.Should().Be(100.50m);
+        aggregate.PurchasePriceWithVat.Should().Be(84.70m);
     }
 
     [Fact]
@@ -408,10 +409,10 @@ public class CatalogAggregateTests
         aggregate.ErpPrice = erpPrice;
 
         // Assert - Should fall back to ERP prices
-        Assert.Equal(90.00m, aggregate.CurrentSellingPrice);
-        Assert.Equal(70.00m, aggregate.CurrentPurchasePrice);
-        Assert.Equal(108.90m, aggregate.SellingPriceWithVat);
-        Assert.Equal(84.70m, aggregate.PurchasePriceWithVat);
+        aggregate.CurrentSellingPrice.Should().Be(90.00m);
+        aggregate.CurrentPurchasePrice.Should().Be(70.00m);
+        aggregate.SellingPriceWithVat.Should().Be(108.90m);
+        aggregate.PurchasePriceWithVat.Should().Be(84.70m);
     }
 
     [Fact]
@@ -421,9 +422,9 @@ public class CatalogAggregateTests
         var aggregate = new CatalogAggregate();
 
         // Assert
-        Assert.Null(aggregate.CurrentSellingPrice);
-        Assert.Null(aggregate.CurrentPurchasePrice);
-        Assert.Null(aggregate.SellingPriceWithVat);
-        Assert.Null(aggregate.PurchasePriceWithVat);
+        aggregate.CurrentSellingPrice.Should().BeNull();
+        aggregate.CurrentPurchasePrice.Should().BeNull();
+        aggregate.SellingPriceWithVat.Should().BeNull();
+        aggregate.PurchasePriceWithVat.Should().BeNull();
     }
 }

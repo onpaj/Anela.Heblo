@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Domain.Catalog;
 
@@ -11,8 +12,8 @@ public class CatalogRefreshBackgroundServiceTests
         var options = new CatalogRepositoryOptions();
 
         // Assert - Verify default intervals for price refresh
-        Assert.Equal(TimeSpan.FromMinutes(30), options.EshopPricesRefreshInterval);
-        Assert.Equal(TimeSpan.FromMinutes(60), options.ErpPricesRefreshInterval);
+        options.EshopPricesRefreshInterval.Should().Be(TimeSpan.FromMinutes(30));
+        options.ErpPricesRefreshInterval.Should().Be(TimeSpan.FromMinutes(60));
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class CatalogRefreshBackgroundServiceTests
         };
 
         // Assert
-        Assert.Equal(TimeSpan.FromMinutes(15), options.EshopPricesRefreshInterval);
-        Assert.Equal(TimeSpan.FromMinutes(120), options.ErpPricesRefreshInterval);
+        options.EshopPricesRefreshInterval.Should().Be(TimeSpan.FromMinutes(15));
+        options.ErpPricesRefreshInterval.Should().Be(TimeSpan.FromMinutes(120));
     }
 }

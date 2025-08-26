@@ -1,10 +1,17 @@
 using Anela.Heblo.API.Controllers;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using MediatR;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -63,13 +70,13 @@ public class CatalogControllerTests
         var result = await _controller.GetCatalogList(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(expectedResponse.TotalCount, response.TotalCount);
-        Assert.Equal(expectedResponse.PageNumber, response.PageNumber);
-        Assert.Equal(expectedResponse.PageSize, response.PageSize);
-        Assert.Single(response.Items);
+        response.Subject.TotalCount.Should().Be(expectedResponse.TotalCount);
+        response.Subject.PageNumber.Should().Be(expectedResponse.PageNumber);
+        response.Subject.PageSize.Should().Be(expectedResponse.PageSize);
+        response.Subject.Items.Should().HaveCount(1);
 
         _mediatorMock.Verify(m => m.Send(request, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -100,11 +107,11 @@ public class CatalogControllerTests
         var result = await _controller.GetCatalogList(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(0, response.TotalCount);
-        Assert.Empty(response.Items);
+        response.Subject.TotalCount.Should().Be(0);
+        response.Subject.Items.Should().BeEmpty();
 
         _mediatorMock.Verify(m => m.Send(request, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -121,7 +128,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshTransportData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshTransportDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -137,7 +144,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshReserveData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshReserveDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -153,7 +160,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshSalesData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshSalesDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -169,7 +176,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshAttributesData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshAttributesDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -185,7 +192,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshErpStockData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshErpStockDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -201,7 +208,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshEshopStockData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshEshopStockDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -217,7 +224,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshPurchaseHistoryData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshPurchaseHistoryDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -233,7 +240,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshConsumedHistoryData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshConsumedHistoryDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -249,7 +256,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshStockTakingData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshStockTakingDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -265,7 +272,7 @@ public class CatalogControllerTests
         var result = await _controller.RefreshLotsData();
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        result.Should().BeOfType<NoContentResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<RefreshLotsDataRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -312,11 +319,11 @@ public class CatalogControllerTests
         var result = await _controller.GetCatalogList(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(pageNumber, response.PageNumber);
-        Assert.Equal(pageSize, response.PageSize);
+        response.Subject.PageNumber.Should().Be(pageNumber);
+        response.Subject.PageSize.Should().Be(pageSize);
 
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -375,13 +382,13 @@ public class CatalogControllerTests
         var result = await _controller.GetProductsForAutocomplete(searchTerm, limit);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(2, response.Items.Count);
-        Assert.Equal(2, response.TotalCount);
-        Assert.Equal("TEST001", response.Items[0].ProductCode);
-        Assert.Equal("Test Product", response.Items[0].ProductName);
+        response.Subject.Items.Count.Should().Be(2);
+        response.Subject.TotalCount.Should().Be(2);
+        response.Subject.Items[0].ProductCode.Should().Be("TEST001");
+        response.Subject.Items[0].ProductName.Should().Be("Test Product");
 
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -411,10 +418,10 @@ public class CatalogControllerTests
         var result = await _controller.GetProductsForAutocomplete(searchTerm);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(20, response.PageSize);
+        response.Subject.PageSize.Should().Be(20);
 
         _mediatorMock.Verify(m => m.Send(It.Is<GetCatalogListRequest>(r => r.PageSize == 20), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -446,11 +453,11 @@ public class CatalogControllerTests
         var result = await _controller.GetProductsForAutocomplete(searchTerm, limit);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetCatalogListResponse>(okResult.Value);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetCatalogListResponse>();
 
-        Assert.Equal(0, response.TotalCount);
-        Assert.Equal(5, response.PageSize);
+        response.Subject.TotalCount.Should().Be(0);
+        response.Subject.PageSize.Should().Be(5);
 
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }

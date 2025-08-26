@@ -1,15 +1,27 @@
 using System;
+using FluentAssertions;
 using System.Net;
+using FluentAssertions;
 using System.Net.Http;
+using FluentAssertions;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Anela.Heblo.API;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Exceptions;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using FluentAssertions;
 using MediatR;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
@@ -47,11 +59,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await client.GetAsync("/api/ProductMargins?pageNumber=1&pageSize=10");
 
         // Assert
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
 
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Service temporarily unavailable", content);
-        Assert.Contains("Data source unavailable", content);
+        content.Should().Contain("Service temporarily unavailable");
+        content.Should().Contain("Data source unavailable");
     }
 
     [Fact]
@@ -77,11 +89,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await client.GetAsync("/api/ProductMargins?pageNumber=1&pageSize=10");
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Unable to calculate product margins", content);
-        Assert.Contains("Invalid margin calculation", content);
+        content.Should().Contain("Unable to calculate product margins");
+        content.Should().Contain("Invalid margin calculation");
     }
 
     [Fact]
@@ -107,11 +119,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await client.GetAsync("/api/ProductMargins?pageNumber=1&pageSize=10");
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Unable to process margin request", content);
-        Assert.Contains("Business logic error", content);
+        content.Should().Contain("Unable to process margin request");
+        content.Should().Contain("Business logic error");
     }
 
     [Fact]
@@ -137,10 +149,10 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await client.GetAsync("/api/ProductMargins?pageNumber=1&pageSize=10");
 
         // Assert
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Insufficient permissions to access margin data", content);
+        content.Should().Contain("Insufficient permissions to access margin data");
     }
 
     [Fact]
@@ -166,11 +178,11 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await client.GetAsync("/api/ProductMargins?pageNumber=1&pageSize=10");
 
         // Assert
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
 
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Internal server error", content);
-        Assert.Contains("An unexpected error occurred", content);
+        content.Should().Contain("Internal server error");
+        content.Should().Contain("An unexpected error occurred");
     }
 
     [Theory]
@@ -212,7 +224,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await _client.GetAsync($"/api/ProductMargins?pageNumber=1&pageSize=10&productCode={longProductCode}");
 
         // Assert - Should handle gracefully without server error
-        Assert.NotEqual(HttpStatusCode.InternalServerError, response.StatusCode);
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -225,6 +237,6 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebAppli
         var response = await _client.GetAsync($"/api/ProductMargins?pageNumber=1&pageSize=10&productName={specialCharsProductName}");
 
         // Assert - Should handle gracefully without server error
-        Assert.NotEqual(HttpStatusCode.InternalServerError, response.StatusCode);
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
     }
 }

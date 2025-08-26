@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.Manufacture.Model;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
@@ -33,7 +36,7 @@ public class ItemFilterServiceTests
         var result = _sut.FilterItems(items, request);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        result.Count.Should().Be(2);
         Assert.All(result, item => Assert.Equal("FamilyA", item.ProductFamily));
     }
 
@@ -57,9 +60,9 @@ public class ItemFilterServiceTests
         var result = _sut.FilterItems(items, request);
 
         // Assert
-        Assert.Equal(2, result.Count);
-        Assert.Contains(result, item => item.Code == "PROD1");
-        Assert.Contains(result, item => item.Code == "SPECIAL");
+        result.Count.Should().Be(2);
+        result.Should().Contain(item => item.Code == "PROD1");
+        result.Should().Contain(item => item.Code == "SPECIAL");
     }
 
     [Fact]
@@ -82,7 +85,7 @@ public class ItemFilterServiceTests
         var result = _sut.FilterItems(items, request);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        result.Count.Should().Be(2);
         Assert.All(result, item => Assert.Equal(ManufacturingStockSeverity.Critical, item.Severity));
     }
 
@@ -103,7 +106,7 @@ public class ItemFilterServiceTests
         var result = _sut.FilterItems(items, request);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        result.Count.Should().Be(2);
         Assert.DoesNotContain(result, item => item.Severity == ManufacturingStockSeverity.Unconfigured);
     }
 
@@ -122,9 +125,9 @@ public class ItemFilterServiceTests
         var result = _sut.SortItems(items, ManufacturingStockSortBy.ProductCode, descending: false);
 
         // Assert
-        Assert.Equal("PROD1", result[0].Code);
-        Assert.Equal("PROD2", result[1].Code);
-        Assert.Equal("PROD3", result[2].Code);
+        result[0].Code.Should().Be("PROD1");
+        result[1].Code.Should().Be("PROD2");
+        result[2].Code.Should().Be("PROD3");
     }
 
     [Fact]
@@ -142,9 +145,9 @@ public class ItemFilterServiceTests
         var result = _sut.SortItems(items, ManufacturingStockSortBy.ProductCode, descending: true);
 
         // Assert
-        Assert.Equal("PROD3", result[0].Code);
-        Assert.Equal("PROD2", result[1].Code);
-        Assert.Equal("PROD1", result[2].Code);
+        result[0].Code.Should().Be("PROD3");
+        result[1].Code.Should().Be("PROD2");
+        result[2].Code.Should().Be("PROD1");
     }
 
     [Fact]
@@ -168,15 +171,15 @@ public class ItemFilterServiceTests
         var result = _sut.CalculateSummary(items, fromDate, toDate, productFamilies);
 
         // Assert
-        Assert.Equal(5, result.TotalProducts);
-        Assert.Equal(2, result.CriticalCount);
-        Assert.Equal(1, result.MajorCount);
-        Assert.Equal(0, result.MinorCount);
-        Assert.Equal(1, result.AdequateCount);
-        Assert.Equal(1, result.UnconfiguredCount);
-        Assert.Equal(fromDate, result.AnalysisPeriodStart);
-        Assert.Equal(toDate, result.AnalysisPeriodEnd);
-        Assert.Equal(productFamilies, result.ProductFamilies);
+        result.TotalProducts.Should().Be(5);
+        result.CriticalCount.Should().Be(2);
+        result.MajorCount.Should().Be(1);
+        result.MinorCount.Should().Be(0);
+        result.AdequateCount.Should().Be(1);
+        result.UnconfiguredCount.Should().Be(1);
+        result.AnalysisPeriodStart.Should().Be(fromDate);
+        result.AnalysisPeriodEnd.Should().Be(toDate);
+        result.ProductFamilies.Should().BeEquivalentTo(productFamilies);
     }
 
     private static ManufacturingStockItemDto CreateItem(

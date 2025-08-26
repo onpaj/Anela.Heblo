@@ -1,12 +1,21 @@
 using Anela.Heblo.Application.Features.Purchase;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Purchase;
 
@@ -47,12 +56,12 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
-        Assert.NotEmpty(response.Items);
-        Assert.Equal(2, response.TotalCount);
-        Assert.Equal(1, response.PageNumber);
-        Assert.Equal(10, response.PageSize);
-        Assert.NotNull(response.Summary);
+        response.Should().NotBeNull();
+        response.Items.Should().NotBeEmpty();
+        response.TotalCount.Should().Be(2);
+        response.PageNumber.Should().Be(1);
+        response.PageSize.Should().Be(10);
+        response.Summary.Should().NotBeNull();
     }
 
     [Fact]
@@ -71,7 +80,7 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
+        response.Should().NotBeNull();
         Assert.All(response.Items, item => Assert.Equal(StockSeverity.Critical, item.Severity));
     }
 
@@ -91,7 +100,7 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
+        response.Should().NotBeNull();
         Assert.All(response.Items, item => Assert.True(item.IsConfigured));
     }
 
@@ -111,9 +120,9 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
-        Assert.Single(response.Items);
-        Assert.Equal("MAT001", response.Items[0].ProductCode);
+        response.Should().NotBeNull();
+        response.Items.Should().HaveCount(1);
+        response.Items[0].ProductCode.Should().Be("MAT001");
     }
 
     [Fact]
@@ -144,10 +153,10 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
-        Assert.Equal(10, response.Items.Count);
-        Assert.Equal(25, response.TotalCount);
-        Assert.Equal(2, response.PageNumber);
+        response.Should().NotBeNull();
+        response.Items.Count.Should().Be(10);
+        response.TotalCount.Should().Be(25);
+        response.PageNumber.Should().Be(2);
     }
 
     [Fact]
@@ -167,9 +176,9 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.NotNull(response);
+        response.Should().NotBeNull();
         var efficiencies = response.Items.Select(i => i.StockEfficiencyPercentage).ToList();
-        Assert.Equal(efficiencies.OrderByDescending(e => e), efficiencies);
+        efficiencies.Should().BeEquivalentTo(efficiencies.OrderByDescending(e => e));
     }
 
     private List<CatalogAggregate> CreateTestCatalogItems()

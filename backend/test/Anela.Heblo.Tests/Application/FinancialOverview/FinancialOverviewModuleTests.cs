@@ -1,13 +1,23 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
+using FluentAssertions;
 using Anela.Heblo.Domain.Accounting.Ledger;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Price;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.FinancialOverview;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using FluentAssertions;
 using Microsoft.Extensions.Hosting;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Application.FinancialOverview;
 
@@ -37,10 +47,10 @@ public class FinancialOverviewModuleTests
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
         var financialAnalysisService = serviceProvider.GetRequiredService<IFinancialAnalysisService>();
 
-        Assert.NotNull(stockValueService);
-        Assert.NotNull(financialAnalysisService);
-        Assert.IsType<StockValueService>(stockValueService);
-        Assert.IsType<FinancialAnalysisService>(financialAnalysisService);
+        stockValueService.Should().NotBeNull();
+        financialAnalysisService.Should().NotBeNull();
+        stockValueService.Should().BeOfType<StockValueService>();
+        financialAnalysisService.Should().BeOfType<FinancialAnalysisService>();
     }
 
     [Fact]
@@ -61,8 +71,8 @@ public class FinancialOverviewModuleTests
 
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        Assert.NotNull(stockValueService);
-        Assert.IsType<PlaceholderStockValueService>(stockValueService);
+        stockValueService.Should().NotBeNull();
+        stockValueService.Should().BeOfType<PlaceholderStockValueService>();
     }
 
     [Fact]
@@ -83,8 +93,8 @@ public class FinancialOverviewModuleTests
 
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        Assert.NotNull(stockValueService);
-        Assert.IsType<PlaceholderStockValueService>(stockValueService);
+        stockValueService.Should().NotBeNull();
+        stockValueService.Should().BeOfType<PlaceholderStockValueService>();
     }
 
     [Fact]
@@ -110,8 +120,8 @@ public class FinancialOverviewModuleTests
 
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        Assert.NotNull(stockValueService);
-        Assert.IsType<StockValueService>(stockValueService);
+        stockValueService.Should().NotBeNull();
+        stockValueService.Should().BeOfType<StockValueService>();
     }
 
     [Fact]
@@ -137,8 +147,8 @@ public class FinancialOverviewModuleTests
 
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        Assert.NotNull(stockValueService);
-        Assert.IsType<StockValueService>(stockValueService);
+        stockValueService.Should().NotBeNull();
+        stockValueService.Should().BeOfType<StockValueService>();
     }
 
     [Fact]
@@ -157,7 +167,7 @@ public class FinancialOverviewModuleTests
 
         // Assert - Background service should not be registered in Automation environment
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
-        Assert.Empty(hostedServices);
+        hostedServices.Should().BeEmpty();
     }
 
     [Fact]
@@ -180,7 +190,7 @@ public class FinancialOverviewModuleTests
 
         // Assert - Background service should be registered in non-Automation environments
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
-        Assert.Single(hostedServices);
+        hostedServices.Should().HaveCount(1);
         Assert.Equal(typeof(FinancialAnalysisBackgroundService), hostedServices.First().ImplementationType);
     }
 
@@ -203,10 +213,10 @@ public class FinancialOverviewModuleTests
             services.AddFinancialOverviewModule(mockEnvironment.Object);
             var serviceProvider = services.BuildServiceProvider();
             var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-            Assert.NotNull(stockValueService);
+            stockValueService.Should().NotBeNull();
         });
 
-        Assert.Null(exception);
+        exception.Should().BeNull();
     }
 
     [Fact]
@@ -225,6 +235,6 @@ public class FinancialOverviewModuleTests
 
         // Assert
         var memoryCache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-        Assert.NotNull(memoryCache);
+        memoryCache.Should().NotBeNull();
     }
 }

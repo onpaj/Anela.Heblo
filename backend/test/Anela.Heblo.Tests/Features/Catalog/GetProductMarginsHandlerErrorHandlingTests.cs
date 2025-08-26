@@ -1,19 +1,35 @@
 using System;
+using FluentAssertions;
 using System.Collections.Generic;
+using FluentAssertions;
 using System.Linq;
+using FluentAssertions;
 using System.Threading;
+using FluentAssertions;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Exceptions;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using FluentAssertions;
 using Anela.Heblo.Domain.Accounting.Ledger;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Price;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Manufacture;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
@@ -54,14 +70,14 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var exception = await Assert.ThrowsAsync<ProductMarginsException>(
             () => _handler.Handle(request, CancellationToken.None));
 
-        Assert.Equal("Failed to retrieve product margins", exception.Message);
+        exception.Message.Should().Be("Failed to retrieve product margins");
 
         // Verify inner exception is DataAccessException
-        Assert.IsType<DataAccessException>(exception.InnerException);
-        Assert.Equal("Unable to access product catalog", exception.InnerException.Message);
+        exception.InnerException.Should().BeOfType<DataAccessException>();
+        exception.InnerException.Message.Should().Be("Unable to access product catalog");
 
         // Verify the original exception is nested deeper
-        Assert.IsType<InvalidOperationException>(exception.InnerException.InnerException);
+        exception.InnerException.InnerException.Should().BeOfType<InvalidOperationException>();
     }
 
     [Fact]
@@ -76,9 +92,9 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result.Items);
-        Assert.Equal(0, result.TotalCount);
+        result.Should().NotBeNull();
+        result.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -106,14 +122,14 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Single(result.Items);
+        result.Should().NotBeNull();
+        result.Items.Should().HaveCount(1);
 
         var item = result.Items.First();
-        Assert.Equal("UNKNOWN", item.ProductCode);
-        Assert.Equal("Unknown Product", item.ProductName);
-        Assert.Null(item.PriceWithoutVat);
-        Assert.Null(item.PurchasePrice);
+        item.ProductCode.Should().Be("UNKNOWN");
+        item.ProductName.Should().Be("Unknown Product");
+        item.PriceWithoutVat.Should().BeNull();
+        item.PurchasePrice.Should().BeNull();
     }
 
     [Fact]
@@ -144,16 +160,16 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Single(result.Items);
+        result.Should().NotBeNull();
+        result.Items.Should().HaveCount(1);
 
         var item = result.Items.First();
-        Assert.Equal("VALID_PRODUCT", item.ProductCode);
-        Assert.Equal(100, item.PriceWithoutVat);
-        Assert.Equal(80, item.PurchasePrice);
+        item.ProductCode.Should().Be("VALID_PRODUCT");
+        item.PriceWithoutVat.Should().Be(100);
+        item.PurchasePrice.Should().Be(80);
 
         // Should handle invalid cost history gracefully
-        Assert.Null(item.AverageMaterialCost); // Should return null for invalid/negative costs
+        item.AverageMaterialCost.Should().BeNull(); // Should return null for invalid/negative costs
     }
 
     [Fact]
@@ -197,14 +213,14 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(3, result.Items.Count);
-        Assert.Equal(3, result.TotalCount);
+        result.Should().NotBeNull();
+        result.Items.Count.Should().Be(3);
+        result.TotalCount.Should().Be(3);
 
         // Check that all products are processed (some with fallback values)
-        Assert.Contains(result.Items, x => x.ProductCode == "VALID_001");
-        Assert.Contains(result.Items, x => x.ProductCode == "UNKNOWN"); // Fallback for null code
-        Assert.Contains(result.Items, x => x.ProductCode == "VALID_002");
+        result.Items.Should().Contain(x => x.ProductCode == "VALID_001");
+        result.Items.Should().Contain(x => x.ProductCode == "UNKNOWN"); // Fallback for null code
+        result.Items.Should().Contain(x => x.ProductCode == "VALID_002");
     }
 
     [Fact]
@@ -235,8 +251,8 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Should return empty result if filtering fails but not throw
-        Assert.NotNull(result);
-        Assert.Empty(result.Items); // No matches expected for the very long product code
+        result.Should().NotBeNull();
+        result.Items.Should().BeEmpty(); // No matches expected for the very long product code
     }
 
     [Theory]
@@ -264,7 +280,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
         // The implementation should handle invalid pagination gracefully
     }
 
@@ -282,11 +298,11 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result.Items);
-        Assert.Equal(0, result.TotalCount);
-        Assert.Equal(1, result.PageNumber);
-        Assert.Equal(10, result.PageSize);
+        result.Should().NotBeNull();
+        result.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+        result.PageNumber.Should().Be(1);
+        result.PageSize.Should().Be(10);
     }
 
     [Fact]
@@ -311,7 +327,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
 
         // Verify that debug logging was called for starting and completing the query
         _mockLogger.Verify(

@@ -1,12 +1,21 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Model;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.Options;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
@@ -88,18 +97,18 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal("PROD001", result.Code);
-        Assert.Equal("Product One", result.Name);
-        Assert.Equal(150.0, result.CurrentStock);
-        Assert.Equal(salesInPeriod, result.SalesInPeriod);
-        Assert.Equal(dailySalesRate, result.DailySalesRate);
-        Assert.Equal(30, result.OptimalDaysSetup);
-        Assert.Equal(60.0, result.StockDaysAvailable);
-        Assert.Equal(25.0, result.MinimumStock);
-        Assert.Equal(200.0, result.OverstockPercentage);
-        Assert.Equal("5", result.BatchSize);
-        Assert.Equal(ManufacturingStockSeverity.Adequate, result.Severity);
-        Assert.True(result.IsConfigured);
+        result.Code.Should().Be("PROD001");
+        result.Name.Should().Be("Product One");
+        result.CurrentStock.Should().Be(150.0);
+        result.SalesInPeriod.Should().Be(salesInPeriod);
+        result.DailySalesRate.Should().Be(dailySalesRate);
+        result.OptimalDaysSetup.Should().Be(30);
+        result.StockDaysAvailable.Should().Be(60.0);
+        result.MinimumStock.Should().Be(25.0);
+        result.OverstockPercentage.Should().Be(200.0);
+        result.BatchSize.Should().Be("5");
+        result.Severity.Should().Be(ManufacturingStockSeverity.Adequate);
+        result.IsConfigured.Should().BeTrue();
     }
 
     [Fact]
@@ -125,7 +134,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(999999.0, result.StockDaysAvailable);
+        result.StockDaysAvailable.Should().Be(999999.0);
     }
 
     [Fact]
@@ -158,7 +167,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(555555.0, result.StockDaysAvailable);
+        result.StockDaysAvailable.Should().Be(555555.0);
     }
 
     [Fact]
@@ -184,7 +193,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(0.0, result.OverstockPercentage);
+        result.OverstockPercentage.Should().Be(0.0);
     }
 
     [Fact]
@@ -210,8 +219,8 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.False(result.IsConfigured);
-        Assert.Equal(0, result.OptimalDaysSetup);
+        result.IsConfigured.Should().BeFalse();
+        result.OptimalDaysSetup.Should().Be(0);
     }
 
     [Fact]
@@ -237,8 +246,8 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.True(result.IsConfigured);
-        Assert.Equal(30, result.OptimalDaysSetup);
+        result.IsConfigured.Should().BeTrue();
+        result.OptimalDaysSetup.Should().Be(30);
     }
 
     [Fact]
@@ -279,7 +288,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(string.Empty, result.ProductFamily);
+        result.ProductFamily.Should().Be(string.Empty);
     }
 
     [Fact]
@@ -305,7 +314,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert - ProductFamily should be first 6 characters of ProductCode
-        Assert.Equal("TESTFA", result.ProductFamily);
+        result.ProductFamily.Should().Be("TESTFA");
     }
 
     [Theory]
@@ -335,7 +344,7 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(severity, result.Severity);
+        result.Severity.Should().Be(severity);
     }
 
     [Fact]
@@ -398,14 +407,14 @@ public class ManufactureAnalysisMapperTests
             isInProduction);
 
         // Assert
-        Assert.Equal(0.0, result.CurrentStock);
-        Assert.Equal(0.0, result.SalesInPeriod);
-        Assert.Equal(0.0, result.DailySalesRate);
-        Assert.Equal(0, result.OptimalDaysSetup);
-        Assert.Equal(0.0, result.StockDaysAvailable);
-        Assert.Equal(0.0, result.MinimumStock);
-        Assert.Equal(0.0, result.OverstockPercentage);
-        Assert.Equal("0", result.BatchSize);
-        Assert.False(result.IsConfigured);
+        result.CurrentStock.Should().Be(0.0);
+        result.SalesInPeriod.Should().Be(0.0);
+        result.DailySalesRate.Should().Be(0.0);
+        result.OptimalDaysSetup.Should().Be(0);
+        result.StockDaysAvailable.Should().Be(0.0);
+        result.MinimumStock.Should().Be(0.0);
+        result.OverstockPercentage.Should().Be(0.0);
+        result.BatchSize.Should().Be("0");
+        result.IsConfigured.Should().BeFalse();
     }
 }

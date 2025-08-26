@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.Purchase;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using FluentAssertions;
 using Xunit;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Purchase;
 
@@ -27,7 +30,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.NotConfigured, result);
+        result.Should().Be(StockSeverity.NotConfigured);
     }
 
     [Fact]
@@ -44,7 +47,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Critical, result);
+        result.Should().Be(StockSeverity.Critical);
     }
 
     [Fact]
@@ -61,7 +64,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Critical, result);
+        result.Should().Be(StockSeverity.Critical);
     }
 
     [Fact]
@@ -78,7 +81,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Low, result);
+        result.Should().Be(StockSeverity.Low);
     }
 
     [Fact]
@@ -95,7 +98,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Overstocked, result);
+        result.Should().Be(StockSeverity.Overstocked);
     }
 
     [Fact]
@@ -112,7 +115,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Optimal, result);
+        result.Should().Be(StockSeverity.Optimal);
     }
 
     [Fact]
@@ -129,7 +132,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Optimal, result);
+        result.Should().Be(StockSeverity.Optimal);
     }
 
     [Fact]
@@ -146,7 +149,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Optimal, result);
+        result.Should().Be(StockSeverity.Optimal);
     }
 
     [Fact]
@@ -163,7 +166,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Low, result);
+        result.Should().Be(StockSeverity.Low);
     }
 
     [Fact]
@@ -180,7 +183,7 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Optimal, result);
+        result.Should().Be(StockSeverity.Optimal);
     }
 
     [Fact]
@@ -197,6 +200,6 @@ public class StockSeverityCalculatorTests
         var result = _calculator.DetermineStockSeverity(availableStock, minStock, optimalStock, isMinConfigured, isOptimalConfigured);
 
         // Assert
-        Assert.Equal(StockSeverity.Overstocked, result);
+        result.Should().Be(StockSeverity.Overstocked);
     }
 }

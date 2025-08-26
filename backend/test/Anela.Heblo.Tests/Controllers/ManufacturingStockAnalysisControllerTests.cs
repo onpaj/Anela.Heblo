@@ -1,8 +1,13 @@
 using Anela.Heblo.API.Controllers;
+using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Model;
+using FluentAssertions;
 using MediatR;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using FluentAssertions;
 using Moq;
+using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -47,10 +52,10 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.NotNull(response.Items);
-        Assert.NotNull(response.Summary);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Items.Should().NotBeNull();
+        response.Subject.Summary.Should().NotBeNull();
     }
 
     [Fact]
@@ -94,10 +99,10 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Equal(1, response.PageNumber);
-        Assert.Equal(10, response.PageSize);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.PageNumber.Should().Be(1);
+        response.Subject.PageSize.Should().Be(10);
     }
 
     [Fact]
@@ -144,10 +149,10 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Equal(fromDate.Date, response.Summary.AnalysisPeriodStart.Date);
-        Assert.Equal(toDate.Date, response.Summary.AnalysisPeriodEnd.Date);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Summary.AnalysisPeriodStart.Date.Should().Be(fromDate.Date);
+        response.Subject.Summary.AnalysisPeriodEnd.Date.Should().Be(toDate.Date);
     }
 
     [Fact]
@@ -197,10 +202,10 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Single(response.Items);
-        Assert.All(response.Items, item => Assert.Equal(ManufacturingStockSeverity.Critical, item.Severity));
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Items.Should().HaveCount(1);
+        Assert.All(response.Subject.Items, item => Assert.Equal(ManufacturingStockSeverity.Critical, item.Severity));
     }
 
     [Fact]
@@ -245,9 +250,9 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Equal(2, response.Items.Count);
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Items.Count.Should().Be(2);
     }
 
     [Fact]
@@ -265,7 +270,7 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        Assert.IsType<BadRequestObjectResult>(result.Result);
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
     }
 
     [Fact]
@@ -315,11 +320,11 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Single(response.Items);
-        Assert.All(response.Items, item => Assert.Equal(ManufacturingStockSeverity.Unconfigured, item.Severity));
-        Assert.All(response.Items, item => Assert.False(item.IsConfigured));
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Items.Should().HaveCount(1);
+        Assert.All(response.Subject.Items, item => Assert.Equal(ManufacturingStockSeverity.Unconfigured, item.Severity));
+        Assert.All(response.Subject.Items, item => Assert.False(item.IsConfigured));
     }
 
     [Fact]
@@ -371,11 +376,11 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<GetManufacturingStockAnalysisResponse>(okResult.Value);
-        Assert.Single(response.Items);
-        Assert.All(response.Items, item => Assert.True(item.IsConfigured));
-        Assert.All(response.Items, item => Assert.NotEqual(ManufacturingStockSeverity.Unconfigured, item.Severity));
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetManufacturingStockAnalysisResponse>();
+        response.Subject.Items.Should().HaveCount(1);
+        Assert.All(response.Subject.Items, item => Assert.True(item.IsConfigured));
+        Assert.All(response.Subject.Items, item => Assert.NotEqual(ManufacturingStockSeverity.Unconfigured, item.Severity));
     }
 
     [Fact]
@@ -389,7 +394,7 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var objectResult = Assert.IsType<ObjectResult>(result.Result);
-        Assert.Equal(500, objectResult.StatusCode);
+        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
+        objectResult.Subject.StatusCode.Should().Be(500);
     }
 }
