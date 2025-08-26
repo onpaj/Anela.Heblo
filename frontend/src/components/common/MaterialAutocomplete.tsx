@@ -261,3 +261,5 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
     </div>
   );
 };
+
+export default MaterialAutocomplete;

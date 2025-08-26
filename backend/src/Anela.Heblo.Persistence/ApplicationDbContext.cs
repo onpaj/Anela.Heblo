@@ -32,6 +32,37 @@ public class ApplicationDbContext : DbContext
     public DbSet<JournalEntryTag> JournalEntryTags { get; set; } = null!;
     public DbSet<JournalEntryTagAssignment> JournalEntryTagAssignments { get; set; } = null!;
 
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Update ConcurrencyStamp for TransportBox entities
+        var transportBoxEntries = ChangeTracker.Entries<TransportBox>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in transportBoxEntries)
+        {
+            var now = DateTime.Now; // Use local time for PostgreSQL timestamp without time zone
+            
+            entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N")[..32]; // 32 chars to fit in varchar(40)
+            
+            // Set ExtraProperties to empty JSON object if null
+            if (string.IsNullOrEmpty(entry.Entity.ExtraProperties))
+            {
+                entry.Entity.ExtraProperties = "{}";
+            }
+            
+            // Set CreationTime only when adding new entity
+            if (entry.State == EntityState.Added && entry.Entity.CreationTime == default)
+            {
+                entry.Entity.CreationTime = now;
+            }
+            
+            // Set LastModificationTime for both insert and update
+            entry.Entity.LastModificationTime = now;
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

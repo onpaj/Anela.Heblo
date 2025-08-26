@@ -1,0 +1,37 @@
+import { useQuery } from '@tanstack/react-query';
+import { getAuthenticatedApiClient } from '../client';
+
+export interface AllowedTransition {
+  state: string;
+  label: string;
+  requiresCondition: boolean;
+  conditionDescription?: string;
+}
+
+export interface GetAllowedTransitionsResponse {
+  success: boolean;
+  errorMessage?: string;
+  currentState?: string;
+  allowedTransitions: AllowedTransition[];
+}
+
+export const useAllowedTransitionsQuery = (boxId: number, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['transportBoxTransitions', boxId],
+    queryFn: async (): Promise<GetAllowedTransitionsResponse> => {
+      const apiClient = await getAuthenticatedApiClient();
+      const relativeUrl = `/api/transport-boxes/${boxId}/allowed-transitions`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get allowed transitions: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
+    enabled: enabled && boxId > 0,
+  });
+};

@@ -26,7 +26,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     {
         try
         {
-            var box = await _repository.GetByIdAsync(request.BoxId);
+            var box = await _repository.GetByIdAsync(request.BoxId, cancellationToken);
             if (box == null)
             {
                 return new ChangeTransportBoxStateResponse
@@ -36,17 +36,22 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 };
             }
 
-            if (!Enum.TryParse<TransportBoxState>(request.NewState, out var newState))
+
+            // Special handling for New -> Opened transition with BoxCode
+            if (box.State == TransportBoxState.New && request.NewState == TransportBoxState.Opened)
             {
-                return new ChangeTransportBoxStateResponse
+                if (string.IsNullOrEmpty(request.BoxCode))
                 {
-                    Success = false,
-                    ErrorMessage = $"Invalid state: {request.NewState}"
-                };
+                    return new ChangeTransportBoxStateResponse
+                    {
+                        Success = false,
+                        ErrorMessage = "BoxCode is required for transition from New to Opened"
+                    };
+                }
             }
 
             // Get the transition action
-            var transition = box.TransitionNode.GetTransition(newState);
+            var transition = box.TransitionNode.GetTransition(request.NewState);
 
             // Check condition if exists
             if (transition.Condition != null && !transition.Condition(box))
@@ -54,21 +59,22 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 return new ChangeTransportBoxStateResponse
                 {
                     Success = false,
-                    ErrorMessage = $"Condition not met for transition to {newState}"
+                    ErrorMessage = $"Condition not met for transition to {request.NewState}"
                 };
             }
 
             // Execute the transition
-            await transition.ChangeStateAsync(box, DateTime.UtcNow, "System"); // TODO: Get actual user
+            await transition.ChangeStateAsync(box, request.BoxCode, DateTime.UtcNow, "System"); // TODO: Get actual user
 
             // Save changes
-            await _repository.UpdateAsync(box);
+            await _repository.UpdateAsync(box, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
 
             // Get updated box details
             var updatedBoxRequest = new GetTransportBoxByIdRequest { Id = request.BoxId };
             var updatedBox = await _mediator.Send(updatedBoxRequest, cancellationToken);
 
-            _logger.LogInformation("Transport box {BoxId} state changed to {NewState}", request.BoxId, newState);
+            _logger.LogInformation("Transport box {BoxId} state changed to {NewState}", request.BoxId, request.NewState);
 
             return new ChangeTransportBoxStateResponse
             {

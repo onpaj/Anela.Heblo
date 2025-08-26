@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Package, Calendar, MapPin, Truck, Box, RefreshCw } from 'lucide-react';
+import { Search, AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Package, Calendar, MapPin, Truck, Box, RefreshCw, Plus } from 'lucide-react';
 import { 
   useTransportBoxesQuery,
   useTransportBoxSummaryQuery,
@@ -139,6 +139,35 @@ const TransportBoxList: React.FC = () => {
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
     setSelectedBoxId(null);
+    // Refresh data in case anything was changed in the detail modal
+    refetch();
+  };
+
+  // Handle "Open New Box" button click - create box directly and show detail
+  const handleOpenNewBox = async () => {
+    try {
+      const { getAuthenticatedApiClient } = await import('../../api/client');
+      const { CreateNewTransportBoxRequest } = await import('../../api/generated/api-client');
+      
+      const apiClient = await getAuthenticatedApiClient();
+      const request = new CreateNewTransportBoxRequest({
+        description: undefined // Empty box, no description initially
+      });
+      
+      const response = await apiClient.transportBox_CreateNewTransportBox(request);
+      
+      if (response.success && response.transportBox && response.transportBox.id) {
+        // Open the detail modal for the new box immediately
+        setSelectedBoxId(response.transportBox.id);
+        setIsDetailModalOpen(true);
+        // Refresh the data to show the new box in the list
+        refetch();
+      } else {
+        console.error('Failed to create transport box:', response.errorMessage);
+      }
+    } catch (error) {
+      console.error('Error creating transport box:', error);
+    }
   };
 
   // Pagination helpers
@@ -232,23 +261,41 @@ const TransportBoxList: React.FC = () => {
                         >
                           <span className="text-green-600 font-medium">{summaryData.activeBoxes}</span>
                         </button>
-                        {Object.entries(summaryData.statesCounts || {}).map(([state, count]) => {
-                          if (count === 0) return null;
-                          const label = stateLabels[state] || state;
+                        {Object.entries(stateLabels).map(([state, label]) => {
+                          const count = summaryData.statesCounts?.[state] || 0;
                           let colorClass = 'text-gray-600';
                           let hoverClass = 'hover:bg-gray-50';
                           let activeClass = 'bg-gray-50 ring-1 ring-gray-300';
                           
+                          // Apply special colors for specific states
                           switch (state) {
                             case 'Error':
-                              colorClass = 'text-red-600';
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-red-600';
                               hoverClass = 'hover:bg-red-50';
                               activeClass = 'bg-red-50 ring-1 ring-red-300';
                               break;
                             case 'InTransit':
-                              colorClass = 'text-yellow-600';
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-yellow-600';
                               hoverClass = 'hover:bg-yellow-50';
                               activeClass = 'bg-yellow-50 ring-1 ring-yellow-300';
+                              break;
+                            case 'New':
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-blue-600';
+                              hoverClass = 'hover:bg-blue-50';
+                              activeClass = 'bg-blue-50 ring-1 ring-blue-300';
+                              break;
+                            case 'Opened':
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-indigo-600';
+                              hoverClass = 'hover:bg-indigo-50';
+                              activeClass = 'bg-indigo-50 ring-1 ring-indigo-300';
+                              break;
+                            case 'Stocked':
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-emerald-600';
+                              hoverClass = 'hover:bg-emerald-50';
+                              activeClass = 'bg-emerald-50 ring-1 ring-emerald-300';
+                              break;
+                            default:
+                              colorClass = count === 0 ? 'text-gray-400' : 'text-gray-600';
                               break;
                           }
 
@@ -287,6 +334,13 @@ const TransportBoxList: React.FC = () => {
                 )}
                 
                 {/* Action buttons - always visible */}
+                <button
+                  onClick={handleOpenNewBox}
+                  className="flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  {isControlsCollapsed ? '' : 'Otevřít nový box'}
+                </button>
                 <button
                   onClick={() => refetch()}
                   disabled={isLoading}
@@ -328,11 +382,9 @@ const TransportBoxList: React.FC = () => {
                       <span className="font-semibold text-green-600 ml-1">{summaryData.activeBoxes}</span>
                     </button>
 
-                    {/* Individual states with counts */}
-                    {Object.entries(summaryData.statesCounts || {}).map(([state, count]) => {
-                      if (count === 0) return null; // Skip states with no boxes
-                      
-                      const label = stateLabels[state] || state;
+                    {/* Individual states with counts - show all states */}
+                    {Object.entries(stateLabels).map(([state, label]) => {
+                      const count = summaryData.statesCounts?.[state] || 0;
                       const isActive = stateFilter === state;
                       let iconColor = 'text-gray-500';
                       let hoverColor = 'hover:bg-gray-50';
@@ -400,7 +452,7 @@ const TransportBoxList: React.FC = () => {
                         >
                           <IconComponent className={`h-3 w-3 mr-1 ${iconColor}`} />
                           <span className="text-gray-600">{label}:</span>
-                          <span className={`font-semibold ml-1 ${iconColor.replace('text-', 'text-')}`}>
+                          <span className={`font-semibold ml-1 ${count === 0 ? 'text-gray-400' : iconColor.replace('text-', 'text-')}`}>
                             {count}
                           </span>
                         </button>

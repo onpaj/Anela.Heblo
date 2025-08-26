@@ -2,11 +2,11 @@ namespace Anela.Heblo.Domain.Features.Logistics.Transport;
 
 public class TransportBoxAction
 {
-    private readonly Action<TransportBox, DateTime, string>? _transitionCallback;
+    private readonly Action<TransportBox, string?, DateTime, string>? _transitionCallback;
 
     public TransportBoxAction(
         TransportBoxState newState,
-        Action<TransportBox, DateTime, string>? transitionCallback = null,
+        Action<TransportBox, string?, DateTime, string>? transitionCallback = null,
         Func<TransportBox, bool>? condition = null)
     {
         _transitionCallback = transitionCallback;
@@ -17,9 +17,9 @@ public class TransportBoxAction
     public TransportBoxState NewState { get; }
     public Func<TransportBox, bool>? Condition { get; }
 
-    public Task<TransportBox> ChangeStateAsync(TransportBox box, DateTime actionDate, string username)
+    public Task<TransportBox> ChangeStateAsync(TransportBox box, string? newBoxNumber, DateTime actionDate, string username)
     {
-        _transitionCallback?.Invoke(box, actionDate, username);
+        _transitionCallback?.Invoke(box, newBoxNumber, actionDate, username);
         return Task.FromResult(box);
     }
 }

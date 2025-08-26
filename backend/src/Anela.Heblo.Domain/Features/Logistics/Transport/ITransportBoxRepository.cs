@@ -16,4 +16,8 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
         bool isActiveFilter = false);
 
     Task<TransportBox?> GetByIdWithDetailsAsync(int id);
+
+    Task<bool> IsBoxCodeActiveAsync(string boxCode);
+
+    Task<TransportBox?> GetByCodeAsync(string boxCode);
 }

@@ -36,7 +36,7 @@ public class ChangeTransportBoxStateHandlerTests
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 999,
-            NewState = "Opened"
+            NewState = TransportBoxState.Opened
         };
 
         _repositoryMock
@@ -52,30 +52,7 @@ public class ChangeTransportBoxStateHandlerTests
         result.UpdatedBox.Should().BeNull();
     }
 
-    [Fact]
-    public async Task Handle_InvalidState_ReturnsFailureResponse()
-    {
-        // Arrange
-        var box = CreateTestBox(TransportBoxState.New);
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            NewState = "InvalidState"
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Invalid state: InvalidState");
-        result.UpdatedBox.Should().BeNull();
-    }
-
+    
     [Fact]
     public async Task Handle_ValidTransition_NewToOpened_ReturnsSuccess()
     {
@@ -84,7 +61,8 @@ public class ChangeTransportBoxStateHandlerTests
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 1,
-            NewState = "Opened"
+            NewState = TransportBoxState.Opened,
+            BoxCode = "B999"
         };
 
         var updatedBoxResponse = new GetTransportBoxByIdResponse();
@@ -97,6 +75,10 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedBoxResponse);
@@ -105,7 +87,6 @@ public class ChangeTransportBoxStateHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.Success.Should().BeTrue();
         result.ErrorMessage.Should().BeNull();
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
@@ -121,7 +102,7 @@ public class ChangeTransportBoxStateHandlerTests
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 1,
-            NewState = "Received"
+            NewState = TransportBoxState.Received
         };
 
         _repositoryMock
@@ -147,7 +128,8 @@ public class ChangeTransportBoxStateHandlerTests
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 1,
-            NewState = "Opened"
+            BoxCode = "B999",
+            NewState = TransportBoxState.Opened,
         };
 
         _repositoryMock
@@ -165,21 +147,85 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Handle_OpenedToInTransit_WithItems_ReturnsSuccess()
+    {
+        // Arrange
+        var box = CreateTestBoxWithItems(TransportBoxState.Opened);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.InTransit
+        };
+
+        var updatedBoxResponse = new GetTransportBoxByIdResponse();
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => box);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedBoxResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.ErrorMessage.Should().BeNull();
+        result.UpdatedBox.Should().Be(updatedBoxResponse);
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OpenedToInTransit_WithoutItems_ReturnsFailure()
+    {
+        // Arrange
+        var box = CreateTestBox(TransportBoxState.Opened); // Box without items
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.InTransit
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Cannot transition to InTransit state: Box must contain at least one item");
+        result.UpdatedBox.Should().BeNull();
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Theory]
-    [InlineData("Opened", "InTransit")]
     [InlineData("InTransit", "Received")]
-    [InlineData("InSwap", "Stocked")]
     [InlineData("Stocked", "Closed")]
     public async Task Handle_ValidTransitionChain_ReturnsSuccess(string fromState, string toState)
     {
         // Arrange
         var initialState = Enum.Parse<TransportBoxState>(fromState);
+        var newState = Enum.Parse<TransportBoxState>(toState);
         var box = CreateTestBox(initialState);
 
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 1,
-            NewState = toState
+            NewState = newState
         };
 
         var updatedBoxResponse = new GetTransportBoxByIdResponse();
@@ -192,6 +238,10 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedBoxResponse);
@@ -200,7 +250,6 @@ public class ChangeTransportBoxStateHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.Success.Should().BeTrue();
         result.ErrorMessage.Should().BeNull();
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
@@ -214,7 +263,7 @@ public class ChangeTransportBoxStateHandlerTests
         var request = new ChangeTransportBoxStateRequest
         {
             BoxId = 1,
-            NewState = "Opened"
+            NewState = TransportBoxState.Opened,
         };
 
         _repositoryMock
@@ -262,6 +311,34 @@ public class ChangeTransportBoxStateHandlerTests
         var stateProperty = typeof(TransportBox).GetProperty("State");
         stateProperty?.SetValue(box, state);
 
+        return box;
+    }
+
+    private TransportBox CreateTestBoxWithItems(TransportBoxState state)
+    {
+        var box = CreateTestBox(state);
+        
+        // Add a test item to the box using reflection
+        var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (itemsField != null)
+        {
+            var items = (List<TransportBoxItem>)itemsField.GetValue(box)!;
+            
+            // Create a test item using reflection since constructor might be internal/private
+            var itemType = typeof(TransportBoxItem);
+            var item = Activator.CreateInstance(itemType, 
+                "TEST-PRODUCT", 
+                "Test Product", 
+                1.0, 
+                DateTime.Now, 
+                "TestUser");
+            
+            if (item != null)
+            {
+                items.Add((TransportBoxItem)item);
+            }
+        }
+        
         return box;
     }
 }

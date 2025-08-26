@@ -1993,6 +1993,44 @@ export class ApiClient {
         return Promise.resolve<GetTransportBoxesResponse>(null as any);
     }
 
+    transportBox_CreateNewTransportBox(request: CreateNewTransportBoxRequest): Promise<CreateNewTransportBoxResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_CreateNewTransportBox(_response);
+        });
+    }
+
+    protected processTransportBox_CreateNewTransportBox(response: Response): Promise<CreateNewTransportBoxResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateNewTransportBoxResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateNewTransportBoxResponse>(null as any);
+    }
+
     transportBox_GetTransportBoxSummary(code: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetTransportBoxSummaryResponse> {
         let url_ = this.baseUrl + "/api/transport-boxes/summary?";
         if (code !== undefined && code !== null)
@@ -2109,6 +2147,129 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ChangeTransportBoxStateResponse>(null as any);
+    }
+
+    transportBox_AssignBoxNumber(id: number, request: AssignBoxNumberRequest): Promise<AssignBoxNumberResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/assign-number";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_AssignBoxNumber(_response);
+        });
+    }
+
+    protected processTransportBox_AssignBoxNumber(response: Response): Promise<AssignBoxNumberResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AssignBoxNumberResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AssignBoxNumberResponse>(null as any);
+    }
+
+    transportBox_AddItemToBox(id: number, request: AddItemToBoxRequest): Promise<AddItemToBoxResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/items";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_AddItemToBox(_response);
+        });
+    }
+
+    protected processTransportBox_AddItemToBox(response: Response): Promise<AddItemToBoxResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AddItemToBoxResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddItemToBoxResponse>(null as any);
+    }
+
+    transportBox_ConfirmTransit(id: number, request: ConfirmTransitRequest): Promise<ConfirmTransitResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/confirm-transit";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_ConfirmTransit(_response);
+        });
+    }
+
+    protected processTransportBox_ConfirmTransit(response: Response): Promise<ConfirmTransitResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ConfirmTransitResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConfirmTransitResponse>(null as any);
     }
 }
 
@@ -6015,6 +6176,10 @@ export class TransportBoxDto implements ITransportBoxDto {
     isInTransit?: boolean;
     isInReserve?: boolean;
     itemCount?: number;
+    creationTime?: Date;
+    creatorId?: string | undefined;
+    lastModificationTime?: Date | undefined;
+    lastModifierId?: string | undefined;
     items?: TransportBoxItemDto[];
     stateLog?: TransportBoxStateLogDto[];
 
@@ -6039,6 +6204,10 @@ export class TransportBoxDto implements ITransportBoxDto {
             this.isInTransit = _data["isInTransit"];
             this.isInReserve = _data["isInReserve"];
             this.itemCount = _data["itemCount"];
+            this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
+            this.creatorId = _data["creatorId"];
+            this.lastModificationTime = _data["lastModificationTime"] ? new Date(_data["lastModificationTime"].toString()) : <any>undefined;
+            this.lastModifierId = _data["lastModifierId"];
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
@@ -6071,6 +6240,10 @@ export class TransportBoxDto implements ITransportBoxDto {
         data["isInTransit"] = this.isInTransit;
         data["isInReserve"] = this.isInReserve;
         data["itemCount"] = this.itemCount;
+        data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
+        data["creatorId"] = this.creatorId;
+        data["lastModificationTime"] = this.lastModificationTime ? this.lastModificationTime.toISOString() : <any>undefined;
+        data["lastModifierId"] = this.lastModifierId;
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
@@ -6096,6 +6269,10 @@ export interface ITransportBoxDto {
     isInTransit?: boolean;
     isInReserve?: boolean;
     itemCount?: number;
+    creationTime?: Date;
+    creatorId?: string | undefined;
+    lastModificationTime?: Date | undefined;
+    lastModifierId?: string | undefined;
     items?: TransportBoxItemDto[];
     stateLog?: TransportBoxStateLogDto[];
 }
@@ -6386,6 +6563,350 @@ export interface IChangeTransportBoxStateRequest {
     boxId?: number;
     newState?: string;
     description?: string | undefined;
+}
+
+export class CreateNewTransportBoxResponse implements ICreateNewTransportBoxResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: ICreateNewTransportBoxResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): CreateNewTransportBoxResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateNewTransportBoxResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface ICreateNewTransportBoxResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+}
+
+export class CreateNewTransportBoxRequest implements ICreateNewTransportBoxRequest {
+    description?: string | undefined;
+
+    constructor(data?: ICreateNewTransportBoxRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): CreateNewTransportBoxRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateNewTransportBoxRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface ICreateNewTransportBoxRequest {
+    description?: string | undefined;
+}
+
+export class AssignBoxNumberResponse implements IAssignBoxNumberResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IAssignBoxNumberResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): AssignBoxNumberResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AssignBoxNumberResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IAssignBoxNumberResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+}
+
+export class AssignBoxNumberRequest implements IAssignBoxNumberRequest {
+    boxId?: number;
+    boxNumber!: string;
+
+    constructor(data?: IAssignBoxNumberRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.boxNumber = _data["boxNumber"];
+        }
+    }
+
+    static fromJS(data: any): AssignBoxNumberRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AssignBoxNumberRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["boxNumber"] = this.boxNumber;
+        return data;
+    }
+}
+
+export interface IAssignBoxNumberRequest {
+    boxId?: number;
+    boxNumber: string;
+}
+
+export class AddItemToBoxResponse implements IAddItemToBoxResponse {
+    success?: boolean;
+    item?: TransportBoxItemDto | undefined;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IAddItemToBoxResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.item = _data["item"] ? TransportBoxItemDto.fromJS(_data["item"]) : <any>undefined;
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): AddItemToBoxResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddItemToBoxResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IAddItemToBoxResponse {
+    success?: boolean;
+    item?: TransportBoxItemDto | undefined;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+}
+
+export class AddItemToBoxRequest implements IAddItemToBoxRequest {
+    boxId?: number;
+    productCode!: string;
+    productName!: string;
+    amount!: number;
+
+    constructor(data?: IAddItemToBoxRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): AddItemToBoxRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddItemToBoxRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IAddItemToBoxRequest {
+    boxId?: number;
+    productCode: string;
+    productName: string;
+    amount: number;
+}
+
+export class ConfirmTransitResponse implements IConfirmTransitResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IConfirmTransitResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmTransitResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmTransitResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IConfirmTransitResponse {
+    success?: boolean;
+    transportBox?: TransportBoxDto | undefined;
+    errorMessage?: string | undefined;
+}
+
+export class ConfirmTransitRequest implements IConfirmTransitRequest {
+    boxId?: number;
+    confirmationBoxNumber!: string;
+
+    constructor(data?: IConfirmTransitRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.confirmationBoxNumber = _data["confirmationBoxNumber"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmTransitRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmTransitRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["confirmationBoxNumber"] = this.confirmationBoxNumber;
+        return data;
+    }
+}
+
+export interface IConfirmTransitRequest {
+    boxId?: number;
+    confirmationBoxNumber: string;
 }
 
 export interface FileResponse {

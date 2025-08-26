@@ -14,6 +14,12 @@ public class TransportBoxDto
     public bool IsInTransit { get; set; }
     public bool IsInReserve { get; set; }
     public int ItemCount { get; set; }
+    // Audit fields
+    public DateTime CreationTime { get; set; }
+    public Guid? CreatorId { get; set; }
+    public DateTime? LastModificationTime { get; set; }
+    public Guid? LastModifierId { get; set; }
+    
     public IList<TransportBoxItemDto> Items { get; set; } = new List<TransportBoxItemDto>();
     public IList<TransportBoxStateLogDto> StateLog { get; set; } = new List<TransportBoxStateLogDto>();
 }
