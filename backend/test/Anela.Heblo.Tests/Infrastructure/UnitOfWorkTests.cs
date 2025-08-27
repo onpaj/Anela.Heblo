@@ -17,17 +17,17 @@ public class UnitOfWorkTests : IDisposable
 
     public UnitOfWorkTests()
     {
-        // Setup in-memory database with warnings suppressed for transaction tests
+        // Setup in-memory database with transaction warnings suppressed
         var dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.InMemory.InMemoryEventId.TransactionIgnoredWarning))
+            .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.TransactionIgnoredWarning))
             .Options;
 
         // Setup service provider
         var services = new ServiceCollection();
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString())
-                   .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.InMemory.InMemoryEventId.TransactionIgnoredWarning)));
+                   .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.TransactionIgnoredWarning)));
         services.AddLogging();
         _serviceProvider = services.BuildServiceProvider();
 
