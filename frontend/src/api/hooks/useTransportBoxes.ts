@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { ApiClient as GeneratedApiClient } from '../generated/api-client';
+import { ApiClient } from '../generated/api-client';
 import { 
   GetTransportBoxesResponse,
   GetTransportBoxByIdResponse,
@@ -31,9 +31,8 @@ const transportBoxKeys = {
 };
 
 // Helper to get the correct API client instance from generated file
-const getTransportBoxClient = (): GeneratedApiClient => {
-  const apiClient = getAuthenticatedApiClient();
-  return apiClient as any as GeneratedApiClient;
+const getTransportBoxClient = (): ApiClient => {
+  return getAuthenticatedApiClient();
 };
 
 // Hooks
