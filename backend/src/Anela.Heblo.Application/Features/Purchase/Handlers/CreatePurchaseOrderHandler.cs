@@ -38,62 +38,69 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     {
         _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", request.SupplierName);
 
-        // Parse dates from string format and ensure UTC for PostgreSQL compatibility
-        var orderDate = request.OrderDate.ToUtcDateTime();
-        var expectedDeliveryDate = request.ExpectedDeliveryDate.ToUtcDateTimeOrNull();
-
-        var orderNumber = !string.IsNullOrEmpty(request.OrderNumber)
-            ? request.OrderNumber
-            : await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
-
-        var currentUser = _currentUserService.GetCurrentUser();
-        var createdBy = currentUser.Name ?? "System";
-
-        var purchaseOrder = new PurchaseOrder(
-            orderNumber,
-            request.SupplierName,
-            orderDate,
-            expectedDeliveryDate,
-            request.Notes,
-            createdBy);
-
-        // Add lines if provided
-        if (request.Lines != null && request.Lines.Any())
+        // Using dispose pattern - SaveChangesAsync called automatically on dispose
+        await using (_unitOfWork)
         {
-            _logger.LogInformation("Adding {LineCount} lines to purchase order {OrderNumber}",
-                request.Lines.Count, orderNumber);
+            // Parse dates from string format and ensure UTC for PostgreSQL compatibility
+            var orderDate = request.OrderDate.ToUtcDateTime();
+            var expectedDeliveryDate = request.ExpectedDeliveryDate.ToUtcDateTimeOrNull();
 
-            foreach (var lineRequest in request.Lines)
+            var orderNumber = !string.IsNullOrEmpty(request.OrderNumber)
+                ? request.OrderNumber
+                : await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
+
+            var currentUser = _currentUserService.GetCurrentUser();
+            var createdBy = currentUser.Name ?? "System";
+
+            var purchaseOrder = new PurchaseOrder(
+                orderNumber,
+                request.SupplierName,
+                orderDate,
+                expectedDeliveryDate,
+                request.Notes,
+                createdBy);
+
+            // Add lines if provided
+            if (request.Lines != null && request.Lines.Any())
             {
-                // Look up material by ProductCode in catalog to get ProductName
-                var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+                _logger.LogInformation("Adding {LineCount} lines to purchase order {OrderNumber}",
+                    request.Lines.Count, orderNumber);
 
-                if (material == null)
+                foreach (var lineRequest in request.Lines)
                 {
-                    _logger.LogWarning("Material with code {MaterialId} not found in catalog, using provided name: {Name}",
-                        lineRequest.MaterialId, materialName);
+                    // Look up material by ProductCode in catalog to get ProductName
+                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+
+                    if (material == null)
+                    {
+                        _logger.LogWarning("Material with code {MaterialId} not found in catalog, using provided name: {Name}",
+                            lineRequest.MaterialId, materialName);
+                    }
+
+                    purchaseOrder.AddLine(
+                        lineRequest.MaterialId,
+                        materialName,
+                        lineRequest.Quantity,
+                        lineRequest.UnitPrice,
+                        lineRequest.Notes);
                 }
-
-                purchaseOrder.AddLine(
-                    lineRequest.MaterialId,
-                    materialName,
-                    lineRequest.Quantity,
-                    lineRequest.UnitPrice,
-                    lineRequest.Notes);
             }
+
+            _logger.LogInformation("Purchase order {OrderNumber} has {LineCount} lines before saving",
+                orderNumber, purchaseOrder.Lines.Count);
+
+            await _repository.AddAsync(purchaseOrder, cancellationToken);
+
+            // Mark as complete - SaveChangesAsync will be called automatically on dispose
+            _unitOfWork.Complete();
+
+            _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
+                orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);
+
+            return await MapToResponseAsync(purchaseOrder, cancellationToken);
         }
-
-        _logger.LogInformation("Purchase order {OrderNumber} has {LineCount} lines before saving",
-            orderNumber, purchaseOrder.Lines.Count);
-
-        await _repository.AddAsync(purchaseOrder, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
-            orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);
-
-        return await MapToResponseAsync(purchaseOrder, cancellationToken);
+        // SaveChangesAsync is automatically called here when _unitOfWork is disposed
     }
 
 

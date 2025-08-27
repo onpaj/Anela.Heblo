@@ -5,9 +5,10 @@ namespace Anela.Heblo.Xcc.Infrastructure;
 
 /// <summary>
 /// Unit of Work interface for coordinating work across multiple repositories
-/// and ensuring transactional consistency
+/// and ensuring transactional consistency. Supports both explicit SaveChangesAsync 
+/// and dispose pattern with Complete() method.
 /// </summary>
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Get repository for a specific entity type
@@ -42,4 +43,10 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Mark the unit of work as complete, indicating that changes should be saved on dispose.
+    /// Use this method when leveraging the dispose pattern with 'using' statements.
+    /// </summary>
+    void Complete();
 }

@@ -59,7 +59,7 @@ public class UnitOfWorkTests : IDisposable
     {
         // Act & Assert - With warning suppression, this should not throw
         await _unitOfWork.BeginTransactionAsync();
-        
+
         // Transaction was started (even if it's a no-op for in-memory database)
         Assert.True(true); // Test passes if no exception is thrown
     }
@@ -160,7 +160,7 @@ public class UnitOfWorkTests : IDisposable
     {
         // Act & Assert - Should not save changes when Complete() was not called
         await _unitOfWork.DisposeAsync();
-        
+
         // No exception should be thrown, and changes should not be saved
         Assert.True(true); // Test passes if no exception occurs
     }
@@ -173,7 +173,7 @@ public class UnitOfWorkTests : IDisposable
 
         // Act - This should trigger SaveChangesAsync due to Complete()
         await _unitOfWork.DisposeAsync();
-        
+
         // Assert - No exception should be thrown
         Assert.True(true); // Test passes if no exception occurs
     }

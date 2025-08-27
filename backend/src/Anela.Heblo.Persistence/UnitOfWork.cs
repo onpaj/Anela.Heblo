@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private readonly Dictionary<Type, object> _repositories;
     private IDbContextTransaction? _transaction;
     private bool _disposed;
+    private bool _completed;
 
     public UnitOfWork(ApplicationDbContext context, IServiceProvider serviceProvider)
     {
@@ -109,18 +110,32 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
-    public void Dispose()
+    public void Complete()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        _completed = true;
     }
 
-    protected virtual void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
-        if (!_disposed && disposing)
+        if (!_disposed)
         {
-            _transaction?.Dispose();
+            if (_completed)
+            {
+                await SaveChangesAsync();
+            }
+
+            if (_transaction != null)
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+
+            _disposed = true;
         }
-        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().GetAwaiter().GetResult();
     }
 }

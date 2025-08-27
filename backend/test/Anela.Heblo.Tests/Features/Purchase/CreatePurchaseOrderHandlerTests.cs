@@ -64,10 +64,6 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Should().NotBeNull();
@@ -116,10 +112,6 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Lines.Should().HaveCount(3);
@@ -147,10 +139,6 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Lines.Should().BeEmpty();
@@ -169,10 +157,6 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
         await _handler.Handle(request, CancellationToken.None);
 
         _orderNumberGeneratorMock.Verify(
@@ -181,7 +165,7 @@ public class CreatePurchaseOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldAddOrderToRepositoryAndSaveChanges()
+    public async Task Handle_ShouldAddOrderToRepositoryAndUseDisposePattern()
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
@@ -191,10 +175,6 @@ public class CreatePurchaseOrderHandlerTests
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
-
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
 
         await _handler.Handle(request, CancellationToken.None);
 
@@ -207,9 +187,9 @@ public class CreatePurchaseOrderHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _unitOfWorkMock.Verify(
-            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Once);
+        // Verify dispose pattern usage - Complete() should be called and DisposeAsync() should be invoked
+        _unitOfWorkMock.Verify(x => x.Complete(), Times.Once);
+        _unitOfWorkMock.Verify(x => x.DisposeAsync(), Times.Once);
     }
 
     [Fact]
@@ -223,10 +203,6 @@ public class CreatePurchaseOrderHandlerTests
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
-
-        _unitOfWorkMock
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
 
         await _handler.Handle(request, CancellationToken.None);
 
