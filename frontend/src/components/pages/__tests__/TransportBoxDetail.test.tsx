@@ -264,7 +264,7 @@ describe('TransportBoxDetail', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           boxId: 1,
-          newState: 1, // TransportBoxState.Opened = 1
+          newState: "Opened", // TransportBoxState.Opened = "Opened" (string enum)
           description: undefined
         });
       });

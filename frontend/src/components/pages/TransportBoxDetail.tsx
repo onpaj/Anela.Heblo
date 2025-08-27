@@ -48,7 +48,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   const { data: boxData, isLoading, error, refetch } = useTransportBoxByIdQuery(boxId || 0, boxId !== null);
   const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
   const changeStateMutation = useChangeTransportBoxState();
-  const { showError, showSuccess } = useToast();
+  const { showError } = useToast();
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -201,7 +201,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       
       setBoxNumberInput('');
       await handleModalSuccess(); // Refresh data
-      showSuccess('Box otevřen', `Číslo boxu ${trimmedInput} bylo úspěšně přiřazeno a box otevřen.`);
+      // Success state change - no toast needed
     } catch (err) {
       console.error('Error assigning box number:', err);
       const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
@@ -233,7 +233,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         const result = await response.json();
         if (result.success) {
           refetch();
-          showSuccess('Položka odstraněna', 'Položka byla úspěšně odstraněna z boxu.');
+          // Success item removal - no toast needed
         } else {
           const errorMessage = result.errorMessage || 'Neočekávaná chyba';
           showError('Chyba při odstraňování položky', errorMessage);
@@ -279,7 +279,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         setSelectedProduct(null);
         refetch();
         
-        showSuccess('Položka přidána', `Položka ${selectedProduct.productName} byla úspěšně přidána do boxu.`);
+        // Success item addition - no toast needed
       } else {
         const errorMessage = response.errorMessage || 'Neočekávaná chyba při přidávání položky';
         showError('Chyba při přidávání položky', errorMessage);

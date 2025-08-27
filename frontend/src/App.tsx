@@ -22,6 +22,8 @@ import { loadConfig, Config } from './config/runtimeConfig';
 import { setGlobalTokenProvider } from './api/client';
 import { apiRequest } from './auth/msalConfig';
 import { ToastProvider } from './contexts/ToastContext';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
 import './i18n';
 
 // Create a client
@@ -184,32 +186,35 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <div className="App min-h-screen" data-testid="app">
-          <MsalProvider instance={msalInstance}>
-            <Router>
-              <AuthGuard>
-                <Layout statusBar={<StatusBar />}>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/finance/overview" element={<FinancialOverview />} />
-                    <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
-                    <Route path="/catalog" element={<CatalogList />} />
-                    <Route path="/purchase/orders" element={<PurchaseOrderList />} />
-                    <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
-                    <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
-                    <Route path="/products/margins" element={<ProductMarginsList />} />
-                    <Route path="/journal" element={<JournalList />} />
-                    <Route path="/journal/new" element={<JournalEntryNew />} />
-                    <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
-                    <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
-                  </Routes>
-                </Layout>
-              </AuthGuard>
-            </Router>
-          </MsalProvider>
-        </div>
-      </ToastProvider>
+      <LoadingProvider>
+        <ToastProvider>
+          <div className="App min-h-screen" data-testid="app">
+            <MsalProvider instance={msalInstance}>
+              <Router>
+                <AuthGuard>
+                  <Layout statusBar={<StatusBar />}>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/finance/overview" element={<FinancialOverview />} />
+                      <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
+                      <Route path="/catalog" element={<CatalogList />} />
+                      <Route path="/purchase/orders" element={<PurchaseOrderList />} />
+                      <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
+                      <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
+                      <Route path="/products/margins" element={<ProductMarginsList />} />
+                      <Route path="/journal" element={<JournalList />} />
+                      <Route path="/journal/new" element={<JournalEntryNew />} />
+                      <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
+                      <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
+                    </Routes>
+                  </Layout>
+                </AuthGuard>
+              </Router>
+            </MsalProvider>
+            <GlobalLoadingIndicator />
+          </div>
+        </ToastProvider>
+      </LoadingProvider>
     </QueryClientProvider>
   );
 }
