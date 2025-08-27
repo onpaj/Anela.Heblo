@@ -6,6 +6,9 @@ namespace Anela.Heblo.Domain.Features.Logistics.Transport;
 
 public class TransportBox : Entity<int>
 {
+    private const int VALID_BOX_CODE_LENGTH = 4;
+    private const char BOX_CODE_PREFIX = 'B';
+    
     private List<TransportBoxItem> _items = new();
     private List<TransportBoxStateLog> _stateLog = new();
 
@@ -66,8 +69,8 @@ public class TransportBox : Entity<int>
 
     private static bool IsValidBoxCodeFormat(string boxCode)
     {
-        if (boxCode.Length != 4) return false;
-        if (boxCode[0] != 'B') return false;
+        if (boxCode.Length != VALID_BOX_CODE_LENGTH) return false;
+        if (boxCode[0] != BOX_CODE_PREFIX) return false;
         return boxCode.Substring(1).All(char.IsDigit);
     }
 
