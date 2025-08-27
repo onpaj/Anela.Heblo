@@ -17,6 +17,14 @@ The Transport Box Management feature provides lifecycle management for shipping 
 
 **As a system integrator**, I want automatic stock synchronization with ERP and e-commerce systems so that inventory levels remain consistent across all platforms.
 
+**As a warehouse operator**, I want to create a new transport box and assign it a unique box number so that I can start filling it with products and track it through the warehouse system.
+
+**As a warehouse operator**, I want to validate box numbers during creation to ensure no duplicate active boxes exist so that I can maintain data integrity and avoid confusion during operations.
+
+**As a warehouse operator**, I want to add products to an open box using autocomplete search so that I can efficiently fill boxes with correct product information and quantities.
+
+**As a warehouse operator**, I want to transition a box to "In Transit" state by confirming its box number so that I can lock the box contents and mark it for shipping.
+
 ## Acceptance Criteria
 
 ### Core Functionality
@@ -41,12 +49,39 @@ The Transport Box Management feature provides lifecycle management for shipping 
 13. **E-commerce Integration**: System shall update e-commerce platform inventory levels
 14. **External System Resilience**: System shall handle integration failures gracefully with retry mechanisms
 
+### New Box Creation Workflow
+15. **Box Creation Button**: System shall provide "Open New Box" button on box list page
+16. **Initial Box State**: System shall create new box with auto-generated ID in "New" state without assigned box number
+17. **Box Number Assignment**: System shall allow user to input box number (format: B + 3 digits, e.g., B001, B123)
+18. **Box Number Validation**: System shall validate that box number is not already assigned to any active box (not in Closed state)
+19. **Duplicate Prevention**: System shall prevent assignment of box numbers already used by active boxes, allowing only closed/completed boxes to have duplicate numbers
+20. **State Transition to Opened**: System shall automatically transition box from "New" to "Opened" state upon successful box number assignment
+21. **Product Addition Interface**: System shall provide autocomplete search for adding products and materials to opened box
+22. **Item Management**: System shall allow adding multiple products/materials with quantities to single box, each item on separate line
+23. **Notes Support**: System shall allow adding optional text notes to transport box
+24. **Transit Confirmation**: System shall require re-entering box number to confirm transition to "In Transit" state
+25. **Box Number Verification**: System shall verify that entered box number matches assigned box number before allowing transit transition
+26. **Content Lock**: System shall prevent adding/removing items once box transitions to "In Transit" state
+
 ## Business Flow
 
+### New Box Creation Workflow
+1. **Box List View**: User clicks "Open New Box" button on transport box list page
+2. **Box Creation**: System creates new transport box with auto-generated ID in "New" state (no box number assigned)
+3. **Box Number Entry**: User enters box number in format B + 3 digits (e.g., B001, B123)
+4. **Number Validation**: System checks that entered box number is not assigned to any active box (boxes in states other than Closed)
+5. **Validation Success**: If validation passes, system assigns box number and transitions box to "Opened" state
+6. **Validation Failure**: If box number already exists in active state, system shows error message and requires different number
+7. **Product Addition**: User can now add products/materials using autocomplete search (product + material per line)
+8. **Notes Addition**: User can optionally add text notes to the box
+9. **Transit Preparation**: When ready to ship, user enters box number again to confirm transition to "In Transit"
+10. **Number Confirmation**: System verifies entered number matches assigned box number
+11. **Transit Transition**: Box transitions to "In Transit" state and becomes locked (no more item additions allowed)
+
 ### Core Box Lifecycle
-1. **New**: Empty box created in system
+1. **New**: Empty box created in system (no box number assigned yet)
 2. **Opened**: Box assigned unique code and ready for item management  
-3. **InTransit**: Box shipped with tracking information
+3. **InTransit**: Box shipped with tracking information (contents locked)
 4. **Received**: Box arrived at destination (can transition from InTransit OR Reserve)
 5. **Stocked**: Items added to inventory and available for picking
 6. **Closed**: Box lifecycle completed and archived
@@ -79,14 +114,19 @@ The Transport Box Management feature provides lifecycle management for shipping 
 ### Code Management
 - **Uniqueness**: No duplicate codes allowed in active states (New, Opened, InTransit, Received, Reserve)
 - **Auto-Closure**: System automatically closes existing Stocked boxes when reusing their code
-- **Code Assignment**: Codes assigned during box opening and remain immutable
+- **Code Assignment**: Codes assigned during transition from New to Opened state and remain immutable
+- **Code Format**: Box codes must follow format B + 3 digits (e.g., B001, B123)
 - **Validation**: Code required for transit and reserve operations
+- **Confirmation Requirement**: Box number must be re-entered to confirm transition to InTransit state
 
 ### State Constraints
 - **Item Management**: Items can only be added/removed in Opened state
 - **Transit Requirements**: Boxes must contain items to transition to InTransit
+- **Transit Confirmation**: User must re-enter box number to confirm InTransit transition
+- **Content Lock**: Once in InTransit state, no items can be added or removed
 - **Receive Sources**: Boxes can be received from InTransit OR Reserve states
 - **Terminal States**: Closed and Error are final states with no outbound transitions
+- **New State**: New boxes have no assigned code and cannot transition to InTransit until code is assigned
 
 ### Audit & Compliance
 - **User Tracking**: All state changes must record user identity and timestamp
@@ -142,21 +182,27 @@ The Transport Box Management feature provides lifecycle management for shipping 
 
 ## Happy Day Scenario
 
-1. **Box Creation**: Create new transport box in system
-2. **Box Opening**: Assign unique code and open for item management
-3. **Item Addition**: Add products with quantities to open box
-4. **Transit Transition**: Mark box as shipped with tracking info
-5. **Receipt Processing**: Receive box at destination warehouse
-6. **Stock Integration**: Update inventory levels in all systems
-7. **Box Closure**: Complete lifecycle and archive for audit
+1. **Box Creation**: User clicks "Open New Box" button to create new transport box in "New" state
+2. **Box Number Assignment**: User enters box number (B + 3 digits), system validates uniqueness and assigns code
+3. **Box Opening**: System automatically transitions box to "Opened" state upon successful code assignment
+4. **Item Addition**: User adds products/materials with quantities using autocomplete search
+5. **Notes Addition**: User optionally adds text notes to the box
+6. **Transit Confirmation**: User re-enters box number to confirm transition to "InTransit"
+7. **Transit Transition**: System verifies box number and marks box as shipped (contents locked)
+8. **Receipt Processing**: Receive box at destination warehouse
+9. **Stock Integration**: Update inventory levels in all systems
+10. **Box Closure**: Complete lifecycle and archive for audit
 
 ## Error Handling
 
 ### State Validation Errors
 - **Invalid Transition**: Clear error message with allowed states
-- **Duplicate Code**: Prevent duplicate active box codes
+- **Duplicate Code**: Prevent duplicate active box codes with specific error message
+- **Invalid Box Number Format**: Validate B + 3 digits format (e.g., B001, B123)
+- **Box Number Mismatch**: Verify re-entered box number matches assigned number during transit confirmation
 - **Empty Box Transit**: Cannot ship boxes without items
 - **State Mismatch**: Validate expected vs actual state
+- **Code Not Assigned**: Cannot transition New boxes to InTransit without assigned code
 
 ### Data Integrity Errors
 - **Missing Product**: Handle unknown product codes gracefully
@@ -260,6 +306,64 @@ CREATE TABLE TransportBoxStateLogs (
 - Picking list generation
 - Receiving documentation
 - Cycle count integration
+
+## Frontend UI/UX Requirements
+
+### Transport Box Detail View
+
+#### Form State Management
+The Transport Box Detail form adapts its functionality based on the current box state:
+
+1. **"New" State**:
+   - **Editable Fields**: Only box number input (displayed in top-right corner)
+   - **Read-only Fields**: Items, notes, location (all disabled)
+   - **Required Action**: User must assign box number to proceed
+   - **State Transition**: After box number submission, call change state API
+   - **Post-transition**: Refresh TransportBoxDetail after each state change
+
+2. **"Opened" State**:
+   - **Editable Fields**: Items, notes, location (all enabled)
+   - **Read-only Fields**: Box number (already assigned)
+   - **Functionality**: Full CRUD operations on box contents
+
+3. **All Other States**:
+   - **All Fields Read-only**: No editing of items, notes, or location
+   - **Display Mode**: View-only presentation of box data
+
+#### Dynamic Action Buttons
+Bottom section displays buttons based on `AllowedTransitions` property from TransportBoxDto:
+- Each allowed transition appears as an action button
+- Buttons dynamically update after each state change
+- Button labels correspond to transition target states
+
+#### State Transition Visualization
+Right-side modal panel displays comprehensive state flow:
+
+1. **Previous States Section**:
+   - Display all TransportBoxTransition objects where `TransitionType == Previous`
+   - Shows historical path to current state
+   - Visual indication of completed transitions
+
+2. **Current State Display**:
+   - Highlighted current state (already implemented)
+   - Clear visual distinction from other states
+
+3. **Next States Section**:
+   - Display all TransportBoxTransition objects where `TransitionType == Next`
+   - Shows possible future transitions
+   - System-only transitions (`SystemOnly == true`) displayed but disabled
+   - User-actionable transitions enabled based on permissions
+
+#### System-Only Transitions
+- Transitions marked with `SystemOnly = true` are visible but disabled
+- Visual indication (e.g., grayed out, lock icon) for system-only states
+- Tooltip explaining why transition is not available to user
+
+#### Real-time Updates
+- After any state change API call, immediately refresh TransportBoxDetail
+- Update allowed transitions dynamically
+- Refresh state visualization panel
+- Update form field enable/disable states
 
 ## Security Considerations
 

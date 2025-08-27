@@ -8,7 +8,8 @@ import * as clientModule from '../../client';
 jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
   QUERY_KEYS: {
-    transportBox: ['transport-boxes']
+    transportBox: ['transport-boxes'],
+    transportBoxTransitions: ['transportBoxTransitions']
   }
 }));
 
@@ -175,7 +176,7 @@ describe('useTransportBoxes hooks', () => {
 
       const mutationParams = {
         boxId: 1,
-        newState: 'Opened',
+        newState: 1, // TransportBoxState.Opened = 1
         description: 'Opening box for inspection'
       };
 
@@ -191,7 +192,7 @@ describe('useTransportBoxes hooks', () => {
         1,
         expect.objectContaining({
           boxId: 1,
-          newState: 'Opened',
+          newState: 1, // TransportBoxState.Opened = 1
           description: 'Opening box for inspection'
         })
       );
@@ -240,7 +241,7 @@ describe('useTransportBoxes hooks', () => {
 
       const mutationParams = {
         boxId: 2,
-        newState: 'InTransit'
+        newState: 2 // TransportBoxState.InTransit = 2
       };
 
       await waitFor(() => {
@@ -255,7 +256,7 @@ describe('useTransportBoxes hooks', () => {
         2,
         expect.objectContaining({
           boxId: 2,
-          newState: 'InTransit',
+          newState: 2, // TransportBoxState.InTransit = 2
           description: undefined
         })
       );

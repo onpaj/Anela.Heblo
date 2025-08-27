@@ -16,4 +16,13 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
         bool isActiveFilter = false);
 
     Task<TransportBox?> GetByIdWithDetailsAsync(int id);
+
+    Task<bool> IsBoxCodeActiveAsync(string boxCode);
+
+    Task<TransportBox?> GetByCodeAsync(string boxCode);
+
+    Task<IEnumerable<TransportBox>> FindAsync(
+        System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default);
 }

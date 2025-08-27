@@ -79,4 +79,67 @@ public class TransportBoxController : ControllerBase
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// Create a new transport box in 'New' state
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<CreateNewTransportBoxResponse>> CreateNewTransportBox(
+        [FromBody] CreateNewTransportBoxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response.ErrorMessage);
+        }
+
+        return Ok(response);
+    }
+
+
+    /// <summary>
+    /// Add item to transport box (only allowed in 'Opened' state)
+    /// </summary>
+    [HttpPost("{id:int}/items")]
+    public async Task<ActionResult<AddItemToBoxResponse>> AddItemToBox(
+        int id,
+        [FromBody] AddItemToBoxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        request.BoxId = id; // Ensure consistency
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response.ErrorMessage);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Remove item from transport box (only allowed in 'Opened' state)
+    /// </summary>
+    [HttpDelete("{id:int}/items/{itemId:int}")]
+    public async Task<ActionResult<RemoveItemFromBoxResponse>> RemoveItemFromBox(
+        int id,
+        int itemId,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new RemoveItemFromBoxRequest
+        {
+            BoxId = id,
+            ItemId = itemId
+        };
+
+        var response = await _mediator.Send(request, cancellationToken);
+        if (!response.Success)
+        {
+            return BadRequest(response.ErrorMessage);
+        }
+        return Ok(response);
+    }
+
 }

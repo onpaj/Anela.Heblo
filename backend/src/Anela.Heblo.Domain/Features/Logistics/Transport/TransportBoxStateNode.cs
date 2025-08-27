@@ -4,16 +4,26 @@ namespace Anela.Heblo.Domain.Features.Logistics.Transport;
 
 public class TransportBoxStateNode
 {
-    public TransportBoxAction? NextState { get; set; }
-    public TransportBoxAction? PreviousState { get; set; }
+    private readonly List<TransportBoxTransition> _allowedTransitions = new();
 
-    public TransportBoxAction GetTransition(TransportBoxState targetState)
+    public void AddTransition(TransportBoxTransition action)
     {
-        if (targetState == NextState?.NewState)
-            return NextState;
-        if (targetState == PreviousState?.NewState)
-            return PreviousState;
+        _allowedTransitions.Add(action);
+    }
+
+    public TransportBoxTransition GetTransition(TransportBoxState targetState)
+    {
+        // Check new multiple transitions first
+        var transition = _allowedTransitions.FirstOrDefault(t => t.NewState == targetState);
+        if (transition != null)
+            return transition;
 
         throw new ValidationException($"Unable to change state to {targetState}");
     }
+
+    public IEnumerable<TransportBoxTransition> GetAllTransitions()
+    {
+        return _allowedTransitions.AsReadOnly();
+    }
 }
+

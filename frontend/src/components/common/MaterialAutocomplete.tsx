@@ -201,6 +201,13 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
         </div>
       </div>
 
+      {/* Selected product display */}
+      {value && (
+        <div data-testid="selected-product" className="mt-1 text-sm text-gray-600">
+          Selected: {value.productName} ({value.productCode})
+        </div>
+      )}
+
       {/* Error message */}
       {error && (
         <div className="mt-1 flex items-center text-sm text-red-600">
@@ -261,3 +268,5 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
     </div>
   );
 };
+
+export default MaterialAutocomplete;

@@ -10,6 +10,7 @@ using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Repository;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -17,7 +18,7 @@ namespace Anela.Heblo.Application.Features.Catalog;
 
 public static class CatalogModule
 {
-    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IHostEnvironment? environment = null)
+    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
@@ -59,8 +60,11 @@ public static class CatalogModule
             services.AddHostedService<CatalogRefreshBackgroundService>();
         }
 
-        // Configure catalog repository options
-        services.Configure<CatalogRepositoryOptions>(options => { });
+        // Configure catalog repository options from configuration
+        services.Configure<CatalogRepositoryOptions>(options =>
+        {
+            configuration.GetSection(CatalogRepositoryOptions.ConfigKey).Bind(options);
+        });
 
         // Register AutoMapper for catalog mappings
         services.AddAutoMapper(typeof(CatalogModule));

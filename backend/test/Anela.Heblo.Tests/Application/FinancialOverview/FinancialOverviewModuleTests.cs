@@ -1,23 +1,15 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
-using FluentAssertions;
 using Anela.Heblo.Domain.Accounting.Ledger;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Price;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using FluentAssertions;
 using Microsoft.Extensions.Hosting;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Application.FinancialOverview;
 
@@ -28,6 +20,7 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
+        var configuration = CreateMockConfiguration();
 
         // Add required dependencies for StockValueService
         services.AddSingleton(Mock.Of<IErpStockClient>());
@@ -40,7 +33,7 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(mockEnvironment.Object);
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(configuration, mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -66,7 +59,7 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(mockEnvironment.Object);
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -88,7 +81,7 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(mockEnvironment.Object);
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -115,7 +108,7 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(mockEnvironment.Object);
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -142,7 +135,7 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(mockEnvironment.Object);
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -162,7 +155,7 @@ public class FinancialOverviewModuleTests
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Automation");
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Background service should not be registered in Automation environment
@@ -186,7 +179,7 @@ public class FinancialOverviewModuleTests
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
 
         // Assert - Background service should be registered in non-Automation environments
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
@@ -210,7 +203,7 @@ public class FinancialOverviewModuleTests
         // calling BuildServiceProvider during registration proves the antipattern is avoided
         var exception = Record.Exception(() =>
         {
-            services.AddFinancialOverviewModule(mockEnvironment.Object);
+            services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
             var serviceProvider = services.BuildServiceProvider();
             var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
             stockValueService.Should().NotBeNull();
@@ -230,11 +223,22 @@ public class FinancialOverviewModuleTests
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
 
         // Act
-        services.AddFinancialOverviewModule(mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
         var memoryCache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
         memoryCache.Should().NotBeNull();
+    }
+
+    private static IConfiguration CreateMockConfiguration()
+    {
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["FinancialAnalysisOptions:RefreshInterval"] = "00:00:00",
+            ["FinancialAnalysisOptions:MonthsToCache"] = "24"
+        });
+        return configurationBuilder.Build();
     }
 }

@@ -25,8 +25,12 @@ public class FinancialAnalysisBackgroundService : BackgroundService
     {
         _logger.LogInformation("Financial Analysis Background Service started");
 
-        // Initial load on startup
-        await RefreshFinancialDataAsync(stoppingToken);
+        if (_options.RefreshInterval != TimeSpan.Zero)
+        {
+            // Initial load on startup
+            await RefreshFinancialDataAsync(stoppingToken);
+        }
+        
 
         var lastRefresh = DateTime.UtcNow;
 
@@ -37,7 +41,7 @@ public class FinancialAnalysisBackgroundService : BackgroundService
                 var now = DateTime.UtcNow;
 
                 // Check if refresh is needed (every 3 hours)
-                if (now - lastRefresh >= _options.RefreshInterval)
+                if (_options.RefreshInterval != TimeSpan.Zero && now - lastRefresh >= _options.RefreshInterval)
                 {
                     await RefreshFinancialDataAsync(stoppingToken);
                     lastRefresh = now;

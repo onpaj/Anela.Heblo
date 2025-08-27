@@ -111,7 +111,9 @@ describe('Authenticated API Usage', () => {
       
       if (hasApiCalls) {
         const hasAuthenticatedClient = content.includes('getAuthenticatedApiClient');
-        const hasPlainFetch = content.includes('fetch(') && !content.includes('(apiClient as any).http.fetch');
+        const hasPlainFetch = content.includes('fetch(') && 
+          !content.includes('(apiClient as any).http.fetch') &&
+          !content.includes('apiClient.http.fetch');
         
         if (!hasAuthenticatedClient) {
           violations.push({

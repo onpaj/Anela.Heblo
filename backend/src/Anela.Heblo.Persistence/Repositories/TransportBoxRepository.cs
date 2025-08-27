@@ -93,4 +93,60 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
         return transportBox;
     }
+
+    public async Task<bool> IsBoxCodeActiveAsync(string boxCode)
+    {
+        var activeStates = new[]
+        {
+            TransportBoxState.New,
+            TransportBoxState.Opened,
+            TransportBoxState.InTransit,
+            TransportBoxState.Received,
+            TransportBoxState.Reserve,
+            TransportBoxState.Stocked
+        };
+
+        var exists = await DbSet
+            .Where(x => x.Code == boxCode && activeStates.Contains(x.State))
+            .AnyAsync();
+
+        _logger.LogDebug("Checked if box code {BoxCode} is active: {IsActive}", boxCode, exists);
+
+        return exists;
+    }
+
+    public async Task<TransportBox?> GetByCodeAsync(string boxCode)
+    {
+        var transportBox = await DbSet
+            .Include(x => x.Items)
+            .Include(x => x.StateLog)
+            .FirstOrDefaultAsync(x => x.Code == boxCode);
+
+        _logger.LogDebug("Retrieved transport box by code {BoxCode}: {Found}",
+            boxCode, transportBox != null);
+
+        return transportBox;
+    }
+
+    public async Task<IEnumerable<TransportBox>> FindAsync(
+        System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.AsQueryable();
+
+        if (includeDetails)
+        {
+            query = query
+                .Include(x => x.Items)
+                .Include(x => x.StateLog);
+        }
+
+        var result = await query.Where(predicate).ToListAsync(cancellationToken);
+
+        _logger.LogDebug("Found {Count} transport boxes with predicate, includeDetails: {IncludeDetails}",
+            result.Count, includeDetails);
+
+        return result;
+    }
 }

@@ -42,24 +42,40 @@ public class CatalogRefreshBackgroundService : BackgroundService
     {
         _logger.LogInformation("Catalog Refresh Background Service started");
 
+        // Perform initial load immediately (if intervals are not zero)
+        await PerformRefreshCycle(stoppingToken, isInitialLoad: true);
+
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
 
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                try
-                {
-                    var now = DateTime.UtcNow;
+                await PerformRefreshCycle(stoppingToken, isInitialLoad: false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when service is stopped
+        }
 
-                    using var scope = _serviceProvider.CreateScope();
-                    var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+        _logger.LogInformation("Catalog Refresh Background Service stopped");
+    }
 
-                    // Check and execute refresh operations based on intervals
-                    if (await RefreshIfNeeded(catalogRepository, "Transport",
-                        _lastTransportRefresh, _options.TransportRefreshInterval,
-                        async ct => await catalogRepository.RefreshTransportData(ct),
-                        now, stoppingToken))
+    private async Task PerformRefreshCycle(CancellationToken stoppingToken, bool isInitialLoad)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+
+            using var scope = _serviceProvider.CreateScope();
+            var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+
+            // Check and execute refresh operations based on intervals
+            if (await RefreshIfNeeded(catalogRepository, "Transport",
+                _lastTransportRefresh, _options.TransportRefreshInterval,
+                async ct => await catalogRepository.RefreshTransportData(ct),
+                now, stoppingToken, isInitialLoad))
                     {
                         _lastTransportRefresh = now;
                     }
@@ -67,7 +83,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Reserve",
                         _lastReserveRefresh, _options.ReserveRefreshInterval,
                         async ct => await catalogRepository.RefreshReserveData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastReserveRefresh = now;
                     }
@@ -75,7 +91,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Sales",
                         _lastSalesRefresh, _options.SalesRefreshInterval,
                         async ct => await catalogRepository.RefreshSalesData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastSalesRefresh = now;
                     }
@@ -83,7 +99,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Attributes",
                         _lastAttributesRefresh, _options.AttributesRefreshInterval,
                         async ct => await catalogRepository.RefreshAttributesData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastAttributesRefresh = now;
                     }
@@ -91,7 +107,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "ERP Stock",
                         _lastErpStockRefresh, _options.ErpStockRefreshInterval,
                         async ct => await catalogRepository.RefreshErpStockData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastErpStockRefresh = now;
                     }
@@ -99,7 +115,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "E-shop Stock",
                         _lastEshopStockRefresh, _options.EshopStockRefreshInterval,
                         async ct => await catalogRepository.RefreshEshopStockData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastEshopStockRefresh = now;
                     }
@@ -107,7 +123,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Purchase History",
                         _lastPurchaseHistoryRefresh, _options.PurchaseHistoryRefreshInterval,
                         async ct => await catalogRepository.RefreshPurchaseHistoryData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastPurchaseHistoryRefresh = now;
                     }
@@ -115,7 +131,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Manufacture History",
                         _lastManufactureHistoryRefresh, _options.ManufactureHistoryRefreshInterval,
                         async ct => await catalogRepository.RefreshManufactureHistoryData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastManufactureHistoryRefresh = now;
                     }
@@ -123,7 +139,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Consumed History",
                         _lastConsumedRefresh, _options.ConsumedRefreshInterval,
                         async ct => await catalogRepository.RefreshConsumedHistoryData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastConsumedRefresh = now;
                     }
@@ -131,7 +147,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Stock Taking",
                         _lastStockTakingRefresh, _options.StockTakingRefreshInterval,
                         async ct => await catalogRepository.RefreshStockTakingData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastStockTakingRefresh = now;
                     }
@@ -139,7 +155,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Lots Data",
                         _lastLotsRefresh, _options.LotsRefreshInterval,
                         async ct => await catalogRepository.RefreshLotsData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastLotsRefresh = now;
                     }
@@ -147,7 +163,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "E-shop Prices",
                         _lastEshopPricesRefresh, _options.EshopPricesRefreshInterval,
                         async ct => await catalogRepository.RefreshEshopPricesData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastEshopPricesRefresh = now;
                     }
@@ -155,7 +171,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "ERP Prices",
                         _lastErpPricesRefresh, _options.ErpPricesRefreshInterval,
                         async ct => await catalogRepository.RefreshErpPricesData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastErpPricesRefresh = now;
                     }
@@ -163,7 +179,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     if (await RefreshIfNeeded(catalogRepository, "Manufacture Difficulty",
                         _lastManufactureDifficultyRefresh, _options.ManufactureDifficultyRefreshInterval,
                         async ct => await catalogRepository.RefreshManufactureDifficultyData(ct),
-                        now, stoppingToken))
+                        now, stoppingToken, isInitialLoad))
                     {
                         _lastManufactureDifficultyRefresh = now;
                     }
@@ -176,31 +192,22 @@ public class CatalogRefreshBackgroundService : BackgroundService
                         if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
                             _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
                             async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
-                            now, stoppingToken))
+                            now, stoppingToken, isInitialLoad))
                         {
                             _lastManufactureCostRefresh = now;
                         }
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected when cancellation is requested
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error occurred in Catalog Refresh Background Service");
-
-                    // Continue with next cycle - PeriodicTimer will handle the delay
-                }
-            }
         }
         catch (OperationCanceledException)
         {
-            // Expected when service is stopped
+            // Expected when cancellation is requested
+            throw;
         }
-
-        _logger.LogInformation("Catalog Refresh Background Service stopped");
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred in Catalog Refresh Background Service");
+            // Continue - method will be called again in next cycle
+        }
     }
 
     private async Task<bool> RefreshIfNeeded(
@@ -210,9 +217,18 @@ public class CatalogRefreshBackgroundService : BackgroundService
         TimeSpan interval,
         Func<CancellationToken, Task> refreshAction,
         DateTime now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isInitialLoad)
     {
-        if (now - lastRefresh >= interval)
+        // Skip if interval is zero (disabled)
+        if (interval == TimeSpan.Zero)
+            return false;
+
+        // For initial load, always refresh if interval is not zero
+        // For subsequent loads, check if enough time has passed
+        bool shouldRefresh = isInitialLoad || (now - lastRefresh >= interval);
+
+        if (shouldRefresh)
         {
             try
             {

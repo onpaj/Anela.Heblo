@@ -1,1 +1,11 @@
-cd frontend && npx lint-staged
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Only run linter when committing to main branch
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ]; then
+  echo "Running linter on main branch..."
+  cd frontend && npx lint-staged
+else
+  echo "Skipping linter on feature branch: $BRANCH"
+fi

@@ -23,4 +23,22 @@ public class EmptyTransportBoxRepository : EmptyRepository<TransportBox, int>, I
     {
         return Task.FromResult<TransportBox?>(null);
     }
+
+    public Task<bool> IsBoxCodeActiveAsync(string boxCode)
+    {
+        return Task.FromResult(false);
+    }
+
+    public Task<TransportBox?> GetByCodeAsync(string boxCode)
+    {
+        return Task.FromResult<TransportBox?>(null);
+    }
+
+    public Task<IEnumerable<TransportBox>> FindAsync(
+        System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IEnumerable<TransportBox>>(new List<TransportBox>());
+    }
 }
