@@ -14,17 +14,20 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AddItemToBoxHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly TimeProvider _timeProvider;
 
     public AddItemToBoxHandler(
         ITransportBoxRepository repository,
         ICurrentUserService currentUserService,
         ILogger<AddItemToBoxHandler> logger,
-        IMapper mapper)
+        IMapper mapper,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
+        _timeProvider = timeProvider;
     }
 
     public async Task<AddItemToBoxResponse> Handle(AddItemToBoxRequest request, CancellationToken cancellationToken)
@@ -48,7 +51,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
                 request.ProductCode,
                 request.ProductName,
                 request.Amount,
-                DateTime.UtcNow,
+                _timeProvider.GetUtcNow().UtcDateTime,
                 userName);
 
 
