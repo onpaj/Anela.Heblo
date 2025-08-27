@@ -208,10 +208,9 @@ describe('TransportBoxList', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       const searchInput = screen.getByPlaceholderText('Kód boxu...');
-      const searchButton = screen.getByText('Vyhledat');
 
       fireEvent.change(searchInput, { target: { value: 'BOX-001' } });
-      fireEvent.click(searchButton);
+      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -227,11 +226,11 @@ describe('TransportBoxList', () => {
     it('should filter by state when state filter is selected', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const stateSelect = screen.getByDisplayValue('');
-      const searchButton = screen.getByText('Vyhledat');
+      const stateSelect = screen.getByDisplayValue('Všechny stavy');
+      const searchInput = screen.getByPlaceholderText('Kód boxu...');
 
       fireEvent.change(stateSelect, { target: { value: 'New' } });
-      fireEvent.click(searchButton);
+      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -250,7 +249,7 @@ describe('TransportBoxList', () => {
       const searchInput = screen.getByPlaceholderText('Kód boxu...');
       
       fireEvent.change(searchInput, { target: { value: 'BOX-002' } });
-      fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
+      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -264,13 +263,18 @@ describe('TransportBoxList', () => {
     it('should filter by date range', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const fromDateInput = screen.getByLabelText('Od:');
-      const toDateInput = screen.getByLabelText('Do:');
-      const searchButton = screen.getByText('Vyhledat');
+      // Find date inputs by their type and position
+      const dateInputs = screen.getAllByDisplayValue('');
+      const fromDateInput = dateInputs.find(input => input.getAttribute('type') === 'date');
+      const toDateInput = dateInputs.filter(input => input.getAttribute('type') === 'date')[1];
+      const searchInput = screen.getByPlaceholderText('Kód boxu...');
 
-      fireEvent.change(fromDateInput, { target: { value: '2024-01-01' } });
-      fireEvent.change(toDateInput, { target: { value: '2024-01-02' } });
-      fireEvent.click(searchButton);
+      expect(fromDateInput).toBeDefined();
+      expect(toDateInput).toBeDefined();
+
+      fireEvent.change(fromDateInput!, { target: { value: '2024-01-01' } });
+      fireEvent.change(toDateInput!, { target: { value: '2024-01-02' } });
+      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -287,20 +291,23 @@ describe('TransportBoxList', () => {
     it('should filter by state when summary card is clicked', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      // Find a summary card for 'New' state and click it
-      const newStateCard = screen.getByText('Nový').closest('button');
-      if (newStateCard) {
-        fireEvent.click(newStateCard);
+      // First collapse controls to show state summary cards
+      const collapseButton = screen.getByText(/filtry a nastavení/i).closest('button');
+      expect(collapseButton).not.toBeNull();
+      fireEvent.click(collapseButton!);
 
-        await waitFor(() => {
-          expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-              state: 'New',
-              skip: 0
-            })
-          );
-        });
-      }
+      // Now find a summary card button with title "Nový" state
+      const newStateCard = screen.getByTitle('Nový');
+      fireEvent.click(newStateCard);
+
+      await waitFor(() => {
+        expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            state: 'New',
+            skip: 0
+          })
+        );
+      });
     });
   });
 
@@ -397,8 +404,11 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const pageButton = screen.getByText('2');
-      fireEvent.click(pageButton);
+      const pageButtons = screen.getAllByText('2');
+      // Find the pagination button (should be in a button element)
+      const pageButton = pageButtons.find(element => element.tagName === 'BUTTON');
+      expect(pageButton).toBeDefined();
+      fireEvent.click(pageButton!);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -532,17 +542,18 @@ describe('TransportBoxList', () => {
     it('should toggle controls visibility when collapse button is clicked', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      // Find the collapse button (chevron)
-      const collapseButton = screen.getByRole('button', { name: /sbalit filtry/i });
+      // Find the collapse button (chevron) - text may include count in parentheses
+      const collapseButton = screen.getByText(/filtry a nastavení/i).closest('button');
+      expect(collapseButton).not.toBeNull();
       
       // Initially controls should be visible
       expect(screen.getByPlaceholderText('Kód boxu...')).toBeInTheDocument();
 
       // Click to collapse
-      fireEvent.click(collapseButton);
+      fireEvent.click(collapseButton!);
 
-      // Controls should be hidden (or have different styling)
-      // Note: The exact behavior depends on the implementation
+      // Controls should be hidden - the input should no longer be visible
+      expect(screen.queryByPlaceholderText('Kód boxu...')).not.toBeInTheDocument();
     });
   });
 

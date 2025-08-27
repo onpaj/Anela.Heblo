@@ -122,6 +122,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           <button
             onClick={handleClose}
             disabled={isLoading}
+            aria-label="close"
             className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
           >
             <X className="h-5 w-5" />
@@ -179,7 +180,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isLoading || !selectedProduct || !selectedProduct.productCode || !selectedProduct.productName || !amount}
+              disabled={isLoading}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isLoading && <Loader className="h-4 w-4 mr-2 animate-spin" />}

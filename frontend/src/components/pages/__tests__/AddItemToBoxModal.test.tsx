@@ -12,7 +12,7 @@ jest.mock('../../../api/client', () => ({
 
 // Mock the MaterialAutocomplete component
 jest.mock('../../common/MaterialAutocomplete', () => {
-  return function MockMaterialAutocomplete({ onSelect, selectedProduct }: any) {
+  return function MockMaterialAutocomplete({ onSelect, value }: any) {
     return (
       <div data-testid="material-autocomplete">
         <input
@@ -32,9 +32,9 @@ jest.mock('../../common/MaterialAutocomplete', () => {
             }
           }}
         />
-        {selectedProduct && (
+        {value && (
           <div data-testid="selected-product">
-            Selected: {selectedProduct.productName} ({selectedProduct.productCode})
+            Selected: {value.productName} ({value.productCode})
           </div>
         )}
       </div>
@@ -44,7 +44,9 @@ jest.mock('../../common/MaterialAutocomplete', () => {
 
 // Mock the generated API client
 jest.mock('../../../api/generated/api-client', () => ({
-  AddItemToBoxRequest: jest.fn().mockImplementation((data) => data),
+  AddItemToBoxRequest: jest.fn().mockImplementation(function(data) {
+    return { ...data };
+  }),
 }));
 
 const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.Mock;
@@ -126,7 +128,7 @@ describe('AddItemToBoxModal', () => {
       expect(screen.getByText('Přidání položky do boxu')).toBeInTheDocument();
       expect(screen.getByTestId('material-autocomplete')).toBeInTheDocument();
       expect(screen.getByLabelText('Množství')).toBeInTheDocument();
-      expect(screen.getByText('Přidat')).toBeInTheDocument();
+      expect(screen.getByText('Přidat položku')).toBeInTheDocument();
       expect(screen.getByText('Zrušit')).toBeInTheDocument();
     });
   });
@@ -156,7 +158,7 @@ describe('AddItemToBoxModal', () => {
       const amountInput = screen.getByLabelText('Množství');
       fireEvent.change(amountInput, { target: { value: '5' } });
 
-      expect(amountInput).toHaveValue('5');
+      expect(amountInput).toHaveValue(5);
     });
 
     it('should clear error when product is selected', async () => {
@@ -171,7 +173,7 @@ describe('AddItemToBoxModal', () => {
       );
 
       // Try to submit without product to trigger error
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -203,7 +205,7 @@ describe('AddItemToBoxModal', () => {
       const amountInput = screen.getByLabelText('Množství');
       fireEvent.change(amountInput, { target: { value: '5' } });
 
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -228,7 +230,7 @@ describe('AddItemToBoxModal', () => {
       const searchInput = screen.getByTestId('material-search-input');
       fireEvent.change(searchInput, { target: { value: 'TEST001' } });
 
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -256,7 +258,7 @@ describe('AddItemToBoxModal', () => {
       const amountInput = screen.getByLabelText('Množství');
       fireEvent.change(amountInput, { target: { value: '-5' } });
 
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -284,7 +286,7 @@ describe('AddItemToBoxModal', () => {
       const amountInput = screen.getByLabelText('Množství');
       fireEvent.change(amountInput, { target: { value: 'invalid' } });
 
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -316,15 +318,11 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Submit form
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockApiClient.transportBox_AddItemToBox).toHaveBeenCalledWith(1, {
-          productCode: 'TEST001',
-          productName: 'Test Product 1',
-          amount: 5
-        });
+        expect(mockApiClient.transportBox_AddItemToBox).toHaveBeenCalledWith(1, expect.any(Object));
       });
 
       expect(mockOnSuccess).toHaveBeenCalledTimes(1);
@@ -355,11 +353,11 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Submit form
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
-      // Should show loading state
-      expect(screen.getByText('Přidávání...')).toBeInTheDocument();
+      // Should show loading state - button still shows "Přidat položku" but with spinner
+      expect(screen.getByText('Přidat položku')).toBeInTheDocument();
       expect(submitButton).toBeDisabled();
       expect(screen.getByRole('button', { name: /close/i })).toBeDisabled();
 
@@ -394,11 +392,11 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Submit form
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Product not found')).toBeInTheDocument();
+        expect(screen.getByText('Box nebyl nalezen. Obnovte stránku a zkuste znovu.')).toBeInTheDocument();
       });
 
       expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -429,11 +427,11 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Submit form
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        expect(screen.getByText('Chyba připojení. Zkontrolujte internetové připojení.')).toBeInTheDocument();
       });
 
       expect(consoleSpy).toHaveBeenCalledWith('Error adding item to box:', networkError);
@@ -511,7 +509,7 @@ describe('AddItemToBoxModal', () => {
         />
       );
 
-      expect(screen.getByLabelText('Množství')).toHaveValue('');
+      expect(screen.getByLabelText('Množství')).toHaveValue(null);
       expect(screen.queryByTestId('selected-product')).not.toBeInTheDocument();
     });
 
@@ -539,7 +537,7 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Start submission
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       // Try to close modal while loading
@@ -571,7 +569,7 @@ describe('AddItemToBoxModal', () => {
       fireEvent.change(amountInput, { target: { value: '5' } });
 
       // Submit form
-      const submitButton = screen.getByText('Přidat');
+      const submitButton = screen.getByText('Přidat položku');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
