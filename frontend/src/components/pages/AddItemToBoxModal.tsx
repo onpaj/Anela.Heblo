@@ -23,6 +23,30 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to provide user-friendly error messages
+  const getUserFriendlyErrorMessage = (serverError: string): string => {
+    const errorLower = serverError.toLowerCase();
+    
+    if (errorLower.includes('validation')) {
+      return 'Neplatné údaje. Zkontrolujte zadané hodnoty.';
+    }
+    if (errorLower.includes('not found')) {
+      return 'Box nebyl nalezen. Obnovte stránku a zkuste znovu.';
+    }
+    if (errorLower.includes('state')) {
+      return 'Box není ve správném stavu pro přidání položky.';
+    }
+    if (errorLower.includes('network') || errorLower.includes('connection')) {
+      return 'Chyba připojení. Zkontrolujte internetové připojení.';
+    }
+    if (errorLower.includes('timeout')) {
+      return 'Operace trvá příliš dlouho. Zkuste to později.';
+    }
+    
+    // Return original message for unrecognized errors
+    return serverError;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boxId) return;
@@ -57,11 +81,13 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
         setAmount('');
         onClose();
       } else {
-        setError(response.errorMessage || 'Chyba při přidávání položky');
+        const errorMessage = response.errorMessage || 'Chyba při přidávání položky';
+        setError(getUserFriendlyErrorMessage(errorMessage));
       }
     } catch (err) {
       console.error('Error adding item to box:', err);
-      setError(err instanceof Error ? err.message : 'Neočekávaná chyba');
+      const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
+      setError(getUserFriendlyErrorMessage(errorMessage));
     } finally {
       setIsLoading(false);
     }
