@@ -50,6 +50,9 @@ const mockTransportBox = {
   materials: [
     { id: 1, name: 'Material A', quantity: 10 },
     { id: 2, name: 'Material B', quantity: 5 }
+  ],
+  allowedTransitions: [
+    { newState: 'Opened', transitionType: 'Next', systemOnly: false }
   ]
 };
 
@@ -167,7 +170,16 @@ describe('TransportBoxDetail', () => {
 
     it('should show both previous and next buttons for Opened state', () => {
       mockUseTransportBoxByIdQuery.mockReturnValue({
-        data: { transportBox: { ...mockTransportBox, state: 'Opened' } },
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'Opened',
+            allowedTransitions: [
+              { newState: 'New', transitionType: 'Previous', systemOnly: false },
+              { newState: 'InTransit', transitionType: 'Next', systemOnly: false }
+            ]
+          } 
+        },
         isLoading: false,
         error: null,
       });
@@ -187,7 +199,13 @@ describe('TransportBoxDetail', () => {
 
     it('should show only previous button for Closed state', () => {
       mockUseTransportBoxByIdQuery.mockReturnValue({
-        data: { transportBox: { ...mockTransportBox, state: 'Closed' } },
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'Closed',
+            allowedTransitions: []  // Closed state has no transitions
+          } 
+        },
         isLoading: false,
         error: null,
       });
@@ -215,7 +233,15 @@ describe('TransportBoxDetail', () => {
 
     it('should call mutation when state change button is clicked', async () => {
       mockUseTransportBoxByIdQuery.mockReturnValue({
-        data: { transportBox: { ...mockTransportBox, state: 'New' } },
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'New',
+            allowedTransitions: [
+              { newState: 'Opened', transitionType: 'Next', systemOnly: false }
+            ]
+          } 
+        },
         isLoading: false,
         error: null,
       });
@@ -235,8 +261,8 @@ describe('TransportBoxDetail', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           boxId: 1,
-          newState: 'Opened',
-          description: expect.any(String)
+          newState: 1, // TransportBoxState.Opened = 1
+          description: undefined
         });
       });
     });
@@ -249,7 +275,15 @@ describe('TransportBoxDetail', () => {
       });
 
       mockUseTransportBoxByIdQuery.mockReturnValue({
-        data: { transportBox: { ...mockTransportBox, state: 'New' } },
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'New',
+            allowedTransitions: [
+              { newState: 'Opened', transitionType: 'Next', systemOnly: false }
+            ]
+          } 
+        },
         isLoading: false,
         error: null,
       });
@@ -275,7 +309,15 @@ describe('TransportBoxDetail', () => {
       });
 
       mockUseTransportBoxByIdQuery.mockReturnValue({
-        data: { transportBox: { ...mockTransportBox, state: 'New' } },
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'New',
+            allowedTransitions: [
+              { newState: 'Opened', transitionType: 'Next', systemOnly: false }
+            ]
+          } 
+        },
         isLoading: false,
         error: null,
       });

@@ -82,7 +82,6 @@ public class GetTransportBoxByIdHandler : IRequestHandler<GetTransportBoxByIdReq
             TransportBoxState.Opened => "Otevřený",
             TransportBoxState.InTransit => "V přepravě",
             TransportBoxState.Received => "Přijatý",
-            TransportBoxState.InSwap => "Swap",
             TransportBoxState.Stocked => "Naskladněný",
             TransportBoxState.Reserve => "V rezervě",
             TransportBoxState.Closed => "Uzavřený",

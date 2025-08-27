@@ -6637,11 +6637,10 @@ export enum TransportBoxState {
     Opened = 1,
     InTransit = 2,
     Received = 3,
-    InSwap = 4,
-    Stocked = 5,
-    Closed = 6,
-    Error = 7,
-    Reserve = 8,
+    Stocked = 4,
+    Closed = 5,
+    Error = 6,
+    Reserve = 7,
 }
 
 export class CreateNewTransportBoxResponse implements ICreateNewTransportBoxResponse {

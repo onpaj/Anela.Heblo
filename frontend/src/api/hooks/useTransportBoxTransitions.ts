@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface AllowedTransition {
   state: string;
@@ -17,7 +17,7 @@ export interface GetAllowedTransitionsResponse {
 
 export const useAllowedTransitionsQuery = (boxId: number, enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['transportBoxTransitions', boxId],
+    queryKey: [...QUERY_KEYS.transportBoxTransitions, boxId],
     queryFn: async (): Promise<GetAllowedTransitionsResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/transport-boxes/${boxId}/allowed-transitions`;

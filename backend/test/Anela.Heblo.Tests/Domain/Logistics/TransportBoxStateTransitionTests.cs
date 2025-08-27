@@ -167,7 +167,6 @@ public class TransportBoxStateTransitionTests
     [Theory]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Reserve)]
     public void InvalidTransitionsFromNew_ShouldThrow(TransportBoxState toState)
@@ -181,7 +180,6 @@ public class TransportBoxStateTransitionTests
 
     [Theory]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     public void InvalidTransitionsFromOpened_ShouldThrow(TransportBoxState toState)
@@ -196,7 +194,6 @@ public class TransportBoxStateTransitionTests
 
     [Theory]
     [InlineData(TransportBoxState.New)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     [InlineData(TransportBoxState.Reserve)]
@@ -215,7 +212,6 @@ public class TransportBoxStateTransitionTests
     [Theory]
     [InlineData(TransportBoxState.New)]
     [InlineData(TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     [InlineData(TransportBoxState.Reserve)]
@@ -235,7 +231,6 @@ public class TransportBoxStateTransitionTests
     [InlineData(TransportBoxState.New)]
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Reserve)]
     public void InvalidTransitionsFromReceived_ShouldThrow(TransportBoxState toState)
     {
@@ -255,7 +250,6 @@ public class TransportBoxStateTransitionTests
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Reserve)]
     public void InvalidTransitionsFromStocked_ShouldThrow(TransportBoxState toState)
     {
@@ -272,7 +266,6 @@ public class TransportBoxStateTransitionTests
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Reserve)]
     public void InvalidTransitionsFromClosed_ShouldThrow(TransportBoxState toState)
@@ -290,7 +283,6 @@ public class TransportBoxStateTransitionTests
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     public void InvalidTransitionsFromError_ShouldThrow(TransportBoxState toState)
@@ -308,7 +300,6 @@ public class TransportBoxStateTransitionTests
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InSwap)]
     [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     [InlineData(TransportBoxState.Reserve)]
@@ -436,7 +427,6 @@ public class TransportBoxStateTransitionTests
             ,
             TransportBoxState.InTransit => () => box.ToTransit(_testDate, TestUser),
             TransportBoxState.Received => () => box.Receive(_testDate, TestUser),
-            TransportBoxState.InSwap => () => box.ToSwap(_testDate, TestUser),
             TransportBoxState.Stocked => () => box.ToPick(_testDate, TestUser),
             TransportBoxState.Closed => () => box.Close(_testDate, TestUser),
             TransportBoxState.Reserve => () => box.ToReserve(_testDate, TestUser, TransportBoxLocation.Kumbal),

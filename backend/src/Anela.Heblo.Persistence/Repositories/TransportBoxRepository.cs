@@ -103,7 +103,6 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             TransportBoxState.InTransit,
             TransportBoxState.Received,
             TransportBoxState.Reserve,
-            TransportBoxState.InSwap,
             TransportBoxState.Stocked
         };
 

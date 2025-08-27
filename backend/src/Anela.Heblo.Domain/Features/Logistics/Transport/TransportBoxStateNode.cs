@@ -21,12 +21,6 @@ public class TransportBoxStateNode
         throw new ValidationException($"Unable to change state to {targetState}");
     }
 
-    public IEnumerable<TransportBoxState> GetAllowedTransitions()
-    {
-        var transitions = _allowedTransitions.Select(t => t.NewState).ToList();
-        return transitions.Distinct();
-    }
-
     public IEnumerable<TransportBoxTransition> GetAllTransitions()
     {
         return _allowedTransitions.AsReadOnly();

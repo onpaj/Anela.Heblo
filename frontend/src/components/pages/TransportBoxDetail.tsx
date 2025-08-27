@@ -19,7 +19,6 @@ const stateLabels: Record<string, string> = {
   'Opened': 'Otevřený',
   'InTransit': 'V přepravě',
   'Received': 'Přijatý',
-  'InSwap': 'Swap',
   'Stocked': 'Naskladněný',
   'Reserve': 'V rezervě',
   'Closed': 'Uzavřený',
@@ -33,7 +32,6 @@ const stateColors: Record<string, string> = {
   'Opened': 'bg-blue-100 text-blue-800',
   'InTransit': 'bg-yellow-100 text-yellow-800',
   'Received': 'bg-purple-100 text-purple-800',
-  'InSwap': 'bg-orange-100 text-orange-800',
   'Stocked': 'bg-green-100 text-green-800',
   'Reserve': 'bg-indigo-100 text-indigo-800',
   'Closed': 'bg-gray-100 text-gray-800',
@@ -217,12 +215,12 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       
       const apiClient = await getAuthenticatedApiClient();
       
-      // For now, we'll make a direct API call since the generated client may not be updated yet
+      // Use authenticated API client for DELETE request
       const baseUrl = (apiClient as any).baseUrl;
-      const response = await fetch(`${baseUrl}/api/transport-boxes/${boxId}/items/${itemId}`, {
+      const fullUrl = `${baseUrl}/api/transport-boxes/${boxId}/items/${itemId}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${(apiClient as any).getToken?.() || 'mock-token'}`,
           'Content-Type': 'application/json'
         }
       });
@@ -297,10 +295,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       return;
     }
     
-    // Convert string to enum
-    const newState = Object.values(TransportBoxState).find(state => 
-      TransportBoxState[state as keyof typeof TransportBoxState].toString() === newStateString
-    ) as TransportBoxState;
+    // Convert string to enum value
+    const newState = TransportBoxState[newStateString as keyof typeof TransportBoxState];
     
     try {
       // Include description if it was changed

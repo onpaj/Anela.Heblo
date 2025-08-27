@@ -179,6 +179,7 @@ export const QUERY_KEYS = {
   financialOverview: ['financialOverview'] as const,
   journal: ['journal'] as const,
   transportBox: ['transport-boxes'] as const,
+  transportBoxTransitions: ['transportBoxTransitions'] as const,
   // Add more query keys as needed
   // users: ['users'] as const,  
   // products: ['products'] as const,

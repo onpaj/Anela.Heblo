@@ -159,12 +159,6 @@ public class TransportBox : Entity<int>
     }
 
 
-    public void ToSwap(DateTime date, string userName)
-    {
-        // InSwap state is legacy - according to specification it's not in current state machine
-        throw new ValidationException("InSwap state is not supported in current state machine specification");
-    }
-
     public void ToPick(DateTime date, string userName)
     {
         // According to specification: ToPick (to Stocked) is allowed only from Received state

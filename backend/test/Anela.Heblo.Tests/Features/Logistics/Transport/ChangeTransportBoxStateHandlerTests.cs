@@ -56,7 +56,7 @@ public class ChangeTransportBoxStateHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(999))
             .ReturnsAsync((TransportBox?)null);
 
         // Act
@@ -84,7 +84,7 @@ public class ChangeTransportBoxStateHandlerTests
         var updatedBoxResponse = new GetTransportBoxByIdResponse();
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
         _repositoryMock
@@ -122,7 +122,7 @@ public class ChangeTransportBoxStateHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
         // Act
@@ -151,7 +151,7 @@ public class ChangeTransportBoxStateHandlerTests
         var updatedBoxResponse = new GetTransportBoxByIdResponse();
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(() => box);
 
         _repositoryMock
@@ -188,7 +188,7 @@ public class ChangeTransportBoxStateHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
         // Act
@@ -221,7 +221,7 @@ public class ChangeTransportBoxStateHandlerTests
         var updatedBoxResponse = new GetTransportBoxByIdResponse();
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
         _repositoryMock
@@ -257,7 +257,7 @@ public class ChangeTransportBoxStateHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ThrowsAsync(new Exception("Database connection failed"));
 
         // Act

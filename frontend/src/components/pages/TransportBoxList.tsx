@@ -13,7 +13,6 @@ const stateLabels: Record<string, string> = {
   'Opened': 'Otevřený',
   'InTransit': 'V přepravě',
   'Received': 'Přijatý',
-  'InSwap': 'Swap',
   'Stocked': 'Naskladněný',
   'Reserve': 'V rezervě',
   'Closed': 'Uzavřený',
@@ -25,7 +24,6 @@ const stateColors: Record<string, string> = {
   'Opened': 'bg-blue-100 text-blue-800',
   'InTransit': 'bg-yellow-100 text-yellow-800',
   'Received': 'bg-purple-100 text-purple-800',
-  'InSwap': 'bg-orange-100 text-orange-800',
   'Stocked': 'bg-green-100 text-green-800',
   'Reserve': 'bg-indigo-100 text-indigo-800',
   'Closed': 'bg-gray-100 text-gray-800',
@@ -413,11 +411,6 @@ const TransportBoxList: React.FC = () => {
                           iconColor = 'text-purple-500';
                           hoverColor = 'hover:bg-purple-50';
                           activeColor = 'bg-purple-50 ring-1 ring-purple-300';
-                          break;
-                        case 'InSwap':
-                          iconColor = 'text-orange-500';
-                          hoverColor = 'hover:bg-orange-50';
-                          activeColor = 'bg-orange-50 ring-1 ring-orange-300';
                           break;
                         case 'Stocked':
                           iconColor = 'text-emerald-500';
