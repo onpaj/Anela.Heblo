@@ -7,7 +7,7 @@ import {
 } from '../../api/hooks/useTransportBoxes';
 import TransportBoxDetail from './TransportBoxDetail';
 
-// State labels mapping
+// State labels mapping - using string keys since DTO returns strings
 const stateLabels: Record<string, string> = {
   'New': 'Nový',
   'Opened': 'Otevřený',
@@ -495,8 +495,8 @@ const TransportBoxList: React.FC = () => {
                       className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="">Všechny stavy</option>
-                      {Object.entries(stateLabels).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                      {Object.entries(stateLabels).map(([state, label]) => (
+                        <option key={state} value={state}>{label}</option>
                       ))}
                     </select>
                   </div>

@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { X, Package, Calendar, MapPin, User, Clock, Box, Tag, AlertCircle, ArrowLeft, ArrowRight, Loader2, Trash2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTransportBoxByIdQuery, useChangeTransportBoxState } from '../../api/hooks/useTransportBoxes';
-import { useAllowedTransitionsQuery } from '../../api/hooks/useTransportBoxTransitions';
 import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
-import { CatalogItemDto, ProductType } from '../../api/generated/api-client';
-import AssignBoxNumberModal from './AssignBoxNumberModal';
+import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/generated/api-client';
 import AddItemToBoxModal from './AddItemToBoxModal';
 import ConfirmTransitModal from './ConfirmTransitModal';
+import LocationSelectionModal from './LocationSelectionModal';
 
 interface TransportBoxDetailProps {
   boxId: number | null;
@@ -15,7 +13,7 @@ interface TransportBoxDetailProps {
   onClose: () => void;
 }
 
-// State labels mapping
+// State labels mapping - using enum keys
 const stateLabels: Record<string, string> = {
   'New': 'Nový',
   'Opened': 'Otevřený',
@@ -43,24 +41,23 @@ const stateColors: Record<string, string> = {
 };
 
 const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, onClose }) => {
-  const queryClient = useQueryClient();
   const { data: boxData, isLoading, error, refetch } = useTransportBoxByIdQuery(boxId || 0, boxId !== null);
-  const { data: transitionsData } = useAllowedTransitionsQuery(boxId || 0, boxId !== null && isOpen);
   const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
   const changeStateMutation = useChangeTransportBoxState();
 
   // Modal states
-  const [isAssignBoxNumberModalOpen, setIsAssignBoxNumberModalOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isConfirmTransitModalOpen, setIsConfirmTransitModalOpen] = useState(false);
+  const [isLocationSelectionModalOpen, setIsLocationSelectionModalOpen] = useState(false);
   
-  // Box number input for barcode scanner (keyboard-wedge mode)
+  // Box number input for New state
   const [boxNumberInput, setBoxNumberInput] = useState('');
   const [boxNumberError, setBoxNumberError] = useState<string | null>(null);
   
   // Description editing
   const [descriptionInput, setDescriptionInput] = useState('');
   const [isDescriptionChanged, setIsDescriptionChanged] = useState(false);
+  
   
   // Add item form
   const [productInput, setProductInput] = useState('');
@@ -124,28 +121,66 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   }, [isOpen]);
 
   // Handle modal success - refresh data and close modal
-  const handleModalSuccess = () => {
-    refetch();
-    // Also refetch transitions after box state potentially changes
-    if (boxId) {
-      queryClient.invalidateQueries({ queryKey: ['transportBoxTransitions', boxId] });
-    }
+  const handleModalSuccess = async () => {
+    await refetch();
   };
 
-  const handleAssignBoxNumberSuccess = () => {
-    handleModalSuccess();
-    setIsAssignBoxNumberModalOpen(false);
-  };
-
-  const handleAddItemSuccess = () => {
-    handleModalSuccess();
+  const handleAddItemSuccess = async () => {
+    await handleModalSuccess();
     setIsAddItemModalOpen(false);
   };
 
-  // Handle box number input for barcode scanner
+  // Check if form fields should be editable
+  const isFormEditable = (fieldType: 'items' | 'notes' | 'boxNumber') => {
+    const state = boxData?.transportBox?.state;
+    if (state === 'New') {
+      return fieldType === 'boxNumber';
+    } else if (state === 'Opened') {
+      return fieldType === 'items' || fieldType === 'notes';
+    }
+    return false;
+  };
+  
+  // Initialize form when modal opens or box changes
+  useEffect(() => {
+    if (isOpen) {
+      // Initialize box number input
+      setBoxNumberInput('');
+      setBoxNumberError(null);
+      
+      // Initialize description input with current description
+      setDescriptionInput(boxData?.transportBox?.description || '');
+      setIsDescriptionChanged(false);
+      
+      
+      // Reset add item form
+      setProductInput('');
+      setQuantityInput('');
+      setSelectedProduct(null);
+    }
+  }, [isOpen, boxId, boxData?.transportBox?.description]);
+
+  const handleConfirmTransitSuccess = async () => {
+    await handleModalSuccess();
+    setIsConfirmTransitModalOpen(false);
+  };
+
+  // Handle description change
+  const handleDescriptionChange = (value: string) => {
+    setDescriptionInput(value);
+    setIsDescriptionChanged(value !== (boxData?.transportBox?.description || ''));
+  };
+
+  // Handle location selection success
+  const handleLocationSelectionSuccess = async () => {
+    await handleModalSuccess();
+    setIsLocationSelectionModalOpen(false);
+  };
+
+  // Handle box number input for New state
   const handleBoxNumberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!boxNumberInput.trim()) return;
+    if (!boxNumberInput.trim() || !boxId) return;
     
     setBoxNumberError(null);
     const trimmedInput = boxNumberInput.trim();
@@ -156,97 +191,21 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       return;
     }
 
-    const currentState = boxData?.transportBox?.state;
-    
     try {
-      if (currentState === 'New') {
-        // Assign box number (will trigger assign box number API)
-        const { getAuthenticatedApiClient } = await import('../../api/client');
-        const { AssignBoxNumberRequest } = await import('../../api/generated/api-client');
-        
-        const apiClient = await getAuthenticatedApiClient();
-        const request = new AssignBoxNumberRequest({
-          boxId: boxId || 0,
-          boxNumber: trimmedInput
-        });
-        
-        const response = await apiClient.transportBox_AssignBoxNumber(boxId || 0, request);
-        
-        if (response.success) {
-          setBoxNumberInput('');
-          handleModalSuccess(); // Refresh data
-        } else {
-          setBoxNumberError(response.errorMessage || 'Chyba při přiřazení čísla boxu');
-        }
-      } else if (currentState === 'Opened' && boxData?.transportBox?.code === trimmedInput) {
-        // Confirm transit
-        const { getAuthenticatedApiClient } = await import('../../api/client');
-        const { ConfirmTransitRequest } = await import('../../api/generated/api-client');
-        
-        const apiClient = await getAuthenticatedApiClient();
-        const request = new ConfirmTransitRequest({
-          boxId: boxId || 0,
-          confirmationBoxNumber: trimmedInput
-        });
-        
-        const response = await apiClient.transportBox_ConfirmTransit(boxId || 0, request);
-        
-        if (response.success) {
-          setBoxNumberInput('');
-          handleModalSuccess(); // Refresh data
-        } else {
-          setBoxNumberError(response.errorMessage || 'Chyba při potvrzení přepravy');
-        }
-      } else if (currentState === 'Opened') {
-        // Wrong box number for transit confirmation
-        setBoxNumberError(`Zadané číslo boxu '${trimmedInput}' neodpovídá přiřazenému číslu '${boxData?.transportBox?.code}'`);
-      } else {
-        // Invalid state for box number operations
-        setBoxNumberError(`Operace s číslem boxu není povolena ve stavu '${stateLabels[currentState || ''] || currentState}'`);
-      }
+      // Use change state mutation with boxNumber to assign box number and transition to Opened state
+      await changeStateMutation.mutateAsync({
+        boxId,
+        newState: TransportBoxState.Opened,
+        boxNumber: trimmedInput
+      });
+      
+      setBoxNumberInput('');
+      await handleModalSuccess(); // Refresh data
+      console.log('Box number assigned successfully');
     } catch (err) {
-      console.error('Error handling box number input:', err);
+      console.error('Error assigning box number:', err);
       setBoxNumberError(err instanceof Error ? err.message : 'Neočekávaná chyba');
     }
-  };
-  
-  // Clear box number input when modal opens or box changes, and focus input if in New state
-  useEffect(() => {
-    if (isOpen) {
-      setBoxNumberInput('');
-      setBoxNumberError(null);
-      
-      // Initialize description input with current description
-      setDescriptionInput(boxData?.transportBox?.description || '');
-      setIsDescriptionChanged(false);
-      
-      // Reset add item form
-      setProductInput('');
-      setQuantityInput('');
-      setSelectedProduct(null);
-      
-      // Focus the box number input only if box is in "New" state
-      if (boxData?.transportBox?.state === 'New') {
-        // Delay focus to ensure the element is rendered
-        setTimeout(() => {
-          const boxNumberInputElement = document.getElementById('boxNumberInput');
-          if (boxNumberInputElement) {
-            boxNumberInputElement.focus();
-          }
-        }, 100);
-      }
-    }
-  }, [isOpen, boxId, boxData?.transportBox?.state, boxData?.transportBox?.description]);
-
-  const handleConfirmTransitSuccess = () => {
-    handleModalSuccess();
-    setIsConfirmTransitModalOpen(false);
-  };
-
-  // Handle description change
-  const handleDescriptionChange = (value: string) => {
-    setDescriptionInput(value);
-    setIsDescriptionChanged(value !== (boxData?.transportBox?.description || ''));
   };
 
   // Handle remove item
@@ -327,21 +286,33 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   };
 
 
-  // Handle state change
-  const handleStateChange = async (newState: string) => {
+  // Handle state change - convert string state to enum
+  const handleStateChange = async (newStateString: string) => {
     if (!boxId) return;
     
+    // Handle special cases for state changes that require user input
+    if (newStateString === 'Reserve') {
+      // For Reserve transition, open the location selection modal
+      setIsLocationSelectionModalOpen(true);
+      return;
+    }
+    
+    // Convert string to enum
+    const newState = Object.values(TransportBoxState).find(state => 
+      TransportBoxState[state as keyof typeof TransportBoxState].toString() === newStateString
+    ) as TransportBoxState;
+    
     try {
-      await changeStateMutation.mutateAsync({
+      // Include description if it was changed
+      const request: any = {
         boxId,
         newState,
-        description: isDescriptionChanged ? descriptionInput : `State changed to ${stateLabels[newState] || newState}`
-      });
+        description: isDescriptionChanged ? descriptionInput : undefined
+      };
       
-      // Refetch data after successful state change
-      await refetch();
+      await changeStateMutation.mutateAsync(request);
       
-      // Clear description if it was changed
+      // Clear changed flags - cache invalidation is handled by mutation hook
       if (isDescriptionChanged) {
         setIsDescriptionChanged(false);
       }
@@ -351,16 +322,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
     }
   };
 
-  // Get available state transitions from backend
-  const getAvailableTransitions = () => {
-    if (!transitionsData?.allowedTransitions) {
-      return { transitions: [] };
-    }
-    
-    return {
-      transitions: transitionsData.allowedTransitions
-    };
-  };
 
 
   const formatDate = (dateString: string | Date | undefined) => {
@@ -396,7 +357,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
             {boxData?.transportBox && (
               <div className="flex flex-col items-end">
                 {boxData.transportBox.state === 'New' ? (
-                  // Show input form only for New state
+                  // Show input form for New state
                   <form onSubmit={handleBoxNumberSubmit} className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
                       <label htmlFor="boxNumberInput" className="text-sm font-medium text-gray-700">
@@ -430,7 +391,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                       </div>
                     )}
                     <div className="mt-1 text-xs text-gray-500 text-right">
-                      Formát: B + 3 číslice (scan nebo ruční zadání)
+                      Zadání čísla otevře box (B + 3 číslice)
                     </div>
                   </form>
                 ) : (
@@ -492,13 +453,16 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                     {stateLabels[boxData.transportBox.state || ''] || boxData.transportBox.state}
                   </span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Lokace</label>
-                  <p className="mt-1 text-sm text-gray-900 flex items-center gap-1">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    {boxData.transportBox.location || '-'}
-                  </p>
-                </div>
+                {/* Location - only show in Reserve state */}
+                {boxData.transportBox.state === 'Reserve' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Lokace</label>
+                    <p className="mt-1 text-sm text-gray-900 flex items-center gap-1">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      {boxData.transportBox.location || '-'}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Počet položek</label>
                   <p className="mt-1 text-sm text-gray-900">{boxData.transportBox.itemCount}</p>
@@ -511,35 +475,35 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                   </p>
                 </div>
               </div>
-              {boxData.transportBox.description && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">Popis</label>
-                  <p className="mt-1 text-sm text-gray-900">{boxData.transportBox.description}</p>
-                </div>
-              )}
-
-              {/* Edit Description Section - Available in Opened state */}
-              {boxData.transportBox.state === 'Opened' && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Poznámka k boxu</label>
-                  <textarea
-                    rows={3}
-                    value={descriptionInput}
-                    onChange={(e) => handleDescriptionChange(e.target.value)}
-                    placeholder="Zadejte poznámku k tomuto boxu..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="mt-1 text-xs text-gray-600">
-                    Poznámka se automaticky uloží při změně stavu boxu.
-                    {isDescriptionChanged && <span className="text-orange-600 ml-1">(Máte neuložené změny)</span>}
+              {/* Notes/Description Section */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Poznámka k boxu</label>
+                {isFormEditable('notes') ? (
+                  <>
+                    <textarea
+                      rows={3}
+                      value={descriptionInput}
+                      onChange={(e) => handleDescriptionChange(e.target.value)}
+                      placeholder="Zadejte poznámku k tomuto boxu..."
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="mt-1 text-xs text-gray-600">
+                      Poznámka se automaticky uloží při změně stavu boxu.
+                      {isDescriptionChanged && <span className="text-orange-600 ml-1">(Máte neuložené změny)</span>}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-900">
+                    {boxData.transportBox.description || 
+                      <span className="text-gray-400 italic">Žádná poznámka</span>}
                   </p>
-                </div>
-              )}
+                )}
+              </div>
 
             </div>
 
             {/* Actions for Opened state - Add items */}
-            {boxData.transportBox.state === 'Opened' && (
+            {isFormEditable('items') && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
                   <Package className="h-5 w-5" />
@@ -701,7 +665,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                               <th className="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Přidal
                               </th>
-                              {boxData?.transportBox?.state === 'Opened' && (
+                              {isFormEditable('items') && (
                                 <th className="w-16 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                   Akce
                                 </th>
@@ -732,7 +696,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                                     {item.userAdded || '-'}
                                   </div>
                                 </td>
-                                {boxData?.transportBox?.state === 'Opened' && (
+                                {isFormEditable('items') && (
                                   <td className="px-4 py-4 text-right">
                                     <button
                                       onClick={() => item.id && handleRemoveItem(item.id)}
@@ -836,91 +800,123 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
           </div>
         )}
 
-        {/* Footer with Close Button and State Transition Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-          >
-            Zavřít
-          </button>
-          
-          {/* State Transition Buttons */}
-          {boxData?.transportBox && (() => {
-            const { transitions } = getAvailableTransitions();
+        {/* Footer with Action Buttons */}
+        <div className="pt-6 border-t border-gray-200">
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between">
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              Zavřít
+            </button>
             
-            return (
-              <div className="flex items-center gap-3">
-                {/* Reorder transitions: Previous - Current - Next */}
-                {(() => {
-                  // Sort transitions to put previous first, next second
-                  const sortedTransitions = [...transitions].reverse();
+            {/* State Transition Flow: Previous → Current → Next */}
+            {boxData?.transportBox && (() => {
+              const BUTTON_HEIGHT = 80; // Total height in pixels for all transition groups
+              
+              const previousTransitions = boxData.transportBox.allowedTransitions?.filter(transition => 
+                transition.newState && transition.transitionType === 'Previous'
+              ) || [];
+              
+              const nextTransitions = boxData.transportBox.allowedTransitions?.filter(transition => 
+                transition.newState && transition.transitionType !== 'Previous'
+              ) || [];
+              
+              // Calculate individual button heights based on count
+              const prevButtonHeight = previousTransitions.length > 0 ? 
+                (BUTTON_HEIGHT - (previousTransitions.length - 1) * 8) / previousTransitions.length : 0; // 8px gap between buttons
+              
+              const nextButtonHeight = nextTransitions.length > 0 ? 
+                (BUTTON_HEIGHT - (nextTransitions.length - 1) * 8) / nextTransitions.length : 0;
+              
+              return (
+                <div className="flex items-center gap-3">
+                  {/* Previous Transitions */}
+                  {previousTransitions.length > 0 && (
+                    <div className="flex flex-col gap-2" style={{ height: `${BUTTON_HEIGHT}px` }}>
+                      {previousTransitions.map((transition, index) => (
+                        <button
+                          key={`prev-${index}-${transition.newState}`}
+                          onClick={() => handleStateChange(transition.newState!)}
+                          disabled={changeStateMutation.isPending || transition.systemOnly}
+                          className={`flex items-center justify-center px-4 py-1 rounded-md transition-colors min-w-32 ${
+                            transition.systemOnly
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-500 text-white hover:bg-gray-600'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          style={{ height: `${prevButtonHeight}px` }}
+                          title={transition.systemOnly ? 'Pouze systémový přechod' : `Změnit na: ${stateLabels[transition.newState!] || transition.newState}`}
+                        >
+                          <div className="flex items-center">
+                            {changeStateMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <ArrowLeft className="h-4 w-4 mr-2" />
+                            )}
+                            <span className="text-sm">{stateLabels[transition.newState!] || transition.newState}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   
-                  return (
-                    <>
-                      {/* Previous Button */}
-                      {sortedTransitions[0] && (
+                  {/* Current State (display only) */}
+                  <div className={`inline-flex flex-col items-center justify-center px-4 py-2 rounded-md border-2 border-dashed min-w-32 ${
+                    stateColors[boxData.transportBox.state || ''] || 'bg-gray-100 text-gray-800 border-gray-300'
+                  } border-opacity-50 relative`}
+                       style={{ height: `${BUTTON_HEIGHT}px` }}>
+                    <div className="text-xs text-gray-500 mb-1">AKTUÁLNÍ</div>
+                    <div className="flex items-center">
+                      <Box className="h-4 w-4 mr-2" />
+                      <span className="text-sm">{stateLabels[boxData.transportBox.state || ''] || boxData.transportBox.state}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Next Transitions */}
+                  {nextTransitions.length > 0 && (
+                    <div className="flex flex-col gap-2" style={{ height: `${BUTTON_HEIGHT}px` }}>
+                      {nextTransitions.map((transition, index) => (
                         <button
-                          key={sortedTransitions[0].state}
-                          onClick={() => handleStateChange(sortedTransitions[0].state)}
-                          disabled={changeStateMutation.isPending || !!sortedTransitions[0].conditionDescription}
-                          className="flex items-center px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title={sortedTransitions[0].conditionDescription || `Změnit na: ${sortedTransitions[0].label}`}
+                          key={`next-${index}-${transition.newState}`}
+                          onClick={() => handleStateChange(transition.newState!)}
+                          disabled={changeStateMutation.isPending || transition.systemOnly}
+                          className={`flex items-center justify-center px-4 py-1 rounded-md transition-colors min-w-32 ${
+                            transition.systemOnly
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : transition.newState === 'InTransit' || transition.newState === 'Stocked' || transition.newState === 'Closed'
+                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              : transition.newState === 'Opened' || transition.newState === 'New'
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          style={{ height: `${nextButtonHeight}px` }}
+                          title={transition.systemOnly ? 'Pouze systémový přechod' : `Změnit na: ${stateLabels[transition.newState!] || transition.newState}`}
                         >
-                          <ArrowLeft className="h-4 w-4 mr-2" />
-                          {changeStateMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          ) : null}
-                          {sortedTransitions[0].label}
+                          <div className="flex items-center">
+                            {changeStateMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                            )}
+                            <span className="text-sm">{stateLabels[transition.newState!] || transition.newState}</span>
+                          </div>
                         </button>
-                      )}
-                      
-                      {/* Current State Display */}
-                      <div className="flex items-center px-4 py-2 bg-gray-50 rounded-md border-2 border-gray-200">
-                        <span className="text-sm text-gray-600 mr-2">Aktuální:</span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          stateColors[boxData.transportBox.state || ''] || 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {stateLabels[boxData.transportBox.state || ''] || boxData.transportBox.state}
-                        </span>
-                      </div>
-                      
-                      {/* Next Button */}
-                      {sortedTransitions[1] && (
-                        <button
-                          key={sortedTransitions[1].state}
-                          onClick={() => handleStateChange(sortedTransitions[1].state)}
-                          disabled={changeStateMutation.isPending || !!sortedTransitions[1].conditionDescription}
-                          className="flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title={sortedTransitions[1].conditionDescription || `Změnit na: ${sortedTransitions[1].label}`}
-                        >
-                          {changeStateMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          ) : null}
-                          {sortedTransitions[1].label}
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            );
-          })()}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
 
       {/* Modal Components */}
       {boxData?.transportBox && (
         <>
-          <AssignBoxNumberModal
-            isOpen={isAssignBoxNumberModalOpen}
-            onClose={() => setIsAssignBoxNumberModalOpen(false)}
-            boxId={boxData.transportBox.id || null}
-            onSuccess={handleAssignBoxNumberSuccess}
-          />
-          
           <AddItemToBoxModal
             isOpen={isAddItemModalOpen}
             onClose={() => setIsAddItemModalOpen(false)}
@@ -934,6 +930,13 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
             boxId={boxData.transportBox.id || null}
             boxCode={boxData.transportBox.code || null}
             onSuccess={handleConfirmTransitSuccess}
+          />
+          
+          <LocationSelectionModal
+            isOpen={isLocationSelectionModalOpen}
+            onClose={() => setIsLocationSelectionModalOpen(false)}
+            boxId={boxData.transportBox.id || null}
+            onSuccess={handleLocationSelectionSuccess}
           />
         </>
       )}

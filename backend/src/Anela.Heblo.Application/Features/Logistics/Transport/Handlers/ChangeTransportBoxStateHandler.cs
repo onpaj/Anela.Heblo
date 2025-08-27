@@ -33,7 +33,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     {
         try
         {
-            var box = await _repository.GetByIdAsync(request.BoxId, cancellationToken);
+            var box = await _repository.GetByIdWithDetailsAsync(request.BoxId);
             if (box == null)
             {
                 return new ChangeTransportBoxStateResponse
@@ -56,7 +56,21 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     };
                 }
             }
-
+            if (box.State == TransportBoxState.Opened && request.NewState == TransportBoxState.Reserve)
+            {
+                if (string.IsNullOrEmpty(request.Location))
+                {
+                    return new ChangeTransportBoxStateResponse
+                    {
+                        Success = false,
+                        ErrorMessage = "Location is required for transition from Opened to Reserved"
+                    };
+                }
+            }
+            
+            box.AssignBoxCodeIfAny(request.BoxCode);
+            box.AssignLocationIfAny(request.Location);
+            
             // Get the transition action
             var transition = box.TransitionNode.GetTransition(request.NewState);
 
@@ -70,12 +84,24 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 };
             }
 
+            // Set location if provided (typically for Reserve state)
+            if (!string.IsNullOrEmpty(request.Location))
+            {
+                box.Location = request.Location;
+            }
+
+            // Set description if provided
+            if (!string.IsNullOrEmpty(request.Description))
+            {
+                box.Description = request.Description;
+            }
+
             // Execute the transition
             var currentUser = _currentUserService.GetCurrentUser();
             var currentTime = _timeProvider.GetUtcNow().UtcDateTime;
             var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
             
-            await transition.ChangeStateAsync(box, request.BoxCode, currentTime, userName);
+            await transition.ChangeStateAsync(box, currentTime, userName);
 
             // Save changes
             await _repository.UpdateAsync(box, cancellationToken);

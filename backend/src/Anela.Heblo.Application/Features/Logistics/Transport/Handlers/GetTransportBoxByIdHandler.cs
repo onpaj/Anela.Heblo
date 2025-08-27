@@ -58,12 +58,36 @@ public class GetTransportBoxByIdHandler : IRequestHandler<GetTransportBoxByIdReq
                 StateDate = log.StateDate,
                 User = log.User,
                 Description = log.Description
-            }).OrderByDescending(log => log.StateDate).ToList()
+            }).OrderByDescending(log => log.StateDate).ToList(),
+            AllowedTransitions = transportBox.TransitionNode.GetAllTransitions().Select(transition => new TransportBoxTransitionDto
+            {
+                NewState = transition.NewState.ToString(),
+                TransitionType = transition.TransitionType.ToString(),
+                SystemOnly = transition.SystemOnly,
+                Label = GetStateLabel(transition.NewState)
+            }).ToList()
         };
 
         _logger.LogInformation("Retrieved transport box {Id} with {ItemCount} items",
             transportBox.Id, transportBox.Items.Count);
 
         return new GetTransportBoxByIdResponse { TransportBox = dto };
+    }
+
+    private static string GetStateLabel(TransportBoxState state)
+    {
+        return state switch
+        {
+            TransportBoxState.New => "Nový",
+            TransportBoxState.Opened => "Otevřený",
+            TransportBoxState.InTransit => "V přepravě",
+            TransportBoxState.Received => "Přijatý",
+            TransportBoxState.InSwap => "Swap",
+            TransportBoxState.Stocked => "Naskladněný",
+            TransportBoxState.Reserve => "V rezervě",
+            TransportBoxState.Closed => "Uzavřený",
+            TransportBoxState.Error => "Chyba",
+            _ => state.ToString()
+        };
     }
 }

@@ -136,33 +136,7 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_ConditionNotMet_ReturnsFailure()
-    {
-        // Arrange - try to open a box without code (condition not met)
-        var box = CreateTestBoxWithoutCode(TransportBoxState.New);
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            BoxCode = "B999",
-            NewState = TransportBoxState.Opened,
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Condition not met for transition to Opened");
-        result.UpdatedBox.Should().BeNull();
-
-        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
+   
     [Fact]
     public async Task Handle_OpenedToInTransit_WithItems_ReturnsSuccess()
     {

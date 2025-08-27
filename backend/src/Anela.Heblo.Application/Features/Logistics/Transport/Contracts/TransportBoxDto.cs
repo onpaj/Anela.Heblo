@@ -22,4 +22,5 @@ public class TransportBoxDto
     
     public IList<TransportBoxItemDto> Items { get; set; } = new List<TransportBoxItemDto>();
     public IList<TransportBoxStateLogDto> StateLog { get; set; } = new List<TransportBoxStateLogDto>();
+    public IList<TransportBoxTransitionDto> AllowedTransitions { get; set; } = new List<TransportBoxTransitionDto>();
 }

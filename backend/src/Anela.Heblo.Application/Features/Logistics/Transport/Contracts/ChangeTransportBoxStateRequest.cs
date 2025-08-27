@@ -9,4 +9,5 @@ public class ChangeTransportBoxStateRequest : IRequest<ChangeTransportBoxStateRe
     public TransportBoxState NewState { get; set; } 
     public string? Description { get; set; }
     public string? BoxCode { get; set; }
+    public string? Location { get; set; }
 }

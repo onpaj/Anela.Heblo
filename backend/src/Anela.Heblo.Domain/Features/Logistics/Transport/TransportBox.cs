@@ -41,8 +41,6 @@ public class TransportBox : Entity<int>
     public static Func<TransportBox, bool> IsInReserveFunc = IsInReservePredicate.Compile();
     public bool IsInReserve => IsInReserveFunc(this);
 
-    public TransportBoxState? NextState => TransitionNode.NextState?.NewState;
-    public TransportBoxState? PreviousState => TransitionNode.PreviousState?.NewState;
     public TransportBoxStateNode TransitionNode => _transitions[State];
 
     public void Open(string boxCode, DateTime date, string userName)
@@ -86,6 +84,7 @@ public class TransportBox : Entity<int>
             throw new ValidationException("Cannot revert to Opened: Box code is required");
         }
 
+        Location = null;
         ChangeState(TransportBoxState.Opened, date, userName, TransportBoxState.InTransit, TransportBoxState.Reserve);
     }
 
@@ -144,14 +143,17 @@ public class TransportBox : Entity<int>
         ToTransit(date, userName);
     }
 
-    public void ToReserve(DateTime date, string userName, TransportBoxLocation location)
+    public void ToReserve(DateTime date, string userName, TransportBoxLocation location) => ToReserve(date, userName, location.ToString());
+    
+    public void ToReserve(DateTime date, string userName, string location)
     {
-        Location = location.ToString();
+        Location = location;
         ChangeState(TransportBoxState.Reserve, date, userName, TransportBoxState.Opened, TransportBoxState.Error);
     }
 
     public void Receive(DateTime date, string userName, TransportBoxState receiveState = TransportBoxState.Stocked)
     {
+        Location = null;
         DefaultReceiveState = receiveState;
         ChangeState(TransportBoxState.Received, date, userName, TransportBoxState.InTransit, TransportBoxState.Reserve);
     }
@@ -184,8 +186,7 @@ public class TransportBox : Entity<int>
     {
         CheckState(newState, allowedStates);
 
-        if (description != null)
-            Description += Environment.NewLine + description;
+        // Don't automatically modify Description - let user control it
         State = newState;
         LastStateChanged = now;
         _stateLog.Add(new TransportBoxStateLog(newState, now, userName, description));
@@ -204,6 +205,27 @@ public class TransportBox : Entity<int>
         ChangeState(TransportBoxState.Error, date, userName, exMessage, Array.Empty<TransportBoxState>());
     }
 
+    public void AssignBoxCodeIfAny(string? boxCode)
+    {
+        if (boxCode == null)
+            return;
+        
+        if(State != TransportBoxState.New)
+            throw new InvalidOperationException($"Cannot assign box code to {State}");
+        
+        Code = boxCode;
+    }
+    
+    public void AssignLocationIfAny(string? location)
+    {
+        if (location == null)
+            return;
+        
+        if(State != TransportBoxState.Opened)
+            throw new InvalidOperationException($"Cannot assign location to {State}");
+        
+        Location = location;
+    }
 
     private static readonly Dictionary<TransportBoxState, TransportBoxStateNode> _transitions = new();
 
@@ -211,44 +233,39 @@ public class TransportBox : Entity<int>
     {
         // New → Opened, Closed
         var newNode = new TransportBoxStateNode();
-        newNode.AddTransition(new TransportBoxAction(TransportBoxState.Opened, (box, newBoxNumber, time, userName) => box.Open(newBoxNumber!, time, userName), condition: b => b.Code != null));
-        newNode.AddTransition(new TransportBoxAction(TransportBoxState.Closed, (box, newBoxNumber,time, userName) => box.Close(time, userName)));
+        newNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Next, (box, time, userName) => box.Open(box.Code!, time, userName), condition: b => b.Code != null, systemOnly: true));
+        newNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.Previous, (box, time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.New, newNode);
 
         // Opened → InTransit, Reserve, New (reset)
         var openedNode = new TransportBoxStateNode();
-        openedNode.AddTransition(new TransportBoxAction(TransportBoxState.InTransit, (box, newBoxNumber,time, userName) => box.ToTransit(time, userName)));
-        openedNode.AddTransition(new TransportBoxAction(TransportBoxState.Reserve, (box, newBoxNumber,time, userName) => box.ToReserve(time, userName, TransportBoxLocation.Kumbal)));
-        openedNode.AddTransition(new TransportBoxAction(TransportBoxState.New, (box, newBoxNumber,time, userName) => box.Reset(time, userName)));
+        openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.InTransit, TransitionType.Next, (box, time, userName) => box.ToTransit(time, userName)));
+        openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Reserve, TransitionType.Next, (box, time, userName) => box.ToReserve(time, userName, box.Location!), condition: b => b.Location != null));
+        openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.New, TransitionType.Previous, (box, time, userName) => box.Reset(time, userName)));
         _transitions.Add(TransportBoxState.Opened, openedNode);
 
         // InTransit → Received, Opened (revert)
         var inTransitNode = new TransportBoxStateNode();
-        inTransitNode.AddTransition(new TransportBoxAction(TransportBoxState.Received, (box, newBoxNumber,time, userName) => box.Receive(time, userName)));
-        inTransitNode.AddTransition(new TransportBoxAction(TransportBoxState.Opened, (box, newBoxNumber,time, userName) => box.RevertToOpened(time, userName)));
+        inTransitNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received,  TransitionType.Next,(box, time, userName) => box.Receive(time, userName)));
+        inTransitNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Previous, (box, time, userName) => box.RevertToOpened(time, userName)));
         _transitions.Add(TransportBoxState.InTransit, inTransitNode);
 
         // Reserve → Received, Opened (revert)
         var reserveNode = new TransportBoxStateNode();
-        reserveNode.AddTransition(new TransportBoxAction(TransportBoxState.Received, (box, newBoxNumber,time, userName) => box.Receive(time, userName)));
-        reserveNode.AddTransition(new TransportBoxAction(TransportBoxState.Opened, (box, newBoxNumber,time, userName) => box.RevertToOpened(time, userName)));
+        reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received,  TransitionType.Next,(box, time, userName) => box.Receive(time, userName)));
+        reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Previous, (box, time, userName) => box.RevertToOpened(time, userName)));
         _transitions.Add(TransportBoxState.Reserve, reserveNode);
 
         // Received → Stocked, Closed
         var receivedNode = new TransportBoxStateNode();
-        receivedNode.AddTransition(new TransportBoxAction(TransportBoxState.Stocked, (box, newBoxNumber,time, userName) => box.ToPick(time, userName)));
-        receivedNode.AddTransition(new TransportBoxAction(TransportBoxState.Closed, (box,newBoxNumber, time, userName) => box.Close(time, userName)));
+        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked, TransitionType.Next, (box, time, userName ) => box.ToPick(time, userName), systemOnly: true));
+        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.EdgeCase, (box,time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.Received, receivedNode);
 
         // Stocked → Closed
         var stockedNode = new TransportBoxStateNode();
-        stockedNode.AddTransition(new TransportBoxAction(TransportBoxState.Closed, (box, newBoxNumber,time, userName) => box.Close(time, userName)));
+        stockedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.Next,(box, time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.Stocked, stockedNode);
-
-        // InSwap state transitions (legacy support)
-        var inSwapNode = new TransportBoxStateNode();
-        inSwapNode.AddTransition(new TransportBoxAction(TransportBoxState.Stocked, (box, newBoxNumber,time, userName) => box.ToPick(time, userName)));
-        _transitions.Add(TransportBoxState.InSwap, inSwapNode);
 
         // Closed → No outbound transitions according to specification
         _transitions.Add(TransportBoxState.Closed, new TransportBoxStateNode());

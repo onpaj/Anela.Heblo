@@ -307,6 +307,64 @@ CREATE TABLE TransportBoxStateLogs (
 - Receiving documentation
 - Cycle count integration
 
+## Frontend UI/UX Requirements
+
+### Transport Box Detail View
+
+#### Form State Management
+The Transport Box Detail form adapts its functionality based on the current box state:
+
+1. **"New" State**:
+   - **Editable Fields**: Only box number input (displayed in top-right corner)
+   - **Read-only Fields**: Items, notes, location (all disabled)
+   - **Required Action**: User must assign box number to proceed
+   - **State Transition**: After box number submission, call change state API
+   - **Post-transition**: Refresh TransportBoxDetail after each state change
+
+2. **"Opened" State**:
+   - **Editable Fields**: Items, notes, location (all enabled)
+   - **Read-only Fields**: Box number (already assigned)
+   - **Functionality**: Full CRUD operations on box contents
+
+3. **All Other States**:
+   - **All Fields Read-only**: No editing of items, notes, or location
+   - **Display Mode**: View-only presentation of box data
+
+#### Dynamic Action Buttons
+Bottom section displays buttons based on `AllowedTransitions` property from TransportBoxDto:
+- Each allowed transition appears as an action button
+- Buttons dynamically update after each state change
+- Button labels correspond to transition target states
+
+#### State Transition Visualization
+Right-side modal panel displays comprehensive state flow:
+
+1. **Previous States Section**:
+   - Display all TransportBoxTransition objects where `TransitionType == Previous`
+   - Shows historical path to current state
+   - Visual indication of completed transitions
+
+2. **Current State Display**:
+   - Highlighted current state (already implemented)
+   - Clear visual distinction from other states
+
+3. **Next States Section**:
+   - Display all TransportBoxTransition objects where `TransitionType == Next`
+   - Shows possible future transitions
+   - System-only transitions (`SystemOnly == true`) displayed but disabled
+   - User-actionable transitions enabled based on permissions
+
+#### System-Only Transitions
+- Transitions marked with `SystemOnly = true` are visible but disabled
+- Visual indication (e.g., grayed out, lock icon) for system-only states
+- Tooltip explaining why transition is not available to user
+
+#### Real-time Updates
+- After any state change API call, immediately refresh TransportBoxDetail
+- Update allowed transitions dynamically
+- Refresh state visualization panel
+- Update form field enable/disable states
+
 ## Security Considerations
 
 ### Access Control

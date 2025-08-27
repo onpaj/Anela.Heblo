@@ -5,7 +5,8 @@ import {
   GetTransportBoxesResponse,
   GetTransportBoxByIdResponse,
   ChangeTransportBoxStateRequest,
-  ChangeTransportBoxStateResponse
+  ChangeTransportBoxStateResponse,
+  TransportBoxState
 } from '../generated/api-client';
 
 // Define request interface matching the backend contract
@@ -100,12 +101,13 @@ export const useChangeTransportBoxState = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (params: { boxId: number; newState: string; description?: string }): Promise<ChangeTransportBoxStateResponse> => {
+    mutationFn: async (params: { boxId: number; newState: TransportBoxState; description?: string; boxNumber?: string; location?: string }): Promise<ChangeTransportBoxStateResponse> => {
       const client = getTransportBoxClient();
       const request = new ChangeTransportBoxStateRequest({
-        boxId: params.boxId,
         newState: params.newState,
-        description: params.description
+        description: params.description,
+        boxCode: params.boxNumber,
+        location: params.location
       });
       return await client.transportBox_ChangeTransportBoxState(params.boxId, request);
     },
@@ -114,6 +116,12 @@ export const useChangeTransportBoxState = () => {
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.lists() });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.transportBox, 'summary'] });
+      
+      // Also invalidate any transition-related queries
+      queryClient.invalidateQueries({ queryKey: ['transportBoxTransitions', variables.boxId] });
+      
+      // Force refetch of the specific box detail to ensure fresh data
+      queryClient.refetchQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
     },
   });
 };

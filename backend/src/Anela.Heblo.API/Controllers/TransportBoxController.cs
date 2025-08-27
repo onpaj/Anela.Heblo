@@ -161,23 +161,4 @@ public class TransportBoxController : ControllerBase
 
         return Ok(response);
     }
-
-    /// <summary>
-    /// Get allowed state transitions for a transport box
-    /// </summary>
-    [HttpGet("{id:int}/allowed-transitions")]
-    public async Task<ActionResult<GetAllowedTransitionsResponse>> GetAllowedTransitions(
-        int id,
-        CancellationToken cancellationToken = default)
-    {
-        var request = new GetAllowedTransitionsRequest { BoxId = id };
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return BadRequest(response.ErrorMessage);
-        }
-
-        return Ok(response);
-    }
 }
