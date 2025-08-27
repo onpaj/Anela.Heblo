@@ -158,8 +158,6 @@ Since this is currently documentation-only, these are the expected commands base
 - `npm test` - Run tests with Jest/React Testing Library
 - `npm run build` - Build static files for production deployment
 - `npm run lint` - Run linter
-- `npx playwright test` - Run end-to-end tests (when configured)
-- `npx playwright codegen localhost:3000` - Generate test code by recording interactions
 
 **Authentication Setup**:
 
@@ -291,14 +289,10 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 
 **Frontend Testing**:
 - Playwright for E2E testing and UI validation
-- Port 3000 reserved for development and Playwright testing
+- Port 3000 reserved for development
 - Component testing with React Testing Library
-- Every time youre about to run playwright tests on local machine, do exactly:
-  - kill all processes on port 3001 and 5001
-  - run server and frontent in background. Dont wait for them, wait just 5 sec and continue with nex step
-  - run ui tests (30 sec timeout each): use `--reporter=list` to avoid HTML report server timeout (default waits 2 min for HTML server)
-  - wait for tests to complete
-  - kill server and frontend process
+- To validate some frontend behavior, use playwright MCP server agains port 3000. Both frontend and backend should be running by default, ask user to run then if they are not running
+- To run playwright tests, always user script ./scripts/run-playwright-tests.sh with optional parameter of test name (runs all UI tests when test name is not defined)
 
 ## Environment Configuration
 

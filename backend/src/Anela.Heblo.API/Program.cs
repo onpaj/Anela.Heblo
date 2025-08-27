@@ -43,7 +43,11 @@ public partial class Program
         builder.Services.AddComgateAdapter(builder.Configuration);
 
         // Controllers and API documentation
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            });
         builder.Services.AddSwaggerServices(builder.Configuration);
         builder.Services.AddOpenApiDocument();
 

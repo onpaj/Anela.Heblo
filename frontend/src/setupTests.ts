@@ -184,14 +184,15 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-// Suppress ReactDOMTestUtils.act deprecation warnings in console
+// Suppress ReactDOMTestUtils.act deprecation warnings and test error messages in console
 const originalError = console.error;
 beforeEach(() => {
   console.error = (...args: any[]) => {
     if (
       typeof args[0] === 'string' &&
       (args[0].includes('ReactDOMTestUtils.act is deprecated') ||
-       args[0].includes('Warning: `ReactDOMTestUtils.act` is deprecated'))
+       args[0].includes('Warning: `ReactDOMTestUtils.act` is deprecated') ||
+       args[0].includes('Error changing to InReserve state:'))
     ) {
       return;
     }

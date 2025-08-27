@@ -109,7 +109,15 @@ export const useChangeTransportBoxState = () => {
         boxCode: params.boxNumber,
         location: params.location
       });
-      return await client.transportBox_ChangeTransportBoxState(params.boxId, request);
+      
+      const response = await client.transportBox_ChangeTransportBoxState(params.boxId, request);
+      
+      // Check if the response indicates failure
+      if (!response.success && response.errorMessage) {
+        throw new Error(response.errorMessage);
+      }
+      
+      return response;
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries

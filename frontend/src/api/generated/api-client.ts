@@ -2532,9 +2532,9 @@ export interface ITopProductDto {
 }
 
 export enum ProductGroupingMode {
-    Products = 0,
-    ProductFamily = 1,
-    ProductCategory = 2,
+    Products = "Products",
+    ProductFamily = "ProductFamily",
+    ProductCategory = "ProductCategory",
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -2742,11 +2742,11 @@ export interface ICatalogItemDto {
 }
 
 export enum ProductType {
-    UNDEFINED = 0,
-    Goods = 1,
-    Material = 3,
-    SemiProduct = 7,
-    Product = 8,
+    UNDEFINED = "UNDEFINED",
+    Goods = "Goods",
+    Material = "Material",
+    SemiProduct = "SemiProduct",
+    Product = "Product",
 }
 
 export class StockDto implements IStockDto {
@@ -4634,11 +4634,11 @@ export interface IManufacturingStockItemDto {
 }
 
 export enum ManufacturingStockSeverity {
-    Critical = 0,
-    Major = 1,
-    Minor = 2,
-    Adequate = 3,
-    Unconfigured = 4,
+    Critical = "Critical",
+    Major = "Major",
+    Minor = "Minor",
+    Adequate = "Adequate",
+    Unconfigured = "Unconfigured",
 }
 
 export class ManufacturingStockSummaryDto implements IManufacturingStockSummaryDto {
@@ -4718,24 +4718,24 @@ export interface IManufacturingStockSummaryDto {
 }
 
 export enum TimePeriodFilter {
-    PreviousQuarter = 0,
-    FutureQuarter = 1,
-    Y2Y = 2,
-    PreviousSeason = 3,
-    CustomPeriod = 4,
+    PreviousQuarter = "PreviousQuarter",
+    FutureQuarter = "FutureQuarter",
+    Y2Y = "Y2Y",
+    PreviousSeason = "PreviousSeason",
+    CustomPeriod = "CustomPeriod",
 }
 
 export enum ManufacturingStockSortBy {
-    ProductCode = 0,
-    ProductName = 1,
-    CurrentStock = 2,
-    SalesInPeriod = 3,
-    DailySales = 4,
-    OptimalDaysSetup = 5,
-    StockDaysAvailable = 6,
-    MinimumStock = 7,
-    OverstockPercentage = 8,
-    BatchSize = 9,
+    ProductCode = "ProductCode",
+    ProductName = "ProductName",
+    CurrentStock = "CurrentStock",
+    SalesInPeriod = "SalesInPeriod",
+    DailySales = "DailySales",
+    OptimalDaysSetup = "OptimalDaysSetup",
+    StockDaysAvailable = "StockDaysAvailable",
+    MinimumStock = "MinimumStock",
+    OverstockPercentage = "OverstockPercentage",
+    BatchSize = "BatchSize",
 }
 
 export class GetProductMarginsResponse implements IGetProductMarginsResponse {
@@ -5922,11 +5922,11 @@ export interface IStockAnalysisItemDto {
 }
 
 export enum StockSeverity {
-    Critical = 0,
-    Low = 1,
-    Optimal = 2,
-    Overstocked = 3,
-    NotConfigured = 4,
+    Critical = "Critical",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
 }
 
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {
@@ -6050,21 +6050,21 @@ export interface IStockAnalysisSummaryDto {
 }
 
 export enum StockStatusFilter {
-    All = 0,
-    Critical = 1,
-    Low = 2,
-    Optimal = 3,
-    Overstocked = 4,
-    NotConfigured = 5,
+    All = "All",
+    Critical = "Critical",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
 }
 
 export enum StockAnalysisSortBy {
-    ProductCode = 0,
-    ProductName = 1,
-    AvailableStock = 2,
-    Consumption = 3,
-    StockEfficiency = 4,
-    LastPurchaseDate = 5,
+    ProductCode = "ProductCode",
+    ProductName = "ProductName",
+    AvailableStock = "AvailableStock",
+    Consumption = "Consumption",
+    StockEfficiency = "StockEfficiency",
+    LastPurchaseDate = "LastPurchaseDate",
 }
 
 export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {
@@ -6592,14 +6592,15 @@ export interface IChangeTransportBoxStateRequest {
 }
 
 export enum TransportBoxState {
-    New = 0,
-    Opened = 1,
-    InTransit = 2,
-    Received = 3,
-    Stocked = 4,
-    Closed = 5,
-    Error = 6,
-    Reserve = 7,
+    New = "New",
+    Opened = "Opened",
+    InTransit = "InTransit",
+    Received = "Received",
+    InSwap = "InSwap",
+    Stocked = "Stocked",
+    Closed = "Closed",
+    Error = "Error",
+    Reserve = "Reserve",
 }
 
 export class CreateNewTransportBoxResponse implements ICreateNewTransportBoxResponse {

@@ -5,6 +5,7 @@ import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
 import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/generated/api-client';
 import AddItemToBoxModal from './AddItemToBoxModal';
 import LocationSelectionModal from './LocationSelectionModal';
+import { useToast } from '../../contexts/ToastContext';
 
 // Type-safe interface for accessing API client internals
 interface ApiClientWithInternals {
@@ -47,6 +48,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   const { data: boxData, isLoading, error, refetch } = useTransportBoxByIdQuery(boxId || 0, boxId !== null);
   const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
   const changeStateMutation = useChangeTransportBoxState();
+  const { showError, showSuccess } = useToast();
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -199,10 +201,12 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       
       setBoxNumberInput('');
       await handleModalSuccess(); // Refresh data
-      console.log('Box number assigned successfully');
+      showSuccess('Box otevřen', `Číslo boxu ${trimmedInput} bylo úspěšně přiřazeno a box otevřen.`);
     } catch (err) {
       console.error('Error assigning box number:', err);
-      setBoxNumberError(err instanceof Error ? err.message : 'Neočekávaná chyba');
+      const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
+      setBoxNumberError(errorMessage);
+      showError('Chyba při otevírání boxu', errorMessage);
     }
   };
 
@@ -229,15 +233,18 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         const result = await response.json();
         if (result.success) {
           refetch();
-          console.log('Item removed successfully');
+          showSuccess('Položka odstraněna', 'Položka byla úspěšně odstraněna z boxu.');
         } else {
-          console.error('Failed to remove item:', result.errorMessage);
+          const errorMessage = result.errorMessage || 'Neočekávaná chyba';
+          showError('Chyba při odstraňování položky', errorMessage);
         }
       } else {
-        console.error('Failed to remove item:', response.statusText);
+        showError('Chyba při odstraňování položky', response.statusText || 'Neočekávaná chyba');
       }
     } catch (error) {
       console.error('Error removing item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Neočekávaná chyba';
+      showError('Chyba při odstraňování položky', errorMessage);
     }
   };
 
@@ -272,14 +279,15 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         setSelectedProduct(null);
         refetch();
         
-        console.log('Item added successfully:', response.item);
+        showSuccess('Položka přidána', `Položka ${selectedProduct.productName} byla úspěšně přidána do boxu.`);
       } else {
-        console.error('Failed to add item:', response.errorMessage);
-        // TODO: Show error notification to user
+        const errorMessage = response.errorMessage || 'Neočekávaná chyba při přidávání položky';
+        showError('Chyba při přidávání položky', errorMessage);
       }
     } catch (error) {
       console.error('Error adding item:', error);
-      // TODO: Show error notification to user
+      const errorMessage = error instanceof Error ? error.message : 'Neočekávaná chyba při přidávání položky';
+      showError('Chyba při přidávání položky', errorMessage);
     }
   };
 
@@ -312,9 +320,13 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       if (isDescriptionChanged) {
         setIsDescriptionChanged(false);
       }
+      
+      // State changed successfully - no toast needed for routine state changes
+      
     } catch (error) {
       console.error('Failed to change state:', error);
-      // TODO: Add toast notification for error
+      const errorMessage = error instanceof Error ? error.message : 'Neočekávaná chyba při změně stavu';
+      showError('Chyba při změně stavu', errorMessage);
     }
   };
 

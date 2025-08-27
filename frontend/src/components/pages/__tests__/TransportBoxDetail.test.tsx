@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TransportBoxDetail from '../TransportBoxDetail';
 import { useTransportBoxByIdQuery, useChangeTransportBoxState } from '../../../api/hooks/useTransportBoxes';
 import { TestRouterWrapper } from '../../../test-utils/router-wrapper';
+import { ToastProvider } from '../../../contexts/ToastContext';
 
 // Mock the hooks
 jest.mock('../../../api/hooks/useTransportBoxes', () => ({
@@ -31,7 +32,9 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <TestRouterWrapper>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </QueryClientProvider>
     </TestRouterWrapper>
   );
