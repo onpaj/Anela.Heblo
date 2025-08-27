@@ -35,6 +35,7 @@ jobs:
         working-directory: ./frontend
         run: npm test -- --coverage --watchAll=false
         env:
+          REACT_APP_USE_MOCK_AUTH: true
           CI: true
 
       - name: 📊 Upload coverage reports
