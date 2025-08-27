@@ -6,6 +6,7 @@ public enum TransportBoxState
     Opened,
     InTransit,
     Received,
+    InSwap,
     Stocked,
     Closed,
     Error,

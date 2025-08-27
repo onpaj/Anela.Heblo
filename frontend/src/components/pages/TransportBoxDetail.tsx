@@ -4,7 +4,6 @@ import { useTransportBoxByIdQuery, useChangeTransportBoxState } from '../../api/
 import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
 import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/generated/api-client';
 import AddItemToBoxModal from './AddItemToBoxModal';
-import ConfirmTransitModal from './ConfirmTransitModal';
 import LocationSelectionModal from './LocationSelectionModal';
 
 interface TransportBoxDetailProps {
@@ -45,7 +44,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-  const [isConfirmTransitModalOpen, setIsConfirmTransitModalOpen] = useState(false);
   const [isLocationSelectionModalOpen, setIsLocationSelectionModalOpen] = useState(false);
   
   // Box number input for New state
@@ -158,10 +156,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
     }
   }, [isOpen, boxId, boxData?.transportBox?.description]);
 
-  const handleConfirmTransitSuccess = async () => {
-    await handleModalSuccess();
-    setIsConfirmTransitModalOpen(false);
-  };
 
   // Handle description change
   const handleDescriptionChange = (value: string) => {
@@ -918,14 +912,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
             onClose={() => setIsAddItemModalOpen(false)}
             boxId={boxData.transportBox.id || null}
             onSuccess={handleAddItemSuccess}
-          />
-          
-          <ConfirmTransitModal
-            isOpen={isConfirmTransitModalOpen}
-            onClose={() => setIsConfirmTransitModalOpen(false)}
-            boxId={boxData.transportBox.id || null}
-            boxCode={boxData.transportBox.code || null}
-            onSuccess={handleConfirmTransitSuccess}
           />
           
           <LocationSelectionModal

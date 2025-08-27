@@ -2229,47 +2229,6 @@ export class ApiClient {
         }
         return Promise.resolve<RemoveItemFromBoxResponse>(null as any);
     }
-
-    transportBox_ConfirmTransit(id: number, request: ConfirmTransitRequest): Promise<ConfirmTransitResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}/confirm-transit";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_ConfirmTransit(_response);
-        });
-    }
-
-    protected processTransportBox_ConfirmTransit(response: Response): Promise<ConfirmTransitResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ConfirmTransitResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ConfirmTransitResponse>(null as any);
-    }
 }
 
 export class GetProductMarginSummaryResponse implements IGetProductMarginSummaryResponse {
@@ -6861,90 +6820,6 @@ export interface IRemoveItemFromBoxResponse {
     success?: boolean;
     errorMessage?: string | undefined;
     transportBox?: TransportBoxDto | undefined;
-}
-
-export class ConfirmTransitResponse implements IConfirmTransitResponse {
-    success?: boolean;
-    transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
-
-    constructor(data?: IConfirmTransitResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.success = _data["success"];
-            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-            this.errorMessage = _data["errorMessage"];
-        }
-    }
-
-    static fromJS(data: any): ConfirmTransitResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ConfirmTransitResponse();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        data["errorMessage"] = this.errorMessage;
-        return data;
-    }
-}
-
-export interface IConfirmTransitResponse {
-    success?: boolean;
-    transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
-}
-
-export class ConfirmTransitRequest implements IConfirmTransitRequest {
-    boxId?: number;
-    confirmationBoxNumber!: string;
-
-    constructor(data?: IConfirmTransitRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.boxId = _data["boxId"];
-            this.confirmationBoxNumber = _data["confirmationBoxNumber"];
-        }
-    }
-
-    static fromJS(data: any): ConfirmTransitRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new ConfirmTransitRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["boxId"] = this.boxId;
-        data["confirmationBoxNumber"] = this.confirmationBoxNumber;
-        return data;
-    }
-}
-
-export interface IConfirmTransitRequest {
-    boxId?: number;
-    confirmationBoxNumber: string;
 }
 
 export interface FileResponse {

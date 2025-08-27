@@ -142,23 +142,4 @@ public class TransportBoxController : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>
-    /// Confirm transit with box number verification and transition to 'InTransit' state
-    /// </summary>
-    [HttpPut("{id:int}/confirm-transit")]
-    public async Task<ActionResult<ConfirmTransitResponse>> ConfirmTransit(
-        int id,
-        [FromBody] ConfirmTransitRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        request.BoxId = id; // Ensure consistency
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return BadRequest(response.ErrorMessage);
-        }
-
-        return Ok(response);
-    }
 }
