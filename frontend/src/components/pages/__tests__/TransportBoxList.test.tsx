@@ -88,7 +88,8 @@ const mockTransportBoxes = [
 
 const mockSummaryData = {
   totalBoxes: 3,
-  stateStats: {
+  activeBoxes: 2,
+  statesCounts: {
     'New': 1,
     'Opened': 1,
     'InTransit': 1,
@@ -140,15 +141,17 @@ describe('TransportBoxList', () => {
       expect(screen.getByText('BOX-001')).toBeInTheDocument();
       expect(screen.getByText('BOX-002')).toBeInTheDocument();
       expect(screen.getByText('BOX-003')).toBeInTheDocument();
-      expect(screen.getByText('Nový')).toBeInTheDocument();
-      expect(screen.getByText('Otevřený')).toBeInTheDocument();
-      expect(screen.getByText('V přepravě')).toBeInTheDocument();
+      
+      // Use getAllByText to handle multiple occurrences of state labels
+      expect(screen.getAllByText('Nový')).toHaveLength(2); // One in filter, one in table
+      expect(screen.getAllByText('Otevřený')).toHaveLength(2);
+      expect(screen.getAllByText('V přepravě')).toHaveLength(2);
     });
 
     it('should display summary statistics', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Celkem boxů')).toBeInTheDocument();
+      expect(screen.getByText('Celkem:')).toBeInTheDocument();
       expect(screen.getByText('3')).toBeInTheDocument();
     });
   });
@@ -164,7 +167,7 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Načítám transportní boxy...')).toBeInTheDocument();
+      expect(screen.getByText('Načítání dat...')).toBeInTheDocument();
     });
   });
 
@@ -558,7 +561,7 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Žádné transportní boxy')).toBeInTheDocument();
+      expect(screen.getByText('Žádné výsledky')).toBeInTheDocument();
     });
   });
 

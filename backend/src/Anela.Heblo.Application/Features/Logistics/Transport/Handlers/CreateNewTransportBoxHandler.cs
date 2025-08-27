@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -11,15 +12,18 @@ public class CreateNewTransportBoxHandler : IRequestHandler<CreateNewTransportBo
     private readonly ITransportBoxRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CreateNewTransportBoxHandler> _logger;
+    private readonly IMapper _mapper;
 
     public CreateNewTransportBoxHandler(
         ITransportBoxRepository repository,
         ICurrentUserService currentUserService,
-        ILogger<CreateNewTransportBoxHandler> logger)
+        ILogger<CreateNewTransportBoxHandler> logger,
+        IMapper mapper)
     {
         _repository = repository;
         _currentUserService = currentUserService;
         _logger = logger;
+        _mapper = mapper;
     }
 
     public async Task<CreateNewTransportBoxResponse> Handle(CreateNewTransportBoxRequest request, CancellationToken cancellationToken)
@@ -40,7 +44,7 @@ public class CreateNewTransportBoxHandler : IRequestHandler<CreateNewTransportBo
 
             _logger.LogInformation("Created new transport box with ID {BoxId} by user {UserName}", transportBox.Id, userName);
 
-            var transportBoxDto = MapToDto(transportBox);
+            var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
 
             return new CreateNewTransportBoxResponse
             {
@@ -57,44 +61,5 @@ public class CreateNewTransportBoxHandler : IRequestHandler<CreateNewTransportBo
                 ErrorMessage = ex.Message
             };
         }
-    }
-
-    private static TransportBoxDto MapToDto(TransportBox transportBox)
-    {
-        return new TransportBoxDto
-        {
-            Id = transportBox.Id,
-            Code = transportBox.Code,
-            State = transportBox.State.ToString(),
-            DefaultReceiveState = transportBox.DefaultReceiveState.ToString(),
-            Description = transportBox.Description,
-            LastStateChanged = transportBox.LastStateChanged,
-            Location = transportBox.Location,
-            IsInTransit = transportBox.IsInTransit,
-            IsInReserve = transportBox.IsInReserve,
-            ItemCount = transportBox.Items.Count,
-            // Audit fields
-            CreationTime = transportBox.CreationTime,
-            CreatorId = transportBox.CreatorId,
-            LastModificationTime = transportBox.LastModificationTime,
-            LastModifierId = transportBox.LastModifierId,
-            Items = transportBox.Items.Select(item => new TransportBoxItemDto
-            {
-                Id = item.Id,
-                ProductCode = item.ProductCode,
-                ProductName = item.ProductName,
-                Amount = item.Amount,
-                DateAdded = item.DateAdded,
-                UserAdded = item.UserAdded
-            }).ToList(),
-            StateLog = transportBox.StateLog.Select(log => new TransportBoxStateLogDto
-            {
-                Id = log.Id,
-                State = log.State.ToString(),
-                StateDate = log.StateDate,
-                User = log.User,
-                Description = log.Description
-            }).ToList()
-        };
     }
 }
