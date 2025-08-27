@@ -11,25 +11,27 @@ namespace Anela.Heblo.Tests.Infrastructure;
 /// </summary>
 public class UnitOfWorkTests : IDisposable
 {
-    private readonly DbContextOptions<ApplicationDbContext> _dbContextOptions;
     private readonly ServiceProvider _serviceProvider;
-    private ApplicationDbContext _context;
-    private IUnitOfWork _unitOfWork;
+    private readonly ApplicationDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
 
     public UnitOfWorkTests()
     {
-        // Setup in-memory database
-        _dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+        // Setup in-memory database with warnings suppressed for transaction tests
+        var dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.InMemory.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         // Setup service provider
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString())
+                   .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.InMemory.InMemoryEventId.TransactionIgnoredWarning)));
         services.AddLogging();
         _serviceProvider = services.BuildServiceProvider();
 
-        _context = new ApplicationDbContext(_dbContextOptions);
+        _context = new ApplicationDbContext(dbContextOptions);
         _unitOfWork = new UnitOfWork(_context, _serviceProvider);
     }
 
@@ -54,11 +56,9 @@ public class UnitOfWorkTests : IDisposable
     [Fact]
     public async Task BeginTransactionAsync_ShouldStartTransaction()
     {
-        // Act
+        // Act & Assert - Should not throw exception
+        // Note: In-memory database doesn't support real transactions, but the method should still execute
         await _unitOfWork.BeginTransactionAsync();
-
-        // Assert - Should not throw exception
-        // The transaction is started internally
     }
 
     [Fact]
@@ -88,6 +88,7 @@ public class UnitOfWorkTests : IDisposable
         await _unitOfWork.BeginTransactionAsync();
 
         // Act & Assert
+        // Note: In-memory database doesn't support real transactions, but our UnitOfWork should still track state
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _unitOfWork.BeginTransactionAsync());
 
@@ -101,6 +102,7 @@ public class UnitOfWorkTests : IDisposable
         await _unitOfWork.BeginTransactionAsync();
 
         // Act & Assert - Should not throw
+        // Note: In-memory database doesn't support real transactions, but our UnitOfWork should handle the flow
         await _unitOfWork.CommitTransactionAsync();
     }
 
@@ -111,6 +113,7 @@ public class UnitOfWorkTests : IDisposable
         await _unitOfWork.BeginTransactionAsync();
 
         // Act & Assert - Should not throw
+        // Note: In-memory database doesn't support real transactions, but our UnitOfWork should handle the flow
         await _unitOfWork.RollbackTransactionAsync();
     }
 
@@ -126,14 +129,15 @@ public class UnitOfWorkTests : IDisposable
         await _unitOfWork.CommitTransactionAsync();
 
         // Should not throw exceptions
+        // Note: In-memory database doesn't support real transactions, but our UnitOfWork should handle multiple cycles
     }
 
     [Fact]
     public void Repository_ShouldReturnSameInstanceForSameEntityType()
     {
         // Act
-        var repo1 = _unitOfWork.Repository<Domain.Features.Purchase.PurchaseOrder, int>();
-        var repo2 = _unitOfWork.Repository<Domain.Features.Purchase.PurchaseOrder, int>();
+        var repo1 = _unitOfWork.Repository<Anela.Heblo.Domain.Features.Purchase.PurchaseOrder, int>();
+        var repo2 = _unitOfWork.Repository<Anela.Heblo.Domain.Features.Purchase.PurchaseOrder, int>();
 
         // Assert
         Assert.Same(repo1, repo2);
@@ -141,8 +145,8 @@ public class UnitOfWorkTests : IDisposable
 
     public void Dispose()
     {
-        _unitOfWork?.Dispose();
-        _context?.Dispose();
-        _serviceProvider?.Dispose();
+        _unitOfWork.Dispose();
+        _context.Dispose();
+        _serviceProvider.Dispose();
     }
 }
