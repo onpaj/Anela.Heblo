@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -7,15 +8,18 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
 {
     public class UpdateJournalEntryHandler : IRequestHandler<UpdateJournalEntryRequest, UpdateJournalEntryResponse>
     {
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IJournalRepository _journalRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<UpdateJournalEntryHandler> _logger;
 
         public UpdateJournalEntryHandler(
+            IUnitOfWork unitOfWork,
             IJournalRepository journalRepository,
             ICurrentUserService currentUserService,
             ILogger<UpdateJournalEntryHandler> logger)
         {
+            _unitOfWork = unitOfWork;
             _journalRepository = journalRepository;
             _currentUserService = currentUserService;
             _logger = logger;
@@ -71,7 +75,7 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
             }
 
             await _journalRepository.UpdateAsync(entry, cancellationToken);
-            await _journalRepository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Journal entry {EntryId} updated by user {UserId}",

@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 
 public class ChangeTransportBoxStateHandlerTests
 {
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
@@ -22,6 +24,7 @@ public class ChangeTransportBoxStateHandlerTests
 
     public ChangeTransportBoxStateHandlerTests()
     {
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
         _repositoryMock = new Mock<ITransportBoxRepository>();
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
@@ -38,6 +41,7 @@ public class ChangeTransportBoxStateHandlerTests
             .Returns(new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
         _handler = new ChangeTransportBoxStateHandler(
+            _unitOfWorkMock.Object,
             _repositoryMock.Object,
             _mediatorMock.Object,
             _loggerMock.Object,
@@ -91,7 +95,7 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -158,7 +162,7 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -228,7 +232,7 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 

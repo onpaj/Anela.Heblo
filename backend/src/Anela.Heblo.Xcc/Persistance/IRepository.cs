@@ -17,7 +17,4 @@ public interface IRepository<TEntity, TKey> : IReadOnlyRepository<TEntity, TKey>
     Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default);
     Task DeleteAsync(TKey id, CancellationToken cancellationToken = default);
     Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
-
-    // Unit of Work operations
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

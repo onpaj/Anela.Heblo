@@ -34,7 +34,7 @@ namespace Anela.Heblo.Application.Features.Journal.Infrastructure
             {
                 entry.SoftDelete(userId);
                 await UpdateAsync(entry, cancellationToken);
-                await SaveChangesAsync(cancellationToken);
+                // Note: SaveChangesAsync should be called by the handler using UnitOfWork
             }
         }
 

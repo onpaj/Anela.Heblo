@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -9,6 +10,7 @@ namespace Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
 
 public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse>
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ITransportBoxRepository _repository;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
@@ -16,12 +18,14 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     private readonly TimeProvider _timeProvider;
 
     public ChangeTransportBoxStateHandler(
+        IUnitOfWork unitOfWork,
         ITransportBoxRepository repository,
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
         TimeProvider timeProvider)
     {
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _mediator = mediator;
         _logger = logger;
@@ -105,7 +109,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
             // Save changes
             await _repository.UpdateAsync(box, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             // Get updated box details
             var updatedBoxRequest = new GetTransportBoxByIdRequest { Id = request.BoxId };

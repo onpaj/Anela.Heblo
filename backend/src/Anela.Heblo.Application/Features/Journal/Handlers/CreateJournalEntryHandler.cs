@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,15 +9,18 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
 {
     public class CreateJournalEntryHandler : IRequestHandler<CreateJournalEntryRequest, CreateJournalEntryResponse>
     {
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IJournalRepository _journalRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<CreateJournalEntryHandler> _logger;
 
         public CreateJournalEntryHandler(
+            IUnitOfWork unitOfWork,
             IJournalRepository journalRepository,
             ICurrentUserService currentUserService,
             ILogger<CreateJournalEntryHandler> logger)
         {
+            _unitOfWork = unitOfWork;
             _journalRepository = journalRepository;
             _currentUserService = currentUserService;
             _logger = logger;
@@ -65,7 +69,7 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
             }
 
             var createdEntry = await _journalRepository.AddAsync(entry, cancellationToken);
-            await _journalRepository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Journal entry {EntryId} created by user {UserId}",

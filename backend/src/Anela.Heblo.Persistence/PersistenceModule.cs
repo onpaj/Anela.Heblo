@@ -1,3 +1,4 @@
+using Anela.Heblo.Xcc.Infrastructure;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +29,9 @@ public static class PersistenceModule
                 options.UseNpgsql(connectionString);
             }
         });
+
+        // Register Unit of Work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer

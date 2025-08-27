@@ -3,21 +3,25 @@ using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
 public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOrderStatusRequest, UpdatePurchaseOrderStatusResponse?>
 {
     private readonly ILogger<UpdatePurchaseOrderStatusHandler> _logger;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPurchaseOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
 
     public UpdatePurchaseOrderStatusHandler(
         ILogger<UpdatePurchaseOrderStatusHandler> logger,
+        IUnitOfWork unitOfWork,
         IPurchaseOrderRepository repository,
         ICurrentUserService currentUserService)
     {
         _logger = logger;
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _currentUserService = currentUserService;
     }
@@ -49,7 +53,7 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
             purchaseOrder.ChangeStatus(newStatus, updatedBy);
 
             await _repository.UpdateAsync(purchaseOrder, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",
                 purchaseOrder.OrderNumber, newStatus);

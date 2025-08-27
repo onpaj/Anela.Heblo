@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,6 +13,7 @@ namespace Anela.Heblo.Tests.Features.Purchase;
 public class UpdatePurchaseOrderStatusHandlerTests
 {
     private readonly Mock<ILogger<UpdatePurchaseOrderStatusHandler>> _loggerMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly UpdatePurchaseOrderStatusHandler _handler;
@@ -22,6 +24,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     public UpdatePurchaseOrderStatusHandlerTests()
     {
         _loggerMock = new Mock<ILogger<UpdatePurchaseOrderStatusHandler>>();
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
         _repositoryMock = new Mock<IPurchaseOrderRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
 
@@ -31,6 +34,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
 
         _handler = new UpdatePurchaseOrderStatusHandler(
             _loggerMock.Object,
+            _unitOfWorkMock.Object,
             _repositoryMock.Object,
             _currentUserServiceMock.Object);
     }
@@ -49,7 +53,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -80,7 +84,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -151,7 +155,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -159,7 +163,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
 
         _repositoryMock.Verify(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(x => x.UpdateAsync(purchaseOrder, It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -176,7 +180,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 

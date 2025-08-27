@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,6 +14,7 @@ namespace Anela.Heblo.Tests.Features.Purchase;
 public class CreatePurchaseOrderHandlerTests
 {
     private readonly Mock<ILogger<CreatePurchaseOrderHandler>> _loggerMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
     private readonly Mock<IPurchaseOrderNumberGenerator> _orderNumberGeneratorMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
@@ -31,6 +33,7 @@ public class CreatePurchaseOrderHandlerTests
     public CreatePurchaseOrderHandlerTests()
     {
         _loggerMock = new Mock<ILogger<CreatePurchaseOrderHandler>>();
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
         _repositoryMock = new Mock<IPurchaseOrderRepository>();
         _orderNumberGeneratorMock = new Mock<IPurchaseOrderNumberGenerator>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -42,6 +45,7 @@ public class CreatePurchaseOrderHandlerTests
 
         _handler = new CreatePurchaseOrderHandler(
             _loggerMock.Object,
+            _unitOfWorkMock.Object,
             _repositoryMock.Object,
             _orderNumberGeneratorMock.Object,
             _catalogRepositoryMock.Object,
@@ -60,7 +64,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -112,7 +116,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -143,7 +147,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -165,7 +169,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -188,7 +192,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -203,7 +207,7 @@ public class CreatePurchaseOrderHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _repositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -220,7 +224,7 @@ public class CreatePurchaseOrderHandlerTests
             .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
 
-        _repositoryMock
+        _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 

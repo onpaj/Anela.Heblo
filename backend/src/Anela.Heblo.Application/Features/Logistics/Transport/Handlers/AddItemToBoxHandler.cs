@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ namespace Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
 
 public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemToBoxResponse>
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ITransportBoxRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AddItemToBoxHandler> _logger;
@@ -17,12 +19,14 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
     private readonly TimeProvider _timeProvider;
 
     public AddItemToBoxHandler(
+        IUnitOfWork unitOfWork,
         ITransportBoxRepository repository,
         ICurrentUserService currentUserService,
         ILogger<AddItemToBoxHandler> logger,
         IMapper mapper,
         TimeProvider timeProvider)
     {
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -55,7 +59,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
                 userName);
 
 
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Added item {ProductCode} (amount: {Amount}) to transport box {BoxId} by user {UserName}",
                 request.ProductCode, request.Amount, request.BoxId, userName);

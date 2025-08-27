@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,17 +11,20 @@ namespace Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
 
 public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest, RemoveItemFromBoxResponse>
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ITransportBoxRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<RemoveItemFromBoxHandler> _logger;
     private readonly IMapper _mapper;
 
     public RemoveItemFromBoxHandler(
+        IUnitOfWork unitOfWork,
         ITransportBoxRepository repository,
         ICurrentUserService currentUserService,
         ILogger<RemoveItemFromBoxHandler> logger,
         IMapper mapper)
     {
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -54,7 +58,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 };
             }
 
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Removed item {ItemId} ({ProductCode}) from transport box {BoxId} by user {UserName}",
                 request.ItemId, removedItem.ProductCode, request.BoxId, userName);

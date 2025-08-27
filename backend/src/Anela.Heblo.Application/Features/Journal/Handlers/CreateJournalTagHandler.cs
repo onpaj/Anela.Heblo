@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,15 +9,18 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
 {
     public class CreateJournalTagHandler : IRequestHandler<CreateJournalTagRequest, CreateJournalTagResponse>
     {
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IJournalTagRepository _tagRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<CreateJournalTagHandler> _logger;
 
         public CreateJournalTagHandler(
+            IUnitOfWork unitOfWork,
             IJournalTagRepository tagRepository,
             ICurrentUserService currentUserService,
             ILogger<CreateJournalTagHandler> logger)
         {
+            _unitOfWork = unitOfWork;
             _tagRepository = tagRepository;
             _currentUserService = currentUserService;
             _logger = logger;
@@ -41,7 +45,7 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
             };
 
             var createdTag = await _tagRepository.AddAsync(tag, cancellationToken);
-            await _tagRepository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Journal tag {TagId} created by user {UserId}",

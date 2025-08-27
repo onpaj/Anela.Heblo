@@ -5,12 +5,14 @@ using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Application.Common.Extensions;
+using Anela.Heblo.Xcc.Infrastructure;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
 public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderRequest, CreatePurchaseOrderResponse>
 {
     private readonly ILogger<CreatePurchaseOrderHandler> _logger;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPurchaseOrderRepository _repository;
     private readonly IPurchaseOrderNumberGenerator _orderNumberGenerator;
     private readonly ICatalogRepository _catalogRepository;
@@ -18,12 +20,14 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
 
     public CreatePurchaseOrderHandler(
         ILogger<CreatePurchaseOrderHandler> logger,
+        IUnitOfWork unitOfWork,
         IPurchaseOrderRepository repository,
         IPurchaseOrderNumberGenerator orderNumberGenerator,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService)
     {
         _logger = logger;
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _orderNumberGenerator = orderNumberGenerator;
         _catalogRepository = catalogRepository;
@@ -84,7 +88,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
             orderNumber, purchaseOrder.Lines.Count);
 
         await _repository.AddAsync(purchaseOrder, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
             orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);

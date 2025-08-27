@@ -93,9 +93,4 @@ public class BaseRepository<TEntity, TKey> : IRepository<TEntity, TKey>
         DbSet.RemoveRange(entities);
         await Task.CompletedTask;
     }
-
-    public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return await Context.SaveChangesAsync(cancellationToken);
-    }
 }

@@ -4,23 +4,27 @@ using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Infrastructure;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
 public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse?>
 {
     private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPurchaseOrderRepository _repository;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
 
     public UpdatePurchaseOrderHandler(
         ILogger<UpdatePurchaseOrderHandler> logger,
+        IUnitOfWork unitOfWork,
         IPurchaseOrderRepository repository,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService)
     {
         _logger = logger;
+        _unitOfWork = unitOfWork;
         _repository = repository;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
@@ -91,7 +95,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             }
 
             // Entity is already tracked from GetByIdWithDetailsAsync, EF will auto-detect changes
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
 
