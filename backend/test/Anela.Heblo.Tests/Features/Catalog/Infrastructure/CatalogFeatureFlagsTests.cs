@@ -63,11 +63,12 @@ public class CatalogFeatureFlagsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule();
+        services.AddCatalogModule(configuration);
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
@@ -82,11 +83,12 @@ public class CatalogFeatureFlagsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule(new TestHostEnvironment("Automation"));
+        services.AddCatalogModule(configuration, new TestHostEnvironment("Automation"));
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
@@ -108,11 +110,12 @@ public class CatalogFeatureFlagsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule(new TestHostEnvironment(environmentName));
+        services.AddCatalogModule(configuration, new TestHostEnvironment(environmentName));
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 

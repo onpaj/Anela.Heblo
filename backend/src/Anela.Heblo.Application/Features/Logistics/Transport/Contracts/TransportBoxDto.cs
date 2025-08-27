@@ -19,7 +19,7 @@ public class TransportBoxDto
     public Guid? CreatorId { get; set; }
     public DateTime? LastModificationTime { get; set; }
     public Guid? LastModifierId { get; set; }
-    
+
     public IList<TransportBoxItemDto> Items { get; set; } = new List<TransportBoxItemDto>();
     public IList<TransportBoxStateLogDto> StateLog { get; set; } = new List<TransportBoxStateLogDto>();
     public IList<TransportBoxTransitionDto> AllowedTransitions { get; set; } = new List<TransportBoxTransitionDto>();

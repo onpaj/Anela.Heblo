@@ -6,7 +6,7 @@ public class TransportBoxTransition
 
     public TransportBoxTransition(
         TransportBoxState newState,
-        TransitionType  transitionType,
+        TransitionType transitionType,
         Action<TransportBox, DateTime, string>? transitionCallback = null,
         Func<TransportBox, bool>? condition = null,
         bool systemOnly = false)

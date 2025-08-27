@@ -31,10 +31,10 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.Reserve)]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.New)]
-    public void ValidTransitionsFromOpened_ShouldSucceed(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Reserve)]
+    [InlineData(TransportBoxState.New)]
+    public void ValidTransitionsFromOpened_ShouldSucceed(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -65,9 +65,9 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.Opened)]
-    public void ValidTransitionsFromInTransit_ShouldSucceed(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.Opened)]
+    public void ValidTransitionsFromInTransit_ShouldSucceed(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -92,9 +92,9 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.Opened)]
-    public void ValidTransitionsFromReserve_ShouldSucceed(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.Opened)]
+    public void ValidTransitionsFromReserve_ShouldSucceed(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -119,9 +119,9 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Received, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.Received, TransportBoxState.Closed)]
-    public void ValidTransitionsFromReceived_ShouldSucceed(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Closed)]
+    public void ValidTransitionsFromReceived_ShouldSucceed(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -146,8 +146,8 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.Closed)]
-    public void ValidTransitionsFromStocked_ShouldSucceed(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.Closed)]
+    public void ValidTransitionsFromStocked_ShouldSucceed(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInStateUsingReflection(TransportBoxState.Stocked);
@@ -165,26 +165,26 @@ public class TransportBoxStateTransitionTests
     // Note: According to the specification, Closed and Error states have no valid outbound transitions except Error
 
     [Theory]
-    [InlineData(TransportBoxState.New, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.New, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.New, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.New, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.New, TransportBoxState.Reserve)]
-    public void InvalidTransitionsFromNew_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromNew_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
-        var box = CreateBoxInState(fromState);
+        var box = CreateBoxInState(TransportBoxState.New);
 
         // Act & Assert
         AssertInvalidTransition(box, toState);
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.Opened, TransportBoxState.Closed)]
-    public void InvalidTransitionsFromOpened_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Closed)]
+    public void InvalidTransitionsFromOpened_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -195,12 +195,12 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.New)]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.Closed)]
-    [InlineData(TransportBoxState.InTransit, TransportBoxState.Reserve)]
-    public void InvalidTransitionsFromInTransit_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Closed)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromInTransit_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -213,12 +213,13 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.New)]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.Reserve, TransportBoxState.Closed)]
-    public void InvalidTransitionsFromReserve_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Closed)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromReserve_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -231,12 +232,12 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Received, TransportBoxState.New)]
-    [InlineData(TransportBoxState.Received, TransportBoxState.Opened)]
-    [InlineData(TransportBoxState.Received, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Received, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Received, TransportBoxState.Reserve)]
-    public void InvalidTransitionsFromReceived_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.Opened)]
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromReceived_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
@@ -250,13 +251,13 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.New)]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.Opened)]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Stocked, TransportBoxState.Reserve)]
-    public void InvalidTransitionsFromStocked_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.Opened)]
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromStocked_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInStateUsingReflection(TransportBoxState.Stocked);
@@ -267,14 +268,14 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.New)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.Opened)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.Closed, TransportBoxState.Reserve)]
-    public void InvalidTransitionsFromClosed_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.Opened)]
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void InvalidTransitionsFromClosed_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInStateUsingReflection(TransportBoxState.Closed);
@@ -285,14 +286,14 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
-    [InlineData(TransportBoxState.Error, TransportBoxState.New)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.Opened)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.InTransit)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.InSwap)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.Stocked)]
-    [InlineData(TransportBoxState.Error, TransportBoxState.Closed)]
-    public void InvalidTransitionsFromError_ShouldThrow(TransportBoxState fromState, TransportBoxState toState)
+    [InlineData(TransportBoxState.New)]
+    [InlineData(TransportBoxState.Opened)]
+    [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Received)]
+    [InlineData(TransportBoxState.InSwap)]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Closed)]
+    public void InvalidTransitionsFromError_ShouldThrow(TransportBoxState toState)
     {
         // Arrange
         var box = CreateBoxInStateUsingReflection(TransportBoxState.Error);
@@ -351,13 +352,13 @@ public class TransportBoxStateTransitionTests
         box.Items.Should().BeEmpty();
     }
 
-    [Fact] 
+    [Fact]
     public void TransitWithoutItems_ShouldThrow()
     {
         // Arrange
         var box = CreateBoxInState(TransportBoxState.New);
         box.Open("B001", _testDate, TestUser);
-        
+
         // Act
         var act = () => box.ToTransit(_testDate, TestUser);
 
@@ -417,7 +418,7 @@ public class TransportBoxStateTransitionTests
 
     private void SetBoxCode(TransportBox box, string code)
     {
-        var codeField = typeof(TransportBox).GetField("<Code>k__BackingField", 
+        var codeField = typeof(TransportBox).GetField("<Code>k__BackingField",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         codeField?.SetValue(box, code);
     }
@@ -426,11 +427,13 @@ public class TransportBoxStateTransitionTests
     {
         Action act = toState switch
         {
-            TransportBoxState.Opened => () => {
+            TransportBoxState.Opened => () =>
+            {
                 // For invalid transitions, we try both methods that could lead to Opened
                 try { box.Open("B002", _testDate, TestUser); }
                 catch { box.RevertToOpened(_testDate, TestUser); }
-            },
+            }
+            ,
             TransportBoxState.InTransit => () => box.ToTransit(_testDate, TestUser),
             TransportBoxState.Received => () => box.Receive(_testDate, TestUser),
             TransportBoxState.InSwap => () => box.ToSwap(_testDate, TestUser),

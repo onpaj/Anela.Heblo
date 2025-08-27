@@ -41,21 +41,21 @@ public class ApplicationDbContext : DbContext
         foreach (var entry in transportBoxEntries)
         {
             var now = DateTime.Now; // Use local time for PostgreSQL timestamp without time zone
-            
+
             entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N")[..32]; // 32 chars to fit in varchar(40)
-            
+
             // Set ExtraProperties to empty JSON object if null
             if (string.IsNullOrEmpty(entry.Entity.ExtraProperties))
             {
                 entry.Entity.ExtraProperties = "{}";
             }
-            
+
             // Set CreationTime only when adding new entity
             if (entry.State == EntityState.Added && entry.Entity.CreationTime == default)
             {
                 entry.Entity.CreationTime = now;
             }
-            
+
             // Set LastModificationTime for both insert and update
             entry.Entity.LastModificationTime = now;
         }

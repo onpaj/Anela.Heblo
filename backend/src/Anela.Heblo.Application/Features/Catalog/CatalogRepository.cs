@@ -495,7 +495,7 @@ public class CatalogRepository : ICatalogRepository
 
     private async Task<Dictionary<string, int>> GetProductsInTransport(CancellationToken ct)
     {
-        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInTransportPredicate, cancellationToken: ct);
+        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInTransportPredicate, includeDetails: true, cancellationToken: ct);
         return boxes.SelectMany(s => s.Items)
             .GroupBy(g => g.ProductCode)
             .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
@@ -503,7 +503,7 @@ public class CatalogRepository : ICatalogRepository
 
     private async Task<Dictionary<string, int>> GetProductsInReserve(CancellationToken ct)
     {
-        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInReservePredicate, cancellationToken: ct);
+        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInReservePredicate, includeDetails: true, cancellationToken: ct);
         return boxes.SelectMany(s => s.Items)
             .GroupBy(g => g.ProductCode)
             .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));

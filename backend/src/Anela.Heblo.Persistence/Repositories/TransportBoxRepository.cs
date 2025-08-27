@@ -128,4 +128,26 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
         return transportBox;
     }
+
+    public async Task<IEnumerable<TransportBox>> FindAsync(
+        System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.AsQueryable();
+
+        if (includeDetails)
+        {
+            query = query
+                .Include(x => x.Items)
+                .Include(x => x.StateLog);
+        }
+
+        var result = await query.Where(predicate).ToListAsync(cancellationToken);
+
+        _logger.LogDebug("Found {Count} transport boxes with predicate, includeDetails: {IncludeDetails}",
+            result.Count, includeDetails);
+
+        return result;
+    }
 }

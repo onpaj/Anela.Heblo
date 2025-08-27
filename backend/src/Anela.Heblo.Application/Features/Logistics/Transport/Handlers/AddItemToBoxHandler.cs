@@ -41,16 +41,16 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
             }
 
             var addedItem = transportBox.AddItem(
-                request.ProductCode, 
-                request.ProductName, 
-                request.Amount, 
-                DateTime.UtcNow, 
+                request.ProductCode,
+                request.ProductName,
+                request.Amount,
+                DateTime.UtcNow,
                 userName);
 
 
             await _repository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Added item {ProductCode} (amount: {Amount}) to transport box {BoxId} by user {UserName}", 
+            _logger.LogInformation("Added item {ProductCode} (amount: {Amount}) to transport box {BoxId} by user {UserName}",
                 request.ProductCode, request.Amount, request.BoxId, userName);
 
             var itemDto = new TransportBoxItemDto
@@ -74,9 +74,9 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation error adding item to transport box {BoxId}: {Error}", 
+            _logger.LogWarning("Validation error adding item to transport box {BoxId}: {Error}",
                 request.BoxId, ex.Message);
-            
+
             return new AddItemToBoxResponse
             {
                 Success = false,
@@ -85,9 +85,9 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding item {ProductCode} to transport box {BoxId}", 
+            _logger.LogError(ex, "Error adding item {ProductCode} to transport box {BoxId}",
                 request.ProductCode, request.BoxId);
-            
+
             return new AddItemToBoxResponse
             {
                 Success = false,

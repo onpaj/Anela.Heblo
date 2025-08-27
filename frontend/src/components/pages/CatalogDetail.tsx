@@ -886,7 +886,7 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
             </div>
             
             <div className="flex justify-between">
-              <span className="text-gray-600">Rezervované:</span>
+              <span className="text-gray-600">V rezerve:</span>
               <span className="font-medium">{Math.round((item.stock?.reserve || 0) * 100) / 100}</span>
             </div>
           </div>

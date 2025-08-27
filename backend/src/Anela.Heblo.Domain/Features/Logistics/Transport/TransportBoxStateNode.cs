@@ -10,7 +10,7 @@ public class TransportBoxStateNode
     {
         _allowedTransitions.Add(action);
     }
-    
+
     public TransportBoxTransition GetTransition(TransportBoxState targetState)
     {
         // Check new multiple transitions first

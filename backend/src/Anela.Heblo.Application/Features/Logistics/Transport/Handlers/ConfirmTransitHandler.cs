@@ -44,7 +44,7 @@ public class ConfirmTransitHandler : IRequestHandler<ConfirmTransitRequest, Conf
 
             await _repository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Confirmed transit for transport box {BoxId} with box number {BoxNumber} by user {UserName}", 
+            _logger.LogInformation("Confirmed transit for transport box {BoxId} with box number {BoxNumber} by user {UserName}",
                 request.BoxId, request.ConfirmationBoxNumber, userName);
 
             var transportBoxDto = MapToDto(transportBox);
@@ -57,9 +57,9 @@ public class ConfirmTransitHandler : IRequestHandler<ConfirmTransitRequest, Conf
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation error confirming transit for transport box {BoxId}: {Error}", 
+            _logger.LogWarning("Validation error confirming transit for transport box {BoxId}: {Error}",
                 request.BoxId, ex.Message);
-            
+
             return new ConfirmTransitResponse
             {
                 Success = false,
@@ -69,7 +69,7 @@ public class ConfirmTransitHandler : IRequestHandler<ConfirmTransitRequest, Conf
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming transit for transport box {BoxId}", request.BoxId);
-            
+
             return new ConfirmTransitResponse
             {
                 Success = false,

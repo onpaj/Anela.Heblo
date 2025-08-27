@@ -2,6 +2,8 @@ using Anela.Heblo.Domain.Features.FinancialOverview;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +11,7 @@ namespace Anela.Heblo.Application.Features.FinancialOverview;
 
 public static class FinancialOverviewModule
 {
-    public static IServiceCollection AddFinancialOverviewModule(this IServiceCollection services, IHostEnvironment? environment = null)
+    public static IServiceCollection AddFinancialOverviewModule(this IServiceCollection services, Microsoft.Extensions.Configuration.IConfiguration configuration, IHostEnvironment? environment = null)
     {
         // Ensure memory cache is available for financial analysis caching
         services.AddMemoryCache();
@@ -51,8 +53,11 @@ public static class FinancialOverviewModule
             services.AddHostedService<FinancialAnalysisBackgroundService>();
         }
 
-        // Configure financial analysis options
-        services.Configure<FinancialAnalysisOptions>(options => { });
+        // Configure financial analysis options from configuration
+        services.Configure<FinancialAnalysisOptions>(options =>
+        {
+            configuration.GetSection(FinancialAnalysisOptions.ConfigKey).Bind(options);
+        });
 
         return services;
     }

@@ -67,10 +67,10 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     };
                 }
             }
-            
+
             box.AssignBoxCodeIfAny(request.BoxCode);
             box.AssignLocationIfAny(request.Location);
-            
+
             // Get the transition action
             var transition = box.TransitionNode.GetTransition(request.NewState);
 
@@ -100,7 +100,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             var currentUser = _currentUserService.GetCurrentUser();
             var currentTime = _timeProvider.GetUtcNow().UtcDateTime;
             var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
-            
+
             await transition.ChangeStateAsync(box, currentTime, userName);
 
             // Save changes

@@ -24,10 +24,10 @@ public class TransportBox : Entity<int>
     public Guid? CreatorId { get; set; }
     public DateTime? LastModificationTime { get; set; }
     public Guid? LastModifierId { get; set; }
-    
+
     // EF Core managed concurrency stamp - required for backward compatibility with original system
     public string? ConcurrencyStamp { get; set; }
-    
+
     // Extra properties for backward compatibility with original system
     public string? ExtraProperties { get; set; }
 
@@ -144,7 +144,7 @@ public class TransportBox : Entity<int>
     }
 
     public void ToReserve(DateTime date, string userName, TransportBoxLocation location) => ToReserve(date, userName, location.ToString());
-    
+
     public void ToReserve(DateTime date, string userName, string location)
     {
         Location = location;
@@ -209,21 +209,21 @@ public class TransportBox : Entity<int>
     {
         if (boxCode == null)
             return;
-        
-        if(State != TransportBoxState.New)
+
+        if (State != TransportBoxState.New)
             throw new InvalidOperationException($"Cannot assign box code to {State}");
-        
+
         Code = boxCode;
     }
-    
+
     public void AssignLocationIfAny(string? location)
     {
         if (location == null)
             return;
-        
-        if(State != TransportBoxState.Opened)
+
+        if (State != TransportBoxState.Opened)
             throw new InvalidOperationException($"Cannot assign location to {State}");
-        
+
         Location = location;
     }
 
@@ -246,25 +246,25 @@ public class TransportBox : Entity<int>
 
         // InTransit → Received, Opened (revert)
         var inTransitNode = new TransportBoxStateNode();
-        inTransitNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received,  TransitionType.Next,(box, time, userName) => box.Receive(time, userName)));
+        inTransitNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received, TransitionType.Next, (box, time, userName) => box.Receive(time, userName)));
         inTransitNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Previous, (box, time, userName) => box.RevertToOpened(time, userName)));
         _transitions.Add(TransportBoxState.InTransit, inTransitNode);
 
         // Reserve → Received, Opened (revert)
         var reserveNode = new TransportBoxStateNode();
-        reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received,  TransitionType.Next,(box, time, userName) => box.Receive(time, userName)));
+        reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received, TransitionType.Next, (box, time, userName) => box.Receive(time, userName)));
         reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Previous, (box, time, userName) => box.RevertToOpened(time, userName)));
         _transitions.Add(TransportBoxState.Reserve, reserveNode);
 
         // Received → Stocked, Closed
         var receivedNode = new TransportBoxStateNode();
-        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked, TransitionType.Next, (box, time, userName ) => box.ToPick(time, userName), systemOnly: true));
-        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.EdgeCase, (box,time, userName) => box.Close(time, userName)));
+        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked, TransitionType.Next, (box, time, userName) => box.ToPick(time, userName), systemOnly: true));
+        receivedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.EdgeCase, (box, time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.Received, receivedNode);
 
         // Stocked → Closed
         var stockedNode = new TransportBoxStateNode();
-        stockedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.Next,(box, time, userName) => box.Close(time, userName)));
+        stockedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.Next, (box, time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.Stocked, stockedNode);
 
         // Closed → No outbound transitions according to specification

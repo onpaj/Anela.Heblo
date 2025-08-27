@@ -52,7 +52,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
 
             await _repository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Removed item {ItemId} ({ProductCode}) from transport box {BoxId} by user {UserName}", 
+            _logger.LogInformation("Removed item {ItemId} ({ProductCode}) from transport box {BoxId} by user {UserName}",
                 request.ItemId, removedItem.ProductCode, request.BoxId, userName);
 
             var transportBoxDto = MapToDto(transportBox);
@@ -65,9 +65,9 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation error removing item from transport box {BoxId}: {Error}", 
+            _logger.LogWarning("Validation error removing item from transport box {BoxId}: {Error}",
                 request.BoxId, ex.Message);
-            
+
             return new RemoveItemFromBoxResponse
             {
                 Success = false,
@@ -76,9 +76,9 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing item {ItemId} from transport box {BoxId}", 
+            _logger.LogError(ex, "Error removing item {ItemId} from transport box {BoxId}",
                 request.ItemId, request.BoxId);
-            
+
             return new RemoveItemFromBoxResponse
             {
                 Success = false,

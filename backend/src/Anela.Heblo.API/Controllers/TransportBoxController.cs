@@ -133,7 +133,7 @@ public class TransportBoxController : ControllerBase
             BoxId = id,
             ItemId = itemId
         };
-        
+
         var response = await _mediator.Send(request, cancellationToken);
         if (!response.Success)
         {

@@ -68,7 +68,7 @@ public class ChangeTransportBoxStateHandlerTests
         result.UpdatedBox.Should().BeNull();
     }
 
-    
+
     [Fact]
     public async Task Handle_ValidTransition_NewToOpened_ReturnsSuccess()
     {
@@ -136,7 +136,7 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-   
+
     [Fact]
     public async Task Handle_OpenedToInTransit_WithItems_ReturnsSuccess()
     {
@@ -307,28 +307,28 @@ public class ChangeTransportBoxStateHandlerTests
     private TransportBox CreateTestBoxWithItems(TransportBoxState state)
     {
         var box = CreateTestBox(state);
-        
+
         // Add a test item to the box using reflection
         var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (itemsField != null)
         {
             var items = (List<TransportBoxItem>)itemsField.GetValue(box)!;
-            
+
             // Create a test item using reflection since constructor might be internal/private
             var itemType = typeof(TransportBoxItem);
-            var item = Activator.CreateInstance(itemType, 
-                "TEST-PRODUCT", 
-                "Test Product", 
-                1.0, 
-                DateTime.Now, 
+            var item = Activator.CreateInstance(itemType,
+                "TEST-PRODUCT",
+                "Test Product",
+                1.0,
+                DateTime.Now,
                 "TestUser");
-            
+
             if (item != null)
             {
                 items.Add((TransportBoxItem)item);
             }
         }
-        
+
         return box;
     }
 }
