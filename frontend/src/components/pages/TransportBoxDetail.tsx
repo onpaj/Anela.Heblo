@@ -6,6 +6,12 @@ import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/genera
 import AddItemToBoxModal from './AddItemToBoxModal';
 import LocationSelectionModal from './LocationSelectionModal';
 
+// Type-safe interface for accessing API client internals
+interface ApiClientWithInternals {
+  baseUrl: string;
+  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+}
+
 interface TransportBoxDetailProps {
   boxId: number | null;
   isOpen: boolean;
@@ -207,12 +213,12 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
     try {
       const { getAuthenticatedApiClient } = await import('../../api/client');
       
-      const apiClient = await getAuthenticatedApiClient();
+      const apiClient = getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
       
       // Use authenticated API client for DELETE request
-      const baseUrl = (apiClient as any).baseUrl;
+      const baseUrl = apiClient.baseUrl;
       const fullUrl = `${baseUrl}/api/transport-boxes/${boxId}/items/${itemId}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
+      const response = await apiClient.http.fetch(fullUrl, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
