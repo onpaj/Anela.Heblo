@@ -19,18 +19,8 @@ public static class ServiceCollectionExtensions
 
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
-            services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
-            {
-                ConnectionString = appInsightsConnectionString,
-                EnableAdaptiveSampling = true,
-                EnableQuickPulseMetricStream = true,
-                EnableDependencyTrackingTelemetryModule = true,
-                EnablePerformanceCounterCollectionModule = true,
-                EnableRequestTrackingTelemetryModule = true,
-                EnableEventCounterCollectionModule = true,
-                EnableAppServicesHeartbeatTelemetryModule = true,
-                DeveloperMode = environment.IsDevelopment()
-            });
+            // Use optimized Application Insights configuration
+            services.AddOptimizedApplicationInsights(configuration, environment);
 
             // Configure Cloud Role for environment identification
             services.Configure<TelemetryConfiguration>(telemetryConfig =>
