@@ -3,6 +3,7 @@ import { Chart } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Calendar, Package, BarChart3 } from 'lucide-react';
 import { useFinancialOverviewQuery } from '../../api/hooks/useFinancialOverview';
+import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 type PeriodType = 'current-year' | 'current-and-previous-year' | 'last-6-months' | 'last-13-months' | 'last-26-months';
 
@@ -227,17 +228,19 @@ const FinancialOverview: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-none">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Finanční přehled</h1>
-        <p className="mt-2 text-gray-600">Přehled příjmů, nákladů a celkové bilance firmy</p>
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 mb-3">
+        <h1 className="text-lg font-semibold text-gray-900">Finanční přehled</h1>
+        <p className="mt-1 text-gray-600">Přehled příjmů, nákladů a celkové bilance firmy</p>
       </div>
 
-      {/* Controls */}
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div>
+      {/* Content Area */}
+      <div className="flex-1 overflow-auto">
+        {/* Controls */}
+        <div className="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div>
             <label htmlFor="period-select" className="block text-sm font-medium text-gray-700 mb-2">
               Časové období:
             </label>
@@ -437,8 +440,8 @@ const FinancialOverview: React.FC = () => {
 
       {/* Data Table */}
       {data?.data && (
-        <div className="bg-white shadow sm:rounded-md flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 px-4 py-5 sm:px-6 border-b border-gray-200">
+        <div className="bg-white shadow sm:rounded-md mb-8">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Měsíční data
             </h3>
@@ -446,7 +449,7 @@ const FinancialOverview: React.FC = () => {
               Detailní rozpis příjmů, nákladů a bilance po jednotlivých měsících{includeStockData ? ' (včetně skladových dat)' : ''}
             </p>
           </div>
-          <div className="flex-1 overflow-auto">
+          <div className="overflow-auto" style={{ maxHeight: '400px' }}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
@@ -513,16 +516,17 @@ const FinancialOverview: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
-      {data?.data && data.data.length === 0 && (
-        <div className="text-center py-12">
-          <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Žádná finanční data</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Pro vybrané období nejsou k dispozici žádná finanční data.
-          </p>
-        </div>
-      )}
+        {/* Empty State */}
+        {data?.data && data.data.length === 0 && (
+          <div className="text-center py-12">
+            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Žádná finanční data</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Pro vybrané období nejsou k dispozici žádná finanční data.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

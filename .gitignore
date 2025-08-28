@@ -141,3 +141,5 @@ test-results/
 *.coverage
 *.coveragexml
 
+
+.playwright-mcp

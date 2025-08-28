@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRecentAuditLogs, useRecentAuditSummary } from '../../api/hooks/useAudit';
 import { useManualCatalogRefresh, refreshOperations } from '../../api/hooks/useManualCatalogRefresh';
 import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings } from 'lucide-react';
+import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -88,20 +89,22 @@ const Dashboard: React.FC = () => {
   const stats = getSummaryStats();
 
   return (
-    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-gray-900">Administrační dashboard</h1>
         <p className="mt-2 text-gray-600">Přehled systémové aktivity a audit logů</p>
       </div>
 
-      {/* Loading States */}
-      {(isLogsLoading || isSummaryLoading) && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          <span className="ml-2 text-gray-600">Načítám data...</span>
-        </div>
-      )}
+      {/* Content Area */}
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 overflow-auto">
+        {/* Loading States */}
+        {(isLogsLoading || isSummaryLoading) && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span className="ml-2 text-gray-600">Načítám data...</span>
+          </div>
+        )}
 
       {/* Error States */}
       {(logsError || summaryError) && (
@@ -244,165 +247,165 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Summary Table */}
-      {activeTab === 'overview' && auditSummary?.summary && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8 flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Souhrn podle typu dat (posledních 7 dní)
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Statistiky načítání dat podle zdroje a typu
-            </p>
+        {/* Summary Table */}
+        {activeTab === 'overview' && auditSummary?.summary && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Souhrn podle typu dat (posledních 7 dní)
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Statistiky načítání dat podle zdroje a typu
+              </p>
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Typ dat / Zdroj
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Požadavky
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Úspěšnost
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Záznamy
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Průměrná doba
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Poslední úspěch
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {auditSummary.summary.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {item.dataType}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {item.source}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {item.totalRequests}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {item.failedRequests > 0 && (
+                              <span className="text-red-600">
+                                {item.failedRequests} chyb
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {item.totalRequests > 0 
+                              ? `${((item.successfulRequests / item.totalRequests) * 100).toFixed(1)}%`
+                              : '0%'
+                            }
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.totalRecords.toLocaleString('cs-CZ')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.averageDuration > 0 ? `${item.averageDuration.toFixed(0)}ms` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {item.lastSuccessfulLoad 
+                            ? formatDateTime(item.lastSuccessfulLoad)
+                            : 'Nikdy'
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+            </div>
           </div>
-          <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Typ dat / Zdroj
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Požadavky
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Úspěšnost
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Záznamy
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Průměrná doba
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Poslední úspěch
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {auditSummary.summary.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.dataType}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {item.source}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {item.totalRequests}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {item.failedRequests > 0 && (
-                          <span className="text-red-600">
-                            {item.failedRequests} chyb
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {item.totalRequests > 0 
-                          ? `${((item.successfulRequests / item.totalRequests) * 100).toFixed(1)}%`
-                          : '0%'
-                        }
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.totalRecords.toLocaleString('cs-CZ')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.averageDuration > 0 ? `${item.averageDuration.toFixed(0)}ms` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.lastSuccessfulLoad 
-                        ? formatDateTime(item.lastSuccessfulLoad)
-                        : 'Nikdy'
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Recent Logs Table */}
-      {activeTab === 'logs' && auditLogs?.logs && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Poslední audit logy (24 hodin)
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Zobrazeno posledních {auditLogs.logs.length} záznamů
-            </p>
-          </div>
-          <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Čas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Typ / Zdroj
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Záznamy
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Doba trvání
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Chyba
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {auditLogs.logs.map((log) => (
-                  <tr key={log.id} className={`hover:bg-gray-50 ${!log.success ? 'bg-red-50' : ''}`}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDateTime(log.timestamp)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusIcon(log.success)}
-                        <span className="ml-2">
-                          {getStatusBadge(log.success)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {log.dataType}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {log.source}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.recordCount.toLocaleString('cs-CZ')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDuration(log.duration)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-red-600 max-w-xs truncate">
-                      {log.errorMessage || '-'}
-                    </td>
+        {/* Recent Logs Table */}
+        {activeTab === 'logs' && auditLogs?.logs && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Poslední audit logy (24 hodin)
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Zobrazeno posledních {auditLogs.logs.length} záznamů
+              </p>
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Čas
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Typ / Zdroj
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Záznamy
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Doba trvání
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Chyba
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {auditLogs.logs.map((log) => (
+                    <tr key={log.id} className={`hover:bg-gray-50 ${!log.success ? 'bg-red-50' : ''}`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDateTime(log.timestamp)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getStatusIcon(log.success)}
+                          <span className="ml-2">
+                            {getStatusBadge(log.success)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {log.dataType}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {log.source}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {log.recordCount.toLocaleString('cs-CZ')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDuration(log.duration)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-red-600 max-w-xs truncate">
+                        {log.errorMessage || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Manual Refresh Tab */}
       {activeTab === 'manual-refresh' && (
@@ -492,6 +495,7 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 };

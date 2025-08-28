@@ -6,6 +6,7 @@ import {
 } from '../../api/hooks/usePurchaseOrders';
 import PurchaseOrderDetail from './PurchaseOrderDetail';
 import PurchaseOrderForm from './PurchaseOrderForm';
+import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 // Status labels mapping
 const statusLabels: Record<string, string> = {
@@ -241,7 +242,7 @@ const PurchaseOrderList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900">Nákupní objednávky</h1>
