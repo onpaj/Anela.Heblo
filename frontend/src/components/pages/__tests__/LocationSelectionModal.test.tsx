@@ -114,7 +114,7 @@ describe('LocationSelectionModal', () => {
       expect(locationSelect).toHaveValue('Kumbal');
     });
 
-    it('should load last selected location from localStorage', () => {
+    it('should load last selected location from localStorage', async () => {
       localStorageMock.getItem.mockReturnValue('Relax');
 
       render(
@@ -127,8 +127,12 @@ describe('LocationSelectionModal', () => {
         { wrapper: createWrapper }
       );
 
-      const locationSelect = screen.getByLabelText('Vyberte lokaci pro rezervu:');
-      expect(locationSelect).toHaveValue('Relax');
+      // Wait for useEffect to complete
+      await waitFor(() => {
+        const locationSelect = screen.getByLabelText('Vyberte lokaci pro rezervu:');
+        expect(locationSelect).toHaveValue('Relax');
+      });
+      
       expect(localStorageMock.getItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation');
     });
 
@@ -251,9 +255,16 @@ describe('LocationSelectionModal', () => {
       const locationSelect = screen.getByLabelText('Vyberte lokaci pro rezervu:');
       fireEvent.change(locationSelect, { target: { value: 'Kumbal' } });
 
+      // Wait for the button to be enabled after selecting location
+      await waitFor(() => {
+        const submitButton = screen.getByText('Přesunout do rezervy');
+        expect(submitButton).not.toBeDisabled();
+      });
+
       const submitButton = screen.getByText('Přesunout do rezervy');
       fireEvent.click(submitButton);
 
+      // Wait for mutation to be called
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           boxId: 1,
@@ -262,10 +273,10 @@ describe('LocationSelectionModal', () => {
         });
       });
 
-      // Wait for async operations to complete
+      // Wait for success callback and localStorage to be set
       await waitFor(() => {
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'Kumbal');
         expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'Kumbal');
       });
     });
 
@@ -532,14 +543,28 @@ describe('LocationSelectionModal', () => {
       const locationSelect = screen.getByLabelText('Vyberte lokaci pro rezervu:');
       fireEvent.change(locationSelect, { target: { value: 'SkladSkla' } });
 
+      // Wait for the button to be enabled
+      await waitFor(() => {
+        const submitButton = screen.getByText('Přesunout do rezervy');
+        expect(submitButton).not.toBeDisabled();
+      });
+
       const submitButton = screen.getByText('Přesunout do rezervy');
       fireEvent.click(submitButton);
 
+      // Wait for mutation and success callback
       await waitFor(() => {
-        expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          boxId: 1,
+          newState: TransportBoxState.Reserve,
+          location: 'SkladSkla'
+        });
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'SkladSkla');
+      await waitFor(() => {
+        expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'SkladSkla');
+      });
     });
 
     it('should not save to localStorage on submission failure', async () => {
