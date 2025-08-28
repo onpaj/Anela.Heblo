@@ -32,38 +32,42 @@ public class CreateNewTransportBoxHandler : IRequestHandler<CreateNewTransportBo
 
     public async Task<CreateNewTransportBoxResponse> Handle(CreateNewTransportBoxRequest request, CancellationToken cancellationToken)
     {
-        try
+        // Using dispose pattern - SaveChangesAsync called automatically on dispose
+        await using (_unitOfWork)
         {
-            var currentUser = _currentUserService.GetCurrentUser();
-            var userName = currentUser.Name;
-
-            var transportBox = new TransportBox
+            try
             {
-                Description = request.Description,
-                CreatorId = Guid.TryParse(currentUser.Id, out var userId) ? userId : null
-            };
+                var currentUser = _currentUserService.GetCurrentUser();
+                var userName = currentUser.Name;
 
-            await _repository.AddAsync(transportBox, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var transportBox = new TransportBox
+                {
+                    Description = request.Description,
+                    CreatorId = Guid.TryParse(currentUser.Id, out var userId) ? userId : null
+                };
 
-            _logger.LogInformation("Created new transport box with ID {BoxId} by user {UserName}", transportBox.Id, userName);
+                await _repository.AddAsync(transportBox, cancellationToken);
 
-            var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
+                _logger.LogInformation("Created new transport box with ID {BoxId} by user {UserName}", transportBox.Id, userName);
 
-            return new CreateNewTransportBoxResponse
+                var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
+
+                return new CreateNewTransportBoxResponse
+                {
+                    Success = true,
+                    TransportBox = transportBoxDto
+                };
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                TransportBox = transportBoxDto
-            };
+                _logger.LogError(ex, "Error creating new transport box");
+                return new CreateNewTransportBoxResponse
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating new transport box");
-            return new CreateNewTransportBoxResponse
-            {
-                Success = false,
-                ErrorMessage = ex.Message
-            };
-        }
+        // SaveChangesAsync is automatically called here when _unitOfWork is disposed
     }
 }

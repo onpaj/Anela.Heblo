@@ -33,7 +33,8 @@ public class UnitOfWorkTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
 
         _context = new ApplicationDbContext(dbContextOptions);
-        _unitOfWork = new UnitOfWork(_context, _serviceProvider);
+        Func<Type, object?> repositoryFactory = type => _serviceProvider.GetService(type);
+        _unitOfWork = new UnitOfWork(_context, repositoryFactory);
     }
 
     [Fact]
@@ -146,35 +147,35 @@ public class UnitOfWorkTests : IDisposable
     }
 
     [Fact]
-    public void Complete_ShouldMarkUnitOfWorkAsCompleted()
+    public void Abort_ShouldMarkUnitOfWorkAsAborted()
     {
         // Act
-        _unitOfWork.Complete();
+        _unitOfWork.Abort();
 
         // Assert - No exception should be thrown
-        Assert.True(true); // Completion is marked internally
+        Assert.True(true); // Abort is marked internally
     }
 
     [Fact]
-    public async Task DisposeAsync_WithoutComplete_ShouldNotSaveChanges()
+    public async Task DisposeAsync_WithoutAbort_ShouldSaveChanges()
     {
-        // Act & Assert - Should not save changes when Complete() was not called
+        // Act & Assert - Should automatically save changes when Abort() was not called
         await _unitOfWork.DisposeAsync();
 
-        // No exception should be thrown, and changes should not be saved
+        // No exception should be thrown, changes should be saved automatically
         Assert.True(true); // Test passes if no exception occurs
     }
 
     [Fact]
-    public async Task DisposeAsync_WithComplete_ShouldSaveChanges()
+    public async Task DisposeAsync_WithAbort_ShouldNotSaveChanges()
     {
         // Arrange
-        _unitOfWork.Complete();
+        _unitOfWork.Abort();
 
-        // Act - This should trigger SaveChangesAsync due to Complete()
+        // Act - This should NOT trigger SaveChangesAsync due to Abort()
         await _unitOfWork.DisposeAsync();
 
-        // Assert - No exception should be thrown
+        // Assert - No exception should be thrown, but changes should not be saved
         Assert.True(true); // Test passes if no exception occurs
     }
 

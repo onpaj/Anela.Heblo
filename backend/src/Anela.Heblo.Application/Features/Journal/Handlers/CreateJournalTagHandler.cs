@@ -36,28 +36,32 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
                 throw new UnauthorizedAccessException("User must be authenticated to create tags");
             }
 
-            var tag = new JournalEntryTag
+            // Using dispose pattern - SaveChangesAsync called automatically on dispose
+            await using (_unitOfWork)
             {
-                Name = request.Name.Trim(),
-                Color = request.Color,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = currentUser.Id
-            };
+                var tag = new JournalEntryTag
+                {
+                    Name = request.Name.Trim(),
+                    Color = request.Color,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByUserId = currentUser.Id
+                };
 
-            var createdTag = await _tagRepository.AddAsync(tag, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var createdTag = await _tagRepository.AddAsync(tag, cancellationToken);
 
-            _logger.LogInformation(
-                "Journal tag {TagId} created by user {UserId}",
-                createdTag.Id,
-                currentUser.Id);
+                _logger.LogInformation(
+                    "Journal tag {TagId} created by user {UserId}",
+                    createdTag.Id,
+                    currentUser.Id);
 
-            return new CreateJournalTagResponse
-            {
-                Id = createdTag.Id,
-                Name = createdTag.Name,
-                Color = createdTag.Color
-            };
+                return new CreateJournalTagResponse
+                {
+                    Id = createdTag.Id,
+                    Name = createdTag.Name,
+                    Color = createdTag.Color
+                };
+            }
+            // SaveChangesAsync is automatically called here when _unitOfWork is disposed
         }
     }
 }

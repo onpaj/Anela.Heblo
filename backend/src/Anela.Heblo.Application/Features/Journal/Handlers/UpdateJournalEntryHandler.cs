@@ -41,52 +41,56 @@ namespace Anela.Heblo.Application.Features.Journal.Handlers
                 throw new InvalidOperationException($"Journal entry with ID {request.Id} not found");
             }
 
-            // Check if user owns the entry (for now, allow all authenticated users to edit)
-            // In production, you might want to restrict this to the original author
-
-            var now = DateTime.UtcNow;
-
-            // Update basic fields
-            entry.Title = request.Title?.Trim();
-            entry.Content = request.Content.Trim();
-            entry.EntryDate = request.EntryDate.Date;
-            entry.ModifiedAt = now;
-            entry.ModifiedByUserId = currentUser.Id;
-
-            // Update product associations (both products and families)
-            entry.ProductAssociations.Clear();
-            if (request.AssociatedProducts?.Any() == true)
+            // Using dispose pattern - SaveChangesAsync called automatically on dispose
+            await using (_unitOfWork)
             {
-                foreach (var productIdentifier in request.AssociatedProducts.Distinct())
+                // Check if user owns the entry (for now, allow all authenticated users to edit)
+                // In production, you might want to restrict this to the original author
+
+                var now = DateTime.UtcNow;
+
+                // Update basic fields
+                entry.Title = request.Title?.Trim();
+                entry.Content = request.Content.Trim();
+                entry.EntryDate = request.EntryDate.Date;
+                entry.ModifiedAt = now;
+                entry.ModifiedByUserId = currentUser.Id;
+
+                // Update product associations (both products and families)
+                entry.ProductAssociations.Clear();
+                if (request.AssociatedProducts?.Any() == true)
                 {
-                    // Try as full product code first, then as prefix
-                    entry.AssociateWithProduct(productIdentifier);
+                    foreach (var productIdentifier in request.AssociatedProducts.Distinct())
+                    {
+                        // Try as full product code first, then as prefix
+                        entry.AssociateWithProduct(productIdentifier);
+                    }
                 }
-            }
 
-            // Update tag assignments
-            entry.TagAssignments.Clear();
-            if (request.TagIds?.Any() == true)
-            {
-                foreach (var tagId in request.TagIds.Distinct())
+                // Update tag assignments
+                entry.TagAssignments.Clear();
+                if (request.TagIds?.Any() == true)
                 {
-                    entry.AssignTag(tagId);
+                    foreach (var tagId in request.TagIds.Distinct())
+                    {
+                        entry.AssignTag(tagId);
+                    }
                 }
+
+                await _journalRepository.UpdateAsync(entry, cancellationToken);
+
+                _logger.LogInformation(
+                    "Journal entry {EntryId} updated by user {UserId}",
+                    entry.Id,
+                    currentUser.Id);
+
+                return new UpdateJournalEntryResponse
+                {
+                    Id = entry.Id,
+                    ModifiedAt = entry.ModifiedAt
+                };
             }
-
-            await _journalRepository.UpdateAsync(entry, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Journal entry {EntryId} updated by user {UserId}",
-                entry.Id,
-                currentUser.Id);
-
-            return new UpdateJournalEntryResponse
-            {
-                Id = entry.Id,
-                ModifiedAt = entry.ModifiedAt
-            };
+            // SaveChangesAsync is automatically called here when _unitOfWork is disposed
         }
     }
 }

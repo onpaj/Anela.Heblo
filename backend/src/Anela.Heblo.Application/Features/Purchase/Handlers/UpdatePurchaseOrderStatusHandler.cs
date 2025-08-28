@@ -45,32 +45,36 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
             throw new ArgumentException($"Invalid status: {request.Status}");
         }
 
-        try
+        // Using dispose pattern - SaveChangesAsync called automatically on dispose
+        await using (_unitOfWork)
         {
-            var currentUser = _currentUserService.GetCurrentUser();
-            var updatedBy = currentUser.Name ?? "System";
+            try
+            {
+                var currentUser = _currentUserService.GetCurrentUser();
+                var updatedBy = currentUser.Name ?? "System";
 
-            purchaseOrder.ChangeStatus(newStatus, updatedBy);
+                purchaseOrder.ChangeStatus(newStatus, updatedBy);
 
-            await _repository.UpdateAsync(purchaseOrder, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _repository.UpdateAsync(purchaseOrder, cancellationToken);
 
-            _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",
-                purchaseOrder.OrderNumber, newStatus);
+                _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",
+                    purchaseOrder.OrderNumber, newStatus);
 
-            return new UpdatePurchaseOrderStatusResponse(
-                purchaseOrder.Id,
-                purchaseOrder.OrderNumber,
-                purchaseOrder.Status.ToString(),
-                purchaseOrder.UpdatedAt,
-                purchaseOrder.UpdatedBy
-            );
+                return new UpdatePurchaseOrderStatusResponse(
+                    purchaseOrder.Id,
+                    purchaseOrder.OrderNumber,
+                    purchaseOrder.Status.ToString(),
+                    purchaseOrder.UpdatedAt,
+                    purchaseOrder.UpdatedBy
+                );
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Cannot update status for purchase order {OrderNumber}: {Message}",
+                    purchaseOrder.OrderNumber, ex.Message);
+                throw;
+            }
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Cannot update status for purchase order {OrderNumber}: {Message}",
-                purchaseOrder.OrderNumber, ex.Message);
-            throw;
-        }
+        // SaveChangesAsync is automatically called here when _unitOfWork is disposed
     }
 }

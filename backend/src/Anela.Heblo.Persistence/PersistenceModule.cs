@@ -30,8 +30,14 @@ public static class PersistenceModule
             }
         });
 
-        // Register Unit of Work
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        // Register Unit of Work with unitfactory function
+        services.AddScoped<IUnitOfWork>(provider =>
+        {
+            var context = provider.GetRequiredService<ApplicationDbContext>();
+            // Create a factory function that can resolve repository instances
+            Func<Type, object?> repositoryFactory = type => provider.GetService(type);
+            return new UnitOfWork(context, repositoryFactory);
+        });
 
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer

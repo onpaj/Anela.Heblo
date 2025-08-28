@@ -42,71 +42,73 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             return null;
         }
 
-        try
+        // Using dispose pattern - SaveChangesAsync called automatically on dispose
+        await using (_unitOfWork)
         {
-            var currentUser = _currentUserService.GetCurrentUser();
-            var updatedBy = currentUser.Name ?? "System";
-
-            // Update order number if provided
-            if (!string.IsNullOrEmpty(request.OrderNumber) && request.OrderNumber != purchaseOrder.OrderNumber)
+            try
             {
-                purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
-            }
+                var currentUser = _currentUserService.GetCurrentUser();
+                var updatedBy = currentUser.Name ?? "System";
 
-            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, updatedBy);
-
-            var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
-            var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();
-
-            var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
-            foreach (var lineId in linesToRemove)
-            {
-                purchaseOrder.RemoveLine(lineId);
-            }
-
-            foreach (var lineRequest in request.Lines)
-            {
-                if (lineRequest.Id.HasValue)
+                // Update order number if provided
+                if (!string.IsNullOrEmpty(request.OrderNumber) && request.OrderNumber != purchaseOrder.OrderNumber)
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
-                    purchaseOrder.UpdateLine(
-                        lineRequest.Id.Value,
-                        materialName,
-                        lineRequest.Quantity,
-                        lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                    purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
                 }
-                else
+
+                purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, updatedBy);
+
+                var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
+                var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();
+
+                var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
+                foreach (var lineId in linesToRemove)
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
-                    purchaseOrder.AddLine(
-                        lineRequest.MaterialId,
-                        materialName,
-                        lineRequest.Quantity,
-                        lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                    purchaseOrder.RemoveLine(lineId);
                 }
+
+                foreach (var lineRequest in request.Lines)
+                {
+                    if (lineRequest.Id.HasValue)
+                    {
+                        // Get material name from catalog if available
+                        var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                        var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+
+                        purchaseOrder.UpdateLine(
+                            lineRequest.Id.Value,
+                            materialName,
+                            lineRequest.Quantity,
+                            lineRequest.UnitPrice,
+                            lineRequest.Notes);
+                    }
+                    else
+                    {
+                        // Get material name from catalog if available
+                        var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                        var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
+
+                        purchaseOrder.AddLine(
+                            lineRequest.MaterialId,
+                            materialName,
+                            lineRequest.Quantity,
+                            lineRequest.UnitPrice,
+                            lineRequest.Notes);
+                    }
+                }
+
+                _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
+
+                return await MapToResponseAsync(purchaseOrder, cancellationToken);
             }
-
-            // Entity is already tracked from GetByIdWithDetailsAsync, EF will auto-detect changes
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
-
-            return await MapToResponseAsync(purchaseOrder, cancellationToken);
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Cannot update purchase order {OrderNumber}: {Message}",
+                    purchaseOrder.OrderNumber, ex.Message);
+                throw;
+            }
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Cannot update purchase order {OrderNumber}: {Message}",
-                purchaseOrder.OrderNumber, ex.Message);
-            throw;
-        }
+        // SaveChangesAsync is automatically called here when _unitOfWork is disposed
     }
 
 

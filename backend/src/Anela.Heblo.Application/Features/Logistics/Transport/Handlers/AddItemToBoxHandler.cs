@@ -36,65 +36,67 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
 
     public async Task<AddItemToBoxResponse> Handle(AddItemToBoxRequest request, CancellationToken cancellationToken)
     {
-        try
+        // Using dispose pattern - SaveChangesAsync called automatically on dispose
+        await using (_unitOfWork)
         {
-            var currentUser = _currentUserService.GetCurrentUser();
-            var userName = currentUser.Name;
-
-            var transportBox = await _repository.GetByIdWithDetailsAsync(request.BoxId);
-            if (transportBox == null)
+            try
             {
+                var currentUser = _currentUserService.GetCurrentUser();
+                var userName = currentUser.Name;
+
+                var transportBox = await _repository.GetByIdWithDetailsAsync(request.BoxId);
+                if (transportBox == null)
+                {
+                    return new AddItemToBoxResponse
+                    {
+                        Success = false,
+                        ErrorMessage = $"Transport box with ID {request.BoxId} not found"
+                    };
+                }
+
+                var addedItem = transportBox.AddItem(
+                    request.ProductCode,
+                    request.ProductName,
+                    request.Amount,
+                    _timeProvider.GetUtcNow().UtcDateTime,
+                    userName);
+
+                _logger.LogInformation("Added item {ProductCode} (amount: {Amount}) to transport box {BoxId} by user {UserName}",
+                    request.ProductCode, request.Amount, request.BoxId, userName);
+
+                var itemDto = _mapper.Map<TransportBoxItemDto>(addedItem);
+                var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
+
+                return new AddItemToBoxResponse
+                {
+                    Success = true,
+                    Item = itemDto,
+                    TransportBox = transportBoxDto
+                };
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning("Validation error adding item to transport box {BoxId}: {Error}",
+                    request.BoxId, ex.Message);
+
                 return new AddItemToBoxResponse
                 {
                     Success = false,
-                    ErrorMessage = $"Transport box with ID {request.BoxId} not found"
+                    ErrorMessage = ex.Message
                 };
             }
-
-            var addedItem = transportBox.AddItem(
-                request.ProductCode,
-                request.ProductName,
-                request.Amount,
-                _timeProvider.GetUtcNow().UtcDateTime,
-                userName);
-
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Added item {ProductCode} (amount: {Amount}) to transport box {BoxId} by user {UserName}",
-                request.ProductCode, request.Amount, request.BoxId, userName);
-
-            var itemDto = _mapper.Map<TransportBoxItemDto>(addedItem);
-            var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
-
-            return new AddItemToBoxResponse
+            catch (Exception ex)
             {
-                Success = true,
-                Item = itemDto,
-                TransportBox = transportBoxDto
-            };
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogWarning("Validation error adding item to transport box {BoxId}: {Error}",
-                request.BoxId, ex.Message);
+                _logger.LogError(ex, "Error adding item {ProductCode} to transport box {BoxId}",
+                    request.ProductCode, request.BoxId);
 
-            return new AddItemToBoxResponse
-            {
-                Success = false,
-                ErrorMessage = ex.Message
-            };
+                return new AddItemToBoxResponse
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding item {ProductCode} to transport box {BoxId}",
-                request.ProductCode, request.BoxId);
-
-            return new AddItemToBoxResponse
-            {
-                Success = false,
-                ErrorMessage = ex.Message
-            };
-        }
+        // SaveChangesAsync is automatically called here when _unitOfWork is disposed
     }
 }

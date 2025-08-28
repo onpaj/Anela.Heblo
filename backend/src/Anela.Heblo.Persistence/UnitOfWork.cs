@@ -4,7 +4,6 @@ using Anela.Heblo.Xcc.Persistance;
 using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Persistence;
 
@@ -15,16 +14,16 @@ namespace Anela.Heblo.Persistence;
 public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly Func<Type, object?> _repositoryFactory;
     private readonly Dictionary<Type, object> _repositories;
     private IDbContextTransaction? _transaction;
     private bool _disposed;
-    private bool _completed;
+    private bool _aborted;
 
-    public UnitOfWork(ApplicationDbContext context, IServiceProvider serviceProvider)
+    public UnitOfWork(ApplicationDbContext context, Func<Type, object?> repositoryFactory)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _repositoryFactory = repositoryFactory ?? throw new ArgumentNullException(nameof(repositoryFactory));
         _repositories = new Dictionary<Type, object>();
     }
 
@@ -38,8 +37,8 @@ public class UnitOfWork : IUnitOfWork
             return (IRepository<TEntity, TKey>)_repositories[type];
         }
 
-        // Try to get from DI container first, fallback to creating BaseRepository
-        var repository = _serviceProvider.GetService<IRepository<TEntity, TKey>>()
+        // Try to get from factory first, fallback to creating BaseRepository
+        var repository = _repositoryFactory(typeof(IRepository<TEntity, TKey>)) as IRepository<TEntity, TKey>
                       ?? new BaseRepository<TEntity, TKey>(_context);
 
         _repositories[type] = repository;
@@ -110,16 +109,17 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
-    public void Complete()
+    public void Abort()
     {
-        _completed = true;
+        _aborted = true;
     }
 
     public async ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
-            if (_completed)
+            // Automatically save changes unless explicitly aborted
+            if (!_aborted)
             {
                 await SaveChangesAsync();
             }

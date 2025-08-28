@@ -187,8 +187,7 @@ public class CreatePurchaseOrderHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
-        // Verify dispose pattern usage - Complete() should be called and DisposeAsync() should be invoked
-        _unitOfWorkMock.Verify(x => x.Complete(), Times.Once);
+        // Verify dispose pattern usage - DisposeAsync() should be invoked (no Complete() needed with new pattern)
         _unitOfWorkMock.Verify(x => x.DisposeAsync(), Times.Once);
     }
 

@@ -92,9 +92,6 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
 
             await _repository.AddAsync(purchaseOrder, cancellationToken);
 
-            // Mark as complete - SaveChangesAsync will be called automatically on dispose
-            _unitOfWork.Complete();
-
             _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
                 orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);
 
