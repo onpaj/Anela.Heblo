@@ -24,6 +24,8 @@ public class PurchaseOrder : IEntity<int>
     public IReadOnlyCollection<PurchaseOrderHistory> History => _history.AsReadOnly();
 
     public decimal TotalAmount => _lines.Sum(l => l.LineTotal);
+    
+    public bool CanEdit => Status != PurchaseOrderStatus.Completed;
 
     protected PurchaseOrder()
     {
@@ -53,9 +55,9 @@ public class PurchaseOrder : IEntity<int>
 
     public void AddLine(string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!CanEdit)
         {
-            throw new InvalidOperationException("Cannot add lines to non-draft orders");
+            throw new InvalidOperationException("Cannot add lines to completed orders");
         }
 
         var line = new PurchaseOrderLine(Id, materialId, materialName, quantity, unitPrice, notes);
@@ -70,9 +72,9 @@ public class PurchaseOrder : IEntity<int>
 
     public void RemoveLine(int lineId)
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!CanEdit)
         {
-            throw new InvalidOperationException("Cannot remove lines from non-draft orders");
+            throw new InvalidOperationException("Cannot remove lines from completed orders");
         }
 
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
@@ -86,9 +88,9 @@ public class PurchaseOrder : IEntity<int>
 
     public void UpdateLine(int lineId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!CanEdit)
         {
-            throw new InvalidOperationException("Cannot update lines in non-draft orders");
+            throw new InvalidOperationException("Cannot update lines in completed orders");
         }
 
         var line = _lines.FirstOrDefault(l => l.Id == lineId);
@@ -102,9 +104,9 @@ public class PurchaseOrder : IEntity<int>
 
     public void ClearAllLines()
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!CanEdit)
         {
-            throw new InvalidOperationException("Cannot clear lines from non-draft orders");
+            throw new InvalidOperationException("Cannot clear lines from completed orders");
         }
 
         _lines.Clear();
@@ -114,7 +116,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void Update(string supplierName, DateTime? expectedDeliveryDate, ContactVia? contactVia, string? notes, string updatedBy)
     {
-        if (Status == PurchaseOrderStatus.Completed)
+        if (!CanEdit)
         {
             throw new InvalidOperationException("Cannot update completed orders");
         }
@@ -129,9 +131,9 @@ public class PurchaseOrder : IEntity<int>
 
     public void UpdateOrderNumber(string orderNumber, string updatedBy)
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!CanEdit)
         {
-            throw new InvalidOperationException("Cannot update order number for non-draft orders");
+            throw new InvalidOperationException("Cannot update order number for completed orders");
         }
 
         var oldOrderNumber = OrderNumber;

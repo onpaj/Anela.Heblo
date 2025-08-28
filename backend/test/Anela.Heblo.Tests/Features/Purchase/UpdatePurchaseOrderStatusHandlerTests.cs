@@ -275,6 +275,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             "Test Supplier",
             DateTime.UtcNow.Date,
             DateTime.UtcNow.Date.AddDays(14),
+            null, // ContactVia
             "Test notes",
             "System");
     }

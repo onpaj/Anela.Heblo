@@ -99,15 +99,37 @@ public class PurchaseOrderTests
     }
 
     [Fact]
-    public void AddLine_ToNonDraftOrder_ShouldThrowInvalidOperationException()
+    public void AddLine_ToInTransitOrder_ShouldAddLineSuccessfully()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        const decimal quantity = 10;
+        const decimal unitPrice = 25.50m;
+        const string notes = "Test line item";
+
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes);
+
+        purchaseOrder.Lines.Should().HaveCount(1);
+        var line = purchaseOrder.Lines.First();
+        line.MaterialId.Should().Be(ValidMaterialId);
+        line.Quantity.Should().Be(quantity);
+        line.UnitPrice.Should().Be(unitPrice);
+        line.Notes.Should().Be(notes);
+        line.LineTotal.Should().Be(255.00m);
+        purchaseOrder.TotalAmount.Should().Be(255.00m);
+    }
+
+    [Fact]
+    public void AddLine_ToCompletedOrder_ShouldThrowInvalidOperationException()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
         var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
 
         action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Cannot add lines to non-draft orders");
+            .WithMessage("Cannot add lines to completed orders");
     }
 
     [Fact]
@@ -124,17 +146,32 @@ public class PurchaseOrderTests
     }
 
     [Fact]
-    public void RemoveLine_FromNonDraftOrder_ShouldThrowInvalidOperationException()
+    public void RemoveLine_FromInTransitOrder_ShouldRemoveLineSuccessfully()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
+        purchaseOrder.RemoveLine(lineId);
+
+        purchaseOrder.Lines.Should().BeEmpty();
+        purchaseOrder.TotalAmount.Should().Be(0);
+    }
+
+    [Fact]
+    public void RemoveLine_FromCompletedOrder_ShouldThrowInvalidOperationException()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        var lineId = purchaseOrder.Lines.First().Id;
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
+
         var action = () => purchaseOrder.RemoveLine(lineId);
 
         action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Cannot remove lines from non-draft orders");
+            .WithMessage("Cannot remove lines from completed orders");
     }
 
     [Fact]
@@ -155,17 +192,36 @@ public class PurchaseOrderTests
     }
 
     [Fact]
-    public void UpdateLine_InNonDraftOrder_ShouldThrowInvalidOperationException()
+    public void UpdateLine_InInTransitOrder_ShouldUpdateLineSuccessfully()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes");
+        var lineId = purchaseOrder.Lines.First().Id;
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+
+        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
+
+        var line = purchaseOrder.Lines.First();
+        line.Quantity.Should().Be(20);
+        line.UnitPrice.Should().Be(30.00m);
+        line.Notes.Should().Be("new notes");
+        line.LineTotal.Should().Be(600.00m);
+        purchaseOrder.TotalAmount.Should().Be(600.00m);
+    }
+
+    [Fact]
+    public void UpdateLine_InCompletedOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
         var action = () => purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
 
         action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Cannot update lines in non-draft orders");
+            .WithMessage("Cannot update lines in completed orders");
     }
 
     [Fact]
@@ -346,6 +402,95 @@ public class PurchaseOrderTests
         purchaseOrder.ContactVia.Should().Be(ContactVia.Phone);
         purchaseOrder.UpdatedBy.Should().Be(updatedBy);
         purchaseOrder.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void ClearAllLines_InTransitOrder_ShouldClearLinesSuccessfully()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
+        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2");
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+
+        purchaseOrder.ClearAllLines();
+
+        purchaseOrder.Lines.Should().BeEmpty();
+        purchaseOrder.TotalAmount.Should().Be(0);
+    }
+
+    [Fact]
+    public void ClearAllLines_CompletedOrder_ShouldThrowInvalidOperationException()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
+
+        var action = () => purchaseOrder.ClearAllLines();
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot clear lines from completed orders");
+    }
+
+    [Fact]
+    public void UpdateOrderNumber_InTransitOrder_ShouldUpdateSuccessfully()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        const string newOrderNumber = "PO-2024-002";
+        const string updatedBy = "updater@example.com";
+
+        purchaseOrder.UpdateOrderNumber(newOrderNumber, updatedBy);
+
+        purchaseOrder.OrderNumber.Should().Be(newOrderNumber);
+        purchaseOrder.UpdatedBy.Should().Be(updatedBy);
+        purchaseOrder.UpdatedAt.Should().NotBeNull();
+        purchaseOrder.History.Should().HaveCountGreaterThan(1);
+        
+        var historyEntry = purchaseOrder.History.Last();
+        historyEntry.Action.Should().Contain("Order number changed");
+        historyEntry.OldValue.Should().Be(ValidOrderNumber);
+        historyEntry.NewValue.Should().Be(newOrderNumber);
+    }
+
+    [Fact]
+    public void UpdateOrderNumber_CompletedOrder_ShouldThrowInvalidOperationException()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
+
+        var action = () => purchaseOrder.UpdateOrderNumber("PO-2024-002", "updater@example.com");
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot update order number for completed orders");
+    }
+
+    [Fact]
+    public void CanEdit_DraftStatus_ShouldReturnTrue()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+
+        purchaseOrder.CanEdit.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanEdit_InTransitStatus_ShouldReturnTrue()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+
+        purchaseOrder.CanEdit.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanEdit_CompletedStatus_ShouldReturnFalse()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
+
+        purchaseOrder.CanEdit.Should().BeFalse();
     }
 
     private static PurchaseOrder CreateValidPurchaseOrder()
