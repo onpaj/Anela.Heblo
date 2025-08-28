@@ -49,7 +49,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                 purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
             }
 
-            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.Notes, updatedBy);
+            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.ContactVia, request.Notes, updatedBy);
 
             var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
             var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();
@@ -116,30 +116,34 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
             var materialName = material?.ProductName ?? "Unknown Material";
 
-            lines.Add(new PurchaseOrderLineDto(
-                line.Id,
-                line.MaterialId,
-                line.MaterialId, // Code is same as MaterialId
-                line.MaterialName,
-                line.Quantity,
-                line.UnitPrice,
-                line.LineTotal,
-                line.Notes));
+            lines.Add(new PurchaseOrderLineDto
+            {
+                Id = line.Id,
+                MaterialId = line.MaterialId,
+                Code = line.MaterialId, // Code is same as MaterialId
+                MaterialName = line.MaterialName,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal,
+                Notes = line.Notes
+            });
         }
 
-        return new UpdatePurchaseOrderResponse(
-            purchaseOrder.Id,
-            purchaseOrder.OrderNumber,
-            0, // No longer using SupplierId
-            purchaseOrder.SupplierName,
-            purchaseOrder.OrderDate,
-            purchaseOrder.ExpectedDeliveryDate,
-            purchaseOrder.Status.ToString(),
-            purchaseOrder.Notes,
-            purchaseOrder.TotalAmount,
-            lines,
-            purchaseOrder.UpdatedAt,
-            purchaseOrder.UpdatedBy
-        );
+        return new UpdatePurchaseOrderResponse
+        {
+            Id = purchaseOrder.Id,
+            OrderNumber = purchaseOrder.OrderNumber,
+            SupplierId = 0, // No longer using SupplierId
+            SupplierName = purchaseOrder.SupplierName,
+            OrderDate = purchaseOrder.OrderDate,
+            ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
+            ContactVia = purchaseOrder.ContactVia,
+            Status = purchaseOrder.Status.ToString(),
+            Notes = purchaseOrder.Notes,
+            TotalAmount = purchaseOrder.TotalAmount,
+            Lines = lines,
+            UpdatedAt = purchaseOrder.UpdatedAt,
+            UpdatedBy = purchaseOrder.UpdatedBy
+        };
     }
 }

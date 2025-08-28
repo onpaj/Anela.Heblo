@@ -30,7 +30,7 @@ public class FinancialAnalysisBackgroundService : BackgroundService
             // Initial load on startup
             await RefreshFinancialDataAsync(stoppingToken);
         }
-        
+
 
         var lastRefresh = DateTime.UtcNow;
 

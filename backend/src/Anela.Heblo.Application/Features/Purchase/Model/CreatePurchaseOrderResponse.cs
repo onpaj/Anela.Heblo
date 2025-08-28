@@ -1,19 +1,23 @@
+using Anela.Heblo.Domain.Features.Purchase;
+
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
-public record CreatePurchaseOrderResponse(
-    int Id,
-    string OrderNumber,
-    int SupplierId,
-    string SupplierName,
-    DateTime OrderDate,
-    DateTime? ExpectedDeliveryDate,
-    string Status,
-    string? Notes,
-    decimal TotalAmount,
-    List<PurchaseOrderLineDto> Lines,
-    List<PurchaseOrderHistoryDto> History,
-    DateTime CreatedAt,
-    string CreatedBy,
-    DateTime? UpdatedAt,
-    string? UpdatedBy
-);
+public class CreatePurchaseOrderResponse
+{
+    public int Id { get; set; }
+    public string OrderNumber { get; set; } = null!;
+    public int SupplierId { get; set; }
+    public string SupplierName { get; set; } = null!;
+    public DateTime OrderDate { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
+    public ContactVia? ContactVia { get; set; }
+    public string Status { get; set; } = null!;
+    public string? Notes { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<PurchaseOrderLineDto> Lines { get; set; } = null!;
+    public List<PurchaseOrderHistoryDto> History { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; } = null!;
+    public DateTime? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+}

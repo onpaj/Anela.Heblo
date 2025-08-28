@@ -4933,6 +4933,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     totalAmount?: number;
     lineCount?: number;
@@ -4956,6 +4957,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
+            this.contactVia = _data["contactVia"];
             this.status = _data["status"];
             this.totalAmount = _data["totalAmount"];
             this.lineCount = _data["lineCount"];
@@ -4979,6 +4981,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
+        data["contactVia"] = this.contactVia;
         data["status"] = this.status;
         data["totalAmount"] = this.totalAmount;
         data["lineCount"] = this.lineCount;
@@ -4995,11 +4998,21 @@ export interface IPurchaseOrderSummaryDto {
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     totalAmount?: number;
     lineCount?: number;
     createdAt?: Date;
     createdBy?: string;
+}
+
+export enum ContactVia {
+    Email = "Email",
+    Phone = "Phone",
+    WhatsApp = "WhatsApp",
+    F2F = "F2F",
+    Eshop = "Eshop",
+    Other = "Other",
 }
 
 export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse {
@@ -5009,6 +5022,7 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5036,6 +5050,7 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
+            this.contactVia = _data["contactVia"];
             this.status = _data["status"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
@@ -5071,6 +5086,7 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
+        data["contactVia"] = this.contactVia;
         data["status"] = this.status;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
@@ -5099,6 +5115,7 @@ export interface ICreatePurchaseOrderResponse {
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5234,6 +5251,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     supplierName!: string;
     orderDate!: string;
     expectedDeliveryDate?: string | undefined;
+    contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
     lines?: CreatePurchaseOrderLineRequest[] | undefined;
@@ -5252,6 +5270,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"];
             this.expectedDeliveryDate = _data["expectedDeliveryDate"];
+            this.contactVia = _data["contactVia"];
             this.notes = _data["notes"];
             this.orderNumber = _data["orderNumber"];
             if (Array.isArray(_data["lines"])) {
@@ -5274,6 +5293,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate;
+        data["contactVia"] = this.contactVia;
         data["notes"] = this.notes;
         data["orderNumber"] = this.orderNumber;
         if (Array.isArray(this.lines)) {
@@ -5289,6 +5309,7 @@ export interface ICreatePurchaseOrderRequest {
     supplierName: string;
     orderDate: string;
     expectedDeliveryDate?: string | undefined;
+    contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
     lines?: CreatePurchaseOrderLineRequest[] | undefined;
@@ -5353,6 +5374,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5380,6 +5402,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
+            this.contactVia = _data["contactVia"];
             this.status = _data["status"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
@@ -5415,6 +5438,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
+        data["contactVia"] = this.contactVia;
         data["status"] = this.status;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
@@ -5443,6 +5467,7 @@ export interface IGetPurchaseOrderByIdResponse {
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5461,6 +5486,7 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5485,6 +5511,7 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
+            this.contactVia = _data["contactVia"];
             this.status = _data["status"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
@@ -5513,6 +5540,7 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
+        data["contactVia"] = this.contactVia;
         data["status"] = this.status;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
@@ -5534,6 +5562,7 @@ export interface IUpdatePurchaseOrderResponse {
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
@@ -5546,6 +5575,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
     id!: number;
     supplierName!: string;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     lines!: UpdatePurchaseOrderLineRequest[];
     orderNumber?: string | undefined;
@@ -5567,6 +5597,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
             this.id = _data["id"];
             this.supplierName = _data["supplierName"];
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
+            this.contactVia = _data["contactVia"];
             this.notes = _data["notes"];
             if (Array.isArray(_data["lines"])) {
                 this.lines = [] as any;
@@ -5589,6 +5620,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
         data["id"] = this.id;
         data["supplierName"] = this.supplierName;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
+        data["contactVia"] = this.contactVia;
         data["notes"] = this.notes;
         if (Array.isArray(this.lines)) {
             data["lines"] = [];
@@ -5604,6 +5636,7 @@ export interface IUpdatePurchaseOrderRequest {
     id: number;
     supplierName: string;
     expectedDeliveryDate?: Date | undefined;
+    contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     lines: UpdatePurchaseOrderLineRequest[];
     orderNumber?: string | undefined;

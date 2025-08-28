@@ -24,6 +24,7 @@ public class PurchaseOrderTests
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
+            null,
             ValidNotes,
             ValidCreatedBy);
 
@@ -51,6 +52,7 @@ public class PurchaseOrderTests
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
+            null,
             ValidNotes,
             ValidCreatedBy);
 
@@ -66,6 +68,7 @@ public class PurchaseOrderTests
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
+            null,
             ValidNotes,
             null!);
 
@@ -173,7 +176,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -190,7 +193,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -205,7 +208,7 @@ public class PurchaseOrderTests
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
         var newExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21);
 
-        var action = () => purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, "new notes", "updater");
+        var action = () => purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, "new notes", "updater");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update completed orders");
@@ -302,6 +305,49 @@ public class PurchaseOrderTests
         historyEntry.ChangedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
+    [Fact]
+    public void Constructor_WithContactVia_ShouldSetContactViaProperty()
+    {
+        var purchaseOrder = new PurchaseOrder(
+            ValidOrderNumber,
+            ValidSupplierName,
+            ValidOrderDate,
+            ValidExpectedDeliveryDate,
+            ContactVia.Email,
+            ValidNotes,
+            ValidCreatedBy);
+
+        purchaseOrder.ContactVia.Should().Be(ContactVia.Email);
+    }
+
+    [Fact]
+    public void Constructor_WithNullContactVia_ShouldSetContactViaToNull()
+    {
+        var purchaseOrder = new PurchaseOrder(
+            ValidOrderNumber,
+            ValidSupplierName,
+            ValidOrderDate,
+            ValidExpectedDeliveryDate,
+            null,
+            ValidNotes,
+            ValidCreatedBy);
+
+        purchaseOrder.ContactVia.Should().BeNull();
+    }
+
+    [Fact]
+    public void Update_WithContactVia_ShouldUpdateContactViaProperty()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        var updatedBy = "updated@example.com";
+
+        purchaseOrder.Update(ValidSupplierName, ValidExpectedDeliveryDate, ContactVia.Phone, ValidNotes, updatedBy);
+
+        purchaseOrder.ContactVia.Should().Be(ContactVia.Phone);
+        purchaseOrder.UpdatedBy.Should().Be(updatedBy);
+        purchaseOrder.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
     private static PurchaseOrder CreateValidPurchaseOrder()
     {
         return new PurchaseOrder(
@@ -309,6 +355,7 @@ public class PurchaseOrderTests
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
+            null,
             ValidNotes,
             ValidCreatedBy);
     }

@@ -1,14 +1,12 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to review'
+        required: true
+        type: number
 
 jobs:
   claude-review:
@@ -21,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
     
@@ -29,13 +27,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          
+      - name: Checkout PR
+        run: |
+          gh pr checkout ${{ github.event.inputs.pr_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ github.event.inputs.pr_number }}
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
           # model: "claude-opus-4-1-20250805"
