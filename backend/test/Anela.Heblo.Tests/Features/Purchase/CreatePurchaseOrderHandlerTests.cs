@@ -277,6 +277,54 @@ public class CreatePurchaseOrderHandlerTests
             .WithMessage("Order number generation failed");
     }
 
+    [Fact]
+    public async Task Handle_WithContactVia_ShouldCreatePurchaseOrderWithContactVia()
+    {
+        var request = CreateValidRequest();
+        request.ContactVia = ContactVia.Email;
+
+        _orderNumberGeneratorMock
+            .Setup(x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.ContactVia.Should().Be(ContactVia.Email);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutContactVia_ShouldCreatePurchaseOrderWithNullContactVia()
+    {
+        var request = CreateValidRequest();
+        request.ContactVia = null;
+
+        _orderNumberGeneratorMock
+            .Setup(x => x.GenerateOrderNumberAsync(DateTime.Parse(ValidOrderDate), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.ContactVia.Should().BeNull();
+    }
+
     private static CreatePurchaseOrderRequest CreateValidRequest()
     {
         return new CreatePurchaseOrderRequest

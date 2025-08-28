@@ -22,7 +22,7 @@ public class EnvironmentTelemetryInitializer : ITelemetryInitializer
         // Add environment name to all telemetry
         telemetry.Context.GlobalProperties["Environment"] = _environmentName;
         telemetry.Context.GlobalProperties["Version"] = _applicationVersion;
-        
+
         // Set cloud role name for better service map visualization
         telemetry.Context.Cloud.RoleName = "Anela.Heblo.API";
         telemetry.Context.Cloud.RoleInstance = Environment.MachineName;

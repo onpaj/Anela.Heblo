@@ -37,29 +37,32 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
 
         var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
 
-        var orderSummaries = orders.Select(order => new PurchaseOrderSummaryDto(
-            order.Id,
-            order.OrderNumber,
-            0, // No longer using SupplierId
-            order.SupplierName,
-            order.OrderDate,
-            order.ExpectedDeliveryDate,
-            order.Status.ToString(),
-            order.TotalAmount,
-            order.Lines.Count,
-            order.CreatedAt,
-            order.CreatedBy
-        )).ToList();
+        var orderSummaries = orders.Select(order => new PurchaseOrderSummaryDto
+        {
+            Id = order.Id,
+            OrderNumber = order.OrderNumber,
+            SupplierId = 0, // No longer using SupplierId
+            SupplierName = order.SupplierName,
+            OrderDate = order.OrderDate,
+            ExpectedDeliveryDate = order.ExpectedDeliveryDate,
+            ContactVia = order.ContactVia,
+            Status = order.Status.ToString(),
+            TotalAmount = order.TotalAmount,
+            LineCount = order.Lines.Count,
+            CreatedAt = order.CreatedAt,
+            CreatedBy = order.CreatedBy
+        }).ToList();
 
         _logger.LogInformation("Found {Count} purchase orders out of {TotalCount} total",
             orders.Count, totalCount);
 
-        return new GetPurchaseOrdersResponse(
-            orderSummaries,
-            totalCount,
-            request.PageNumber,
-            request.PageSize,
-            totalPages
-        );
+        return new GetPurchaseOrdersResponse
+        {
+            Orders = orderSummaries,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalPages = totalPages
+        };
     }
 }

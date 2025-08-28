@@ -9,6 +9,7 @@ public class PurchaseOrder : IEntity<int>
     public string SupplierName { get; private set; } = null!;
     public DateTime OrderDate { get; private set; }
     public DateTime? ExpectedDeliveryDate { get; private set; }
+    public ContactVia? ContactVia { get; private set; }
     public PurchaseOrderStatus Status { get; private set; }
     public string? Notes { get; private set; }
     public string CreatedBy { get; private set; } = null!;
@@ -33,6 +34,7 @@ public class PurchaseOrder : IEntity<int>
         string supplierName,
         DateTime orderDate,
         DateTime? expectedDeliveryDate,
+        ContactVia? contactVia,
         string? notes,
         string createdBy)
     {
@@ -40,6 +42,7 @@ public class PurchaseOrder : IEntity<int>
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         OrderDate = orderDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(orderDate, DateTimeKind.Utc) : orderDate.ToUniversalTime();
         ExpectedDeliveryDate = expectedDeliveryDate?.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(expectedDeliveryDate.Value, DateTimeKind.Utc) : expectedDeliveryDate?.ToUniversalTime();
+        ContactVia = contactVia;
         Status = PurchaseOrderStatus.Draft;
         Notes = notes;
         CreatedBy = createdBy ?? throw new ArgumentNullException(nameof(createdBy));
@@ -109,7 +112,7 @@ public class PurchaseOrder : IEntity<int>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string supplierName, DateTime? expectedDeliveryDate, string? notes, string updatedBy)
+    public void Update(string supplierName, DateTime? expectedDeliveryDate, ContactVia? contactVia, string? notes, string updatedBy)
     {
         if (Status == PurchaseOrderStatus.Completed)
         {
@@ -118,6 +121,7 @@ public class PurchaseOrder : IEntity<int>
 
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         ExpectedDeliveryDate = expectedDeliveryDate;
+        ContactVia = contactVia;
         Notes = notes;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTime.UtcNow;

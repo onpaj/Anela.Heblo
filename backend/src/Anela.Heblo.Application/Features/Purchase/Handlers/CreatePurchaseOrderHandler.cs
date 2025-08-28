@@ -50,6 +50,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
             request.SupplierName,
             orderDate,
             expectedDeliveryDate,
+            request.ContactVia,
             request.Notes,
             createdBy);
 
@@ -99,41 +100,47 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
 
         foreach (var line in purchaseOrder.Lines)
         {
-            lines.Add(new PurchaseOrderLineDto(
-                line.Id,
-                line.MaterialId,
-                line.MaterialId, // Code is same as MaterialId
-                line.MaterialName,
-                line.Quantity,
-                line.UnitPrice,
-                line.LineTotal,
-                line.Notes));
+            lines.Add(new PurchaseOrderLineDto
+            {
+                Id = line.Id,
+                MaterialId = line.MaterialId,
+                Code = line.MaterialId, // Code is same as MaterialId
+                MaterialName = line.MaterialName,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal,
+                Notes = line.Notes
+            });
         }
 
-        var history = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto(
-            h.Id,
-            h.Action,
-            h.OldValue,
-            h.NewValue,
-            h.ChangedAt,
-            h.ChangedBy)).ToList();
+        var history = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
+        {
+            Id = h.Id,
+            Action = h.Action,
+            OldValue = h.OldValue,
+            NewValue = h.NewValue,
+            ChangedAt = h.ChangedAt,
+            ChangedBy = h.ChangedBy
+        }).ToList();
 
-        return new CreatePurchaseOrderResponse(
-            purchaseOrder.Id,
-            purchaseOrder.OrderNumber,
-            0, // No longer using SupplierId
-            purchaseOrder.SupplierName,
-            purchaseOrder.OrderDate,
-            purchaseOrder.ExpectedDeliveryDate,
-            purchaseOrder.Status.ToString(),
-            purchaseOrder.Notes,
-            purchaseOrder.TotalAmount,
-            lines,
-            history,
-            purchaseOrder.CreatedAt,
-            purchaseOrder.CreatedBy,
-            purchaseOrder.UpdatedAt,
-            purchaseOrder.UpdatedBy
-        );
+        return new CreatePurchaseOrderResponse
+        {
+            Id = purchaseOrder.Id,
+            OrderNumber = purchaseOrder.OrderNumber,
+            SupplierId = 0, // No longer using SupplierId
+            SupplierName = purchaseOrder.SupplierName,
+            OrderDate = purchaseOrder.OrderDate,
+            ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
+            ContactVia = purchaseOrder.ContactVia,
+            Status = purchaseOrder.Status.ToString(),
+            Notes = purchaseOrder.Notes,
+            TotalAmount = purchaseOrder.TotalAmount,
+            Lines = lines,
+            History = history,
+            CreatedAt = purchaseOrder.CreatedAt,
+            CreatedBy = purchaseOrder.CreatedBy,
+            UpdatedAt = purchaseOrder.UpdatedAt,
+            UpdatedBy = purchaseOrder.UpdatedBy
+        };
     }
 }

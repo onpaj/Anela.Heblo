@@ -33,38 +33,42 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         _logger.LogInformation("Found purchase order {OrderNumber} with {LineCount} lines and {HistoryCount} history entries",
             purchaseOrder.OrderNumber, purchaseOrder.Lines.Count, purchaseOrder.History.Count);
 
-        return new GetPurchaseOrderByIdResponse(
-            purchaseOrder.Id,
-            purchaseOrder.OrderNumber,
-            0, // No longer using SupplierId
-            purchaseOrder.SupplierName,
-            purchaseOrder.OrderDate,
-            purchaseOrder.ExpectedDeliveryDate,
-            purchaseOrder.Status.ToString(),
-            purchaseOrder.Notes,
-            purchaseOrder.TotalAmount,
-            purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto(
-                l.Id,
-                l.MaterialId,
-                l.MaterialId, // Code is same as MaterialId
-                l.MaterialName,
-                l.Quantity,
-                l.UnitPrice,
-                l.LineTotal,
-                l.Notes
-            )).ToList(),
-            purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto(
-                h.Id,
-                h.Action,
-                h.OldValue,
-                h.NewValue,
-                h.ChangedAt,
-                h.ChangedBy
-            )).OrderByDescending(h => h.ChangedAt).ToList(),
-            purchaseOrder.CreatedAt,
-            purchaseOrder.CreatedBy,
-            purchaseOrder.UpdatedAt,
-            purchaseOrder.UpdatedBy
-        );
+        return new GetPurchaseOrderByIdResponse
+        {
+            Id = purchaseOrder.Id,
+            OrderNumber = purchaseOrder.OrderNumber,
+            SupplierId = 0, // No longer using SupplierId
+            SupplierName = purchaseOrder.SupplierName,
+            OrderDate = purchaseOrder.OrderDate,
+            ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
+            ContactVia = purchaseOrder.ContactVia,
+            Status = purchaseOrder.Status.ToString(),
+            Notes = purchaseOrder.Notes,
+            TotalAmount = purchaseOrder.TotalAmount,
+            Lines = purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto
+            {
+                Id = l.Id,
+                MaterialId = l.MaterialId,
+                Code = l.MaterialId, // Code is same as MaterialId
+                MaterialName = l.MaterialName,
+                Quantity = l.Quantity,
+                UnitPrice = l.UnitPrice,
+                LineTotal = l.LineTotal,
+                Notes = l.Notes
+            }).ToList(),
+            History = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
+            {
+                Id = h.Id,
+                Action = h.Action,
+                OldValue = h.OldValue,
+                NewValue = h.NewValue,
+                ChangedAt = h.ChangedAt,
+                ChangedBy = h.ChangedBy
+            }).OrderByDescending(h => h.ChangedAt).ToList(),
+            CreatedAt = purchaseOrder.CreatedAt,
+            CreatedBy = purchaseOrder.CreatedBy,
+            UpdatedAt = purchaseOrder.UpdatedAt,
+            UpdatedBy = purchaseOrder.UpdatedBy
+        };
     }
 }

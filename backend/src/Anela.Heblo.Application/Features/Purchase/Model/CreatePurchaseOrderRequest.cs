@@ -1,6 +1,7 @@
 using MediatR;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Application.Features.Purchase.Model;
 
@@ -14,6 +15,8 @@ public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
     public string OrderDate { get; set; } = null!;
 
     public string? ExpectedDeliveryDate { get; set; }
+
+    public ContactVia? ContactVia { get; set; }
 
     [StringLength(1000, ErrorMessage = "Notes cannot exceed 1000 characters")]
     public string? Notes { get; set; }

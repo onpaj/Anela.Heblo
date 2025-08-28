@@ -8,7 +8,7 @@ public class TransportBox : Entity<int>
 {
     private const int VALID_BOX_CODE_LENGTH = 4;
     private const char BOX_CODE_PREFIX = 'B';
-    
+
     private List<TransportBoxItem> _items = new();
     private List<TransportBoxStateLog> _stateLog = new();
 

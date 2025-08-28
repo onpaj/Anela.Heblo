@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, Save, Calendar, Truck, FileText, Package } from 'lucide-react';
+import { X, Trash2, Save, Calendar, Truck, FileText, Package, Phone } from 'lucide-react';
 import { 
   useCreatePurchaseOrderMutation,
   useUpdatePurchaseOrderMutation,
@@ -10,7 +10,8 @@ import {
   UpdatePurchaseOrderLineRequest, 
   CreatePurchaseOrderLineRequest,
   UpdatePurchaseOrderRequest,
-  CreatePurchaseOrderRequest
+  CreatePurchaseOrderRequest,
+  ContactVia
 } from '../../api/generated/api-client';
 import { MaterialAutocomplete } from '../common/MaterialAutocomplete';
 import { MaterialForPurchaseDto, useMaterialByProductCode } from '../../api/hooks/useMaterials';
@@ -27,6 +28,7 @@ interface FormData {
   supplierName: string;
   orderDate: string;
   expectedDeliveryDate: string;
+  contactVia: ContactVia | null;
   notes: string;
   lines: (PurchaseOrderLineDto & { selectedMaterial?: MaterialForPurchaseDto | null })[];
 }
@@ -69,6 +71,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     supplierName: '',
     orderDate: new Date().toISOString().split('T')[0], // Today's date
     expectedDeliveryDate: '',
+    contactVia: null,
     notes: '',
     lines: [Object.assign(new PurchaseOrderLineDto(), {
       id: 0, // Temporary ID for new lines
@@ -136,6 +139,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         supplierName: existingOrderData.supplierName || '',
         orderDate: existingOrderData.orderDate ? new Date(existingOrderData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? new Date(existingOrderData.expectedDeliveryDate).toISOString().split('T')[0] : '',
+        contactVia: existingOrderData.contactVia || null,
         notes: existingOrderData.notes || '',
         lines: linesWithMaterials
       });
@@ -158,6 +162,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
         supplierName: '',
         orderDate: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: '',
+        contactVia: null,
         notes: '',
         lines: [Object.assign(new PurchaseOrderLineDto(), {
           id: 0, // Temporary ID for new lines
@@ -263,6 +268,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           id: editOrderId,
           supplierName: formData.supplierName,
           expectedDeliveryDate: formData.expectedDeliveryDate ? new Date(formData.expectedDeliveryDate) : undefined,
+          contactVia: formData.contactVia || undefined,
           notes: formData.notes || undefined,
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
@@ -287,6 +293,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           supplierName: formData.supplierName,
           orderDate: formData.orderDate,
           expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          contactVia: formData.contactVia || undefined,
           notes: formData.notes || undefined,
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
@@ -316,7 +323,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     }
   };
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string | ContactVia | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -477,9 +484,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                 Základní informace
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 {/* Order Number */}
-                <div className="md:col-span-4">
+                <div className="md:col-span-5">
                   <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-1">
                     <FileText className="h-4 w-4 inline mr-1" />
                     Číslo objednávky *
@@ -558,6 +565,28 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                   {errors.expectedDeliveryDate && (
                     <p className="mt-1 text-sm text-red-600">{errors.expectedDeliveryDate}</p>
                   )}
+                </div>
+
+                {/* Contact Via */}
+                <div>
+                  <label htmlFor="contactVia" className="block text-sm font-medium text-gray-700 mb-1">
+                    <Phone className="h-4 w-4 inline mr-1" />
+                    Kontakt
+                  </label>
+                  <select
+                    id="contactVia"
+                    value={formData.contactVia || ''}
+                    onChange={(e) => handleInputChange('contactVia', e.target.value === '' ? null : e.target.value as ContactVia)}
+                    className="block w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Vyberte způsob kontaktu</option>
+                    <option value={ContactVia.Email}>Email</option>
+                    <option value={ContactVia.Phone}>Telefon</option>
+                    <option value={ContactVia.WhatsApp}>WhatsApp</option>
+                    <option value={ContactVia.F2F}>Osobne</option>
+                    <option value={ContactVia.Eshop}>Eshop</option>
+                    <option value={ContactVia.Other}>Jine</option>
+                  </select>
                 </div>
               </div>
 
