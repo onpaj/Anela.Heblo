@@ -466,6 +466,33 @@ public class PurchaseOrderTests
             .WithMessage("Cannot update order number for completed orders");
     }
 
+    [Fact]
+    public void CanEdit_DraftStatus_ShouldReturnTrue()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+
+        purchaseOrder.CanEdit.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanEdit_InTransitStatus_ShouldReturnTrue()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+
+        purchaseOrder.CanEdit.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanEdit_CompletedStatus_ShouldReturnFalse()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
+
+        purchaseOrder.CanEdit.Should().BeFalse();
+    }
+
     private static PurchaseOrder CreateValidPurchaseOrder()
     {
         return new PurchaseOrder(
