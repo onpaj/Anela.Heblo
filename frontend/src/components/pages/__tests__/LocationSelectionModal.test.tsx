@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LocationSelectionModal from '../LocationSelectionModal';
 import { useChangeTransportBoxState } from '../../../api/hooks/useTransportBoxes';
@@ -117,9 +117,10 @@ describe('LocationSelectionModal', () => {
     it('should load last selected location from localStorage', async () => {
       localStorageMock.getItem.mockReturnValue('Relax');
 
-      render(
+      // Start with modal closed, then open it to trigger useEffect
+      const { rerender } = render(
         <LocationSelectionModal
-          isOpen={true}
+          isOpen={false}
           onClose={mockOnClose}
           boxId={1}
           onSuccess={mockOnSuccess}
@@ -127,13 +128,27 @@ describe('LocationSelectionModal', () => {
         { wrapper: createWrapper }
       );
 
-      // Wait for useEffect to complete
+      await act(async () => {
+        rerender(
+          <LocationSelectionModal
+            isOpen={true}
+            onClose={mockOnClose}
+            boxId={1}
+            onSuccess={mockOnSuccess}
+          />
+        );
+      });
+
+      // Wait for localStorage to be called first
+      await waitFor(() => {
+        expect(localStorageMock.getItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation');
+      });
+
+      // Then wait for the select value to be updated
       await waitFor(() => {
         const locationSelect = screen.getByLabelText('Vyberte lokaci pro rezervu:');
         expect(locationSelect).toHaveValue('Relax');
-      });
-      
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation');
+      }, { timeout: 5000 });
     });
 
     it('should not select invalid location from localStorage', () => {
