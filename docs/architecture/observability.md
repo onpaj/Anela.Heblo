@@ -1,312 +1,493 @@
-# Observability Strategy - Heblo Application
+# Observability Strategy - Anela Heblo Application
 
 ## Overview
 
-Tento dokument definuje kompletní observability strategii pro Heblo aplikaci, která se skládá z .NET 8 backend API a React frontend hostovaných v Azure. Strategie je navržena pro malý DevOps tým s důrazem na automatizaci a reaktivní monitoring.
+Tento dokument definuje kompletní observability strategii pro Anela Heblo aplikaci, která se skládá z .NET 8 backend API a React frontend hostovaných v Azure. Strategie je navržena pro malý DevOps tým s důrazem na **cost-optimized monitoring** a reaktivní alerting.
 
-## Application Architecture
+## Table of Contents
+1. [Observability Stack](#observability-stack)
+2. [Cost-Optimized Application Insights](#cost-optimized-application-insights)
+3. [Telemetry Strategy](#telemetry-strategy)
+4. [Logging Strategy](#logging-strategy)
+5. [Metrics & KPIs](#metrics--kpis)
+6. [Distributed Tracing](#distributed-tracing)
+7. [Monitoring & Alerting](#monitoring--alerting)
+8. [Environment Configuration](#environment-configuration)
+9. [Data Retention & Compliance](#data-retention--compliance)
+10. [Incident Response](#incident-response)
+11. [Implementation Guide](#implementation-guide)
 
-- **Backend**: .NET 8 App Service (Vertical Slice Architecture with FastEndpoints)
-  - **Anela.Heblo.API**: Host/Composition layer with FastEndpoints
-  - **Anela.Heblo.App**: Feature modules (vertical slices)
-  - **Anela.Heblo.Persistence**: Shared database infrastructure
-  - **Anela.Heblo.Xcc**: Cross-cutting concerns (telemetry, logging)
-- **Frontend**: React aplikace
-- **Database**: Azure PostgreSQL Database přes Entity Framework Core
-- **External Dependencies**: Proprietární REST API
-- **Hosting**: Azure Cloud
-- **Environments**: Development (local), Automation (Playwright tests), Test (Azure), Production (Azure)
+## Application Context
+
+**Technology Stack**: .NET 8 Backend API + React Frontend  
+**Hosting**: Azure Web App for Containers  
+**Database**: PostgreSQL  
+**External Services**: ABRA Flexi, Shoptet, Comgate  
+**Environments**: Development, Automation (testing), Test, Production
 
 ## Observability Stack
 
-### Core Monitoring Platform
-- **Application Insights** - centrální platforma pro všechny telemetry data
-- **Sentry** - frontend error tracking a performance monitoring
-- **Azure Monitor** - infrastructure monitoring
+### Core Components
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **Application Insights** | Backend telemetry, APM, distributed tracing | ✅ Implemented & Optimized |
+| **Custom Telemetry Processors** | Cost optimization via filtering | ✅ Implemented |
+| **Health Checks** | Application and database health monitoring | ✅ Implemented |
+| **Structured Logging** | Microsoft.Extensions.Logging with AI sink | ✅ Implemented |
+| **Business Event Tracking** | Custom telemetry service | ✅ Implemented |
+| **Azure Monitor** | Infrastructure monitoring | ⏳ Planned |
+| **Frontend Monitoring** | React error tracking | ⏳ Planned |
+| **Alerting** | Teams/Email notifications | ⏳ Not configured |
 
-### Implementation Status
-- ✅ **Backend Application Insights** - Fully configured with:
-  - Automatic instrumentation for HTTP, database, and external calls
-  - Health check endpoints (`/health`, `/health/ready`, `/health/live`)
-  - Custom telemetry service for business events
-  - Environment-specific configurations
-- ⏳ **Frontend Sentry** - Not yet implemented
-- ⏳ **Alerting** - Not yet configured
+## Cost-Optimized Application Insights
 
-## Telemetry Strategy
+### Cost Reduction Strategy (~60-70% savings)
 
-### 1. Application Performance Monitoring (APM)
+#### 1. Telemetry Filtering
+**CostOptimizedTelemetryProcessor** filters out:
+- Health check endpoints (`/health`, `/healthz`, `/ready`, `/live`)
+- Static files (JS, CSS, images, fonts)
+- Fast successful requests (< 10ms)
+- Fast successful dependencies (< 50ms for SQL, < 100ms for HTTP)
+- OPTIONS requests (CORS preflight)
+- Verbose traces in production
 
-#### Backend (.NET 8)
-- **Application Insights SDK** integrace
-- **Automatic instrumentation**:
-  - HTTP requests/responses
-  - Database calls (EF Core)
-  - External API calls
-  - Exceptions a errors
-- **Custom telemetry**:
-  - Business event tracking pro kritické operace
-  - Performance counters
-  - Custom metrics pro business KPIs
+#### 2. Aggressive Sampling
+**CustomSamplingTelemetryProcessor** implements:
+- Requests: 30% sampling rate
+- Dependencies: 10% sampling rate
+- Traces: 5% sampling rate
+- **Always tracked (100%)**:
+  - Exceptions
+  - Custom business events
+  - Failed requests
+  - Slow requests (> 1s)
+  - Failed dependencies
 
-#### Frontend (React)
-- **Sentry SDK** pro React
-- **Monitoring zaměření**:
-  - JavaScript errors a unhandled exceptions
-  - Performance monitoring (Core Web Vitals)
-  - User interactions tracking
-  - API call success/failure rates
+#### 3. Environment-Specific Configuration
 
-### 2. Logging Strategy
+| Environment | Live Metrics | Perf Counters | Event Counters | Heartbeat | Max Items/sec | Sampling % |
+|------------|--------------|---------------|----------------|-----------|---------------|------------|
+| **Production** | ❌ Disabled | ❌ Disabled | ❌ Disabled | ✅ Enabled | 5 | 30% (0.1-50%) |
+| **Test** | ❌ Disabled | ❌ Disabled | ❌ Disabled | ❌ Disabled | 1 | 10% |
+| **Development** | ❌ Disabled | ❌ Disabled | ❌ Disabled | ❌ Disabled | - | NoOp Service |
+| **Automation** | ❌ Disabled | ❌ Disabled | ❌ Disabled | ❌ Disabled | - | NoOp Service |
 
-#### Backend Logging
-- **Microsoft.Extensions.Logging** jako primární framework
-- **Application Insights** jako centrální log destination
-- **Log Levels**:
-  - `Critical`: Systém failures, data corruption
-  - `Error`: Chyby requiring immediate attention
-  - `Warning`: Potenciální problémy, degraded performance
-  - `Information`: Business events, audit trail
-  - `Debug`: Development/troubleshooting (pouze non-prod)
+#### 4. Module Control
+Disabled expensive modules:
+- ❌ `EnableQuickPulseMetricStream` (Live Metrics - 30% cost reduction)
+- ❌ `EnablePerformanceCounterCollectionModule` (unless Production)
+- ❌ `EnableEventCounterCollectionModule` (unless Production)
+- ❌ `EnableDiagnosticsTelemetryModule`
+- ❌ `EnableAzureInstanceMetadataTelemetryModule`
 
-#### Structured Logging Format
+### Configuration Files
+
 ```json
+// appsettings.Production.json
 {
-  "Timestamp": "2024-07-25T10:30:00Z",
-  "Level": "Information",
-  "MessageTemplate": "Invoice import completed",
-  "Properties": {
-    "OperationType": "InvoiceImport",
-    "InvoiceId": "INV-12345",
-    "ProcessingTimeMs": 1250,
-    "RecordCount": 150,
-    "UserId": "user123",
-    "CorrelationId": "abc-def-ghi"
+  "ApplicationInsights": {
+    "ConnectionString": "", // Set via Azure App Service
+    "CloudRole": "Heblo-API-Production",
+    "EnableLiveMetrics": false,
+    "EnablePerformanceCounters": false,
+    "EnableEventCounters": false,
+    "EnableHeartbeat": true,
+    "SamplingSettings": {
+      "MaxTelemetryItemsPerSecond": 5,
+      "InitialSamplingPercentage": 30,
+      "MinSamplingPercentage": 0.1,
+      "MaxSamplingPercentage": 50
+    }
   }
 }
 ```
 
-#### Frontend Logging
-- **Sentry** pro error logging a performance monitoring
-- **Custom events** pro kritické user actions
-- **Breadcrumbs** pro user journey tracking
+## Telemetry Strategy
 
-### 3. Metrics & KPIs
+### Application Performance Monitoring (APM)
 
-#### Technical Metrics
-- **Response Times**: P50, P95, P99 pro všechny API endpoints
+#### Backend Telemetry
+**Automatic instrumentation captures:**
+- HTTP requests/responses with timing
+- Database queries (PostgreSQL via EF Core)
+- External API calls
+- Exceptions with full stack traces
+- Dependency tracking
+
+**Custom business events tracked:**
+- Invoice and payment processing
+- Catalog synchronization
+- Order fulfillment
+- Inventory updates
+- Manufacturing operations
+- Transport box tracking
+
+#### Frontend Telemetry (Planned)
+- JavaScript error tracking
+- Performance monitoring (Core Web Vitals)
+- User interaction tracking
+- API call success/failure rates
+
+## Logging Strategy
+
+### Log Levels and Usage
+
+| Level | Usage | Example | Sampled in Prod |
+|-------|-------|---------|-----------------|
+| **Critical** | System failures, data corruption | Database connection lost | Always logged |
+| **Error** | Exceptions requiring attention | API call failed | Always logged |
+| **Warning** | Potential issues, degraded performance | Retry attempt, slow query | Always logged |
+| **Information** | Business events, audit trail | Order processed, user logged in | Sampled |
+| **Debug** | Development troubleshooting | Method entry/exit | Filtered out |
+| **Trace/Verbose** | Detailed diagnostics | Variable values | Filtered out |
+
+### Structured Logging Format
+```csharp
+logger.LogInformation("Invoice import completed", new {
+    OperationType = "InvoiceImport",
+    InvoiceId = invoice.Id,
+    ProcessingTimeMs = stopwatch.ElapsedMilliseconds,
+    RecordCount = invoice.Lines.Count,
+    UserId = currentUser.Id,
+    CorrelationId = correlationId
+});
+```
+
+### Log Configuration
+```csharp
+// Program.cs
+builder.Logging
+    .ClearProviders()
+    .AddConsole()
+    .AddApplicationInsights()
+    .AddFilter("Microsoft.AspNetCore", LogLevel.Warning)
+    .AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning)
+    .AddFilter("Anela.Heblo", LogLevel.Information);
+```
+
+## Metrics & KPIs
+
+### Technical Metrics
+
+#### Performance Metrics
+- **Response Times**: P50, P95, P99 for all endpoints
 - **Throughput**: Requests per minute/hour
-- **Error Rates**: 4xx, 5xx error percentages
-- **Database Performance**: Query execution times, connection pool usage
-- **External API Health**: Success rates, response times pro proprietární API
-- **Infrastructure**: CPU, Memory, Disk usage App Service
+- **Error Rates**: 4xx, 5xx percentages
+- **Database Performance**: Query execution times, connection pool
+- **External API Health**: Availability and response times
 
-#### Business Metrics
-- **Kritické operace tracking**:
-  - Import faktur: success rate, processing time, volume
-  - Import plateb: success rate, processing time, volume  
-  - Synchronizace katalogu: success rate, sync duration, record count
-- **User Activity**: Active users, session duration
-- **Feature Usage**: Usage statistics pro key features
+#### Resource Metrics
+- **CPU Usage**: App Service CPU percentage
+- **Memory Usage**: Working set and private bytes
+- **Request Queue**: Length and wait time
+- **Thread Pool**: Active threads and queued work items
 
-### 4. Distributed Tracing
+### Business Metrics
 
-- **Application Insights Distributed Tracing**
-- **Correlation IDs** across all requests
-- **End-to-end tracing**:
-  - Frontend → Backend API → Database
-  - Frontend → Backend API → External API
-- **Custom telemetry pro business flows**
+#### Critical Operations
+| Operation | Success Rate Target | Max Duration | Volume/Day |
+|-----------|-------------------|--------------|------------|
+| Invoice Import | > 98% | < 30s | ~100 |
+| Payment Import | > 99% | < 10s | ~50 |
+| Catalog Sync | > 95% | < 5 min | 24 (hourly) |
+| Order Processing | > 99% | < 5s | ~200 |
+| Box Packaging | > 99% | < 2s | ~500 |
+
+#### User Activity
+- Active users per day/week/month
+- Session duration and page views
+- Feature adoption rates
+- API usage by client type
+
+## Distributed Tracing
+
+### Correlation Strategy
+- **Operation ID**: Unique identifier for entire request flow
+- **Parent ID**: Links related operations
+- **W3C Trace Context**: Standard propagation format
+- **Custom Correlation**: Business transaction IDs
+
+### Trace Flows
+```
+User Request → Frontend → Backend API → Database
+                              ↓
+                        External Services
+```
+
+### Correlation Implementation
+- Automatic correlation ID propagation via Application Insights
+- W3C Trace Context headers for distributed tracing
+- Custom business transaction IDs for end-to-end tracking
+- All related operations linked through Operation ID and Parent ID
 
 ## Monitoring & Alerting
 
-### Critical Alerts (Teams Channel)
+### Health Check Endpoints
 
-#### Availability Alerts
-- **Application Down**: HTTP 5xx > 5% po dobu 2 minut
-- **Database Connectivity**: Connection failures > 3 po dobu 1 minuta
-- **External API Failures**: Proprietární API failure rate > 10% po dobu 5 minut
+| Endpoint | Purpose | Checks | Response Time |
+|----------|---------|--------|---------------|
+| `/health` | Basic liveness | Application running | < 100ms |
+| `/health/ready` | Readiness probe | Database connectivity | < 500ms |
+| `/health/live` | Deep health check | All dependencies | < 2s |
 
-#### Performance Alerts  
-- **High Response Time**: P95 response time > 5 sekund po dobu 5 minut
-- **High Error Rate**: Overall error rate > 2% po dobu 3 minuty
-- **Database Performance**: Avg query time > 2 sekundy po dobu 5 minut
+### Alert Configuration
+
+#### Critical Alerts (Immediate - Teams + Email)
+```yaml
+- Application Down: HTTP 5xx > 5% for 2 minutes
+- Database Connection Lost: Failures > 3 in 1 minute
+- External API Down: Failure rate > 10% for 5 minutes
+- High Memory: > 90% for 5 minutes
+- Disk Full: < 5% free space
+```
+
+#### Warning Alerts (Teams Channel)
+```yaml
+- High Response Time: P95 > 3s for 10 minutes
+- Elevated Error Rate: > 1% for 10 minutes
+- Slow Database: Avg query > 1s for 5 minutes
+- External API Slow: Response time +50% for 15 minutes
+```
 
 #### Business Process Alerts
-- **Import Faktur Failures**: Error rate > 5% po dobu 10 minut
-- **Import Plateb Failures**: Error rate > 5% po dobu 10 minut  
-- **Synchronizace Katalogu Failures**: Nedokončená synchronizace > 30 minut
+```yaml
+- Invoice Import Failed: Error rate > 5% for 10 minutes
+- Payment Import Failed: Any failure in production
+- Catalog Sync Stuck: Not completed in 30 minutes
+- Low Stock Alert: Critical items < threshold
+```
 
-#### Infrastructure Alerts
-- **High CPU Usage**: > 80% po dobu 10 minut
-- **High Memory Usage**: > 85% po dobu 10 minut
-- **Low Disk Space**: < 15% free space
-
-### Warning Alerts (Teams Channel)
-- **Elevated Response Times**: P95 > 3 sekundy po dobu 10 minut
-- **Increased Error Rate**: Error rate > 1% po dobu 10 minut
-- **External API Degradation**: Response time increase > 50% po dobu 15 minut
-
-### Health Checks
-
-#### Application Health Endpoints
-- `/health` - základní application health
-- `/health/ready` - readiness probe pro database connectivity
-- `/health/live` - liveness probe pro application responsiveness
-
-#### Synthetic Monitoring
-- **Availability Tests** z Application Insights:
-  - Production homepage ping test (každých 5 minut)
-  - Kritické API endpoints testing (každých 15 minut)
-  - Business process simulation (každou hodinu)
+### Synthetic Monitoring
+- **Homepage Availability**: Every 5 minutes from 3 regions
+- **API Health Check**: Every 10 minutes
+- **Business Process Test**: Login → Create Order → Process (hourly)
 
 ### Dashboards
 
 #### Executive Dashboard
-- **Application Availability**: Uptime percentage
-- **Business Metrics**: Denní/týdenní trendy kritických operací
-- **User Activity**: Active users, session metrics
-- **Cost Overview**: Azure consumption metrics
+- Application uptime percentage (target: 99.9%)
+- Business KPIs and trends
+- Cost metrics and projections
+- User satisfaction metrics
 
-#### Operational Dashboard  
-- **Real-time Performance**: Response times, throughput, error rates
-- **Infrastructure Health**: CPU, Memory, Database performance
-- **External Dependencies**: Proprietární API health
-- **Recent Incidents**: Alert history, resolved issues
+#### Operations Dashboard
+- Real-time performance metrics
+- Active alerts and incidents
+- Infrastructure health
+- External dependency status
 
 #### Business Dashboard
-- **Import Faktur**: Success rates, processing volumes, trends
-- **Import Plateb**: Success rates, processing volumes, trends
-- **Synchronizace Katalogu**: Sync frequency, record counts, errors
-- **Feature Usage**: User engagement metrics
+- Invoice/Payment processing stats
+- Catalog synchronization status
+- Order fulfillment metrics
+- Inventory levels and alerts
 
-## Implementation Environments
+## Environment Configuration
 
 ### Development (Local)
-- **Application Insights**: Samostatná instance pro development
-- **Log Level**: Debug a vyšší
-- **Minimal alerting**: Pouze critical errors
+```json
+{
+  "ApplicationInsights": {
+    "ConnectionString": "", // Empty = NoOpTelemetryService
+    "DeveloperMode": true
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug"
+    }
+  }
+}
+```
 
-### Automation (Playwright)
-- **Application Insights**: Sdílená test instance  
-- **Synthetic test results** tracking
-- **Test execution metrics**
+### Test Environment (Azure)
+```json
+{
+  "ApplicationInsights": {
+    "ConnectionString": "InstrumentationKey=test-key",
+    "EnableLiveMetrics": false,
+    "SamplingSettings": {
+      "MaxTelemetryItemsPerSecond": 1,
+      "InitialSamplingPercentage": 10
+    }
+  }
+}
+```
 
-### Test Environment
-- **Application Insights**: Dedikovaná test instance
-- **Full monitoring stack** (mirror produkce)
-- **Alerts disabled** nebo směřované do test Teams kanálu
-
-### Production
-- **Application Insights**: Produkční instance s full retention
-- **Complete alerting setup**
-- **All dashboards active**
-- **Data retention**: 90 dní pro detailed logs, 2 roky pro aggregated metrics
+### Production (Azure)
+- Full telemetry with cost optimization
+- All business event tracking enabled
+- Alerting active with escalation
+- 30% sampling rate for non-critical telemetry
 
 ## Data Retention & Compliance
 
 ### Retention Policies
-- **Application Insights Raw Data**: 90 dní
-- **Aggregated Metrics**: 2 roky  
-- **Custom Logs**: 30 dní
-- **Sentry Events**: 90 dní
 
-### Sensitive Data Handling
-- **PII Scrubbing**: Automatické odstranění osobních údajů z logů
-- **Correlation IDs**: Pro tracking bez exposure citlivých dat
-- **Audit Logs**: Separate retention pro compliance (7 let)
+| Data Type | Development | Test | Production |
+|-----------|------------|------|------------|
+| Raw Telemetry | N/A | 7 days | 30 days |
+| Aggregated Metrics | N/A | 30 days | 2 years |
+| Exceptions | N/A | 30 days | 90 days |
+| Custom Events | N/A | 30 days | 90 days |
+| Audit Logs | N/A | N/A | 7 years (archived) |
 
-## Incident Response Integration
+### Cost Management
+- **Monthly Budget Alert**: $100 for Application Insights
+- **Daily Cap**: 1GB/day for Production
+- **Sampling**: Aggressive sampling for high-volume, low-value data
+- **Archive Strategy**: Export to blob storage after 30 days
 
-### Alert Escalation
-1. **Level 1**: Teams notification
-2. **Level 2**: Po 15 minutách bez response - email na DevOps team
-3. **Level 3**: Po 30 minutách - management notification
+### Privacy & Security
+- **PII Scrubbing**: Automatic removal from logs
+- **Encryption**: TLS in transit, encrypted at rest
+- **Access Control**: RBAC with least privilege
+- **Audit Trail**: All access logged
+
+## Incident Response
+
+### Alert Escalation Matrix
+
+| Severity | Initial Alert | 15 min | 30 min | 60 min |
+|----------|--------------|--------|--------|--------|
+| **Critical** | Teams + Email | Phone Call | Manager | Executive |
+| **High** | Teams | Email | Manager | - |
+| **Medium** | Teams | - | - | - |
+| **Low** | Email digest | - | - | - |
 
 ### Runbook Integration
-- **Alert annotations** s odkazy na troubleshooting guides
-- **Automated remediation** kde možné (restart služeb, clearing cache)
-- **Post-incident analysis** tracking v Application Insights
+Each alert includes:
+- Link to troubleshooting guide
+- Recent similar incidents
+- Suggested remediation steps
+- Contact information
 
-## Future Enhancements
+### Post-Incident Process
+1. **Immediate**: Restore service
+2. **24 hours**: Initial incident report
+3. **72 hours**: Root cause analysis
+4. **1 week**: Preventive measures implemented
 
-### Phase 2 Considerations
-- **Custom Business Intelligence**: Power BI integrace
-- **Advanced Analytics**: ML-based anomaly detection
-- **Security Monitoring**: Azure Security Center integrace
-- **Cost Optimization**: Detailed cost analytics per feature
+## Implementation Guide
 
-### Scaling Considerations
-- **Multi-region deployment** monitoring
-- **Microservices decomposition** observability
-- **Advanced distributed tracing**
-- **Real User Monitoring (RUM)** enhancement
+### Backend Setup
+
+#### 1. NuGet Packages (✅ Completed)
+```xml
+<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0"/>
+<PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1"/>
+<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1"/>
+```
+
+#### 2. Telemetry Configuration (✅ Completed)
+```csharp
+// Extensions/ApplicationInsightsExtensions.cs
+services.AddOptimizedApplicationInsights(configuration, environment);
+services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
+services.AddApplicationInsightsTelemetryProcessor<CustomSamplingTelemetryProcessor>();
+```
+
+#### 3. Health Checks (✅ Completed)
+Configured health check endpoints for database and external service monitoring.
+
+#### 4. Custom Telemetry Service (✅ Completed)
+Business event tracking service implemented for all critical operations.
+
+### Azure Configuration Required
+
+#### 1. Create Application Insights Resources
+```bash
+# Test Environment
+az monitor app-insights component create \
+  --app ai-heblo-test \
+  --location westeurope \
+  --resource-group rg-heblo-test
+
+# Production
+az monitor app-insights component create \
+  --app ai-heblo-production \
+  --location westeurope \
+  --resource-group rg-heblo-prod
+```
+
+#### 2. Configure App Service Settings
+```bash
+az webapp config appsettings set \
+  --name app-heblo-prod \
+  --resource-group rg-heblo-prod \
+  --settings ApplicationInsights__ConnectionString="<connection-string>"
+```
+
+#### 3. Set Up Alerts
+Use Azure Portal or ARM templates to configure alerts based on the alert matrix above.
+
+### Frontend Setup (Planned)
+
+#### 1. Application Insights JavaScript SDK
+```typescript
+npm install @microsoft/applicationinsights-web
+```
+
+#### 2. React Integration
+```typescript
+// src/telemetry/appInsights.ts
+import { ApplicationInsights } from '@microsoft/applicationinsights-web';
+
+const appInsights = new ApplicationInsights({
+  config: {
+    connectionString: process.env.REACT_APP_AI_CONNECTION_STRING,
+    enableAutoRouteTracking: true,
+    enableRequestHeaderTracking: true,
+    enableResponseHeaderTracking: true
+  }
+});
+```
+
+## Monitoring Checklist
+
+### Daily Checks
+- [ ] Application availability > 99.9%
+- [ ] No critical alerts in last 24h
+- [ ] Response time P95 < 3s
+- [ ] Error rate < 1%
+- [ ] External API availability
+
+### Weekly Review
+- [ ] Telemetry costs within budget
+- [ ] Alert noise ratio (false positives)
+- [ ] Capacity planning review
+- [ ] Incident follow-ups completed
+
+### Monthly Tasks
+- [ ] Cost optimization review
+- [ ] Retention policy compliance
+- [ ] Dashboard accuracy validation
+- [ ] Alert threshold tuning
+- [ ] Disaster recovery test
 
 ## Success Metrics
 
-### Operational Excellence KPIs
-- **Mean Time To Detection (MTTD)**: < 5 minut
-- **Mean Time To Resolution (MTTR)**: < 30 minut pro kritické issues
-- **False Positive Rate**: < 5% pro všechny alerty
-- **Availability Target**: 99.9% uptime
+### Technical KPIs
+- **MTTD (Mean Time To Detect)**: < 5 minutes
+- **MTTR (Mean Time To Resolve)**: < 30 minutes
+- **Availability**: > 99.9% uptime
+- **Performance**: P95 < 3 seconds
+- **Error Rate**: < 1%
 
-### Business Impact KPIs  
-- **Critical Process Success Rate**: > 98%
-- **User Experience**: Error rate < 1%
-- **Performance**: P95 response time < 3 sekundy
+### Business KPIs
+- **Process Success Rate**: > 98%
+- **Data Processing Time**: Within SLA
+- **User Satisfaction**: > 4.5/5
+- **Cost per Transaction**: < $0.01
 
-## Backend Implementation Guide
-
-### Configuration Steps
-
-1. **Add NuGet Packages** (✅ Completed):
-   ```xml
-   <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0"/>
-   <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1"/>
-   <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1"/>
-   <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0"/>
-   ```
-   
-   **Note**: The EntityFrameworkCore-specific Application Insights package doesn't exist. EF Core telemetry is automatically captured by the main Application Insights SDK.
-
-2. **Program.cs Configuration** (✅ Completed):
-   - Application Insights telemetry with automatic instrumentation
-   - Health checks for database connectivity
-   - Custom telemetry service registration
-
-3. **AppSettings Configuration** (✅ Completed):
-   Each environment has specific configuration:
-   - `ApplicationInsights:ConnectionString` - Must be set via Azure secrets
-   - `ApplicationInsights:CloudRole` - Environment-specific role name
-   - `ApplicationInsights:CloudRoleInstance` - Environment identifier
-
-4. **Custom Telemetry Service** (✅ Completed):
-   - `ITelemetryService` interface defined in `Anela.Heblo.Xcc`
-   - Implementation in `Anela.Heblo.Xcc` for cross-cutting telemetry
-   - Methods for tracking business events per feature module:
-     - Invoice imports (invoices module)
-     - Payment imports (invoices module)
-     - Catalog synchronization (catalog module)
-     - Order processing (manufacture module)
-     - Inventory updates (transport module)
-
-### Required Azure Configuration
-
-1. **Application Insights Resources**:
-   - Development: Create AI instance `ai-heblo-dev`
-   - Test: Create AI instance `ai-heblo-test`
-   - Production: Create AI instance `ai-heblo-production`
-
-2. **Connection Strings**:
-   Update Azure Web App settings with AI connection strings:
-   - `ApplicationInsights__ConnectionString` for each environment
-
-3. **Alerts Configuration**:
-   Configure in Azure Portal → Application Insights → Alerts:
-   - Critical alerts (5xx errors, database failures)
-   - Business process alerts (import failures, sync delays)
-   - Teams channel webhook integration
+### Operational KPIs
+- **Alert Accuracy**: > 95% true positives
+- **Automation Rate**: > 80% auto-remediation
+- **Documentation Coverage**: 100% for critical paths
+- **Runbook Effectiveness**: < 10 min to resolution
 
 ---
 
-*Tento dokument bude aktualizován při změnách v aplikaci nebo požadavcích na monitoring.*
+*Last Updated: December 2024*
+*Next Review: March 2025*
+*Owner: DevOps Team*
