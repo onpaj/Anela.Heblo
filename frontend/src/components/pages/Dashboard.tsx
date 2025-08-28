@@ -246,8 +246,8 @@ const Dashboard: React.FC = () => {
 
       {/* Summary Table */}
       {activeTab === 'overview' && auditSummary?.summary && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
-          <div className="px-4 py-5 sm:px-6">
+        <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8 flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Souhrn podle typu dat (posledních 7 dní)
             </h3>
@@ -255,9 +255,9 @@ const Dashboard: React.FC = () => {
               Statistiky načítání dat podle zdroje a typu
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Typ dat / Zdroj
@@ -332,8 +332,8 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Logs Table */}
       {activeTab === 'logs' && auditLogs?.logs && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6">
+        <div className="bg-white shadow overflow-hidden sm:rounded-md flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Poslední audit logy (24 hodin)
             </h3>
@@ -341,9 +341,9 @@ const Dashboard: React.FC = () => {
               Zobrazeno posledních {auditLogs.logs.length} záznamů
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Čas

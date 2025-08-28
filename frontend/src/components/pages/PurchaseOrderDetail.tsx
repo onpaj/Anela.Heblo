@@ -273,9 +273,10 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900">Položky objednávky</h3>
                     
-                    <div className="bg-gray-50 rounded-lg overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
+                    <div className="bg-gray-50 rounded-lg overflow-hidden flex flex-col" style={{ minHeight: '300px', maxHeight: '50vh' }}>
+                      <div className="flex-1 overflow-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-100 sticky top-0 z-10">
                           <tr>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                               Materiál
@@ -312,7 +313,8 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                        </table>
+                      </div>
                     </div>
                   </div>
 

@@ -654,9 +654,9 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                 {activeTab === 'items' && (
                   <div>
                     {boxData.transportBox.items && boxData.transportBox.items.length > 0 ? (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-auto" style={{ minHeight: '300px', maxHeight: '50vh' }}>
                         <table className="w-full table-fixed divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                          <thead className="bg-gray-50 sticky top-0 z-10">
                             <tr>
                               <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Kód produktu
@@ -736,9 +736,9 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                 {activeTab === 'history' && (
                   <div>
                     {boxData.transportBox.stateLog && boxData.transportBox.stateLog.length > 0 ? (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-auto" style={{ minHeight: '300px', maxHeight: '50vh' }}>
                         <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                          <thead className="bg-gray-50 sticky top-0 z-10">
                             <tr>
                               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Datum
