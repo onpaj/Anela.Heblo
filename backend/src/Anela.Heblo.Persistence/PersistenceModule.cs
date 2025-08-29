@@ -1,3 +1,4 @@
+using Anela.Heblo.Persistence.Services;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,10 @@ public static class PersistenceModule
 
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
+
+        // Register database seeding services
+        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+        services.AddHostedService<DatabaseSeedingHostedService>();
 
         return services;
     }

@@ -16,6 +16,7 @@ This document defines all environment configurations, port mappings, deployment 
 |-------------|---------------|--------------|----------------|-----------|-----------------|
 | **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
 | **Local Automation/Playwright** | 3001 | 5001 | - | - | Separate servers (testing) |
+| **Staging Environment** | 8080 | 5000 | 8080 | https://heblo-test-staging.azurewebsites.net | Single container (slot) |
 | **Test Environment** | 8080 | 5000 | 8080 | https://heblo-test.azurewebsites.net | Single container |
 | **Production** | 8080 | 5000 | 8080 | https://heblo.anela.cz | Single container |
 
@@ -42,6 +43,16 @@ REACT_APP_USE_MOCK_AUTH=true
 ASPNETCORE_ENVIRONMENT=Development
 REACT_APP_API_URL=http://localhost:5001
 REACT_APP_USE_MOCK_AUTH=true
+```
+
+#### **Azure Staging Environment (Azure App Settings - Slot):**
+```bash
+ASPNETCORE_ENVIRONMENT=Staging
+REACT_APP_API_URL=https://heblo-test-staging.azurewebsites.net
+REACT_APP_USE_MOCK_AUTH=true
+WEBSITES_PORT=8080
+DatabaseSeeding__EnableAutoSeed=true
+DatabaseSeeding__TruncateOnStartup=true
 ```
 
 #### **Azure Test Environment (Azure App Settings):**
