@@ -297,6 +297,21 @@ jobs:
           echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🚀 **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deploy to Staging" >> $GITHUB_STEP_SUMMARY
+          echo "To deploy this PR to staging environment:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to [Deploy PR to Staging](${{ github.server_url }}/${{ github.repository }}/actions/workflows/deploy-staging-pr.yml)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click **Run workflow**" >> $GITHUB_STEP_SUMMARY
+          echo "3. Enter PR number: **${{ github.event.pull_request.number }}**" >> $GITHUB_STEP_SUMMARY
+          echo "4. Optionally enable/disable E2E tests" >> $GITHUB_STEP_SUMMARY
+          echo "5. Click **Run workflow** button" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment will:" >> $GITHUB_STEP_SUMMARY
+          echo "- Build your PR branch" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy to https://heblo-test-staging.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "- Comment back on this PR with deployment status" >> $GITHUB_STEP_SUMMARY
+          echo "- Optionally run E2E tests against staging" >> $GITHUB_STEP_SUMMARY
 
   # Auto-merge job - runs when quality gate passes and PR has auto-merge label
   auto-merge:
