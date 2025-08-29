@@ -396,10 +396,10 @@ const ProductMarginSummary: React.FC = () => {
       </div>
       
       {/* Chart */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-shrink-0 bg-white shadow rounded-lg overflow-hidden" style={{ height: '500px' }}>
         {chartData && (
-          <div className="flex-1 p-6">
-            <div className="h-full min-h-96">
+          <div className="h-full p-6">
+            <div className="h-full">
               <Chart type="bar" data={chartData} options={chartOptions} />
             </div>
           </div>
@@ -408,16 +408,16 @@ const ProductMarginSummary: React.FC = () => {
 
       {/* Detailed Products Table */}
       {tableData.length > 0 && (
-        <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="mt-6 bg-white shadow rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Detailní přehled produktů</h3>
             <p className="mt-1 text-sm text-gray-600">
               Celkové průměry a statistiky za vybrané období
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Produkt/Skupina

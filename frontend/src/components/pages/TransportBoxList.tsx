@@ -6,6 +6,7 @@ import {
   GetTransportBoxesRequest
 } from '../../api/hooks/useTransportBoxes';
 import TransportBoxDetail from './TransportBoxDetail';
+import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 // State labels mapping - using string keys since DTO returns strings
 const stateLabels: Record<string, string> = {
@@ -212,7 +213,7 @@ const TransportBoxList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">Transportní boxy</h1>
@@ -528,12 +529,12 @@ const TransportBoxList: React.FC = () => {
       {/* Results Table */}
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex-1 flex items-center justify-center">
             <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
             <span className="ml-2 text-gray-600">Načítání dat...</span>
           </div>
         ) : data?.items?.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné výsledky</h3>
@@ -631,8 +632,8 @@ const TransportBoxList: React.FC = () => {
             </table>
           </div>
         )}
-
-        {/* Pagination - Compact */}
+        
+        {/* Pagination - Always visible at bottom */}
         {totalItems > 0 && (
           <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
             <div className="flex-1 flex justify-between sm:hidden">

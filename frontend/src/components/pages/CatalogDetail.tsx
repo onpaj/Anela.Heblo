@@ -905,7 +905,7 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
           {(item.price?.eshopPrice || item.price?.erpPrice) ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-white">
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-2 pr-4 font-medium text-gray-700"></th>
                     <th className="text-center py-2 px-2 font-medium text-gray-700">Shoptet</th>

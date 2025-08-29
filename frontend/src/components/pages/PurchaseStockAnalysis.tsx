@@ -10,6 +10,7 @@ import {
 } from '../../api/hooks/usePurchaseStockAnalysis';
 import { StockSeverity } from '../../api/generated/api-client';
 import CatalogDetail from './CatalogDetail';
+import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 const PurchaseStockAnalysis: React.FC = () => {
   // State for filters
@@ -247,7 +248,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">Analýza skladových zásob</h1>
