@@ -33,8 +33,8 @@ public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Progr
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            // Use Automation environment - automatically loads appsettings.Automation.json
-            builder.UseEnvironment("Automation");
+            // Use Test environment - automatically loads appsettings.Test.json
+            builder.UseEnvironment("Test");
 
             // Register mock TelemetryClient for test environment
             builder.ConfigureServices(services =>

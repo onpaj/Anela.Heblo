@@ -22,10 +22,10 @@ public static class CatalogModule
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        // Register catalog repository - use mock only for Automation environment (testing)
+        // Register catalog repository - use mock only for Test environment (testing)
         // Real repository for Development, Test, and Production environments
         var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-        if (environmentName == "Automation")
+        if (environmentName == "Test")
         {
             services.AddTransient<ICatalogRepository, MockCatalogRepository>();
         }
@@ -44,7 +44,7 @@ public static class CatalogModule
             // Default values - can be overridden by configuration
             options.IsTransportBoxTrackingEnabled = false;
             options.IsStockTakingEnabled = false;
-            options.IsBackgroundRefreshEnabled = environmentName != "Automation";
+            options.IsBackgroundRefreshEnabled = environmentName != "Test";
         });
 
         // Register repositories based on feature flags
@@ -55,7 +55,7 @@ public static class CatalogModule
 
         // Register background service for periodic refresh operations
         // Use feature flags to control when background services are enabled
-        if (environmentName != "Automation") // Keep existing behavior for compatibility
+        if (environmentName != "Test") // Keep existing behavior for compatibility
         {
             services.AddHostedService<CatalogRefreshBackgroundService>();
         }

@@ -25,7 +25,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.UseEnvironment("Automation"); // This will automatically load appsettings.Automation.json
+            builder.UseEnvironment("Test"); // This will automatically load appsettings.Test.json
             builder.ConfigureServices(services =>
             {
                 // Remove the existing DbContext registration

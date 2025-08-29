@@ -4,12 +4,12 @@ using Microsoft.Extensions.Logging;
 namespace Anela.Heblo.Application.Features.FinancialOverview;
 
 /// <summary>
-/// Test placeholder implementation for IStockValueService used in Test and Automation environments.
+/// Test placeholder implementation for IStockValueService used in Test and Test environments.
 /// This service provides predictable empty stock change data for consistent testing scenarios.
 /// 
 /// <para>
 /// <strong>Usage Context:</strong>
-/// - Automatically injected in Test and Automation environments via FinancialOverviewModule
+/// - Automatically injected in Test and Test environments via FinancialOverviewModule
 /// - Prevents external ERP dependencies during automated testing
 /// - Ensures deterministic behavior for financial analysis tests
 /// </para>

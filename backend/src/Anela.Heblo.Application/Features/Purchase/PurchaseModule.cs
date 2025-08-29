@@ -17,7 +17,7 @@ public static class PurchaseModule
         {
             var environment = provider.GetRequiredService<IHostEnvironment>();
 
-            if (environment.EnvironmentName == "Automation" || environment.EnvironmentName == "Test")
+            if (environment.EnvironmentName == "Test")
             {
                 // Use in-memory implementations for testing
                 return new InMemoryPurchaseOrderRepository();
@@ -34,7 +34,7 @@ public static class PurchaseModule
         {
             var environment = provider.GetRequiredService<IHostEnvironment>();
 
-            if (environment.EnvironmentName == "Automation" || environment.EnvironmentName == "Test")
+            if (environment.EnvironmentName == "Test")
             {
                 // Use in-memory implementation for testing
                 return new InMemoryPurchaseOrderNumberGenerator();

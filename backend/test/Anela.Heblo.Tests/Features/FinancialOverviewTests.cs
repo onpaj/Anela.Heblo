@@ -27,7 +27,7 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
         _factory = factory.WithWebHostBuilder(builder =>
         {
             // Use Automation environment - automatically loads appsettings.Automation.json
-            builder.UseEnvironment("Automation");
+            builder.UseEnvironment("Test");
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILedgerService));

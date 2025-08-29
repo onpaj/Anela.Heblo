@@ -60,7 +60,7 @@ public class CatalogFeatureFlagsTests
 
   
     [Fact]
-    public void CatalogModule_ConfiguresFeatureFlags_AutomationEnvironment_DisablesBackgroundRefresh()
+    public void CatalogModule_ConfiguresFeatureFlags_TestEnvironment_DisablesBackgroundRefresh()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -69,24 +69,21 @@ public class CatalogFeatureFlagsTests
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule(configuration, new TestHostEnvironment("Automation"));
+        services.AddCatalogModule(configuration, new TestHostEnvironment("Test"));
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
         // Assert
         options.Value.IsTransportBoxTrackingEnabled.Should().BeFalse();
         options.Value.IsStockTakingEnabled.Should().BeFalse();
-        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse(); // Automation environment
+        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse(); // Test environment
     }
 
     [Theory]
     [InlineData("Development", true)]
     [InlineData("Production", true)]
-    [InlineData("Test", true)]
+    [InlineData("Test", false)]
     [InlineData("Staging", true)]
-    [InlineData("Automation", false)]
-    [InlineData("automation", true)] // Case sensitive - different from "Automation"
-    [InlineData("AUTOMATION", true)] // Case sensitive - different from "Automation"
     public void CatalogModule_ConfiguresBackgroundRefresh_BasedOnEnvironment(string environmentName, bool expectedBackgroundRefreshEnabled)
     {
         // Arrange

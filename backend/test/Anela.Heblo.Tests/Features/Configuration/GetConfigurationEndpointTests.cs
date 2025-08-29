@@ -25,8 +25,8 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            // Use Automation environment - automatically loads appsettings.Automation.json
-            builder.UseEnvironment("Automation");
+            // Use Test environment - automatically loads appsettings.Test.json
+            builder.UseEnvironment("Test");
         });
         _client = _factory.CreateClient();
     }
@@ -80,7 +80,7 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         // Assert
         configResponse.Should().NotBeNull();
         // In integration tests, environment should be Test
-        configResponse.Environment.Should().Be("Automation");
+        configResponse.Environment.Should().Be("Test");
     }
 
     [Fact]
