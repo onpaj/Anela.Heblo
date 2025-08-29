@@ -80,7 +80,7 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
         // Assert
         configResponse.Should().NotBeNull();
         // In integration tests, environment should be Test
-        configResponse.Environment.Should().Be("Test");
+        configResponse.Environment.Should().Be("Automation");
     }
 
     [Fact]

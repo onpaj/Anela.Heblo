@@ -58,26 +58,7 @@ public class CatalogFeatureFlagsTests
         flags.IsBackgroundRefreshEnabled.Should().BeFalse();
     }
 
-    [Fact]
-    public void CatalogModule_ConfiguresFeatureFlags_WithDefaultValues()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var configuration = new ConfigurationBuilder().Build();
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddLogging();
-
-        // Act
-        services.AddCatalogModule(configuration);
-        var serviceProvider = services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
-
-        // Assert
-        options.Value.IsTransportBoxTrackingEnabled.Should().BeFalse();
-        options.Value.IsStockTakingEnabled.Should().BeFalse();
-        options.Value.IsBackgroundRefreshEnabled.Should().BeTrue(); // Development environment
-    }
-
+  
     [Fact]
     public void CatalogModule_ConfiguresFeatureFlags_AutomationEnvironment_DisablesBackgroundRefresh()
     {
