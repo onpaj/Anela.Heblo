@@ -25,15 +25,8 @@ public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            // Ensure test environment is set to enable mock authentication
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"}
-                });
-            });
+            // Use Automation environment - automatically loads appsettings.Automation.json
+            builder.UseEnvironment("Automation");
         });
         _client = _factory.CreateClient();
     }

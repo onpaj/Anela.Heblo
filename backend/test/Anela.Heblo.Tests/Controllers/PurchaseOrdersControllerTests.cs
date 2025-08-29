@@ -25,15 +25,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"},
-                    {"ConnectionStrings:Default", ""} // Ensure empty connection string to trigger in-memory database
-                });
-            });
+            builder.UseEnvironment("Automation"); // This will automatically load appsettings.Automation.json
             builder.ConfigureServices(services =>
             {
                 // Remove the existing DbContext registration
