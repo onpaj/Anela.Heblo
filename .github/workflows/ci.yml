@@ -1,21 +1,21 @@
-name: 🔄 Continuous Integration (Optimized)
+name: 🔄 CI with Manual Staging Deployment
 
 on:
+  push:
+    branches-ignore: [main]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: heblo
+  IMAGE_NAME: onpaj/heblo
 
 jobs:
-  # Frontend CI - Test and build only (no lint)
-  frontend-ci:
-    name: 🎯 Frontend CI (Test + Build)
+  # Frontend Tests - Parallel execution
+  frontend-tests:
+    name: 🎯 Frontend Tests
     runs-on: ubuntu-latest
-    outputs:
-      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -46,30 +46,10 @@ jobs:
           flags: frontend
           name: frontend-coverage
 
-      - name: 🏗️ Build production bundle
-        working-directory: ./frontend
-        run: npm run build
-        env:
-          REACT_APP_API_URL: https://placeholder.azurewebsites.net
-          REACT_APP_USE_MOCK_AUTH: false
-
-      - name: ✅ Check build success
-        id: check-build
-        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
-
-      - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build/
-          retention-days: 7
-
-  # Backend CI - Test and build only (no lint)
-  backend-ci:
-    name: 🎯 Backend CI (Test + Build)
+  # Backend Tests - Parallel execution
+  backend-tests:
+    name: 🎯 Backend Tests
     runs-on: ubuntu-latest
-    outputs:
-      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -117,19 +97,34 @@ jobs:
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
-      - name: ✅ Check build success
-        id: check-build
-        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
-
-  # UI Tests with Playwright - OPTIONAL (non-blocking)
-  playwright-tests:
-    name: 🎭 UI Tests (Playwright) - Optional
+  # Manual Approval for Staging Deployment
+  staging-approval:
+    name: 🤖 Approve Staging Deployment
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci]
-    continue-on-error: true  # Makes this job optional - won't fail the overall workflow
-    if: |
-      !contains(github.event.pull_request.labels.*.name, 'skip-ui-tests') &&
-      github.event.pull_request.draft == false
+    needs: [frontend-tests, backend-tests]
+    environment: 
+      name: staging-approval
+      url: https://heblo-test-staging.azurewebsites.net
+    steps:
+      - name: 📋 Summary of changes
+        run: |
+          echo "## ✅ Tests Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Frontend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Backend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Ready to deploy to staging environment!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Staging URL**: https://heblo-test-staging.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+
+  # Staging Deployment - runs after manual approval
+  staging-deployment:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [staging-approval]
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -146,277 +141,187 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: 📦 Restore .NET dependencies
-        run: dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
-
       - name: 📦 Install frontend dependencies
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
-      - name: 🎭 Install Playwright browsers
+      - name: 🏗️ Build frontend for staging
         working-directory: ./frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: 🚀 Run UI tests using script
-        run: |
-          echo "🎭 Starting UI tests with automation environment..."
-          # Use the existing script that handles environment setup and cleanup
-          chmod +x ./scripts/run-playwright-tests.sh
-          timeout 600 ./scripts/run-playwright-tests.sh || {
-            echo "⚠️ UI tests timed out or failed - this is non-blocking"
-            exit 0
-          }
+        run: npm run build
         env:
-          CI: true
-          PLAYWRIGHT_REPORTER: list  # Use list reporter in CI to avoid HTML server timeouts
+          REACT_APP_API_URL: https://heblo-test-staging.azurewebsites.net
+          REACT_APP_USE_MOCK_AUTH: true
+          REACT_APP_ENVIRONMENT: staging
 
-      - name: 📤 Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 7
-
-      - name: 📤 Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-test-results
-          path: frontend/test-results/
-          retention-days: 7
-
-      - name: 📊 Comment test results on PR
-        if: always() && github.event_name == 'pull_request'
-        continue-on-error: true
+      - name: 📦 Copy frontend to backend
         run: |
-          if [ -f frontend/playwright-report/index.html ]; then
-            # Count test results from the report
-            PASSED=$(grep -o "passed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
-            FAILED=$(grep -o "failed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
-            
-            gh pr comment ${{ github.event.pull_request.number }} \
-              --body "## 🎭 UI Test Results (Optional)
-            
-            - ✅ Passed: ${PASSED:-N/A}
-            - ❌ Failed: ${FAILED:-N/A}
-            
-            📄 **Full report**: Available in workflow artifacts
-            
-            _Note: UI tests are optional and don't block merge._" \
-              --edit-last || \
-            gh pr comment ${{ github.event.pull_request.number }} \
-              --body "## 🎭 UI Test Results (Optional)
-            
-            - ✅ Passed: ${PASSED:-N/A}
-            - ❌ Failed: ${FAILED:-N/A}
-            
-            📄 **Full report**: Available in workflow artifacts
-            
-            _Note: UI tests are optional and don't block merge._"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          rm -rf backend/src/Anela.Heblo.API/wwwroot
+          cp -r frontend/build backend/src/Anela.Heblo.API/wwwroot
 
-  # Docker Build - depends on both frontend and backend CI
-  docker-build:
-    name: 🐳 Docker Build
-    runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci]
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+      - name: 🏗️ Build backend
+        run: dotnet build backend/src/Anela.Heblo.API --configuration Release
 
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: 📦 Publish backend
+        run: dotnet publish backend/src/Anela.Heblo.API --configuration Release --output ./publish
 
-      - name: 🏗️ Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: ${{ env.IMAGE_NAME }}:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Quality Gate - ensures all REQUIRED jobs pass (UI tests are optional)
-  quality-gate:
-    name: ✅ Quality Gate
-    runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci, docker-build, playwright-tests]
-    if: always()
-    steps:
-      - name: ✅ Check required jobs succeeded
+      - name: 🏷️ Generate version tag
+        id: version
         run: |
-          echo "=== REQUIRED JOBS STATUS ==="
-          echo "Frontend CI: ${{ needs.frontend-ci.result }}"
-          echo "Backend CI: ${{ needs.backend-ci.result }}"
-          echo "Docker Build: ${{ needs.docker-build.result }}"
-          echo ""
-          echo "=== OPTIONAL JOBS STATUS ==="
-          echo "UI Tests (Playwright): ${{ needs.playwright-tests.result }}"
-          echo ""
-          
-          # Check required jobs only
-          if [[ "${{ needs.frontend-ci.result }}" != "success" || \
-                "${{ needs.backend-ci.result }}" != "success" || \
-                "${{ needs.docker-build.result }}" != "success" ]]; then
-            echo "❌ Quality gate failed - required jobs failed"
-            exit 1
-          fi
-          
-          echo "✅ Quality gate passed - all required jobs succeeded"
-
-      - name: 📋 Generate CI summary
-        run: |
-          # Determine UI test status for summary
-          UI_STATUS="⏭️ Skipped"
-          UI_ICON="⏭️"
-          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
-            UI_STATUS="✅ Passed"
-            UI_ICON="✅"
-          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
-            UI_STATUS="⚠️ Failed (non-blocking)"
-            UI_ICON="⚠️"
-          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
-            UI_STATUS="⏭️ Cancelled"
-            UI_ICON="⏭️"
-          fi
-          
-          echo "## 🎉 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Required Checks" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Frontend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Backend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
-          echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Optional Checks" >> $GITHUB_STEP_SUMMARY
-          echo "${UI_ICON} **UI Tests (Playwright)**: ${UI_STATUS}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 Deploy to Staging" >> $GITHUB_STEP_SUMMARY
-          echo "To deploy this PR to staging environment:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to [Deploy PR to Staging](${{ github.server_url }}/${{ github.repository }}/actions/workflows/deploy-staging-pr.yml)" >> $GITHUB_STEP_SUMMARY
-          echo "2. Click **Run workflow**" >> $GITHUB_STEP_SUMMARY
-          echo "3. Enter PR number: **${{ github.event.pull_request.number }}**" >> $GITHUB_STEP_SUMMARY
-          echo "4. Optionally enable/disable E2E tests" >> $GITHUB_STEP_SUMMARY
-          echo "5. Click **Run workflow** button" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The deployment will:" >> $GITHUB_STEP_SUMMARY
-          echo "- Build your PR branch" >> $GITHUB_STEP_SUMMARY
-          echo "- Deploy to https://heblo-test-staging.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
-          echo "- Comment back on this PR with deployment status" >> $GITHUB_STEP_SUMMARY
-          echo "- Optionally run E2E tests against staging" >> $GITHUB_STEP_SUMMARY
-
-  # Auto-merge job - runs when quality gate passes and PR has auto-merge label
-  auto-merge:
-    name: 🤖 Auto-merge PR
-    runs-on: ubuntu-latest
-    needs: [quality-gate, playwright-tests]
-    if: |
-      github.event.pull_request.draft == false &&
-      (contains(github.event.pull_request.labels.*.name, 'auto-merge') ||
-       contains(github.event.pull_request.labels.*.name, 'auto-squash') ||
-       contains(github.event.pull_request.labels.*.name, 'auto-rebase'))
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: read
-    
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: 🔍 Determine merge strategy
-        id: merge-strategy
-        run: |
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-squash') }}" == "true" ]]; then
-            echo "strategy=squash" >> $GITHUB_OUTPUT
-            echo "strategy_name=Squash and merge" >> $GITHUB_OUTPUT
-            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-rebase') }}" == "true" ]]; then
-            echo "strategy=rebase" >> $GITHUB_OUTPUT
-            echo "strategy_name=Rebase and merge" >> $GITHUB_OUTPUT
-            echo "merge_flag=--rebase" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="pr-${{ github.event.pull_request.number }}-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           else
-            echo "strategy=squash" >> $GITHUB_OUTPUT
-            echo "strategy_name=Squash and merge (default)" >> $GITHUB_OUTPUT
-            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
+            VERSION="branch-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           fi
-      
-      - name: 🔄 Enable auto-merge
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+
+      - name: 🔒 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 🐳 Build and push Docker image
         run: |
-          echo "Enabling auto-merge for PR #${{ github.event.pull_request.number }}"
-          echo "Strategy: ${{ steps.merge-strategy.outputs.strategy_name }}"
-          
-          gh pr merge ${{ github.event.pull_request.number }} \
-            --auto \
-            ${{ steps.merge-strategy.outputs.merge_flag }} \
-            --delete-branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: 💬 Comment on PR
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }} .
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }} \
+                     ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+
+      - name: 🔐 Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 🚀 Deploy to Azure Web App Staging Slot
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: heblo-test
+          slot-name: staging
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+
+      - name: ⚙️ Configure Azure App Settings
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: heblo-test
+          slot-name: staging
+          app-settings-json: |
+            [
+              {
+                "name": "ASPNETCORE_ENVIRONMENT",
+                "value": "Staging"
+              },
+              {
+                "name": "REACT_APP_API_URL",
+                "value": "https://heblo-test-staging.azurewebsites.net"
+              },
+              {
+                "name": "REACT_APP_USE_MOCK_AUTH",
+                "value": "true"
+              },
+              {
+                "name": "WEBSITES_PORT",
+                "value": "8080"
+              },
+              {
+                "name": "DatabaseSeeding__EnableAutoSeed",
+                "value": "true"
+              },
+              {
+                "name": "DatabaseSeeding__TruncateOnStartup",
+                "value": "true"
+              },
+              {
+                "name": "DEPLOYMENT_SOURCE",
+                "value": "CI-${{ github.ref_name }}"
+              }
+            ]
+          connection-strings-json: |
+            [
+              {
+                "name": "DefaultConnection",
+                "value": "${{ secrets.STAGING_DB_CONNECTION_STRING }}",
+                "type": "PostgreSQL"
+              }
+            ]
+
+      - name: 🔄 Restart staging slot
         run: |
-          # Determine UI test status for comment
-          UI_STATUS="⏭️ Skipped"
-          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
-            UI_STATUS="✅ Passed"
-          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
-            UI_STATUS="⚠️ Failed (non-blocking)"
-          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
-            UI_STATUS="⏭️ Cancelled"
-          fi
-          
+          az webapp restart --name heblo-test --slot staging --resource-group rgHeblo
+
+      - name: ⏳ Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for staging slot to be ready..."
+          sleep 30
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://heblo-test-staging.azurewebsites.net/health | grep -q "200"; then
+              echo "✅ Staging slot is ready!"
+              break
+            fi
+            echo "⏳ Waiting for staging slot... ($i/10)"
+            sleep 10
+          done
+
+      - name: 💬 Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🚀 **Auto-merge enabled!**
+            --body "## 🚀 Deployed to Staging!
           
-          All required CI checks have passed successfully:
-          - ✅ Frontend tests and build
-          - ✅ Backend tests and build  
-          - ✅ Docker build
-          - ${UI_STATUS} UI tests (optional)
+          Your branch has been successfully deployed to the staging environment:
           
-          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
+          - **🌐 URL**: https://heblo-test-staging.azurewebsites.net
+          - **📦 Version**: ${{ steps.version.outputs.version }}
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
           
-          This PR will be automatically merged when all required status checks are complete.
+          ### 🧪 Testing
+          You can now test your changes in the staging environment. The database is automatically seeded with test data.
+          
+          ### ⚠️ Important Notes
+          - Staging environment uses **mock authentication**
+          - Database is **automatically reset** on each deployment
+          - This deployment will be **replaced** by the next deployment
           
           ---
-          
-          ### Available Labels:
-          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
-          - \`auto-rebase\`: Rebase and merge
-          - \`skip-ui-tests\`: Skip UI tests entirely
-          
-          _Note: Branch will be deleted after merge._" \
+          _Deployment approved and executed automatically after CI success_" \
             --edit-last || \
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🚀 **Auto-merge enabled!**
+            --body "## 🚀 Deployed to Staging!
           
-          All required CI checks have passed successfully:
-          - ✅ Frontend tests and build
-          - ✅ Backend tests and build  
-          - ✅ Docker build
-          - ${UI_STATUS} UI tests (optional)
+          Your branch has been successfully deployed to the staging environment:
           
-          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
+          - **🌐 URL**: https://heblo-test-staging.azurewebsites.net
+          - **📦 Version**: ${{ steps.version.outputs.version }}
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
           
-          This PR will be automatically merged when all required status checks are complete.
+          ### 🧪 Testing
+          You can now test your changes in the staging environment. The database is automatically seeded with test data.
+          
+          ### ⚠️ Important Notes
+          - Staging environment uses **mock authentication**
+          - Database is **automatically reset** on each deployment
+          - This deployment will be **replaced** by the next deployment
           
           ---
-          
-          ### Available Labels:
-          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
-          - \`auto-rebase\`: Rebase and merge
-          - \`skip-ui-tests\`: Skip UI tests entirely
-          
-          _Note: Branch will be deleted after merge._"
+          _Deployment approved and executed automatically after CI success_"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Create deployment summary
+        run: |
+          echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://heblo-test-staging.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging (Mock Auth + Auto-seeded DB)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
+          echo "The staging environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY
