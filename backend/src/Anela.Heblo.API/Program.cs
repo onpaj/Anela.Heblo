@@ -14,6 +14,12 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // Add User Secrets for Development, Test, Staging, and Production environments
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test") || builder.Environment.IsEnvironment("Staging") || builder.Environment.IsProduction())
+        {
+            builder.Configuration.AddUserSecrets<Program>();
+        }
+
         // Configure application timezone based on configuration
         builder.Configuration.ConfigureApplicationTimeZone();
 
@@ -31,7 +37,7 @@ public partial class Program
         builder.Services.AddHealthCheckServices(builder.Configuration);
 
         // Add new architecture services
-        builder.Services.AddPersistenceServices(builder.Configuration);
+        builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
         builder.Services.AddApplicationServices(builder.Configuration, builder.Environment); // Vertical slice modules from Application layer
         builder.Services.AddXccServices(); // Cross-cutting concerns (audit, telemetry, etc.)
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer

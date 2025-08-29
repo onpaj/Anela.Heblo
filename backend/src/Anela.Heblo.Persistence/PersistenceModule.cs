@@ -1,8 +1,8 @@
-using Anela.Heblo.Persistence.Services;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Persistence;
 
@@ -11,15 +11,21 @@ namespace Anela.Heblo.Persistence;
 /// </summary>
 public static class PersistenceModule
 {
-    public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         // Register DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("Default");
+            var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+
+            if(string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception($"No connection string '{environment.EnvironmentName}' found in configuration.");
+            }
+            
             var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
 
-            if (useInMemory || string.IsNullOrEmpty(connectionString) || connectionString == "InMemory")
+            if (useInMemory || connectionString == "InMemory")
             {
                 // For testing scenarios where no real database is needed
                 options.UseInMemoryDatabase("TestDatabase");
@@ -32,10 +38,6 @@ public static class PersistenceModule
 
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
-
-        // Register database seeding services
-        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
-        services.AddHostedService<DatabaseSeedingHostedService>();
 
         return services;
     }

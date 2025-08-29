@@ -8,7 +8,7 @@ namespace Anela.Heblo.Persistence.Configurations.Features.Journal
     {
         public void Configure(EntityTypeBuilder<JournalEntry> builder)
         {
-            builder.ToTable("JournalEntries");
+            builder.ToTable("JournalEntries", "public");
 
             builder.HasKey(x => x.Id);
 

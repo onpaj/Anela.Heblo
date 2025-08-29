@@ -8,7 +8,7 @@ public class TransportBoxConfiguration : IEntityTypeConfiguration<TransportBox>
 {
     public void Configure(EntityTypeBuilder<TransportBox> builder)
     {
-        builder.ToTable("TransportBox", "dbo");
+        builder.ToTable("TransportBox", "public");
 
         builder.HasKey(x => x.Id);
 

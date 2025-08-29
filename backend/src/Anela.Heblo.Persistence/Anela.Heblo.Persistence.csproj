@@ -35,6 +35,11 @@
 
   <ItemGroup>
     <Folder Include="Mapping\" />
+    <Folder Include="schema\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="schema\database-schema.json" />
   </ItemGroup>
 
 </Project>
