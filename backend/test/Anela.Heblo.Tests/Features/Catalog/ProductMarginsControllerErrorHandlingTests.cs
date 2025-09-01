@@ -1,36 +1,21 @@
-using System;
-using FluentAssertions;
 using System.Net;
 using FluentAssertions;
-using System.Net.Http;
-using FluentAssertions;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Anela.Heblo.API;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Exceptions;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Catalog.Model;
-using FluentAssertions;
+using Anela.Heblo.Tests.Common;
 using MediatR;
-using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
-public class ProductMarginsControllerErrorHandlingTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProductMarginsControllerErrorHandlingTests : IClassFixture<HebloWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HebloWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public ProductMarginsControllerErrorHandlingTests(WebApplicationFactory<Program> factory)
+    public ProductMarginsControllerErrorHandlingTests(HebloWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient();
