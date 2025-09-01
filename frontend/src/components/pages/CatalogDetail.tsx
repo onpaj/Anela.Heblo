@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink } from 'lucide-react';
 import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto, CatalogPurchaseRecordDto, CatalogManufactureRecordDto } from '../../api/hooks/useCatalog';
-import { ManufactureCostDto, JournalEntryDto } from '../../api/generated/api-client';
+import { ManufactureCostDto, JournalEntryDto, MarginHistoryDto } from '../../api/generated/api-client';
 import JournalEntryModal from '../JournalEntryModal';
 import { useJournalEntriesByProduct } from '../../api/hooks/useJournal';
 import { format } from 'date-fns';
@@ -278,6 +278,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                       <MarginsTab 
                         item={effectiveItem}
                         manufactureCostHistory={detailData?.historicalData?.manufactureCostHistory || []}
+                        marginHistory={detailData?.historicalData?.marginHistory || []}
                         isLoading={detailLoading}
                         journalEntries={journalData?.entries || []}
                       />
@@ -1303,11 +1304,12 @@ const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEdit
 interface MarginsTabProps {
   item: CatalogItemDto | null;
   manufactureCostHistory: ManufactureCostDto[];
+  marginHistory: MarginHistoryDto[];
   isLoading: boolean;
   journalEntries: JournalEntryDto[];
 }
 
-const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, isLoading, journalEntries }) => {
+const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, marginHistory, isLoading, journalEntries }) => {
   // Calculate average manufacturing costs for display
   const averageMaterialCost = manufactureCostHistory.length > 0 
     ? manufactureCostHistory.reduce((sum, record) => sum + (record.materialCost || 0), 0) / manufactureCostHistory.length 
@@ -1439,6 +1441,51 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
     return monthEntries.length > 0 ? 6 : 3; // Larger radius for months with journal entries
   });
   
+  // Map margin history data to monthly arrays  
+  const mapMarginDataToMonthlyArrays = () => {
+    const marginAmountData = new Array(13).fill(0);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    // Create map for quick lookup of margin data by year-month key
+    const marginMap = new Map<string, number>();
+    
+    marginHistory.forEach(record => {
+      if (record.date) {
+        const recordDate = new Date(record.date);
+        const key = `${recordDate.getFullYear()}-${recordDate.getMonth() + 1}`;
+        marginMap.set(key, record.marginAmount || 0);
+      }
+    });
+    
+    // Fill the array with data for the last 13 months
+    for (let i = 0; i < 13; i++) {
+      const monthsBack = 12 - i;
+      let adjustedYear = currentYear;
+      let adjustedMonth = currentMonth - monthsBack;
+      
+      // Handle year transitions
+      if (adjustedMonth <= 0) {
+        adjustedYear--;
+        adjustedMonth += 12;
+      }
+      
+      const key = `${adjustedYear}-${adjustedMonth}`;
+      marginAmountData[i] = marginMap.get(key) || 0;
+    }
+    
+    return marginAmountData;
+  };
+
+  const marginData = mapMarginDataToMonthlyArrays();
+  
+  // Point styling for margin line - using same color as margin summary
+  const marginPointBackgroundColors = marginData.map((_, index) => {
+    const monthEntries = getJournalEntriesForMonth(index);
+    return monthEntries.length > 0 ? '#F97316' : 'rgba(245, 158, 11, 1)'; // Orange for months with journal entries, amber for margin
+  });
+
   const chartData = {
     labels: monthLabels,
     datasets: [
@@ -1453,6 +1500,7 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         pointBorderColor: pointBackgroundColors,
         pointRadius: pointRadiuses,
         pointHoverRadius: pointRadiuses.map(r => r + 2),
+        yAxisID: 'y',
       },
       {
         label: 'Náklady na zpracování (Kč/ks)',
@@ -1465,6 +1513,7 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         pointBorderColor: pointBackgroundColorsBlue,
         pointRadius: pointRadiuses,
         pointHoverRadius: pointRadiuses.map(r => r + 2),
+        yAxisID: 'y',
       },
       {
         label: 'Celkové náklady (Kč/ks)',
@@ -1477,6 +1526,20 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
         pointBorderColor: pointBackgroundColorsPurple,
         pointRadius: pointRadiuses,
         pointHoverRadius: pointRadiuses.map(r => r + 2),
+        yAxisID: 'y',
+      },
+      {
+        label: 'Absolutní marže (Kč/ks)',
+        data: marginData,
+        backgroundColor: 'rgba(245, 158, 11, 0.2)', // Amber for margin
+        borderColor: 'rgba(245, 158, 11, 1)',
+        borderWidth: 2,
+        tension: 0.1,
+        pointBackgroundColor: marginPointBackgroundColors,
+        pointBorderColor: marginPointBackgroundColors,
+        pointRadius: pointRadiuses,
+        pointHoverRadius: pointRadiuses.map(r => r + 2),
+        yAxisID: 'y1',
       },
     ],
   };
@@ -1518,10 +1581,25 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, i
     },
     scales: {
       y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
         beginAtZero: true,
         title: {
           display: true,
           text: 'Náklady na výrobu (Kč/ks)',
+        },
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        title: {
+          display: true,
+          text: 'Absolutní marže (Kč/ks)',
+        },
+        grid: {
+          drawOnChartArea: false,
         },
       },
       x: {

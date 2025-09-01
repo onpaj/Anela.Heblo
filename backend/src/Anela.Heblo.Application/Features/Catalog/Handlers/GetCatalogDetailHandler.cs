@@ -39,6 +39,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var consumedHistory = GetConsumedHistoryFromAggregate(catalogItem, request.MonthsBack);
         var manufactureHistory = GetManufactureHistoryFromAggregate(catalogItem, request.MonthsBack);
         var manufactureCostHistory = GetManufactureCostHistoryFromAggregate(catalogItem, request.MonthsBack);
+        var marginHistory = GetMarginHistoryFromAggregate(catalogItem, request.MonthsBack);
 
         return new GetCatalogDetailResponse
         {
@@ -49,7 +50,8 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 PurchaseHistory = purchaseHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),
                 ConsumedHistory = consumedHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),
                 ManufactureHistory = manufactureHistory.OrderByDescending(x => x.Date).ToList(),
-                ManufactureCostHistory = manufactureCostHistory.OrderByDescending(x => x.Date).ToList()
+                ManufactureCostHistory = manufactureCostHistory.OrderByDescending(x => x.Date).ToList(),
+                MarginHistory = marginHistory.OrderByDescending(x => x.Date).ToList()
             }
         };
     }
@@ -200,6 +202,41 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 MaterialCost = mc.MaterialCost,
                 HandlingCost = mc.HandlingCost,
                 Total = mc.Total
+            }).ToList();
+    }
+
+    private List<MarginHistoryDto> GetMarginHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
+    {
+        // Calculate margin for each month based on manufacturing cost history
+        var currentDate = _timeProvider.GetUtcNow().Date;
+        
+        // Get selling price without VAT from eshop
+        var sellingPrice = catalogItem.EshopPrice?.PriceWithoutVat ?? 0;
+        
+        // If no selling price available, return empty list
+        if (sellingPrice == 0)
+        {
+            return new List<MarginHistoryDto>();
+        }
+
+        // Filter manufacturing cost history based on monthsBack
+        var manufactureCostHistory = catalogItem.ManufactureCostHistory.AsQueryable();
+        
+        if (monthsBack < CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
+        {
+            var fromDate = currentDate.AddMonths(-monthsBack);
+            manufactureCostHistory = manufactureCostHistory.Where(mc => mc.Date >= fromDate);
+        }
+
+        return manufactureCostHistory
+            .OrderByDescending(mc => mc.Date)
+            .Select(mc => new MarginHistoryDto
+            {
+                Date = mc.Date,
+                SellingPrice = sellingPrice,
+                TotalCost = mc.Total,
+                MarginAmount = sellingPrice - mc.Total,
+                MarginPercentage = sellingPrice > 0 ? ((sellingPrice - mc.Total) / sellingPrice) * 100 : 0
             }).ToList();
     }
 }

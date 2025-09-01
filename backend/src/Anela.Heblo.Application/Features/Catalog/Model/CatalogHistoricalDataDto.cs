@@ -18,4 +18,7 @@ public class CatalogHistoricalDataDto
 
     [JsonPropertyName("manufactureCostHistory")]
     public List<ManufactureCostDto> ManufactureCostHistory { get; set; } = new();
+
+    [JsonPropertyName("marginHistory")]
+    public List<MarginHistoryDto> MarginHistory { get; set; } = new();
 }
