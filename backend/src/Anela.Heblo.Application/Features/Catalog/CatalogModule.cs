@@ -12,27 +12,18 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Application.Features.Catalog;
 
 public static class CatalogModule
 {
-    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
+    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IConfiguration configuration)
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        // Register catalog repository - use mock only for Test environment (testing)
-        // Real repository for Development, Test, and Production environments
-        var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-        if (environmentName == "Test")
-        {
-            services.AddTransient<ICatalogRepository, MockCatalogRepository>();
-        }
-        else
-        {
-            services.AddTransient<ICatalogRepository, CatalogRepository>();
-        }
+        // Register default implementations - tests can override these
+        services.AddTransient<ICatalogRepository, CatalogRepository>();
+
         // Register catalog-specific services
         services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
@@ -44,7 +35,7 @@ public static class CatalogModule
             // Default values - can be overridden by configuration
             options.IsTransportBoxTrackingEnabled = false;
             options.IsStockTakingEnabled = false;
-            options.IsBackgroundRefreshEnabled = environmentName != "Test";
+            options.IsBackgroundRefreshEnabled = true;
         });
 
         // Register repositories based on feature flags
@@ -54,11 +45,8 @@ public static class CatalogModule
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
         // Register background service for periodic refresh operations
-        // Use feature flags to control when background services are enabled
-        if (environmentName != "Test") // Keep existing behavior for compatibility
-        {
-            services.AddHostedService<CatalogRefreshBackgroundService>();
-        }
+        // Tests can configure hosted services separately
+        services.AddHostedService<CatalogRefreshBackgroundService>();
 
         // Configure catalog repository options from configuration
         services.Configure<CatalogRepositoryOptions>(options =>

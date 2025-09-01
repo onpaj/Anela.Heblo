@@ -13,7 +13,9 @@ import {
   CreatePurchaseOrderRequest,
   ContactVia
 } from '../../api/generated/api-client';
-import { MaterialAutocomplete } from '../common/MaterialAutocomplete';
+import SupplierAutocomplete from '../common/SupplierAutocomplete';
+import MaterialAutocomplete from '../common/MaterialAutocomplete';
+import { SupplierDto } from '../../api/generated/api-client';
 import { MaterialForPurchaseDto, useMaterialByProductCode } from '../../api/hooks/useMaterials';
 
 interface PurchaseOrderFormProps {
@@ -25,7 +27,7 @@ interface PurchaseOrderFormProps {
 
 interface FormData {
   orderNumber: string;
-  supplierName: string;
+  selectedSupplier: SupplierDto | null;
   orderDate: string;
   expectedDeliveryDate: string;
   contactVia: ContactVia | null;
@@ -68,7 +70,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   
   const [formData, setFormData] = useState<FormData>({
     orderNumber: generateDefaultOrderNumber(),
-    supplierName: '',
+    selectedSupplier: null,
     orderDate: new Date().toISOString().split('T')[0], // Today's date
     expectedDeliveryDate: '',
     contactVia: null,
@@ -134,9 +136,16 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             selectedMaterial: undefined
           })];
 
+      // Create supplier object from existing data
+      const existingSupplier = new SupplierDto({
+        id: existingOrderData.supplierId || 0,
+        name: existingOrderData.supplierName || '',
+        code: 'UNKNOWN', // We don't have supplier code in existing data
+      });
+
       setFormData({
         orderNumber: existingOrderData.orderNumber || generateDefaultOrderNumber(),
-        supplierName: existingOrderData.supplierName || '',
+        selectedSupplier: existingSupplier,
         orderDate: existingOrderData.orderDate ? new Date(existingOrderData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expectedDeliveryDate: existingOrderData.expectedDeliveryDate ? new Date(existingOrderData.expectedDeliveryDate).toISOString().split('T')[0] : '',
         contactVia: existingOrderData.contactVia || null,
@@ -159,7 +168,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       // Reset to default state for create mode
       setFormData({
         orderNumber: generateDefaultOrderNumber(),
-        supplierName: '',
+        selectedSupplier: null,
         orderDate: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: '',
         contactVia: null,
@@ -212,8 +221,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       newErrors.orderNumber = 'Číslo objednávky je povinné';
     }
 
-    if (!formData.supplierName.trim()) {
-      newErrors.supplierName = 'Název dodavatele je povinný';
+    if (!formData.selectedSupplier) {
+      newErrors.selectedSupplier = 'Dodavatel je povinný';
     }
 
     if (!formData.orderDate) {
@@ -225,9 +234,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       newErrors.expectedDeliveryDate = 'Datum dodání nemůže být před datem objednávky';
     }
 
-    // Validate lines (skip empty rows - rows without material selected or materialName)
+    // Validate lines (skip empty rows - rows without material selected)
     const nonEmptyLines = formData.lines.filter(line => 
-      line.selectedMaterial || (line.materialName && line.materialName.trim())
+      line.selectedMaterial && line.selectedMaterial.productName
     );
     
     // Check if there's at least one non-empty line
@@ -236,12 +245,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     }
     
     formData.lines.forEach((line, index) => {
-      // Only validate rows that have material selected or materialName filled
-      const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+      // Only validate rows that have material selected
+      const hasValidMaterial = line.selectedMaterial && line.selectedMaterial.productName;
       
       if (hasValidMaterial) {
-        if (!line.materialName?.trim() && !line.selectedMaterial?.productName?.trim()) {
-          newErrors[`line_${index}_material`] = 'Název materiálu je povinný';
+        if (!line.selectedMaterial?.productName?.trim()) {
+          newErrors[`line_${index}_material`] = 'Vyberte materiál ze seznamu';
         }
         if (!line.quantity || line.quantity <= 0) {
           newErrors[`line_${index}_quantity`] = 'Množství musí být větší než 0';
@@ -267,22 +276,22 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
 
     try {
       if (isEditMode && editOrderId) {
-        // Update existing order
+        // Update existing order - Now uses supplierId instead of supplierName
         const request = new UpdatePurchaseOrderRequest({
           id: editOrderId,
-          supplierName: formData.supplierName,
+          supplierId: formData.selectedSupplier?.id || 0,
           expectedDeliveryDate: formData.expectedDeliveryDate ? new Date(formData.expectedDeliveryDate) : undefined,
           contactVia: formData.contactVia || undefined,
           notes: formData.notes || undefined,
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
             .filter(line => {
-              const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+              const hasValidMaterial = line.selectedMaterial && line.selectedMaterial.productName;
               return hasValidMaterial && line.quantity && line.unitPrice;
             })
             .map(line => new UpdatePurchaseOrderLineRequest({
-              materialId: line.materialId || 'MANUAL',  // Use 'MANUAL' for manually entered materials
-              name: line.selectedMaterial?.productName || line.materialName,
+              materialId: line.selectedMaterial?.productCode || 'MANUAL',
+              name: line.selectedMaterial?.productName || '',
               quantity: line.quantity!,
               unitPrice: line.unitPrice!,
               notes: line.notes
@@ -295,9 +304,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           onSuccess(response.id);
         }
       } else {
-        // Create new order
+        // Create new order - Note: Backend now expects supplierId instead of supplierName
         const request = new CreatePurchaseOrderRequest({
-          supplierName: formData.supplierName,
+          supplierId: formData.selectedSupplier?.id || 0,
           orderDate: formData.orderDate,
           expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
           contactVia: formData.contactVia || undefined,
@@ -305,12 +314,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
             .filter(line => {
-              const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+              const hasValidMaterial = line.selectedMaterial && line.selectedMaterial.productName;
               return hasValidMaterial && line.quantity && line.unitPrice;
             })
             .map(line => new CreatePurchaseOrderLineRequest({
-              materialId: line.materialId || 'MANUAL',  // Use 'MANUAL' for manually entered materials
-              name: line.selectedMaterial?.productName || line.materialName,
+              materialId: line.selectedMaterial?.productCode || 'MANUAL',
+              name: line.selectedMaterial?.productName || '',
               quantity: line.quantity!,
               unitPrice: line.unitPrice!,
               notes: line.notes
@@ -333,11 +342,19 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     }
   };
 
-  const handleInputChange = (field: keyof FormData, value: string | ContactVia | null) => {
+  const handleInputChange = (field: keyof FormData, value: string | ContactVia | null | SupplierDto) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSupplierSelect = (supplier: SupplierDto | null) => {
+    setFormData(prev => ({ ...prev, selectedSupplier: supplier }));
+    // Clear supplier error when a supplier is selected
+    if (supplier && errors.selectedSupplier) {
+      setErrors(prev => ({ ...prev, selectedSupplier: '' }));
     }
   };
 
@@ -384,56 +401,26 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
   const handleMaterialSelect = (index: number, material: MaterialForPurchaseDto | null) => {
     setFormData(prev => {
       const newLines = [...prev.lines];
-      if (material) {
-        // Parse MOQ to number, default to 1 if not available or invalid
-        const moq = material.minimalOrderQuantity ? parseInt(material.minimalOrderQuantity) : 1;
-        const quantity = isNaN(moq) ? 1 : Math.max(moq, 1);
-        
-        // Round unit price to 4 decimal places if provided
-        const unitPrice = material.lastPurchasePrice ? Math.round(material.lastPurchasePrice * 10000) / 10000 : newLines[index].unitPrice;
-        
-        newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
-          ...newLines[index],
-          materialId: material.productCode || `temp-${Date.now()}`, // Use product code as material ID
-          materialName: material.productName || '',
-          selectedMaterial: material,
-          // Pre-fill quantity with MOQ
-          quantity: quantity,
-          // Pre-fill unit price with last purchase price if available
-          unitPrice: unitPrice,
-        });
-        // Recalculate line total
-        newLines[index].lineTotal = Math.round((newLines[index].quantity || 0) * (newLines[index].unitPrice || 0) * 100) / 100;
-        
-        // Add empty row if this is the last row and it now has material
-        if (index === newLines.length - 1) {
-          newLines.push(Object.assign(new PurchaseOrderLineDto(), {
-            id: 0, // Temporary ID for new lines
-            materialId: `temp-${Date.now()}-${Math.random()}`,
-            materialName: '',
-            quantity: 1,
-            unitPrice: 0,
-            lineTotal: 0,
-            selectedMaterial: undefined
-          }));
-        }
-      } else {
-        newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
-          ...newLines[index],
-          materialId: `temp-${Date.now()}`,
-          materialName: '',
-          selectedMaterial: undefined,
-        });
-      }
+      newLines[index] = Object.assign(new PurchaseOrderLineDto(), {
+        ...newLines[index],
+        selectedMaterial: material,
+        materialId: material?.productCode || `temp-${Date.now()}`,
+        materialName: material?.productName || '',
+        unitPrice: material?.lastPurchasePrice || newLines[index].unitPrice || 0
+      });
+      
+      // Recalculate line total with proper rounding
+      newLines[index].lineTotal = Math.round((newLines[index].quantity || 0) * (newLines[index].unitPrice || 0) * 100) / 100;
       
       return { ...prev, lines: newLines };
     });
-
+    
     // Clear material error when a material is selected
     if (material && errors[`line_${index}_material`]) {
       setErrors(prev => ({ ...prev, [`line_${index}_material`]: '' }));
     }
   };
+
 
   const calculateTotal = () => {
     return formData.lines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
@@ -516,25 +503,19 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                   )}
                 </div>
 
-                {/* Supplier Name */}
+                {/* Supplier Autocomplete */}
                 <div className="md:col-span-2">
-                  <label htmlFor="supplierName" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     <Truck className="h-4 w-4 inline mr-1" />
                     Dodavatel *
                   </label>
-                  <input
-                    type="text"
-                    id="supplierName"
-                    value={formData.supplierName}
-                    onChange={(e) => handleInputChange('supplierName', e.target.value)}
-                    className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                      errors.supplierName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Název dodavatele"
+                  <SupplierAutocomplete
+                    value={formData.selectedSupplier}
+                    onSelect={handleSupplierSelect}
+                    placeholder="Vyberte dodavatele..."
+                    error={errors.selectedSupplier}
+                    className="w-full"
                   />
-                  {errors.supplierName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.supplierName}</p>
-                  )}
                 </div>
 
                 {/* Order Date */}
@@ -656,9 +637,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
                         {/* Material Selection */}
                         <div className="col-span-4">
                           <MaterialAutocomplete
-                            value={line.selectedMaterial || null}
+                            value={line.selectedMaterial}
                             onSelect={(material) => handleMaterialSelect(index, material)}
-                            placeholder="Vyberte materiál..."
+                            placeholder="Vyberte materiál nebo zboží..."
                             error={errors[`line_${index}_material`]}
                             className="w-full"
                           />

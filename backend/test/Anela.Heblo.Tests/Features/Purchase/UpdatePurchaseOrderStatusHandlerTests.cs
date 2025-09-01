@@ -272,6 +272,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     {
         return new PurchaseOrder(
             ValidOrderNumber,
+            1, // SupplierId
             "Test Supplier",
             DateTime.UtcNow.Date,
             DateTime.UtcNow.Date.AddDays(14),

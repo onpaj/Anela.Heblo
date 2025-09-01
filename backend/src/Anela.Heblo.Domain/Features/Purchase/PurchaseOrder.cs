@@ -6,6 +6,7 @@ public class PurchaseOrder : IEntity<int>
 {
     public int Id { get; private set; }
     public string OrderNumber { get; private set; } = null!;
+    public long SupplierId { get; private set; }
     public string SupplierName { get; private set; } = null!;
     public DateTime OrderDate { get; private set; }
     public DateTime? ExpectedDeliveryDate { get; private set; }
@@ -34,6 +35,7 @@ public class PurchaseOrder : IEntity<int>
 
     public PurchaseOrder(
         string orderNumber,
+        long supplierId,
         string supplierName,
         DateTime orderDate,
         DateTime? expectedDeliveryDate,
@@ -42,6 +44,7 @@ public class PurchaseOrder : IEntity<int>
         string createdBy)
     {
         OrderNumber = orderNumber ?? throw new ArgumentNullException(nameof(orderNumber));
+        SupplierId = supplierId;
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         OrderDate = orderDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(orderDate, DateTimeKind.Utc) : orderDate.ToUniversalTime();
         ExpectedDeliveryDate = expectedDeliveryDate?.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(expectedDeliveryDate.Value, DateTimeKind.Utc) : expectedDeliveryDate?.ToUniversalTime();
@@ -116,13 +119,14 @@ public class PurchaseOrder : IEntity<int>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string supplierName, DateTime? expectedDeliveryDate, ContactVia? contactVia, string? notes, string updatedBy)
+    public void Update(long supplierId, string supplierName, DateTime? expectedDeliveryDate, ContactVia? contactVia, string? notes, string updatedBy)
     {
         if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot update completed orders");
         }
 
+        SupplierId = supplierId;
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
         ExpectedDeliveryDate = expectedDeliveryDate;
         ContactVia = contactVia;

@@ -111,6 +111,15 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         return await Task.FromResult(removed);
     }
 
+    public new async Task UpdateAsync(PurchaseOrder entity, CancellationToken cancellationToken = default)
+    {
+        if (_orders.ContainsKey(entity.Id))
+        {
+            _orders[entity.Id] = entity;
+        }
+        await Task.CompletedTask;
+    }
+
     public new async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // No-op for in-memory implementation

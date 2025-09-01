@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Domain.Entities;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
@@ -17,8 +19,10 @@ public class CreatePurchaseOrderHandlerTests
     private readonly Mock<IPurchaseOrderNumberGenerator> _orderNumberGeneratorMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<ISupplierRepository> _supplierRepositoryMock;
     private readonly CreatePurchaseOrderHandler _handler;
 
+    private const long ValidSupplierId = 1;
     private const string ValidSupplierName = "Test Supplier";
     private const string ValidOrderDate = "2024-08-02";
     private const string ValidExpectedDeliveryDate = "2024-08-16";
@@ -35,17 +39,23 @@ public class CreatePurchaseOrderHandlerTests
         _orderNumberGeneratorMock = new Mock<IPurchaseOrderNumberGenerator>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _supplierRepositoryMock = new Mock<ISupplierRepository>();
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
+
+        _supplierRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidSupplierId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Supplier { Id = ValidSupplierId, Name = ValidSupplierName, Code = "SUP001" });
 
         _handler = new CreatePurchaseOrderHandler(
             _loggerMock.Object,
             _repositoryMock.Object,
             _orderNumberGeneratorMock.Object,
             _catalogRepositoryMock.Object,
-            _currentUserServiceMock.Object);
+            _currentUserServiceMock.Object,
+            _supplierRepositoryMock.Object);
     }
 
     [Fact]
@@ -91,7 +101,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = ValidSupplierName,
+            SupplierId = ValidSupplierId,
             OrderDate = ValidOrderDate,
             ExpectedDeliveryDate = ValidExpectedDeliveryDate,
             Notes = ValidNotes,
@@ -127,7 +137,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = ValidSupplierName,
+            SupplierId = ValidSupplierId,
             OrderDate = ValidOrderDate,
             ExpectedDeliveryDate = ValidExpectedDeliveryDate,
             Notes = ValidNotes,
@@ -329,7 +339,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         return new CreatePurchaseOrderRequest
         {
-            SupplierName = ValidSupplierName,
+            SupplierId = ValidSupplierId,
             OrderDate = ValidOrderDate,
             ExpectedDeliveryDate = ValidExpectedDeliveryDate,
             Notes = ValidNotes,

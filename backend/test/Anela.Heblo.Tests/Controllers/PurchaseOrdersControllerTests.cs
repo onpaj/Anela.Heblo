@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
@@ -82,7 +83,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Integration test order",
@@ -114,7 +115,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Empty order",
@@ -137,7 +138,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order with invalid line",
@@ -158,7 +159,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Test order for retrieval",
@@ -203,7 +204,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order to update",
@@ -221,7 +222,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var updateRequest = new UpdatePurchaseOrderRequest
         {
             Id = orderId,
-            SupplierName = "Updated Supplier",
+            SupplierId = 1,
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21),
             Notes = "Updated notes",
             Lines = new List<UpdatePurchaseOrderLineRequest>
@@ -250,7 +251,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var updateRequest = new UpdatePurchaseOrderRequest
         {
             Id = nonExistentId,
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21),
             Notes = "Updated notes",
             Lines = new List<UpdatePurchaseOrderLineRequest>(),
@@ -270,7 +271,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var updateRequest = new UpdatePurchaseOrderRequest
         {
             Id = differentId,
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21),
             Notes = "Updated notes",
             Lines = new List<UpdatePurchaseOrderLineRequest>(),
@@ -287,7 +288,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order for status update",
@@ -318,7 +319,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order for invalid status update",
@@ -355,7 +356,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order for history test",
@@ -400,7 +401,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var customOrderNumber = "CUSTOM-ORDER-123";
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Custom order number test",
@@ -425,7 +426,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     {
         var request = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Auto-generated order number test",
@@ -453,7 +454,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         // Create order first
         var createRequest = new CreatePurchaseOrderRequest
         {
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
             Notes = "Order to update order number",
@@ -473,7 +474,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var updateRequest = new UpdatePurchaseOrderRequest
         {
             Id = orderId,
-            SupplierName = "Test Supplier",
+            SupplierId = 1,
             ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21),
             Notes = "Updated notes",
             Lines = new List<UpdatePurchaseOrderLineRequest>
@@ -497,15 +498,22 @@ public class PurchaseOrdersTestFactory : HebloWebApplicationFactory
 {
     protected override void ConfigureTestServices(IServiceCollection services)
     {
-        // Remove the existing repository registration from PurchaseModule factory
-        var repositoryDescriptor = services.SingleOrDefault(
-            d => d.ServiceType == typeof(IPurchaseOrderRepository));
-        if (repositoryDescriptor != null)
+        // The PurchaseModule now only registers default implementations
+        // Tests use the EF Core in-memory database from the base factory
+        // This ensures data persists properly within each test
+
+        // Override the default number generator to use in-memory implementation
+        var numberGeneratorDescriptor = services.SingleOrDefault(
+            d => d.ServiceType == typeof(IPurchaseOrderNumberGenerator));
+        if (numberGeneratorDescriptor != null)
         {
-            services.Remove(repositoryDescriptor);
+            services.Remove(numberGeneratorDescriptor);
         }
 
-        // Force use of EF Core repository instead of InMemoryPurchaseOrderRepository
-        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+        // Use in-memory number generator for testing
+        services.AddScoped<IPurchaseOrderNumberGenerator, InMemoryPurchaseOrderNumberGenerator>();
+
+        // Add mock supplier repository
+        services.AddScoped<ISupplierRepository, MockSupplierRepository>();
     }
 }

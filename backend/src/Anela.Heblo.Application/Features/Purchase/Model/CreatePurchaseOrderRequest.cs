@@ -7,9 +7,8 @@ namespace Anela.Heblo.Application.Features.Purchase.Model;
 
 public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
 {
-    [Required(ErrorMessage = "Supplier name is required")]
-    [StringLength(200, ErrorMessage = "Supplier name cannot exceed 200 characters")]
-    public string SupplierName { get; set; } = null!;
+    [Required(ErrorMessage = "Supplier is required")]
+    public long SupplierId { get; set; }
 
     [Required(ErrorMessage = "Order date is required")]
     public string OrderDate { get; set; } = null!;

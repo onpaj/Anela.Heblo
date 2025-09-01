@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -13,17 +14,20 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
     private readonly IPurchaseOrderRepository _repository;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISupplierRepository _supplierRepository;
 
     public UpdatePurchaseOrderHandler(
         ILogger<UpdatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
         ICatalogRepository catalogRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
+        _supplierRepository = supplierRepository;
     }
 
     public async Task<UpdatePurchaseOrderResponse?> Handle(UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
@@ -49,7 +53,14 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                 purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
             }
 
-            purchaseOrder.Update(request.SupplierName, request.ExpectedDeliveryDate, request.ContactVia, request.Notes, updatedBy);
+            // Get supplier by ID
+            var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
+            if (supplier == null)
+            {
+                throw new ArgumentException($"Supplier with ID {request.SupplierId} not found");
+            }
+
+            purchaseOrder.Update(supplier.Id, supplier.Name, request.ExpectedDeliveryDate, request.ContactVia, request.Notes, updatedBy);
 
             var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
             var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();
@@ -95,7 +106,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
             _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
 
-            return await MapToResponseAsync(purchaseOrder, cancellationToken);
+            return await MapToResponseAsync(purchaseOrder, request.SupplierId, cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -106,7 +117,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
     }
 
 
-    private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
+    private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
     {
         var lines = new List<PurchaseOrderLineDto>();
 
@@ -133,7 +144,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         {
             Id = purchaseOrder.Id,
             OrderNumber = purchaseOrder.OrderNumber,
-            SupplierId = 0, // No longer using SupplierId
+            SupplierId = supplierId,
             SupplierName = purchaseOrder.SupplierName,
             OrderDate = purchaseOrder.OrderDate,
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,

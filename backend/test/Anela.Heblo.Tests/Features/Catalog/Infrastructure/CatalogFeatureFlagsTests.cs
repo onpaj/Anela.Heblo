@@ -58,9 +58,9 @@ public class CatalogFeatureFlagsTests
         flags.IsBackgroundRefreshEnabled.Should().BeFalse();
     }
 
-  
+
     [Fact]
-    public void CatalogModule_ConfiguresFeatureFlags_TestEnvironment_DisablesBackgroundRefresh()
+    public void CatalogModule_ConfiguresFeatureFlags_DefaultValues()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -69,22 +69,18 @@ public class CatalogFeatureFlagsTests
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule(configuration, new TestHostEnvironment("Test"));
+        services.AddCatalogModule(configuration);
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
         // Assert
         options.Value.IsTransportBoxTrackingEnabled.Should().BeFalse();
         options.Value.IsStockTakingEnabled.Should().BeFalse();
-        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse(); // Test environment
+        options.Value.IsBackgroundRefreshEnabled.Should().BeTrue(); // Default is true
     }
 
-    [Theory]
-    [InlineData("Development", true)]
-    [InlineData("Production", true)]
-    [InlineData("Test", false)]
-    [InlineData("Staging", true)]
-    public void CatalogModule_ConfiguresBackgroundRefresh_BasedOnEnvironment(string environmentName, bool expectedBackgroundRefreshEnabled)
+    [Fact]
+    public void CatalogModule_CanOverrideBackgroundRefresh_ForTesting()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -92,13 +88,18 @@ public class CatalogFeatureFlagsTests
         services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
 
-        // Act
-        services.AddCatalogModule(configuration, new TestHostEnvironment(environmentName));
+        // Act - Register module first, then override feature flags
+        services.AddCatalogModule(configuration);
+        services.Configure<CatalogFeatureFlags>(options =>
+        {
+            options.IsBackgroundRefreshEnabled = false; // Override for testing
+        });
+
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
         // Assert
-        options.Value.IsBackgroundRefreshEnabled.Should().Be(expectedBackgroundRefreshEnabled);
+        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse();
     }
 
     [Fact]

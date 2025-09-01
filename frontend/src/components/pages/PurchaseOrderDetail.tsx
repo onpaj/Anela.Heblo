@@ -217,6 +217,15 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                         <span className="text-sm text-gray-900">{orderData.supplierName}</span>
                       </div>
                       
+                      {orderData.supplierNote && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-gray-600">
+                            Poznámka od dodavatele:
+                          </span>
+                          <span className="text-sm text-gray-700 max-w-xs text-right">{orderData.supplierNote}</span>
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600 flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />

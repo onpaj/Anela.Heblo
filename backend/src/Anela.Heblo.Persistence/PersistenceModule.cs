@@ -18,11 +18,11 @@ public static class PersistenceModule
         {
             var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
 
-            if(string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrEmpty(connectionString))
             {
                 throw new Exception($"No connection string '{environment.EnvironmentName}' found in configuration.");
             }
-            
+
             var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
 
             if (useInMemory || connectionString == "InMemory")

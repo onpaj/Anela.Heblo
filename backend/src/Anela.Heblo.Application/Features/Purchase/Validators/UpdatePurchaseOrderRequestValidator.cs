@@ -10,9 +10,8 @@ public class UpdatePurchaseOrderRequestValidator : AbstractValidator<UpdatePurch
         RuleFor(x => x.Id)
             .GreaterThan(0).WithMessage("Invalid purchase order ID");
 
-        RuleFor(x => x.SupplierName)
-            .NotEmpty().WithMessage("Supplier name is required")
-            .MaximumLength(200).WithMessage("Supplier name cannot exceed 200 characters");
+        RuleFor(x => x.SupplierId)
+            .GreaterThan(0).WithMessage("Supplier is required");
 
         RuleFor(x => x.ExpectedDeliveryDate)
             .Must(BeAReasonableDate).When(x => x.ExpectedDeliveryDate.HasValue)

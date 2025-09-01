@@ -6,7 +6,6 @@ using Anela.Heblo.Domain.Features.FinancialOverview;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -28,12 +27,8 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
-        services.AddSingleton(mockEnvironment.Object);
-
         // Act
-        services.AddFinancialOverviewModule(configuration, mockEnvironment.Object);
+        services.AddFinancialOverviewModule(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -46,21 +41,28 @@ public class FinancialOverviewModuleTests
         financialAnalysisService.Should().BeOfType<FinancialAnalysisService>();
     }
 
-   
     [Fact]
-    public void AddFinancialOverviewModule_RegistersPlaceholderService_InTestEnvironment()
+    public void AddFinancialOverviewModule_CanOverridePlaceholderService_ForTesting()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
-        // Cannot mock extension methods - the factory checks EnvironmentName instead
-        services.AddSingleton(mockEnvironment.Object);
+        // Act - Register module first, then override
+        services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
+        // Override default registration with placeholder for testing
+        var stockValueDescriptor = services.SingleOrDefault(s => s.ServiceType == typeof(IStockValueService));
+        if (stockValueDescriptor != null)
+        {
+            services.Remove(stockValueDescriptor);
+        }
+        services.AddScoped<IStockValueService>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<PlaceholderStockValueService>>();
+            return new PlaceholderStockValueService(logger);
+        });
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -70,7 +72,7 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_RegistersRealService_InProductionEnvironment()
+    public void AddFinancialOverviewModule_RegistersDefaultRealService()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -81,13 +83,8 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production");
-        // Cannot mock extension methods - the factory checks EnvironmentName instead
-        services.AddSingleton(mockEnvironment.Object);
-
         // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration());
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -97,53 +94,29 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_RegistersRealService_InDevelopmentEnvironment()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Add required dependencies for StockValueService
-        services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
-        services.AddSingleton(Mock.Of<ILedgerService>());
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
-        // Cannot mock extension methods - the factory checks EnvironmentName instead
-        services.AddSingleton(mockEnvironment.Object);
-
-        // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        stockValueService.Should().NotBeNull();
-        stockValueService.Should().BeOfType<StockValueService>();
-    }
-
-    [Fact]
-    public void AddFinancialOverviewModule_DoesNotRegisterBackgroundService_InTestEnvironment()
+    public void AddFinancialOverviewModule_CanOverrideBackgroundService_ForTesting()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
+        // Act - Register module first
+        services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
-        var serviceProvider = services.BuildServiceProvider();
+        // Override/remove background service for testing
+        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(FinancialAnalysisBackgroundService));
+        if (hostedServiceDescriptor != null)
+        {
+            services.Remove(hostedServiceDescriptor);
+        }
 
-        // Assert - Background service should not be registered in Test environment
+        // Assert - Background service should be removable for testing
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
         hostedServices.Should().BeEmpty();
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_RegistersBackgroundService_InNonTestEnvironment()
+    public void AddFinancialOverviewModule_RegistersBackgroundService_ByDefault()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -154,13 +127,10 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
-
         // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Assert - Background service should be registered in non-Test environments
+        // Assert - Background service should be registered by default
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
         hostedServices.Should().HaveCount(1);
         Assert.Equal(typeof(FinancialAnalysisBackgroundService), hostedServices.First().ImplementationType);
@@ -171,18 +141,19 @@ public class FinancialOverviewModuleTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
-        services.AddSingleton(mockEnvironment.Object);
+        // Add required dependencies
+        services.AddSingleton(Mock.Of<IErpStockClient>());
+        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
+        services.AddSingleton(Mock.Of<ILedgerService>());
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         // Act & Assert - This test verifies that the factory pattern is used
         // The fact that we can successfully register and resolve services without 
         // calling BuildServiceProvider during registration proves the antipattern is avoided
         var exception = Record.Exception(() =>
         {
-            services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
+            services.AddFinancialOverviewModule(CreateMockConfiguration());
             var serviceProvider = services.BuildServiceProvider();
             var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
             stockValueService.Should().NotBeNull();
@@ -198,11 +169,8 @@ public class FinancialOverviewModuleTests
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
-
         // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
+        services.AddFinancialOverviewModule(CreateMockConfiguration());
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert

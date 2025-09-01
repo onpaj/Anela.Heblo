@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
@@ -15,24 +16,34 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     private readonly IPurchaseOrderNumberGenerator _orderNumberGenerator;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISupplierRepository _supplierRepository;
 
     public CreatePurchaseOrderHandler(
         ILogger<CreatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
         IPurchaseOrderNumberGenerator orderNumberGenerator,
         ICatalogRepository catalogRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
         _orderNumberGenerator = orderNumberGenerator;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
+        _supplierRepository = supplierRepository;
     }
 
     public async Task<CreatePurchaseOrderResponse> Handle(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", request.SupplierName);
+        // Get supplier by ID
+        var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
+        if (supplier == null)
+        {
+            throw new ArgumentException($"Supplier with ID {request.SupplierId} not found");
+        }
+
+        _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", supplier.Name);
 
         // Parse dates from string format and ensure UTC for PostgreSQL compatibility
         var orderDate = request.OrderDate.ToUtcDateTime();
@@ -47,7 +58,8 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
 
         var purchaseOrder = new PurchaseOrder(
             orderNumber,
-            request.SupplierName,
+            supplier.Id,
+            supplier.Name,
             orderDate,
             expectedDeliveryDate,
             request.ContactVia,
@@ -90,11 +102,11 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
             orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);
 
-        return await MapToResponseAsync(purchaseOrder, cancellationToken);
+        return await MapToResponseAsync(purchaseOrder, request.SupplierId, cancellationToken);
     }
 
 
-    private async Task<CreatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
+    private async Task<CreatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
     {
         var lines = new List<PurchaseOrderLineDto>();
 
@@ -127,7 +139,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         {
             Id = purchaseOrder.Id,
             OrderNumber = purchaseOrder.OrderNumber,
-            SupplierId = 0, // No longer using SupplierId
+            SupplierId = supplierId,
             SupplierName = purchaseOrder.SupplierName,
             OrderDate = purchaseOrder.OrderDate,
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,

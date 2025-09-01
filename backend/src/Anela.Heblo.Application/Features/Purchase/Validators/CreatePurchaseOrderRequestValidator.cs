@@ -7,9 +7,8 @@ public class CreatePurchaseOrderRequestValidator : AbstractValidator<CreatePurch
 {
     public CreatePurchaseOrderRequestValidator()
     {
-        RuleFor(x => x.SupplierName)
-            .NotEmpty().WithMessage("Supplier name is required")
-            .MaximumLength(200).WithMessage("Supplier name cannot exceed 200 characters");
+        RuleFor(x => x.SupplierId)
+            .GreaterThan(0L).WithMessage("Supplier is required");
 
         RuleFor(x => x.OrderDate)
             .NotEmpty().WithMessage("Order date is required")

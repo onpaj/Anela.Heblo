@@ -6,6 +6,8 @@ using Anela.Heblo.API;
 using Anela.Heblo.Tests.Common;
 using Anela.Heblo.Xcc.Telemetry;
 using Xunit.Abstractions;
+using MediatR;
+using System.Reflection;
 
 namespace Anela.Heblo.Tests;
 
@@ -34,59 +36,57 @@ public class ApplicationStartupTests : IClassFixture<HebloWebApplicationFactory>
         _output.WriteLine("✅ Application started successfully");
     }
 
-    [Fact]
-    public void All_Controllers_Should_Be_Resolvable()
+    public static IEnumerable<object[]> GetControllerTypes()
+    {
+        return typeof(Program).Assembly
+            .GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Controller"))
+            .Select(t => new object[] { t });
+    }
+
+    [Theory]
+    [MemberData(nameof(GetControllerTypes))]
+    public void Controller_Should_Be_Resolvable(Type controllerType)
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Get all controller types
-        var controllerTypes = typeof(Program).Assembly
-            .GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Controller"))
-            .ToList();
-
-        _output.WriteLine($"Found {controllerTypes.Count} controller types:");
-
         // Act & Assert
-        foreach (var controllerType in controllerTypes)
+        try
         {
-            try
-            {
-                // Try to create controller instance manually with required services
-                var constructors = controllerType.GetConstructors();
-                var constructor = constructors.OrderBy(c => c.GetParameters().Length).First();
-                var parameters = constructor.GetParameters();
+            // Try to create controller instance manually with required services
+            var constructors = controllerType.GetConstructors();
+            var constructor = constructors.OrderBy(c => c.GetParameters().Length).First();
+            var parameters = constructor.GetParameters();
 
-                var args = new object[parameters.Length];
-                for (int i = 0; i < parameters.Length; i++)
+            var args = new object[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var paramType = parameters[i].ParameterType;
+                var paramInfo = parameters[i];
+
+                // Handle optional parameters or nullable types
+                if (paramInfo.HasDefaultValue ||
+                    (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>)) ||
+                    paramType.Name.EndsWith("?"))
                 {
-                    var paramType = parameters[i].ParameterType;
-                    var paramInfo = parameters[i];
-
-                    // Handle optional parameters or nullable types
-                    if (paramInfo.HasDefaultValue ||
-                        (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>)) ||
-                        paramType.Name.EndsWith("?"))
-                    {
-                        args[i] = serviceProvider.GetService(paramType) ?? paramInfo.DefaultValue ?? null!;
-                    }
-                    else
-                    {
-                        args[i] = serviceProvider.GetRequiredService(paramType);
-                    }
+                    args[i] = serviceProvider.GetService(paramType) ?? paramInfo.DefaultValue ?? null!;
                 }
+                else
+                {
+                    args[i] = serviceProvider.GetRequiredService(paramType);
+                }
+            }
 
-                var controller = Activator.CreateInstance(controllerType, args);
-                controller.Should().NotBeNull();
-                _output.WriteLine($"✅ Successfully resolved {controllerType.Name}");
-            }
-            catch (Exception ex)
-            {
-                _output.WriteLine($"❌ Failed to resolve {controllerType.Name}: {ex.Message}");
-                throw new InvalidOperationException($"Failed to resolve controller {controllerType.Name}", ex);
-            }
+            var controller = Activator.CreateInstance(controllerType, args);
+            controller.Should().NotBeNull();
+            _output.WriteLine($"✅ Successfully resolved {controllerType.Name}");
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"❌ Failed to resolve {controllerType.Name}: {ex.Message}");
+            throw new InvalidOperationException($"Failed to resolve controller {controllerType.Name}", ex);
         }
     }
 
@@ -174,6 +174,110 @@ public class ApplicationStartupTests : IClassFixture<HebloWebApplicationFactory>
 
         // Config controller was removed as it's no longer needed
         // Frontend now uses build-time environment variables instead of runtime config
+    }
+
+    public static IEnumerable<object[]> GetMediatRHandlerTypes()
+    {
+        // Get all assemblies that contain MediatR handlers (Application layer and potentially others)
+        var assemblies = new[]
+        {
+            typeof(Anela.Heblo.Application.ApplicationModule).Assembly, // Application layer
+            typeof(Program).Assembly // API layer (in case there are any handlers there)
+        };
+
+        var handlerTypes = new List<Type>();
+
+        // Find all types implementing IRequestHandler<,> interfaces
+        foreach (var assembly in assemblies)
+        {
+            var types = assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract)
+                .Where(t => t.GetInterfaces()
+                    .Any(i => i.IsGenericType &&
+                             (i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) ||
+                              i.GetGenericTypeDefinition() == typeof(IRequestHandler<>))))
+                .ToList();
+
+            handlerTypes.AddRange(types);
+        }
+
+        return handlerTypes.Select(t => new object[] { t });
+    }
+
+    [Theory]
+    [MemberData(nameof(GetMediatRHandlerTypes))]
+    public void MediatR_Handler_Should_Be_Resolvable(Type handlerType)
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        // Act & Assert
+        try
+        {
+            // MediatR handlers are registered via their implemented interfaces, not directly
+            // Find all IRequestHandler<,> interfaces implemented by this handler
+            var requestHandlerInterfaces = handlerType.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                           (i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) ||
+                            i.GetGenericTypeDefinition() == typeof(IRequestHandler<>)))
+                .ToList();
+
+            if (requestHandlerInterfaces.Count == 0)
+            {
+                throw new InvalidOperationException($"Handler {handlerType.Name} does not implement IRequestHandler interface");
+            }
+
+            // Test that each interface can be resolved
+            foreach (var interfaceType in requestHandlerInterfaces)
+            {
+                var handler = serviceProvider.GetRequiredService(interfaceType);
+                handler.Should().NotBeNull();
+                handler.GetType().Should().Be(handlerType);
+            }
+
+            _output.WriteLine($"✅ Successfully resolved MediatR handler {handlerType.Name} via {requestHandlerInterfaces.Count} interface(s)");
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"❌ Failed to resolve MediatR handler {handlerType.Name}: {ex.Message}");
+            throw new InvalidOperationException($"Failed to resolve MediatR handler {handlerType.Name}", ex);
+        }
+    }
+
+    [Fact]
+    public void Should_Find_Controllers_And_Handlers()
+    {
+        // Arrange & Act
+        var controllerTypes = GetControllerTypes().ToList();
+        var handlerTypes = GetMediatRHandlerTypes().ToList();
+
+        // Assert
+        controllerTypes.Should().NotBeEmpty("Application should have at least some controllers");
+        handlerTypes.Should().NotBeEmpty("Application should have at least some MediatR handlers");
+
+        _output.WriteLine($"Found {controllerTypes.Count} controller types and {handlerTypes.Count} MediatR handler types");
+
+        // List some examples
+        _output.WriteLine("Controllers found:");
+        foreach (var controllerType in controllerTypes.Take(5))
+        {
+            _output.WriteLine($"  - {((Type)controllerType[0]).Name}");
+        }
+        if (controllerTypes.Count > 5)
+        {
+            _output.WriteLine($"  ... and {controllerTypes.Count - 5} more");
+        }
+
+        _output.WriteLine("MediatR handlers found:");
+        foreach (var handlerType in handlerTypes.Take(5))
+        {
+            _output.WriteLine($"  - {((Type)handlerType[0]).Name}");
+        }
+        if (handlerTypes.Count > 5)
+        {
+            _output.WriteLine($"  ... and {handlerTypes.Count - 5} more");
+        }
     }
 
     [Fact]
