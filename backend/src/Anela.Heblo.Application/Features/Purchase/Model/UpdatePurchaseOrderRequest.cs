@@ -9,9 +9,8 @@ public class UpdatePurchaseOrderRequest : IRequest<UpdatePurchaseOrderResponse>
     [Required(ErrorMessage = "Purchase order ID is required")]
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Supplier name is required")]
-    [StringLength(200, ErrorMessage = "Supplier name cannot exceed 200 characters")]
-    public string SupplierName { get; set; } = null!;
+    [Required(ErrorMessage = "Supplier is required")]
+    public long SupplierId { get; set; }
 
     public DateTime? ExpectedDeliveryDate { get; set; }
 

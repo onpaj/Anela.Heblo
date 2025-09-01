@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Application.Features.Purchase;
@@ -9,13 +10,16 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
 {
     private readonly ILogger<GetPurchaseOrderByIdHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
+    private readonly ISupplierRepository _supplierRepository;
 
     public GetPurchaseOrderByIdHandler(
         ILogger<GetPurchaseOrderByIdHandler> logger,
-        IPurchaseOrderRepository repository)
+        IPurchaseOrderRepository repository,
+        ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
+        _supplierRepository = supplierRepository;
     }
 
     public async Task<GetPurchaseOrderByIdResponse?> Handle(GetPurchaseOrderByIdRequest request, CancellationToken cancellationToken)
@@ -33,12 +37,17 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         _logger.LogInformation("Found purchase order {OrderNumber} with {LineCount} lines and {HistoryCount} history entries",
             purchaseOrder.OrderNumber, purchaseOrder.Lines.Count, purchaseOrder.History.Count);
 
+        // Load supplier details to get the note
+        var supplier = await _supplierRepository.GetByIdAsync(purchaseOrder.SupplierId, cancellationToken);
+        var supplierNote = supplier?.Description;
+
         return new GetPurchaseOrderByIdResponse
         {
             Id = purchaseOrder.Id,
             OrderNumber = purchaseOrder.OrderNumber,
-            SupplierId = 0, // No longer using SupplierId
+            SupplierId = purchaseOrder.SupplierId,
             SupplierName = purchaseOrder.SupplierName,
+            SupplierNote = supplierNote,
             OrderDate = purchaseOrder.OrderDate,
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
             ContactVia = purchaseOrder.ContactVia,

@@ -18,17 +18,17 @@ namespace Anela.Heblo.Tests.Common;
 public class HebloWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName;
-    
+
     public HebloWebApplicationFactory()
     {
         _databaseName = $"TestDb_{Guid.NewGuid()}";
     }
-    
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Use Test environment - automatically loads appsettings.Test.json with mock authentication
         builder.UseEnvironment("Test");
-        
+
         builder.ConfigureServices(services =>
         {
             // Remove the existing DbContext registration
@@ -38,13 +38,13 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             {
                 services.Remove(dbContextDescriptor);
             }
-            
+
             // Add InMemory database with unique name for each test class instance
             services.AddDbContext<ApplicationDbContext>(options =>
             {
                 options.UseInMemoryDatabase(_databaseName);
             });
-            
+
             // Remove any existing TelemetryClient registration
             var telemetryClientDescriptor = services.SingleOrDefault(
                 s => s.ServiceType == typeof(TelemetryClient));
@@ -52,24 +52,24 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             {
                 services.Remove(telemetryClientDescriptor);
             }
-            
+
             // Add mock TelemetryClient for test environment
             services.AddSingleton<TelemetryClient>(serviceProvider =>
             {
                 var config = new TelemetryConfiguration();
                 return new TelemetryClient(config);
             });
-            
+
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
         });
-        
+
         // Apply any additional web host configuration from derived classes  
         ConfigureTestWebHost(builder);
-        
+
         base.ConfigureWebHost(builder);
     }
-    
+
     /// <summary>
     /// Override this method in derived classes to configure additional test services.
     /// </summary>
@@ -77,7 +77,7 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
     {
         // Derived classes can override to add additional service configuration
     }
-    
+
     /// <summary>
     /// Override this method in derived classes to configure additional web host settings.
     /// </summary>
@@ -85,7 +85,7 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
     {
         // Derived classes can override to add additional web host configuration
     }
-    
+
     /// <summary>
     /// Creates a new scope and seeds the database with test data.
     /// </summary>
@@ -97,7 +97,7 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
         await seedAction(context);
         await context.SaveChangesAsync();
     }
-    
+
     /// <summary>
     /// Clears all data from the in-memory database.
     /// </summary>

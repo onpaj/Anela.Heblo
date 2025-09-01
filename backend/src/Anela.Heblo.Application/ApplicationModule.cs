@@ -30,9 +30,9 @@ public static class ApplicationModule
         services.AddConfigurationModule();
         services.AddAuditModule();
         services.AddAnalyticsModule();
-        services.AddCatalogModule(configuration, environment);
+        services.AddCatalogModule(configuration);
         services.AddPurchaseModule();
-        services.AddFinancialOverviewModule(configuration, environment);
+        services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
         services.AddManufactureModule(configuration);
         services.AddTransportModule();

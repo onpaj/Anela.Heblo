@@ -21,10 +21,10 @@ public class ReflectionValidationTests
                 continue;
 
             var interfaces = type.GetInterfaces();
-            
+
             foreach (var interfaceType in interfaces)
             {
-                if (interfaceType.IsGenericType && 
+                if (interfaceType.IsGenericType &&
                     interfaceType.GetGenericTypeDefinition() == classFixtureType)
                 {
                     var genericArgument = interfaceType.GetGenericArguments()[0];
@@ -37,19 +37,19 @@ public class ReflectionValidationTests
     [Theory]
     [MemberData(nameof(GetClassesImplementingIClassFixture))]
     public void Class_Should_Not_ImplementIClassFixtureWithWebApplicationFactory(
-        Type classType, 
-        Type interfaceType, 
+        Type classType,
+        Type interfaceType,
         Type genericArgument)
     {
         // Arrange
         var webApplicationFactoryType = typeof(WebApplicationFactory<>);
 
         // Act
-        var isWebApplicationFactory = genericArgument.IsGenericType && 
+        var isWebApplicationFactory = genericArgument.IsGenericType &&
                                      genericArgument.GetGenericTypeDefinition() == webApplicationFactoryType;
 
         // Assert
-        Assert.False(isWebApplicationFactory, 
+        Assert.False(isWebApplicationFactory,
             $"Class '{classType.FullName}' implements {interfaceType.Name} with WebApplicationFactory " +
             $"(Generic argument: {genericArgument.Name}), which is not allowed. " +
             $"Use HebloWebApplicationFactory instead.");

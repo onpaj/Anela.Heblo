@@ -177,11 +177,31 @@ public class FinancialOverviewTestFactory : HebloWebApplicationFactory
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
-        var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILedgerService));
-        if (descriptor != null)
+        // Override ILedgerService with mock
+        var ledgerDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILedgerService));
+        if (ledgerDescriptor != null)
         {
-            services.Remove(descriptor);
+            services.Remove(ledgerDescriptor);
         }
         services.AddSingleton(MockLedgerService.Object);
+
+        // Override IStockValueService with placeholder for testing
+        var stockValueDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Anela.Heblo.Domain.Features.FinancialOverview.IStockValueService));
+        if (stockValueDescriptor != null)
+        {
+            services.Remove(stockValueDescriptor);
+        }
+        services.AddScoped<Anela.Heblo.Domain.Features.FinancialOverview.IStockValueService>(provider =>
+        {
+            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Anela.Heblo.Application.Features.FinancialOverview.PlaceholderStockValueService>>();
+            return new Anela.Heblo.Application.Features.FinancialOverview.PlaceholderStockValueService(logger);
+        });
+
+        // Remove background service for testing
+        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(Anela.Heblo.Application.Features.FinancialOverview.FinancialAnalysisBackgroundService));
+        if (hostedServiceDescriptor != null)
+        {
+            services.Remove(hostedServiceDescriptor);
+        }
     }
 }

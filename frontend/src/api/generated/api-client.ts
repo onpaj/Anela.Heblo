@@ -1980,6 +1980,48 @@ export class ApiClient {
         return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
     }
 
+    suppliers_SearchSuppliers(searchTerm: string | undefined, limit: number | undefined): Promise<SearchSuppliersResponse> {
+        let url_ = this.baseUrl + "/api/suppliers/search?";
+        if (searchTerm === null)
+            throw new Error("The parameter 'searchTerm' cannot be null.");
+        else if (searchTerm !== undefined)
+            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (limit === null)
+            throw new Error("The parameter 'limit' cannot be null.");
+        else if (limit !== undefined)
+            url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSuppliers_SearchSuppliers(_response);
+        });
+    }
+
+    protected processSuppliers_SearchSuppliers(response: Response): Promise<SearchSuppliersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SearchSuppliersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SearchSuppliersResponse>(null as any);
+    }
+
     transportBox_GetTransportBoxes(skip: number | undefined, take: number | undefined, code: string | null | undefined, state: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetTransportBoxesResponse> {
         let url_ = this.baseUrl + "/api/transport-boxes?";
         if (skip === null)
@@ -5363,7 +5405,7 @@ export interface IPurchaseOrderHistoryDto {
 }
 
 export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
-    supplierName!: string;
+    supplierId!: number;
     orderDate!: string;
     expectedDeliveryDate?: string | undefined;
     contactVia?: ContactVia | undefined;
@@ -5382,7 +5424,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.supplierName = _data["supplierName"];
+            this.supplierId = _data["supplierId"];
             this.orderDate = _data["orderDate"];
             this.expectedDeliveryDate = _data["expectedDeliveryDate"];
             this.contactVia = _data["contactVia"];
@@ -5405,7 +5447,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["supplierName"] = this.supplierName;
+        data["supplierId"] = this.supplierId;
         data["orderDate"] = this.orderDate;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate;
         data["contactVia"] = this.contactVia;
@@ -5421,7 +5463,7 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 }
 
 export interface ICreatePurchaseOrderRequest {
-    supplierName: string;
+    supplierId: number;
     orderDate: string;
     expectedDeliveryDate?: string | undefined;
     contactVia?: ContactVia | undefined;
@@ -5501,6 +5543,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     createdBy?: string;
     updatedAt?: Date | undefined;
     updatedBy?: string | undefined;
+    supplierNote?: string | undefined;
 
     constructor(data?: IGetPurchaseOrderByIdResponse) {
         if (data) {
@@ -5539,6 +5582,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
             this.createdBy = _data["createdBy"];
             this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
             this.updatedBy = _data["updatedBy"];
+            this.supplierNote = _data["supplierNote"];
         }
     }
 
@@ -5577,6 +5621,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["createdBy"] = this.createdBy;
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
         data["updatedBy"] = this.updatedBy;
+        data["supplierNote"] = this.supplierNote;
         return data;
     }
 }
@@ -5600,6 +5645,7 @@ export interface IGetPurchaseOrderByIdResponse {
     createdBy?: string;
     updatedAt?: Date | undefined;
     updatedBy?: string | undefined;
+    supplierNote?: string | undefined;
 }
 
 export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse {
@@ -5696,7 +5742,7 @@ export interface IUpdatePurchaseOrderResponse {
 
 export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
     id!: number;
-    supplierName!: string;
+    supplierId!: number;
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
@@ -5718,7 +5764,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.supplierName = _data["supplierName"];
+            this.supplierId = _data["supplierId"];
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.notes = _data["notes"];
@@ -5741,7 +5787,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["supplierName"] = this.supplierName;
+        data["supplierId"] = this.supplierId;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["notes"] = this.notes;
@@ -5757,7 +5803,7 @@ export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
 
 export interface IUpdatePurchaseOrderRequest {
     id: number;
-    supplierName: string;
+    supplierId: number;
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
@@ -6301,6 +6347,110 @@ export enum StockAnalysisSortBy {
     Consumption = "Consumption",
     StockEfficiency = "StockEfficiency",
     LastPurchaseDate = "LastPurchaseDate",
+}
+
+export class SearchSuppliersResponse implements ISearchSuppliersResponse {
+    suppliers?: SupplierDto[];
+
+    constructor(data?: ISearchSuppliersResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["suppliers"])) {
+                this.suppliers = [] as any;
+                for (let item of _data["suppliers"])
+                    this.suppliers!.push(SupplierDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SearchSuppliersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchSuppliersResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.suppliers)) {
+            data["suppliers"] = [];
+            for (let item of this.suppliers)
+                data["suppliers"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISearchSuppliersResponse {
+    suppliers?: SupplierDto[];
+}
+
+export class SupplierDto implements ISupplierDto {
+    id?: number;
+    name?: string;
+    code?: string;
+    note?: string | undefined;
+    email?: string | undefined;
+    phone?: string | undefined;
+    url?: string | undefined;
+
+    constructor(data?: ISupplierDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.code = _data["code"];
+            this.note = _data["note"];
+            this.email = _data["email"];
+            this.phone = _data["phone"];
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): SupplierDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SupplierDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["code"] = this.code;
+        data["note"] = this.note;
+        data["email"] = this.email;
+        data["phone"] = this.phone;
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface ISupplierDto {
+    id?: number;
+    name?: string;
+    code?: string;
+    note?: string | undefined;
+    email?: string | undefined;
+    phone?: string | undefined;
+    url?: string | undefined;
 }
 
 export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {

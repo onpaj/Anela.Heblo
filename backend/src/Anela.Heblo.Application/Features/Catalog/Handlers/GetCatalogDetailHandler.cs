@@ -209,10 +209,10 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
     {
         // Calculate margin for each month based on manufacturing cost history
         var currentDate = _timeProvider.GetUtcNow().Date;
-        
+
         // Get selling price without VAT from eshop
         var sellingPrice = catalogItem.EshopPrice?.PriceWithoutVat ?? 0;
-        
+
         // If no selling price available, return empty list
         if (sellingPrice == 0)
         {
@@ -221,7 +221,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
         // Filter manufacturing cost history based on monthsBack
         var manufactureCostHistory = catalogItem.ManufactureCostHistory.AsQueryable();
-        
+
         if (monthsBack < CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
         {
             var fromDate = currentDate.AddMonths(-monthsBack);

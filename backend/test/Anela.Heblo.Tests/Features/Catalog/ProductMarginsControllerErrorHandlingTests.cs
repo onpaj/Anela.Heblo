@@ -184,7 +184,7 @@ public class ProductMarginsControllerErrorHandlingTests : IClassFixture<HebloWeb
         // The actual behavior depends on model validation setup
         var actualStatusCode = response.StatusCode;
         var responseContent = await response.Content.ReadAsStringAsync();
-        
+
         // More lenient assertion for CI environments - allow any status code that makes sense
         var isValidResponse = response.StatusCode == HttpStatusCode.OK ||
                              response.StatusCode == HttpStatusCode.BadRequest ||

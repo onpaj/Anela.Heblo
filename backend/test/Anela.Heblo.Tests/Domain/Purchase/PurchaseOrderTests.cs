@@ -7,6 +7,7 @@ namespace Anela.Heblo.Tests.Domain.Purchase;
 public class PurchaseOrderTests
 {
     private const string ValidOrderNumber = "PO-2024-001";
+    private const long ValidSupplierId = 1;
     private const string ValidSupplierName = "Test Supplier";
     private static readonly DateTime ValidOrderDate = DateTime.UtcNow.Date;
     private static readonly DateTime? ValidExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14);
@@ -21,6 +22,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = new PurchaseOrder(
             ValidOrderNumber,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
@@ -30,6 +32,7 @@ public class PurchaseOrderTests
 
         purchaseOrder.Id.Should().Be(0); // For new entities, EF will set this to 0 until saved
         purchaseOrder.OrderNumber.Should().Be(ValidOrderNumber);
+        purchaseOrder.SupplierId.Should().Be(ValidSupplierId);
         purchaseOrder.SupplierName.Should().Be(ValidSupplierName);
         purchaseOrder.OrderDate.Should().Be(ValidOrderDate);
         purchaseOrder.ExpectedDeliveryDate.Should().Be(ValidExpectedDeliveryDate);
@@ -49,6 +52,7 @@ public class PurchaseOrderTests
     {
         var action = () => new PurchaseOrder(
             null!,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
@@ -65,6 +69,7 @@ public class PurchaseOrderTests
     {
         var action = () => new PurchaseOrder(
             ValidOrderNumber,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
@@ -232,7 +237,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierId, ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -249,7 +254,7 @@ public class PurchaseOrderTests
         const string newNotes = "Updated notes";
         const string updatedBy = "updater@example.com";
 
-        purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierId, ValidSupplierName, newExpectedDeliveryDate, null, newNotes, updatedBy);
 
         purchaseOrder.ExpectedDeliveryDate.Should().Be(newExpectedDeliveryDate);
         purchaseOrder.Notes.Should().Be(newNotes);
@@ -264,7 +269,7 @@ public class PurchaseOrderTests
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
         var newExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21);
 
-        var action = () => purchaseOrder.Update(ValidSupplierName, newExpectedDeliveryDate, null, "new notes", "updater");
+        var action = () => purchaseOrder.Update(ValidSupplierId, ValidSupplierName, newExpectedDeliveryDate, null, "new notes", "updater");
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update completed orders");
@@ -366,6 +371,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = new PurchaseOrder(
             ValidOrderNumber,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
@@ -381,6 +387,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = new PurchaseOrder(
             ValidOrderNumber,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,
@@ -397,7 +404,7 @@ public class PurchaseOrderTests
         var purchaseOrder = CreateValidPurchaseOrder();
         var updatedBy = "updated@example.com";
 
-        purchaseOrder.Update(ValidSupplierName, ValidExpectedDeliveryDate, ContactVia.Phone, ValidNotes, updatedBy);
+        purchaseOrder.Update(ValidSupplierId, ValidSupplierName, ValidExpectedDeliveryDate, ContactVia.Phone, ValidNotes, updatedBy);
 
         purchaseOrder.ContactVia.Should().Be(ContactVia.Phone);
         purchaseOrder.UpdatedBy.Should().Be(updatedBy);
@@ -497,6 +504,7 @@ public class PurchaseOrderTests
     {
         return new PurchaseOrder(
             ValidOrderNumber,
+            ValidSupplierId,
             ValidSupplierName,
             ValidOrderDate,
             ValidExpectedDeliveryDate,

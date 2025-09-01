@@ -7,6 +7,7 @@ using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -19,6 +20,7 @@ using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rem.FlexiBeeSDK.Client.Clients.Contacts;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 using Rem.FlexiBeeSDK.Client.DI;
@@ -54,6 +56,8 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         services.AddSingleton<IManufactureRepository, FlexiManufactureRepository>();
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
+
+        services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();
 
         services.AddSingleton<ILotsClient, LotsClient>();
         services.AddSingleton<Anela.Heblo.Domain.Features.Catalog.Lots.ILotsClient, FlexiLotsClient>();
