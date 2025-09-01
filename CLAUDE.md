@@ -488,6 +488,7 @@ This ensures documentation stays synchronized with actual implementation and arc
 9. **Keep code clean and readable - follow established patterns
 10. **Do not hesitate to ask for clarification** if unsure about implementation details or design decisions
 11. **Do not hesitate to propose refactoring** if you see opportunities for improvement
+12. Before finishing TODO items and stating, that all tasks are completed, claude should validate both FE and BE builds for no compile errors, in case there were some changes (BE build for BE changes, FE build for FE changes)
 
 ## Security Rules for Credentials & Secrets
 

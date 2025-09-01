@@ -3094,6 +3094,7 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
     consumedHistory?: CatalogConsumedRecordDto[];
     manufactureHistory?: CatalogManufactureRecordDto[];
     manufactureCostHistory?: ManufactureCostDto[];
+    marginHistory?: MarginHistoryDto[];
 
     constructor(data?: ICatalogHistoricalDataDto) {
         if (data) {
@@ -3130,6 +3131,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
                 this.manufactureCostHistory = [] as any;
                 for (let item of _data["manufactureCostHistory"])
                     this.manufactureCostHistory!.push(ManufactureCostDto.fromJS(item));
+            }
+            if (Array.isArray(_data["marginHistory"])) {
+                this.marginHistory = [] as any;
+                for (let item of _data["marginHistory"])
+                    this.marginHistory!.push(MarginHistoryDto.fromJS(item));
             }
         }
     }
@@ -3168,6 +3174,11 @@ export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
             for (let item of this.manufactureCostHistory)
                 data["manufactureCostHistory"].push(item.toJSON());
         }
+        if (Array.isArray(this.marginHistory)) {
+            data["marginHistory"] = [];
+            for (let item of this.marginHistory)
+                data["marginHistory"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -3178,6 +3189,7 @@ export interface ICatalogHistoricalDataDto {
     consumedHistory?: CatalogConsumedRecordDto[];
     manufactureHistory?: CatalogManufactureRecordDto[];
     manufactureCostHistory?: ManufactureCostDto[];
+    marginHistory?: MarginHistoryDto[];
 }
 
 export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
@@ -3466,6 +3478,58 @@ export interface IManufactureCostDto {
     materialCost?: number;
     handlingCost?: number;
     total?: number;
+}
+
+export class MarginHistoryDto implements IMarginHistoryDto {
+    date?: Date;
+    marginAmount?: number;
+    marginPercentage?: number;
+    sellingPrice?: number;
+    totalCost?: number;
+
+    constructor(data?: IMarginHistoryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.marginAmount = _data["marginAmount"];
+            this.marginPercentage = _data["marginPercentage"];
+            this.sellingPrice = _data["sellingPrice"];
+            this.totalCost = _data["totalCost"];
+        }
+    }
+
+    static fromJS(data: any): MarginHistoryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MarginHistoryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["marginAmount"] = this.marginAmount;
+        data["marginPercentage"] = this.marginPercentage;
+        data["sellingPrice"] = this.sellingPrice;
+        data["totalCost"] = this.totalCost;
+        return data;
+    }
+}
+
+export interface IMarginHistoryDto {
+    date?: Date;
+    marginAmount?: number;
+    marginPercentage?: number;
+    sellingPrice?: number;
+    totalCost?: number;
 }
 
 export class GetMaterialsForPurchaseResponse implements IGetMaterialsForPurchaseResponse {
