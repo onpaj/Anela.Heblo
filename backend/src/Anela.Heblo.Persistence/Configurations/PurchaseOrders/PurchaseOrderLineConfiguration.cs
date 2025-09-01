@@ -8,7 +8,7 @@ public class PurchaseOrderLineConfiguration : IEntityTypeConfiguration<PurchaseO
 {
     public void Configure(EntityTypeBuilder<PurchaseOrderLine> builder)
     {
-        builder.ToTable("PurchaseOrderLines", "dbo");
+        builder.ToTable("PurchaseOrderLines", "public");
 
         builder.HasKey(x => x.Id);
 

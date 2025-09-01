@@ -21,17 +21,18 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             .AddJsonFile($"appsettings.{environment}.json", optional: true)
             .AddEnvironmentVariables();
 
-        // Add user secrets for Development environment (matches API project UserSecretsId)
-        if (environment == "Development")
+        // Add user secrets for Development, Test, Staging, and Production environments (matches API project UserSecretsId)
+        if (environment == "Development" || environment == "Test" || environment == "Staging" || environment == "Production")
         {
             builder.AddUserSecrets("f4e6382a-aefd-47ef-9cd7-7e12daac7e45");
         }
 
         IConfigurationRoot configuration = builder.Build();
 
-        // Get connection string - try both "Default" and "DefaultConnection"
-        var connectionString = configuration.GetConnectionString("Default")
-            ?? configuration.GetConnectionString("DefaultConnection");
+        // Get connection string - try environment name first (from User Secrets), then fall back to DefaultConnection/Default
+        var connectionString = configuration.GetConnectionString(environment)
+            ?? configuration.GetConnectionString("DefaultConnection")
+            ?? configuration.GetConnectionString("Default");
 
         if (!string.IsNullOrEmpty(connectionString))
         {
@@ -39,7 +40,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
         }
         else
         {
-            throw new InvalidOperationException("No connection string found. Please check your configuration.");
+            throw new InvalidOperationException($"No connection string found for environment '{environment}'. Tried: '{environment}', 'DefaultConnection', 'Default'. Please check your configuration.");
         }
 
         return new ApplicationDbContext(optionsBuilder.Options);

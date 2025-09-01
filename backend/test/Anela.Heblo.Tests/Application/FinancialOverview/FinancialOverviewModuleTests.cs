@@ -46,6 +46,7 @@ public class FinancialOverviewModuleTests
         financialAnalysisService.Should().BeOfType<FinancialAnalysisService>();
     }
 
+   
     [Fact]
     public void AddFinancialOverviewModule_RegistersPlaceholderService_InTestEnvironment()
     {
@@ -55,28 +56,6 @@ public class FinancialOverviewModuleTests
 
         var mockEnvironment = new Mock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
-        // Cannot mock extension methods - the factory checks EnvironmentName instead
-        services.AddSingleton(mockEnvironment.Object);
-
-        // Act
-        services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        stockValueService.Should().NotBeNull();
-        stockValueService.Should().BeOfType<PlaceholderStockValueService>();
-    }
-
-    [Fact]
-    public void AddFinancialOverviewModule_RegistersPlaceholderService_InAutomationEnvironment()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-
-        var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Automation");
         // Cannot mock extension methods - the factory checks EnvironmentName instead
         services.AddSingleton(mockEnvironment.Object);
 
@@ -145,26 +124,26 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_DoesNotRegisterBackgroundService_InAutomationEnvironment()
+    public void AddFinancialOverviewModule_DoesNotRegisterBackgroundService_InTestEnvironment()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         var mockEnvironment = new Mock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Automation");
+        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Test");
 
         // Act
         services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        // Assert - Background service should not be registered in Automation environment
+        // Assert - Background service should not be registered in Test environment
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
         hostedServices.Should().BeEmpty();
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_RegistersBackgroundService_InNonAutomationEnvironment()
+    public void AddFinancialOverviewModule_RegistersBackgroundService_InNonTestEnvironment()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -181,7 +160,7 @@ public class FinancialOverviewModuleTests
         // Act
         services.AddFinancialOverviewModule(CreateMockConfiguration(), mockEnvironment.Object);
 
-        // Assert - Background service should be registered in non-Automation environments
+        // Assert - Background service should be registered in non-Test environments
         var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
         hostedServices.Should().HaveCount(1);
         Assert.Equal(typeof(FinancialAnalysisBackgroundService), hostedServices.First().ImplementationType);

@@ -24,7 +24,7 @@ public static class FinancialOverviewModule
         {
             var env = provider.GetRequiredService<IHostEnvironment>();
 
-            if (env.EnvironmentName == "Test" || env.EnvironmentName == "Automation")
+            if (env.EnvironmentName == "Test")
             {
                 // PlaceholderStockValueService provides deterministic empty data for consistent testing
                 // This avoids external ERP dependencies during automated testing
@@ -47,8 +47,8 @@ public static class FinancialOverviewModule
         // Register background service for financial data caching
         var environmentName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
 
-        // Skip background services in automation environment to avoid external service dependencies
-        if (environmentName != "Automation")
+        // Skip background services in Test environment to avoid external service dependencies
+        if (environmentName != "Test")
         {
             services.AddHostedService<FinancialAnalysisBackgroundService>();
         }

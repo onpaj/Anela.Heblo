@@ -24,7 +24,7 @@ public class PurchaseOrder : IEntity<int>
     public IReadOnlyCollection<PurchaseOrderHistory> History => _history.AsReadOnly();
 
     public decimal TotalAmount => _lines.Sum(l => l.LineTotal);
-    
+
     public bool CanEdit => Status != PurchaseOrderStatus.Completed;
 
     protected PurchaseOrder()

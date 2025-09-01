@@ -11,13 +11,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "Automation": {
+    "Test": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5001",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Automation"
+        "ASPNETCORE_ENVIRONMENT": "Test"
       }
     },
     "Generate Frontend Client": {
@@ -30,20 +30,22 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "Update Database": {
+    "Update database - STAGING": {
       "commandName": "Executable",
       "executablePath": "dotnet",
       "commandLineArgs": "ef database update --project ../Anela.Heblo.Persistence --startup-project .",
       "workingDirectory": "$(ProjectDir)",
       "launchBrowser": false,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Staging"
       }
     },
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
+    "Update database": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "ef database update --project ../Anela.Heblo.Persistence --startup-project .",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

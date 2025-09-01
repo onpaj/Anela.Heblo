@@ -8,7 +8,7 @@ namespace Anela.Heblo.Persistence.Configurations.Features.Journal
     {
         public void Configure(EntityTypeBuilder<JournalEntryProduct> builder)
         {
-            builder.ToTable("JournalEntryProducts");
+            builder.ToTable("JournalEntryProducts", "public");
 
             // Composite primary key
             builder.HasKey(x => new { x.JournalEntryId, ProductCode = x.ProductCodePrefix });

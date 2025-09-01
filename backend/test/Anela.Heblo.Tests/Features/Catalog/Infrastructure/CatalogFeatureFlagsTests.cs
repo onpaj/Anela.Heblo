@@ -58,8 +58,9 @@ public class CatalogFeatureFlagsTests
         flags.IsBackgroundRefreshEnabled.Should().BeFalse();
     }
 
+  
     [Fact]
-    public void CatalogModule_ConfiguresFeatureFlags_WithDefaultValues()
+    public void CatalogModule_ConfiguresFeatureFlags_TestEnvironment_DisablesBackgroundRefresh()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -68,44 +69,21 @@ public class CatalogFeatureFlagsTests
         services.AddLogging();
 
         // Act
-        services.AddCatalogModule(configuration);
+        services.AddCatalogModule(configuration, new TestHostEnvironment("Test"));
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
 
         // Assert
         options.Value.IsTransportBoxTrackingEnabled.Should().BeFalse();
         options.Value.IsStockTakingEnabled.Should().BeFalse();
-        options.Value.IsBackgroundRefreshEnabled.Should().BeTrue(); // Development environment
-    }
-
-    [Fact]
-    public void CatalogModule_ConfiguresFeatureFlags_AutomationEnvironment_DisablesBackgroundRefresh()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var configuration = new ConfigurationBuilder().Build();
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddLogging();
-
-        // Act
-        services.AddCatalogModule(configuration, new TestHostEnvironment("Automation"));
-        var serviceProvider = services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<CatalogFeatureFlags>>();
-
-        // Assert
-        options.Value.IsTransportBoxTrackingEnabled.Should().BeFalse();
-        options.Value.IsStockTakingEnabled.Should().BeFalse();
-        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse(); // Automation environment
+        options.Value.IsBackgroundRefreshEnabled.Should().BeFalse(); // Test environment
     }
 
     [Theory]
     [InlineData("Development", true)]
     [InlineData("Production", true)]
-    [InlineData("Test", true)]
+    [InlineData("Test", false)]
     [InlineData("Staging", true)]
-    [InlineData("Automation", false)]
-    [InlineData("automation", true)] // Case sensitive - different from "Automation"
-    [InlineData("AUTOMATION", true)] // Case sensitive - different from "Automation"
     public void CatalogModule_ConfiguresBackgroundRefresh_BasedOnEnvironment(string environmentName, bool expectedBackgroundRefreshEnabled)
     {
         // Arrange

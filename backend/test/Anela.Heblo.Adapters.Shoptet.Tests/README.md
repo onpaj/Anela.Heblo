@@ -55,11 +55,11 @@ dotnet test --filter Category=Integration
 ### Integration Tests
 - **ShoptetStockClient**: CSV stock data import from Shoptet
 - **ShoptetPriceClient**: CSV price data import/export to Shoptet
-- **Playwright Services**: Browser automation for Shoptet operations
+- **Playwright Services**: Browser Test for Shoptet operations
 
 ## Important Notes
 
 - All write operations are tested against the test environment only
 - Tests include validation of both success and error scenarios
-- Playwright tests may take longer due to browser automation
+- Playwright tests may take longer due to browser Test
 - Some tests may be skipped if test environment is not configured

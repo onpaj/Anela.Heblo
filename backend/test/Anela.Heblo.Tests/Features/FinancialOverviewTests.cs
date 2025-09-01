@@ -1,52 +1,26 @@
 using System.Net;
 using System.Net.Http.Json;
-using Anela.Heblo.API;
-using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
 using Anela.Heblo.Domain.Accounting.Ledger;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features;
 
-public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Program>>
+public class FinancialOverviewTests : IClassFixture<FinancialOverviewTestFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly FinancialOverviewTestFactory _factory;
     private readonly HttpClient _client;
     private readonly Mock<ILedgerService> _mockLedgerService;
 
-    public FinancialOverviewTests(WebApplicationFactory<Program> factory)
+    public FinancialOverviewTests(FinancialOverviewTestFactory factory)
     {
-        _mockLedgerService = new Mock<ILedgerService>();
-
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"}
-                });
-            });
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILedgerService));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-                services.AddSingleton(_mockLedgerService.Object);
-            });
-        });
-
+        _factory = factory;
+        _mockLedgerService = factory.MockLedgerService;
         _client = _factory.CreateClient();
-
         SetupDefaultMockData();
     }
 
@@ -189,5 +163,25 @@ public class FinancialOverviewTests : IClassFixture<WebApplicationFactory<Progra
         }
 
         content.Summary.StockSummary.Should().NotBeNull();
+    }
+}
+
+public class FinancialOverviewTestFactory : HebloWebApplicationFactory
+{
+    public Mock<ILedgerService> MockLedgerService { get; }
+
+    public FinancialOverviewTestFactory()
+    {
+        MockLedgerService = new Mock<ILedgerService>();
+    }
+
+    protected override void ConfigureTestServices(IServiceCollection services)
+    {
+        var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILedgerService));
+        if (descriptor != null)
+        {
+            services.Remove(descriptor);
+        }
+        services.AddSingleton(MockLedgerService.Object);
     }
 }

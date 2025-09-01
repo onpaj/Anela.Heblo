@@ -33,19 +33,22 @@ RUN npm run build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build
 WORKDIR /src
 
-# Copy solution and project files
+# Copy all backend files at once
 COPY Anela.Heblo.sln ./
-COPY backend/src ./backend/src
-
-# Restore dependencies
-RUN dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
-
-# Copy source code and build
 COPY backend/ ./backend/
+
+# Clear NuGet cache and restore with rebuild
+RUN dotnet nuget locals all --clear
+RUN dotnet restore Anela.Heblo.sln \
+    --verbosity normal \
+    --force \
+    --no-cache
+
+# Build and publish (with restore to be safe)
 RUN dotnet publish backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj \
     -c Release \
     -o /app/publish \
-    --no-restore
+    --force
 
 # Stage 3: Runtime - ASP.NET Core serving React + API
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime

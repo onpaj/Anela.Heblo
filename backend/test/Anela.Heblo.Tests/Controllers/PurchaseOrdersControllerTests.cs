@@ -1,67 +1,23 @@
 using System.Net;
 using System.Net.Http.Json;
-using Anela.Heblo.API;
 using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Persistence;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Controllers;
 
-public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly PurchaseOrdersTestFactory _factory;
     private readonly HttpClient _client;
-    private static readonly string DatabaseName = $"TestDb_{Guid.NewGuid()}";
 
-    public PurchaseOrdersControllerTests(WebApplicationFactory<Program> factory)
+    public PurchaseOrdersControllerTests(PurchaseOrdersTestFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"},
-                    {"ConnectionStrings:Default", ""} // Ensure empty connection string to trigger in-memory database
-                });
-            });
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing DbContext registration
-                var dbContextDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (dbContextDescriptor != null)
-                {
-                    services.Remove(dbContextDescriptor);
-                }
-
-                // Remove the existing repository registration from PurchaseModule factory
-                var repositoryDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(IPurchaseOrderRepository));
-                if (repositoryDescriptor != null)
-                {
-                    services.Remove(repositoryDescriptor);
-                }
-
-                // Add in-memory database with shared database name
-                services.AddDbContext<ApplicationDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase(DatabaseName); // Shared DB name for all tests in this class
-                });
-
-                // Force use of EF Core repository instead of InMemoryPurchaseOrderRepository
-                services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
-            });
-        });
+        _factory = factory;
         _client = _factory.CreateClient();
     }
 
@@ -534,5 +490,22 @@ public class PurchaseOrdersControllerTests : IClassFixture<WebApplicationFactory
         var content = await updateResponse.Content.ReadFromJsonAsync<UpdatePurchaseOrderResponse>();
         content.Should().NotBeNull();
         content!.OrderNumber.Should().Be(customOrderNumber);
+    }
+}
+
+public class PurchaseOrdersTestFactory : HebloWebApplicationFactory
+{
+    protected override void ConfigureTestServices(IServiceCollection services)
+    {
+        // Remove the existing repository registration from PurchaseModule factory
+        var repositoryDescriptor = services.SingleOrDefault(
+            d => d.ServiceType == typeof(IPurchaseOrderRepository));
+        if (repositoryDescriptor != null)
+        {
+            services.Remove(repositoryDescriptor);
+        }
+
+        // Force use of EF Core repository instead of InMemoryPurchaseOrderRepository
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
     }
 }

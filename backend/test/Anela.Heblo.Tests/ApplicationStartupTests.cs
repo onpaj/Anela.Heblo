@@ -1,66 +1,25 @@
 using Microsoft.AspNetCore.Hosting;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
-using Microsoft.Extensions.Configuration;
-using FluentAssertions;
-using Microsoft.ApplicationInsights;
-using FluentAssertions;
-using Microsoft.ApplicationInsights.Extensibility;
-using FluentAssertions;
 using Anela.Heblo.API;
-using FluentAssertions;
+using Anela.Heblo.Tests.Common;
 using Anela.Heblo.Xcc.Telemetry;
-using FluentAssertions;
 using Xunit.Abstractions;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests;
 
 /// <summary>
 /// Integration tests to verify application startup and dependency resolution
 /// </summary>
-public class ApplicationStartupTests : IClassFixture<WebApplicationFactory<Program>>
+public class ApplicationStartupTests : IClassFixture<HebloWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HebloWebApplicationFactory _factory;
     private readonly ITestOutputHelper _output;
 
-    public ApplicationStartupTests(WebApplicationFactory<Program> factory, ITestOutputHelper output)
+    public ApplicationStartupTests(HebloWebApplicationFactory factory, ITestOutputHelper output)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            // Ensure test environment is set to enable mock authentication
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"}
-                });
-            });
-
-            // Register mock TelemetryClient for test environment
-            builder.ConfigureServices(services =>
-            {
-                // Remove any existing TelemetryClient registration
-                var telemetryClientDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(TelemetryClient));
-                if (telemetryClientDescriptor != null)
-                {
-                    services.Remove(telemetryClientDescriptor);
-                }
-
-                // Add mock TelemetryClient
-                services.AddSingleton<TelemetryClient>(serviceProvider =>
-                {
-                    var config = new TelemetryConfiguration();
-                    return new TelemetryClient(config);
-                });
-            });
-        });
+        _factory = factory;
         _output = output;
     }
 

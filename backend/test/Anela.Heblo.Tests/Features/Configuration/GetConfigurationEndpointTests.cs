@@ -1,40 +1,21 @@
 using System.Net.Http.Json;
 using FluentAssertions;
-using Anela.Heblo.API;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Configuration.Model;
-using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using FluentAssertions;
-using Microsoft.Extensions.Configuration;
-using FluentAssertions;
+using Anela.Heblo.Tests.Common;
 
 namespace Anela.Heblo.Tests.Features.Configuration;
 
 /// <summary>
 /// Integration tests for GetConfigurationEndpoint
 /// </summary>
-public class GetConfigurationEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class GetConfigurationEndpointTests : IClassFixture<HebloWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HebloWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public GetConfigurationEndpointTests(WebApplicationFactory<Program> factory)
+    public GetConfigurationEndpointTests(HebloWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            // Ensure test environment is set to enable mock authentication
-            builder.UseEnvironment("Test");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    {"UseMockAuth", "true"}
-                });
-            });
-        });
+        _factory = factory;
         _client = _factory.CreateClient();
     }
 

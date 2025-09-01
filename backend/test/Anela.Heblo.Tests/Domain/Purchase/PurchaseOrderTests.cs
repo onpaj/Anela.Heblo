@@ -446,7 +446,7 @@ public class PurchaseOrderTests
         purchaseOrder.UpdatedBy.Should().Be(updatedBy);
         purchaseOrder.UpdatedAt.Should().NotBeNull();
         purchaseOrder.History.Should().HaveCountGreaterThan(1);
-        
+
         var historyEntry = purchaseOrder.History.Last();
         historyEntry.Action.Should().Contain("Order number changed");
         historyEntry.OldValue.Should().Be(ValidOrderNumber);

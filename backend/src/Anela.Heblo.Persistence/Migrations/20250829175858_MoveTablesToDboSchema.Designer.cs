@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250829175858_MoveTablesToDboSchema")]
+    partial class MoveTablesToDboSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,7 +81,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("IsDeleted", "EntryDate")
                         .HasDatabaseName("IX_JournalEntries_IsDeleted_EntryDate");
 
-                    b.ToTable("JournalEntries", "public");
+                    b.ToTable("JournalEntries", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>
@@ -98,7 +101,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("ProductCodePrefix")
                         .HasDatabaseName("IX_JournalEntryProducts_ProductCode");
 
-                    b.ToTable("JournalEntryProducts", "public");
+                    b.ToTable("JournalEntryProducts", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTag", b =>
@@ -133,7 +136,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_JournalEntryTags_Name");
 
-                    b.ToTable("JournalEntryTags", "public");
+                    b.ToTable("JournalEntryTags", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTagAssignment", b =>
@@ -151,7 +154,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("JournalEntryTagAssignments", "public");
+                    b.ToTable("JournalEntryTagAssignments", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
@@ -207,7 +210,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TransportBox", "public");
+                    b.ToTable("TransportBox", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
@@ -243,7 +246,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxItem", "public");
+                    b.ToTable("TransportBoxItem", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxStateLog", b =>
@@ -273,7 +276,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxStateLog", "public");
+                    b.ToTable("TransportBoxStateLog", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
@@ -331,7 +334,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
-                    b.ToTable("PurchaseOrders", "public");
+                    b.ToTable("PurchaseOrders", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
@@ -372,7 +375,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderHistory", "public");
+                    b.ToTable("PurchaseOrderHistory", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine", b =>
@@ -414,7 +417,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderLines", "public");
+                    b.ToTable("PurchaseOrderLines", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>

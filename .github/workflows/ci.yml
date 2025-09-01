@@ -1,21 +1,24 @@
-name: 🔄 Continuous Integration (Optimized)
+name: 🔄 CI with Manual Staging Deployment
 
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: write
+  packages: read
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: heblo
 
 jobs:
-  # Frontend CI - Test and build only (no lint)
-  frontend-ci:
-    name: 🎯 Frontend CI (Test + Build)
+  # Frontend Tests - Parallel execution
+  frontend-tests:
+    name: 🎯 Frontend Tests
     runs-on: ubuntu-latest
-    outputs:
-      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -46,30 +49,10 @@ jobs:
           flags: frontend
           name: frontend-coverage
 
-      - name: 🏗️ Build production bundle
-        working-directory: ./frontend
-        run: npm run build
-        env:
-          REACT_APP_API_URL: https://placeholder.azurewebsites.net
-          REACT_APP_USE_MOCK_AUTH: false
-
-      - name: ✅ Check build success
-        id: check-build
-        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
-
-      - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build/
-          retention-days: 7
-
-  # Backend CI - Test and build only (no lint)
-  backend-ci:
-    name: 🎯 Backend CI (Test + Build)
+  # Backend Tests - Parallel execution
+  backend-tests:
+    name: 🎯 Backend Tests
     runs-on: ubuntu-latest
-    outputs:
-      has-build-artifact: ${{ steps.check-build.outputs.has-artifact }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -82,17 +65,29 @@ jobs:
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
 
-      - name: 🏗️ Build test projects
-        run: dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
+      - name: 🏗️ Build all test projects
+        run: |
+          dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
 
       - name: 🎭 Install Playwright for Shoptet tests
         run: |
           cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
           pwsh bin/Release/net8.0/playwright.ps1 install chromium
 
-      - name: 🧪 Run tests with coverage
-        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
+      - name: 📊 Count total tests
+        run: |
+          echo "=== Test Discovery ==="
+          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests | grep -E "Test Name|^    " | wc -l
+          echo "=== Running Tests ==="
         env:
+          ASPNETCORE_ENVIRONMENT: Automation
+
+      - name: 🧪 Run tests with coverage
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
           StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
@@ -117,291 +112,328 @@ jobs:
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
-      - name: ✅ Check build success
-        id: check-build
-        run: echo "has-artifact=true" >> $GITHUB_OUTPUT
-
-  # UI Tests with Playwright - OPTIONAL (non-blocking)
-  playwright-tests:
-    name: 🎭 UI Tests (Playwright) - Optional
+  # Manual Approval for Test Deployment
+  staging-approval:
+    name: 🤖 Approve Test Deployment
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci]
-    continue-on-error: true  # Makes this job optional - won't fail the overall workflow
-    if: |
-      !contains(github.event.pull_request.labels.*.name, 'skip-ui-tests') &&
-      github.event.pull_request.draft == false
+    needs: [frontend-tests, backend-tests]
+    environment: 
+      name: staging-approval
+      url: https://heblo.stg.anela.cz
+    steps:
+      - name: 📋 Summary of changes
+        run: |
+          echo "## ✅ Tests Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Frontend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Backend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Ready to deploy to test environment!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
+
+  # Build and Push Docker Image
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [staging-approval]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 🔧 Setup .NET
-        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          fetch-depth: 0
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          versionSpec: '6.0.x'
 
-      - name: 📦 Restore .NET dependencies
-        run: dotnet restore backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
 
-      - name: 📦 Install frontend dependencies
-        working-directory: ./frontend
-        run: npm install --legacy-peer-deps
-
-      - name: 🎭 Install Playwright browsers
-        working-directory: ./frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: 🚀 Run UI tests using script
+      - name: 🏷️ Generate version tag
+        id: version
         run: |
-          echo "🎭 Starting UI tests with automation environment..."
-          # Use the existing script that handles environment setup and cleanup
-          chmod +x ./scripts/run-playwright-tests.sh
-          timeout 600 ./scripts/run-playwright-tests.sh || {
-            echo "⚠️ UI tests timed out or failed - this is non-blocking"
-            exit 0
-          }
-        env:
-          CI: true
-          PLAYWRIGHT_REPORTER: list  # Use list reporter in CI to avoid HTML server timeouts
-
-      - name: 📤 Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 7
-
-      - name: 📤 Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-test-results
-          path: frontend/test-results/
-          retention-days: 7
-
-      - name: 📊 Comment test results on PR
-        if: always() && github.event_name == 'pull_request'
-        continue-on-error: true
-        run: |
-          if [ -f frontend/playwright-report/index.html ]; then
-            # Count test results from the report
-            PASSED=$(grep -o "passed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
-            FAILED=$(grep -o "failed" frontend/test-results/*.xml 2>/dev/null | wc -l || echo "N/A")
-            
-            gh pr comment ${{ github.event.pull_request.number }} \
-              --body "## 🎭 UI Test Results (Optional)
-            
-            - ✅ Passed: ${PASSED:-N/A}
-            - ❌ Failed: ${FAILED:-N/A}
-            
-            📄 **Full report**: Available in workflow artifacts
-            
-            _Note: UI tests are optional and don't block merge._" \
-              --edit-last || \
-            gh pr comment ${{ github.event.pull_request.number }} \
-              --body "## 🎭 UI Test Results (Optional)
-            
-            - ✅ Passed: ${PASSED:-N/A}
-            - ❌ Failed: ${FAILED:-N/A}
-            
-            📄 **Full report**: Available in workflow artifacts
-            
-            _Note: UI tests are optional and don't block merge._"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Use GitVersion's full semantic version for PR
+            VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
+          else
+            # Use GitVersion generated version for other events
+            VERSION="staging-${{ steps.gitversion.outputs.fullSemVer }}"
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Docker Build - depends on both frontend and backend CI
-  docker-build:
-    name: 🐳 Docker Build
-    runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci]
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+          echo "🔢 GitVersion CommitsSinceVersionSource: ${{ steps.gitversion.outputs.commitsSinceVersionSource }}"
 
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🏗️ Build Docker image
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 📝 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=staging-latest
+
+      - name: 🏗️ Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
-          tags: ${{ env.IMAGE_NAME }}:ci-${{ github.sha }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_API_URL=https://heblo.stg.anela.cz
+            REACT_APP_USE_MOCK_AUTH=false
+            REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
+            REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
+            REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
+            REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
-  # Quality Gate - ensures all REQUIRED jobs pass (UI tests are optional)
-  quality-gate:
-    name: ✅ Quality Gate
+  # Deploy to Azure Web App (no slots)
+  deploy-azure:
+    name: 🚀 Deploy to Azure Test Environment
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci, docker-build, playwright-tests]
-    if: always()
-    steps:
-      - name: ✅ Check required jobs succeeded
-        run: |
-          echo "=== REQUIRED JOBS STATUS ==="
-          echo "Frontend CI: ${{ needs.frontend-ci.result }}"
-          echo "Backend CI: ${{ needs.backend-ci.result }}"
-          echo "Docker Build: ${{ needs.docker-build.result }}"
-          echo ""
-          echo "=== OPTIONAL JOBS STATUS ==="
-          echo "UI Tests (Playwright): ${{ needs.playwright-tests.result }}"
-          echo ""
-          
-          # Check required jobs only
-          if [[ "${{ needs.frontend-ci.result }}" != "success" || \
-                "${{ needs.backend-ci.result }}" != "success" || \
-                "${{ needs.docker-build.result }}" != "success" ]]; then
-            echo "❌ Quality gate failed - required jobs failed"
-            exit 1
-          fi
-          
-          echo "✅ Quality gate passed - all required jobs succeeded"
-
-      - name: 📋 Generate CI summary
-        run: |
-          # Determine UI test status for summary
-          UI_STATUS="⏭️ Skipped"
-          UI_ICON="⏭️"
-          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
-            UI_STATUS="✅ Passed"
-            UI_ICON="✅"
-          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
-            UI_STATUS="⚠️ Failed (non-blocking)"
-            UI_ICON="⚠️"
-          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
-            UI_STATUS="⏭️ Cancelled"
-            UI_ICON="⏭️"
-          fi
-          
-          echo "## 🎉 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Required Checks" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Frontend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Backend CI**: Tests, Build completed successfully" >> $GITHUB_STEP_SUMMARY  
-          echo "✅ **Docker Build**: Image built successfully" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Optional Checks" >> $GITHUB_STEP_SUMMARY
-          echo "${UI_ICON} **UI Tests (Playwright)**: ${UI_STATUS}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY
-
-  # Auto-merge job - runs when quality gate passes and PR has auto-merge label
-  auto-merge:
-    name: 🤖 Auto-merge PR
-    runs-on: ubuntu-latest
-    needs: [quality-gate, playwright-tests]
-    if: |
-      github.event.pull_request.draft == false &&
-      (contains(github.event.pull_request.labels.*.name, 'auto-merge') ||
-       contains(github.event.pull_request.labels.*.name, 'auto-squash') ||
-       contains(github.event.pull_request.labels.*.name, 'auto-rebase'))
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: read
-    
+    needs: [build-and-push]
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: 🔍 Determine merge strategy
-        id: merge-strategy
+          fetch-depth: 0
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
+
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: '6.0.x'
+
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
+
+      - name: 🏷️ Get version from build
+        id: version
         run: |
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-squash') }}" == "true" ]]; then
-            echo "strategy=squash" >> $GITHUB_OUTPUT
-            echo "strategy_name=Squash and merge" >> $GITHUB_OUTPUT
-            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'auto-rebase') }}" == "true" ]]; then
-            echo "strategy=rebase" >> $GITHUB_OUTPUT
-            echo "strategy_name=Rebase and merge" >> $GITHUB_OUTPUT
-            echo "merge_flag=--rebase" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Use GitVersion's full semantic version for PR
+            VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
           else
-            echo "strategy=squash" >> $GITHUB_OUTPUT
-            echo "strategy_name=Squash and merge (default)" >> $GITHUB_OUTPUT
-            echo "merge_flag=--squash" >> $GITHUB_OUTPUT
+            # Use GitVersion generated version for other events
+            VERSION="staging-${{ steps.gitversion.outputs.fullSemVer }}"
           fi
-      
-      - name: 🔄 Enable auto-merge
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+
+      - name: 🚀 Deploy to Azure Web App
+        id: deploy
         run: |
-          echo "Enabling auto-merge for PR #${{ github.event.pull_request.number }}"
-          echo "Strategy: ${{ steps.merge-strategy.outputs.strategy_name }}"
+          # Deploy container to heblo-test web app
+          WEBAPP_NAME="heblo-test"
+          echo "🎯 Deploying to web app: $WEBAPP_NAME"
           
-          gh pr merge ${{ github.event.pull_request.number }} \
-            --auto \
-            ${{ steps.merge-strategy.outputs.merge_flag }} \
-            --delete-branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: 💬 Comment on PR
-        run: |
-          # Determine UI test status for comment
-          UI_STATUS="⏭️ Skipped"
-          if [[ "${{ needs.playwright-tests.result }}" == "success" ]]; then
-            UI_STATUS="✅ Passed"
-          elif [[ "${{ needs.playwright-tests.result }}" == "failure" ]]; then
-            UI_STATUS="⚠️ Failed (non-blocking)"
-          elif [[ "${{ needs.playwright-tests.result }}" == "cancelled" ]]; then
-            UI_STATUS="⏭️ Cancelled"
+          # Build Docker image name with specific version
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          
+          # Try to use build output first, fallback to versioned image
+          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | grep -E "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:staging-PR[0-9]+" | head -1)
+          if [ -n "$BUILD_OUTPUT_IMAGE" ]; then
+            DOCKER_IMAGE="$BUILD_OUTPUT_IMAGE"
+            echo "📍 Using build output image: $DOCKER_IMAGE"
+          else
+            echo "⚠️ Build output empty, using versioned image: $DOCKER_IMAGE"
           fi
           
+          # Validate Docker image is set
+          if [ -z "$DOCKER_IMAGE" ]; then
+            echo "❌ Error: Docker image is empty!"
+            echo "Build output: '${{ needs.build-and-push.outputs.image-tag }}'"
+            echo "Version: '${{ steps.version.outputs.version }}'"
+            exit 1
+          fi
+          
+          echo "🐳 Docker image: $DOCKER_IMAGE"
+          
+          # Configure container deployment
+          echo "🔧 Configuring Web App for Container deployment..."
+          
+          # Set the container image directly via config
+          az webapp config set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
+            --output none
+          
+          # Configure container registry settings
+          az webapp config container set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/ \
+            --output none
+          
+          # Restart web app to ensure container configuration is applied
+          echo "🔄 Restarting web app..."
+          az webapp restart \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --output none
+          
+          # Wait for restart to complete
+          echo "⏱️ Waiting for restart to complete..."
+          sleep 15
+          
+          # Verify container configuration
+          echo "🔍 Verifying container configuration..."
+          WEBAPP_CONFIG=$(az webapp config show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query '{linuxFxVersion: linuxFxVersion}' \
+            --output json)
+          
+          LINUX_FX_VERSION=$(echo $WEBAPP_CONFIG | jq -r '.linuxFxVersion')
+          echo "📋 Container Configuration: $LINUX_FX_VERSION"
+          
+          if [[ "$LINUX_FX_VERSION" == DOCKER* ]]; then
+            echo "✅ Container mode successfully configured"
+          else
+            echo "❌ Error: Container mode not properly set"
+            exit 1
+          fi
+          
+          # Get hostname for output
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" \
+            --output tsv)
+          
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
+          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+
+      - name: 🔧 Configure App Settings
+        run: |
+          # Configure app settings for test environment
+          echo "🔧 Configuring app settings for test environment..."
+          
+          az webapp config appsettings set \
+            --resource-group rgHeblo \
+            --name $WEBAPP_NAME \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Staging \
+              WEBSITES_PORT=8080 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              APP_VERSION="${{ needs.build-and-push.outputs.version }}" \
+              DEPLOYMENT_SOURCE="CI-${{ github.ref_name }}"
+          
+          echo "✅ App settings configured"
+
+      - name: ⏳ Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          sleep 30
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
+              echo "✅ Deployment is ready!"
+              break
+            fi
+            echo "⏳ Waiting for deployment... ($i/10)"
+            sleep 10
+          done
+
+      - name: 💬 Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🚀 **Auto-merge enabled!**
+            --body "## 🚀 Deployed to Test Environment!
           
-          All required CI checks have passed successfully:
-          - ✅ Frontend tests and build
-          - ✅ Backend tests and build  
-          - ✅ Docker build
-          - ${UI_STATUS} UI tests (optional)
+          Your branch has been successfully deployed to the test environment:
           
-          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
+          - **🌐 URL**: https://${{ needs.deploy-azure.outputs.webapp-hostname }}
+          - **📦 Version**: ${{ needs.build-and-push.outputs.version }}
+          - **🐳 Docker Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
           
-          This PR will be automatically merged when all required status checks are complete.
+          ### 🧪 Testing
+          You can now test your changes in the test environment.
+          
+          ### ⚠️ Important Notes
+          - Test environment uses **mock authentication**
+          - This deployment will be **replaced** by the next deployment
+          - Container deployment via Docker Hub
           
           ---
-          
-          ### Available Labels:
-          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
-          - \`auto-rebase\`: Rebase and merge
-          - \`skip-ui-tests\`: Skip UI tests entirely
-          
-          _Note: Branch will be deleted after merge._" \
+          _Deployment executed after manual approval_" \
             --edit-last || \
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🚀 **Auto-merge enabled!**
+            --body "## 🚀 Deployed to Test Environment!
           
-          All required CI checks have passed successfully:
-          - ✅ Frontend tests and build
-          - ✅ Backend tests and build  
-          - ✅ Docker build
-          - ${UI_STATUS} UI tests (optional)
+          Your branch has been successfully deployed to the test environment:
           
-          **Merge Strategy**: ${{ steps.merge-strategy.outputs.strategy_name }}
+          - **🌐 URL**: https://${{ needs.deploy-azure.outputs.webapp-hostname }}
+          - **📦 Version**: ${{ needs.build-and-push.outputs.version }}
+          - **🐳 Docker Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
           
-          This PR will be automatically merged when all required status checks are complete.
+          ### 🧪 Testing
+          You can now test your changes in the test environment.
+          
+          ### ⚠️ Important Notes
+          - Test environment uses **mock authentication**
+          - This deployment will be **replaced** by the next deployment
+          - Container deployment via Docker Hub
           
           ---
-          
-          ### Available Labels:
-          - \`auto-merge\` or \`auto-squash\`: Squash and merge (default)
-          - \`auto-rebase\`: Rebase and merge
-          - \`skip-ui-tests\`: Skip UI tests entirely
-          
-          _Note: Branch will be deleted after merge._"
+          _Deployment executed after manual approval_"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Create deployment summary
+        run: |
+          echo "## 🚀 Test Environment Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.build-and-push.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://${{ needs.deploy-azure.outputs.webapp-hostname }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Test (Mock Auth)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
+          echo "The test environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY

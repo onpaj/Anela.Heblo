@@ -8,7 +8,7 @@ public class TransportBoxStateLogConfiguration : IEntityTypeConfiguration<Transp
 {
     public void Configure(EntityTypeBuilder<TransportBoxStateLog> builder)
     {
-        builder.ToTable("TransportBoxStateLog", "dbo");
+        builder.ToTable("TransportBoxStateLog", "public");
 
         builder.HasKey(x => x.Id);
     }
