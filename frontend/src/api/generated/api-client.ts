@@ -4939,6 +4939,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     status?: string;
     totalAmount?: number;
     lineCount?: number;
+    isEditable?: boolean;
     createdAt?: Date;
     createdBy?: string;
 
@@ -4963,6 +4964,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
             this.status = _data["status"];
             this.totalAmount = _data["totalAmount"];
             this.lineCount = _data["lineCount"];
+            this.isEditable = _data["isEditable"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
         }
@@ -4987,6 +4989,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data["status"] = this.status;
         data["totalAmount"] = this.totalAmount;
         data["lineCount"] = this.lineCount;
+        data["isEditable"] = this.isEditable;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
         return data;
@@ -5004,6 +5007,7 @@ export interface IPurchaseOrderSummaryDto {
     status?: string;
     totalAmount?: number;
     lineCount?: number;
+    isEditable?: boolean;
     createdAt?: Date;
     createdBy?: string;
 }
@@ -5380,6 +5384,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
+    isEditable?: boolean;
     lines?: PurchaseOrderLineDto[];
     history?: PurchaseOrderHistoryDto[];
     createdAt?: Date;
@@ -5408,6 +5413,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
             this.status = _data["status"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
+            this.isEditable = _data["isEditable"];
             if (Array.isArray(_data["lines"])) {
                 this.lines = [] as any;
                 for (let item of _data["lines"])
@@ -5444,6 +5450,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["status"] = this.status;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
+        data["isEditable"] = this.isEditable;
         if (Array.isArray(this.lines)) {
             data["lines"] = [];
             for (let item of this.lines)
@@ -5473,6 +5480,7 @@ export interface IGetPurchaseOrderByIdResponse {
     status?: string;
     notes?: string | undefined;
     totalAmount?: number;
+    isEditable?: boolean;
     lines?: PurchaseOrderLineDto[];
     history?: PurchaseOrderHistoryDto[];
     createdAt?: Date;

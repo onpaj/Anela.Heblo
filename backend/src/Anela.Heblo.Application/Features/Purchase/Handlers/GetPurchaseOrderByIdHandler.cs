@@ -45,6 +45,7 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             Status = purchaseOrder.Status.ToString(),
             Notes = purchaseOrder.Notes,
             TotalAmount = purchaseOrder.TotalAmount,
+            IsEditable = purchaseOrder.IsEditable,
             Lines = purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto
             {
                 Id = l.Id,

@@ -25,7 +25,7 @@ public class PurchaseOrder : IEntity<int>
 
     public decimal TotalAmount => _lines.Sum(l => l.LineTotal);
 
-    public bool CanEdit => Status != PurchaseOrderStatus.Completed;
+    public bool IsEditable => Status != PurchaseOrderStatus.Completed;
 
     protected PurchaseOrder()
     {
@@ -55,7 +55,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void AddLine(string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot add lines to completed orders");
         }
@@ -72,7 +72,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void RemoveLine(int lineId)
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot remove lines from completed orders");
         }
@@ -88,7 +88,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void UpdateLine(int lineId, string materialName, decimal quantity, decimal unitPrice, string? notes)
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot update lines in completed orders");
         }
@@ -104,7 +104,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void ClearAllLines()
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot clear lines from completed orders");
         }
@@ -116,7 +116,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void Update(string supplierName, DateTime? expectedDeliveryDate, ContactVia? contactVia, string? notes, string updatedBy)
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot update completed orders");
         }
@@ -131,7 +131,7 @@ public class PurchaseOrder : IEntity<int>
 
     public void UpdateOrderNumber(string orderNumber, string updatedBy)
     {
-        if (!CanEdit)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Cannot update order number for completed orders");
         }

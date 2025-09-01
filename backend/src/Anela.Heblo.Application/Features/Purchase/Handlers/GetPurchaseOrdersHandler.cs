@@ -50,6 +50,7 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
             Status = order.Status.ToString(),
             TotalAmount = order.TotalAmount,
             LineCount = order.Lines.Count,
+            IsEditable = order.IsEditable,
             CreatedAt = order.CreatedAt,
             CreatedBy = order.CreatedBy
         }).ToList();

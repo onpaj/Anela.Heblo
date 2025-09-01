@@ -225,8 +225,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
       newErrors.expectedDeliveryDate = 'Datum dodání nemůže být před datem objednávky';
     }
 
-    // Validate lines (skip empty rows - rows without material selected)
-    const nonEmptyLines = formData.lines.filter(line => line.selectedMaterial);
+    // Validate lines (skip empty rows - rows without material selected or materialName)
+    const nonEmptyLines = formData.lines.filter(line => 
+      line.selectedMaterial || (line.materialName && line.materialName.trim())
+    );
     
     // Check if there's at least one non-empty line
     if (nonEmptyLines.length === 0) {
@@ -234,8 +236,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     }
     
     formData.lines.forEach((line, index) => {
-      // Only validate rows that have material selected
-      if (line.selectedMaterial) {
+      // Only validate rows that have material selected or materialName filled
+      const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+      
+      if (hasValidMaterial) {
         if (!line.materialName?.trim() && !line.selectedMaterial?.productName?.trim()) {
           newErrors[`line_${index}_material`] = 'Název materiálu je povinný';
         }
@@ -272,9 +276,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           notes: formData.notes || undefined,
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
-            .filter(line => line.selectedMaterial && line.materialId && line.quantity && line.unitPrice)
+            .filter(line => {
+              const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+              return hasValidMaterial && line.quantity && line.unitPrice;
+            })
             .map(line => new UpdatePurchaseOrderLineRequest({
-              materialId: line.materialId!,
+              materialId: line.materialId || 'MANUAL',  // Use 'MANUAL' for manually entered materials
               name: line.selectedMaterial?.productName || line.materialName,
               quantity: line.quantity!,
               unitPrice: line.unitPrice!,
@@ -297,9 +304,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
           notes: formData.notes || undefined,
           orderNumber: formData.orderNumber || undefined,
           lines: formData.lines
-            .filter(line => line.selectedMaterial && line.materialId && line.quantity && line.unitPrice)
+            .filter(line => {
+              const hasValidMaterial = line.selectedMaterial || (line.materialName && line.materialName.trim());
+              return hasValidMaterial && line.quantity && line.unitPrice;
+            })
             .map(line => new CreatePurchaseOrderLineRequest({
-              materialId: line.materialId!,
+              materialId: line.materialId || 'MANUAL',  // Use 'MANUAL' for manually entered materials
               name: line.selectedMaterial?.productName || line.materialName,
               quantity: line.quantity!,
               unitPrice: line.unitPrice!,

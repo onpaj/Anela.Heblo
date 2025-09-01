@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History } from 'lucide-react';
+import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone } from 'lucide-react';
 import { 
   usePurchaseOrderDetailQuery, 
   usePurchaseOrderHistoryQuery,
@@ -215,6 +215,16 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                         </span>
                       </div>
 
+                      {orderData.contactVia && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-600 flex items-center">
+                            <Phone className="h-4 w-4 mr-1" />
+                            Způsob komunikace:
+                          </span>
+                          <span className="text-sm text-gray-900">{orderData.contactVia}</span>
+                        </div>
+                      )}
+
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600 flex items-center">
                           <DollarSign className="h-4 w-4 mr-1" />
@@ -372,7 +382,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
           >
             Zavřít
           </button>
-          {orderData && orderData.status === 'Draft' && onEdit && (
+          {orderData && orderData.isEditable && onEdit && (
             <button 
               onClick={() => onEdit(orderId)}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center gap-2"

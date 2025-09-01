@@ -14,6 +14,7 @@ public class GetPurchaseOrderByIdResponse
     public string Status { get; set; } = null!;
     public string? Notes { get; set; }
     public decimal TotalAmount { get; set; }
+    public bool IsEditable { get; set; }
     public List<PurchaseOrderLineDto> Lines { get; set; } = null!;
     public List<PurchaseOrderHistoryDto> History { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
