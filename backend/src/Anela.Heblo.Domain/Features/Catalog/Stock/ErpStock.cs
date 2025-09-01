@@ -12,4 +12,5 @@ public class ErpStock
     public bool HasLots { get; set; }
     public double Volume { get; set; }
     public double Weight { get; set; }
+    public string? Note { get; set; }
 }

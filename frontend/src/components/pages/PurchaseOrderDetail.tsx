@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone, Receipt, FileCheck, Info, ScrollText, FileText } from 'lucide-react';
+import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone, Receipt, FileCheck, Info, ScrollText, FileText, StickyNote } from 'lucide-react';
 import { 
   usePurchaseOrderDetailQuery, 
   usePurchaseOrderHistoryQuery,
@@ -398,7 +398,17 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                                   <tr key={index} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                       <div>
-                                        <div className="font-medium">{line.materialName || line.materialId}</div>
+                                        <div className="font-medium flex items-center gap-2">
+                                          {line.materialName || line.materialId}
+                                          {line.catalogNote && (
+                                            <div className="relative group">
+                                              <StickyNote className="h-4 w-4 text-amber-500 cursor-help" />
+                                              <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                {line.catalogNote}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                         {line.notes && (
                                           <div className="text-xs text-gray-500 mt-1">{line.notes}</div>
                                         )}

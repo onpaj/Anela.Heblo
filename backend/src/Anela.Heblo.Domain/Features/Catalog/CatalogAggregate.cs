@@ -108,6 +108,8 @@ public class CatalogAggregate : Entity<string>
     public bool HasLots { get; set; }
     public double Volume { get; set; }
     public double Weight { get; set; }
+    
+    public string? Note { get; set; }
 
     // Price convenience properties
     public decimal? CurrentSellingPrice => EshopPrice?.PriceWithVat ?? ErpPrice?.PriceWithoutVat;

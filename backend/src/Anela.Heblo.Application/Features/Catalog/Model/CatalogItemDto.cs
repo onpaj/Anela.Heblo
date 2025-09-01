@@ -16,4 +16,5 @@ public class CatalogItemDto
     public double ManufactureDifficulty { get; set; }
     public decimal MarginPercentage { get; set; }
     public decimal MarginAmount { get; set; }
+    public string? Note { get; set; }
 }
