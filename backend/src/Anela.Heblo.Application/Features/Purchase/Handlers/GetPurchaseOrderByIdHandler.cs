@@ -39,7 +39,7 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
 
         // Load supplier details to get the note
         var supplier = await _supplierRepository.GetByIdAsync(purchaseOrder.SupplierId, cancellationToken);
-        var supplierNote = supplier?.Note;
+        var supplierNote = supplier?.Description;
 
         return new GetPurchaseOrderByIdResponse
         {

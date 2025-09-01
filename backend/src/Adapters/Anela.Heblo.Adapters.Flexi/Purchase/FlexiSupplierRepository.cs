@@ -122,6 +122,7 @@ public class FlexiSupplierRepository : ISupplierRepository
             Name = contact.Name ?? string.Empty,
             Code = contact.Code ?? string.Empty,
             Note = contact.Note,
+            Description = contact.Description,
             Email = contact.Email,
             Phone = contact.Phone,
             Url = contact.Website
