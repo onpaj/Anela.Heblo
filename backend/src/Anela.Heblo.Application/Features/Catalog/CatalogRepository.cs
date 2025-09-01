@@ -230,6 +230,7 @@ public class CatalogRepository : ICatalogRepository
             HasExpiration = s.HasExpiration,
             Volume = s.Volume,
             Weight = s.Weight,
+            Note = s.Note,
         }).ToList();
 
         // First populate all other data for products

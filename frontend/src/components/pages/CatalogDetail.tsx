@@ -850,6 +850,20 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
             <span className="text-sm font-medium text-gray-600">Min. výroba:</span>
             <span className="text-sm text-gray-900">{item.minimalManufactureQuantity || 'Není uvedeno'}</span>
           </div>
+          
+          {/* Note field */}
+          {item.note && (
+            <div className="border-t border-gray-200 pt-3 mt-3">
+              <div className="flex items-start">
+                <span className="text-sm font-medium text-gray-600 mr-3 flex-shrink-0">
+                  Poznámka:
+                </span>
+                <p className="text-sm text-gray-900 whitespace-pre-wrap flex-1">
+                  {item.note}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

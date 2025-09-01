@@ -10,4 +10,5 @@ public class PurchaseOrderLineDto
     public decimal UnitPrice { get; set; }
     public decimal LineTotal { get; set; }
     public string? Notes { get; set; }
+    public string? CatalogNote { get; set; } // Note from catalog item
 }

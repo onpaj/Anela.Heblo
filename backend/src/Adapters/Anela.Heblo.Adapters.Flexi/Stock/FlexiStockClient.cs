@@ -1,6 +1,7 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Xcc.Audit;
+using AutoMapper;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 
 namespace Anela.Heblo.Adapters.Flexi.Stock;
@@ -14,12 +15,14 @@ public class FlexiStockClient : IErpStockClient
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
     private readonly IDataLoadAuditService _auditService;
+    private readonly IMapper _mapper;
 
-    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IDataLoadAuditService auditService)
+    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IDataLoadAuditService auditService, IMapper mapper)
     {
         _stockClient = stockClient;
         _timeProvider = timeProvider;
         _auditService = auditService;
+        _mapper = mapper;
     }
 
     public async Task<IReadOnlyList<ErpStock>> ListAsync(CancellationToken cancellationToken)
@@ -51,20 +54,7 @@ public class FlexiStockClient : IErpStockClient
             var stockToDate = await _stockClient
                 .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
-            var stock = stockToDate
-                .Select(s => new ErpStock
-                {
-                    ProductCode = s.ProductCode,
-                    ProductName = s.ProductName,
-                    ProductTypeId = s.ProductTypeId,
-                    ProductId = s.ProductId,
-                    Stock = (decimal)s.OnStock,
-                    MOQ = s.MoqName,
-                    HasLots = s.HasLots,
-                    HasExpiration = s.HasExpiration,
-                    Volume = s.Volume,
-                    Weight = s.Weight
-                }).ToList();
+            var stock = _mapper.Map<List<ErpStock>>(stockToDate);
 
             var duration = DateTime.UtcNow - startTime;
             await _auditService.LogDataLoadAsync(
@@ -114,21 +104,8 @@ public class FlexiStockClient : IErpStockClient
                 .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
             var productTypeIds = productTypes.Select(i => (int?)i).ToList();
-            var stock = stockToDate
-                .Where(w => productTypeIds.Contains(w.ProductTypeId))
-                .Select(s => new ErpStock
-                {
-                    ProductCode = s.ProductCode,
-                    ProductName = s.ProductName,
-                    ProductTypeId = s.ProductTypeId,
-                    ProductId = s.ProductId,
-                    Stock = (decimal)s.OnStock,
-                    MOQ = s.MoqName,
-                    HasLots = s.HasLots,
-                    HasExpiration = s.HasExpiration,
-                    Volume = s.Volume,
-                    Weight = s.Weight
-                }).ToList();
+            var filteredStockToDate = stockToDate.Where(w => productTypeIds.Contains(w.ProductTypeId));
+            var stock = _mapper.Map<List<ErpStock>>(filteredStockToDate);
 
             var duration = DateTime.UtcNow - startTime;
             await _auditService.LogDataLoadAsync(

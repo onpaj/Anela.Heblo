@@ -2759,6 +2759,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    note?: string | undefined;
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -2783,6 +2784,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.marginPercentage = _data["marginPercentage"];
             this.marginAmount = _data["marginAmount"];
+            this.note = _data["note"];
         }
     }
 
@@ -2807,6 +2809,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["marginPercentage"] = this.marginPercentage;
         data["marginAmount"] = this.marginAmount;
+        data["note"] = this.note;
         return data;
     }
 }
@@ -2824,6 +2827,7 @@ export interface ICatalogItemDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    note?: string | undefined;
 }
 
 export enum ProductType {
@@ -5293,6 +5297,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
     unitPrice?: number;
     lineTotal?: number;
     notes?: string | undefined;
+    catalogNote?: string | undefined;
 
     constructor(data?: IPurchaseOrderLineDto) {
         if (data) {
@@ -5313,6 +5318,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
             this.unitPrice = _data["unitPrice"];
             this.lineTotal = _data["lineTotal"];
             this.notes = _data["notes"];
+            this.catalogNote = _data["catalogNote"];
         }
     }
 
@@ -5333,6 +5339,7 @@ export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
         data["unitPrice"] = this.unitPrice;
         data["lineTotal"] = this.lineTotal;
         data["notes"] = this.notes;
+        data["catalogNote"] = this.catalogNote;
         return data;
     }
 }
@@ -5346,6 +5353,7 @@ export interface IPurchaseOrderLineDto {
     unitPrice?: number;
     lineTotal?: number;
     notes?: string | undefined;
+    catalogNote?: string | undefined;
 }
 
 export class PurchaseOrderHistoryDto implements IPurchaseOrderHistoryDto {

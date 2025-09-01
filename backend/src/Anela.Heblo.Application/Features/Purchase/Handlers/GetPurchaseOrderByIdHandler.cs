@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.Purchase.Model;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -11,15 +12,18 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
     private readonly ILogger<GetPurchaseOrderByIdHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ICatalogRepository _catalogRepository;
 
     public GetPurchaseOrderByIdHandler(
         ILogger<GetPurchaseOrderByIdHandler> logger,
         IPurchaseOrderRepository repository,
-        ISupplierRepository supplierRepository)
+        ISupplierRepository supplierRepository,
+        ICatalogRepository catalogRepository)
     {
         _logger = logger;
         _repository = repository;
         _supplierRepository = supplierRepository;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<GetPurchaseOrderByIdResponse?> Handle(GetPurchaseOrderByIdRequest request, CancellationToken cancellationToken)
@@ -40,6 +44,19 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         // Load supplier details to get the note
         var supplier = await _supplierRepository.GetByIdAsync(purchaseOrder.SupplierId, cancellationToken);
         var supplierNote = supplier?.Description;
+
+        // Load catalog items to get notes for each material
+        var materialIds = purchaseOrder.Lines.Select(l => l.MaterialId).Distinct().ToList();
+        var catalogItems = new Dictionary<string, CatalogAggregate>();
+
+        foreach (var materialId in materialIds)
+        {
+            var catalogItem = await _catalogRepository.GetByIdAsync(materialId, cancellationToken);
+            if (catalogItem != null)
+            {
+                catalogItems[materialId] = catalogItem;
+            }
+        }
 
         return new GetPurchaseOrderByIdResponse
         {
@@ -65,7 +82,8 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
                 LineTotal = l.LineTotal,
-                Notes = l.Notes
+                Notes = l.Notes,
+                CatalogNote = catalogItems.TryGetValue(l.MaterialId, out var catalogItem) ? catalogItem.Note : null
             }).ToList(),
             History = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
             {
