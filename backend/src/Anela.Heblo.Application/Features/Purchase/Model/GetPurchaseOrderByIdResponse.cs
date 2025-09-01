@@ -12,8 +12,10 @@ public class GetPurchaseOrderByIdResponse
     public DateTime? ExpectedDeliveryDate { get; set; }
     public ContactVia? ContactVia { get; set; }
     public string Status { get; set; } = null!;
+    public bool InvoiceAcquired { get; set; }
     public string? Notes { get; set; }
     public decimal TotalAmount { get; set; }
+    public bool IsEditable { get; set; }
     public List<PurchaseOrderLineDto> Lines { get; set; } = null!;
     public List<PurchaseOrderHistoryDto> History { get; set; } = null!;
     public DateTime CreatedAt { get; set; }

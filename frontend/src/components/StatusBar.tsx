@@ -75,6 +75,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
         return 'text-gray-600 bg-gray-100'; // Default background, primary text color
       case 'test':
         return 'text-white bg-green-600'; // Green background, white text
+      case 'staging':
+        return 'text-white bg-orange-500'; // Orange background, white text
       default: // Development
         return 'text-black bg-red-600'; // Red background, black text
     }

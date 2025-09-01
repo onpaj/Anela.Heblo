@@ -1612,7 +1612,7 @@ export class ApiClient {
         return Promise.resolve<GetProductMarginsResponse>(null as any);
     }
 
-    purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
+    purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, activeOrdersOnly: boolean | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders?";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
@@ -1624,6 +1624,8 @@ export class ApiClient {
             url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
         if (supplierId !== undefined && supplierId !== null)
             url_ += "SupplierId=" + encodeURIComponent("" + supplierId) + "&";
+        if (activeOrdersOnly !== undefined && activeOrdersOnly !== null)
+            url_ += "ActiveOrdersOnly=" + encodeURIComponent("" + activeOrdersOnly) + "&";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)
@@ -1827,6 +1829,47 @@ export class ApiClient {
             });
         }
         return Promise.resolve<UpdatePurchaseOrderStatusResponse>(null as any);
+    }
+
+    purchaseOrders_UpdateInvoiceAcquired(id: number, request: UpdatePurchaseOrderInvoiceAcquiredRequest): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/invoice-acquired";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPurchaseOrders_UpdateInvoiceAcquired(_response);
+        });
+    }
+
+    protected processPurchaseOrders_UpdateInvoiceAcquired(response: Response): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdatePurchaseOrderInvoiceAcquiredResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdatePurchaseOrderInvoiceAcquiredResponse>(null as any);
     }
 
     purchaseOrders_GetPurchaseOrderHistory(id: number): Promise<PurchaseOrderHistoryDto[]> {
@@ -4935,8 +4978,10 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     totalAmount?: number;
     lineCount?: number;
+    isEditable?: boolean;
     createdAt?: Date;
     createdBy?: string;
 
@@ -4959,8 +5004,10 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.status = _data["status"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
             this.totalAmount = _data["totalAmount"];
             this.lineCount = _data["lineCount"];
+            this.isEditable = _data["isEditable"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
         }
@@ -4983,8 +5030,10 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["status"] = this.status;
+        data["invoiceAcquired"] = this.invoiceAcquired;
         data["totalAmount"] = this.totalAmount;
         data["lineCount"] = this.lineCount;
+        data["isEditable"] = this.isEditable;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
         return data;
@@ -5000,8 +5049,10 @@ export interface IPurchaseOrderSummaryDto {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     totalAmount?: number;
     lineCount?: number;
+    isEditable?: boolean;
     createdAt?: Date;
     createdBy?: string;
 }
@@ -5376,8 +5427,10 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     notes?: string | undefined;
     totalAmount?: number;
+    isEditable?: boolean;
     lines?: PurchaseOrderLineDto[];
     history?: PurchaseOrderHistoryDto[];
     createdAt?: Date;
@@ -5404,8 +5457,10 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.status = _data["status"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
+            this.isEditable = _data["isEditable"];
             if (Array.isArray(_data["lines"])) {
                 this.lines = [] as any;
                 for (let item of _data["lines"])
@@ -5440,8 +5495,10 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["status"] = this.status;
+        data["invoiceAcquired"] = this.invoiceAcquired;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
+        data["isEditable"] = this.isEditable;
         if (Array.isArray(this.lines)) {
             data["lines"] = [];
             for (let item of this.lines)
@@ -5469,8 +5526,10 @@ export interface IGetPurchaseOrderByIdResponse {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     notes?: string | undefined;
     totalAmount?: number;
+    isEditable?: boolean;
     lines?: PurchaseOrderLineDto[];
     history?: PurchaseOrderHistoryDto[];
     createdAt?: Date;
@@ -5788,6 +5847,86 @@ export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderSta
 export interface IUpdatePurchaseOrderStatusRequest {
     id?: number;
     status?: string;
+}
+
+export class UpdatePurchaseOrderInvoiceAcquiredResponse implements IUpdatePurchaseOrderInvoiceAcquiredResponse {
+    id?: number;
+    invoiceAcquired?: boolean;
+
+    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
+        }
+    }
+
+    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePurchaseOrderInvoiceAcquiredResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceAcquired"] = this.invoiceAcquired;
+        return data;
+    }
+}
+
+export interface IUpdatePurchaseOrderInvoiceAcquiredResponse {
+    id?: number;
+    invoiceAcquired?: boolean;
+}
+
+export class UpdatePurchaseOrderInvoiceAcquiredRequest implements IUpdatePurchaseOrderInvoiceAcquiredRequest {
+    id?: number;
+    invoiceAcquired?: boolean;
+
+    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
+        }
+    }
+
+    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePurchaseOrderInvoiceAcquiredRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceAcquired"] = this.invoiceAcquired;
+        return data;
+    }
+}
+
+export interface IUpdatePurchaseOrderInvoiceAcquiredRequest {
+    id?: number;
+    invoiceAcquired?: boolean;
 }
 
 export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalysisResponse {

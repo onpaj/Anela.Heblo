@@ -43,8 +43,10 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
             ContactVia = purchaseOrder.ContactVia,
             Status = purchaseOrder.Status.ToString(),
+            InvoiceAcquired = purchaseOrder.InvoiceAcquired,
             Notes = purchaseOrder.Notes,
             TotalAmount = purchaseOrder.TotalAmount,
+            IsEditable = purchaseOrder.IsEditable,
             Lines = purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto
             {
                 Id = l.Id,

@@ -137,6 +137,34 @@ public class PurchaseOrdersController : ControllerBase
         }
     }
 
+    [HttpPut("{id:int}/invoice-acquired")]
+    public async Task<ActionResult<UpdatePurchaseOrderInvoiceAcquiredResponse>> UpdateInvoiceAcquired(
+        [FromRoute] int id,
+        [FromBody] UpdatePurchaseOrderInvoiceAcquiredRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest("ID in route does not match ID in request body");
+        }
+
+        try
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+
+            if (response == null)
+            {
+                return NotFound($"Purchase order with ID {id} not found");
+            }
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet("{id:int}/history")]
     public async Task<ActionResult<List<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
         [FromRoute] int id,

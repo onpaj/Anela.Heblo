@@ -18,7 +18,7 @@ const PurchaseStockAnalysis: React.FC = () => {
     fromDate: new Date(new Date().getFullYear() - 1, new Date().getMonth(), new Date().getDate()),
     toDate: new Date(),
     stockStatus: StockStatusFilter.All,
-    onlyConfigured: false,
+    onlyConfigured: true,
     searchTerm: '',
     pageNumber: 1,
     pageSize: 20,

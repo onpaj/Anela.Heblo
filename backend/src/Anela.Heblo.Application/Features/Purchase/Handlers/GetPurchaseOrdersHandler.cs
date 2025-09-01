@@ -20,8 +20,8 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
 
     public async Task<GetPurchaseOrdersResponse> Handle(GetPurchaseOrdersRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting purchase orders with filters - SearchTerm: {SearchTerm}, Status: {Status}, Page: {PageNumber}/{PageSize}",
-            request.SearchTerm, request.Status, request.PageNumber, request.PageSize);
+        _logger.LogInformation("Getting purchase orders with filters - SearchTerm: {SearchTerm}, Status: {Status}, ActiveOrdersOnly: {ActiveOrdersOnly}, Page: {PageNumber}/{PageSize}",
+            request.SearchTerm, request.Status, request.ActiveOrdersOnly, request.PageNumber, request.PageSize);
 
         (List<PurchaseOrder> orders, int totalCount) = await _repository.GetPaginatedAsync(
             request.SearchTerm,
@@ -29,6 +29,7 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
             request.FromDate,
             request.ToDate,
             request.SupplierId,
+            request.ActiveOrdersOnly,
             request.PageNumber,
             request.PageSize,
             request.SortBy,
@@ -47,8 +48,10 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
             ExpectedDeliveryDate = order.ExpectedDeliveryDate,
             ContactVia = order.ContactVia,
             Status = order.Status.ToString(),
+            InvoiceAcquired = order.InvoiceAcquired,
             TotalAmount = order.TotalAmount,
             LineCount = order.Lines.Count,
+            IsEditable = order.IsEditable,
             CreatedAt = order.CreatedAt,
             CreatedBy = order.CreatedBy
         }).ToList();

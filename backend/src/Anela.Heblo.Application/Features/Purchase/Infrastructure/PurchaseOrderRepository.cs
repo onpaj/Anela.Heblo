@@ -17,6 +17,7 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         DateTime? fromDate,
         DateTime? toDate,
         int? supplierId,
+        bool? activeOrdersOnly,
         int pageNumber,
         int pageSize,
         string sortBy,
@@ -51,6 +52,11 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         {
             // Note: SupplierId filtering is disabled as we now use SupplierName
             // In future, implement supplier name filtering if needed
+        }
+
+        if (activeOrdersOnly.HasValue && activeOrdersOnly.Value)
+        {
+            query = query.Where(x => x.Status != PurchaseOrderStatus.Completed);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

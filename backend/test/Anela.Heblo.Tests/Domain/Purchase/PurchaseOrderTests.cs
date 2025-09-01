@@ -467,30 +467,30 @@ public class PurchaseOrderTests
     }
 
     [Fact]
-    public void CanEdit_DraftStatus_ShouldReturnTrue()
+    public void IsEditable_DraftStatus_ShouldReturnTrue()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
 
-        purchaseOrder.CanEdit.Should().BeTrue();
+        purchaseOrder.IsEditable.Should().BeTrue();
     }
 
     [Fact]
-    public void CanEdit_InTransitStatus_ShouldReturnTrue()
+    public void IsEditable_InTransitStatus_ShouldReturnTrue()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        purchaseOrder.CanEdit.Should().BeTrue();
+        purchaseOrder.IsEditable.Should().BeTrue();
     }
 
     [Fact]
-    public void CanEdit_CompletedStatus_ShouldReturnFalse()
+    public void IsEditable_CompletedStatus_ShouldReturnFalse()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
-        purchaseOrder.CanEdit.Should().BeFalse();
+        purchaseOrder.IsEditable.Should().BeFalse();
     }
 
     private static PurchaseOrder CreateValidPurchaseOrder()

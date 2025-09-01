@@ -10,7 +10,9 @@ import {
   UpdatePurchaseOrderRequest,
   UpdatePurchaseOrderResponse,
   UpdatePurchaseOrderStatusRequest,
-  UpdatePurchaseOrderStatusResponse
+  UpdatePurchaseOrderStatusResponse,
+  UpdatePurchaseOrderInvoiceAcquiredRequest,
+  UpdatePurchaseOrderInvoiceAcquiredResponse
 } from '../generated/api-client';
 
 // Define request interface matching the old API
@@ -20,6 +22,7 @@ export interface GetPurchaseOrdersRequest {
   fromDate?: Date;
   toDate?: Date;
   supplierId?: number;
+  activeOrdersOnly?: boolean;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -57,6 +60,7 @@ export const usePurchaseOrdersQuery = (request: GetPurchaseOrdersRequest) => {
       if (request.fromDate) params.append('FromDate', request.fromDate.toISOString());
       if (request.toDate) params.append('ToDate', request.toDate.toISOString());
       if (request.supplierId) params.append('SupplierId', request.supplierId.toString());
+      if (request.activeOrdersOnly !== undefined) params.append('ActiveOrdersOnly', request.activeOrdersOnly.toString());
       if (request.pageNumber) params.append('PageNumber', request.pageNumber.toString());
       if (request.pageSize) params.append('PageSize', request.pageSize.toString());
       if (request.sortBy) params.append('SortBy', request.sortBy);
@@ -227,6 +231,37 @@ export const useUpdatePurchaseOrderStatusMutation = () => {
   });
 };
 
+export const useUpdatePurchaseOrderInvoiceAcquiredMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, request }: { id: number; request: UpdatePurchaseOrderInvoiceAcquiredRequest }) => {
+      const apiClient = getPurchaseOrdersClient();
+      const relativeUrl = `/api/purchase-orders/${id}/invoice-acquired`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json() as Promise<UpdatePurchaseOrderInvoiceAcquiredResponse>;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
+    },
+  });
+};
+
 // Re-export types from generated client for backward compatibility
 export type {
   GetPurchaseOrdersResponse,
@@ -241,5 +276,7 @@ export type {
   UpdatePurchaseOrderLineRequest,
   UpdatePurchaseOrderResponse,
   UpdatePurchaseOrderStatusRequest,
-  UpdatePurchaseOrderStatusResponse
+  UpdatePurchaseOrderStatusResponse,
+  UpdatePurchaseOrderInvoiceAcquiredRequest,
+  UpdatePurchaseOrderInvoiceAcquiredResponse
 } from '../generated/api-client';
