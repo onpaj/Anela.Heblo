@@ -15,11 +15,10 @@ env:
   IMAGE_NAME: heblo
 
 jobs:
-  # Frontend Tests - Parallel execution (TEMPORARILY DISABLED)
+  # Frontend Tests - Parallel execution
   frontend-tests:
-    name: 🎯 Frontend Tests (SKIPPED)
+    name: 🎯 Frontend Tests
     runs-on: ubuntu-latest
-    if: false  # Temporarily skip for CI debugging
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -50,11 +49,10 @@ jobs:
           flags: frontend
           name: frontend-coverage
 
-  # Backend Tests - Parallel execution (TEMPORARILY DISABLED)
+  # Backend Tests - Parallel execution
   backend-tests:
-    name: 🎯 Backend Tests (SKIPPED)
+    name: 🎯 Backend Tests
     runs-on: ubuntu-latest
-    if: false  # Temporarily skip for CI debugging
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -118,7 +116,7 @@ jobs:
   staging-approval:
     name: 🤖 Approve Test Deployment
     runs-on: ubuntu-latest
-    # needs: [frontend-tests, backend-tests]  # Temporarily disabled for CI debugging
+    needs: [frontend-tests, backend-tests]
     environment: 
       name: staging-approval
       url: https://heblo.stg.anela.cz
