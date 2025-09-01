@@ -11,6 +11,7 @@ public class PurchaseOrder : IEntity<int>
     public DateTime? ExpectedDeliveryDate { get; private set; }
     public ContactVia? ContactVia { get; private set; }
     public PurchaseOrderStatus Status { get; private set; }
+    public bool InvoiceAcquired { get; private set; }
     public string? Notes { get; private set; }
     public string CreatedBy { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
@@ -46,6 +47,7 @@ public class PurchaseOrder : IEntity<int>
         ExpectedDeliveryDate = expectedDeliveryDate?.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(expectedDeliveryDate.Value, DateTimeKind.Utc) : expectedDeliveryDate?.ToUniversalTime();
         ContactVia = contactVia;
         Status = PurchaseOrderStatus.Draft;
+        InvoiceAcquired = false;
         Notes = notes;
         CreatedBy = createdBy ?? throw new ArgumentNullException(nameof(createdBy));
         CreatedAt = DateTime.UtcNow;
@@ -157,6 +159,16 @@ public class PurchaseOrder : IEntity<int>
         UpdatedAt = DateTime.UtcNow;
 
         AddHistoryEntry($"Status changed from {oldStatus} to {newStatus}", oldStatus, newStatus.ToString(), changedBy);
+    }
+
+    public void SetInvoiceAcquired(bool invoiceAcquired, string changedBy)
+    {
+        var oldValue = InvoiceAcquired.ToString();
+        InvoiceAcquired = invoiceAcquired;
+        UpdatedBy = changedBy;
+        UpdatedAt = DateTime.UtcNow;
+
+        AddHistoryEntry($"Invoice acquisition changed", oldValue, invoiceAcquired.ToString(), changedBy);
     }
 
     private bool IsValidStatusTransition(PurchaseOrderStatus from, PurchaseOrderStatus to)

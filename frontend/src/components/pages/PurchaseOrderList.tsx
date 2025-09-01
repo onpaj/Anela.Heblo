@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
+import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Plus, Calendar, Check } from 'lucide-react';
 import { 
   usePurchaseOrdersQuery,
   GetPurchaseOrdersRequest
@@ -25,16 +25,14 @@ const PurchaseOrderList: React.FC = () => {
   
   // Filter states - separate input values from applied filters
   const [searchTermInput, setSearchTermInput] = useState('');
-  const [statusInput, setStatusInput] = useState('');
+  const [statusInput, setStatusInput] = useState('ActiveOnly'); // Default to 'ActiveOnly'
   const [fromDateInput, setFromDateInput] = useState('');
   const [toDateInput, setToDateInput] = useState('');
-  const [activeOrdersOnlyInput, setActiveOrdersOnlyInput] = useState(true); // Default checked
   
   const [searchTermFilter, setSearchTermFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ActiveOnly'); // Default to 'ActiveOnly'
   const [fromDateFilter, setFromDateFilter] = useState('');
   const [toDateFilter, setToDateFilter] = useState('');
-  const [activeOrdersOnlyFilter, setActiveOrdersOnlyFilter] = useState(true); // Default checked
   
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
@@ -54,10 +52,10 @@ const PurchaseOrderList: React.FC = () => {
   // Build request object
   const request: GetPurchaseOrdersRequest = {
     searchTerm: searchTermFilter || undefined,
-    status: statusFilter || undefined,
+    status: statusFilter === 'ActiveOnly' ? undefined : (statusFilter || undefined),
     fromDate: fromDateFilter ? new Date(fromDateFilter) : undefined,
     toDate: toDateFilter ? new Date(toDateFilter) : undefined,
-    activeOrdersOnly: activeOrdersOnlyFilter,
+    activeOrdersOnly: statusFilter === 'ActiveOnly' ? true : false,
     pageNumber,
     pageSize,
     sortBy,
@@ -77,7 +75,6 @@ const PurchaseOrderList: React.FC = () => {
     setStatusFilter(statusInput);
     setFromDateFilter(fromDateInput);
     setToDateFilter(toDateInput);
-    setActiveOrdersOnlyFilter(activeOrdersOnlyInput);
     setPageNumber(1); // Reset to first page when applying filters
     
     // Force data reload by refetching
@@ -94,15 +91,13 @@ const PurchaseOrderList: React.FC = () => {
   // Handler for clearing all filters
   const handleClearFilters = async () => {
     setSearchTermInput('');
-    setStatusInput('');
+    setStatusInput('ActiveOnly'); // Reset to default (ActiveOnly)
     setFromDateInput('');
     setToDateInput('');
-    setActiveOrdersOnlyInput(true); // Reset to default (checked)
     setSearchTermFilter('');
-    setStatusFilter('');
+    setStatusFilter('ActiveOnly'); // Reset to default (ActiveOnly)
     setFromDateFilter('');
     setToDateFilter('');
-    setActiveOrdersOnlyFilter(true); // Reset to default (checked)
     setPageNumber(1);
     
     // Force data reload by refetching
@@ -294,25 +289,12 @@ const PurchaseOrderList: React.FC = () => {
                 onChange={(e) => setStatusInput(e.target.value)}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
+                <option value="ActiveOnly">Jen aktivní</option>
                 <option value="">Všechny stavy</option>
                 <option value="Draft">Návrh</option>
                 <option value="InTransit">V přepravě</option>
                 <option value="Completed">Dokončeno</option>
               </select>
-            </div>
-
-            {/* Active orders checkbox */}
-            <div className="flex items-center">
-              <input
-                id="active-orders-checkbox"
-                type="checkbox"
-                checked={activeOrdersOnlyInput}
-                onChange={(e) => setActiveOrdersOnlyInput(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="active-orders-checkbox" className="ml-2 text-sm text-gray-900 select-none">
-                Aktivní
-              </label>
             </div>
 
             {/* Date range */}
@@ -371,6 +353,9 @@ const PurchaseOrderList: React.FC = () => {
                 <SortableHeader column="OrderDate">Datum objednávky</SortableHeader>
                 <SortableHeader column="ExpectedDeliveryDate">Plánované dodání</SortableHeader>
                 <SortableHeader column="Status">Stav</SortableHeader>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Faktura
+                </th>
                 <SortableHeader column="TotalAmount">Celková částka</SortableHeader>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Položky
@@ -401,6 +386,18 @@ const PurchaseOrderList: React.FC = () => {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || 'bg-gray-100 text-gray-800'}`}>
                       {(order.status && statusLabels[order.status]) || order.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex items-center justify-center">
+                      {order.invoiceAcquired ? (
+                        <div className="flex items-center text-green-600">
+                          <Check className="h-4 w-4 mr-1" />
+                          <span className="text-xs font-medium">Ano</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">Ne</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {formatCurrency(order.totalAmount || 0)}
@@ -444,7 +441,7 @@ const PurchaseOrderList: React.FC = () => {
             <div className="flex items-center space-x-3">
               <p className="text-xs text-gray-600">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                {searchTermFilter || statusFilter || fromDateFilter || toDateFilter || !activeOrdersOnlyFilter ? (
+                {searchTermFilter || (statusFilter && statusFilter !== 'ActiveOnly') || fromDateFilter || toDateFilter ? (
                   <span className="text-gray-500"> (filtrováno)</span>
                 ) : ''}
               </p>

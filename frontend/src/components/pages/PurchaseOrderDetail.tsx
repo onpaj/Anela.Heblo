@@ -1,11 +1,12 @@
 import React from 'react';
-import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone } from 'lucide-react';
+import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone, Receipt, FileCheck } from 'lucide-react';
 import { 
   usePurchaseOrderDetailQuery, 
   usePurchaseOrderHistoryQuery,
-  useUpdatePurchaseOrderStatusMutation
+  useUpdatePurchaseOrderStatusMutation,
+  useUpdatePurchaseOrderInvoiceAcquiredMutation
 } from '../../api/hooks/usePurchaseOrders';
-import { UpdatePurchaseOrderStatusRequest } from '../../api/generated/api-client';
+import { UpdatePurchaseOrderStatusRequest, UpdatePurchaseOrderInvoiceAcquiredRequest } from '../../api/generated/api-client';
 
 interface PurchaseOrderDetailProps {
   orderId: number;
@@ -35,6 +36,9 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
   
   // Status update mutation
   const updateStatusMutation = useUpdatePurchaseOrderStatusMutation();
+  
+  // Invoice acquired update mutation
+  const updateInvoiceAcquiredMutation = useUpdatePurchaseOrderInvoiceAcquiredMutation();
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
@@ -76,6 +80,22 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
       });
     } catch (error) {
       console.error('Failed to update status:', error);
+    }
+  };
+
+  const handleInvoiceAcquiredToggle = async () => {
+    if (!orderData) return;
+    
+    try {
+      await updateInvoiceAcquiredMutation.mutateAsync({
+        id: orderId,
+        request: new UpdatePurchaseOrderInvoiceAcquiredRequest({
+          id: orderId,
+          invoiceAcquired: !orderData.invoiceAcquired
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update invoice acquired:', error);
     }
   };
 
@@ -221,9 +241,45 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                             <Phone className="h-4 w-4 mr-1" />
                             Způsob komunikace:
                           </span>
-                          <span className="text-sm text-gray-900">{orderData.contactVia}</span>
+                          <span className="text-sm text-gray-900">
+                            {orderData.contactVia === 'Phone' ? 'Telefon' :
+                             orderData.contactVia === 'Email' ? 'Email' :
+                             orderData.contactVia === 'WhatsApp' ? 'WhatsApp' :
+                             orderData.contactVia === 'F2F' ? 'Osobně' :
+                             orderData.contactVia === 'Eshop' ? 'Eshop' :
+                             orderData.contactVia === 'Other' ? 'Jiné' :
+                             orderData.contactVia}
+                          </span>
                         </div>
                       )}
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-600 flex items-center">
+                          <Receipt className="h-4 w-4 mr-1" />
+                          Mám fakturu:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm ${orderData.invoiceAcquired ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                            {orderData.invoiceAcquired ? 'Ano' : 'Ne'}
+                          </span>
+                          <button
+                            onClick={handleInvoiceAcquiredToggle}
+                            disabled={updateInvoiceAcquiredMutation.isPending}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                              orderData.invoiceAcquired ? 'bg-green-600' : 'bg-gray-300'
+                            } ${updateInvoiceAcquiredMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                orderData.invoiceAcquired ? 'translate-x-5' : 'translate-x-1'
+                              }`}
+                            />
+                            {orderData.invoiceAcquired && (
+                              <FileCheck className="absolute left-0.5 h-3 w-3 text-white" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
 
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-600 flex items-center">

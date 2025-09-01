@@ -48,6 +48,7 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
             ExpectedDeliveryDate = order.ExpectedDeliveryDate,
             ContactVia = order.ContactVia,
             Status = order.Status.ToString(),
+            InvoiceAcquired = order.InvoiceAcquired,
             TotalAmount = order.TotalAmount,
             LineCount = order.Lines.Count,
             IsEditable = order.IsEditable,

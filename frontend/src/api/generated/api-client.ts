@@ -1831,6 +1831,47 @@ export class ApiClient {
         return Promise.resolve<UpdatePurchaseOrderStatusResponse>(null as any);
     }
 
+    purchaseOrders_UpdateInvoiceAcquired(id: number, request: UpdatePurchaseOrderInvoiceAcquiredRequest): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/invoice-acquired";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPurchaseOrders_UpdateInvoiceAcquired(_response);
+        });
+    }
+
+    protected processPurchaseOrders_UpdateInvoiceAcquired(response: Response): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdatePurchaseOrderInvoiceAcquiredResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdatePurchaseOrderInvoiceAcquiredResponse>(null as any);
+    }
+
     purchaseOrders_GetPurchaseOrderHistory(id: number): Promise<PurchaseOrderHistoryDto[]> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}/history";
         if (id === undefined || id === null)
@@ -4937,6 +4978,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     totalAmount?: number;
     lineCount?: number;
     isEditable?: boolean;
@@ -4962,6 +5004,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.status = _data["status"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
             this.totalAmount = _data["totalAmount"];
             this.lineCount = _data["lineCount"];
             this.isEditable = _data["isEditable"];
@@ -4987,6 +5030,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["status"] = this.status;
+        data["invoiceAcquired"] = this.invoiceAcquired;
         data["totalAmount"] = this.totalAmount;
         data["lineCount"] = this.lineCount;
         data["isEditable"] = this.isEditable;
@@ -5005,6 +5049,7 @@ export interface IPurchaseOrderSummaryDto {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     totalAmount?: number;
     lineCount?: number;
     isEditable?: boolean;
@@ -5382,6 +5427,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     notes?: string | undefined;
     totalAmount?: number;
     isEditable?: boolean;
@@ -5411,6 +5457,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.status = _data["status"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
             this.notes = _data["notes"];
             this.totalAmount = _data["totalAmount"];
             this.isEditable = _data["isEditable"];
@@ -5448,6 +5495,7 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["status"] = this.status;
+        data["invoiceAcquired"] = this.invoiceAcquired;
         data["notes"] = this.notes;
         data["totalAmount"] = this.totalAmount;
         data["isEditable"] = this.isEditable;
@@ -5478,6 +5526,7 @@ export interface IGetPurchaseOrderByIdResponse {
     expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     status?: string;
+    invoiceAcquired?: boolean;
     notes?: string | undefined;
     totalAmount?: number;
     isEditable?: boolean;
@@ -5798,6 +5847,86 @@ export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderSta
 export interface IUpdatePurchaseOrderStatusRequest {
     id?: number;
     status?: string;
+}
+
+export class UpdatePurchaseOrderInvoiceAcquiredResponse implements IUpdatePurchaseOrderInvoiceAcquiredResponse {
+    id?: number;
+    invoiceAcquired?: boolean;
+
+    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
+        }
+    }
+
+    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePurchaseOrderInvoiceAcquiredResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceAcquired"] = this.invoiceAcquired;
+        return data;
+    }
+}
+
+export interface IUpdatePurchaseOrderInvoiceAcquiredResponse {
+    id?: number;
+    invoiceAcquired?: boolean;
+}
+
+export class UpdatePurchaseOrderInvoiceAcquiredRequest implements IUpdatePurchaseOrderInvoiceAcquiredRequest {
+    id?: number;
+    invoiceAcquired?: boolean;
+
+    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceAcquired = _data["invoiceAcquired"];
+        }
+    }
+
+    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePurchaseOrderInvoiceAcquiredRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceAcquired"] = this.invoiceAcquired;
+        return data;
+    }
+}
+
+export interface IUpdatePurchaseOrderInvoiceAcquiredRequest {
+    id?: number;
+    invoiceAcquired?: boolean;
 }
 
 export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalysisResponse {
