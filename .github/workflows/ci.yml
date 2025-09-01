@@ -116,7 +116,7 @@ jobs:
     # needs: [frontend-tests, backend-tests]  # Temporarily disabled for CI debugging
     environment: 
       name: staging-approval
-      url: https://heblo-test.azurewebsites.net
+      url: https://heblo.stg.anela.cz
     steps:
       - name: 📋 Summary of changes
         run: |
@@ -130,7 +130,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🚀 **Ready to deploy to test environment!**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Test URL**: https://heblo-test.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**Test URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
 
   # Build and Push Docker Image
   build-and-push:
@@ -195,10 +195,24 @@ jobs:
     outputs:
       webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
       - name: 🔐 Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
+
+      - name: 🏷️ Get version from build
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="staging-PR${{ github.event.pull_request.number }}"
+          else
+            VERSION="staging-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
 
       - name: 🚀 Deploy to Azure Web App
         id: deploy
@@ -208,7 +222,25 @@ jobs:
           echo "🎯 Deploying to web app: $WEBAPP_NAME"
           
           # Build Docker image name with specific version
-          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}"
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          
+          # Try to use build output first, fallback to versioned image
+          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | grep -E "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:staging-PR[0-9]+" | head -1)
+          if [ -n "$BUILD_OUTPUT_IMAGE" ]; then
+            DOCKER_IMAGE="$BUILD_OUTPUT_IMAGE"
+            echo "📍 Using build output image: $DOCKER_IMAGE"
+          else
+            echo "⚠️ Build output empty, using versioned image: $DOCKER_IMAGE"
+          fi
+          
+          # Validate Docker image is set
+          if [ -z "$DOCKER_IMAGE" ]; then
+            echo "❌ Error: Docker image is empty!"
+            echo "Build output: '${{ needs.build-and-push.outputs.image-tag }}'"
+            echo "Version: '${{ steps.version.outputs.version }}'"
+            exit 1
+          fi
+          
           echo "🐳 Docker image: $DOCKER_IMAGE"
           
           # Configure container deployment
