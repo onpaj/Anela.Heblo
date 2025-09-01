@@ -28,11 +28,13 @@ const PurchaseOrderList: React.FC = () => {
   const [statusInput, setStatusInput] = useState('');
   const [fromDateInput, setFromDateInput] = useState('');
   const [toDateInput, setToDateInput] = useState('');
+  const [activeOrdersOnlyInput, setActiveOrdersOnlyInput] = useState(true); // Default checked
   
   const [searchTermFilter, setSearchTermFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [fromDateFilter, setFromDateFilter] = useState('');
   const [toDateFilter, setToDateFilter] = useState('');
+  const [activeOrdersOnlyFilter, setActiveOrdersOnlyFilter] = useState(true); // Default checked
   
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
@@ -55,6 +57,7 @@ const PurchaseOrderList: React.FC = () => {
     status: statusFilter || undefined,
     fromDate: fromDateFilter ? new Date(fromDateFilter) : undefined,
     toDate: toDateFilter ? new Date(toDateFilter) : undefined,
+    activeOrdersOnly: activeOrdersOnlyFilter,
     pageNumber,
     pageSize,
     sortBy,
@@ -74,6 +77,7 @@ const PurchaseOrderList: React.FC = () => {
     setStatusFilter(statusInput);
     setFromDateFilter(fromDateInput);
     setToDateFilter(toDateInput);
+    setActiveOrdersOnlyFilter(activeOrdersOnlyInput);
     setPageNumber(1); // Reset to first page when applying filters
     
     // Force data reload by refetching
@@ -93,10 +97,12 @@ const PurchaseOrderList: React.FC = () => {
     setStatusInput('');
     setFromDateInput('');
     setToDateInput('');
+    setActiveOrdersOnlyInput(true); // Reset to default (checked)
     setSearchTermFilter('');
     setStatusFilter('');
     setFromDateFilter('');
     setToDateFilter('');
+    setActiveOrdersOnlyFilter(true); // Reset to default (checked)
     setPageNumber(1);
     
     // Force data reload by refetching
@@ -295,6 +301,20 @@ const PurchaseOrderList: React.FC = () => {
               </select>
             </div>
 
+            {/* Active orders checkbox */}
+            <div className="flex items-center">
+              <input
+                id="active-orders-checkbox"
+                type="checkbox"
+                checked={activeOrdersOnlyInput}
+                onChange={(e) => setActiveOrdersOnlyInput(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="active-orders-checkbox" className="ml-2 text-sm text-gray-900 select-none">
+                Aktivní
+              </label>
+            </div>
+
             {/* Date range */}
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -424,7 +444,7 @@ const PurchaseOrderList: React.FC = () => {
             <div className="flex items-center space-x-3">
               <p className="text-xs text-gray-600">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                {searchTermFilter || statusFilter || fromDateFilter || toDateFilter ? (
+                {searchTermFilter || statusFilter || fromDateFilter || toDateFilter || !activeOrdersOnlyFilter ? (
                   <span className="text-gray-500"> (filtrováno)</span>
                 ) : ''}
               </p>

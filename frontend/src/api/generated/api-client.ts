@@ -1612,7 +1612,7 @@ export class ApiClient {
         return Promise.resolve<GetProductMarginsResponse>(null as any);
     }
 
-    purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
+    purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, activeOrdersOnly: boolean | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
         let url_ = this.baseUrl + "/api/purchase-orders?";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
@@ -1624,6 +1624,8 @@ export class ApiClient {
             url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
         if (supplierId !== undefined && supplierId !== null)
             url_ += "SupplierId=" + encodeURIComponent("" + supplierId) + "&";
+        if (activeOrdersOnly !== undefined && activeOrdersOnly !== null)
+            url_ += "ActiveOrdersOnly=" + encodeURIComponent("" + activeOrdersOnly) + "&";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)

@@ -10,6 +10,7 @@ public interface IPurchaseOrderRepository : IRepository<PurchaseOrder, int>
         DateTime? fromDate,
         DateTime? toDate,
         int? supplierId,
+        bool? activeOrdersOnly,
         int pageNumber,
         int pageSize,
         string sortBy,
