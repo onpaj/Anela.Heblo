@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone, Receipt, FileCheck, Info, ScrollText } from 'lucide-react';
+import { X, Package, Calendar, Truck, DollarSign, User, Clock, Loader2, AlertCircle, Edit, History, Phone, Receipt, FileCheck, Info, ScrollText, FileText } from 'lucide-react';
 import { 
   usePurchaseOrderDetailQuery, 
   usePurchaseOrderHistoryQuery,
@@ -213,8 +213,8 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
               {/* Tab Content */}
               <div className="flex-1 overflow-hidden">
                 {activeTab === 'info' ? (
-                  <div className="p-6 h-full overflow-y-auto">
-                    <div className="space-y-6">
+                  <div className="p-6 h-full flex flex-col min-h-0">
+                    <div className="space-y-6 flex-1 flex flex-col min-h-0">
                       {/* Top Section - Two Column Layout */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Left Column - Order Information */}
@@ -327,81 +327,97 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ orderId, isOp
                             </div>
                           </div>
 
-                          {/* Notes */}
-                          {orderData.notes && (
-                            <div className="space-y-3">
-                              <h3 className="text-lg font-medium text-gray-900">Poznámky</h3>
-                              <div className="bg-gray-50 rounded-lg p-4">
-                                <p className="text-sm text-gray-700">{orderData.notes}</p>
-                              </div>
-                            </div>
-                          )}
                         </div>
 
-                        {/* Right Column - Supplier Note */}
+                        {/* Right Column - Notes Section */}
                         <div className="space-y-4">
-                          <h3 className="text-lg font-medium text-gray-900">Poznámka od dodavatele</h3>
+                          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                            <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                            Poznámky
+                          </h3>
                           
-                          <div className="bg-gray-50 rounded-lg p-4">
-                            {orderData.supplierNote ? (
-                              <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
-                                {orderData.supplierNote}
-                              </pre>
-                            ) : (
-                              <div className="flex items-center justify-center py-8">
-                                <span className="text-gray-400 italic text-sm">Žádná poznámka od dodavatele</span>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Poznámka od dodavatele</h4>
+                              <div className="bg-gray-50 rounded-lg p-4 min-h-[80px]">
+                                {orderData.supplierNote ? (
+                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                                    {orderData.supplierNote}
+                                  </pre>
+                                ) : (
+                                  <div className="flex items-center justify-center py-4">
+                                    <span className="text-gray-400 italic text-sm">Žádná poznámka od dodavatele</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Poznámky k objednávce</h4>
+                              <div className="bg-gray-50 rounded-lg p-4 min-h-[80px]">
+                                {orderData.notes ? (
+                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                                    {orderData.notes}
+                                  </pre>
+                                ) : (
+                                  <div className="flex items-center justify-center py-4">
+                                    <span className="text-gray-400 italic text-sm">Žádné poznámky k objednávce</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Order Lines Section */}
-                      <div className="space-y-4">
+                      <div className="space-y-4 flex-1 flex flex-col min-h-0">
                         <h3 className="text-lg font-medium text-gray-900">Položky objednávky</h3>
                         
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Materiál
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Množství
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Jedn. cena
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Celkem
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {orderData.lines?.map((line, index) => (
-                                <tr key={index} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <div>
-                                      <div className="font-medium">{line.materialName || line.materialId}</div>
-                                      {line.notes && (
-                                        <div className="text-xs text-gray-500 mt-1">{line.notes}</div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    {line.quantity}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    {formatCurrency(line.unitPrice || 0)}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                                    {formatCurrency(line.lineTotal || 0)}
-                                  </td>
+                        <div className="bg-white rounded-lg shadow overflow-hidden flex-1 flex flex-col min-h-0 max-h-80">
+                          <div className="overflow-auto flex-1">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50 sticky top-0">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Materiál
+                                  </th>
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Množství
+                                  </th>
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Jedn. cena
+                                  </th>
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Celkem
+                                  </th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {orderData.lines?.map((line, index) => (
+                                  <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                      <div>
+                                        <div className="font-medium">{line.materialName || line.materialId}</div>
+                                        {line.notes && (
+                                          <div className="text-xs text-gray-500 mt-1">{line.notes}</div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                      {line.quantity}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                      {formatCurrency(line.unitPrice || 0)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                      {formatCurrency(line.lineTotal || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>
