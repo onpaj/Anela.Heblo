@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.OpenApi.Models;
 using Hangfire;
+using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Services;
 
@@ -217,19 +218,32 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
-
-        if (string.IsNullOrEmpty(connectionString))
+        // Configure Hangfire storage based on environment
+        if (environment.IsEnvironment("Test"))
         {
-            throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
+            // Use in-memory storage for Test environment
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseMemoryStorage());
         }
+        else
+        {
+            // Use PostgreSQL storage for other environments
+            var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
+            }
 
-        // Add Hangfire services with PostgreSQL storage (always needed for dashboard/monitoring)
-        services.AddHangfire(config => config
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+        }
 
         // Only add Hangfire server and job scheduling in Production environment
         if (environment.IsProduction())

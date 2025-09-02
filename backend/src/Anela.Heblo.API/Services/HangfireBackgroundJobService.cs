@@ -12,7 +12,7 @@ public class HangfireBackgroundJobService
     private readonly IMediator _mediator;
 
     public HangfireBackgroundJobService(
-        ILogger<HangfireBackgroundJobService> logger, 
+        ILogger<HangfireBackgroundJobService> logger,
         ITelemetryService telemetryService,
         IMediator mediator)
     {
@@ -30,7 +30,7 @@ public class HangfireBackgroundJobService
         try
         {
             _logger.LogInformation("Starting daily purchase price recalculation job at {Timestamp}", DateTime.UtcNow);
-            
+
             var request = new RecalculatePurchasePriceRequest
             {
                 RecalculateAll = true
@@ -38,9 +38,9 @@ public class HangfireBackgroundJobService
 
             var response = await _mediator.Send(request);
 
-            _logger.LogInformation("Purchase price recalculation completed - Success: {SuccessCount}, Failed: {FailedCount}, Total: {TotalCount}", 
+            _logger.LogInformation("Purchase price recalculation completed - Success: {SuccessCount}, Failed: {FailedCount}, Total: {TotalCount}",
                 response.SuccessCount, response.FailedCount, response.TotalCount);
-            
+
             _telemetryService.TrackBusinessEvent("PurchasePriceRecalculation", new Dictionary<string, string>
             {
                 ["Status"] = "Success",
