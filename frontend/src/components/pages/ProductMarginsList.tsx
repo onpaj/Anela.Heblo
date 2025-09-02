@@ -293,6 +293,7 @@ const ProductMarginsList: React.FC = () => {
                 <SortableHeader column="purchasePrice" align="right">Nákupní cena</SortableHeader>
                 <SortableHeader column="averageMaterialCost" align="right">Materiál</SortableHeader>
                 <SortableHeader column="averageHandlingCost" align="right">Výroba průměr</SortableHeader>
+                <SortableHeader column="manufactureDifficulty" align="right">Složitost výroby</SortableHeader>
                 <SortableHeader column="marginPercentage" align="right">Marže %</SortableHeader>
               </tr>
             </thead>
@@ -321,6 +322,9 @@ const ProductMarginsList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                     {formatCurrency(item.averageHandlingCost)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                    {item.manufactureDifficulty || item.manufactureDifficulty === 0 ? item.manufactureDifficulty.toFixed(1) : '-'}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}>
                     {formatPercentage(item.marginPercentage)}

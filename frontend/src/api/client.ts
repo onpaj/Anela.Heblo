@@ -180,6 +180,7 @@ export const QUERY_KEYS = {
   journal: ['journal'] as const,
   transportBox: ['transport-boxes'] as const,
   transportBoxTransitions: ['transportBoxTransitions'] as const,
+  manufactureOutput: ['manufacture-output'] as const,
   // Add more query keys as needed
   // users: ['users'] as const,  
   // products: ['products'] as const,

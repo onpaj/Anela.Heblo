@@ -88,7 +88,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       icon: Cog,
       type: 'section' as const,
       items: [
-        { id: 'rizeni-zasob-vyroba', name: 'Řízení zásob', href: '/manufacturing/stock-analysis' }
+        { id: 'rizeni-zasob-vyroba', name: 'Řízení zásob', href: '/manufacturing/stock-analysis' },
+        { id: 'prehled-vyroby', name: 'Přehled výroby', href: '/manufacturing/output' }
       ]
     },
     {
