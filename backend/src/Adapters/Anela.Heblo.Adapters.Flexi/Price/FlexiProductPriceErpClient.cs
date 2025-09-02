@@ -3,6 +3,7 @@ using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
+using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
 using Rem.FlexiBeeSDK.Client.Clients.UserQueries;
 using Rem.FlexiBeeSDK.Client.ResultFilters;
@@ -13,6 +14,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 {
     private readonly IMemoryCache _cache;
     private readonly IDataLoadAuditService _auditService;
+    private readonly IBoMClient _bomClient;
     private const string CacheKey = "FlexiProductPrices";
 
     public FlexiProductPriceErpClient(
@@ -21,12 +23,14 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         IResultHandler resultHandler,
         IMemoryCache cache,
         ILogger<ReceivedInvoiceClient> logger,
-        IDataLoadAuditService auditService
+        IDataLoadAuditService auditService,
+        IBoMClient bomClient
     )
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
         _auditService = auditService;
+        _bomClient = bomClient;
     }
 
     protected override int QueryId => 41;
@@ -74,7 +78,8 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             PriceWithoutVat = s.Price,
             PriceWithVat = s.Price * ((100 + s.Vat) / 100),
             PurchasePrice = s.PurchasePrice,
-            PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100)
+            PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
+            BoMId = s.BoMId
         }).ToList();
 
         if (dataLoaded)
@@ -90,5 +95,19 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         }
 
         return prices;
+    }
+
+    public async Task RecalculatePurchasePrice(int bomId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Call the IBoMClient to recalculate purchase price for the specified BoM ID
+            await _bomClient.RecalculatePurchasePrice(bomId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Log the error and re-throw
+            throw new InvalidOperationException($"Failed to recalculate purchase price for BoM ID {bomId}: {ex.Message}", ex);
+        }
     }
 }

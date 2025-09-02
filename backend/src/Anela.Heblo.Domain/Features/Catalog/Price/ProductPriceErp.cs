@@ -7,4 +7,7 @@ public class ProductPriceErp
     public decimal PurchasePriceWithVat { get; set; }
     public decimal PriceWithoutVat { get; set; }
     public decimal PurchasePrice { get; set; }
+    
+    public int? BoMId { get; set; }
+    public bool HasBoM => BoMId != null;
 }

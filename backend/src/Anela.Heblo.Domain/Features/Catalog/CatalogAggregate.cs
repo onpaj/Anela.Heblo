@@ -24,6 +24,10 @@ public class CatalogAggregate : Entity<string>
     public ProductPriceEshop? EshopPrice { get; set; }
     public ProductPriceErp? ErpPrice { get; set; }
 
+    public bool HasBoM => ErpPrice?.HasBoM ?? false;
+    
+    public int? BoMId => ErpPrice?.BoMId;
+
     public List<StockTakingRecord> StockTakingHistory { get; set; } = new();
 
     public string Location { get; set; } = string.Empty;

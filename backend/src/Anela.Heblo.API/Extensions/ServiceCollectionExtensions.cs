@@ -6,6 +6,10 @@ using Anela.Heblo.Application.Features.Users;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.OpenApi.Models;
+using Hangfire;
+using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
+using Anela.Heblo.API.Services;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -208,6 +212,55 @@ public static class ServiceCollectionExtensions
                 }
             }
         });
+
+        return services;
+    }
+
+    public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        // Configure Hangfire storage based on environment
+        if (environment.IsEnvironment("Test"))
+        {
+            // Use in-memory storage for Test environment
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseMemoryStorage());
+        }
+        else
+        {
+            // Use PostgreSQL storage for other environments
+            var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
+            }
+
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+        }
+
+        // Always add Hangfire server with Heblo queue - NEVER allow fallback to Default queue
+        services.AddHangfireServer(options =>
+        {
+            // Configure server options - ALWAYS only process Heblo queue
+            options.WorkerCount = 1;
+            options.Queues = new[] { "Heblo" };
+        });
+
+        // Only register job scheduler service in Production and Staging environments
+        if (environment.IsProduction() || environment.IsStaging())
+        {
+            services.AddHostedService<HangfireJobSchedulerService>();
+        }
+
+        // Register background job service (always available for manual execution via dashboard)
+        services.AddTransient<HangfireBackgroundJobService>();
 
         return services;
     }
