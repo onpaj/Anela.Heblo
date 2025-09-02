@@ -12,6 +12,8 @@ public class FlexiStockMappingProfile : BaseFlexiProfile
     {
         CreateMap<StockToDateSummary, ErpStock>()
             .ForMember(dest => dest.Stock, opt => opt.MapFrom(src => (decimal)src.OnStock))
-            .ForMember(dest => dest.MOQ, opt => opt.MapFrom(src => src.MoqName));
+            .ForMember(dest => dest.MOQ, opt => opt.MapFrom(src => src.MoqName))
+            .ForMember(dest => dest.SupplierCode, opt => opt.MapFrom(src => src.SupplierCode))
+            .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.SupplierName));
     }
 }

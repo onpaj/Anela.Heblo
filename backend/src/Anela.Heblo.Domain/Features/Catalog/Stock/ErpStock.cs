@@ -13,4 +13,6 @@ public class ErpStock
     public double Volume { get; set; }
     public double Weight { get; set; }
     public string? Note { get; set; }
+    public string? SupplierCode { get; set; }
+    public string? SupplierName { get; set; }
 }

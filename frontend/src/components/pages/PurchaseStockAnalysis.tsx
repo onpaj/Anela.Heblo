@@ -167,7 +167,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   };
 
   // Get row background color based on severity (subtle coloring)
-  const getRowColorClass = (severity: StockSeverity) => {
+  const getRowColorClass = (severity: StockSeverity | undefined) => {
     switch (severity) {
       case StockSeverity.Critical:
         return 'bg-red-50/30 hover:bg-red-50/50';
@@ -201,7 +201,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   };
 
   // Get color strip for product based on severity (only when not filtering by status)
-  const getSeverityStripColor = (severity: StockSeverity) => {
+  const getSeverityStripColor = (severity: StockSeverity | undefined) => {
     // Don't show strip when filtering by specific status
     if (filters.stockStatus !== StockStatusFilter.All) {
       return '';
@@ -601,6 +601,9 @@ const PurchaseStockAnalysis: React.FC = () => {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
                       Dny
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                      Dodavatel
+                    </th>
                     <SortableHeader column={StockAnalysisSortBy.LastPurchaseDate} className="text-left hidden lg:table-cell w-56">
                       Poslední nákup
                     </SortableHeader>
@@ -679,13 +682,18 @@ const PurchaseStockAnalysis: React.FC = () => {
                         {item.daysUntilStockout ? formatNumber(item.daysUntilStockout, 0) : '∞'}
                       </td>
 
+                      {/* Supplier - Hidden on tablet and below */}
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 hidden lg:table-cell">
+                        {item.supplier || '—'}
+                      </td>
+
                       {/* Last Purchase with quantity and price - Hidden on tablet and below */}
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 hidden lg:table-cell w-56">
                         {item.lastPurchase ? (
                           <div>
-                            <div className="font-medium">{new Date(item.lastPurchase.date).toLocaleDateString('cs-CZ')}</div>
+                            <div className="font-medium">{item.lastPurchase.date ? new Date(item.lastPurchase.date).toLocaleDateString('cs-CZ') : '—'}</div>
                             <div className="text-xs truncate max-w-20">
-                              {item.lastPurchase.supplierName}
+                              {item.lastPurchase.supplierName || '—'}
                             </div>
                             <div className="text-xs font-medium">
                               {formatNumber(item.lastPurchase.amount, 0)}ks @ {formatCurrency(item.lastPurchase.unitPrice)}

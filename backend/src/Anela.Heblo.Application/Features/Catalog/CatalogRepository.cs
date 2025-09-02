@@ -232,6 +232,8 @@ public class CatalogRepository : ICatalogRepository
             Volume = s.Volume,
             Weight = s.Weight,
             Note = s.Note,
+            SupplierCode = s.SupplierCode,
+            SupplierName = s.SupplierName,
         }).ToList();
 
         // First populate all other data for products

@@ -1476,6 +1476,44 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
+    manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-output?";
+        if (monthsBack === null)
+            throw new Error("The parameter 'monthsBack' cannot be null.");
+        else if (monthsBack !== undefined)
+            url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOutput_GetManufactureOutput(_response);
+        });
+    }
+
+    protected processManufactureOutput_GetManufactureOutput(response: Response): Promise<GetManufactureOutputResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufactureOutputResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufactureOutputResponse>(null as any);
+    }
+
     manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
         if (timePeriod === null)
@@ -2759,6 +2797,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    supplierName?: string | undefined;
     note?: string | undefined;
 
     constructor(data?: ICatalogItemDto) {
@@ -2784,6 +2823,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.marginPercentage = _data["marginPercentage"];
             this.marginAmount = _data["marginAmount"];
+            this.supplierName = _data["supplierName"];
             this.note = _data["note"];
         }
     }
@@ -2809,6 +2849,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["marginPercentage"] = this.marginPercentage;
         data["marginAmount"] = this.marginAmount;
+        data["supplierName"] = this.supplierName;
         data["note"] = this.note;
         return data;
     }
@@ -2827,6 +2868,7 @@ export interface ICatalogItemDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    supplierName?: string | undefined;
     note?: string | undefined;
 }
 
@@ -4642,6 +4684,226 @@ export interface ICreateJournalTagRequest {
     color?: string;
 }
 
+export class GetManufactureOutputResponse implements IGetManufactureOutputResponse {
+    months?: ManufactureOutputMonth[];
+
+    constructor(data?: IGetManufactureOutputResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(ManufactureOutputMonth.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GetManufactureOutputResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufactureOutputResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGetManufactureOutputResponse {
+    months?: ManufactureOutputMonth[];
+}
+
+export class ManufactureOutputMonth implements IManufactureOutputMonth {
+    month?: string;
+    totalOutput?: number;
+    products?: ProductContribution[];
+    productionDetails?: ProductionDetail[];
+
+    constructor(data?: IManufactureOutputMonth) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.month = _data["month"];
+            this.totalOutput = _data["totalOutput"];
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(ProductContribution.fromJS(item));
+            }
+            if (Array.isArray(_data["productionDetails"])) {
+                this.productionDetails = [] as any;
+                for (let item of _data["productionDetails"])
+                    this.productionDetails!.push(ProductionDetail.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ManufactureOutputMonth {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureOutputMonth();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["month"] = this.month;
+        data["totalOutput"] = this.totalOutput;
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        if (Array.isArray(this.productionDetails)) {
+            data["productionDetails"] = [];
+            for (let item of this.productionDetails)
+                data["productionDetails"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IManufactureOutputMonth {
+    month?: string;
+    totalOutput?: number;
+    products?: ProductContribution[];
+    productionDetails?: ProductionDetail[];
+}
+
+export class ProductContribution implements IProductContribution {
+    productCode?: string;
+    productName?: string;
+    quantity?: number;
+    difficulty?: number;
+    weightedValue?: number;
+
+    constructor(data?: IProductContribution) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.quantity = _data["quantity"];
+            this.difficulty = _data["difficulty"];
+            this.weightedValue = _data["weightedValue"];
+        }
+    }
+
+    static fromJS(data: any): ProductContribution {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductContribution();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["quantity"] = this.quantity;
+        data["difficulty"] = this.difficulty;
+        data["weightedValue"] = this.weightedValue;
+        return data;
+    }
+}
+
+export interface IProductContribution {
+    productCode?: string;
+    productName?: string;
+    quantity?: number;
+    difficulty?: number;
+    weightedValue?: number;
+}
+
+export class ProductionDetail implements IProductionDetail {
+    productCode?: string;
+    productName?: string;
+    date?: Date;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    documentNumber?: string;
+
+    constructor(data?: IProductionDetail) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.amount = _data["amount"];
+            this.pricePerPiece = _data["pricePerPiece"];
+            this.priceTotal = _data["priceTotal"];
+            this.documentNumber = _data["documentNumber"];
+        }
+    }
+
+    static fromJS(data: any): ProductionDetail {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductionDetail();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["amount"] = this.amount;
+        data["pricePerPiece"] = this.pricePerPiece;
+        data["priceTotal"] = this.priceTotal;
+        data["documentNumber"] = this.documentNumber;
+        return data;
+    }
+}
+
+export interface IProductionDetail {
+    productCode?: string;
+    productName?: string;
+    date?: Date;
+    amount?: number;
+    pricePerPiece?: number;
+    priceTotal?: number;
+    documentNumber?: string;
+}
+
 export class GetManufacturingStockAnalysisResponse implements IGetManufacturingStockAnalysisResponse {
     items?: ManufacturingStockItemDto[];
     totalCount?: number;
@@ -6121,7 +6383,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
     severity?: StockSeverity;
     minimalOrderQuantity?: string;
     lastPurchase?: LastPurchaseInfoDto | undefined;
-    suppliers?: string[];
+    supplier?: string | undefined;
     recommendedOrderQuantity?: number | undefined;
     isConfigured?: boolean;
 
@@ -6149,11 +6411,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
             this.severity = _data["severity"];
             this.minimalOrderQuantity = _data["minimalOrderQuantity"];
             this.lastPurchase = _data["lastPurchase"] ? LastPurchaseInfoDto.fromJS(_data["lastPurchase"]) : <any>undefined;
-            if (Array.isArray(_data["suppliers"])) {
-                this.suppliers = [] as any;
-                for (let item of _data["suppliers"])
-                    this.suppliers!.push(item);
-            }
+            this.supplier = _data["supplier"];
             this.recommendedOrderQuantity = _data["recommendedOrderQuantity"];
             this.isConfigured = _data["isConfigured"];
         }
@@ -6181,11 +6439,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         data["severity"] = this.severity;
         data["minimalOrderQuantity"] = this.minimalOrderQuantity;
         data["lastPurchase"] = this.lastPurchase ? this.lastPurchase.toJSON() : <any>undefined;
-        if (Array.isArray(this.suppliers)) {
-            data["suppliers"] = [];
-            for (let item of this.suppliers)
-                data["suppliers"].push(item);
-        }
+        data["supplier"] = this.supplier;
         data["recommendedOrderQuantity"] = this.recommendedOrderQuantity;
         data["isConfigured"] = this.isConfigured;
         return data;
@@ -6206,7 +6460,7 @@ export interface IStockAnalysisItemDto {
     severity?: StockSeverity;
     minimalOrderQuantity?: string;
     lastPurchase?: LastPurchaseInfoDto | undefined;
-    suppliers?: string[];
+    supplier?: string | undefined;
     recommendedOrderQuantity?: number | undefined;
     isConfigured?: boolean;
 }
