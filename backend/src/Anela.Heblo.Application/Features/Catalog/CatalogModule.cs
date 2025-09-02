@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Fakes;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -49,9 +50,9 @@ public static class CatalogModule
         services.AddHostedService<CatalogRefreshBackgroundService>();
 
         // Configure catalog repository options from configuration
-        services.Configure<CatalogRepositoryOptions>(options =>
+        services.Configure<DataSourceOptions>(options =>
         {
-            configuration.GetSection(CatalogRepositoryOptions.ConfigKey).Bind(options);
+            configuration.GetSection(DataSourceOptions.ConfigKey).Bind(options);
         });
 
         // Register AutoMapper for catalog mappings

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -37,7 +38,7 @@ public class CatalogRepositoryTests
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
-    private readonly Mock<IOptions<CatalogRepositoryOptions>> _optionsMock;
+    private readonly Mock<IOptions<DataSourceOptions>> _optionsMock;
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock;
 
     private readonly CatalogRepository _repository;
@@ -61,10 +62,10 @@ public class CatalogRepositoryTests
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
-        _optionsMock = new Mock<IOptions<CatalogRepositoryOptions>>();
+        _optionsMock = new Mock<IOptions<DataSourceOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
 
-        var options = new CatalogRepositoryOptions
+        var options = new DataSourceOptions
         {
             SalesHistoryDays = 30,
             PurchaseHistoryDays = 30,

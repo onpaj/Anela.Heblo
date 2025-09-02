@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Catalog;
 
@@ -8,15 +10,18 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
 {
     private readonly ILedgerService _ledgerService;
     private readonly TimeProvider _timeProvider;
+    private readonly IOptions<DataSourceOptions> _dataSourceOptions;
     private readonly ILogger<ManufactureCostCalculationService> _logger;
 
     public ManufactureCostCalculationService(
         ILedgerService ledgerService,
         TimeProvider timeProvider,
+        IOptions<DataSourceOptions> dataSourceOptions,
         ILogger<ManufactureCostCalculationService> logger)
     {
         _ledgerService = ledgerService;
         _timeProvider = timeProvider;
+        _dataSourceOptions = dataSourceOptions;
         _logger = logger;
     }
 
@@ -28,11 +33,11 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
 
         // Get date range for last 13 months, values from last months are not accurate yet
         var endDate = _timeProvider.GetUtcNow().Date;
-        var startDate = endDate.AddMonths(-13);
+        var startDate = endDate.AddDays(-1 * _dataSourceOptions.Value.ManufactureCostHistoryDays);
 
         _logger.LogDebug("Calculating manufacture cost history from {StartDate} to {EndDate}", startDate, endDate);
 
-        // Get direct costs from VYROBA department for last 13 months
+        // Get direct costs from VYROBA department
         var directCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "VYROBA", cancellationToken);
         var personalCosts = await _ledgerService.GetPersonalCosts(startDate, endDate, cancellationToken: cancellationToken);
 
@@ -126,13 +131,16 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
                 var parts = monthKey.Split('-');
                 var year = int.Parse(parts[0]);
                 var month = int.Parse(parts[1]);
-
-                result[productCode].Add(new ManufactureCost
+                var monthDate = new DateTime(year, month, 1);
+                
+                var manufactureCost = new ManufactureCost
                 {
-                    Date = new DateTime(year, month, 1),
-                    MaterialCost = materialCostPerPiece,
-                    HandlingCost = handlingCostPerPiece
-                });
+                    Date = monthDate,
+                    HandlingCost = handlingCostPerPiece,
+                    MaterialCostFromReceiptDocument = materialCostPerPiece,
+                };
+
+                result[productCode].Add(manufactureCost);
 
                 _logger.LogDebug("Product {ProductCode} - Month {MonthKey}: Material cost {MaterialCost}, Handling cost {HandlingCost}",
                     productCode, monthKey, materialCostPerPiece, handlingCostPerPiece);

@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Domain.Catalog;
@@ -12,6 +14,7 @@ public class ManufactureCostCalculationServiceTests
 {
     private readonly Mock<ILedgerService> _ledgerServiceMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly Mock<IOptions<DataSourceOptions>> _dataSourceOptionsMock;
     private readonly Mock<ILogger<ManufactureCostCalculationService>> _loggerMock;
     private readonly ManufactureCostCalculationService _service;
     private readonly DateTime _testDateTime = new DateTime(2024, 6, 15); // Mid-month for testing
@@ -20,14 +23,19 @@ public class ManufactureCostCalculationServiceTests
     {
         _ledgerServiceMock = new Mock<ILedgerService>();
         _timeProviderMock = new Mock<TimeProvider>();
+        _dataSourceOptionsMock = new Mock<IOptions<DataSourceOptions>>();
         _loggerMock = new Mock<ILogger<ManufactureCostCalculationService>>();
 
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
 
+        _dataSourceOptionsMock.Setup(x => x.Value)
+            .Returns(new DataSourceOptions { ManufactureCostHistoryDays = 400 });
+
         _service = new ManufactureCostCalculationService(
             _ledgerServiceMock.Object,
             _timeProviderMock.Object,
+            _dataSourceOptionsMock.Object,
             _loggerMock.Object);
     }
 
@@ -57,7 +65,7 @@ public class ManufactureCostCalculationServiceTests
 
         var product1Costs = result["PROD001"];
         product1Costs.Should().NotBeEmpty();
-        product1Costs[0].MaterialCost.Should().BeGreaterThan(0);
+        product1Costs[0].MaterialCostFromReceiptDocument.Should().BeGreaterThan(0);
         product1Costs[0].HandlingCost.Should().BeGreaterThan(0);
         product1Costs[0].Total.Should().Be(product1Costs[0].MaterialCost + product1Costs[0].HandlingCost);
     }
@@ -178,7 +186,7 @@ public class ManufactureCostCalculationServiceTests
         // Arrange
         var products = CreateTestProducts();
         var expectedEndDate = _testDateTime.Date;
-        var expectedStartDate = expectedEndDate.AddMonths(-13);
+        var expectedStartDate = expectedEndDate.AddDays(-400); // Using ManufactureCostHistoryDays
 
         _ledgerServiceMock
             .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
@@ -278,7 +286,7 @@ public class ManufactureCostCalculationServiceTests
         var productCosts = result["PROD001"];
         productCosts.Should().HaveCount(1);
 
-        var materialCost = productCosts[0].MaterialCost;
+        var materialCost = productCosts[0].MaterialCostFromReceiptDocument;
         materialCost.Should().BeApproximately(3.67m, 0.01m); // Weighted average should be ~3.67
     }
 
