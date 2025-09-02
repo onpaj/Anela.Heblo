@@ -9,6 +9,7 @@ import CatalogList from './components/pages/CatalogList';
 import PurchaseOrderList from './components/pages/PurchaseOrderList';
 import PurchaseStockAnalysis from './components/pages/PurchaseStockAnalysis';
 import ManufacturingStockAnalysis from './components/pages/ManufacturingStockAnalysis';
+import ManufactureOutput from './components/pages/ManufactureOutput';
 import ProductMarginsList from './components/pages/ProductMarginsList';
 import ProductMarginSummary from './components/pages/ProductMarginSummary';
 import FinancialOverview from './components/pages/FinancialOverview';
@@ -201,6 +202,7 @@ function App() {
                       <Route path="/purchase/orders" element={<PurchaseOrderList />} />
                       <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
                       <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
+                      <Route path="/manufacturing/output" element={<ManufactureOutput />} />
                       <Route path="/products/margins" element={<ProductMarginsList />} />
                       <Route path="/journal" element={<JournalList />} />
                       <Route path="/journal/new" element={<JournalEntryNew />} />
