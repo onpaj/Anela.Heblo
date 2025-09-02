@@ -218,30 +218,36 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
-        
+
         if (string.IsNullOrEmpty(connectionString))
         {
             throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
         }
 
-        // Add Hangfire services with PostgreSQL storage
+        // Add Hangfire services with PostgreSQL storage (always needed for dashboard/monitoring)
         services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
             .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
 
-        // Add Hangfire server
-        services.AddHangfireServer(options =>
+        // Only add Hangfire server and job scheduling in Production environment
+        if (environment.IsProduction())
         {
-            // Configure server options - only process Heblo queue
-            options.WorkerCount = 1;
-            options.Queues = new[] { "Heblo" };
-        });
+            // Add Hangfire server - only in production
+            services.AddHangfireServer(options =>
+            {
+                // Configure server options - only process Heblo queue
+                options.WorkerCount = 1;
+                options.Queues = new[] { "Heblo" };
+            });
 
-        // Register background job service and scheduler
+            // Register job scheduler service - only in production
+            services.AddHostedService<HangfireJobSchedulerService>();
+        }
+
+        // Register background job service (always available for manual execution via dashboard)
         services.AddTransient<HangfireBackgroundJobService>();
-        services.AddHostedService<HangfireJobSchedulerService>();
 
         return services;
     }
