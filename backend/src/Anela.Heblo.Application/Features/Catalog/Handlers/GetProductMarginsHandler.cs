@@ -11,6 +11,8 @@ namespace Anela.Heblo.Application.Features.Catalog;
 
 public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest, GetProductMarginsResponse>
 {
+    private const int AverageCostHistoryMonthsCount = 6;
+    
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILedgerService _ledgerService;
     private readonly TimeProvider _timeProvider;
@@ -239,17 +241,19 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             return null;
         }
 
-        // Exclude zero values as requested
-        var nonZeroCosts = manufactureCostHistory
+        // Exclude zero values as requested, order by date descending, take last 6
+        var lastSixNonZeroCosts = manufactureCostHistory
             .Where(c => c.MaterialCost > 0)
+            .OrderByDescending(c => c.Date)
+            .Take(AverageCostHistoryMonthsCount)
             .ToList();
 
-        if (nonZeroCosts.Count == 0)
+        if (lastSixNonZeroCosts.Count == 0)
         {
             return null;
         }
 
-        return nonZeroCosts.Average(c => c.MaterialCost);
+        return lastSixNonZeroCosts.Average(c => c.MaterialCost);
     }
 
     private static decimal? CalculateAverageHandlingCostFromHistory(List<ManufactureCost> manufactureCostHistory)
@@ -259,17 +263,19 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             return null;
         }
 
-        // Exclude zero values as requested
-        var nonZeroCosts = manufactureCostHistory
+        // Exclude zero values as requested, order by date descending, take last 6
+        var lastSixNonZeroCosts = manufactureCostHistory
             .Where(c => c.HandlingCost > 0)
+            .OrderByDescending(c => c.Date)
+            .Take(AverageCostHistoryMonthsCount)
             .ToList();
 
-        if (nonZeroCosts.Count == 0)
+        if (lastSixNonZeroCosts.Count == 0)
         {
             return null;
         }
 
-        return nonZeroCosts.Average(c => c.HandlingCost);
+        return lastSixNonZeroCosts.Average(c => c.HandlingCost);
     }
 
     private static List<ProductMarginDto> ApplySortingInMemory(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
