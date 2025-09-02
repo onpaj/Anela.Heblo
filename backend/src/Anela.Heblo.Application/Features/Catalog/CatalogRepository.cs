@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -36,7 +37,7 @@ public class CatalogRepository : ICatalogRepository
 
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
-    private readonly IOptions<CatalogRepositoryOptions> _options;
+    private readonly IOptions<DataSourceOptions> _options;
     private readonly ILogger<CatalogRepository> _logger;
 
 
@@ -58,7 +59,7 @@ public class CatalogRepository : ICatalogRepository
         ICatalogResilienceService resilienceService,
         IMemoryCache cache,
         TimeProvider timeProvider,
-        IOptions<CatalogRepositoryOptions> _options,
+        IOptions<DataSourceOptions> _options,
         ILogger<CatalogRepository> logger)
     {
         _salesClient = salesClient;
@@ -333,8 +334,12 @@ public class CatalogRepository : ICatalogRepository
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
+                if(product.ErpPrice != null)
+                    product.ManufactureCostHistory.ForEach(f => f.MaterialCostFromPurchasePrice = product.ErpPrice.PurchasePrice);
             }
 
+            
+            
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
         }

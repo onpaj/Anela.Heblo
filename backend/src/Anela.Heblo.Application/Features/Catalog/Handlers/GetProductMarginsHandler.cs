@@ -41,17 +41,17 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             _logger.LogDebug("Starting product margins query with filters: ProductCode={ProductCode}, ProductName={ProductName}, ProductType={ProductType}",
                 request.ProductCode, request.ProductName, request.ProductType);
 
-            var allItems = await GetProductsWithErrorHandling(cancellationToken);
+            var allItems = await GetProducts(cancellationToken);
             var query = allItems.AsQueryable();
 
-            query = ApplyFiltersWithErrorHandling(query, request);
+            query = ApplyFilters(query, request);
 
             // Convert to list first to enable in-memory operations for complex sorting
             var filteredItems = query.ToList();
             var totalCount = filteredItems.Count;
 
             // Create DTOs with calculated values and error handling
-            var itemsWithCalculatedValues = CreateMarginsWithErrorHandling(filteredItems);
+            var itemsWithCalculatedValues = CreateMargins(filteredItems);
 
             // Apply sorting in memory
             itemsWithCalculatedValues = ApplySortingInMemory(itemsWithCalculatedValues, request.SortBy, request.SortDescending);
@@ -80,7 +80,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private async Task<List<CatalogAggregate>> GetProductsWithErrorHandling(CancellationToken cancellationToken)
+    private async Task<List<CatalogAggregate>> GetProducts(CancellationToken cancellationToken)
     {
         try
         {
@@ -100,7 +100,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private IQueryable<CatalogAggregate> ApplyFiltersWithErrorHandling(IQueryable<CatalogAggregate> query, GetProductMarginsRequest request)
+    private IQueryable<CatalogAggregate> ApplyFilters(IQueryable<CatalogAggregate> query, GetProductMarginsRequest request)
     {
         try
         {
@@ -133,7 +133,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private List<ProductMarginDto> CreateMarginsWithErrorHandling(List<CatalogAggregate> products)
+    private List<ProductMarginDto> CreateMargins(List<CatalogAggregate> products)
     {
         var results = new List<ProductMarginDto>();
 
@@ -141,7 +141,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         {
             try
             {
-                var dto = MapToMarginDtoSafely(product);
+                var dto = MapToMarginDto(product);
                 results.Add(dto);
             }
             catch (Exception ex)
@@ -168,7 +168,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         return results;
     }
 
-    private ProductMarginDto MapToMarginDtoSafely(CatalogAggregate product)
+    private ProductMarginDto MapToMarginDto(CatalogAggregate product)
     {
         try
         {
