@@ -41,8 +41,8 @@ public class StockAnalysisItemDto
 
     public LastPurchaseInfoDto? LastPurchase { get; set; }
 
-    public List<string> Suppliers { get; set; } = new();
-
+    public string? Supplier { get; set; }
+    
     public double? RecommendedOrderQuantity { get; set; }
 
     public bool IsConfigured { get; set; }

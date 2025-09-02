@@ -58,7 +58,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             analysisItems = analysisItems
                 .Where(i => i.ProductCode.ToLower().Contains(searchTerm) ||
                            i.ProductName.ToLower().Contains(searchTerm) ||
-                           i.Suppliers.Any(s => s.ToLower().Contains(searchTerm)) ||
+                           (i.Supplier != null && i.Supplier.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)) ||
                            (i.LastPurchase?.SupplierName?.ToLower().Contains(searchTerm) ?? false))
                 .ToList();
         }
@@ -137,7 +137,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             Severity = severity,
             MinimalOrderQuantity = item.MinimalOrderQuantity,
             LastPurchase = lastPurchase,
-            Suppliers = item.SupplierNames,
+            Supplier = item.SupplierName,
             RecommendedOrderQuantity = recommendedQuantity,
             IsConfigured = item.IsMinStockConfigured || item.IsOptimalStockConfigured
         };

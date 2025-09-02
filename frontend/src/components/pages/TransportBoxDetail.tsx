@@ -161,8 +161,18 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       setProductInput('');
       setQuantityInput('');
       setSelectedProduct(null);
+      
+      // Focus on box number input if state is New
+      if (boxData?.transportBox?.state === 'New') {
+        setTimeout(() => {
+          const boxNumberInput = document.getElementById('boxNumberInput');
+          if (boxNumberInput) {
+            (boxNumberInput as HTMLInputElement).focus();
+          }
+        }, 100);
+      }
     }
-  }, [isOpen, boxId, boxData?.transportBox?.description]);
+  }, [isOpen, boxId, boxData?.transportBox?.description, boxData?.transportBox?.state]);
 
 
   // Handle description change

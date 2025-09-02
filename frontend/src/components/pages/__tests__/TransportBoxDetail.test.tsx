@@ -340,6 +340,72 @@ describe('TransportBoxDetail', () => {
     });
   });
 
+  describe('Box number input focus', () => {
+    it('should auto-focus box number input when modal opens with New state box', async () => {
+      mockUseTransportBoxByIdQuery.mockReturnValue({
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'New',
+            code: null // No code yet for New state
+          } 
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      render(
+        <TransportBoxDetail 
+          boxId={1} 
+          isOpen={true} 
+          onClose={jest.fn()} 
+        />, 
+        { wrapper: createWrapper }
+      );
+
+      // Wait for the focus to be set (there's a 100ms setTimeout)
+      await waitFor(() => {
+        const boxNumberInput = screen.getByPlaceholderText('B001');
+        expect(boxNumberInput).toHaveFocus();
+      }, { timeout: 200 });
+    });
+
+    it('should not focus box number input when modal opens with non-New state box', async () => {
+      mockUseTransportBoxByIdQuery.mockReturnValue({
+        data: { 
+          transportBox: { 
+            ...mockTransportBox, 
+            state: 'Opened',
+            code: 'B001'
+          } 
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      render(
+        <TransportBoxDetail 
+          boxId={1} 
+          isOpen={true} 
+          onClose={jest.fn()} 
+        />, 
+        { wrapper: createWrapper }
+      );
+
+      // Wait a bit to ensure focus logic would have run
+      await waitFor(() => {
+        // In Opened state, there's no box number input, just display
+        // Use getAllByText since B001 appears multiple times (in header and in basic info)
+        const boxCodeDisplays = screen.getAllByText('B001');
+        expect(boxCodeDisplays.length).toBeGreaterThan(0);
+        
+        // Verify no input field exists
+        const boxNumberInput = screen.queryByPlaceholderText('B001');
+        expect(boxNumberInput).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Error handling', () => {
     it('should display mutation error', () => {
       mockUseChangeTransportBoxState.mockReturnValue({

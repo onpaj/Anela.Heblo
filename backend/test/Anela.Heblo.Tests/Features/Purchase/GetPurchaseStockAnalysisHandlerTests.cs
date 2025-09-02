@@ -192,7 +192,7 @@ public class GetPurchaseStockAnalysisHandlerTests
                 Type = ProductType.Material,
                 Stock = new StockData { Erp = 10, Eshop = 0, Transport = 0, Reserve = 0 },
                 Properties = new CatalogProperties { StockMinSetup = 50, OptimalStockDaysSetup = 30 },
-                SupplierNames = new List<string> { "Supplier A" },
+                SupplierName = "Supplier A",
                 MinimalOrderQuantity = "100",
                 PurchaseHistory = new List<CatalogPurchaseRecord>
                 {
@@ -213,7 +213,7 @@ public class GetPurchaseStockAnalysisHandlerTests
                 Type = ProductType.Goods,
                 Stock = new StockData { Erp = 100, Eshop = 0, Transport = 0, Reserve = 0 },
                 Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 14 },
-                SupplierNames = new List<string> { "Supplier B" },
+                SupplierName = "Supplier B" ,
                 MinimalOrderQuantity = "50",
                 SalesHistory = new List<CatalogSaleRecord>
                 {
@@ -247,7 +247,7 @@ public class GetPurchaseStockAnalysisHandlerTests
                     StockMinSetup = i * 5,
                     OptimalStockDaysSetup = i % 3 == 0 ? 0 : 30
                 },
-                SupplierNames = new List<string> { $"Supplier {i}" },
+                SupplierName = $"Supplier {i}",
                 MinimalOrderQuantity = (i * 10).ToString()
             });
         }

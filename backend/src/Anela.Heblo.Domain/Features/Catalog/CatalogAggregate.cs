@@ -77,8 +77,6 @@ public class CatalogAggregate : Entity<string>
     public ConsumedHistorySummary ConsumedHistorySummary { get; set; } = new();
     public PurchaseHistorySummary PurchaseHistorySummary { get; set; } = new();
 
-    public List<string> SupplierNames { get; set; } = new List<string>();
-
     public string MinimalOrderQuantity { get; set; } = "";
     public double MinimalManufactureQuantity { get; set; } = 0;
     public double ManufactureDifficulty { get; set; } = 0;
@@ -90,7 +88,6 @@ public class CatalogAggregate : Entity<string>
     public decimal MarginAmount { get; set; } = 0;
 
     // Readonly PROPS
-    public string? PrimarySupplier => SupplierNames.FirstOrDefault();
     public bool IsSameFamily(CatalogAggregate product) => product.ProductFamily == this.ProductFamily;
     public bool IsSameCategory(CatalogAggregate product) => product.ProductCategory == this.ProductCategory;
     public string? ProductFamily => ProductCode?.Left(Math.Min(6, ProductCode.Length));
@@ -116,6 +113,8 @@ public class CatalogAggregate : Entity<string>
     public decimal? CurrentPurchasePrice => EshopPrice?.PurchasePrice ?? ErpPrice?.PurchasePrice;
     public decimal? SellingPriceWithVat => EshopPrice?.PriceWithVat ?? ErpPrice?.PriceWithVat;
     public decimal? PurchasePriceWithVat => ErpPrice?.PurchasePriceWithVat;
+    public string? SupplierCode { get; set; }
+    public string? SupplierName { get; set; }
 
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
