@@ -148,7 +148,7 @@ public class GetProductMarginsHandlerErrorHandlingTests
                 ErpPrice = new ProductPriceErp { PurchasePrice = 80 },
                 ManufactureCostHistory = new List<ManufactureCost>
                 {
-                    new ManufactureCost { MaterialCost = -10 } // Invalid negative cost
+                    new ManufactureCost { MaterialCostFromReceiptDocument = -10, MaterialCostFromPurchasePrice = -10} // Invalid negative cost
                 }
             }
         };

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,7 +11,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CatalogRefreshBackgroundService> _logger;
-    private readonly CatalogRepositoryOptions _options;
+    private readonly DataSourceOptions _options;
 
     private DateTime _lastTransportRefresh = DateTime.MinValue;
     private DateTime _lastReserveRefresh = DateTime.MinValue;
@@ -31,7 +32,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
     public CatalogRefreshBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<CatalogRefreshBackgroundService> logger,
-        IOptions<CatalogRepositoryOptions> options)
+        IOptions<DataSourceOptions> options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
