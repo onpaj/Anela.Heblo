@@ -17,16 +17,16 @@ public class HangfireJobSchedulerService : IHostedService
     {
         _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment", _environment.EnvironmentName);
 
-        // Additional safety check - only register jobs in Production
-        if (!_environment.IsProduction())
+        // Additional safety check - only register jobs in Production and Staging
+        if (!_environment.IsProduction() && !_environment.IsStaging())
         {
-            _logger.LogWarning("Hangfire job scheduler service is running in {Environment} environment. Jobs will NOT be scheduled. Only Production environment schedules background jobs.", _environment.EnvironmentName);
+            _logger.LogWarning("Hangfire job scheduler service is running in {Environment} environment. Jobs will NOT be scheduled. Only Production and Staging environments schedule background jobs.", _environment.EnvironmentName);
             return Task.CompletedTask;
         }
 
         try
         {
-            // Register recurring jobs - only in Production
+            // Register recurring jobs - in Production and Staging
 
             // Purchase price recalculation daily at 2:00 AM UTC
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
@@ -38,11 +38,11 @@ public class HangfireJobSchedulerService : IHostedService
                     TimeZone = TimeZoneInfo.Utc
                 });
 
-            _logger.LogInformation("Hangfire recurring jobs registered successfully in Production environment");
+            _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in Production environment");
+            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in {Environment} environment", _environment.EnvironmentName);
             throw;
         }
 

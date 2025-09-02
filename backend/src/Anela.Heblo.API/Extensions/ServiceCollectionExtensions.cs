@@ -245,18 +245,17 @@ public static class ServiceCollectionExtensions
                 .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
         }
 
-        // Only add Hangfire server and job scheduling in Production environment
-        if (environment.IsProduction())
+        // Always add Hangfire server with Heblo queue - NEVER allow fallback to Default queue
+        services.AddHangfireServer(options =>
         {
-            // Add Hangfire server - only in production
-            services.AddHangfireServer(options =>
-            {
-                // Configure server options - only process Heblo queue
-                options.WorkerCount = 1;
-                options.Queues = new[] { "Heblo" };
-            });
+            // Configure server options - ALWAYS only process Heblo queue
+            options.WorkerCount = 1;
+            options.Queues = new[] { "Heblo" };
+        });
 
-            // Register job scheduler service - only in production
+        // Only register job scheduler service in Production and Staging environments
+        if (environment.IsProduction() || environment.IsStaging())
+        {
             services.AddHostedService<HangfireJobSchedulerService>();
         }
 
