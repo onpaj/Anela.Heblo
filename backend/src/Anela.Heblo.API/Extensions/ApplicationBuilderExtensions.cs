@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Anela.Heblo.Domain.Features.Configuration;
+using Hangfire;
+using Anela.Heblo.API.Infrastructure.Hangfire;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -66,6 +68,15 @@ public static class ApplicationBuilderExtensions
 
         app.UseAuthentication();
         app.UseAuthorization();
+
+        // Hangfire dashboard (only in development and staging)
+        if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+        {
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = new[] { new HangfireDashboardNoAuthFilter() }
+            });
+        }
 
         // Serve static files from wwwroot
         app.UseStaticFiles();

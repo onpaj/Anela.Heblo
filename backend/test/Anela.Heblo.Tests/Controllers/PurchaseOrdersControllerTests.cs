@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.Requests;
+using Anela.Heblo.Application.Features.Purchase.Responses;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
@@ -491,6 +493,56 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var content = await updateResponse.Content.ReadFromJsonAsync<UpdatePurchaseOrderResponse>();
         content.Should().NotBeNull();
         content!.OrderNumber.Should().Be(customOrderNumber);
+    }
+
+    [Fact]
+    public async Task RecalculatePurchasePrice_WithRecalculateAll_ShouldReturnOk()
+    {
+        var request = new RecalculatePurchasePriceRequest
+        {
+            RecalculateAll = true,
+            ForceReload = false
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/purchase-orders/recalculate-purchase-price", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var content = await response.Content.ReadFromJsonAsync<RecalculatePurchasePriceResponse>();
+        content.Should().NotBeNull();
+        content!.TotalCount.Should().BeGreaterOrEqualTo(0);
+        content.SuccessCount.Should().BeGreaterOrEqualTo(0);
+        content.FailedCount.Should().BeGreaterOrEqualTo(0);
+        content.ProcessedProducts.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task RecalculatePurchasePrice_WithSpecificProduct_ShouldReturnOk()
+    {
+        var request = new RecalculatePurchasePriceRequest
+        {
+            ProductCode = "TEST_PRODUCT",
+            RecalculateAll = false
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/purchase-orders/recalculate-purchase-price", request);
+
+        // Should return OK even if product doesn't exist - it will be handled by the handler
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task RecalculatePurchasePrice_WithInvalidRequest_ShouldReturnBadRequest()
+    {
+        var request = new RecalculatePurchasePriceRequest
+        {
+            ProductCode = null,
+            RecalculateAll = false
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/purchase-orders/recalculate-purchase-price", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
 

@@ -11,7 +11,8 @@ import {
   Menu,
   DollarSign,
   Cog,
-  Truck
+  Truck,
+  Bot
 } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
 import { useAuth } from '../../auth/useAuth';
@@ -27,7 +28,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance', 'vyroba', 'logistika']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance', 'vyroba', 'automatizace', 'logistika']);
   
   // Use mock auth if enabled, otherwise use real auth
   const realAuth = useAuth();
@@ -39,6 +40,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
   // Helper function to check if user has a specific role
   const hasRole = (role: string): boolean => {
     return userInfo?.roles?.includes(role) || false;
+  };
+
+  // Function to open Hangfire dashboard in new window
+  const openHangfireDashboard = () => {
+    const baseUrl = window.location.origin.replace(':3000', ':5000').replace(':3001', ':5001');
+    window.open(`${baseUrl}/hangfire`, '_blank', 'noopener,noreferrer');
   };
 
   // Navigation sections - only implemented pages
@@ -99,6 +106,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       type: 'section' as const,
       items: [
         { id: 'transportni-boxy', name: 'Transportní boxy', href: '/logistics/transport-boxes' }
+      ]
+    },
+    {
+      id: 'automatizace',
+      name: 'Automatizace',
+      icon: Bot,
+      type: 'section' as const,
+      items: [
+        { id: 'hangfire', name: 'Hangfire', href: '#', onClick: openHangfireDashboard }
       ]
     }
   ];
@@ -243,6 +259,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                           <div className="ml-8 mt-1 space-y-1">
                             {section.items.map((subItem) => {
                               const isSubActive = activeItem === subItem.id;
+                              
+                              // If subItem has onClick, render as button
+                              if ((subItem as any).onClick) {
+                                return (
+                                  <button
+                                    key={subItem.id}
+                                    onClick={() => {
+                                      setActiveItem(subItem.id);
+                                      (subItem as any).onClick();
+                                    }}
+                                    className={`
+                                      block w-full text-left px-3 py-2 text-sm rounded-md transition-colors duration-300
+                                      ${isSubActive 
+                                        ? 'bg-secondary-blue-pale text-primary-blue font-medium' 
+                                        : 'text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate'
+                                      }
+                                    `}
+                                  >
+                                    {subItem.name}
+                                  </button>
+                                );
+                              }
+                              
+                              // Regular Link for navigation items
                               return (
                                 <Link
                                   key={subItem.id}

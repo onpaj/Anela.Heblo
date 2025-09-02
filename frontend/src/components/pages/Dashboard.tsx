@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useRecentAuditLogs, useRecentAuditSummary } from '../../api/hooks/useAudit';
 import { useManualCatalogRefresh, refreshOperations } from '../../api/hooks/useManualCatalogRefresh';
-import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings } from 'lucide-react';
+import { useRecalculatePurchasePrice } from '../../api/hooks/useRecalculatePurchasePrice';
+import { RecalculatePurchasePriceRequest } from '../../api/generated/api-client';
+import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings, Calculator } from 'lucide-react';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 const Dashboard: React.FC = () => {
@@ -21,6 +23,7 @@ const Dashboard: React.FC = () => {
   } = useRecentAuditSummary();
 
   const manualRefreshMutation = useManualCatalogRefresh();
+  const recalculatePricesMutation = useRecalculatePurchasePrice();
 
   const handleManualRefresh = async (methodName: string, operationKey: string) => {
     setCurrentRefreshOperation(operationKey);
@@ -32,6 +35,26 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to refresh:', error);
       // You could add error notification here
+    } finally {
+      setCurrentRefreshOperation(null);
+    }
+  };
+
+  const handleRecalculatePrice = async (operationKey: string, recalculateAll: boolean, productCode?: string) => {
+    setCurrentRefreshOperation(operationKey);
+    
+    try {
+      const request = new RecalculatePurchasePriceRequest({
+        productCode,
+        recalculateAll,
+        forceReload: false
+      });
+      
+      await recalculatePricesMutation.mutateAsync(request);
+      // Success notification could be added here
+    } catch (error) {
+      console.error('Failed to recalculate prices:', error);
+      // Error notification could be added here
     } finally {
       setCurrentRefreshOperation(null);
     }
@@ -154,6 +177,17 @@ const Dashboard: React.FC = () => {
           >
             <Settings className="w-4 h-4 inline mr-2" />
             Manuální načítání
+          </button>
+          <button
+            onClick={() => setActiveTab('manual-actions')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'manual-actions'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Calculator className="w-4 h-4 inline mr-2" />
+            Manuální akce
           </button>
         </nav>
       </div>
@@ -479,6 +513,106 @@ const Dashboard: React.FC = () => {
                 <p className="mt-1 text-emerald-700 text-sm">
                   Operace byla dokončena úspěšně.
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Manual Actions Tab */}
+      {activeTab === 'manual-actions' && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Manuální akce
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Spustit speciální operace a přepočty
+            </p>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* Recalculate All Products with BoM */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="mb-3">
+                  <h4 className="text-sm font-medium text-gray-900 mb-1">
+                    Přepočet všech cen
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    Přepočítá nákupní ceny všech produktů s kusovníkem
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRecalculatePrice('recalculate-all', true)}
+                  disabled={currentRefreshOperation === 'recalculate-all' || recalculatePricesMutation.isPending}
+                  className={`w-full inline-flex items-center justify-center px-3 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                    currentRefreshOperation === 'recalculate-all'
+                      ? 'border-indigo-300 text-indigo-700 bg-indigo-50 cursor-not-allowed'
+                      : recalculatePricesMutation.isPending
+                      ? 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
+                      : 'border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50'
+                  }`}
+                >
+                  {currentRefreshOperation === 'recalculate-all' ? (
+                    <>
+                      <Calculator className="w-4 h-4 mr-2 animate-pulse" />
+                      Přepočítává...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="w-4 h-4 mr-2" />
+                      Přepočítat vše
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Future manual actions can be added here */}
+            </div>
+            
+            {/* Status Messages for Price Recalculation */}
+            {recalculatePricesMutation.isError && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center">
+                  <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+                  <h4 className="text-red-800 font-medium">Chyba při přepočtu cen</h4>
+                </div>
+                <p className="mt-1 text-red-700 text-sm">
+                  {recalculatePricesMutation.error?.message || 'Neznámá chyba'}
+                </p>
+              </div>
+            )}
+            
+            {recalculatePricesMutation.isSuccess && !currentRefreshOperation && recalculatePricesMutation.data && (
+              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 mr-2" />
+                  <h4 className="text-emerald-800 font-medium">Přepočet cen dokončen</h4>
+                </div>
+                <div className="mt-2 text-emerald-700 text-sm">
+                  <p>Celkem zpracováno: {recalculatePricesMutation.data.totalCount || 0} produktů</p>
+                  <p>Úspěšně: {recalculatePricesMutation.data.successCount || 0}</p>
+                  {(recalculatePricesMutation.data.failedCount || 0) > 0 && (
+                    <p>Chybné: {recalculatePricesMutation.data.failedCount}</p>
+                  )}
+                </div>
+                
+                {/* Show failed products if any */}
+                {recalculatePricesMutation.data.processedProducts && 
+                 recalculatePricesMutation.data.processedProducts.some(p => !p.isSuccess) && (
+                  <div className="mt-3">
+                    <h5 className="text-sm font-medium text-red-800 mb-2">Produkty s chybami:</h5>
+                    <div className="space-y-1">
+                      {recalculatePricesMutation.data.processedProducts
+                        .filter(p => !p.isSuccess)
+                        .map((product, index) => (
+                          <div key={index} className="text-xs text-red-700">
+                            <span className="font-mono">{product.productCode}</span>: {product.errorMessage}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

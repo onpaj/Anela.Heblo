@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.Requests;
+using Anela.Heblo.Application.Features.Purchase.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -179,5 +181,30 @@ public class PurchaseOrdersController : ControllerBase
         }
 
         return Ok(response.History);
+    }
+
+    [HttpPost("recalculate-purchase-price")]
+    public async Task<ActionResult<RecalculatePurchasePriceResponse>> RecalculatePurchasePrice(
+        [FromBody] RecalculatePurchasePriceRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 }

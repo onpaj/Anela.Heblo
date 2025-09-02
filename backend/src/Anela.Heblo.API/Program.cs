@@ -48,6 +48,9 @@ public partial class Program
         builder.Services.AddShoptetAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
 
+        // Hangfire background jobs
+        builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);
+
         // Controllers and API documentation
         builder.Services.AddControllers()
             .AddJsonOptions(options =>

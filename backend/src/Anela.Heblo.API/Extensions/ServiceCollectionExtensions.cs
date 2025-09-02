@@ -6,6 +6,9 @@ using Anela.Heblo.Application.Features.Users;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.OpenApi.Models;
+using Hangfire;
+using Hangfire.PostgreSql;
+using Anela.Heblo.API.Services;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -208,6 +211,37 @@ public static class ServiceCollectionExtensions
                 }
             }
         });
+
+        return services;
+    }
+
+    public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+        
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
+        }
+
+        // Add Hangfire services with PostgreSQL storage
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+
+        // Add Hangfire server
+        services.AddHangfireServer(options =>
+        {
+            // Configure server options - only process Heblo queue
+            options.WorkerCount = 1;
+            options.Queues = new[] { "Heblo" };
+        });
+
+        // Register background job service and scheduler
+        services.AddTransient<HangfireBackgroundJobService>();
+        services.AddHostedService<HangfireJobSchedulerService>();
 
         return services;
     }
