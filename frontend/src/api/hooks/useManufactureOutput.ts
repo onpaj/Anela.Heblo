@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface ManufactureOutputResponse {
   months: ManufactureOutputMonth[];
@@ -32,7 +32,7 @@ export interface ProductionDetail {
 
 export const useManufactureOutputQuery = (monthsBack: number = 13) => {
   return useQuery({
-    queryKey: ['manufacture-output', monthsBack],
+    queryKey: [...QUERY_KEYS.manufactureOutput, monthsBack],
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/manufacture-output?monthsBack=${monthsBack}`;
