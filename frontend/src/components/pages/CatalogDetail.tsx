@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink, Settings } from 'lucide-react';
+import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink, Settings, ArrowRight } from 'lucide-react';
 import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto, CatalogPurchaseRecordDto, CatalogManufactureRecordDto } from '../../api/hooks/useCatalog';
 import { ManufactureCostDto, JournalEntryDto, MarginHistoryDto } from '../../api/generated/api-client';
 import JournalEntryModal from '../JournalEntryModal';
 import ManufactureDifficultyModal from '../ManufactureDifficultyModal';
 import { useJournalEntriesByProduct } from '../../api/hooks/useJournal';
+import { useProductUsage } from '../../api/hooks/useProductUsage';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -36,7 +37,7 @@ interface CatalogDetailProps {
   productCode?: string | null;
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'basic' | 'history' | 'margins';
+  defaultTab?: 'basic' | 'history' | 'margins' | 'usage';
 }
 
 
@@ -57,8 +58,7 @@ const productTypeColors: Record<ProductType, string> = {
 };
 
 const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen, onClose, defaultTab = 'basic' }) => {
-  const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins' | 'journal'>(defaultTab as any);
-  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins' | 'journal' | 'usage'>(defaultTab as any);
   const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntryDto | undefined>(undefined);
@@ -68,8 +68,8 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   // Determine which productCode to use - from prop or from item
   const effectiveProductCode = productCode || item?.productCode || '';
   
-  // Fetch detailed data from API - use 13 months by default, 999 for full history
-  const monthsBack = showFullHistory ? 999 : 13;
+  // Fetch detailed data from API - always use full history (999 months)
+  const monthsBack = 999;
   const { data: detailData, isLoading: detailLoading, error: detailError, refetch: refetchCatalogDetail } = useCatalogDetail(effectiveProductCode, monthsBack);
   
   // Use item from prop if provided, otherwise use item from API detail data
@@ -78,11 +78,10 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   // Fetch journal entries for the product
   const { data: journalData } = useJournalEntriesByProduct(effectiveProductCode);
 
-  // Reset tab and history state when modal opens with new item or different default tab
+  // Reset tab and chart state when modal opens with new item or different default tab
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
-      setShowFullHistory(false);
       setActiveChartTab('output'); // Default to output tab (sales/consumption)
     }
   }, [isOpen, defaultTab, effectiveProductCode]);
@@ -173,7 +172,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -192,7 +191,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
           {detailLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
@@ -263,6 +262,20 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                       <BookOpen className="h-4 w-4" />
                       <span>Deník</span>
                     </button>
+                    {/* Pouziti tab - pouze pro SemiProduct a Material */}
+                    {(effectiveItem?.type === ProductType.SemiProduct || effectiveItem?.type === ProductType.Material) && (
+                      <button
+                        onClick={() => setActiveTab('usage')}
+                        className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+                          activeTab === 'usage'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                        <span>Použití</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Tab Content */}
@@ -275,8 +288,6 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                     ) : activeTab === 'history' ? (
                       <PurchaseHistoryTab 
                         purchaseHistory={detailData?.historicalData?.purchaseHistory || []} 
-                        showFullHistory={showFullHistory}
-                        onToggleFullHistory={() => setShowFullHistory(!showFullHistory)}
                         isLoading={detailLoading}
                       />
                     ) : activeTab === 'margins' ? (
@@ -287,6 +298,8 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                         isLoading={detailLoading}
                         journalEntries={journalData?.entries || []}
                       />
+                    ) : activeTab === 'usage' ? (
+                      <UsageTab productCode={effectiveItem.productCode || ''} />
                     ) : (
                       <JournalTab
                         productCode={effectiveItem.productCode || ''}
@@ -1071,12 +1084,10 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item, onManufactureDifficul
 // PurchaseHistoryTab Component - displays purchase history table
 interface PurchaseHistoryTabProps {
   purchaseHistory: CatalogPurchaseRecordDto[];
-  showFullHistory: boolean;
-  onToggleFullHistory: () => void;
   isLoading: boolean;
 }
 
-const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({ purchaseHistory, showFullHistory, onToggleFullHistory, isLoading }) => {
+const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({ purchaseHistory, isLoading }) => {
   // Sort history by date (most recent first)
   const sortedHistory = [...purchaseHistory].sort((a, b) => {
     const dateA = new Date(a.date || 0);
@@ -1114,67 +1125,53 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({ purchaseHistory
           <ShoppingCart className="h-5 w-5 mr-2 text-gray-500" />
           Historie nákupů ({sortedHistory.length} záznamů)
         </h3>
-        <button
-          onClick={onToggleFullHistory}
-          disabled={isLoading}
-          className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-            showFullHistory
-              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {isLoading ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-              <span>Načítám...</span>
-            </div>
-          ) : showFullHistory ? (
-            'Zobrazit posledních 13 měsíců'
-          ) : (
-            'Zobrazit celou historii'
-          )}
-        </button>
       </div>
       
+      {/* Purchase history grid with fixed height and scrollbar */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="space-y-1">
-          {sortedHistory.map((record, index) => (
-            <div key={index} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 p-4">
-              {/* Primary row - main information */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm font-medium text-gray-900">
+        <div className="h-96 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Datum</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Dodavatel</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Množství</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Cena/ks</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Celkem</th>
+                <th className="text-center py-3 px-4 font-medium text-gray-700">Doklad</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {sortedHistory.map((record, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="py-3 px-4 text-gray-900">
                     {formatDate(record.date)}
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={record.supplierName || '-'}>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900 max-w-xs truncate" title={record.supplierName || '-'}>
                     {record.supplierName || '-'}
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {record.pricePerPiece 
-                    ? `${record.pricePerPiece.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč/ks`
-                    : '-'
-                  }
-                </div>
-              </div>
-              
-              {/* Secondary row - additional details */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-4">
-                  <span>Množství: <strong className="text-gray-700">{record.amount ? Math.round(record.amount * 100) / 100 : '-'}</strong></span>
-                  <span>Celkem: <strong className="text-gray-700">
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                    {record.amount ? Math.round(record.amount * 100) / 100 : '-'}
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                    {record.pricePerPiece 
+                      ? `${record.pricePerPiece.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč`
+                      : '-'
+                    }
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-900 font-semibold">
                     {record.priceTotal 
                       ? `${record.priceTotal.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} Kč`
                       : '-'
                     }
-                  </strong></span>
-                </div>
-                <div className="font-mono text-gray-400">
-                  {record.documentNumber || '-'}
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                  <td className="py-3 px-4 text-center font-mono text-gray-500 text-xs">
+                    {record.documentNumber || '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1782,6 +1779,88 @@ const MarginsTab: React.FC<MarginsTabProps> = ({ item, manufactureCostHistory, m
         )}
       </div>
 
+    </div>
+  );
+};
+
+// UsageTab Component - displays which products use this product as an ingredient
+interface UsageTabProps {
+  productCode: string;
+}
+
+const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
+  const { data, isLoading, error } = useProductUsage(productCode);
+  const manufactureTemplates = data?.manufactureTemplates || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+          <div className="text-gray-500">Načítání použití produktu...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2 text-red-600">
+          <AlertCircle className="h-5 w-5" />
+          <div>Chyba při načítání použití: {(error as any).message}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <ArrowRight className="h-5 w-5 mr-2 text-gray-500" />
+          Použití v produktech ({manufactureTemplates.length})
+        </h3>
+      </div>
+
+      {/* Usage grid */}
+      {manufactureTemplates.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <ArrowRight className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <p className="text-gray-500 mb-2">Tento produkt se nikde nepoužívá</p>
+          <p className="text-sm text-gray-400">Materiál nebo polotovar není součástí žádné výrobní šablony</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="h-96 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Kód produktu</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Název produktu</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">Množství</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {manufactureTemplates.map((template) => (
+                  <tr key={template.templateId} className="hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-900 font-medium">
+                      {template.productCode}
+                    </td>
+                    <td className="py-3 px-4 text-gray-900" title={template.productName}>
+                      {template.productName}
+                    </td>
+                    <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                      {template.amount?.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) || '0'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

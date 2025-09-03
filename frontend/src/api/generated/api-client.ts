@@ -1037,6 +1037,43 @@ export class ApiClient {
         return Promise.resolve<DeleteManufactureDifficultyResponse>(null as any);
     }
 
+    catalog_GetProductUsage(productCode: string): Promise<GetProductUsageResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/usage";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetProductUsage(_response);
+        });
+    }
+
+    protected processCatalog_GetProductUsage(response: Response): Promise<GetProductUsageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductUsageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductUsageResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -4253,6 +4290,170 @@ export class DeleteManufactureDifficultyResponse implements IDeleteManufactureDi
 export interface IDeleteManufactureDifficultyResponse {
     success?: boolean;
     message?: string | undefined;
+}
+
+export class GetProductUsageResponse implements IGetProductUsageResponse {
+    manufactureTemplates?: ManufactureTemplate[];
+
+    constructor(data?: IGetProductUsageResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["manufactureTemplates"])) {
+                this.manufactureTemplates = [] as any;
+                for (let item of _data["manufactureTemplates"])
+                    this.manufactureTemplates!.push(ManufactureTemplate.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GetProductUsageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductUsageResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.manufactureTemplates)) {
+            data["manufactureTemplates"] = [];
+            for (let item of this.manufactureTemplates)
+                data["manufactureTemplates"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGetProductUsageResponse {
+    manufactureTemplates?: ManufactureTemplate[];
+}
+
+export class ManufactureTemplate implements IManufactureTemplate {
+    templateId?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    originalAmount?: number;
+    ingredients?: Ingredient[];
+
+    constructor(data?: IManufactureTemplate) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.templateId = _data["templateId"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+            this.originalAmount = _data["originalAmount"];
+            if (Array.isArray(_data["ingredients"])) {
+                this.ingredients = [] as any;
+                for (let item of _data["ingredients"])
+                    this.ingredients!.push(Ingredient.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ManufactureTemplate {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureTemplate();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["templateId"] = this.templateId;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        data["originalAmount"] = this.originalAmount;
+        if (Array.isArray(this.ingredients)) {
+            data["ingredients"] = [];
+            for (let item of this.ingredients)
+                data["ingredients"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IManufactureTemplate {
+    templateId?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    originalAmount?: number;
+    ingredients?: Ingredient[];
+}
+
+export class Ingredient implements IIngredient {
+    templateId?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    originalAmount?: number;
+    price?: number;
+
+    constructor(data?: IIngredient) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.templateId = _data["templateId"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+            this.originalAmount = _data["originalAmount"];
+            this.price = _data["price"];
+        }
+    }
+
+    static fromJS(data: any): Ingredient {
+        data = typeof data === 'object' ? data : {};
+        let result = new Ingredient();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["templateId"] = this.templateId;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        data["originalAmount"] = this.originalAmount;
+        data["price"] = this.price;
+        return data;
+    }
+}
+
+export interface IIngredient {
+    templateId?: number;
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    originalAmount?: number;
+    price?: number;
 }
 
 export class GetConfigurationResponse implements IGetConfigurationResponse {

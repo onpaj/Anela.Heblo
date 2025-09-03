@@ -71,7 +71,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
@@ -83,7 +83,7 @@ public class FlexiSupplierRepositoryTests
         result[0].Code.Should().Be("ABC001");
 
         _mockContactListClient.Verify(
-            x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
+            x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
             Times.Once);
 
         _mockAuditService.Verify(
@@ -103,7 +103,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange - First call to populate cache
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         await _repository.SearchSuppliersAsync("ABC", 10, CancellationToken.None);
@@ -116,7 +116,7 @@ public class FlexiSupplierRepositoryTests
         result[0].Name.Should().Be("XYZ Corporation");
 
         _mockContactListClient.Verify(
-            x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
+            x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
             Times.Once); // Only called once, not twice
     }
 
@@ -125,7 +125,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act - Search with lowercase term
@@ -141,7 +141,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act - Search with lowercase code
@@ -158,7 +158,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act - Search with partial name
@@ -174,7 +174,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
@@ -189,7 +189,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
@@ -207,7 +207,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
@@ -224,7 +224,7 @@ public class FlexiSupplierRepositoryTests
         result.Note.Should().Be("Test supplier 1");
 
         _mockContactListClient.Verify(
-            x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
+            x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -233,7 +233,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange - First call to populate cache
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         await _repository.GetByIdAsync(1, CancellationToken.None);
@@ -247,7 +247,7 @@ public class FlexiSupplierRepositoryTests
         result.Name.Should().Be("XYZ Corporation");
 
         _mockContactListClient.Verify(
-            x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
+            x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
             Times.Once); // Only called once
     }
 
@@ -256,7 +256,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
@@ -272,7 +272,7 @@ public class FlexiSupplierRepositoryTests
         // Arrange
         var exception = new InvalidOperationException("FlexiBee connection failed");
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.IsAny<ContactType>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.IsAny<IEnumerable<ContactType>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
         // Act & Assert
@@ -320,7 +320,7 @@ public class FlexiSupplierRepositoryTests
         };
 
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.IsAny<ContactType>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.IsAny<IEnumerable<ContactType>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(contactWithNulls);
 
         // Act
@@ -355,7 +355,7 @@ public class FlexiSupplierRepositoryTests
     {
         // Arrange
         _mockContactListClient
-            .Setup(x => x.GetAsync(It.Is<ContactType>(ct => ct == ContactType.Supplier), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_testContacts);
 
         // Act
