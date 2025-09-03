@@ -4,6 +4,12 @@ import { getConfig, shouldUseMockAuth } from '../config/runtimeConfig';
 import { mockAuthService } from '../auth/mockAuth';
 
 /**
+ * Global toast handler for API errors
+ * This will be set by the App component after ToastProvider is initialized
+ */
+let globalToastHandler: ((title: string, message?: string) => void) | null = null;
+
+/**
  * Global token provider for API client
  * This will be set by the App component after MSAL is initialized
  */
@@ -35,6 +41,15 @@ const isCachedTokenValid = (): boolean => {
  */
 export const setGlobalTokenProvider = (provider: () => Promise<string | null>) => {
   globalTokenProvider = provider;
+};
+
+/**
+ * Set the global toast error handler
+ * This should be called from App component after ToastProvider is initialized
+ */
+export const setGlobalToastHandler = (handler: (title: string, message?: string) => void) => {
+  globalToastHandler = handler;
+  console.log('🍞 Global toast handler set for API errors');
 };
 
 /**
@@ -102,11 +117,35 @@ export const getApiClient = (): ApiClient => {
   return apiClient;
 };
 
+/**
+ * Extract error message from API response
+ */
+const extractErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      
+      // Try common error message fields
+      return errorData.message || 
+             errorData.title || 
+             errorData.detail || 
+             errorData.error || 
+             `Server error ${response.status}`;
+    } else {
+      const textResponse = await response.text();
+      return textResponse || `Server error ${response.status}`;
+    }
+  } catch {
+    return `Server error ${response.status}: ${response.statusText}`;
+  }
+};
+
 // Create an authenticated API client that uses centralized auth header provider
-export const getAuthenticatedApiClient = (): ApiClient => {
+export const getAuthenticatedApiClient = (showErrorToasts: boolean = true): ApiClient => {
   const config = getConfig();
   
-  // Create http object with custom fetch that includes authentication
+  // Create http object with custom fetch that includes authentication and error handling
   const authenticatedHttp = {
     fetch: async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
       const authHeader = await getAuthHeader();
@@ -120,10 +159,30 @@ export const getAuthenticatedApiClient = (): ApiClient => {
         headers['Authorization'] = authHeader;
       }
       
-      return fetch(url, {
+      const response = await fetch(url, {
         ...init,
         headers,
       });
+      
+      // Global error handling with toast notifications
+      if (!response.ok && showErrorToasts && globalToastHandler) {
+        // Clone response to preserve it for SwaggerException
+        const responseClone = response.clone();
+        
+        try {
+          const errorMessage = await extractErrorMessage(responseClone);
+          const title = `Chyba API (${response.status})`;
+          
+          console.error(`🚨 API Error [${response.status}] ${url}:`, errorMessage);
+          globalToastHandler(title, errorMessage);
+        } catch (toastError) {
+          console.error('🍞 Failed to show error toast:', toastError);
+          // Fallback toast
+          globalToastHandler(`Chyba API (${response.status})`, 'Neočekávaná chyba na serveru');
+        }
+      }
+      
+      return response;
     }
   };
   
@@ -181,6 +240,7 @@ export const QUERY_KEYS = {
   transportBox: ['transport-boxes'] as const,
   transportBoxTransitions: ['transportBoxTransitions'] as const,
   manufactureOutput: ['manufacture-output'] as const,
+  manufactureDifficulty: ['manufacture-difficulty-settings'] as const,
   // Add more query keys as needed
   // users: ['users'] as const,  
   // products: ['products'] as const,

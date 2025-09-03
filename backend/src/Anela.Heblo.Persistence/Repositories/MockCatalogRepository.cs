@@ -2,9 +2,8 @@ using System.Linq.Expressions;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Xcc.Persistance;
 
-namespace Anela.Heblo.Persistence.Repository;
+namespace Anela.Heblo.Persistence.Repositories;
 
 public class MockCatalogRepository : ICatalogRepository
 {
@@ -256,7 +255,7 @@ public class MockCatalogRepository : ICatalogRepository
     public Task RefreshLotsData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
-    public Task RefreshManufactureDifficultyData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,
         CancellationToken cancellationToken = default)

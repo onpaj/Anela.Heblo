@@ -179,7 +179,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
 
             if (await RefreshIfNeeded(catalogRepository, "Manufacture Difficulty",
                 _lastManufactureDifficultyRefresh, _options.ManufactureDifficultyRefreshInterval,
-                async ct => await catalogRepository.RefreshManufactureDifficultyData(ct),
+                async ct => await catalogRepository.RefreshManufactureDifficultySettingsData(null, ct),
                 now, stoppingToken, isInitialLoad))
             {
                 _lastManufactureDifficultyRefresh = now;

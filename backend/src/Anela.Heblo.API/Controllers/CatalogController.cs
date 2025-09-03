@@ -213,4 +213,136 @@ public class CatalogController : ControllerBase
         }
     }
 
+    // Manufacture Difficulty Management Endpoints
+
+    [HttpGet("{productCode}/manufacture-difficulty")]
+    public async Task<ActionResult<GetManufactureDifficultySettingsResponse>> GetManufactureDifficultyHistory(
+        string productCode,
+        [FromQuery] DateTime? asOfDate = null)
+    {
+        _logger.LogInformation("Getting manufacture difficulty history for product {ProductCode} as of {AsOfDate}",
+            productCode, asOfDate);
+
+        try
+        {
+            var request = new GetManufactureDifficultySettingsRequest
+            {
+                ProductCode = productCode,
+                AsOfDate = asOfDate
+            };
+
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully retrieved manufacture difficulty history for product {ProductCode}",
+                productCode);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get manufacture difficulty history for product {ProductCode}", productCode);
+            throw;
+        }
+    }
+
+    [HttpPost("manufacture-difficulty")]
+    [ProducesResponseType(typeof(CreateManufactureDifficultyResponse), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<ActionResult<CreateManufactureDifficultyResponse>> CreateManufactureDifficulty(
+        CreateManufactureDifficultyRequest request)
+    {
+        _logger.LogInformation("Creating manufacture difficulty for product {ProductCode} with value {DifficultyValue}",
+            request.ProductCode, request.DifficultyValue);
+
+        try
+        {
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully created manufacture difficulty {Id} for product {ProductCode}",
+                response.DifficultyHistory.Id, response.DifficultyHistory.ProductCode);
+            return CreatedAtAction(
+                nameof(GetManufactureDifficultyHistory),
+                new { productCode = response.DifficultyHistory.ProductCode },
+                response);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request for creating manufacture difficulty");
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation when creating manufacture difficulty");
+            return Conflict(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create manufacture difficulty");
+            throw;
+        }
+    }
+
+    [HttpPut("manufacture-difficulty/{id}")]
+    public async Task<ActionResult<UpdateManufactureDifficultyResponse>> UpdateManufactureDifficulty(
+        int id,
+        UpdateManufactureDifficultyRequest request)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest("URL parameter ID must match request body ID");
+        }
+
+        _logger.LogInformation("Updating manufacture difficulty {Id} with value {DifficultyValue}",
+            request.Id, request.DifficultyValue);
+
+        try
+        {
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully updated manufacture difficulty {Id}",
+                response.DifficultyHistory.Id);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request for updating manufacture difficulty");
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation when updating manufacture difficulty");
+            return Conflict(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update manufacture difficulty {Id}", id);
+            throw;
+        }
+    }
+
+    [HttpDelete("manufacture-difficulty/{id}")]
+    public async Task<ActionResult<DeleteManufactureDifficultyResponse>> DeleteManufactureDifficulty(int id)
+    {
+        _logger.LogInformation("Deleting manufacture difficulty {Id}", id);
+
+        try
+        {
+            var request = new DeleteManufactureDifficultyRequest { Id = id };
+            var response = await _mediator.Send(request);
+
+            if (response.Success)
+            {
+                _logger.LogInformation("Successfully deleted manufacture difficulty {Id}", id);
+                return Ok(response);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to delete manufacture difficulty {Id}: {Message}", id, response.Message);
+                return NotFound(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete manufacture difficulty {Id}", id);
+            throw;
+        }
+    }
+
 }

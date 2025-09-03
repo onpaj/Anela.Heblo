@@ -868,6 +868,175 @@ export class ApiClient {
         return Promise.resolve<GetCatalogListResponse>(null as any);
     }
 
+    catalog_GetManufactureDifficultyHistory(productCode: string, asOfDate: Date | null | undefined): Promise<GetManufactureDifficultySettingsResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/manufacture-difficulty?";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        if (asOfDate !== undefined && asOfDate !== null)
+            url_ += "asOfDate=" + encodeURIComponent(asOfDate ? "" + asOfDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetManufactureDifficultyHistory(_response);
+        });
+    }
+
+    protected processCatalog_GetManufactureDifficultyHistory(response: Response): Promise<GetManufactureDifficultySettingsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufactureDifficultySettingsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufactureDifficultySettingsResponse>(null as any);
+    }
+
+    catalog_CreateManufactureDifficulty(request: CreateManufactureDifficultyRequest): Promise<CreateManufactureDifficultyResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_CreateManufactureDifficulty(_response);
+        });
+    }
+
+    protected processCatalog_CreateManufactureDifficulty(response: Response): Promise<CreateManufactureDifficultyResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateManufactureDifficultyResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateManufactureDifficultyResponse>(null as any);
+    }
+
+    catalog_UpdateManufactureDifficulty(id: number, request: UpdateManufactureDifficultyRequest): Promise<UpdateManufactureDifficultyResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_UpdateManufactureDifficulty(_response);
+        });
+    }
+
+    protected processCatalog_UpdateManufactureDifficulty(response: Response): Promise<UpdateManufactureDifficultyResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateManufactureDifficultyResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateManufactureDifficultyResponse>(null as any);
+    }
+
+    catalog_DeleteManufactureDifficulty(id: number): Promise<DeleteManufactureDifficultyResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_DeleteManufactureDifficulty(_response);
+        });
+    }
+
+    protected processCatalog_DeleteManufactureDifficulty(response: Response): Promise<DeleteManufactureDifficultyResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteManufactureDifficultyResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteManufactureDifficultyResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -3760,6 +3929,330 @@ export interface IMaterialForPurchaseDto {
     location?: string | undefined;
     currentStock?: number;
     minimalOrderQuantity?: string | undefined;
+}
+
+export class GetManufactureDifficultySettingsResponse implements IGetManufactureDifficultySettingsResponse {
+    productCode?: string;
+    settings?: ManufactureDifficultySettingDto[];
+    currentSetting?: ManufactureDifficultySettingDto | undefined;
+
+    constructor(data?: IGetManufactureDifficultySettingsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            if (Array.isArray(_data["settings"])) {
+                this.settings = [] as any;
+                for (let item of _data["settings"])
+                    this.settings!.push(ManufactureDifficultySettingDto.fromJS(item));
+            }
+            this.currentSetting = _data["currentSetting"] ? ManufactureDifficultySettingDto.fromJS(_data["currentSetting"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetManufactureDifficultySettingsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufactureDifficultySettingsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        if (Array.isArray(this.settings)) {
+            data["settings"] = [];
+            for (let item of this.settings)
+                data["settings"].push(item.toJSON());
+        }
+        data["currentSetting"] = this.currentSetting ? this.currentSetting.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetManufactureDifficultySettingsResponse {
+    productCode?: string;
+    settings?: ManufactureDifficultySettingDto[];
+    currentSetting?: ManufactureDifficultySettingDto | undefined;
+}
+
+export class ManufactureDifficultySettingDto implements IManufactureDifficultySettingDto {
+    id?: number;
+    productCode?: string;
+    difficultyValue?: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    isCurrent?: boolean;
+
+    constructor(data?: IManufactureDifficultySettingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.productCode = _data["productCode"];
+            this.difficultyValue = _data["difficultyValue"];
+            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
+            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.isCurrent = _data["isCurrent"];
+        }
+    }
+
+    static fromJS(data: any): ManufactureDifficultySettingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureDifficultySettingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["productCode"] = this.productCode;
+        data["difficultyValue"] = this.difficultyValue;
+        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
+        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["isCurrent"] = this.isCurrent;
+        return data;
+    }
+}
+
+export interface IManufactureDifficultySettingDto {
+    id?: number;
+    productCode?: string;
+    difficultyValue?: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    isCurrent?: boolean;
+}
+
+export class CreateManufactureDifficultyResponse implements ICreateManufactureDifficultyResponse {
+    difficultyHistory?: ManufactureDifficultySettingDto;
+
+    constructor(data?: ICreateManufactureDifficultyResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): CreateManufactureDifficultyResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateManufactureDifficultyResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface ICreateManufactureDifficultyResponse {
+    difficultyHistory?: ManufactureDifficultySettingDto;
+}
+
+export class CreateManufactureDifficultyRequest implements ICreateManufactureDifficultyRequest {
+    productCode!: string;
+    difficultyValue!: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+
+    constructor(data?: ICreateManufactureDifficultyRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.difficultyValue = _data["difficultyValue"];
+            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
+            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): CreateManufactureDifficultyRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateManufactureDifficultyRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["difficultyValue"] = this.difficultyValue;
+        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
+        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface ICreateManufactureDifficultyRequest {
+    productCode: string;
+    difficultyValue: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+}
+
+export class UpdateManufactureDifficultyResponse implements IUpdateManufactureDifficultyResponse {
+    difficultyHistory?: ManufactureDifficultySettingDto;
+
+    constructor(data?: IUpdateManufactureDifficultyResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureDifficultyResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureDifficultyResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureDifficultyResponse {
+    difficultyHistory?: ManufactureDifficultySettingDto;
+}
+
+export class UpdateManufactureDifficultyRequest implements IUpdateManufactureDifficultyRequest {
+    id!: number;
+    difficultyValue!: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+
+    constructor(data?: IUpdateManufactureDifficultyRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.difficultyValue = _data["difficultyValue"];
+            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
+            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureDifficultyRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureDifficultyRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["difficultyValue"] = this.difficultyValue;
+        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
+        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureDifficultyRequest {
+    id: number;
+    difficultyValue: number;
+    validFrom?: Date | undefined;
+    validTo?: Date | undefined;
+}
+
+export class DeleteManufactureDifficultyResponse implements IDeleteManufactureDifficultyResponse {
+    success?: boolean;
+    message?: string | undefined;
+
+    constructor(data?: IDeleteManufactureDifficultyResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): DeleteManufactureDifficultyResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteManufactureDifficultyResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IDeleteManufactureDifficultyResponse {
+    success?: boolean;
+    message?: string | undefined;
 }
 
 export class GetConfigurationResponse implements IGetConfigurationResponse {

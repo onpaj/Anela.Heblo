@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -35,6 +36,7 @@ public class CatalogRepositoryTests
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
+    private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
@@ -59,6 +61,7 @@ public class CatalogRepositoryTests
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
+        _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
@@ -104,6 +107,7 @@ public class CatalogRepositoryTests
             _manufactureRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureCostCalculationServiceMock.Object,
+            _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _cache,
             _timeProviderMock.Object,

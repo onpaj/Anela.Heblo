@@ -15,6 +15,6 @@ public class RefreshManufactureDifficultyDataHandler : IRequestHandler<RefreshMa
 
     public async Task Handle(RefreshManufactureDifficultyDataRequest request, CancellationToken cancellationToken)
     {
-        await _catalogRepository.RefreshManufactureDifficultyData(cancellationToken);
+        await _catalogRepository.RefreshManufactureDifficultySettingsData(null, cancellationToken);
     }
 }

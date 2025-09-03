@@ -436,11 +436,7 @@ describe('CatalogDetail', () => {
       );
 
       expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
-      expect(screen.getAllByText('-')).toContainEqual(
-        expect.objectContaining({
-          textContent: '-'
-        })
-      );
+      expect(screen.getByText('Nenastaveno')).toBeInTheDocument();
     });
 
     it('should display dash when manufacture difficulty is undefined', () => {
@@ -473,11 +469,7 @@ describe('CatalogDetail', () => {
       );
 
       expect(screen.getByText('Náročnost výroby')).toBeInTheDocument();
-      expect(screen.getAllByText('-')).toContainEqual(
-        expect.objectContaining({
-          textContent: '-'
-        })
-      );
+      expect(screen.getByText('Nenastaveno')).toBeInTheDocument();
     });
 
     it('should round manufacture difficulty to 2 decimal places', () => {

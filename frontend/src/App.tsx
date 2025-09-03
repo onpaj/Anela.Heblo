@@ -20,11 +20,12 @@ import TransportBoxList from './components/pages/TransportBoxList';
 import AuthGuard from './components/auth/AuthGuard';
 import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
-import { setGlobalTokenProvider } from './api/client';
+import { setGlobalTokenProvider, setGlobalToastHandler } from './api/client';
 import { apiRequest } from './auth/msalConfig';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
+import { AppInitializer } from './components/AppInitializer';
 import './i18n';
 
 // Create a client
@@ -189,7 +190,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
-          <div className="App min-h-screen" data-testid="app">
+          <AppInitializer>
+            <div className="App min-h-screen" data-testid="app">
             <MsalProvider instance={msalInstance}>
               <Router>
                 <AuthGuard>
@@ -214,7 +216,8 @@ function App() {
               </Router>
             </MsalProvider>
             <GlobalLoadingIndicator />
-          </div>
+            </div>
+          </AppInitializer>
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>

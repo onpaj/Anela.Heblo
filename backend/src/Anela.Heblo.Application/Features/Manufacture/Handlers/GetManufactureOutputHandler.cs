@@ -37,7 +37,9 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         
         // Get catalog items to get product names and difficulty
         var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
-        var catalogDict = catalogItems.ToDictionary(c => c.ProductCode, c => c);
+        var catalogDict = catalogItems
+            .Where(w => w.ManufactureDifficulty.HasValue)
+            .ToDictionary(c => c.ProductCode, c => c);
 
         // Group by month and calculate weighted output
         var monthlyData = history
@@ -60,7 +62,7 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
                         
                         if (catalogDict.TryGetValue(productCode, out var catalogItem))
                         {
-                            difficulty = catalogItem.ManufactureDifficulty > 0 ? catalogItem.ManufactureDifficulty : 1.0;
+                            difficulty = catalogItem.ManufactureDifficulty!.Value;
                             productName = catalogItem.ProductName ?? productCode;
                         }
                         

@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Purchase;
@@ -25,6 +26,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
+
+    // Catalog module
+    public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
 
     // Journal module
     public DbSet<JournalEntry> JournalEntries { get; set; } = null!;
@@ -69,6 +73,32 @@ public class ApplicationDbContext : DbContext
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        
+        // Global DateTime conversion to handle UTC/Local/Unspecified kinds for PostgreSQL
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                {
+                    // Convert any DateTime to Unspecified kind before saving to PostgreSQL
+                    if (property.ClrType == typeof(DateTime))
+                    {
+                        property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified),
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                        ));
+                    }
+                    else if (property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : null,
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
+                        ));
+                    }
+                }
+            }
+        }
 
         //modelBuilder.ConfigureScheduledTasks();
         //modelBuilder.ConfigureIssuedInvoices();

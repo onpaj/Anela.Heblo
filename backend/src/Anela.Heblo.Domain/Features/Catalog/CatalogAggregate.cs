@@ -83,9 +83,12 @@ public class CatalogAggregate : Entity<string>
 
     public string MinimalOrderQuantity { get; set; } = "";
     public double MinimalManufactureQuantity { get; set; } = 0;
-    public double ManufactureDifficulty { get; set; } = 0;
+    public double? ManufactureDifficulty => ManufactureDifficultySettings.ManufactureDifficulty;
 
     public List<ManufactureCost> ManufactureCostHistory { get; set; } = new();
+
+    // Manufacture difficulty settings - historical data and current value
+    public ManufactureDifficultyConfiguration ManufactureDifficultySettings { get; set; } = new();
 
     // Margin properties - calculated after ManufactureCostHistory is populated
     public decimal MarginPercentage { get; set; } = 0;

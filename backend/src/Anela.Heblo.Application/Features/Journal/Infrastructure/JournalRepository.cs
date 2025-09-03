@@ -1,10 +1,10 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
+using Anela.Heblo.Persistence.Repositories;
 
 namespace Anela.Heblo.Application.Features.Journal.Infrastructure
 {
