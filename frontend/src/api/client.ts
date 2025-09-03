@@ -241,6 +241,7 @@ export const QUERY_KEYS = {
   transportBoxTransitions: ['transportBoxTransitions'] as const,
   manufactureOutput: ['manufacture-output'] as const,
   manufactureDifficulty: ['manufacture-difficulty-settings'] as const,
+  productUsage: ['product-usage'] as const,
   // Add more query keys as needed
   // users: ['users'] as const,  
   // products: ['products'] as const,

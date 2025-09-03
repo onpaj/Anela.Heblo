@@ -345,4 +345,24 @@ public class CatalogController : ControllerBase
         }
     }
 
+    [HttpGet("{productCode}/usage")]
+    public async Task<ActionResult<GetProductUsageResponse>> GetProductUsage(string productCode)
+    {
+        _logger.LogInformation("Getting product usage for product code {ProductCode}", productCode);
+
+        try
+        {
+            var request = new GetProductUsageRequest { ProductCode = productCode };
+            var response = await _mediator.Send(request);
+            _logger.LogInformation("Successfully retrieved product usage for product {ProductCode} - found {Count} products using it", 
+                productCode, response.ManufactureTemplates.Count);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get product usage for product {ProductCode}", productCode);
+            throw;
+        }
+    }
+
 }

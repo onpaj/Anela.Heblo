@@ -70,7 +70,7 @@ public class FlexiSupplierRepository : ISupplierRepository
 
         try
         {
-            var contactsResult = await _contactListClient.GetAsync(ContactType.Supplier, 0, 0);
+            var contactsResult = await _contactListClient.GetAsync([ContactType.Supplier, ContactType.SupplierAndCustomer], 0, 0);
 
             var suppliers = contactsResult
                 .Select(MapToSupplier)
