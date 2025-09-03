@@ -235,15 +235,6 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
     }
 
     // Validate lines (skip empty rows - rows without material selected)
-    const nonEmptyLines = formData.lines.filter(line => 
-      line.selectedMaterial && line.selectedMaterial.productName
-    );
-    
-    // Check if there's at least one non-empty line
-    if (nonEmptyLines.length === 0) {
-      newErrors.lines = 'Přidejte alespoň jednu položku objednávky';
-    }
-    
     formData.lines.forEach((line, index) => {
       // Only validate rows that have material selected
       const hasValidMaterial = line.selectedMaterial && line.selectedMaterial.productName;

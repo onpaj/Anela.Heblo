@@ -28,7 +28,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse, onMenuClick }) => {
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['nakup', 'produkty', 'finance', 'vyroba', 'automatizace', 'logistika']);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   
   // Use mock auth if enabled, otherwise use real auth
   const realAuth = useAuth();
@@ -122,8 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
       prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
+        ? [] // Close the currently open section
+        : [sectionId] // Open only the clicked section, close all others
     );
   };
 

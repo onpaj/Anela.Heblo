@@ -31,7 +31,7 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
         // Apply filters
         if (!string.IsNullOrWhiteSpace(code))
         {
-            query = query.Where(x => x.Code != null && x.Code.Contains(code));
+            query = query.Where(x => x.Code != null && x.Code.ToUpper().Contains(code.ToUpper()));
         }
 
         if (isActiveFilter)
@@ -106,8 +106,9 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             TransportBoxState.Stocked
         };
 
+        var upperBoxCode = boxCode.ToUpper();
         var exists = await DbSet
-            .Where(x => x.Code == boxCode && activeStates.Contains(x.State))
+            .Where(x => x.Code == upperBoxCode && activeStates.Contains(x.State))
             .AnyAsync();
 
         _logger.LogDebug("Checked if box code {BoxCode} is active: {IsActive}", boxCode, exists);
@@ -117,10 +118,11 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
     public async Task<TransportBox?> GetByCodeAsync(string boxCode)
     {
+        var upperBoxCode = boxCode.ToUpper();
         var transportBox = await DbSet
             .Include(x => x.Items)
             .Include(x => x.StateLog)
-            .FirstOrDefaultAsync(x => x.Code == boxCode);
+            .FirstOrDefaultAsync(x => x.Code == upperBoxCode);
 
         _logger.LogDebug("Retrieved transport box by code {BoxCode}: {Found}",
             boxCode, transportBox != null);

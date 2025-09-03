@@ -64,13 +64,13 @@ public class TransportBox : Entity<int>
             throw new ValidationException("Box code must follow format: B + 3 digits (e.g., B001, B123)");
         }
         ChangeState(TransportBoxState.Opened, date, userName, TransportBoxState.New);
-        Code = boxCode;
+        Code = boxCode.ToUpper();
     }
 
     private static bool IsValidBoxCodeFormat(string boxCode)
     {
         if (boxCode.Length != VALID_BOX_CODE_LENGTH) return false;
-        if (boxCode[0] != BOX_CODE_PREFIX) return false;
+        if (char.ToUpper(boxCode[0]) != BOX_CODE_PREFIX) return false;
         return boxCode.Substring(1).All(char.IsDigit);
     }
 
@@ -138,7 +138,7 @@ public class TransportBox : Entity<int>
             throw new ValidationException("Box number confirmation is required");
         }
 
-        if (confirmedBoxNumber != Code)
+        if (confirmedBoxNumber.ToUpper() != Code)
         {
             throw new ValidationException($"Box number mismatch: entered '{confirmedBoxNumber}' but expected '{Code}'");
         }

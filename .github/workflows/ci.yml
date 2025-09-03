@@ -15,6 +15,69 @@ env:
   IMAGE_NAME: heblo
 
 jobs:
+  # Claude Code Review - Runs if commit message contains @claude or @claude-review
+  claude-review:
+    name: 🤖 Claude Code Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          
+      - name: 🔍 Check if Claude review is requested
+        id: check-claude
+        run: |
+          # Get the actual commit message from the HEAD commit
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s %b")
+          echo "📝 Actual HEAD commit message: $COMMIT_MESSAGE"
+          echo "📍 HEAD SHA: $(git rev-parse HEAD)"
+          
+          # Check if commit message contains the trigger keywords
+          if echo "$COMMIT_MESSAGE" | grep -qE "@claude|@claude-review"; then
+            echo "✅ Claude review requested in commit message"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Claude review not requested (add @claude or @claude-review to commit message)"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: 📝 Log trigger info
+        if: steps.check-claude.outputs.should_run == 'true'
+        run: |
+          echo "🔍 Claude Review triggered by commit message"
+          echo "Actual commit message: $(git log -1 --pretty=format:'%s %b')"
+          echo "PR: #${{ github.event.pull_request.number }}"
+          echo "SHA: ${{ github.event.pull_request.head.sha }}"
+          
+      - name: 🤖 Run Claude Code Review
+        if: steps.check-claude.outputs.should_run == 'true'
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ github.event.pull_request.number }}
+          
+          # Direct prompt for automated review
+          direct_prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
+            - Code complexity and maintainability
+            - Domain and concerns separation (should that be on backend or frontend side?)
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+            
+            Be constructive and helpful in your feedback.
+
   # Frontend Tests - Parallel execution
   frontend-tests:
     name: 🎯 Frontend Tests
