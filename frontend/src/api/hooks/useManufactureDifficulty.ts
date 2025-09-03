@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import { 
   CreateManufactureDifficultyRequest,
   UpdateManufactureDifficultyRequest,
@@ -12,7 +12,7 @@ import {
 // Hook to get manufacture difficulty settings for a product
 export const useManufactureDifficultySettings = (productCode: string | null, enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['manufacture-difficulty-settings', productCode],
+    queryKey: [...QUERY_KEYS.manufactureDifficulty, productCode],
     queryFn: async (): Promise<GetManufactureDifficultySettingsResponse> => {
       if (!productCode) {
         throw new Error('Product code is required');
@@ -38,13 +38,13 @@ export const useCreateManufactureDifficulty = () => {
     onSuccess: (data, variables) => {
       // Invalidate related queries
       queryClient.invalidateQueries({ 
-        queryKey: ['manufacture-difficulty-settings', variables.productCode] 
+        queryKey: [...QUERY_KEYS.manufactureDifficulty, variables.productCode] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['catalog', 'detail', variables.productCode] 
+        queryKey: [...QUERY_KEYS.catalog, 'detail', variables.productCode] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['catalog'] 
+        queryKey: QUERY_KEYS.catalog 
       });
     },
   });
@@ -64,13 +64,13 @@ export const useUpdateManufactureDifficulty = () => {
       const productCode = data.difficultyHistory?.productCode;
       if (productCode) {
         queryClient.invalidateQueries({ 
-          queryKey: ['manufacture-difficulty-settings', productCode] 
+          queryKey: [...QUERY_KEYS.manufactureDifficulty, productCode] 
         });
         queryClient.invalidateQueries({ 
-          queryKey: ['catalog-detail', productCode] 
+          queryKey: [...QUERY_KEYS.catalog, 'detail', productCode] 
         });
         queryClient.invalidateQueries({ 
-          queryKey: ['catalog'] 
+          queryKey: QUERY_KEYS.catalog 
         });
       }
     },
@@ -89,13 +89,13 @@ export const useDeleteManufactureDifficulty = () => {
     onSuccess: (data, variables) => {
       // Invalidate related queries
       queryClient.invalidateQueries({ 
-        queryKey: ['manufacture-difficulty-settings', variables.productCode] 
+        queryKey: [...QUERY_KEYS.manufactureDifficulty, variables.productCode] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['catalog', 'detail', variables.productCode] 
+        queryKey: [...QUERY_KEYS.catalog, 'detail', variables.productCode] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['catalog'] 
+        queryKey: QUERY_KEYS.catalog 
       });
     },
   });

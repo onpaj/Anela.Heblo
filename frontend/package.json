@@ -60,6 +60,11 @@
       "last 1 safari version"
     ]
   },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(date-fns)/)"
+    ]
+  },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/react-router-dom": "^5.3.3",
