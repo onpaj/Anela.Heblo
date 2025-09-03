@@ -232,7 +232,7 @@ public static class ServiceCollectionExtensions
         {
             // Use PostgreSQL storage for other environments
             var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
-            
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");

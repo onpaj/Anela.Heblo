@@ -214,10 +214,10 @@ public class CatalogController : ControllerBase
     }
 
     // Manufacture Difficulty Management Endpoints
-    
+
     [HttpGet("{productCode}/manufacture-difficulty")]
     public async Task<ActionResult<GetManufactureDifficultySettingsResponse>> GetManufactureDifficultyHistory(
-        string productCode, 
+        string productCode,
         [FromQuery] DateTime? asOfDate = null)
     {
         _logger.LogInformation("Getting manufacture difficulty history for product {ProductCode} as of {AsOfDate}",
@@ -230,7 +230,7 @@ public class CatalogController : ControllerBase
                 ProductCode = productCode,
                 AsOfDate = asOfDate
             };
-            
+
             var response = await _mediator.Send(request);
             _logger.LogInformation("Successfully retrieved manufacture difficulty history for product {ProductCode}",
                 productCode);
@@ -282,7 +282,7 @@ public class CatalogController : ControllerBase
 
     [HttpPut("manufacture-difficulty/{id}")]
     public async Task<ActionResult<UpdateManufactureDifficultyResponse>> UpdateManufactureDifficulty(
-        int id, 
+        int id,
         UpdateManufactureDifficultyRequest request)
     {
         if (id != request.Id)
@@ -326,7 +326,7 @@ public class CatalogController : ControllerBase
         {
             var request = new DeleteManufactureDifficultyRequest { Id = id };
             var response = await _mediator.Send(request);
-            
+
             if (response.Success)
             {
                 _logger.LogInformation("Successfully deleted manufacture difficulty {Id}", id);

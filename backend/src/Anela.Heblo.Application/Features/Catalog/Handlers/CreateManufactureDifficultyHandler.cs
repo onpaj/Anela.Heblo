@@ -128,7 +128,6 @@ public class CreateManufactureDifficultyHandler : IRequestHandler<CreateManufact
             
             existingSetting.ValidFrom = newValidFromForExisting;
             await _repository.UpdateAsync(existingSetting, cancellationToken);
-            return; // Don't check further conditions after adjusting ValidFrom
         }
     }
 

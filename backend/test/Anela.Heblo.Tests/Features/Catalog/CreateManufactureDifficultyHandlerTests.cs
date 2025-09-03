@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Handlers;
 using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,6 +13,7 @@ public class CreateManufactureDifficultyHandlerTests
 {
     private readonly Mock<IManufactureDifficultyRepository> _repositoryMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<ILogger<CreateManufactureDifficultyHandler>> _loggerMock;
     private readonly CreateManufactureDifficultyHandler _handler;
@@ -20,9 +22,15 @@ public class CreateManufactureDifficultyHandlerTests
     {
         _repositoryMock = new Mock<IManufactureDifficultyRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
         _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<CreateManufactureDifficultyHandler>>();
-        _handler = new CreateManufactureDifficultyHandler(_repositoryMock.Object, _catalogRepositoryMock.Object, _mapperMock.Object, _loggerMock.Object);
+        
+        // Setup default current user behavior
+        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
+        
+        _handler = new CreateManufactureDifficultyHandler(_repositoryMock.Object, _catalogRepositoryMock.Object, _currentUserServiceMock.Object, _mapperMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -72,7 +80,7 @@ public class CreateManufactureDifficultyHandlerTests
             ValidFrom = new DateTime(2024, 1, 1),
             ValidTo = new DateTime(2024, 12, 31),
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "System"
+            CreatedBy = "Test User"
         };
 
         var expectedDto = new ManufactureDifficultySettingDto
@@ -145,7 +153,7 @@ public class CreateManufactureDifficultyHandlerTests
             ValidFrom = new DateTime(2024, 1, 1),
             ValidTo = new DateTime(2024, 12, 31),
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "System"
+            CreatedBy = "Test User"
         };
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
