@@ -5,14 +5,10 @@ import TransportBoxStateBadge from './components/TransportBoxStateBadge';
 
 const TransportBoxInfo: React.FC<TransportBoxInfoProps> = ({
   transportBox,
-  boxNumberInput,
-  setBoxNumberInput,
-  boxNumberError,
   descriptionInput,
   handleDescriptionChange,
   isDescriptionChanged,
   isFormEditable,
-  handleBoxNumberSubmit,
   formatDate,
 }) => {
   return (
