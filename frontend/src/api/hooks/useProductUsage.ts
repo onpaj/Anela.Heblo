@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import { GetProductUsageResponse } from '../generated/api-client';
 
 export const useProductUsage = (productCode: string) => {
   return useQuery<GetProductUsageResponse>({
-    queryKey: ['product-usage', productCode],
+    queryKey: [...QUERY_KEYS.productUsage, productCode],
     queryFn: async () => {
       if (!productCode) {
         return new GetProductUsageResponse({ manufactureTemplates: [] });
