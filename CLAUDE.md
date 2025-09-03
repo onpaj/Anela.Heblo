@@ -636,15 +636,3 @@ These tasks can be referenced for future similar work or applied to other projec
 - Every time you would like to check if implementation is working, test for that instead of just launching the app (unit test, integration test or end to end ui test)
 - There are 3 kinds of tests - BE (Backend, .net tests), FE (Frontend, Jest tests), UI (User interface tests, Playwright)
 
-## Macros
-
-### Test
-```task
-description: Kompletnoi test solution
-steps:
-  - Spustit BE testy
-  - Spustit FE testy
-  - Spustit UI testy
-  - Spust FE i BE Lint
-- Kdyz nektery z testu selze, nepokracuj dal, zeptej se, zda mas rovnou opravit aplikaci. Pokud to bude vyzadovat zmenu testu, nech si to u uzivatele potvrdit
-```
