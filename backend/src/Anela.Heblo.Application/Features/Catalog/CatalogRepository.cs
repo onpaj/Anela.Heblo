@@ -33,6 +33,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IManufactureRepository _manufactureRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
+    private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
     private readonly ICatalogResilienceService _resilienceService;
 
     private readonly IMemoryCache _cache;
@@ -56,6 +57,7 @@ public class CatalogRepository : ICatalogRepository
         IManufactureRepository manufactureRepository,
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureCostCalculationService manufactureCostCalculationService,
+        IManufactureDifficultyRepository manufactureDifficultyRepository,
         ICatalogResilienceService resilienceService,
         IMemoryCache cache,
         TimeProvider timeProvider,
@@ -76,6 +78,7 @@ public class CatalogRepository : ICatalogRepository
         _manufactureRepository = manufactureRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
         _manufactureCostCalculationService = manufactureCostCalculationService;
+        _manufactureDifficultyRepository = manufactureDifficultyRepository;
         _resilienceService = resilienceService;
         _cache = cache;
         _timeProvider = timeProvider;
@@ -167,6 +170,25 @@ public class CatalogRepository : ICatalogRepository
         CachedManufactureDifficultyData = templates.ToDictionary(k => k.ProductCode, v => v.Amount);
     }
 
+    public async Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct)
+    {
+        // Load all manufacture difficulty history records
+        var difficultySettings = await _manufactureDifficultyRepository.ListAsync(product, cancellationToken: ct);
+
+        if (product == null) // All
+        {
+            // Group by product code for efficient lookup
+            CachedManufactureDifficultySettingsData = difficultySettings
+                .GroupBy(h => h.ProductCode)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(h => h.ValidFrom ?? DateTime.MinValue).ToList());
+        }
+        else
+        {
+            CachedManufactureDifficultySettingsData[product] = difficultySettings;
+            CatalogData.SingleOrDefault(s => s.ProductCode == product)?.ManufactureDifficultySettings.Assign(difficultySettings, _timeProvider.GetUtcNow().UtcDateTime);
+        }
+    }
+
     public async Task RefreshManufactureHistoryData(CancellationToken ct)
     {
         CachedManufactureHistoryData = (await _manufactureHistoryClient.GetHistoryAsync(_timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.ManufactureHistoryDays), _timeProvider.GetUtcNow().Date, cancellationToken: ct))
@@ -183,17 +205,6 @@ public class CatalogRepository : ICatalogRepository
             Type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED,
         }).ToList();
 
-        // Add ManufactureDifficulty data
-        foreach (var product in products)
-        {
-            if (product.Type == ProductType.Product || product.Type == ProductType.SemiProduct)
-            {
-                if (CachedManufactureDifficultyData.TryGetValue(product.ProductCode, out var difficulty))
-                {
-                    product.ManufactureDifficulty = difficulty;
-                }
-            }
-        }
 
         // Add ManufactureHistory data
         var manufactureMap = CachedManufactureHistoryData
@@ -210,6 +221,9 @@ public class CatalogRepository : ICatalogRepository
 
         // Calculate costs
         CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(products, ct);
+    
+        // Refresh difficulty settings data after other data is available
+        await RefreshManufactureDifficultySettingsData(null, ct);
     }
 
     private List<CatalogAggregate> CatalogData => _cache.GetOrCreate(nameof(CatalogData), c => Merge())!;
@@ -324,15 +338,6 @@ public class CatalogRepository : ICatalogRepository
                 product.ErpPrice = erpPrice;
             }
 
-            // Set ManufactureDifficulty for products and semi-products only
-            if (product.Type == ProductType.Product || product.Type == ProductType.SemiProduct)
-            {
-                if (CachedManufactureDifficultyData.TryGetValue(product.ProductCode, out var difficulty))
-                {
-                    product.ManufactureDifficulty = difficulty;
-                }
-            }
-
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
@@ -340,7 +345,11 @@ public class CatalogRepository : ICatalogRepository
                     product.ManufactureCostHistory.ForEach(f => f.MaterialCostFromPurchasePrice = product.ErpPrice.PurchasePrice);
             }
 
-            
+            // Set ManufactureDifficultySettings with historical data and current value
+            if (CachedManufactureDifficultySettingsData.TryGetValue(product.ProductCode, out var difficultySettings))
+            {
+                product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
+            }
             
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
@@ -497,6 +506,16 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedManufactureCostData), value);
+            Invalidate();
+        }
+    }
+
+    private IDictionary<string, List<ManufactureDifficultySetting>> CachedManufactureDifficultySettingsData
+    {
+        get => _cache.Get<Dictionary<string, List<ManufactureDifficultySetting>>>(nameof(CachedManufactureDifficultySettingsData)) ?? new Dictionary<string, List<ManufactureDifficultySetting>>();
+        set
+        {
+            _cache.Set(nameof(CachedManufactureDifficultySettingsData), value);
             Invalidate();
         }
     }

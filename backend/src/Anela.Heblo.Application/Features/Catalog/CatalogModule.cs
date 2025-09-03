@@ -8,7 +8,7 @@ using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Persistence.Repository;
+using Anela.Heblo.Persistence.Repositories;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +24,7 @@ public static class CatalogModule
 
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
+        services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
 
         // Register catalog-specific services
         services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
@@ -60,9 +61,15 @@ public static class CatalogModule
 
         // Register FluentValidation validators for catalog requests
         services.AddScoped<IValidator<GetCatalogDetailRequest>, GetCatalogDetailRequestValidator>();
+        services.AddScoped<IValidator<CreateManufactureDifficultyRequest>, CreateManufactureDifficultyRequestValidator>();
+        services.AddScoped<IValidator<UpdateManufactureDifficultyRequest>, UpdateManufactureDifficultyRequestValidator>();
+        services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
+        services.AddScoped<IPipelineBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>, ValidationBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>>();
+        services.AddScoped<IPipelineBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>, ValidationBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>>();
+        services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
 
         return services;
     }

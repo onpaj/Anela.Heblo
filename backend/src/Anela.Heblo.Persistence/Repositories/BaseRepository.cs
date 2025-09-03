@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using Anela.Heblo.Xcc.Domain;
 using Anela.Heblo.Xcc.Persistance;
+using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Persistence.Repository;
+namespace Anela.Heblo.Persistence.Repositories;
 
 /// <summary>
 /// Base generic repository implementation using Entity Framework Core

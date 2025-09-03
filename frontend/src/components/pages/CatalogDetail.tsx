@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink } from 'lucide-react';
+import { X, Package, BarChart3, MapPin, Hash, Layers, Loader2, AlertCircle, DollarSign, FileText, ShoppingCart, TrendingUp, BookOpen, Plus, Calendar, Edit2, ExternalLink, Settings } from 'lucide-react';
 import { CatalogItemDto, ProductType, useCatalogDetail, CatalogSalesRecordDto, CatalogConsumedRecordDto, CatalogPurchaseRecordDto, CatalogManufactureRecordDto } from '../../api/hooks/useCatalog';
 import { ManufactureCostDto, JournalEntryDto, MarginHistoryDto } from '../../api/generated/api-client';
 import JournalEntryModal from '../JournalEntryModal';
+import ManufactureDifficultyModal from '../ManufactureDifficultyModal';
 import { useJournalEntriesByProduct } from '../../api/hooks/useJournal';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -61,6 +62,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntryDto | undefined>(undefined);
+  const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] = useState(false);
   const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item
@@ -68,7 +70,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   
   // Fetch detailed data from API - use 13 months by default, 999 for full history
   const monthsBack = showFullHistory ? 999 : 13;
-  const { data: detailData, isLoading: detailLoading, error: detailError } = useCatalogDetail(effectiveProductCode, monthsBack);
+  const { data: detailData, isLoading: detailLoading, error: detailError, refetch: refetchCatalogDetail } = useCatalogDetail(effectiveProductCode, monthsBack);
   
   // Use item from prop if provided, otherwise use item from API detail data
   const effectiveItem = item || detailData?.item;
@@ -266,7 +268,10 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                   {/* Tab Content */}
                   <div className="flex-1 overflow-y-auto">
                     {activeTab === 'basic' ? (
-                      <BasicInfoTab item={effectiveItem} />
+                      <BasicInfoTab 
+                        item={effectiveItem} 
+                        onManufactureDifficultyClick={() => setShowManufactureDifficultyModal(true)}
+                      />
                     ) : activeTab === 'history' ? (
                       <PurchaseHistoryTab 
                         purchaseHistory={detailData?.historicalData?.purchaseHistory || []} 
@@ -397,6 +402,18 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
           associatedProducts: [effectiveItem.productCode]
         } as any}
         isEdit={!!selectedJournalEntry}
+      />
+      
+      {/* Manufacture Difficulty Modal */}
+      <ManufactureDifficultyModal
+        isOpen={showManufactureDifficultyModal}
+        onClose={() => {
+          setShowManufactureDifficultyModal(false);
+          refetchCatalogDetail();
+        }}
+        productCode={effectiveItem.productCode || ''}
+        productName={effectiveItem.productName || ''}
+        currentDifficulty={effectiveItem.manufactureDifficulty}
       />
     </div>
   );
@@ -813,9 +830,10 @@ const ProductSummaryTabs: React.FC<ProductSummaryTabsProps> = ({
 // BasicInfoTab Component - displays basic information, stock, price, and properties
 interface BasicInfoTabProps {
   item: CatalogItemDto;
+  onManufactureDifficultyClick: () => void;
 }
 
-const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
+const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item, onManufactureDifficultyClick }) => {
   return (
     <div className="space-y-6">
       {/* Basic Information */}
@@ -1029,12 +1047,19 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ item }) => {
               <span className="text-xs font-medium text-gray-600 block mb-1">
                 Náročnost výroby
               </span>
-              <span className="text-lg font-semibold text-gray-900">
-                {item.manufactureDifficulty && item.manufactureDifficulty > 0 
-                  ? item.manufactureDifficulty.toFixed(2)
-                  : '-'
-                }
-              </span>
+              <button
+                onClick={onManufactureDifficultyClick}
+                className="text-lg font-semibold text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:underline flex items-center space-x-1 mx-auto"
+                title="Klikněte pro správu náročnosti výroby"
+              >
+                <span>
+                  {item.manufactureDifficulty && item.manufactureDifficulty > 0 
+                    ? item.manufactureDifficulty.toFixed(2)
+                    : 'Nenastaveno'
+                  }
+                </span>
+                <Settings className="h-3 w-3" />
+              </button>
             </div>
           </div>
         </div>

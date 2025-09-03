@@ -79,7 +79,6 @@ public class ManufactureCostCalculationServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD001",
-                ManufactureDifficulty = 0, // No difficulty
                 ManufactureHistory = new List<ManufactureHistoryRecord>
                 {
                     new ManufactureHistoryRecord
@@ -116,7 +115,6 @@ public class ManufactureCostCalculationServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD001",
-                ManufactureDifficulty = 2.5,
                 ManufactureHistory = new List<ManufactureHistoryRecord>() // Empty history
             }
         };
@@ -247,7 +245,6 @@ public class ManufactureCostCalculationServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD001",
-                ManufactureDifficulty = 2.0,
                 ManufactureHistory = new List<ManufactureHistoryRecord>
                 {
                     new ManufactureHistoryRecord
@@ -266,6 +263,8 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
+        
+        SetupManufactureDifficulty(products[0], 2);
 
         _ledgerServiceMock
             .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
@@ -322,7 +321,6 @@ public class ManufactureCostCalculationServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD001",
-                ManufactureDifficulty = 0, // This will cause zero weighted production
                 ManufactureHistory = new List<ManufactureHistoryRecord>
                 {
                     new ManufactureHistoryRecord
@@ -334,6 +332,8 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
+        
+        SetupManufactureDifficulty(products[0], 0);
 
         _ledgerServiceMock
             .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
@@ -355,12 +355,11 @@ public class ManufactureCostCalculationServiceTests
 
     private List<CatalogAggregate> CreateTestProducts()
     {
-        return new List<CatalogAggregate>
+        var products = new List<CatalogAggregate>
         {
             new CatalogAggregate
             {
                 ProductCode = "PROD001",
-                ManufactureDifficulty = 2.5,
                 ManufactureHistory = new List<ManufactureHistoryRecord>
                 {
                     new ManufactureHistoryRecord
@@ -380,7 +379,6 @@ public class ManufactureCostCalculationServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD002",
-                ManufactureDifficulty = 1.5,
                 ManufactureHistory = new List<ManufactureHistoryRecord>
                 {
                     new ManufactureHistoryRecord
@@ -392,6 +390,12 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
+        
+        // Setup difficulty settings for test products
+        SetupManufactureDifficulty(products[0], 3); // was 2.5, rounded to 3
+        SetupManufactureDifficulty(products[1], 2); // was 1.5, rounded to 2
+        
+        return products;
     }
 
     private List<CostStatistics> CreateTestDirectCosts()
@@ -430,5 +434,22 @@ public class ManufactureCostCalculationServiceTests
                 Department = "HR"
             }
         };
+    }
+
+    private void SetupManufactureDifficulty(CatalogAggregate product, int difficultyValue)
+    {
+        var settings = new List<ManufactureDifficultySetting>
+        {
+            new ManufactureDifficultySetting
+            {
+                ProductCode = product.ProductCode,
+                DifficultyValue = difficultyValue,
+                ValidFrom = _testDateTime.AddMonths(-12),
+                ValidTo = null,
+                CreatedAt = _testDateTime.AddMonths(-12),
+                CreatedBy = "Test"
+            }
+        };
+        product.ManufactureDifficultySettings.Assign(settings, _testDateTime);
     }
 }

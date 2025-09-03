@@ -28,5 +28,19 @@ public class CatalogMappingProfile : Profile
         CreateMap<ProductPriceEshop, EshopPriceDto>();
 
         CreateMap<ProductPriceErp, ErpPriceDto>();
+
+        // ManufactureDifficulty mappings
+        CreateMap<ManufactureDifficultySetting, ManufactureDifficultySettingDto>()
+            .ForMember(dest => dest.IsCurrent, opt => opt.Ignore()); // Set manually in handlers
+        
+        CreateMap<CreateManufactureDifficultyRequest, ManufactureDifficultySetting>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
+        
+        CreateMap<UpdateManufactureDifficultyRequest, ManufactureDifficultySetting>()
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+            .ForMember(dest => dest.ProductCode, opt => opt.Ignore());
     }
 }

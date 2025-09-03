@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Repository;
+using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Journal.Infrastructure

@@ -87,7 +87,8 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
             var totalWeightedProduction = 0.0;
             foreach (var item in monthManufactures)
             {
-                totalWeightedProduction += item.ManufactureRecord.Amount * item.Product.ManufactureDifficulty;
+                if(item.Product.ManufactureDifficulty.HasValue)
+                    totalWeightedProduction += item.ManufactureRecord.Amount * item.Product.ManufactureDifficulty.Value;
             }
 
             // Skip if no weighted production

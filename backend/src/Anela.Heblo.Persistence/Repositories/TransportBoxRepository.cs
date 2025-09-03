@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Persistence.Repository;
 
 namespace Anela.Heblo.Persistence.Repositories;
 
