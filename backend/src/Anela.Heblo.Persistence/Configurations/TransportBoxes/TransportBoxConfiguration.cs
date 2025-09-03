@@ -40,6 +40,11 @@ public class TransportBoxConfiguration : IEntityTypeConfiguration<TransportBox>
             .HasColumnName("LastModificationTime")
             .HasColumnType("timestamp without time zone");
 
+        // Configure LastStateChanged for PostgreSQL backward compatibility
+        builder.Property(x => x.LastStateChanged)
+            .HasColumnName("LastStateChanged")
+            .HasColumnType("timestamp without time zone");
+
         builder.HasMany(x => x.Items)
             .WithOne()
             .HasForeignKey("TransportBoxId")

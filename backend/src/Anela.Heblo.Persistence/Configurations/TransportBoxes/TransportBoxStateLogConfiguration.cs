@@ -11,5 +11,11 @@ public class TransportBoxStateLogConfiguration : IEntityTypeConfiguration<Transp
         builder.ToTable("TransportBoxStateLog", "public");
 
         builder.HasKey(x => x.Id);
+        
+        // Configure StateDate for PostgreSQL backward compatibility
+        builder.Property(x => x.StateDate)
+            .HasColumnName("StateDate")
+            .HasColumnType("timestamp without time zone")
+            .IsRequired();
     }
 }

@@ -11,5 +11,11 @@ public class TransportBoxItemConfiguration : IEntityTypeConfiguration<TransportB
         builder.ToTable("TransportBoxItem", "public");
 
         builder.HasKey(x => x.Id);
+        
+        // Configure DateAdded for PostgreSQL backward compatibility
+        builder.Property(x => x.DateAdded)
+            .HasColumnName("DateAdded")
+            .HasColumnType("timestamp without time zone")
+            .IsRequired();
     }
 }

@@ -183,7 +183,6 @@ public class TransportBox : Entity<int>
     {
         CheckState(newState, allowedStates);
 
-        // Don't automatically modify Description - let user control it
         State = newState;
         LastStateChanged = now;
         _stateLog.Add(new TransportBoxStateLog(newState, now, userName, description));

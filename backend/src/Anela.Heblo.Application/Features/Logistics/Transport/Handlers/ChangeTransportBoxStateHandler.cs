@@ -98,7 +98,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
             // Execute the transition
             var currentUser = _currentUserService.GetCurrentUser();
-            var currentTime = _timeProvider.GetUtcNow().UtcDateTime;
+            var currentTime = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
             var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
 
             await transition.ChangeStateAsync(box, currentTime, userName);

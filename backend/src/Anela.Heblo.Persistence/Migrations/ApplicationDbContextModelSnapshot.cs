@@ -22,7 +22,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ManufactureDifficultyHistory", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ManufactureDifficultySetting", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -55,14 +55,14 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductCode")
-                        .HasDatabaseName("IX_ManufactureDifficultyHistory_ProductCode");
+                        .HasDatabaseName("IX_ManufactureDifficultySettings_ProductCode");
 
                     b.HasIndex("ProductCode", "ValidFrom", "ValidTo")
-                        .HasDatabaseName("IX_ManufactureDifficultyHistory_ProductCode_Validity");
+                        .HasDatabaseName("IX_ManufactureDifficultySettings_ProductCode_Validity");
 
-                    b.ToTable("ManufactureDifficultyHistory", null, t =>
+                    b.ToTable("ManufactureDifficultySettings", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ManufactureDifficultyHistory_ValidDates", "\"ValidFrom\" IS NULL OR \"ValidTo\" IS NULL OR \"ValidFrom\" < \"ValidTo\"");
+                            t.HasCheckConstraint("CK_ManufactureDifficultySettings_ValidDates", "\"ValidFrom\" IS NULL OR \"ValidTo\" IS NULL OR \"ValidFrom\" < \"ValidTo\"");
                         });
                 });
 
@@ -240,7 +240,8 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("LastStateChanged")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastStateChanged");
 
                     b.Property<string>("Location")
                         .HasColumnType("text");
@@ -266,7 +267,8 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<DateTime>("DateAdded")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("DateAdded");
 
                     b.Property<string>("ProductCode")
                         .IsRequired()
@@ -305,7 +307,8 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StateDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("StateDate");
 
                     b.Property<int?>("TransportBoxId")
                         .HasColumnType("integer");

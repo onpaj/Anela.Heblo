@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250903090857_AddManufactureDifficultyHistory")]
-    partial class AddManufactureDifficultyHistory
+    [Migration("20250903182738_FixTransportBoxDateTimeColumnTypes")]
+    partial class FixTransportBoxDateTimeColumnTypes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

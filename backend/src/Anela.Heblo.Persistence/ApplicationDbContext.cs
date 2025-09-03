@@ -36,36 +36,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<JournalEntryTag> JournalEntryTags { get; set; } = null!;
     public DbSet<JournalEntryTagAssignment> JournalEntryTagAssignments { get; set; } = null!;
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        // Update ConcurrencyStamp for TransportBox entities
-        var transportBoxEntries = ChangeTracker.Entries<TransportBox>()
-            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-
-        foreach (var entry in transportBoxEntries)
-        {
-            var now = DateTime.Now; // Use local time for PostgreSQL timestamp without time zone
-
-            entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N")[..32]; // 32 chars to fit in varchar(40)
-
-            // Set ExtraProperties to empty JSON object if null
-            if (string.IsNullOrEmpty(entry.Entity.ExtraProperties))
-            {
-                entry.Entity.ExtraProperties = "{}";
-            }
-
-            // Set CreationTime only when adding new entity
-            if (entry.State == EntityState.Added && entry.Entity.CreationTime == default)
-            {
-                entry.Entity.CreationTime = now;
-            }
-
-            // Set LastModificationTime for both insert and update
-            entry.Entity.LastModificationTime = now;
-        }
-
-        return await base.SaveChangesAsync(cancellationToken);
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,26 +44,26 @@ public class ApplicationDbContext : DbContext
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         
-        // Global DateTime conversion to handle UTC/Local/Unspecified kinds for PostgreSQL
+        // Handle DateTime conversion for PostgreSQL "timestamp without time zone"
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
                 {
-                    // Convert any DateTime to Unspecified kind before saving to PostgreSQL
+                    // Convert UTC to Unspecified for PostgreSQL, and Unspecified to UTC when reading
                     if (property.ClrType == typeof(DateTime))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified),
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified), // Convert to Unspecified for PostgreSQL
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)          // Treat as UTC when reading
                         ));
                     }
                     else if (property.ClrType == typeof(DateTime?))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : null,
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : null, // Convert to Unspecified for PostgreSQL
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null          // Treat as UTC when reading
                         ));
                     }
                 }
