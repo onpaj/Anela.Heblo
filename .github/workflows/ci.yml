@@ -15,6 +15,51 @@ env:
   IMAGE_NAME: heblo
 
 jobs:
+  # Claude Code Review - Runs if commit message contains @claude or @claude-review
+  claude-review:
+    name: 🤖 Claude Code Review
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' && 
+      (contains(github.event.pull_request.head.commit.message, '@claude') || 
+       contains(github.event.pull_request.head.commit.message, '@claude-review'))
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: 📝 Log trigger info
+        run: |
+          echo "🔍 Claude Review triggered by commit message"
+          echo "Commit: ${{ github.event.pull_request.head.commit.message }}"
+          echo "PR: #${{ github.event.pull_request.number }}"
+          
+      - name: 🤖 Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ github.event.pull_request.number }}
+          
+          # Direct prompt for automated review
+          direct_prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
+            - Code complexity and maintainability
+            - Domain and concerns separation (should that be on backend or frontend side?)
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+            
+            Be constructive and helpful in your feedback.
+
   # Frontend Tests - Parallel execution
   frontend-tests:
     name: 🎯 Frontend Tests
