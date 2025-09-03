@@ -24,7 +24,7 @@ const defaultProps = {
   descriptionInput: 'Test box description',
   handleDescriptionChange: jest.fn(),
   isDescriptionChanged: false,
-  isFormEditable: jest.fn(() => true),
+  isFormEditable: jest.fn((fieldType: string) => fieldType === 'notes'),
   handleBoxNumberSubmit: jest.fn(),
   formatDate: (date: string | Date | undefined) => '01.01.2024 11:00',
 };
@@ -52,10 +52,20 @@ describe('TransportBoxInfo', () => {
   });
 
   it('shows editable description when form is editable', () => {
-    render(<TransportBoxInfo {...defaultProps} />);
+    const mockIsFormEditable = jest.fn((fieldType: string) => {
+      return fieldType === 'notes';
+    });
     
-    const textarea = screen.getByDisplayValue('Test box description');
+    const props = {
+      ...defaultProps,
+      isFormEditable: mockIsFormEditable
+    };
+    
+    render(<TransportBoxInfo {...props} />);
+    
+    const textarea = screen.getByRole('textbox');
     expect(textarea).toBeInTheDocument();
+    expect(textarea).toHaveValue('Test box description');
     expect(textarea.tagName.toLowerCase()).toBe('textarea');
   });
 
@@ -93,14 +103,16 @@ describe('TransportBoxInfo', () => {
     
     render(<TransportBoxInfo {...props} />);
     
-    const textarea = screen.getByDisplayValue('Test box description');
+    const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, { target: { value: 'Updated description' } });
     
     expect(handleDescriptionChange).toHaveBeenCalledWith('Updated description');
   });
 
   it('calls handleBoxNumberSubmit when form is submitted', () => {
-    const handleBoxNumberSubmit = jest.fn();
+    const handleBoxNumberSubmit = jest.fn((e) => {
+      e.preventDefault(); // Prevent actual form submission
+    });
     const newStateBox = { ...mockTransportBox, state: 'New' };
     const props = {
       ...defaultProps,
