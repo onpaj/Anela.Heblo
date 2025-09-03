@@ -44,7 +44,7 @@ public class ApplicationDbContext : DbContext
 
         foreach (var entry in transportBoxEntries)
         {
-            var now = DateTime.Now; // Use local time for PostgreSQL timestamp without time zone
+            var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc); // Use UTC time consistently
 
             entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N")[..32]; // 32 chars to fit in varchar(40)
 
@@ -74,26 +74,26 @@ public class ApplicationDbContext : DbContext
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         
-        // Global DateTime conversion to handle UTC/Local/Unspecified kinds for PostgreSQL
+        // Ensure all DateTimes are treated as UTC for PostgreSQL compatibility
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
                 {
-                    // Convert any DateTime to Unspecified kind before saving to PostgreSQL
+                    // Ensure DateTimes are UTC when reading from/writing to database
                     if (property.ClrType == typeof(DateTime))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified),
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc), // Ensure UTC before saving
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)  // Ensure UTC when reading
                         ));
                     }
                     else if (property.ClrType == typeof(DateTime?))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : null,
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null, // Ensure UTC before saving
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null  // Ensure UTC when reading
                         ));
                     }
                 }
