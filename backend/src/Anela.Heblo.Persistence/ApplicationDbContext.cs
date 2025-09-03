@@ -44,26 +44,26 @@ public class ApplicationDbContext : DbContext
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         
-        // Ensure all DateTimes are treated as UTC for PostgreSQL compatibility
+        // Handle DateTime conversion for PostgreSQL "timestamp without time zone"
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
                 {
-                    // Ensure DateTimes are UTC when reading from/writing to database
+                    // Convert UTC to Unspecified for PostgreSQL, and Unspecified to UTC when reading
                     if (property.ClrType == typeof(DateTime))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc), // Ensure UTC before saving
-                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)  // Ensure UTC when reading
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified), // Convert to Unspecified for PostgreSQL
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)          // Treat as UTC when reading
                         ));
                     }
                     else if (property.ClrType == typeof(DateTime?))
                     {
                         property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null, // Ensure UTC before saving
-                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null  // Ensure UTC when reading
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : null, // Convert to Unspecified for PostgreSQL
+                            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null          // Treat as UTC when reading
                         ));
                     }
                 }
