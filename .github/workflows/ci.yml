@@ -19,10 +19,7 @@ jobs:
   claude-review:
     name: 🤖 Claude Code Review
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request' && 
-      (contains(github.event.pull_request.head.commit.message, '@claude') || 
-       contains(github.event.pull_request.head.commit.message, '@claude-review'))
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: write
@@ -33,14 +30,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          
+      - name: 🔍 Check if Claude review is requested
+        id: check-claude
+        run: |
+          # Get the actual commit message from the HEAD commit
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s %b")
+          echo "📝 Actual HEAD commit message: $COMMIT_MESSAGE"
+          echo "📍 HEAD SHA: $(git rev-parse HEAD)"
+          
+          # Check if commit message contains the trigger keywords
+          if echo "$COMMIT_MESSAGE" | grep -qE "@claude|@claude-review"; then
+            echo "✅ Claude review requested in commit message"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Claude review not requested (add @claude or @claude-review to commit message)"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
           
       - name: 📝 Log trigger info
+        if: steps.check-claude.outputs.should_run == 'true'
         run: |
           echo "🔍 Claude Review triggered by commit message"
-          echo "Commit: ${{ github.event.pull_request.head.commit.message }}"
+          echo "Actual commit message: $(git log -1 --pretty=format:'%s %b')"
           echo "PR: #${{ github.event.pull_request.number }}"
+          echo "SHA: ${{ github.event.pull_request.head.sha }}"
           
       - name: 🤖 Run Claude Code Review
+        if: steps.check-claude.outputs.should_run == 'true'
         id: claude-review
         uses: anthropics/claude-code-action@beta
         with:
