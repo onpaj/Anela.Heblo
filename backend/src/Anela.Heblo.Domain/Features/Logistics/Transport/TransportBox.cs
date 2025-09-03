@@ -183,10 +183,13 @@ public class TransportBox : Entity<int>
     {
         CheckState(newState, allowedStates);
 
+        // Convert UTC DateTime to Unspecified for PostgreSQL compatibility
+        var dbDateTime = DateTime.SpecifyKind(now, DateTimeKind.Unspecified);
+
         // Don't automatically modify Description - let user control it
         State = newState;
-        LastStateChanged = now;
-        _stateLog.Add(new TransportBoxStateLog(newState, now, userName, description));
+        LastStateChanged = dbDateTime;
+        _stateLog.Add(new TransportBoxStateLog(newState, dbDateTime, userName, description));
     }
 
     private void CheckState(TransportBoxState newState, params TransportBoxState[] allowedStates)
