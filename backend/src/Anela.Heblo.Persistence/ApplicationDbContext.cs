@@ -13,8 +13,11 @@ namespace Anela.Heblo.Persistence;
 /// </summary>
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    private readonly TimeProvider _timeProvider;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, TimeProvider timeProvider) : base(options)
     {
+        _timeProvider = timeProvider;
     }
 
     //public DbSet<ScheduledTask> Tasks { get; set; }
@@ -44,7 +47,7 @@ public class ApplicationDbContext : DbContext
 
         foreach (var entry in transportBoxEntries)
         {
-            var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc); // Use UTC time consistently
+            var now = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc); // Use TimeProvider consistently
 
             entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N")[..32]; // 32 chars to fit in varchar(40)
 

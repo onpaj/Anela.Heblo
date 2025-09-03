@@ -43,6 +43,6 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             throw new InvalidOperationException($"No connection string found for environment '{environment}'. Tried: '{environment}', 'DefaultConnection', 'Default'. Please check your configuration.");
         }
 
-        return new ApplicationDbContext(optionsBuilder.Options);
+        return new ApplicationDbContext(optionsBuilder.Options, TimeProvider.System);
     }
 }
