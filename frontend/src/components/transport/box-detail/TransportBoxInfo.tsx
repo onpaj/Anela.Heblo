@@ -59,47 +59,6 @@ const TransportBoxInfo: React.FC<TransportBoxInfoProps> = ({
         </div>
       </div>
       
-      {/* Box Number Input Form - only for New state */}
-      {transportBox.state === 'New' && (
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <form onSubmit={handleBoxNumberSubmit} className="flex flex-col">
-            <div className="flex items-center gap-3">
-              <label htmlFor="boxNumberInput" className="text-sm font-medium text-gray-700">
-                Číslo boxu:
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="boxNumberInput"
-                  type="text"
-                  value={boxNumberInput}
-                  onChange={(e) => setBoxNumberInput(e.target.value.toUpperCase())}
-                  placeholder="B001"
-                  maxLength={4}
-                  className={`w-24 px-3 py-2 text-lg font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                    boxNumberError ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  style={{ fontSize: '16px' }} // Prevent iOS zoom on focus
-                />
-                <button
-                  type="submit"
-                  disabled={!boxNumberInput.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Přiřadit
-                </button>
-              </div>
-            </div>
-            {boxNumberError && (
-              <div className="mt-2 text-sm text-red-600">
-                {boxNumberError}
-              </div>
-            )}
-            <div className="mt-1 text-xs text-gray-500">
-              Zadání čísla otevře box (B + 3 číslice)
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Notes/Description Section */}
       <div className="mt-4">

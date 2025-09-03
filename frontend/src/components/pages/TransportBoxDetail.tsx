@@ -340,15 +340,58 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
           </div>
           
           <div className="flex items-start gap-4">
-            {/* Box Number Display - Top Right Corner */}
-            {boxData?.transportBox && boxData.transportBox.state !== 'New' && (
+            {/* Box Number Input or Display - Top Right Corner */}
+            {boxData?.transportBox && (
               <div className="flex flex-col items-end">
-                <div className="text-sm font-medium text-gray-700 mb-1">
-                  Číslo boxu:
-                </div>
-                <div className="px-4 py-2 text-xl font-mono font-bold text-indigo-600 bg-indigo-50 border-2 border-indigo-200 rounded-md">
-                  {boxData.transportBox.code || '---'}
-                </div>
+                {boxData.transportBox.state === 'New' ? (
+                  // Show input form for New state
+                  <form onSubmit={handleBoxNumberSubmit} className="flex flex-col items-end">
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="boxNumberInput" className="text-sm font-medium text-gray-700">
+                        Číslo boxu:
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="boxNumberInput"
+                          type="text"
+                          value={boxNumberInput}
+                          onChange={(e) => setBoxNumberInput(e.target.value.toUpperCase())}
+                          placeholder="B001"
+                          maxLength={4}
+                          className={`w-20 px-3 py-2 text-lg font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                            boxNumberError ? 'border-red-300' : 'border-gray-300'
+                          }`}
+                          style={{ fontSize: '16px' }} // Prevent iOS zoom on focus
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={!boxNumberInput.trim()}
+                        className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Přiřadit
+                      </button>
+                    </div>
+                    {boxNumberError && (
+                      <div className="mt-1 text-xs text-red-600 max-w-xs text-right">
+                        {boxNumberError}
+                      </div>
+                    )}
+                    <div className="mt-1 text-xs text-gray-500 text-right">
+                      Zadání čísla otevře box (B + 3 číslice)
+                    </div>
+                  </form>
+                ) : (
+                  // Show prominent box number display for all other states
+                  <div className="flex flex-col items-end">
+                    <div className="text-sm font-medium text-gray-700 mb-1">
+                      Číslo boxu:
+                    </div>
+                    <div className="px-4 py-2 text-xl font-mono font-bold text-indigo-600 bg-indigo-50 border-2 border-indigo-200 rounded-md">
+                      {boxData.transportBox.code || '---'}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
@@ -377,14 +420,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
             {/* Basic Information */}
             <TransportBoxInfo
               transportBox={boxData.transportBox}
-              boxNumberInput={boxNumberInput}
-              setBoxNumberInput={setBoxNumberInput}
-              boxNumberError={boxNumberError}
               descriptionInput={descriptionInput}
               handleDescriptionChange={handleDescriptionChange}
               isDescriptionChanged={isDescriptionChanged}
               isFormEditable={isFormEditable}
-              handleBoxNumberSubmit={handleBoxNumberSubmit}
               formatDate={formatDate}
             />
 

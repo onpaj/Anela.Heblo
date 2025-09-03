@@ -18,14 +18,10 @@ const mockTransportBox: TransportBoxDto = {
 
 const defaultProps = {
   transportBox: mockTransportBox,
-  boxNumberInput: '',
-  setBoxNumberInput: jest.fn(),
-  boxNumberError: null,
   descriptionInput: 'Test box description',
   handleDescriptionChange: jest.fn(),
   isDescriptionChanged: false,
   isFormEditable: jest.fn((fieldType: string) => fieldType === 'notes'),
-  handleBoxNumberSubmit: jest.fn(),
   formatDate: (date: string | Date | undefined) => '01.01.2024 11:00',
 };
 
@@ -43,13 +39,6 @@ describe('TransportBoxInfo', () => {
     expect(screen.getByText('01.01.2024 11:00')).toBeInTheDocument(); // Last changed
   });
 
-  it('shows box number input form for New state', () => {
-    const newStateBox = { ...mockTransportBox, state: 'New' };
-    render(<TransportBoxInfo {...defaultProps} transportBox={newStateBox} />);
-    
-    expect(screen.getByPlaceholderText('B001')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /přiřadit/i })).toBeInTheDocument();
-  });
 
   it('shows editable description when form is editable', () => {
     const mockIsFormEditable = jest.fn((fieldType: string) => {
@@ -109,23 +98,4 @@ describe('TransportBoxInfo', () => {
     expect(handleDescriptionChange).toHaveBeenCalledWith('Updated description');
   });
 
-  it('calls handleBoxNumberSubmit when form is submitted', () => {
-    const handleBoxNumberSubmit = jest.fn((e) => {
-      e.preventDefault(); // Prevent actual form submission
-    });
-    const newStateBox = { ...mockTransportBox, state: 'New' };
-    const props = {
-      ...defaultProps,
-      transportBox: newStateBox,
-      handleBoxNumberSubmit,
-      boxNumberInput: 'B002'
-    };
-    
-    render(<TransportBoxInfo {...props} />);
-    
-    const submitButton = screen.getByRole('button', { name: /přiřadit/i });
-    fireEvent.click(submitButton);
-    
-    expect(handleBoxNumberSubmit).toHaveBeenCalled();
-  });
 });

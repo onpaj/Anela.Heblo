@@ -13,14 +13,10 @@ export interface ApiClientWithInternals {
 
 export interface TransportBoxInfoProps {
   transportBox: TransportBoxDto;
-  boxNumberInput: string;
-  setBoxNumberInput: (value: string) => void;
-  boxNumberError: string | null;
   descriptionInput: string;
   handleDescriptionChange: (value: string) => void;
   isDescriptionChanged: boolean;
   isFormEditable: (fieldType: 'items' | 'notes' | 'boxNumber') => boolean;
-  handleBoxNumberSubmit: (e: React.FormEvent) => void;
   formatDate: (dateString: string | Date | undefined) => string;
 }
 
