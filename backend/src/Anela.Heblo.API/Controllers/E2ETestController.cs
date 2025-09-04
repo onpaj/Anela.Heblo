@@ -74,7 +74,7 @@ public class E2ETestController : ControllerBase
         try
         {
             // Validate Service Principal token (reuse existing validation logic)
-            if (!await ValidateServicePrincipalToken(token))
+            if (!ValidateServicePrincipalToken(token))
             {
                 return Unauthorized("Invalid Service Principal token");
             }
@@ -215,7 +215,7 @@ public class E2ETestController : ControllerBase
 </html>";
     }
 
-    private async Task<bool> ValidateServicePrincipalToken(string token)
+    private bool ValidateServicePrincipalToken(string token)
     {
         try
         {
