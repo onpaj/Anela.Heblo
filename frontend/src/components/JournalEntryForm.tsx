@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Tag, Package, Save, X, Plus, Trash2, Type, Search } from 'lucide-react';
+import { Calendar, FileText, Tag, Save, X, Plus, Trash2, Type, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCreateJournalEntry, useUpdateJournalEntry, useJournalTags, useCreateJournalTag } from '../api/hooks/useJournal';
-import { useCatalogAutocomplete } from '../api/hooks/useCatalogAutocomplete';
+import { CatalogAutocomplete } from './common/CatalogAutocomplete';
+import { catalogItemToProductCode, PRODUCT_TYPE_FILTERS } from './common/CatalogAutocompleteAdapters';
 import type { JournalEntryDto } from '../api/generated/api-client';
 import { CreateJournalEntryRequest, UpdateJournalEntryRequest, CreateJournalTagRequest } from '../api/generated/api-client';
 
@@ -32,18 +33,10 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
     entry?.tags?.map(tag => tag.id!).filter(id => id !== undefined) || []
   );
   const [associatedProducts, setAssociatedProducts] = useState<string[]>(entry?.associatedProducts || []);
-  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [currentProduct, setCurrentProduct] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState('');
   const [showNewTagInput, setShowNewTagInput] = useState(false);
   const [useTextInput, setUseTextInput] = useState(false);
-  
-  // Product autocomplete (only when not using text input)
-  const { data: autocompleteData, isLoading: autocompleteLoading, error: autocompleteError } = useCatalogAutocomplete(
-    useTextInput ? '' : productSearchTerm
-  );
-  
-  // Debug autocomplete data
-  console.log('JournalEntryForm autocomplete:', { productSearchTerm, autocompleteData, autocompleteLoading, autocompleteError });
   
   // Validation state
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -121,32 +114,15 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
     }
   };
 
-  const handleSelectProduct = (productCode: string) => {
-    if (productCode.trim() && !associatedProducts.includes(productCode.trim())) {
+  const handleProductSelect = (productCode: string | null) => {
+    if (productCode && productCode.trim() && !associatedProducts.includes(productCode.trim())) {
       setAssociatedProducts([...associatedProducts, productCode.trim()]);
-      setProductSearchTerm('');
     }
+    setCurrentProduct(null); // Reset for next selection
   };
 
   const handleRemoveProduct = (productCode: string) => {
     setAssociatedProducts(associatedProducts.filter(p => p !== productCode));
-  };
-
-  const handleProductSearchChange = (value: string) => {
-    setProductSearchTerm(value);
-  };
-
-  const handleProductInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && productSearchTerm.trim()) {
-      handleSelectProduct(productSearchTerm.trim());
-    }
-  };
-
-  const handleProductInputBlur = () => {
-    // In text input mode, auto-add product when input loses focus
-    if (useTextInput && productSearchTerm.trim()) {
-      handleSelectProduct(productSearchTerm.trim());
-    }
   };
 
   const handleTagToggle = (tagId: number) => {
@@ -333,59 +309,28 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 </button>
               </div>
             </div>
-            <div className="relative">
-              <div className="relative flex-1">
-                <Package className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={productSearchTerm}
-                  onChange={(e) => handleProductSearchChange(e.target.value)}
-                  onKeyPress={handleProductInputKeyPress}
-                  onBlur={handleProductInputBlur}
-                  placeholder={
-                    useTextInput
-                      ? "Zadejte produktový prefix (např. COSM-001)..."
-                      : "Začněte psát název nebo kód produktu..."
-                  }
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
+            
+            <CatalogAutocomplete<string>
+              value={currentProduct}
+              onSelect={handleProductSelect}
+              placeholder={
+                useTextInput
+                  ? "Zadejte produktový prefix (např. COSM-001)..."
+                  : "Začněte psát název nebo kód produktu..."
+              }
+              productTypes={PRODUCT_TYPE_FILTERS.ALL}
+              itemAdapter={catalogItemToProductCode}
+              displayValue={(value) => value}
+              allowManualEntry={useTextInput}
+              size="md"
+            />
+            
+            {/* Mode-specific help text */}
+            {useTextInput && (
+              <div className="mt-1 text-xs text-gray-500">
+                Tip: Zadejte produktový prefix a stiskněte Enter nebo klikněte mimo pole pro přidání
               </div>
-              
-              {/* Mode-specific help text */}
-              {useTextInput ? (
-                <div className="mt-1 text-xs text-gray-500">
-                  Tip: Zadejte produktový prefix a stiskněte Enter nebo klikněte mimo pole pro přidání
-                </div>
-              ) : (
-                productSearchTerm.length >= 2 && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    Loading: {autocompleteLoading ? 'Yes' : 'No'}, 
-                    Error: {autocompleteError ? autocompleteError.message : 'No'}, 
-                    Items: {autocompleteData?.items?.length || 0}
-                  </div>
-                )
-              )}
-              
-              {/* Autocomplete dropdown - only show in autocomplete mode */}
-              {!useTextInput && productSearchTerm.length >= 2 && autocompleteData?.items && autocompleteData.items.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-48 overflow-y-auto">
-                  {autocompleteData.items.map((item, index) => (
-                    <button
-                      key={`${item.productCode}-${index}`}
-                      onClick={() => handleSelectProduct(item.productCode || '')}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                    >
-                      <div className="flex items-center">
-                        <Package className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-900">
-                          {item.productName} <span className="text-gray-500 font-mono">({item.productCode})</span>
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
             
             {/* Selected products */}
             <div className="flex flex-wrap gap-2 mt-3">

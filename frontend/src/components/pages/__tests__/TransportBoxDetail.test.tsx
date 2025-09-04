@@ -90,7 +90,7 @@ describe('TransportBoxDetail', () => {
 
     expect(screen.getAllByText('BOX-001')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Nový').length).toBeGreaterThan(0); // State appears multiple times
-    expect(screen.getByText('Základní informace')).toBeInTheDocument();
+    expect(screen.getAllByText('Základní informace')[0]).toBeInTheDocument();
   });
 
   it('should display loading state', () => {

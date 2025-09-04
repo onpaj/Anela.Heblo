@@ -8,8 +8,7 @@ public class GetTransportBoxesRequest : IRequest<GetTransportBoxesResponse>
     public int Take { get; set; } = 50;
     public string? Code { get; set; }
     public string? State { get; set; }
-    public DateTime? FromDate { get; set; }
-    public DateTime? ToDate { get; set; }
+    public string? ProductCode { get; set; }
     public string? SortBy { get; set; }
     public bool SortDescending { get; set; }
 }

@@ -9,8 +9,7 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
         int take,
         string? code = null,
         TransportBoxState? state = null,
-        DateTime? fromDate = null,
-        DateTime? toDate = null,
+        string? productCode = null,
         string? sortBy = null,
         bool sortDescending = false,
         bool isActiveFilter = false);

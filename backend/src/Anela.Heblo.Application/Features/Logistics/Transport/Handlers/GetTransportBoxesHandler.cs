@@ -20,8 +20,8 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
 
     public async Task<GetTransportBoxesResponse> Handle(GetTransportBoxesRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting transport boxes with filters - Code: {Code}, State: {State}, Skip: {Skip}, Take: {Take}",
-            request.Code, request.State, request.Skip, request.Take);
+        _logger.LogInformation("Getting transport boxes with filters - Code: {Code}, State: {State}, ProductCode: {ProductCode}, Skip: {Skip}, Take: {Take}",
+            request.Code, request.State, request.ProductCode, request.Skip, request.Take);
 
         // Parse state if provided
         TransportBoxState? stateFilter = null;
@@ -45,8 +45,7 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
             request.Take,
             request.Code,
             stateFilter,
-            request.FromDate,
-            request.ToDate,
+            request.ProductCode,
             request.SortBy,
             request.SortDescending,
             isActiveFilter);
