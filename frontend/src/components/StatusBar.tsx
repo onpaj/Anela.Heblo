@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getRuntimeConfig } from '../config/runtimeConfig';
 import { getAuthenticatedApiClient } from '../api/client';
+import { useLiveHealthCheck, useReadyHealthCheck } from '../api/hooks/useHealth';
+import { Heart, Shield } from 'lucide-react';
 
 interface StatusBarProps {
   className?: string;
@@ -14,6 +16,19 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
     apiUrl: string;
     mockAuth: boolean;
   } | null>(null);
+
+  // Health check hooks
+  const { 
+    data: liveHealthData, 
+    isLoading: isLiveHealthLoading, 
+    error: liveHealthError 
+  } = useLiveHealthCheck();
+
+  const { 
+    data: readyHealthData, 
+    isLoading: isReadyHealthLoading, 
+    error: readyHealthError 
+  } = useReadyHealthCheck();
 
   useEffect(() => {
     const loadAppInfo = async () => {
@@ -88,6 +103,21 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
       : 'text-gray-600'; // Normal text for Azure AD
   };
 
+  const getHealthDotColor = (status: string, isLoading: boolean, hasError: boolean) => {
+    if (isLoading) return 'bg-gray-400 animate-pulse';
+    if (hasError) return 'bg-red-500';
+    switch (status) {
+      case 'Healthy':
+        return 'bg-emerald-500';
+      case 'Degraded':
+        return 'bg-yellow-500';
+      case 'Unhealthy':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
   // Mobile status bar should be full width
   const isMobile = window.innerWidth < 768;
   
@@ -127,6 +157,35 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '', sidebarCol
             )}
             <span>|</span>
             <span>API: {new URL(appInfo.apiUrl).host}</span>
+            <span>|</span>
+            {/* Health Check Dots */}
+            <div className="flex items-center space-x-2">
+              {/* Live Health Check */}
+              <div 
+                className="group relative flex items-center"
+                title={`Live Health: ${isLiveHealthLoading ? 'Načítá...' : liveHealthError ? 'Chyba' : liveHealthData?.status || 'Neznámý'}`}
+              >
+                <Heart className="h-3 w-3 text-gray-500 mr-1" />
+                <div className={`w-2 h-2 rounded-full ${getHealthDotColor(
+                  liveHealthData?.status || 'Unknown', 
+                  isLiveHealthLoading, 
+                  !!liveHealthError
+                )}`}></div>
+              </div>
+              
+              {/* Ready Health Check */}
+              <div 
+                className="group relative flex items-center"
+                title={`Ready Health: ${isReadyHealthLoading ? 'Načítá...' : readyHealthError ? 'Chyba' : readyHealthData?.status || 'Neznámý'}`}
+              >
+                <Shield className="h-3 w-3 text-gray-500 mr-1" />
+                <div className={`w-2 h-2 rounded-full ${getHealthDotColor(
+                  readyHealthData?.status || 'Unknown', 
+                  isReadyHealthLoading, 
+                  !!readyHealthError
+                )}`}></div>
+              </div>
+            </div>
           </>
         )}
       </div>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useRecentAuditLogs, useRecentAuditSummary } from '../../api/hooks/useAudit';
+import { useLiveHealthCheck, useReadyHealthCheck } from '../../api/hooks/useHealth';
 import { useManualCatalogRefresh, refreshOperations } from '../../api/hooks/useManualCatalogRefresh';
 import { useRecalculatePurchasePrice } from '../../api/hooks/useRecalculatePurchasePrice';
 import { RecalculatePurchasePriceRequest } from '../../api/generated/api-client';
-import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings, Calculator } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Activity, AlertTriangle, Database, RefreshCw, Settings, Calculator, Heart, Shield } from 'lucide-react';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
 const Dashboard: React.FC = () => {
@@ -21,6 +22,18 @@ const Dashboard: React.FC = () => {
     isLoading: isSummaryLoading, 
     error: summaryError 
   } = useRecentAuditSummary();
+
+  const { 
+    data: liveHealthData, 
+    isLoading: isLiveHealthLoading, 
+    error: liveHealthError 
+  } = useLiveHealthCheck();
+
+  const { 
+    data: readyHealthData, 
+    isLoading: isReadyHealthLoading, 
+    error: readyHealthError 
+  } = useReadyHealthCheck();
 
   const manualRefreshMutation = useManualCatalogRefresh();
   const recalculatePricesMutation = useRecalculatePurchasePrice();
@@ -107,6 +120,40 @@ const Dashboard: React.FC = () => {
     const successRate = totalRequests > 0 ? ((successfulRequests / totalRequests) * 100).toFixed(1) : '0';
     
     return { totalRequests, successfulRequests, failedRequests, successRate };
+  };
+
+  const getHealthStatusIcon = (status: string, isLoading: boolean, hasError: boolean) => {
+    if (isLoading) {
+      return <RefreshCw className="h-6 w-6 text-gray-400 animate-spin" />;
+    }
+    if (hasError) {
+      return <XCircle className="h-6 w-6 text-red-500" />;
+    }
+    switch (status) {
+      case 'Healthy':
+        return <CheckCircle className="h-6 w-6 text-emerald-500" />;
+      case 'Degraded':
+        return <AlertTriangle className="h-6 w-6 text-yellow-500" />;
+      case 'Unhealthy':
+        return <XCircle className="h-6 w-6 text-red-500" />;
+      default:
+        return <AlertTriangle className="h-6 w-6 text-gray-400" />;
+    }
+  };
+
+  const getHealthStatusColor = (status: string, isLoading: boolean, hasError: boolean) => {
+    if (isLoading) return 'text-gray-900';
+    if (hasError) return 'text-red-900';
+    switch (status) {
+      case 'Healthy':
+        return 'text-emerald-900';
+      case 'Degraded':
+        return 'text-yellow-900';
+      case 'Unhealthy':
+        return 'text-red-900';
+      default:
+        return 'text-gray-900';
+    }
   };
 
   const stats = getSummaryStats();
@@ -283,8 +330,8 @@ const Dashboard: React.FC = () => {
 
         {/* Summary Table */}
         {activeTab === 'overview' && auditSummary?.summary && (
-          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
-            <div className="px-4 py-5 sm:px-6">
+          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8 flex flex-col flex-1 min-h-0">
+            <div className="px-4 py-5 sm:px-6 flex-shrink-0">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 Souhrn podle typu dat (posledních 7 dní)
               </h3>
@@ -292,7 +339,7 @@ const Dashboard: React.FC = () => {
                 Statistiky načítání dat podle zdroje a typu
               </p>
             </div>
-            <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+            <div className="flex-1 overflow-auto min-h-0">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
@@ -369,8 +416,8 @@ const Dashboard: React.FC = () => {
 
         {/* Recent Logs Table */}
         {activeTab === 'logs' && auditLogs?.logs && (
-          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
-            <div className="px-4 py-5 sm:px-6">
+          <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8 flex flex-col flex-1 min-h-0">
+            <div className="px-4 py-5 sm:px-6 flex-shrink-0">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 Poslední audit logy (24 hodin)
               </h3>
@@ -378,7 +425,7 @@ const Dashboard: React.FC = () => {
                 Zobrazeno posledních {auditLogs.logs.length} záznamů
               </p>
             </div>
-            <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+            <div className="flex-1 overflow-auto min-h-0">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
