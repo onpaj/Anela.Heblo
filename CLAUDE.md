@@ -4,133 +4,194 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a documentation repository for "Anela Heblo" - a cosmetics company workspace application. The repository contains comprehensive architecture documentation and design specifications for a full-stack web application that will be built later.
+This is an implementation repository for "Anela Heblo" - a cosmetics company workspace application. The project is actively being developed following Clean Architecture principles with a full-stack .NET 8 + React architecture.
 
 ## Architecture Summary
 
-**Stack**: Monorepo (.NET 8 + React), Clean Architecture with Vertical Slice organization, MediatR + Controllers, Single Docker image deployment, Azure Web App for Containers
+**Stack**: Monorepo (.NET 8 + React), **Clean Architecture** with Vertical Slice organization, MediatR + **MVC Controllers**, Single Docker image deployment, Azure Web App for Containers
+
+**IMPORTANT ARCHITECTURAL UPDATE**: The backend has evolved from a simple Vertical Slice implementation to a proper Clean Architecture with clear layer separation:
+- **Domain Layer** (`Anela.Heblo.Domain`): Contains domain entities, repository interfaces, domain services
+- **Application Layer** (`Anela.Heblo.Application`): MediatR handlers, business logic, DTOs
+- **Infrastructure Layer** (`Anela.Heblo.Persistence`): Database contexts, EF configurations, repository implementations
+- **API Layer** (`Anela.Heblo.API`): MVC Controllers (not FastEndpoints), authentication, serves React app
 - **Frontend**: React PWA with i18next localization, MSAL/Mock authentication, hot reload in dev
 - **Backend**: ASP.NET Core (.NET 8) with Clean Architecture, MediatR pattern, Hangfire background jobs, serves React static files
-  - **Anela.Heblo.API**: Host/Composition layer with MVC Controllers
-  - **Anela.Heblo.Domain**: Domain layer with entities, domain services, and contracts
-  - **Anela.Heblo.Application**: Application layer with MediatR handlers and infrastructure interfaces
-  - **Anela.Heblo.Persistence**: Infrastructure layer with EF Core contexts and repository implementations
+    - **Anela.Heblo.API**: Host/Composition layer with MVC Controllers (NOT FastEndpoints)
+  - **Anela.Heblo.Domain**: Domain layer with entities, repository interfaces, domain services
+  - **Anela.Heblo.Application**: Application layer with MediatR handlers, DTOs, business logic
+  - **Anela.Heblo.Persistence**: Infrastructure layer with EF Core contexts, entity configurations, repository implementations
 - **Database**: PostgreSQL with EF Core migrations
 - **Authentication**: MS Entra ID (production) / Mock Auth (development/test)
 - **Integrations**: ABRA Flexi (custom API client), Shoptet (Playwright-based scraping)
 - **Testing**: Playwright for both E2E testing and Shoptet integration automation
 - **Deployment**: Single Docker container to Azure Web App for Containers, GitHub Actions CI/CD
 
-## Repository Structure (Vertical Slice Architecture - IMPLEMENTED)
+## Repository Structure (Clean Architecture with Vertical Slice Organization)
 
-**Current Vertical Slice Architecture Implementation (IMPLEMENTED):**
+**Current Clean Architecture Implementation with MediatR + Controllers:**
 ```
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Host/Composition project (FastEndpoints + serves React)
+│   │   ├── Anela.Heblo.API/           # Host/Composition layer
+│   │   │   ├── Controllers/           # MVC Controllers for API endpoints
+│   │   │   │   └── {Feature}Controller.cs # One controller per feature
 │   │   │   ├── Extensions/            # Service registration & configuration
-│   │   │   │   ├── ServiceCollectionExtensions.cs
-│   │   │   │   ├── LoggingExtensions.cs
-│   │   │   │   └── AuthenticationExtensions.cs
 │   │   │   ├── Authentication/        # Authentication handlers
-│   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
-│   │   ├── Anela.Heblo.Application/           # Feature modules and business logic
-│   │   │   ├── features/              # Vertical slice feature modules
-│   │   │   │   └── weather/           # Weather feature (example implementation)
-│   │   │   │       ├── contracts/     # Public interfaces, DTOs
-│   │   │   │       │   ├── IWeatherService.cs
-│   │   │   │       │   ├── GetWeatherForecastRequest.cs
-│   │   │   │       │   └── GetWeatherForecastResponse.cs
-│   │   │   │       ├── Application/   # MediatR handlers (Application Services)
-│   │   │   │       │   ├── GetWeatherForecastHandler.cs
-│   │   │   │       │   └── WeatherService.cs
-│   │   │   │       ├── domain/        # Entities, aggregates
-│   │   │   │       │   ├── WeatherForecast.cs
-│   │   │   │       │   └── WeatherConstants.cs
-│   │   │   │       # Controllers defined in API project
-│   │   │   │       └── WeatherModule.cs # DI registration
-│   │   │   │   # Future modules: catalog/, invoices/, manufacture/, purchase/, transport/
+│   │   ├── Anela.Heblo.Domain/        # Domain layer
+│   │   │   ├── Features/              # Feature-specific domain objects
+│   │   │   │   └── {Feature}/         # Feature domain folder
+│   │   │   │       ├── {Entity}.cs    # Domain entities
+│   │   │   │       ├── I{Entity}Repository.cs # Repository interfaces
+│   │   │   │       └── {Subdomain}/   # Optional subdomains for complex features
+│   │   │   └── Shared/                # Cross-cutting domain utilities
+│   │   ├── Anela.Heblo.Application/   # Application layer
+│   │   │   ├── Features/              # Feature-specific application services
+│   │   │   │   └── {Feature}/         # Feature application folder
+│   │   │   │       ├── UseCases/      # MediatR handlers (for complex features)
+│   │   │   │       │   └── {UseCase}/ # Use case folder: Handler.cs, Request.cs, Response.cs
+│   │   │   │       ├── Contracts/     # Shared DTOs across use cases
+│   │   │   │       ├── Services/      # Domain services and business logic
+│   │   │   │       ├── Infrastructure/ # Feature infrastructure
+│   │   │   │       ├── Validators/    # FluentValidation request validators
+│   │   │   │       ├── {Feature}Repository.cs # Repository implementation
+│   │   │   │       ├── {Feature}MappingProfile.cs # AutoMapper profile
+│   │   │   │       ├── {Feature}Constants.cs # Feature constants
+│   │   │   │       └── {Feature}Module.cs # DI registration
 │   │   │   └── ApplicationModule.cs   # Central module registration
-│   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
+│   │   ├── Anela.Heblo.Persistence/   # Infrastructure layer
 │   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
-│   │   │   ├── Repository/            # Generic repository pattern
-│   │   │   │   ├── IRepository.cs     # Generic repository interface
-│   │   │   │   └── Repository.cs      # Concrete EF repository implementation
-│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   ├── {Feature}/             # Feature-specific persistence (complex features)
+│   │   │   │   ├── {Entity}Configuration.cs # EF Core entity configurations
+│   │   │   │   └── {Entity}Repository.cs    # Feature-specific repositories
+│   │   │   ├── Repositories/          # Generic/shared repositories
 │   │   │   ├── Migrations/            # EF Core migrations
-│   │   │   └── Services/              # Infrastructure services
-│   │   │       └── TelemetryService.cs
-│   │   ├── Anela.Heblo.Domain/        # Shared domain entities
-│   │   │   ├── Entities/              # Domain entities
-│   │   │   └── Constants/             # Domain constants
+│   │   │   └── PersistenceModule.cs   # DI registration
 │   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   ├── test/      # Unit/integration tests
-│   │   └── Anela.Heblo.Tests/      # Integration tests for all modules
-│   │       ├── ApplicationStartupTests.cs
-│   │       └── Features/
-│   │           └── WeatherForecastEndpointTests.cs
-│   └── scripts/   # Utility scripts (e.g. DB tools, backups)
+│   └── scripts/   # Utility scripts
 │
 ├── frontend/      # React PWA (builds into backend wwwroot)
 │   ├── public/     # Static assets (index.html, favicon, etc.)
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── __tests__/    # Component unit tests
-│   │   ├── pages/
-│   │   │   └── __tests__/    # Page component tests
-│   │   ├── api/         # API client and services
-│   │   │   └── __tests__/    # API client unit tests
-│   │   ├── auth/        # Authentication logic
-│   │   │   └── __tests__/    # Authentication tests
-│   │   ├── config/      # Configuration management
-│   │   │   └── __tests__/    # Configuration tests
-│   │   └── ...
-│   ├── test/       # UI automation tests (Playwright only)
-│   │   ├── ui/          # UI/Layout tests (Playwright)
-│   │   │   └── layout/  # Layout component UI tests
+│   │   ├── components/    # React components with co-located __tests__/
+│   │   ├── pages/         # Page components with co-located __tests__/
+│   │   ├── api/           # API client and services with co-located __tests__/
+│   │   └── [other areas]  # Other frontend areas with co-located __tests__/
+│   ├── test/       # UI automation tests (Playwright)
+│   │   ├── ui/          # UI/Layout tests
 │   │   ├── integration/ # Integration tests
 │   │   └── e2e/         # End-to-end tests
 │   └── package.json # Node.js dependencies and scripts
 │
 ├── docs/          # Project documentation
-│   ├── architecture/       # Architecture documentation
-│   │   ├── filesystem.md
-│   │   ├── environments.md
-│   │   ├── application_infrastructure.md
-│   │   └── observability.md
-│   ├── design/            # UI/UX design documentation
-│   │   ├── ui_design_document.md
-│   │   ├── layout_definition.md
-│   │   └── styleguide.md
-│   ├── features/          # Feature-specific documentation
-│   │   └── Authentication.md
-│   └── tasks/             # Reusable task definitions
-│       ├── backend-clean-architecture-refactoring.md
-│       └── AUTHENTICATION_TESTING.md
 ├── scripts/       # Development and deployment scripts
-│   ├── build-and-push.sh
-│   ├── deploy-azure.sh
-│   └── run-playwright-tests.sh
-├── .github/        # GitHub Actions workflows
-├── .env            # Dev environment variables
-├── Dockerfile      # Single image for backend + frontend
-├── docker-compose.yml # For local dev/test if needed
-├── CLAUDE.md       # AI assistant instructions
-└── .dockerignore   # Docker build optimization
+├── .github/       # GitHub Actions workflows
+└── [configuration files]
 ```
 
-**🏗️ Vertical Slice Architecture Benefits Implemented:**
-- **Feature Cohesion**: All layers of a feature are kept together in one module
+**🏗️ Clean Architecture with Vertical Slice Organization:**
+- **Clean Architecture layers**: API (Host), Domain, Application, Persistence (Infrastructure)
 - **MediatR Pattern**: Controllers send requests to handlers via MediatR for clean separation
-- **Handlers as Application Services**: Business logic resides in MediatR handlers, no separate service layer
-- **Vertical Organization**: Each feature slice contains its own contracts, handlers, domain, and infrastructure code
+- **Vertical Organization**: Features organized vertically but respecting Clean Architecture boundaries
 - **Standard API Pattern**: All endpoints follow /api/{controller} REST conventions
-- **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
-- **SOLID Principles**: Applied within each vertical slice
+- **Feature Autonomy**: Each feature manages its own contracts, services, and infrastructure
+- **SOLID Principles**: Applied within each vertical slice and across layers
 - **Testability**: Each handler can be tested in isolation
 - **Maintainability**: Changes to a feature are localized to its module
+
+## Feature Organization Patterns
+
+### Simple Features (1-3 use cases):
+```
+Features/{Feature}/
+├── Get{Entity}Handler.cs       # MediatR handler
+├── Create{Entity}Handler.cs    # MediatR handler
+├── Model/                      # Request/Response DTOs
+│   ├── Get{Entity}Request.cs
+│   ├── Get{Entity}Response.cs
+│   ├── Create{Entity}Request.cs
+│   └── Create{Entity}Response.cs
+└── {Feature}Module.cs          # DI registration
+```
+
+### Complex Features (4+ use cases):
+```
+Features/{Feature}/
+├── UseCases/                   # Use case handlers organized by functionality
+│   ├── Get{Entity}List/
+│   │   ├── Get{Entity}ListHandler.cs
+│   │   ├── Get{Entity}ListRequest.cs
+│   │   └── Get{Entity}ListResponse.cs
+│   ├── Get{Entity}Detail/
+│   ├── Create{Entity}/
+│   ├── Update{Entity}/
+│   └── Delete{Entity}/
+├── Contracts/                  # Shared DTOs across use cases
+│   ├── {Entity}Dto.cs
+│   └── [Other shared DTOs]
+├── Services/                   # Domain services and business logic
+│   ├── I{Entity}Service.cs
+│   └── {Entity}Service.cs
+├── Infrastructure/             # Feature infrastructure
+│   ├── {Entity}Scheduler.cs
+│   ├── {Entity}FeatureFlags.cs
+│   └── Exceptions/
+├── Validators/                 # Request validation
+│   ├── Create{Entity}RequestValidator.cs
+│   └── Update{Entity}RequestValidator.cs
+├── {Feature}Repository.cs      # Feature repository
+├── {Feature}MappingProfile.cs  # AutoMapper profile
+├── {Feature}Constants.cs       # Feature constants
+└── {Feature}Module.cs         # DI registration
+```
+
+## Component Placement Rules
+
+### API Layer (`Anela.Heblo.API`):
+- **Controllers/**: MVC Controllers that expose REST endpoints
+  - One controller per feature: `{Feature}Controller.cs`
+  - Controllers only orchestrate MediatR requests
+  - Follow `/api/{controller}` routing pattern
+
+### Domain Layer (`Anela.Heblo.Domain`):
+- **Features/{Feature}/**: Domain entities, aggregates, repository interfaces
+  - Domain entities: `{Entity}.cs`
+  - Repository contracts: `I{Entity}Repository.cs`
+  - Domain services interfaces
+  - For complex domains, use subfolders: `{Feature}/{Subdomain}/`
+
+### Application Layer (`Anela.Heblo.Application`):
+- **Features/{Feature}/UseCases/**: MediatR handlers (business operations)
+  - Each use case in separate folder with Handler, Request, Response
+  - Use case naming: `Get{Entity}List`, `Create{Entity}`, `Update{Entity}`
+- **Features/{Feature}/Contracts/**: Shared DTOs across multiple use cases
+- **Features/{Feature}/Services/**: Domain services, background services
+- **Features/{Feature}/Infrastructure/**: Feature-specific infrastructure
+- **Features/{Feature}/Validators/**: FluentValidation request validators
+- **Features/{Feature}/{Feature}Repository.cs**: Repository implementations
+- **Features/{Feature}/{Feature}Module.cs**: DI container registration
+
+### Infrastructure Layer (`Anela.Heblo.Persistence`):
+- **ApplicationDbContext.cs**: Single DbContext (initially)
+- **{Feature}/{Subdomain}/**: Feature-specific persistence (complex features)
+  - Entity configurations: `{Entity}Configuration.cs`
+  - Repository implementations: `{Entity}Repository.cs`
+- **Repositories/**: Generic/shared repositories (`BaseRepository.cs`)
+- **Mapping/**: Database-specific mappers for external systems
+- **Migrations/**: EF Core migrations
+- **PersistenceModule.cs**: DI container registration
+
+## Key Principles
+
+- **Vertical organization**: Each feature contains all its layers
+- **MediatR pattern**: Controllers send requests to handlers via MediatR
+- **Handlers as Application Services**: Business logic resides in MediatR handlers
+- **Standard endpoints**: All endpoints follow `/api/{controller}` pattern
+- **Feature autonomy**: Each feature manages its own contracts, services, and infrastructure
+- **SOLID principles**: Applied within each vertical slice
 
 ## Core Modules
 
@@ -205,12 +266,17 @@ The frontend follows a Tailwind CSS-based design system with:
 
 ## OpenAPI Client Generation
 
-The backend automatically generates a TypeScript client for the React frontend:
+### Backend C# Client
+- **Location**: `backend/src/Anela.Heblo.API.Client/`
+- **Auto-generation**: PostBuild event in API project (Debug mode only)
+- **Tool**: NSwag with System.Text.Json
+- **Output**: `Generated/AnelaHebloApiClient.cs`
 
-- **Source**: API project PostBuild event in Debug mode
-- **Configuration**: `backend/src/Anela.Heblo.API/nswag.frontend.json`
-- **Output**: `frontend/src/api/generated/api-client.ts`
+### Frontend TypeScript Client
+- **Location**: `frontend/src/api/generated/api-client.ts`
+- **Auto-generation**: Via backend PostBuild event or frontend prebuild script
 - **Tool**: NSwag with Fetch API template
+- **Build Integration**: Automatically generated before frontend build
 - **Integration**: TanStack Query for data fetching and caching
 - **Usage**: React hooks in `frontend/src/api/hooks.ts`
 - **Endpoint Pattern**: All API endpoints follow `/api/{controller}` standard REST pattern
@@ -262,9 +328,7 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 
 **Enforcement Rules**:
 - NIKDY nepoužívat relativní URLs přímo v fetch calls
-- VŽDY ověřit, že API volá správný port (5001 pro backend, ne 3001 pro frontend)
 - Pro všechny hooks používat generovaný API client prostřednictvím `getAuthenticatedApiClient()`
-- Purchase orders modul byl refaktorován aby používal standardní generovaný API client (migrace z vlastního client řešení)
 
 ## Background Jobs (Hangfire)
 
@@ -450,15 +514,29 @@ This ensures documentation stays synchronized with actual implementation and arc
     **Usage**: First run "Launch Automation Environment", then run any of the test configurations.
 
 11. **Test Organization Structure**:
-    - **UI/Layout Tests**: `/frontend/test/ui/layout/{component}/`
+    
+    ### **Unit & Integration Tests (Jest + React Testing Library)**
+    **Tests are located in `__tests__/` folders next to the components they test:**
+    - **`src/api/__tests__/`** - API client unit tests
+    - **`src/components/__tests__/`** - React component tests
+    - **`src/pages/__tests__/`** - Page component tests
+    - **`src/auth/__tests__/`** - Authentication logic tests
+    - **`src/config/__tests__/`** - Configuration management tests
+    
+    ### **UI Automation Tests (Playwright)**
+    **UI tests are in separate `/frontend/test/` directory:**
+    - **`test/ui/layout/{component}/`** - Visual and interaction tests
       - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
       - `statusbar/` - Status bar positioning, content, responsiveness
       - `auth/` - Authentication flows, login/logout UI behavior
       - `topbar/` - Top navigation, menu interactions
       - `general/` - Overall layout, responsive design, page structure
-    - **Component Tests**: `/frontend/test/components/`
-    - **Integration Tests**: `/frontend/test/integration/`
-    - **E2E Tests**: `/frontend/test/e2e/`
+    - **`test/integration/`** - Component interaction testing
+    - **`test/e2e/`** - Full user journey testing
+    
+    **CRITICAL Test Environment Rules:**
+    - **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components
+    - **UI/Playwright Tests**: MUST use automation environment (ports 3001/5001), located in `/frontend/test/`
 
 12. **CRITICAL: Background Process Management**:
     - **ALWAYS run servers in background**: Use `&` at end of commands
@@ -612,11 +690,35 @@ public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
 - Internal domain objects can still use records if not exposed via API
 - API client regeneration automatically picks up new properties when using classes
 
+## Implementation Guidelines
+
+### When Creating New Features:
+1. **Start with Domain**: Define entities and repository interfaces in `Domain/Features/{Feature}/`
+2. **Add Application Logic**: Create handlers in `Application/Features/{Feature}/`
+3. **Configure Persistence**: Create entity configurations in `Persistence/{Feature}/` and repository implementations
+4. **Expose via API**: Create controller in `API/Controllers/{Feature}Controller.cs`
+5. **Choose Pattern**: Simple (flat handlers) vs Complex (UseCases/ structure) based on feature size
+6. **Register Dependencies**: Update `{Feature}Module.cs` and `PersistenceModule.cs` for proper DI registration
+
+### Naming Conventions:
+- **Controllers**: `{Feature}Controller` (e.g., `CatalogController`)
+- **Handlers**: `{Action}{Entity}Handler` (e.g., `GetCatalogListHandler`)
+- **Requests/Responses**: `{Action}{Entity}Request/Response` (e.g., `GetCatalogListRequest`)
+- **DTOs**: `{Entity}Dto` (e.g., `CatalogItemDto`)
+- **Services**: `{Entity}Service` and `I{Entity}Service`
+- **Entity Configurations**: `{Entity}Configuration` (e.g., `PurchaseOrderConfiguration`)
+- **Repository Implementations**: `{Entity}Repository` (e.g., `TransportBoxRepository`)
+
+### Evolution Path:
+- **Simple → Complex**: Start with flat structure, migrate to UseCases/ when feature grows
+- **Shared → Feature-specific**: Move shared concerns into feature-specific implementations as needed
+- **Single → Multiple DbContexts**: Eventually split database contexts per feature for better isolation
+
 ## Available Task Definitions
 
 The `/docs/tasks/` directory contains reusable task definitions for common operations:
 
-- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process) - can be adapted for Vertical Slice Architecture
+- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process)
 - **`AUTHENTICATION_TESTING.md`**: Guidelines for testing authentication flows
 
 These tasks can be referenced for future similar work or applied to other projects.
@@ -629,7 +731,7 @@ These tasks can be referenced for future similar work or applied to other projec
 - OpenAPI client generation for frontend (post-build step)
 - All Docker images pushed to Docker Hub
 - Observability via Application Insights
-- **Backend follows Vertical Slice Architecture** - see `/docs/architecture/filesystem.md` for detailed structure
+- **Backend follows Clean Architecture with Vertical Slice organization** - see `/docs/architecture/filesystem.md` for detailed structure
 - To run playwright tests always use ./scripts/run-playwright-tests.sh script, this script does not require any confirmation from user
 - To debug single playwright tests, also use ./scripts/run-playwright-tests.sh using its parameter to run single test
 - Use this script even when asked "create a playwright test for it to debug" something.. Create test and debug it using that script.
