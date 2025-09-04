@@ -4,253 +4,177 @@ This document defines the project's directory structure and filesystem organizat
 
 ---
 
-## 📁 Directory Structure
+## 📁 Directory Structure Overview
 
 ```
 /                  # Monorepo root
 ├── backend/       # Backend – ASP.NET Core application
 │   ├── src/       # Application code
-│   │   ├── Anela.Heblo.API/           # Host/Composition project (Controllers + serves React)
+│   │   ├── Anela.Heblo.API/           # Host/Composition layer
 │   │   │   ├── Controllers/           # MVC Controllers for API endpoints
-│   │   │   │   ├── PurchaseOrdersController.cs
-│   │   │   │   ├── CatalogController.cs
-│   │   │   │   └── WeatherController.cs
+│   │   │   │   └── {Feature}Controller.cs # One controller per feature
 │   │   │   ├── Extensions/            # Service registration & configuration
-│   │   │   │   ├── ServiceCollectionExtensions.cs
-│   │   │   │   ├── LoggingExtensions.cs
-│   │   │   │   └── AuthenticationExtensions.cs
 │   │   │   ├── Authentication/        # Authentication handlers
-│   │   │   │   └── MockAuthenticationHandler.cs
 │   │   │   └── Program.cs             # Application entry point
-│   │   ├── Anela.Heblo.Domain/        # Domain layer - domain entities and repository interfaces
+│   │   ├── Anela.Heblo.Domain/        # Domain layer
 │   │   │   ├── Features/              # Feature-specific domain objects
-│   │   │   │   ├── Audit/             # Audit domain (empty - contracts in Application)
-│   │   │   │   ├── Bank/              # Banking domain objects
-│   │   │   │   │   ├── BankAccountConfiguration.cs
-│   │   │   │   │   ├── BankStatementData.cs
-│   │   │   │   │   └── IBankClient.cs
-│   │   │   │   ├── CashRegister/      # Cash register domain objects
-│   │   │   │   │   ├── CashRegister.cs
-│   │   │   │   │   ├── CashRegisterOrder.cs
-│   │   │   │   │   └── ICashRegisterOrdersSource.cs
-│   │   │   │   ├── Catalog/           # Product catalog domain (complex)
-│   │   │   │   │   ├── CatalogAggregate.cs
-│   │   │   │   │   ├── ProductType.cs
-│   │   │   │   │   ├── ICatalogRepository.cs
-│   │   │   │   │   ├── Stock/         # Stock management subdomain
-│   │   │   │   │   │   ├── ErpStock.cs
-│   │   │   │   │   │   ├── EshopStock.cs
-│   │   │   │   │   │   └── IStockTakingRepository.cs
-│   │   │   │   │   ├── Sales/         # Sales tracking subdomain
-│   │   │   │   │   │   ├── CatalogSaleRecord.cs
-│   │   │   │   │   │   └── ICatalogSalesClient.cs
-│   │   │   │   │   ├── Price/         # Pricing subdomain
-│   │   │   │   │   │   ├── ProductPriceErp.cs
-│   │   │   │   │   │   └── IProductPriceErpClient.cs
-│   │   │   │   │   └── PurchaseHistory/ # Purchase history subdomain
-│   │   │   │   │       ├── CatalogPurchaseRecord.cs
-│   │   │   │   │       └── IPurchaseHistoryClient.cs
-│   │   │   │   ├── Configuration/     # Application configuration
-│   │   │   │   │   ├── ApplicationConfiguration.cs
-│   │   │   │   │   └── ConfigurationConstants.cs
-│   │   │   │   ├── Invoices/          # Invoice processing domain
-│   │   │   │   │   ├── IssuedInvoiceDetail.cs
-│   │   │   │   │   ├── InvoiceCustomer.cs
-│   │   │   │   │   └── IIssuedInvoiceSource.cs
-│   │   │   │   ├── Logistics/         # Logistics and transport
-│   │   │   │   │   ├── Carriers.cs
-│   │   │   │   │   ├── Warehouses.cs
-│   │   │   │   │   ├── Transport/     # Transport box management
-│   │   │   │   │   │   ├── TransportBox.cs
-│   │   │   │   │   │   └── ITransportBoxRepository.cs
-│   │   │   │   │   └── Picking/       # Picking list functionality
-│   │   │   │   │       └── IPickingListSource.cs
-│   │   │   │   ├── Manufacture/       # Manufacturing domain
-│   │   │   │   │   ├── Ingredient.cs
-│   │   │   │   │   └── IManufactureRepository.cs
-│   │   │   │   ├── Purchase/          # Purchase order domain
-│   │   │   │   │   ├── PurchaseOrder.cs
-│   │   │   │   │   ├── PurchaseOrderLine.cs
-│   │   │   │   │   ├── IPurchaseOrderRepository.cs
-│   │   │   │   │   └── Supplier.cs
-│   │   │   │   └── Weather/           # Weather forecast domain
-│   │   │   │       ├── WeatherForecast.cs
-│   │   │   │       └── WeatherConstants.cs
+│   │   │   │   └── {Feature}/         # Feature domain folder
+│   │   │   │       ├── {Entity}.cs    # Domain entities
+│   │   │   │       ├── I{Entity}Repository.cs # Repository interfaces
+│   │   │   │       └── {Subdomain}/   # Optional subdomains for complex features
 │   │   │   └── Shared/               # Cross-cutting domain utilities
-│   │   │       ├── Kernel/           # Domain base classes
-│   │   │       │   ├── Result.cs
-│   │   │       │   ├── IAggregateRoot.cs
-│   │   │       │   └── DomainEvent.cs
-│   │   │       └── Users/            # User management utilities
-│   │   │           ├── CurrentUser.cs
-│   │   │           ├── ICurrentUserService.cs
-│   │   │           └── CurrentUserExtensions.cs
-│   │   ├── Anela.Heblo.Application/   # Application services and handlers
+│   │   ├── Anela.Heblo.Application/   # Application layer
 │   │   │   ├── Features/              # Feature-specific application services
-│   │   │   │   ├── Audit/              # Audit log feature
-│   │   │   │   │   ├── GetAuditLogsHandler.cs
-│   │   │   │   │   ├── GetAuditSummaryHandler.cs
-│   │   │   │   │   ├── Model/         # Request/Response DTOs
-│   │   │   │   │   │   ├── GetAuditLogsRequest.cs
-│   │   │   │   │   │   └── GetAuditLogsResponse.cs
-│   │   │   │   │   └── AuditModule.cs
-│   │   │   │   ├── Catalog/           # Product catalog feature (complex)
-│   │   │   │   │   ├── GetCatalogListHandler.cs
-│   │   │   │   │   ├── GetCatalogDetailHandler.cs
-│   │   │   │   │   ├── CatalogRefreshBackgroundService.cs
-│   │   │   │   │   ├── Refresh*DataHandler.cs (14+ handlers)
-│   │   │   │   │   ├── Model/         # Catalog DTOs
-│   │   │   │   │   │   ├── CatalogItemDto.cs
-│   │   │   │   │   │   ├── GetCatalogListRequest.cs
-│   │   │   │   │   │   └── RefreshDataRequests.cs
-│   │   │   │   │   ├── Fakes/         # Test implementations
-│   │   │   │   │   │   └── EmptyTransportBoxRepository.cs
-│   │   │   │   │   └── CatalogModule.cs
-│   │   │   │   ├── Configuration/     # App configuration feature
-│   │   │   │   │   ├── GetConfigurationHandler.cs
-│   │   │   │   │   ├── Model/
-│   │   │   │   │   │   ├── GetConfigurationRequest.cs
-│   │   │   │   │   │   └── GetConfigurationResponse.cs
-│   │   │   │   │   └── ConfigurationModule.cs
-│   │   │   │   ├── Purchase/          # Purchase order feature
-│   │   │   │   │   ├── CreatePurchaseOrderHandler.cs
-│   │   │   │   │   ├── GetPurchaseOrdersHandler.cs
-│   │   │   │   │   ├── GetPurchaseOrderByIdHandler.cs
-│   │   │   │   │   ├── UpdatePurchaseOrderHandler.cs
-│   │   │   │   │   ├── UpdatePurchaseOrderStatusHandler.cs
-│   │   │   │   │   ├── Model/         # Purchase DTOs
-│   │   │   │   │   │   ├── CreatePurchaseOrderRequest.cs
-│   │   │   │   │   │   ├── CreatePurchaseOrderResponse.cs
-│   │   │   │   │   │   └── GetPurchaseOrdersRequest.cs
-│   │   │   │   │   ├── Infrastructure/
-│   │   │   │   │   │   └── PurchaseOrderRepository.cs
-│   │   │   │   │   └── PurchaseModule.cs
-│   │   │   │   └── Weather/           # Weather forecast feature
-│   │   │   │       ├── GetWeatherForecastHandler.cs
-│   │   │   │       ├── Model/
-│   │   │   │       │   ├── GetWeatherForecastRequest.cs
-│   │   │   │       │   └── GetWeatherForecastResponse.cs
-│   │   │   │       └── WeatherModule.cs
-│   │   │   └── ApplicationModule.cs  # Central module registration
-│   │   ├── Anela.Heblo.Persistence/   # Shared database infrastructure
+│   │   │   │   └── {Feature}/         # Feature application folder
+│   │   │   │       ├── UseCases/      # MediatR handlers (for complex features)
+│   │   │   │       │   └── {UseCase}/ # Use case folder: Handler.cs, Request.cs, Response.cs
+│   │   │   │       ├── Contracts/     # Shared DTOs across use cases
+│   │   │   │       ├── Services/      # Domain services and business logic
+│   │   │   │       ├── Infrastructure/ # Feature infrastructure
+│   │   │   │       ├── Validators/    # FluentValidation request validators
+│   │   │   │       ├── {Feature}Repository.cs # Repository implementation
+│   │   │   │       ├── {Feature}MappingProfile.cs # AutoMapper profile
+│   │   │   │       ├── {Feature}Constants.cs # Feature constants
+│   │   │   │       └── {Feature}Module.cs # DI registration
+│   │   │   └── ApplicationModule.cs   # Central module registration
+│   │   ├── Anela.Heblo.Persistence/   # Infrastructure layer
 │   │   │   ├── ApplicationDbContext.cs # Single DbContext (initially)
-│   │   │   ├── Repository/            # Generic repository pattern
-│   │   │   │   ├── IRepository.cs    # Generic repository interface
-│   │   │   │   └── Repository.cs     # Concrete EF repository implementation
-│   │   │   ├── Configurations/        # EF Core entity configurations
+│   │   │   ├── {Feature}/             # Feature-specific persistence (complex features)
+│   │   │   │   ├── {Entity}Configuration.cs # EF Core entity configurations
+│   │   │   │   └── {Entity}Repository.cs    # Feature-specific repositories
+│   │   │   ├── Repositories/          # Generic/shared repositories
 │   │   │   ├── Migrations/            # EF Core migrations
-│   │   │   └── Services/              # Infrastructure services
-│   │   │       └── TelemetryService.cs
-│   │   ├── Anela.Heblo.Domain/        # Domain layer (shared entities)
-│   │   │   ├── Entities/              # Domain entities
-│   │   │   └── Constants/             # Domain constants
+│   │   │   └── PersistenceModule.cs   # DI registration
 │   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   ├── test/      # Unit/integration tests
-│   │   ├── Anela.Heblo.API.Tests/
-│   │   ├── Anela.Heblo.Application.Tests/
-│   │   └── Anela.Heblo.Persistence.Tests/
-│   └── scripts/   # Utility scripts (e.g. DB tools, backups)
+│   └── scripts/   # Utility scripts
 │
-├── frontend/      # React PWA (builds into backend wwwroot)
-│   ├── public/     # Static assets (index.html, favicon, etc.)
+├── frontend/      # React PWA
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── __tests__/    # Component unit tests
-│   │   ├── pages/
-│   │   │   └── __tests__/    # Page component tests
-│   │   ├── api/         # API client and services
-│   │   │   └── __tests__/    # API client unit tests
-│   │   ├── auth/        # Authentication logic
-│   │   │   └── __tests__/    # Authentication tests
-│   │   ├── config/      # Configuration management
-│   │   │   └── __tests__/    # Configuration tests
-│   │   └── ...
-│   ├── test/       # UI automation tests (Playwright only)
-│   │   ├── ui/          # UI/Layout tests (Playwright)
-│   │   │   └── layout/  # Layout component UI tests
+│   │   ├── components/    # React components with co-located __tests__/
+│   │   ├── pages/         # Page components with co-located __tests__/
+│   │   ├── api/           # API client and services with co-located __tests__/
+│   │   └── [other areas] # Other frontend areas with co-located __tests__/
+│   ├── test/       # UI automation tests (Playwright)
+│   │   ├── ui/          # UI/Layout tests
 │   │   ├── integration/ # Integration tests
 │   │   └── e2e/         # End-to-end tests
-│   └── package.json # Node.js dependencies and scripts
+│   └── package.json
 │
 ├── docs/          # Project documentation
-│   ├── architecture/       # Architecture documentation
-│   │   ├── filesystem.md
-│   │   ├── environments.md
-│   │   ├── application_infrastructure.md
-│   │   └── observability.md
-│   ├── design/            # UI/UX design documentation
-│   │   ├── ui_design_document.md
-│   │   ├── layout_definition.md
-│   │   └── styleguide.md
-│   ├── features/          # Feature-specific documentation
-│   │   └── Authentication.md
-│   └── tasks/             # Reusable task definitions
-│       ├── backend-clean-architecture-refactoring.md
-│       └── AUTHENTICATION_TESTING.md
 ├── scripts/       # Development and deployment scripts
-│   ├── build-and-push.sh
-│   ├── deploy-azure.sh
-│   └── run-playwright-tests.sh
-├── .github/        # GitHub Actions workflows
-├── .env            # Dev environment variables
-├── Dockerfile      # Single image for backend + frontend
-├── docker-compose.yml # For local dev/test if needed
-├── CLAUDE.md       # AI assistant instructions
-└── .dockerignore   # Docker build optimization
+├── .github/       # GitHub Actions workflows
+└── [configuration files]
 ```
+
+---
+
 ## 🏗️ Clean Architecture Implementation
 
 **The backend follows Clean Architecture with Vertical Slice organization and MediatR + Controllers:**
 
-### Project Structure:
+### Project Layers:
 - **Anela.Heblo.API**: Host/Composition layer - MVC Controllers, MediatR integration, serves React app
-- **Anela.Heblo.Domain**: Domain layer - entities, domain services, contracts (MediatR DTOs), repository interfaces
-- **Anela.Heblo.Application**: Application layer - MediatR handlers, infrastructure implementations, business logic
+- **Anela.Heblo.Domain**: Domain layer - entities, domain services, repository interfaces
+- **Anela.Heblo.Application**: Application layer - MediatR handlers, business logic, feature implementations
 - **Anela.Heblo.Persistence**: Infrastructure layer - database contexts, configurations, shared repository implementations
 
-### Feature Module Structure:
-Each feature is organized as vertical slices across domain and application layers:
+---
 
-**Domain Layer** (`Anela.Heblo.Domain/Features/{Feature}/`):
-- **Feature root**: Domain entities, aggregates, value objects, domain services, repository interfaces
-- **Subdomains**: Complex features may have subdomain folders (e.g., Catalog/Stock/, Catalog/Sales/)
+## 📋 Feature Organization Patterns
 
-**Application Layer** (`Anela.Heblo.Application/Features/{Feature}/`):
-- **Handler files**: MediatR handlers (Application Services) - directly in feature root
-- **Model/**: MediatR request/response DTOs and interfaces  
-- **Infrastructure/**: Repository implementations and other infrastructure services (if needed)
-- **FeatureModule.cs**: Dependency injection registration
+### Simple Features (1-3 use cases):
+```
+Features/{Feature}/
+├── Get{Entity}Handler.cs       # MediatR handler
+├── Create{Entity}Handler.cs    # MediatR handler
+├── Model/                      # Request/Response DTOs
+│   ├── Get{Entity}Request.cs
+│   ├── Get{Entity}Response.cs
+│   ├── Create{Entity}Request.cs
+│   └── Create{Entity}Response.cs
+└── {Feature}Module.cs          # DI registration
+```
 
-### Key Principles:
+### Complex Features (4+ use cases):
+```
+Features/{Feature}/
+├── UseCases/                   # Use case handlers organized by functionality
+│   ├── Get{Entity}List/
+│   │   ├── Get{Entity}ListHandler.cs
+│   │   ├── Get{Entity}ListRequest.cs
+│   │   └── Get{Entity}ListResponse.cs
+│   ├── Get{Entity}Detail/
+│   ├── Create{Entity}/
+│   ├── Update{Entity}/
+│   └── Delete{Entity}/
+├── Contracts/                  # Shared DTOs across use cases
+│   ├── {Entity}Dto.cs
+│   └── [Other shared DTOs]
+├── Services/                   # Domain services and business logic
+│   ├── I{Entity}Service.cs
+│   └── {Entity}Service.cs
+├── Infrastructure/             # Feature infrastructure
+│   ├── {Entity}Scheduler.cs
+│   ├── {Entity}FeatureFlags.cs
+│   └── Exceptions/
+├── Validators/                 # Request validation
+│   ├── Create{Entity}RequestValidator.cs
+│   └── Update{Entity}RequestValidator.cs
+├── {Feature}Repository.cs      # Feature repository
+├── {Feature}MappingProfile.cs  # AutoMapper profile
+├── {Feature}Constants.cs       # Feature constants
+└── {Feature}Module.cs         # DI registration
+```
+
+---
+
+## 🎯 Component Placement Rules
+
+### API Layer (`Anela.Heblo.API`):
+- **Controllers/**: MVC Controllers that expose REST endpoints
+  - One controller per feature: `{Feature}Controller.cs`
+  - Controllers only orchestrate MediatR requests
+  - Follow `/api/{controller}` routing pattern
+
+### Domain Layer (`Anela.Heblo.Domain`):
+- **Features/{Feature}/**: Domain entities, aggregates, repository interfaces
+  - Domain entities: `{Entity}.cs`
+  - Repository contracts: `I{Entity}Repository.cs`
+  - Domain services interfaces
+  - For complex domains, use subfolders: `{Feature}/{Subdomain}/`
+
+### Application Layer (`Anela.Heblo.Application`):
+- **Features/{Feature}/UseCases/**: MediatR handlers (business operations)
+  - Each use case in separate folder with Handler, Request, Response
+  - Use case naming: `Get{Entity}List`, `Create{Entity}`, `Update{Entity}`
+- **Features/{Feature}/Contracts/**: Shared DTOs across multiple use cases
+- **Features/{Feature}/Services/**: Domain services, background services
+- **Features/{Feature}/Infrastructure/**: Feature-specific infrastructure
+- **Features/{Feature}/Validators/**: FluentValidation request validators
+- **Features/{Feature}/{Feature}Repository.cs**: Repository implementations
+- **Features/{Feature}/{Feature}Module.cs**: DI container registration
+
+### Infrastructure Layer (`Anela.Heblo.Persistence`):
+- **ApplicationDbContext.cs**: Single DbContext (initially)
+- **{Feature}/{Subdomain}/**: Feature-specific persistence (complex features)
+  - Entity configurations: `{Entity}Configuration.cs`
+  - Repository implementations: `{Entity}Repository.cs`
+- **Repositories/**: Generic/shared repositories (`BaseRepository.cs`)
+- **Mapping/**: Database-specific mappers for external systems
+- **Migrations/**: EF Core migrations
+- **PersistenceModule.cs**: DI container registration
+
+---
+
+## 🔧 Key Principles
+
 - **Vertical organization**: Each feature contains all its layers
 - **MediatR pattern**: Controllers send requests to handlers via MediatR
 - **Handlers as Application Services**: Business logic resides in MediatR handlers
-- **Standard endpoints**: All endpoints follow /api/{controller} pattern
-- **Generic Repository**: Concrete EF implementation in Persistence, used directly by features
-- **Single DbContext**: Initially shared in Persistence project, designed to evolve to module-specific contexts
+- **Standard endpoints**: All endpoints follow `/api/{controller}` pattern
+- **Feature autonomy**: Each feature manages its own contracts, services, and infrastructure
 - **SOLID principles**: Applied within each vertical slice
-
-### Database Evolution Path:
-
-**Phase 1 (Current):**
-- Single `ApplicationDbContext` in `Anela.Heblo.Persistence`
-- All entities registered in one context
-- Shared migrations in `Persistence/Migrations/`
-
-**Phase 2 (Future):**
-- Each module will have its own DbContext
-- Module-specific migrations with unique history tables
-- Example structure:
-  ```
-  Features/Orders/Infrastructure/
-  ├── OrdersDbContext.cs
-  ├── Migrations/
-  │   └── [timestamp]_InitialOrdersSchema.cs
-  └── Configurations/
-      └── OrderConfiguration.cs
-  ```
-- Migration command: `dotnet ef migrations add InitOrders --context OrdersDbContext --output-dir Application/Features/Orders/Infrastructure/Migrations`
-- Each context configured with: `optionsBuilder.UseSqlServer(connection, x => x.MigrationsHistoryTable("__EFMigrationsHistory_Orders"))`
 
 ---
 
@@ -260,58 +184,37 @@ Each feature is organized as vertical slices across domain and application layer
 
 ### **Unit & Integration Tests (Jest + React Testing Library)**
 **Tests are located in `__tests__/` folders next to the components they test:**
-
-- **`/frontend/src/api/__tests__/`** - API client unit tests
-  - `api-client.test.ts` - Bearer token authentication, error handling
-  - `client.test.ts` - Client factory and configuration tests
-- **`/frontend/src/components/__tests__/`** - React component tests
-  - Individual component test files (e.g., `Button.test.tsx`)
-- **`/frontend/src/components/pages/__tests__/`** - Page component tests
-  - `WeatherTest.test.tsx` - Page component integration tests
-- **`/frontend/src/auth/__tests__/`** - Authentication logic tests
-  - `useAuth.test.ts` - Real Azure AD authentication hook tests
-  - `mockAuth.test.ts` - Mock authentication tests
-- **`/frontend/src/config/__tests__/`** - Configuration management tests
-  - `runtimeConfig.test.ts` - Runtime configuration loading tests
+- **`src/api/__tests__/`** - API client unit tests
+- **`src/components/__tests__/`** - React component tests
+- **`src/pages/__tests__/`** - Page component tests
+- **`src/auth/__tests__/`** - Authentication logic tests
+- **`src/config/__tests__/`** - Configuration management tests
 
 ### **UI Automation Tests (Playwright)**
 **UI tests are in separate `/frontend/test/` directory:**
-
-- **`/frontend/test/ui/layout/{component}/`** - Visual and interaction tests
-  - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
-  - `statusbar/` - Status bar positioning, content, responsiveness  
-  - `auth/` - Authentication flows, login/logout UI behavior
-  - `topbar/` - Top navigation, menu interactions
-  - `general/` - Overall layout, responsive design, page structure
-- **`/frontend/test/integration/`** - Component interaction testing
-- **`/frontend/test/e2e/`** - Full user journey testing
+- **`test/ui/layout/{component}/`** - Visual and interaction tests
+- **`test/integration/`** - Component interaction testing
+- **`test/e2e/`** - Full user journey testing
 
 **CRITICAL Test Environment Rules:**
-- **Unit/Integration Tests**: Use Jest with mocked dependencies, located in `__tests__/` folders
-- **UI/Playwright Tests**: MUST use automation environment (ports 3001/5001) with mock authentication, located in `/frontend/test/`
-- **Test Co-location**: Unit tests are co-located with components for easy maintenance
+- **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components
+- **UI/Playwright Tests**: MUST use automation environment (ports 3001/5001), located in `/frontend/test/`
 
 ---
 
 ## 🔧 OpenAPI Client Generation
 
 ### Backend C# Client
-
 - **Location**: `backend/src/Anela.Heblo.API.Client/`
 - **Auto-generation**: PostBuild event in API project (Debug mode only)
 - **Tool**: NSwag with System.Text.Json
 - **Output**: `Generated/AnelaHebloApiClient.cs`
-- **Manual Generation**: Scripts available (`generate-client.ps1`, `generate-client.sh`)
-
-  
 
 ### Frontend TypeScript Client
-
 - **Location**: `frontend/src/api/generated/api-client.ts`
 - **Auto-generation**: Via backend PostBuild event or frontend prebuild script
-- **Tool**: NSwag with Fetch API template (currently placeholder implementation with bearer token support)
-- **Manual Generation**: `npm run generate-client` in frontend directory
-- **Build Integration**: Automatically generated before frontend build (`prebuild` script)
+- **Tool**: NSwag with Fetch API template
+- **Build Integration**: Automatically generated before frontend build
 
 ---
 
@@ -329,8 +232,35 @@ Each feature is organized as vertical slices across domain and application layer
 
 ### Database
 - **Migrations**: `backend/src/Anela.Heblo.Persistence/Migrations/` (EF Core)
+- **Entity Configurations**: `backend/src/Anela.Heblo.Persistence/{Feature}/` (feature-specific)
 - **Scripts**: `backend/scripts/` (utility tools)
 
 ### Generated Code
 - **Backend Client**: `backend/src/Anela.Heblo.API.Client/Generated/`
 - **Frontend Client**: `frontend/src/api/generated/`
+
+---
+
+## 🚀 Implementation Guidelines
+
+### When Creating New Features:
+1. **Start with Domain**: Define entities and repository interfaces in `Domain/Features/{Feature}/`
+2. **Add Application Logic**: Create handlers in `Application/Features/{Feature}/`
+3. **Configure Persistence**: Create entity configurations in `Persistence/{Feature}/` and repository implementations
+4. **Expose via API**: Create controller in `API/Controllers/{Feature}Controller.cs`
+5. **Choose Pattern**: Simple (flat handlers) vs Complex (UseCases/ structure) based on feature size
+6. **Register Dependencies**: Update `{Feature}Module.cs` and `PersistenceModule.cs` for proper DI registration
+
+### Naming Conventions:
+- **Controllers**: `{Feature}Controller` (e.g., `CatalogController`)
+- **Handlers**: `{Action}{Entity}Handler` (e.g., `GetCatalogListHandler`)
+- **Requests/Responses**: `{Action}{Entity}Request/Response` (e.g., `GetCatalogListRequest`)
+- **DTOs**: `{Entity}Dto` (e.g., `CatalogItemDto`)
+- **Services**: `{Entity}Service` and `I{Entity}Service`
+- **Entity Configurations**: `{Entity}Configuration` (e.g., `PurchaseOrderConfiguration`)
+- **Repository Implementations**: `{Entity}Repository` (e.g., `TransportBoxRepository`)
+
+### Evolution Path:
+- **Simple → Complex**: Start with flat structure, migrate to UseCases/ when feature grows
+- **Shared → Feature-specific**: Move shared concerns into feature-specific implementations as needed
+- **Single → Multiple DbContexts**: Eventually split database contexts per feature for better isolation

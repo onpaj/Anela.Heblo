@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
+using Anela.Heblo.Application.Features.Transport.UseCases;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

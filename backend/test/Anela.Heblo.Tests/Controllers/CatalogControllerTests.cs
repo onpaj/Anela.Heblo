@@ -1,6 +1,7 @@
 using Anela.Heblo.API.Controllers;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Catalog.Model;
 using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;

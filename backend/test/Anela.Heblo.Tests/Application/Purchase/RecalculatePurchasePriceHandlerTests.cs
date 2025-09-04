@@ -1,6 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase.Handlers;
-using Anela.Heblo.Application.Features.Purchase.Requests;
-using Anela.Heblo.Application.Features.Purchase.Responses;
+using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
@@ -58,7 +56,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.TotalCount.Should().Be(1);
         result.IsSuccess.Should().BeTrue();
         result.ProcessedProducts.Should().HaveCount(1);
-        
+
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
         processedProduct.IsSuccess.Should().BeTrue();
@@ -97,7 +95,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.TotalCount.Should().Be(2); // Only products with BoM
         result.IsSuccess.Should().BeTrue();
         result.ProcessedProducts.Should().HaveCount(2);
-        
+
         result.ProcessedProducts.Should().OnlyContain(p => p.IsSuccess);
         result.ProcessedProducts.Select(p => p.ProductCode).Should().BeEquivalentTo(new[] { "PROD001", "PROD002" });
 
@@ -121,7 +119,7 @@ public class RecalculatePurchasePriceHandlerTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             _handler.Handle(request, CancellationToken.None));
 
         _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -154,7 +152,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.TotalCount.Should().Be(1);
         result.IsSuccess.Should().BeFalse();
         result.ProcessedProducts.Should().HaveCount(1);
-        
+
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
         processedProduct.IsSuccess.Should().BeFalse();
@@ -194,7 +192,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.TotalCount.Should().Be(1);
         result.IsSuccess.Should().BeFalse();
         result.ProcessedProducts.Should().HaveCount(1);
-        
+
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
         processedProduct.IsSuccess.Should().BeFalse();
@@ -233,7 +231,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.TotalCount.Should().Be(2);
         result.IsSuccess.Should().BeFalse();
         result.ProcessedProducts.Should().HaveCount(2);
-        
+
         var successResult = result.ProcessedProducts.First(p => p.ProductCode == "PROD001");
         successResult.IsSuccess.Should().BeTrue();
         successResult.ErrorMessage.Should().BeNull();
@@ -285,7 +283,7 @@ public class RecalculatePurchasePriceHandlerTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             _handler.Handle(request, CancellationToken.None));
     }
 

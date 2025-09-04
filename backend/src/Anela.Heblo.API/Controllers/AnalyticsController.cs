@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;

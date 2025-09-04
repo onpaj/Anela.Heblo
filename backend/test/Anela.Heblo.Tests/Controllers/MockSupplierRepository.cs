@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Domain.Entities;
+using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Tests.Controllers;

@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
-using Anela.Heblo.Application.Features.Journal.Handlers;
+using Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries;
 using Anela.Heblo.Domain.Features.Journal;
 using FluentAssertions;
 using Moq;
@@ -52,7 +52,7 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<SearchJournalEntriesRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -65,7 +65,7 @@ public class SearchJournalEntriesHandlerTests
         result.Entries.First().AssociatedProducts.Should().Contain("TON002");
 
         _repositoryMock.Verify(x => x.SearchEntriesAsync(
-            It.Is<SearchJournalEntriesRequest>(r =>
+            It.Is<JournalSearchCriteria>(r =>
                 r.ProductCodePrefix == "TON002"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -123,7 +123,7 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<SearchJournalEntriesRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act

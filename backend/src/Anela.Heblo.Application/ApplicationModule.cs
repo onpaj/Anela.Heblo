@@ -6,7 +6,7 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Manufacture;
-using Anela.Heblo.Application.Features.Logistics.Transport;
+using Anela.Heblo.Application.Features.Transport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

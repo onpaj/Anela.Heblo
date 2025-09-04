@@ -1,5 +1,4 @@
 using Anela.Heblo.Adapters.Flexi.Purchase;
-using Anela.Heblo.Domain.Entities;
 using Anela.Heblo.Xcc.Audit;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;

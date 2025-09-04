@@ -29,6 +29,6 @@ public class DataSourceOptions
     public int PurchaseHistoryDays { get; set; } = 400;
     public int ConsumedHistoryDays { get; set; } = 720;
     public int ManufactureHistoryDays { get; set; } = 400;
-    
+
     public int ManufactureCostHistoryDays { get; set; } = 400;
 }

@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
-using Anela.Heblo.Application.Features.Purchase.Infrastructure;
+using Anela.Heblo.Application.Features.Purchase.Services;
+using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
+using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
 using FluentValidation;
-using Anela.Heblo.Application.Features.Purchase.Validators;
 
 namespace Anela.Heblo.Application.Features.Purchase;
 
@@ -24,8 +26,8 @@ public static class PurchaseModule
         services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();
 
         // Register validators
-        services.AddScoped<IValidator<Model.CreatePurchaseOrderRequest>, CreatePurchaseOrderRequestValidator>();
-        services.AddScoped<IValidator<Model.UpdatePurchaseOrderRequest>, UpdatePurchaseOrderRequestValidator>();
+        services.AddScoped<IValidator<CreatePurchaseOrderRequest>, CreatePurchaseOrderRequestValidator>();
+        services.AddScoped<IValidator<UpdatePurchaseOrderRequest>, UpdatePurchaseOrderRequestValidator>();
 
         return services;
     }

@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Entities;
+namespace Anela.Heblo.Domain.Features.Purchase;
 
 public class Supplier
 {

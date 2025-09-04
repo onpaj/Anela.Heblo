@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
-using Anela.Heblo.Application.Features.Configuration.Model;
 using Anela.Heblo.Domain.Features.Configuration;
 using MediatR;
 

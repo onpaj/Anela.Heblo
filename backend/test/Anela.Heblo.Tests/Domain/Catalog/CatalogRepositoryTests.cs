@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -80,7 +81,7 @@ public class CatalogRepositoryTests
             ManufactureHistoryDays = 30
         };
         _optionsMock.Setup(x => x.Value).Returns(options);
-        
+
         var cacheOptions = new CatalogCacheOptions
         {
             EnableBackgroundMerge = false // Disable for tests to use old behavior

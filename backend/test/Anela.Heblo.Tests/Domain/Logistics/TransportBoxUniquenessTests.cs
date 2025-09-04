@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
-using Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
+using Anela.Heblo.Application.Features.Transport.UseCases;
+using Anela.Heblo.Application.Features.Transport.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Logistics.TransportBoxes;
 using Anela.Heblo.Persistence.Repositories;
 using FluentAssertions;
 using MediatR;
@@ -20,7 +21,7 @@ public class TransportBoxUniquenessTests : IDisposable
     private readonly ChangeTransportBoxStateHandler _handler;
     private readonly Mock<ICurrentUserService> _mockUserService;
     private readonly Mock<IMediator> _mockMediator;
-    
+
     private const string TestUser = "TestUser";
 
     public TransportBoxUniquenessTests()
@@ -31,19 +32,19 @@ public class TransportBoxUniquenessTests : IDisposable
 
         _dbContext = new ApplicationDbContext(options);
         _dbContext.Database.EnsureCreated();
-        
+
         _repository = new TransportBoxRepository(_dbContext, NullLogger<TransportBoxRepository>.Instance);
         _mockUserService = new Mock<ICurrentUserService>();
         _mockMediator = new Mock<IMediator>();
-        
+
         _mockUserService.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Guid.NewGuid().ToString(), TestUser, "test@test.com", true));
-            
+
         _handler = new ChangeTransportBoxStateHandler(
-            _repository, 
-            _mockMediator.Object, 
-            NullLogger<ChangeTransportBoxStateHandler>.Instance, 
-            _mockUserService.Object, 
+            _repository,
+            _mockMediator.Object,
+            NullLogger<ChangeTransportBoxStateHandler>.Instance,
+            _mockUserService.Object,
             TimeProvider.System);
     }
 

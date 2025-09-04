@@ -29,8 +29,8 @@
 
   <ItemGroup>
     <Folder Include="Features\Catalog\Fakes\" />
-    <Folder Include="Features\FinancialOverview\Handlers\" />
-    <Folder Include="Features\FinancialOverview\Services\" />
+    <Folder Include="Features\Configuration\UseCases\" />
+    <Folder Include="Features\Journal\Infrastructure\" />
     <Folder Include="Features\Journal\Model\" />
     <Folder Include="Features\Logistics\Transport\" />
   </ItemGroup>

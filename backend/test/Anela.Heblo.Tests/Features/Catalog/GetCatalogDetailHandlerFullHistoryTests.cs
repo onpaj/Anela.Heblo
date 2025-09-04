@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Catalog.Model;
 using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;

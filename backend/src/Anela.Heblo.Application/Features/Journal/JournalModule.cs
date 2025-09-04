@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Anela.Heblo.Application.Features.Journal.Contracts;
-using Anela.Heblo.Application.Features.Journal.Infrastructure;
+using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Persistence.Catalog.Journal;
 
 namespace Anela.Heblo.Application.Features.Journal
 {

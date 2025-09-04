@@ -43,7 +43,7 @@ public class ApplicationDbContext : DbContext
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-        
+
         // Handle DateTime conversion for PostgreSQL "timestamp without time zone"
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

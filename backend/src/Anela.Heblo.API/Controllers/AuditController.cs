@@ -1,4 +1,5 @@
-using Anela.Heblo.Application.Features.Audit.Model;
+using Anela.Heblo.Application.Features.Audit.UseCases.GetAuditLogs;
+using Anela.Heblo.Application.Features.Audit.UseCases.GetAuditSummary;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Logistics.TransportBoxes;
 using Anela.Heblo.Persistence.Repositories;
 using FluentAssertions;
 using Moq;
@@ -78,7 +79,7 @@ public class TransportBoxRepositoryCaseHandlingTests : IDisposable
 
         if (expectedCount > 0)
         {
-            items.Should().AllSatisfy(box => 
+            items.Should().AllSatisfy(box =>
                 box.Code!.ToUpper().Should().Contain(codeFilter.ToUpper()));
         }
     }
@@ -162,8 +163,8 @@ public class TransportBoxRepositoryCaseHandlingTests : IDisposable
         // Assert
         items.Should().HaveCount(expectedCount);
         totalCount.Should().Be(expectedCount);
-        
-        items.Should().AllSatisfy(box => 
+
+        items.Should().AllSatisfy(box =>
             box.Code!.ToUpper().Should().Contain(partialCode.ToUpper()));
     }
 

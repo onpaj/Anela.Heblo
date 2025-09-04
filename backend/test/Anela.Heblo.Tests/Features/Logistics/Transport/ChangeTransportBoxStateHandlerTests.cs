@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Logistics.Transport.Contracts;
-using Anela.Heblo.Application.Features.Logistics.Transport.Handlers;
+using Anela.Heblo.Application.Features.Transport.UseCases;
+using Anela.Heblo.Application.Features.Transport.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
