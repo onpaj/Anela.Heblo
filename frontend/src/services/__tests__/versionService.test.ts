@@ -98,9 +98,6 @@ describe('VersionService', () => {
       consoleSpy.warn.mockRestore();
       consoleSpy.error.mockRestore();
     }
-    
-    // Clear all mock calls
-    jest.clearAllMocks();
   });
 
   describe('getCurrentStoredVersion', () => {
