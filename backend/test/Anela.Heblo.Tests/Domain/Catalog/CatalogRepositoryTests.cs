@@ -38,9 +38,11 @@ public class CatalogRepositoryTests
     private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
+    private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<DataSourceOptions>> _optionsMock;
+    private readonly Mock<IOptions<CatalogCacheOptions>> _cacheOptionsMock;
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock;
 
     private readonly CatalogRepository _repository;
@@ -63,9 +65,11 @@ public class CatalogRepositoryTests
         _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
+        _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<DataSourceOptions>>();
+        _cacheOptionsMock = new Mock<IOptions<CatalogCacheOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
 
         var options = new DataSourceOptions
@@ -76,6 +80,12 @@ public class CatalogRepositoryTests
             ManufactureHistoryDays = 30
         };
         _optionsMock.Setup(x => x.Value).Returns(options);
+        
+        var cacheOptions = new CatalogCacheOptions
+        {
+            EnableBackgroundMerge = false // Disable for tests to use old behavior
+        };
+        _cacheOptionsMock.Setup(x => x.Value).Returns(cacheOptions);
 
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
 
@@ -109,9 +119,11 @@ public class CatalogRepositoryTests
             _manufactureCostCalculationServiceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
+            _mergeSchedulerMock.Object,
             _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,
+            _cacheOptionsMock.Object,
             _loggerMock.Object);
     }
 

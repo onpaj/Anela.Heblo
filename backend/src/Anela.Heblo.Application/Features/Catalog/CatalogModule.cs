@@ -29,6 +29,7 @@ public static class CatalogModule
         // Register catalog-specific services
         services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
+        services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
         services.AddTransient<SafeMarginCalculator>();
 
         // Configure feature flags from configuration
@@ -54,6 +55,12 @@ public static class CatalogModule
         services.Configure<DataSourceOptions>(options =>
         {
             configuration.GetSection(DataSourceOptions.ConfigKey).Bind(options);
+        });
+        
+        // Configure catalog cache optimization options
+        services.Configure<CatalogCacheOptions>(options =>
+        {
+            configuration.GetSection(CatalogCacheOptions.SectionName).Bind(options);
         });
 
         // Register AutoMapper for catalog mappings

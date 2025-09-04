@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Collections.Concurrent;
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -35,11 +36,21 @@ public class CatalogRepository : ICatalogRepository
     private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
     private readonly ICatalogResilienceService _resilienceService;
+    private readonly ICatalogMergeScheduler _mergeScheduler;
 
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<DataSourceOptions> _options;
+    private readonly IOptions<CatalogCacheOptions> _cacheOptions;
     private readonly ILogger<CatalogRepository> _logger;
+    
+    // Cache keys
+    private const string CurrentCatalogCacheKey = "CatalogData_Current";
+    private const string StaleCatalogCacheKey = "CatalogData_Stale";
+    private const string CacheUpdateTimeKey = "CatalogData_LastUpdate";
+    
+    private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
+    private readonly ConcurrentDictionary<string, DateTime> _sourceLastUpdated = new();
 
 
     public CatalogRepository(
@@ -59,9 +70,11 @@ public class CatalogRepository : ICatalogRepository
         IManufactureCostCalculationService manufactureCostCalculationService,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
         ICatalogResilienceService resilienceService,
+        ICatalogMergeScheduler mergeScheduler,
         IMemoryCache cache,
         TimeProvider timeProvider,
         IOptions<DataSourceOptions> _options,
+        IOptions<CatalogCacheOptions> cacheOptions,
         ILogger<CatalogRepository> logger)
     {
         _salesClient = salesClient;
@@ -80,10 +93,15 @@ public class CatalogRepository : ICatalogRepository
         _manufactureCostCalculationService = manufactureCostCalculationService;
         _manufactureDifficultyRepository = manufactureDifficultyRepository;
         _resilienceService = resilienceService;
+        _mergeScheduler = mergeScheduler;
         _cache = cache;
         _timeProvider = timeProvider;
         this._options = _options;
+        _cacheOptions = cacheOptions;
         _logger = logger;
+        
+        // Initialize merge callback to avoid circular dependency
+        _mergeScheduler.SetMergeCallback(ExecuteBackgroundMergeAsync);
     }
 
     public async Task RefreshTransportData(CancellationToken ct)
@@ -226,7 +244,72 @@ public class CatalogRepository : ICatalogRepository
         await RefreshManufactureDifficultySettingsData(null, ct);
     }
 
-    private List<CatalogAggregate> CatalogData => _cache.GetOrCreate(nameof(CatalogData), c => Merge())!;
+    private async Task<List<CatalogAggregate>> GetCatalogDataAsync()
+    {
+        // Return current cache if available and valid
+        var currentCache = _cache.Get<List<CatalogAggregate>>(CurrentCatalogCacheKey);
+        if (currentCache != null && IsCacheValid())
+        {
+            return currentCache;
+        }
+
+        // If merge is in progress and stale data is allowed, return stale data
+        if (_cacheOptions.Value.AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress)
+        {
+            var staleCache = _cache.Get<List<CatalogAggregate>>(StaleCatalogCacheKey);
+            if (staleCache != null)
+            {
+                _logger.LogWarning("Serving stale data during merge operation");
+                return staleCache;
+            }
+        }
+
+        // No cache available or cache invalid - execute priority merge and wait
+        return await ExecutePriorityMergeAsync();
+    }
+    
+    private List<CatalogAggregate> CatalogData
+    {
+        get
+        {
+            // Try current cache first
+            if (_cache.TryGetValue(CurrentCatalogCacheKey, out List<CatalogAggregate>? currentData) && currentData != null)
+            {
+                return currentData;
+            }
+            
+            // Try stale cache as fallback
+            if (_cache.TryGetValue(StaleCatalogCacheKey, out List<CatalogAggregate>? staleData) && staleData != null)
+            {
+                // Trigger background merge to refresh data, but don't wait
+                try
+                {
+                    _mergeScheduler.ScheduleMerge("CacheRead");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to schedule background merge when serving stale data");
+                }
+                
+                return staleData;
+            }
+            
+            // Last resort: return empty list and trigger background merge
+            // Don't block here - let the background process handle it
+            _logger.LogWarning("No catalog data available in cache, triggering background merge");
+            
+            try
+            {
+                _mergeScheduler.ScheduleMerge("CacheEmpty");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to schedule background merge for missing catalog data");
+            }
+            
+            return new List<CatalogAggregate>();
+        }
+    }
 
     private List<CatalogAggregate> Merge()
     {
@@ -358,9 +441,79 @@ public class CatalogRepository : ICatalogRepository
         return products.ToList();
     }
 
-    private void Invalidate()
+    public async Task ExecuteBackgroundMergeAsync(CancellationToken cancellationToken = default)
     {
-        _cache.Remove(nameof(CatalogData));
+        try
+        {
+            var newCatalogData = await Task.Run(() => Merge(), cancellationToken);
+            await ReplaceCacheAtomicallyAsync(newCatalogData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Background merge failed");
+            throw;
+        }
+    }
+
+    private async Task<List<CatalogAggregate>> ExecutePriorityMergeAsync()
+    {
+        _logger.LogInformation("Executing priority merge - no cache available");
+        
+        var newCatalogData = await Task.Run(() => Merge());
+        await ReplaceCacheAtomicallyAsync(newCatalogData);
+        
+        return newCatalogData;
+    }
+
+    private async Task ReplaceCacheAtomicallyAsync(List<CatalogAggregate> newData)
+    {
+        await _cacheReplacementSemaphore.WaitAsync();
+        try
+        {
+            // Keep current as stale fallback
+            var currentCache = _cache.Get<List<CatalogAggregate>>(CurrentCatalogCacheKey);
+            if (currentCache != null)
+            {
+                var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
+                _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
+            }
+            
+            // Replace with fresh data
+            _cache.Set(CurrentCatalogCacheKey, newData);
+            _cache.Set(CacheUpdateTimeKey, DateTime.UtcNow);
+            
+            _logger.LogDebug("Cache updated atomically with {ProductCount} products", newData.Count);
+        }
+        finally
+        {
+            _cacheReplacementSemaphore.Release();
+        }
+    }
+
+    private void InvalidateSourceData(string dataSource)
+    {
+        if (!_cacheOptions.Value.EnableBackgroundMerge)
+        {
+            // Fallback to old behavior if background merge is disabled
+            _cache.Remove(CurrentCatalogCacheKey);
+            _cache.Remove(StaleCatalogCacheKey);
+            _cache.Remove(CacheUpdateTimeKey);
+            return;
+        }
+        
+        _sourceLastUpdated[dataSource] = DateTime.UtcNow;
+        _mergeScheduler.ScheduleMerge(dataSource);
+        
+        _logger.LogDebug("Invalidated source data: {DataSource}", dataSource);
+    }
+    
+    private bool IsCacheValid()
+    {
+        var lastUpdate = _cache.Get<DateTime?>(CacheUpdateTimeKey);
+        if (!lastUpdate.HasValue) return false;
+        
+        var timeSinceLastUpdate = DateTime.UtcNow - lastUpdate.Value;
+        return timeSinceLastUpdate < _cacheOptions.Value.CacheValidityPeriod;
     }
 
     private IList<CatalogSaleRecord> CachedSalesData
@@ -369,7 +522,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedSalesData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedSalesData));
         }
     }
 
@@ -381,7 +534,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedCatalogAttributesData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedCatalogAttributesData));
         }
     }
     private IDictionary<string, int> CachedInTransportData
@@ -390,7 +543,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedInTransportData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedInTransportData));
         }
     }
 
@@ -400,7 +553,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedInReserveData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedInReserveData));
         }
     }
 
@@ -410,7 +563,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedErpStockData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedErpStockData));
         }
     }
     private IList<EshopStock> CachedEshopStockData
@@ -419,7 +572,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedEshopStockData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedEshopStockData));
         }
     }
     private IList<CatalogPurchaseRecord> CachedPurchaseHistoryData
@@ -428,7 +581,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedPurchaseHistoryData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedPurchaseHistoryData));
         }
     }
     private IList<ManufactureHistoryRecord> CachedManufactureHistoryData
@@ -437,7 +590,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedManufactureHistoryData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedManufactureHistoryData));
         }
     }
     private IList<ConsumedMaterialRecord> CachedConsumedData
@@ -446,7 +599,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedConsumedData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedConsumedData));
         }
     }
 
@@ -456,7 +609,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedStockTakingData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedStockTakingData));
         }
     }
 
@@ -466,7 +619,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedLotsData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedLotsData));
         }
     }
 
@@ -476,7 +629,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedEshopPriceData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedEshopPriceData));
         }
     }
 
@@ -486,7 +639,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedErpPriceData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedErpPriceData));
         }
     }
 
@@ -496,7 +649,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedManufactureDifficultyData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedManufactureDifficultyData));
         }
     }
 
@@ -506,7 +659,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedManufactureCostData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedManufactureCostData));
         }
     }
 
@@ -516,7 +669,7 @@ public class CatalogRepository : ICatalogRepository
         set
         {
             _cache.Set(nameof(CachedManufactureDifficultySettingsData), value);
-            Invalidate();
+            InvalidateSourceData(nameof(CachedManufactureDifficultySettingsData));
         }
     }
 
@@ -537,7 +690,11 @@ public class CatalogRepository : ICatalogRepository
     }
 
     public Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.SingleOrDefault(s => s.ProductCode == id));
-    public Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.AsEnumerable());
+    public async Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var catalogData = await GetCatalogDataAsync();
+        return catalogData.AsEnumerable();
+    }
     public Task<IEnumerable<CatalogAggregate>> FindAsync(Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.AsQueryable().Where(predicate).AsEnumerable());
     public Task<CatalogAggregate?> SingleOrDefaultAsync(Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.AsQueryable().SingleOrDefault(predicate));
     public Task<bool> AnyAsync(Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.AsQueryable().Any(predicate));
