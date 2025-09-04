@@ -40,7 +40,7 @@ const TransportBoxList: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   
   const [codeFilter, setCodeFilter] = useState('');
-  const [stateFilter, setStateFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('ACTIVE');
   const [productFilter, setProductFilter] = useState('');
   
   // Pagination states
@@ -98,7 +98,7 @@ const TransportBoxList: React.FC = () => {
     setCodeInput('');
     setSelectedProduct(null);
     setCodeFilter('');
-    setStateFilter('');
+    setStateFilter('ACTIVE');
     setProductFilter('');
     setSkip(0);
   };
