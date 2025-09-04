@@ -46,11 +46,15 @@ npm test
 
 ## Documentation
 
-- **[📘 Architecture Documentation](docs/📘%20Architecture%20Documentation%20–%20MVP%20Work.md)** - Core architecture and module definitions
-- **[Infrastructure](docs/architecture/application_infrastructure.md)** - Deployment, CI/CD, Docker configuration
+- **[📘 Architecture Documentation](docs/architecture/📘%20Architecture%20Documentation%20–%20MVP%20Work.md)** - Core architecture and module definitions
+- **[Infrastructure](docs/architecture/infrastructure.md)** - Deployment, CI/CD, Docker configuration
 - **[Environments](docs/architecture/environments.md)** - Port mappings, CORS, Azure settings
 - **[Filesystem](docs/architecture/filesystem.md)** - Directory structure and file organization
-- **[UI Design Document](docs/ui_design_document.md)** - Design system, components, layout standards
+- **[UI Design Document](docs/design/ui_design_document.md)** - Design system, components, layout standards
+- **[Layout Definition](docs/design/layout_definition.md)** - Layout structure and rules
+- **[Style Guide](docs/design/styleguide.md)** - CSS and styling conventions
+- **[Testing Strategy](docs/architecture/testing-strategy.md)** - Comprehensive testing approach
+- **[CI/CD Guide](docs/CI_WORKFLOW_GUIDE.md)** - GitHub Actions workflow documentation
 - **[Feature Documentation](docs/features/)** - Feature-specific guides
 - **[Task Definitions](docs/tasks/)** - Reusable development tasks
 
