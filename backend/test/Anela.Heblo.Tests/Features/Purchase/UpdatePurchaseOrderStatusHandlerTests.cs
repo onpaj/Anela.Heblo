@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase;
-using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;

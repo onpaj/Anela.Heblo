@@ -1,7 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase;
-using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Application.Features.Purchase.Model;
-using Anela.Heblo.Domain.Entities;
+using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;

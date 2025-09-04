@@ -1,7 +1,7 @@
 using System.Net;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure.Exceptions;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Catalog.Exceptions;
-using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Tests.Common;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;

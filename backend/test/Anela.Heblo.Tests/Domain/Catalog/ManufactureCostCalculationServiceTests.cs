@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -263,7 +264,7 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
-        
+
         SetupManufactureDifficulty(products[0], 2);
 
         _ledgerServiceMock
@@ -332,7 +333,7 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
-        
+
         SetupManufactureDifficulty(products[0], 0);
 
         _ledgerServiceMock
@@ -390,11 +391,11 @@ public class ManufactureCostCalculationServiceTests
                 }
             }
         };
-        
+
         // Setup difficulty settings for test products
         SetupManufactureDifficulty(products[0], 3); // was 2.5, rounded to 3
         SetupManufactureDifficulty(products[1], 2); // was 1.5, rounded to 2
-        
+
         return products;
     }
 

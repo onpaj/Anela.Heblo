@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;

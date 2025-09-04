@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -206,7 +207,7 @@ public class CatalogRepositoryCacheOptimizationTests
 
         // Assert
         scheduleCallCount.Should().Be(4, "each invalidation should trigger schedule once");
-        
+
         // Verify scheduler was called with correct data source names
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedSalesData"), Times.Once);
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedCatalogAttributesData"), Times.Once);
@@ -232,7 +233,7 @@ public class CatalogRepositoryCacheOptimizationTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result.First().ProductCode.Should().Be("CACHED001");
-        
+
         // Verify no merge was attempted
         _mergeSchedulerMock.Verify(x => x.IsMergeInProgress, Times.Never);
     }
@@ -247,7 +248,7 @@ public class CatalogRepositoryCacheOptimizationTests
         };
         _cache.Set("CatalogData_Stale", staleData);
         _cache.Set("CatalogData_LastUpdate", DateTime.UtcNow.AddHours(-10)); // Invalid cache
-        
+
         _mergeSchedulerMock.Setup(x => x.IsMergeInProgress).Returns(true);
 
         // Act
@@ -257,7 +258,7 @@ public class CatalogRepositoryCacheOptimizationTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result.First().ProductCode.Should().Be("STALE001");
-        
+
         // Verify stale data was served
         _mergeSchedulerMock.Verify(x => x.IsMergeInProgress, Times.Once);
     }
@@ -269,7 +270,7 @@ public class CatalogRepositoryCacheOptimizationTests
         _cache.Remove("CatalogData_Current");
         _cache.Remove("CatalogData_Stale");
         _cache.Remove("CatalogData_LastUpdate");
-        
+
         // Initialize the repository data sources with our mock data
         await _repository.RefreshErpStockData(CancellationToken.None);
 
@@ -322,7 +323,7 @@ public class CatalogRepositoryCacheOptimizationTests
     {
         // Arrange
         _cacheOptions.EnableBackgroundMerge = false;
-        
+
         var initialData = new List<CatalogAggregate>
         {
             new CatalogAggregate { ProductCode = "INITIAL001" }
@@ -335,7 +336,7 @@ public class CatalogRepositoryCacheOptimizationTests
         // Assert - Direct invalidation should remove cache
         var currentCache = _cache.Get<List<CatalogAggregate>>("CatalogData_Current");
         currentCache.Should().BeNull();
-        
+
         var staleCache = _cache.Get<List<CatalogAggregate>>("CatalogData_Stale");
         staleCache.Should().BeNull();
 
@@ -366,25 +367,25 @@ public class CatalogRepositoryCacheOptimizationTests
             new CatalogAggregate { ProductCode = "VALIDITY_TEST" }
         };
         _cache.Set("CatalogData_Current", testData);
-        
+
         // Test valid cache (within validity period)
         _cache.Set("CatalogData_LastUpdate", DateTime.UtcNow.AddMinutes(-2)); // 2 minutes old, validity is 5 minutes
-        
+
         // Act
         var result1 = await _repository.GetAllAsync();
-        
+
         // Assert - Should return cached data
         result1.Should().NotBeEmpty();
         result1.First().ProductCode.Should().Be("VALIDITY_TEST");
-        
+
         // Arrange - Test invalid cache (beyond validity period)
         _cache.Set("CatalogData_LastUpdate", DateTime.UtcNow.AddMinutes(-10)); // 10 minutes old, validity is 5 minutes
         // Initialize data for merge
         await _repository.RefreshErpStockData(CancellationToken.None);
-        
+
         // Act
         var result2 = await _repository.GetAllAsync();
-        
+
         // Assert - Should return fresh data from merge (cache should be updated)
         result2.Should().NotBeNull();
         var newCurrentCache = _cache.Get<List<CatalogAggregate>>("CatalogData_Current");
@@ -396,11 +397,11 @@ public class CatalogRepositoryCacheOptimizationTests
     {
         // This test verifies that source invalidation properly updates tracking
         // Since _sourceLastUpdated is private, we test through the public behavior
-        
+
         // Arrange & Act
         await _repository.RefreshSalesData(CancellationToken.None);
         await _repository.RefreshAttributesData(CancellationToken.None);
-        
+
         // Assert - Verify scheduler was called for each source
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedSalesData"), Times.Once);
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedCatalogAttributesData"), Times.Once);
@@ -413,9 +414,9 @@ public class CatalogRepositoryCacheOptimizationTests
         _cache.Remove("CatalogData_Current");
         _cache.Remove("CatalogData_Stale");
         _cache.Remove("CatalogData_LastUpdate");
-        
+
         _mergeSchedulerMock.Setup(x => x.IsMergeInProgress).Returns(true);
-        
+
         // Initialize data sources for merge
         await _repository.RefreshErpStockData(CancellationToken.None);
 

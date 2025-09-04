@@ -1,4 +1,6 @@
-using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -32,12 +34,12 @@ public class CatalogMappingProfile : Profile
         // ManufactureDifficulty mappings
         CreateMap<ManufactureDifficultySetting, ManufactureDifficultySettingDto>()
             .ForMember(dest => dest.IsCurrent, opt => opt.Ignore()); // Set manually in handlers
-        
+
         CreateMap<CreateManufactureDifficultyRequest, ManufactureDifficultySetting>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
-        
+
         CreateMap<UpdateManufactureDifficultyRequest, ManufactureDifficultySetting>()
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())

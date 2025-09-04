@@ -1,0 +1,8 @@
+using Anela.Heblo.Domain.Features.Manufacture;
+
+namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
+
+public class GetProductUsageResponse
+{
+    public List<ManufactureTemplate> ManufactureTemplates { get; set; } = new List<ManufactureTemplate>();
+}

@@ -8,17 +8,17 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 {
     private readonly ILogger<CatalogMergeScheduler> _logger;
     private readonly CatalogCacheOptions _options;
-    
+
     private readonly SemaphoreSlim _mergeSemaphore = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTime> _invalidationTimes = new();
     private readonly object _timerLock = new();
-    
+
     private Timer? _debounceTimer;
     private DateTime _lastMergeCompleted = DateTime.MinValue;
     private DateTime _firstPendingInvalidation = DateTime.MinValue;
     private bool _mergeScheduled = false;
     private volatile bool _disposed = false;
-    
+
     private Func<CancellationToken, Task>? _mergeCallback;
 
     public CatalogMergeScheduler(
@@ -28,7 +28,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
         _logger = logger;
         _options = options.Value;
     }
-    
+
     public void SetMergeCallback(Func<CancellationToken, Task> mergeCallback)
     {
         _mergeCallback = mergeCallback;
@@ -57,9 +57,9 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
             var timeSinceFirstInvalidation = now - _firstPendingInvalidation;
             if (timeSinceFirstInvalidation >= _options.MaxMergeInterval)
             {
-                _logger.LogInformation("Force executing merge due to max interval {MaxInterval}ms reached", 
+                _logger.LogInformation("Force executing merge due to max interval {MaxInterval}ms reached",
                     _options.MaxMergeInterval.TotalMilliseconds);
-                
+
                 // Execute immediately
                 _ = Task.Run(async () => await ExecuteMergeAsync());
                 return;
@@ -67,12 +67,12 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
             // Reset debounce timer
             _debounceTimer?.Dispose();
-            _debounceTimer = new Timer(async _ => await ExecuteMergeAsync(), 
+            _debounceTimer = new Timer(async _ => await ExecuteMergeAsync(),
                 null, _options.DebounceDelay, Timeout.InfiniteTimeSpan);
-            
+
             _mergeScheduled = true;
-            
-            _logger.LogDebug("Merge scheduled for source {DataSource}, debounce delay {Delay}ms", 
+
+            _logger.LogDebug("Merge scheduled for source {DataSource}, debounce delay {Delay}ms",
                 dataSource, _options.DebounceDelay.TotalMilliseconds);
         }
     }
@@ -88,24 +88,24 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+
         try
         {
             _logger.LogInformation("Starting background merge operation");
-            
+
             await _mergeCallback(CancellationToken.None);
-            
+
             _lastMergeCompleted = DateTime.UtcNow;
             _mergeScheduled = false;
             _firstPendingInvalidation = DateTime.MinValue;
             _invalidationTimes.Clear();
-            
-            _logger.LogInformation("Background merge completed in {Duration}ms", 
+
+            _logger.LogInformation("Background merge completed in {Duration}ms",
                 stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Background merge failed after {Duration}ms", 
+            _logger.LogError(ex, "Background merge failed after {Duration}ms",
                 stopwatch.ElapsedMilliseconds);
         }
         finally
@@ -116,21 +116,21 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
     }
 
     public DateTime GetLastMergeTime() => _lastMergeCompleted;
-    
+
     public bool HasPendingMerge() => _mergeScheduled;
 
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         _disposed = true;
-        
+
         lock (_timerLock)
         {
             _debounceTimer?.Dispose();
             _debounceTimer = null;
         }
-        
+
         _mergeSemaphore?.Dispose();
     }
 }

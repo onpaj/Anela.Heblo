@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Domain.Entities;
+using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

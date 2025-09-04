@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Collections.Concurrent;
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -43,12 +44,12 @@ public class CatalogRepository : ICatalogRepository
     private readonly IOptions<DataSourceOptions> _options;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
     private readonly ILogger<CatalogRepository> _logger;
-    
+
     // Cache keys
     private const string CurrentCatalogCacheKey = "CatalogData_Current";
     private const string StaleCatalogCacheKey = "CatalogData_Stale";
     private const string CacheUpdateTimeKey = "CatalogData_LastUpdate";
-    
+
     private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTime> _sourceLastUpdated = new();
 
@@ -99,7 +100,7 @@ public class CatalogRepository : ICatalogRepository
         this._options = _options;
         _cacheOptions = cacheOptions;
         _logger = logger;
-        
+
         // Initialize merge callback to avoid circular dependency
         _mergeScheduler.SetMergeCallback(ExecuteBackgroundMergeAsync);
     }
@@ -239,7 +240,7 @@ public class CatalogRepository : ICatalogRepository
 
         // Calculate costs
         CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(products, ct);
-    
+
         // Refresh difficulty settings data after other data is available
         await RefreshManufactureDifficultySettingsData(null, ct);
     }
@@ -267,7 +268,7 @@ public class CatalogRepository : ICatalogRepository
         // No cache available or cache invalid - execute priority merge and wait
         return await ExecutePriorityMergeAsync();
     }
-    
+
     private List<CatalogAggregate> CatalogData
     {
         get
@@ -277,7 +278,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 return currentData;
             }
-            
+
             // Try stale cache as fallback
             if (_cache.TryGetValue(StaleCatalogCacheKey, out List<CatalogAggregate>? staleData) && staleData != null)
             {
@@ -290,14 +291,14 @@ public class CatalogRepository : ICatalogRepository
                 {
                     _logger.LogWarning(ex, "Failed to schedule background merge when serving stale data");
                 }
-                
+
                 return staleData;
             }
-            
+
             // Last resort: return empty list and trigger background merge
             // Don't block here - let the background process handle it
             _logger.LogWarning("No catalog data available in cache, triggering background merge");
-            
+
             try
             {
                 _mergeScheduler.ScheduleMerge("CacheEmpty");
@@ -306,7 +307,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 _logger.LogError(ex, "Failed to schedule background merge for missing catalog data");
             }
-            
+
             return new List<CatalogAggregate>();
         }
     }
@@ -424,7 +425,7 @@ public class CatalogRepository : ICatalogRepository
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
-                if(product.ErpPrice != null)
+                if (product.ErpPrice != null)
                     product.ManufactureCostHistory.ForEach(f => f.MaterialCostFromPurchasePrice = product.ErpPrice.PurchasePrice);
             }
 
@@ -433,7 +434,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
             }
-            
+
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
         }
@@ -458,10 +459,10 @@ public class CatalogRepository : ICatalogRepository
     private async Task<List<CatalogAggregate>> ExecutePriorityMergeAsync()
     {
         _logger.LogInformation("Executing priority merge - no cache available");
-        
+
         var newCatalogData = await Task.Run(() => Merge());
         await ReplaceCacheAtomicallyAsync(newCatalogData);
-        
+
         return newCatalogData;
     }
 
@@ -477,11 +478,11 @@ public class CatalogRepository : ICatalogRepository
                 var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
                 _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
             }
-            
+
             // Replace with fresh data
             _cache.Set(CurrentCatalogCacheKey, newData);
             _cache.Set(CacheUpdateTimeKey, DateTime.UtcNow);
-            
+
             _logger.LogDebug("Cache updated atomically with {ProductCount} products", newData.Count);
         }
         finally
@@ -500,18 +501,18 @@ public class CatalogRepository : ICatalogRepository
             _cache.Remove(CacheUpdateTimeKey);
             return;
         }
-        
+
         _sourceLastUpdated[dataSource] = DateTime.UtcNow;
         _mergeScheduler.ScheduleMerge(dataSource);
-        
+
         _logger.LogDebug("Invalidated source data: {DataSource}", dataSource);
     }
-    
+
     private bool IsCacheValid()
     {
         var lastUpdate = _cache.Get<DateTime?>(CacheUpdateTimeKey);
         if (!lastUpdate.HasValue) return false;
-        
+
         var timeSinceLastUpdate = DateTime.UtcNow - lastUpdate.Value;
         return timeSinceLastUpdate < _cacheOptions.Value.CacheValidityPeriod;
     }

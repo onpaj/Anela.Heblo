@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.Catalog.Handlers;
-using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
@@ -25,11 +25,11 @@ public class CreateManufactureDifficultyHandlerTests
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<CreateManufactureDifficultyHandler>>();
-        
+
         // Setup default current user behavior
         _currentUserServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
-        
+
         _handler = new CreateManufactureDifficultyHandler(_repositoryMock.Object, _catalogRepositoryMock.Object, _currentUserServiceMock.Object, _mapperMock.Object, _loggerMock.Object);
     }
 
@@ -48,7 +48,7 @@ public class CreateManufactureDifficultyHandlerTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _handler.Handle(request, CancellationToken.None));
-        
+
         Assert.Equal("ValidFrom must be earlier than ValidTo", exception.Message);
     }
 
@@ -94,13 +94,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting>());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(mappedSetting);
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(createdSetting);
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(createdSetting))
             .Returns(expectedDto);
 
@@ -158,13 +158,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(mappedSetting);
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(createdSetting);
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(createdSetting))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -201,13 +201,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -245,13 +245,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -289,13 +289,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -352,13 +352,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSettings);
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -368,7 +368,7 @@ public class CreateManufactureDifficultyHandlerTests
         // Assert
         Assert.Equal(new DateTime(2024, 5, 31), existingSettings[0].ValidTo); // Adjusted
         Assert.Equal(new DateTime(2024, 9, 1), existingSettings[2].ValidFrom); // Adjusted
-        
+
         _repositoryMock.Verify(r => r.DeleteAsync(2, It.IsAny<CancellationToken>()), Times.Once); // Completely overlapped removed
         _repositoryMock.Verify(r => r.UpdateAsync(existingSettings[0], It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(r => r.UpdateAsync(existingSettings[2], It.IsAny<CancellationToken>()), Times.Once);
@@ -399,13 +399,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 
@@ -443,13 +443,13 @@ public class CreateManufactureDifficultyHandlerTests
 
         _repositoryMock.Setup(r => r.ListAsync("PROD001", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { existingSetting });
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySetting>(request))
             .Returns(new ManufactureDifficultySetting());
-        
+
         _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<ManufactureDifficultySetting>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManufactureDifficultySetting());
-        
+
         _mapperMock.Setup(m => m.Map<ManufactureDifficultySettingDto>(It.IsAny<ManufactureDifficultySetting>()))
             .Returns(new ManufactureDifficultySettingDto());
 

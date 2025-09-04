@@ -1,6 +1,6 @@
 using Anela.Heblo.API.Controllers;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Manufacture.Model;
 using FluentAssertions;
 using MediatR;
 using FluentAssertions;

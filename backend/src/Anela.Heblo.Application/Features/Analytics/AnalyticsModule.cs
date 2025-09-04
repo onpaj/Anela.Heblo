@@ -1,6 +1,6 @@
-using Anela.Heblo.Application.Features.Analytics.Domain;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Domain.Features.Analytics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.Analytics;

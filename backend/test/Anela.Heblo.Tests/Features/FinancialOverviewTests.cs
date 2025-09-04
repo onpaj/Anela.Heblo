@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
+using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
@@ -193,12 +195,12 @@ public class FinancialOverviewTestFactory : HebloWebApplicationFactory
         }
         services.AddScoped<Anela.Heblo.Domain.Features.FinancialOverview.IStockValueService>(provider =>
         {
-            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Anela.Heblo.Application.Features.FinancialOverview.PlaceholderStockValueService>>();
-            return new Anela.Heblo.Application.Features.FinancialOverview.PlaceholderStockValueService(logger);
+            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PlaceholderStockValueService>>();
+            return new PlaceholderStockValueService(logger);
         });
 
         // Remove background service for testing
-        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(Anela.Heblo.Application.Features.FinancialOverview.FinancialAnalysisBackgroundService));
+        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(FinancialAnalysisBackgroundService));
         if (hostedServiceDescriptor != null)
         {
             services.Remove(hostedServiceDescriptor);

@@ -1,6 +1,11 @@
-using Anela.Heblo.Application.Features.Purchase.Model;
-using Anela.Heblo.Application.Features.Purchase.Requests;
-using Anela.Heblo.Application.Features.Purchase.Responses;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
+using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
+using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
+using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvoiceAcquired;
+using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

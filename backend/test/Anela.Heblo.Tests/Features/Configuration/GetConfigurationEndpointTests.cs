@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
+using Anela.Heblo.Application.Features.Configuration;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Configuration.Model;
 using Anela.Heblo.Tests.Common;
 
 namespace Anela.Heblo.Tests.Features.Configuration;

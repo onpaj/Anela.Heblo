@@ -13,7 +13,7 @@ namespace Anela.Heblo.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Fix TransportBox DateTime column types from 'timestamp with time zone' to 'timestamp without time zone'
-            
+
             migrationBuilder.AlterColumn<DateTime>(
                 name: "StateDate",
                 schema: "public",
@@ -47,7 +47,7 @@ namespace Anela.Heblo.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             // Revert TransportBox DateTime column types back to 'timestamp with time zone'
-            
+
             migrationBuilder.AlterColumn<DateTime>(
                 name: "StateDate",
                 schema: "public",

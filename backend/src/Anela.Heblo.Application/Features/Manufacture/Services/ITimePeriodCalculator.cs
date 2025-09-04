@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Manufacture.Model;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 

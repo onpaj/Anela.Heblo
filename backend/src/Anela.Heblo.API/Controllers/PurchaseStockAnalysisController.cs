@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase.Model;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

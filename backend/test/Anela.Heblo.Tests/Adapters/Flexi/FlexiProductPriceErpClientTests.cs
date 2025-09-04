@@ -31,7 +31,7 @@ public class FlexiProductPriceErpClientTests
         _loggerMock = new Mock<ILogger<ReceivedInvoiceClient>>();
         _auditServiceMock = new Mock<IDataLoadAuditService>();
         _bomClientMock = new Mock<IBoMClient>();
-        
+
         _flexiBeeSettings = new FlexiBeeSettings
         {
             Server = "test.flexibee.com",

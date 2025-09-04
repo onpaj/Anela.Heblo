@@ -25,7 +25,7 @@ public class CatalogAggregate : Entity<string>
     public ProductPriceErp? ErpPrice { get; set; }
 
     public bool HasBoM => ErpPrice?.HasBoM ?? false;
-    
+
     public int? BoMId => ErpPrice?.BoMId;
 
     public List<StockTakingRecord> StockTakingHistory { get; set; } = new();
@@ -112,7 +112,7 @@ public class CatalogAggregate : Entity<string>
     public bool HasLots { get; set; }
     public double Volume { get; set; }
     public double Weight { get; set; }
-    
+
     public string? Note { get; set; }
 
     // Price convenience properties

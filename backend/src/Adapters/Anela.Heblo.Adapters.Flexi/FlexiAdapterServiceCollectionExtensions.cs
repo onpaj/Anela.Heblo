@@ -7,7 +7,7 @@ using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
-using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;

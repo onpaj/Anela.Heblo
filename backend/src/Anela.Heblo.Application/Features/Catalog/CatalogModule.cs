@@ -1,12 +1,16 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
-using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Persistence.Catalog.ManufactureDifficulty;
 using Anela.Heblo.Persistence.Repositories;
 using FluentValidation;
 using MediatR;
@@ -52,7 +56,7 @@ public static class CatalogModule
         {
             configuration.GetSection(DataSourceOptions.ConfigKey).Bind(options);
         });
-        
+
         // Configure catalog cache optimization options
         services.Configure<CatalogCacheOptions>(options =>
         {

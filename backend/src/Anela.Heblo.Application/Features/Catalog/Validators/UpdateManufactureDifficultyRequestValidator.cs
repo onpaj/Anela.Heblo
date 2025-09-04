@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using FluentValidation;
 
 namespace Anela.Heblo.Application.Features.Catalog.Validators;

@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog;
-using Anela.Heblo.Application.Features.Catalog.Model;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using FluentAssertions;
 using FluentValidation.TestHelper;

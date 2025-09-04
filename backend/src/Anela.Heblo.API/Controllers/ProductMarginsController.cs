@@ -1,7 +1,7 @@
+using Anela.Heblo.Application.Features.Catalog.Infrastructure.Exceptions;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
-using Anela.Heblo.Application.Features.Catalog.Model;
-using Anela.Heblo.Application.Features.Catalog.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;

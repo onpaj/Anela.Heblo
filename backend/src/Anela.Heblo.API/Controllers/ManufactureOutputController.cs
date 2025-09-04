@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Manufacture.Model;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

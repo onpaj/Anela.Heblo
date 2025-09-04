@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Application.Features.Purchase.Services;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using FluentAssertions;
-using Anela.Heblo.Application.Features.Purchase.Model;
 using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;

@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Manufacture.Model;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
 
