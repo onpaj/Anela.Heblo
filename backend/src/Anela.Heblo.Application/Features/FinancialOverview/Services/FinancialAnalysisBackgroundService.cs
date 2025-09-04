@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,15 +11,18 @@ public class FinancialAnalysisBackgroundService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<FinancialAnalysisBackgroundService> _logger;
     private readonly FinancialAnalysisOptions _options;
+    private readonly IBackgroundServiceReadinessTracker _readinessTracker;
 
     public FinancialAnalysisBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<FinancialAnalysisBackgroundService> logger,
-        IOptions<FinancialAnalysisOptions> options)
+        IOptions<FinancialAnalysisOptions> options,
+        IBackgroundServiceReadinessTracker readinessTracker)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _options = options.Value;
+        _readinessTracker = readinessTracker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,6 +33,16 @@ public class FinancialAnalysisBackgroundService : BackgroundService
         {
             // Initial load on startup
             await RefreshFinancialDataAsync(stoppingToken);
+            
+            // Report readiness after initial load
+            _readinessTracker.ReportInitialLoadCompleted(nameof(FinancialAnalysisBackgroundService));
+            _logger.LogInformation("FinancialAnalysisBackgroundService initial load completed, service is ready");
+        }
+        else
+        {
+            // If refresh interval is zero (disabled), immediately report as ready
+            _readinessTracker.ReportInitialLoadCompleted(nameof(FinancialAnalysisBackgroundService));
+            _logger.LogInformation("FinancialAnalysisBackgroundService refresh is disabled, service is ready");
         }
 
 

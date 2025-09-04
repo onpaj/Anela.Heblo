@@ -65,7 +65,8 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var healthChecksBuilder = services.AddHealthChecks();
+        var healthChecksBuilder = services.AddHealthChecks()
+            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" });
 
         // Add database health check if connection string exists
         var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);

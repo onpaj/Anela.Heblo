@@ -102,7 +102,7 @@ public static class ApplicationBuilderExtensions
         app.MapHealthChecks("/health");
         app.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains(ConfigurationConstants.DB_TAG),
+            Predicate = check => check.Tags.Contains(ConfigurationConstants.DB_TAG) || check.Tags.Contains("ready"),
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         });
         app.MapHealthChecks("/health/live", new HealthCheckOptions
