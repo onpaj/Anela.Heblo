@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Configuration;
 using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
+using Anela.Heblo.API.Infrastructure.Authentication;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -66,6 +67,12 @@ public static class ApplicationBuilderExtensions
 
         // Use CORS
         app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
+
+        // E2E Test Authentication (ONLY for Staging environment)
+        if (app.Environment.IsEnvironment("Staging"))
+        {
+            app.UseMiddleware<E2ETestAuthenticationMiddleware>();
+        }
 
         app.UseAuthentication();
         app.UseAuthorization();
@@ -133,6 +140,17 @@ public static class ApplicationBuilderExtensions
                         context.Context.Response.Headers.Append("Expires", "0");
                     }
                 };
+
+                // IMPORTANT: Configure SPA to NOT intercept API routes
+                spa.ApplicationBuilder.UseRouting();
+                spa.ApplicationBuilder.UseEndpoints(endpoints =>
+                {
+                    endpoints.Map("/api/{**catch-all}", context =>
+                    {
+                        context.Response.StatusCode = 404;
+                        return Task.CompletedTask;
+                    });
+                });
             });
         }
 

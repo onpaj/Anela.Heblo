@@ -20,6 +20,15 @@
         "ASPNETCORE_ENVIRONMENT": "Test"
       }
     },
+    "Automation": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5001",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Automation"
+      }
+    },
     "Generate Frontend Client": {
       "commandName": "Executable",
       "executablePath": "dotnet",

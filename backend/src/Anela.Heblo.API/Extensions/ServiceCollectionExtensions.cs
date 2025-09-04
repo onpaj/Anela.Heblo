@@ -91,6 +91,9 @@ public static class ServiceCollectionExtensions
         // Register Current User Service
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
 
+        // Register HttpClient for E2E testing middleware
+        services.AddHttpClient();
+
         // Built-in HTTP request logging
         services.AddHttpLogging(logging =>
         {
