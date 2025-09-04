@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { gotoAndWaitReady, waitForApplicationReady } from '../../utils/readiness-helper';
 
 test.describe('Layout E2E Tests', () => {
   test('should display correct layout with sidebar and main content', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoAndWaitReady(page, '/');
 
     // Check sidebar is present
     await expect(page.getByText('Anela Heblo')).toBeVisible();
@@ -20,8 +20,7 @@ test.describe('Layout E2E Tests', () => {
   });
 
   test('should navigate between main sections', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoAndWaitReady(page, '/');
     
     // Navigate to catalog
     await page.click('text=Katalog');

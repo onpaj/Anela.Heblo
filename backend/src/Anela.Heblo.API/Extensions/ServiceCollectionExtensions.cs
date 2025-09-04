@@ -65,7 +65,8 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var healthChecksBuilder = services.AddHealthChecks();
+        var healthChecksBuilder = services.AddHealthChecks()
+            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" });
 
         // Add database health check if connection string exists
         var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
@@ -90,6 +91,9 @@ public static class ServiceCollectionExtensions
         // Register Current User Service
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
 
+        // Register HttpClient for E2E testing middleware
+        services.AddHttpClient();
+
         // Built-in HTTP request logging
         services.AddHttpLogging(logging =>
         {
@@ -101,6 +105,7 @@ public static class ServiceCollectionExtensions
             logging.RequestBodyLogLimit = 4096;
             logging.ResponseBodyLogLimit = 4096;
         });
+        services.AddHttpLoggingInterceptor<SuppressHealthHttpLogging>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns

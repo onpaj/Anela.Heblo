@@ -26,22 +26,6 @@ public static class LoggingExtensions
             );
         }
 
-        // Add structured logging for better Application Insights experience  
-        if (environment.IsProduction())
-        {
-            logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-            logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
-            logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Information); // Keep startup logs
-            logging.AddFilter("Microsoft.AspNetCore.HttpLogging", LogLevel.Information); // Built-in request logging
-        }
-        else
-        {
-            // Development: Show more detailed logs
-            logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Information);
-            logging.AddFilter("Microsoft.AspNetCore.HttpLogging", LogLevel.Information); // Built-in request logging
-            logging.AddFilter("Anela.Heblo", LogLevel.Debug);
-        }
-
         return logging;
     }
 }

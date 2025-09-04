@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Analytics;
@@ -25,6 +26,9 @@ public static class ApplicationModule
 
         // Register AutoMapper
         services.AddAutoMapper(typeof(ApplicationModule).Assembly);
+
+        // Register common services
+        services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
 
         // Register all feature modules
         services.AddConfigurationModule();

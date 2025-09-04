@@ -12,6 +12,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CatalogRefreshBackgroundService> _logger;
     private readonly DataSourceOptions _options;
+    private readonly IBackgroundServiceReadinessTracker _readinessTracker;
 
     private DateTime _lastTransportRefresh = DateTime.MinValue;
     private DateTime _lastReserveRefresh = DateTime.MinValue;
@@ -32,11 +33,13 @@ public class CatalogRefreshBackgroundService : BackgroundService
     public CatalogRefreshBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<CatalogRefreshBackgroundService> logger,
-        IOptions<DataSourceOptions> options)
+        IOptions<DataSourceOptions> options,
+        IBackgroundServiceReadinessTracker readinessTracker)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _options = options.Value;
+        _readinessTracker = readinessTracker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,6 +48,13 @@ public class CatalogRefreshBackgroundService : BackgroundService
 
         // Perform initial load immediately (if intervals are not zero)
         await PerformRefreshCycle(stoppingToken, isInitialLoad: true);
+
+        // Check if all refresh intervals are zero (disabled), if so, report as ready immediately
+        if (AreAllRefreshIntervalsDisabled())
+        {
+            _readinessTracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
+            _logger.LogInformation("All CatalogRefreshBackgroundService refresh intervals are disabled, service is ready");
+        }
 
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
 
@@ -198,6 +208,13 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     _lastManufactureCostRefresh = now;
                 }
             }
+
+            // Report readiness after initial load completes successfully
+            if (isInitialLoad)
+            {
+                _readinessTracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
+                _logger.LogInformation("CatalogRefreshBackgroundService initial load completed, service is ready");
+            }
         }
         catch (OperationCanceledException)
         {
@@ -246,5 +263,23 @@ public class CatalogRefreshBackgroundService : BackgroundService
             }
         }
         return false;
+    }
+
+    private bool AreAllRefreshIntervalsDisabled()
+    {
+        return _options.TransportRefreshInterval == TimeSpan.Zero &&
+               _options.ReserveRefreshInterval == TimeSpan.Zero &&
+               _options.SalesRefreshInterval == TimeSpan.Zero &&
+               _options.AttributesRefreshInterval == TimeSpan.Zero &&
+               _options.ErpStockRefreshInterval == TimeSpan.Zero &&
+               _options.EshopStockRefreshInterval == TimeSpan.Zero &&
+               _options.PurchaseHistoryRefreshInterval == TimeSpan.Zero &&
+               _options.ManufactureHistoryRefreshInterval == TimeSpan.Zero &&
+               _options.ConsumedRefreshInterval == TimeSpan.Zero &&
+               _options.StockTakingRefreshInterval == TimeSpan.Zero &&
+               _options.LotsRefreshInterval == TimeSpan.Zero &&
+               _options.EshopPricesRefreshInterval == TimeSpan.Zero &&
+               _options.ErpPricesRefreshInterval == TimeSpan.Zero &&
+               _options.ManufactureDifficultyRefreshInterval == TimeSpan.Zero;
     }
 }
