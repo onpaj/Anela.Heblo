@@ -54,13 +54,12 @@ public class E2ETestController : ControllerBase
         _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}", 
             _environment.EnvironmentName, _environment.IsEnvironment("Staging"));
 
-        // CRITICAL SECURITY: Only allow in Staging environment (or Production for Azure staging slot)
-        var allowedEnvironments = new[] { "Staging", "Production" };
-        if (!allowedEnvironments.Contains(_environment.EnvironmentName))
+        // CRITICAL SECURITY: Only allow in Staging environment
+        if (!_environment.IsEnvironment("Staging"))
         {
-            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: {AllowedEnvironments}", 
-                _environment.EnvironmentName, string.Join(", ", allowedEnvironments));
-            return NotFound(new { error = "E2E endpoints only available in allowed environments", currentEnvironment = _environment.EnvironmentName, allowedEnvironments });
+            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging", 
+                _environment.EnvironmentName);
+            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Get Service Principal token from Authorization header
@@ -165,7 +164,7 @@ public class E2ETestController : ControllerBase
         // CRITICAL SECURITY: Only allow in Staging environment
         if (!_environment.IsEnvironment("Staging"))
         {
-            return NotFound();
+            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Check if user is authenticated via E2E override
@@ -286,7 +285,5 @@ public class E2ETestController : ControllerBase
             _logger.LogError(ex, "E2E Test Authentication: Error parsing Service Principal token");
             return false;
         }
-    }
-}";
     }
 }
