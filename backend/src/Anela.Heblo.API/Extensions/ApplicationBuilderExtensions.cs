@@ -74,6 +74,9 @@ public static class ApplicationBuilderExtensions
             app.UseMiddleware<E2ETestAuthenticationMiddleware>();
         }
 
+        // Routing must be explicitly configured before authentication/authorization
+        app.UseRouting();
+
         app.UseAuthentication();
         app.UseAuthorization();
 
