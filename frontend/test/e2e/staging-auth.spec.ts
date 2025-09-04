@@ -72,7 +72,6 @@ async function authenticateWithServicePrincipal(page: any) {
       console.error('Status Text:', response.statusText());
       console.error('Response Body:', errorText);
       console.error('Request URL:', authUrl);
-      console.error('Request Headers:', response.request().headers());
       throw new Error(`E2E authentication failed: ${response.status()} ${response.statusText()}\n${errorText}`);
     }
     
