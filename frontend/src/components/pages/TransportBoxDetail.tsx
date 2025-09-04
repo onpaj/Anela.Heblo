@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X, Package, Tag, Clock, AlertCircle } from 'lucide-react';
+import { X, Package, Clock, AlertCircle } from 'lucide-react';
 import { useTransportBoxByIdQuery, useChangeTransportBoxState } from '../../api/hooks/useTransportBoxes';
 import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
+import { useLastAddedItem } from '../../api/hooks/useLastAddedItem';
 import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/generated/api-client';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -11,16 +12,21 @@ import TransportBoxItems from '../transport/box-detail/TransportBoxItems';
 import TransportBoxHistory from '../transport/box-detail/TransportBoxHistory';
 import TransportBoxActions from '../transport/box-detail/TransportBoxActions';
 import TransportBoxModals from '../transport/box-detail/TransportBoxModals';
+import QuickAddLastItemModal from '../transport/QuickAddLastItemModal';
 import { TransportBoxDetailProps, ApiClientWithInternals } from '../transport/box-detail/TransportBoxTypes';
 
 const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, onClose }) => {
   const { data: boxData, isLoading, error, refetch } = useTransportBoxByIdQuery(boxId || 0, boxId !== null);
-  const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
+  const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
   const changeStateMutation = useChangeTransportBoxState();
   const { showError } = useToast();
+  
+  // Last added item tracking
+  const { lastAddedItem, saveLastAddedItem } = useLastAddedItem();
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const [isQuickAddModalOpen, setIsQuickAddModalOpen] = useState(false);
   const [isLocationSelectionModalOpen, setIsLocationSelectionModalOpen] = useState(false);
   
   // Box number input for New state
@@ -89,7 +95,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   // Reset tab when modal opens
   useEffect(() => {
     if (isOpen) {
-      setActiveTab('items');
+      setActiveTab('info');
     }
   }, [isOpen]);
 
@@ -252,6 +258,13 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       const response = await apiClient.transportBox_AddItemToBox(boxId, request);
       
       if (response.success) {
+        // Save last added item for quick repeat
+        saveLastAddedItem({
+          productCode: selectedProduct.productCode || '',
+          productName: selectedProduct.productName || '',
+          amount: quantity
+        });
+        
         // Clear form and refresh data
         setProductInput('');
         setQuantityInput('');
@@ -270,6 +283,11 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
     }
   };
 
+  // Handle quick add last item
+  const handleQuickAddSuccess = async () => {
+    await refetch();
+    setIsQuickAddModalOpen(false);
+  };
 
   // Handle state change - convert string state to enum
   const handleStateChange = async (newStateString: string) => {
@@ -327,9 +345,9 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white mb-8">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+      <div className="relative top-2 mx-auto p-3 border w-11/12 max-w-7xl shadow-lg rounded-md bg-white mb-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 2rem)', minHeight: '900px' }}>
+        {/* Header - Fixed */}
+        <div className="flex items-start justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Package className="h-6 w-6 text-indigo-600" />
             <div>
@@ -404,105 +422,130 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
           </div>
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span className="ml-2 text-gray-600">Načítám detail boxu...</span>
-          </div>
-        ) : error ? (
-          <div className="flex items-center gap-2 text-red-600 py-8">
-            <AlertCircle className="h-5 w-5" />
-            <span>Chyba při načítání detailu boxu</span>
-          </div>
-        ) : boxData?.transportBox ? (
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <TransportBoxInfo
-              transportBox={boxData.transportBox}
-              descriptionInput={descriptionInput}
-              handleDescriptionChange={handleDescriptionChange}
-              isDescriptionChanged={isDescriptionChanged}
-              isFormEditable={isFormEditable}
-              formatDate={formatDate}
-            />
-
-            {/* Tab Navigation */}
-            <div className="bg-white border border-gray-200 rounded-lg">
-              <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-8 px-4" aria-label="Tabs">
-                  <button
-                    onClick={() => setActiveTab('items')}
-                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                      activeTab === 'items'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Tag className="h-4 w-4" />
-                    Položky ({boxData.transportBox.items?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('history')}
-                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                      activeTab === 'history'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Historie ({boxData.transportBox.stateLog?.length || 0})
-                  </button>
-                </nav>
+        {/* Main Layout with fixed right panel and flexible main content */}
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+          {/* Main Content - Flexible Area */}
+          <div className="flex-1 min-h-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <span className="ml-2 text-gray-600">Načítám detail boxu...</span>
               </div>
-              
-              <div className="p-0">
-                {activeTab === 'items' && (
-                  <TransportBoxItems
-                    transportBox={boxData.transportBox}
-                    isFormEditable={isFormEditable}
-                    formatDate={formatDate}
-                    handleRemoveItem={handleRemoveItem}
-                    productInput={productInput}
-                    setProductInput={setProductInput}
-                    quantityInput={quantityInput}
-                    setQuantityInput={setQuantityInput}
-                    selectedProduct={selectedProduct}
-                    setSelectedProduct={setSelectedProduct}
-                    handleAddItem={handleAddItem}
-                    autocompleteData={autocompleteData}
-                    autocompleteLoading={autocompleteLoading}
-                  />
-                )}
-                
-                {activeTab === 'history' && (
-                  <TransportBoxHistory
-                    transportBox={boxData.transportBox}
-                    formatDate={formatDate}
-                  />
-                )}
+            ) : error ? (
+              <div className="flex items-center gap-2 text-red-600 py-8">
+                <AlertCircle className="h-5 w-5" />
+                <span>Chyba při načítání detailu boxu</span>
               </div>
+            ) : boxData?.transportBox ? (
+              <div className="h-full flex flex-col">
+                {/* Tab Navigation */}
+                <div className="bg-white border border-gray-200 rounded-lg flex-shrink-0">
+                  <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8 px-4" aria-label="Tabs">
+                      <button
+                        onClick={() => setActiveTab('info')}
+                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                          activeTab === 'info'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <Package className="h-4 w-4" />
+                        Základní informace
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('history')}
+                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                          activeTab === 'history'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <Clock className="h-4 w-4" />
+                        Historie ({boxData.transportBox.stateLog?.length || 0})
+                      </button>
+                    </nav>
+                  </div>
+                  
+                  {/* Flexible Content Area */}
+                  <div className="flex-1 overflow-auto">
+                    {activeTab === 'info' && (
+                      <div className="space-y-4 p-4">
+                        {/* Basic Information */}
+                        <TransportBoxInfo
+                          transportBox={boxData.transportBox}
+                          descriptionInput={descriptionInput}
+                          handleDescriptionChange={handleDescriptionChange}
+                          isDescriptionChanged={isDescriptionChanged}
+                          isFormEditable={isFormEditable}
+                          formatDate={formatDate}
+                        />
+                        
+                        {/* Items directly below - no extra container */}
+                        <TransportBoxItems
+                          transportBox={boxData.transportBox}
+                          isFormEditable={isFormEditable}
+                          formatDate={formatDate}
+                          handleRemoveItem={handleRemoveItem}
+                          productInput={productInput}
+                          setProductInput={setProductInput}
+                          quantityInput={quantityInput}
+                          setQuantityInput={setQuantityInput}
+                          selectedProduct={selectedProduct}
+                          setSelectedProduct={setSelectedProduct}
+                          handleAddItem={handleAddItem}
+                          autocompleteData={autocompleteData}
+                          autocompleteLoading={autocompleteLoading}
+                          lastAddedItem={lastAddedItem}
+                          handleQuickAdd={() => setIsQuickAddModalOpen(true)}
+                        />
+                      </div>
+                    )}
+                    
+                    {activeTab === 'history' && (
+                      <TransportBoxHistory
+                        transportBox={boxData.transportBox}
+                        formatDate={formatDate}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Box nenalezen</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Transportní box s ID {boxId} nebyl nalezen.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* Right Panel - Fixed Navigation and Close Button */}
+          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col">
+            {/* State Navigation - Takes available space */}
+            <div className="flex-1 mb-6">
+              {boxData?.transportBox && (
+                <TransportBoxActions
+                  transportBox={boxData.transportBox}
+                  changeStateMutation={changeStateMutation}
+                  handleStateChange={handleStateChange}
+                />
+              )}
+            </div>
+            
+            {/* Close Button - Fixed at bottom */}
+            <div className="pt-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-6 py-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 min-h-[48px] min-w-[120px]"
+              >
+                Zavřít
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Box nenalezen</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Transportní box s ID {boxId} nebyl nalezen.
-            </p>
-          </div>
-        )}
-
-        {/* Footer with Action Buttons */}
-        {boxData?.transportBox && (
-          <TransportBoxActions
-            transportBox={boxData.transportBox}
-            changeStateMutation={changeStateMutation}
-            handleStateChange={handleStateChange}
-            onClose={onClose}
-          />
-        )}
+        </div>
       </div>
 
       {/* Modal Components */}
@@ -517,6 +560,16 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
           handleLocationSelectionSuccess={handleLocationSelectionSuccess}
         />
       )}
+
+      {/* Quick Add Last Item Modal */}
+      <QuickAddLastItemModal
+        isOpen={isQuickAddModalOpen}
+        onClose={() => setIsQuickAddModalOpen(false)}
+        boxId={boxId}
+        lastAddedItem={lastAddedItem}
+        onSuccess={handleQuickAddSuccess}
+        onItemAdded={saveLastAddedItem}
+      />
     </div>
   );
 };
