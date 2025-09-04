@@ -1,12 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, XCircle, Info } from 'lucide-react';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastProps {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
   title: string;
   message?: string;
   duration?: number;
+  action?: ToastAction;
   onClose: (id: string) => void;
 }
 
@@ -34,6 +40,7 @@ const Toast: React.FC<ToastProps> = ({
   title, 
   message, 
   duration = 5000, 
+  action,
   onClose 
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -96,6 +103,20 @@ const Toast: React.FC<ToastProps> = ({
               <p className="mt-1 text-sm text-gray-500">
                 {message}
               </p>
+            )}
+            {action && (
+              <div className="mt-3 flex space-x-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-md transition-colors"
+                  onClick={() => {
+                    action.onClick();
+                    handleClose();
+                  }}
+                >
+                  {action.label}
+                </button>
+              </div>
             )}
           </div>
           <div className="ml-4 flex-shrink-0 flex">

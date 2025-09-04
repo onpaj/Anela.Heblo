@@ -1,13 +1,19 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { ToastProps } from '../components/ui/Toast';
+import { ToastProps, ToastAction } from '../components/ui/Toast';
 import ToastContainer from '../components/ui/ToastContainer';
+
+interface ToastOptions {
+  duration?: number;
+  action?: ToastAction;
+  onClose?: () => void;
+}
 
 interface ToastContextType {
   showToast: (toast: Omit<ToastProps, 'id' | 'onClose'>) => void;
-  showSuccess: (title: string, message?: string) => void;
-  showError: (title: string, message?: string) => void;
-  showWarning: (title: string, message?: string) => void;
-  showInfo: (title: string, message?: string) => void;
+  showSuccess: (title: string, message?: string, options?: ToastOptions) => void;
+  showError: (title: string, message?: string, options?: ToastOptions) => void;
+  showWarning: (title: string, message?: string, options?: ToastOptions) => void;
+  showInfo: (title: string, message?: string, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -20,34 +26,69 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts(prev => {
+      const toastToRemove = prev.find(t => t.id === id);
+      if (toastToRemove && (toastToRemove as any).onCloseCallback) {
+        (toastToRemove as any).onCloseCallback();
+      }
+      return prev.filter(toast => toast.id !== id);
+    });
   }, []);
 
-  const showToast = useCallback((toast: Omit<ToastProps, 'id' | 'onClose'>) => {
+  const showToast = useCallback((toast: Omit<ToastProps, 'id' | 'onClose'> & { onClose?: () => void }) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const newToast: ToastProps = {
+    const newToast: ToastProps & { onCloseCallback?: () => void } = {
       ...toast,
       id,
       onClose: removeToast,
+      onCloseCallback: toast.onClose
     };
     
     setToasts(prev => [...prev, newToast]);
   }, [removeToast]);
 
-  const showSuccess = useCallback((title: string, message?: string) => {
-    showToast({ type: 'success', title, message });
+  const showSuccess = useCallback((title: string, message?: string, options?: ToastOptions) => {
+    showToast({ 
+      type: 'success', 
+      title, 
+      message, 
+      duration: options?.duration,
+      action: options?.action,
+      onClose: options?.onClose
+    });
   }, [showToast]);
 
-  const showError = useCallback((title: string, message?: string) => {
-    showToast({ type: 'error', title, message, duration: 8000 }); // Longer duration for errors
+  const showError = useCallback((title: string, message?: string, options?: ToastOptions) => {
+    showToast({ 
+      type: 'error', 
+      title, 
+      message, 
+      duration: options?.duration ?? 8000, // Longer duration for errors
+      action: options?.action,
+      onClose: options?.onClose
+    });
   }, [showToast]);
 
-  const showWarning = useCallback((title: string, message?: string) => {
-    showToast({ type: 'warning', title, message });
+  const showWarning = useCallback((title: string, message?: string, options?: ToastOptions) => {
+    showToast({ 
+      type: 'warning', 
+      title, 
+      message, 
+      duration: options?.duration,
+      action: options?.action,
+      onClose: options?.onClose
+    });
   }, [showToast]);
 
-  const showInfo = useCallback((title: string, message?: string) => {
-    showToast({ type: 'info', title, message });
+  const showInfo = useCallback((title: string, message?: string, options?: ToastOptions) => {
+    showToast({ 
+      type: 'info', 
+      title, 
+      message, 
+      duration: options?.duration,
+      action: options?.action,
+      onClose: options?.onClose
+    });
   }, [showToast]);
 
   const value: ToastContextType = {
