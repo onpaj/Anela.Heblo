@@ -5,13 +5,15 @@ import { getAuthenticatedApiClient } from '../../api/client';
 jest.mock('../../api/client');
 const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
-// Mock localStorage
-const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  clear: jest.fn(),
+// Store original localStorage for restoration
+const originalLocalStorage = window.localStorage;
+
+// Mock localStorage - will be properly initialized in beforeEach
+let mockLocalStorage: {
+  getItem: jest.Mock;
+  setItem: jest.Mock;
+  clear: jest.Mock;
 };
-Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
 
 // Mock console methods to avoid noise in tests
 let consoleSpy: {
@@ -25,10 +27,30 @@ describe('VersionService', () => {
   let mockApiClient: any;
 
   beforeEach(() => {
+    // Create fresh localStorage mock for each test
+    mockLocalStorage = {
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+      clear: jest.fn(),
+    };
+    
+    // Override window.localStorage with fresh mock
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true
+    });
+    
+    // Create fresh service instance
     service = new VersionService();
+    
+    // Create fresh API client mock
     mockApiClient = {
       configuration_GetConfiguration: jest.fn(),
     };
+    
+    // Reset and setup API client mock
+    mockGetAuthenticatedApiClient.mockReset();
     mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient);
     
     // Setup console spies
@@ -37,21 +59,20 @@ describe('VersionService', () => {
       warn: jest.spyOn(console, 'warn').mockImplementation(() => {}),
       error: jest.spyOn(console, 'error').mockImplementation(() => {}),
     };
-    
-    // Reset specific mocks without clearing test-specific mock return values
-    mockLocalStorage.getItem.mockReset();
-    mockLocalStorage.setItem.mockReset();
-    mockLocalStorage.clear.mockReset();
-    mockGetAuthenticatedApiClient.mockReset().mockResolvedValue(mockApiClient);
-    mockApiClient.configuration_GetConfiguration.mockReset();
   });
 
   afterEach(() => {
     service.stopPeriodicCheck();
+    
     // Restore console spies
-    consoleSpy.log.mockRestore();
-    consoleSpy.warn.mockRestore();
-    consoleSpy.error.mockRestore();
+    if (consoleSpy) {
+      consoleSpy.log.mockRestore();
+      consoleSpy.warn.mockRestore();
+      consoleSpy.error.mockRestore();
+    }
+    
+    // Clear all mock calls
+    jest.clearAllMocks();
   });
 
   describe('getCurrentStoredVersion', () => {
@@ -312,5 +333,14 @@ describe('versionService singleton', () => {
   it('should export a singleton instance', () => {
     expect(versionService).toBeInstanceOf(VersionService);
     expect(versionService).toBe(versionService); // Same reference
+  });
+});
+
+// Restore original localStorage after all tests
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true
   });
 });
