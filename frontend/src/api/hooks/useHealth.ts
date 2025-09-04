@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 interface HealthStatus {
   status: 'Healthy' | 'Unhealthy' | 'Degraded';
@@ -35,7 +35,7 @@ const fetchHealthStatus = async (endpoint: string): Promise<HealthStatus> => {
 
 export const useLiveHealthCheck = () => {
   return useQuery({
-    queryKey: ['health', 'live'],
+    queryKey: [...QUERY_KEYS.health, 'live'],
     queryFn: () => fetchHealthStatus('live'),
     refetchInterval: 15000, // 15 seconds
     refetchOnWindowFocus: true,
@@ -46,7 +46,7 @@ export const useLiveHealthCheck = () => {
 
 export const useReadyHealthCheck = () => {
   return useQuery({
-    queryKey: ['health', 'ready'],
+    queryKey: [...QUERY_KEYS.health, 'ready'],
     queryFn: () => fetchHealthStatus('ready'),
     refetchInterval: 15000, // 15 seconds
     refetchOnWindowFocus: true,
