@@ -3,6 +3,7 @@ using HealthChecks.UI.Client;
 using Anela.Heblo.Domain.Features.Configuration;
 using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
+using Microsoft.AspNetCore.HttpLogging;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -99,17 +100,17 @@ public static class ApplicationBuilderExtensions
     public static WebApplication ConfigureHealthCheckEndpoints(this WebApplication app)
     {
         // Map health check endpoints
-        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health").WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains(ConfigurationConstants.DB_TAG) || check.Tags.Contains("ready"),
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-        });
+        }).WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = _ => false,  // Only app liveness, no dependencies
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-        });
+        }).WithHttpLogging(HttpLoggingFields.None);
 
         return app;
     }
@@ -137,4 +138,36 @@ public static class ApplicationBuilderExtensions
 
         return app;
     }
+
+    /// <summary>
+    /// Determines if the current request is a health check request.
+    /// </summary>
+    private static bool IsHealthCheckRequest(HttpContext context)
+    {
+        var path = context.Request.Path.Value;
+        return !string.IsNullOrEmpty(path) && (
+            path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/healthz", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/ready", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/live", StringComparison.OrdinalIgnoreCase)
+        );
+    }
+}
+
+class SuppressHealthHttpLogging : IHttpLoggingInterceptor
+{
+    public ValueTask OnRequestAsync(HttpLoggingInterceptorContext ctx)
+    {
+        var path = ctx.HttpContext.Request.Path;
+        if (path.StartsWithSegments("/health") ||
+            path.StartsWithSegments("/healthz") ||
+            path.StartsWithSegments("/health/ready") ||
+            path.StartsWithSegments("/health/live"))
+        {
+            ctx.LoggingFields = HttpLoggingFields.None; // vypnout vše
+        }
+        return default;
+    }
+
+    public ValueTask OnResponseAsync(HttpLoggingInterceptorContext ctx) => default;
 }

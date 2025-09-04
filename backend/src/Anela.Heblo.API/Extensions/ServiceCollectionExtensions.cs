@@ -102,6 +102,7 @@ public static class ServiceCollectionExtensions
             logging.RequestBodyLogLimit = 4096;
             logging.ResponseBodyLogLimit = 4096;
         });
+        services.AddHttpLoggingInterceptor<SuppressHealthHttpLogging>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns
