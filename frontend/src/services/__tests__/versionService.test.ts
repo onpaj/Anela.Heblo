@@ -38,8 +38,12 @@ describe('VersionService', () => {
       error: jest.spyOn(console, 'error').mockImplementation(() => {}),
     };
     
-    // Clear all mocks
+    // Clear all mocks including localStorage and API client
     jest.clearAllMocks();
+    mockLocalStorage.getItem.mockClear();
+    mockLocalStorage.setItem.mockClear();
+    mockLocalStorage.clear.mockClear();
+    mockGetAuthenticatedApiClient.mockClear();
   });
 
   afterEach(() => {
@@ -184,16 +188,25 @@ describe('VersionService', () => {
 
   describe('initializeVersion', () => {
     it('should initialize version when none is stored', async () => {
+      // Explicitly mock localStorage to return null (no stored version)
       mockLocalStorage.getItem.mockReturnValue(null);
-      mockApiClient.configuration_GetConfiguration.mockResolvedValue({
+      
+      // Mock API response
+      const mockResponse = {
         version: '1.0.0',
         environment: 'test',
         useMockAuth: true,
         timestamp: new Date()
-      });
+      };
+      mockApiClient.configuration_GetConfiguration.mockResolvedValue(mockResponse);
+      
+      // Ensure the API client mock is properly set up
+      mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient);
 
       await service.initializeVersion();
 
+      // Verify the API was called and localStorage was updated
+      expect(mockApiClient.configuration_GetConfiguration).toHaveBeenCalled();
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('app_version', '1.0.0');
     });
 
