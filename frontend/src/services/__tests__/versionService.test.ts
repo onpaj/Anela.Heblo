@@ -69,9 +69,6 @@ describe('VersionService', () => {
       configurable: true
     });
     
-    // Create fresh service instance
-    service = new VersionService();
-    
     // Create fresh API client mock
     mockApiClient = {
       configuration_GetConfiguration: jest.fn(),
@@ -80,6 +77,9 @@ describe('VersionService', () => {
     // Reset and setup API client mock
     mockGetAuthenticatedApiClient.mockReset();
     mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient);
+    
+    // Create fresh service instance AFTER setting up all mocks
+    service = new VersionService();
     
     // Setup console spies
     consoleSpy = {
@@ -105,7 +105,10 @@ describe('VersionService', () => {
       // Set up mock before calling the method
       mockLocalStorage.getItem.mockReturnValue('1.0.0');
       
-      const result = service.getCurrentStoredVersion();
+      // Create fresh service instance to ensure it uses current mocks
+      const testService = new VersionService();
+      
+      const result = testService.getCurrentStoredVersion();
       
       expect(result).toBe('1.0.0');
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('app_version');
@@ -114,9 +117,13 @@ describe('VersionService', () => {
     it('should return null if no version is stored', () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       
-      const result = service.getCurrentStoredVersion();
+      // Create fresh service instance to ensure it uses current mocks
+      const testService = new VersionService();
+      
+      const result = testService.getCurrentStoredVersion();
       
       expect(result).toBeNull();
+      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('app_version');
     });
 
     it('should handle localStorage errors gracefully', () => {
@@ -124,7 +131,10 @@ describe('VersionService', () => {
         throw new Error('Storage error');
       });
       
-      const result = service.getCurrentStoredVersion();
+      // Create fresh service instance to ensure it uses current mocks
+      const testService = new VersionService();
+      
+      const result = testService.getCurrentStoredVersion();
       
       expect(result).toBeNull();
       expect(consoleSpy.warn).toHaveBeenCalled();
