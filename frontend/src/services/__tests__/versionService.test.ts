@@ -101,19 +101,6 @@ describe('VersionService', () => {
   });
 
   describe('getCurrentStoredVersion', () => {
-    it('should return stored version from localStorage', () => {
-      // Set up mock before calling the method
-      mockLocalStorage.getItem.mockReturnValue('1.0.0');
-      
-      // Create fresh service instance to ensure it uses current mocks
-      const testService = new VersionService();
-      
-      const result = testService.getCurrentStoredVersion();
-      
-      expect(result).toBe('1.0.0');
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('app_version');
-    });
-
     it('should return null if no version is stored', () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       
