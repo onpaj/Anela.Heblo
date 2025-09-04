@@ -15,6 +15,14 @@ let mockLocalStorage: {
   clear: jest.Mock;
 };
 
+// Mock sessionStorage - will be properly initialized in beforeEach
+let mockSessionStorage: {
+  clear: jest.Mock;
+};
+
+// Mock window.location.reload
+let mockReload: jest.Mock;
+
 // Mock console methods to avoid noise in tests
 let consoleSpy: {
   log: jest.SpyInstance;
@@ -37,6 +45,26 @@ describe('VersionService', () => {
     // Override window.localStorage with fresh mock
     Object.defineProperty(window, 'localStorage', {
       value: mockLocalStorage,
+      writable: true,
+      configurable: true
+    });
+    
+    // Create fresh sessionStorage mock for each test
+    mockSessionStorage = {
+      clear: jest.fn(),
+    };
+    
+    // Override window.sessionStorage with fresh mock
+    Object.defineProperty(window, 'sessionStorage', {
+      value: mockSessionStorage,
+      writable: true,
+      configurable: true
+    });
+    
+    // Create fresh location.reload mock for each test
+    mockReload = jest.fn();
+    Object.defineProperty(window, 'location', {
+      value: { reload: mockReload },
       writable: true,
       configurable: true
     });
@@ -77,6 +105,7 @@ describe('VersionService', () => {
 
   describe('getCurrentStoredVersion', () => {
     it('should return stored version from localStorage', () => {
+      // Set up mock before calling the method
       mockLocalStorage.getItem.mockReturnValue('1.0.0');
       
       const result = service.getCurrentStoredVersion();
@@ -305,19 +334,6 @@ describe('VersionService', () => {
   });
 
   describe('updateToNewVersion', () => {
-    // Mock window.location.reload
-    const mockReload = jest.fn();
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { reload: mockReload }
-    });
-
-    // Mock sessionStorage
-    const mockSessionStorage = {
-      clear: jest.fn(),
-    };
-    Object.defineProperty(window, 'sessionStorage', { value: mockSessionStorage });
-
     it('should store new version and reload page', () => {
       service.updateToNewVersion('2.0.0');
 
