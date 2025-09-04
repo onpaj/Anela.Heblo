@@ -38,12 +38,12 @@ describe('VersionService', () => {
       error: jest.spyOn(console, 'error').mockImplementation(() => {}),
     };
     
-    // Clear all mocks including localStorage and API client
-    jest.clearAllMocks();
-    mockLocalStorage.getItem.mockClear();
-    mockLocalStorage.setItem.mockClear();
-    mockLocalStorage.clear.mockClear();
-    mockGetAuthenticatedApiClient.mockClear();
+    // Reset specific mocks without clearing test-specific mock return values
+    mockLocalStorage.getItem.mockReset();
+    mockLocalStorage.setItem.mockReset();
+    mockLocalStorage.clear.mockReset();
+    mockGetAuthenticatedApiClient.mockReset().mockResolvedValue(mockApiClient);
+    mockApiClient.configuration_GetConfiguration.mockReset();
   });
 
   afterEach(() => {
