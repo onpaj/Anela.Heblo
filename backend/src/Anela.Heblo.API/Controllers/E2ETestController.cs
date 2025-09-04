@@ -71,10 +71,18 @@ public class E2ETestController : ControllerBase
 
         var token = authHeader.Substring("Bearer ".Length);
 
-        // Validate Service Principal token (reuse existing validation logic)
-        if (!await ValidateServicePrincipalToken(token))
+        try
         {
-            return Unauthorized("Invalid Service Principal token");
+            // Validate Service Principal token (reuse existing validation logic)
+            if (!await ValidateServicePrincipalToken(token))
+            {
+                return Unauthorized("Invalid Service Principal token");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "E2E Test: Error validating Service Principal token");
+            return StatusCode(500, new { error = "Token validation error", details = ex.Message });
         }
 
         // Create synthetic user session (following best practice)
