@@ -49,6 +49,7 @@ public class E2ETestController : ControllerBase
     /// Following E2E authentication best practices
     /// </summary>
     [HttpPost("auth")]
+    [AllowAnonymous]
     public async Task<ActionResult<object>> CreateE2ESession()
     {
         _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}", 
@@ -130,6 +131,7 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
+    [AllowAnonymous]
     public ActionResult<object> GetAuthStatus()
     {
         // CRITICAL SECURITY: Only allow in Staging environment

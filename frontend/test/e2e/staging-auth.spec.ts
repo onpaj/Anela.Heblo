@@ -34,7 +34,7 @@ async function getServicePrincipalToken(): Promise<string> {
       grant_type: 'client_credentials',
       client_id: clientId,
       client_secret: clientSecret,
-      scope: `${clientId}/.default`, // Use app's own scope
+      scope: 'api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default', // Use backend API scope
     }),
   });
 
