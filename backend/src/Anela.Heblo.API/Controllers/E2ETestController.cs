@@ -243,14 +243,15 @@ public class E2ETestController : ControllerBase
                 return false;
             }
 
-            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
+            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD (accept both v1.0 and v2.0 tokens)
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
-            var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
+            var expectedIssuerV1 = $"https://sts.windows.net/{tenantIdClaim.Value}/";
+            var expectedIssuerV2 = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
             
-            if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
+            if (issuerClaim == null || (issuerClaim.Value != expectedIssuerV1 && issuerClaim.Value != expectedIssuerV2))
             {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}", 
-                    expectedIssuer, issuerClaim?.Value);
+                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}", 
+                    expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
                 return false;
             }
 

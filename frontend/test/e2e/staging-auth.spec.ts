@@ -43,6 +43,22 @@ async function getServicePrincipalToken(): Promise<string> {
   }
 
   const tokenData = await response.json();
+  
+  // Debug: Parse the token to see what claims it has
+  try {
+    const tokenParts = tokenData.access_token.split('.');
+    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+    console.log('Token claims:', {
+      appid: payload.appid,
+      tid: payload.tid,
+      aud: payload.aud,
+      iss: payload.iss,
+      exp: new Date(payload.exp * 1000).toISOString()
+    });
+  } catch (e) {
+    console.log('Could not parse token for debugging');
+  }
+  
   return tokenData.access_token;
 }
 
