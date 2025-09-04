@@ -20,8 +20,7 @@ public class GetTransportBoxSummaryHandler : IRequestHandler<GetTransportBoxSumm
             take: int.MaxValue, // Get all for summary
             code: request.Code,
             state: null, // Don't filter by state for summary
-            fromDate: request.FromDate,
-            toDate: request.ToDate,
+            productCode: request.ProductCode,
             sortBy: null,
             sortDescending: false
         );

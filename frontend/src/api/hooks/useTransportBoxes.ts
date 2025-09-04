@@ -15,8 +15,7 @@ export interface GetTransportBoxesRequest {
   take?: number;
   code?: string;
   state?: string;
-  fromDate?: Date;
-  toDate?: Date;
+  productCode?: string;
   sortBy?: string;
   sortDescending?: boolean;
 }
@@ -46,8 +45,7 @@ export const useTransportBoxesQuery = (request: GetTransportBoxesRequest) => {
         request.take,
         request.code || null,
         request.state || null,
-        request.fromDate || null,
-        request.toDate || null,
+        request.productCode || null,
         request.sortBy || null,
         request.sortDescending
       );
@@ -87,8 +85,7 @@ export const useTransportBoxSummaryQuery = (request: Omit<GetTransportBoxesReque
       const client = getTransportBoxClient();
       return await client.transportBox_GetTransportBoxSummary(
         request.code || null,
-        request.fromDate || null,
-        request.toDate || null
+        request.productCode || null
       );
     },
     staleTime: 1000 * 60 * 2, // 2 minutes for summary

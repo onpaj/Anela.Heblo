@@ -2304,7 +2304,7 @@ export class ApiClient {
         return Promise.resolve<SearchSuppliersResponse>(null as any);
     }
 
-    transportBox_GetTransportBoxes(skip: number | undefined, take: number | undefined, code: string | null | undefined, state: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetTransportBoxesResponse> {
+    transportBox_GetTransportBoxes(skip: number | undefined, take: number | undefined, code: string | null | undefined, state: string | null | undefined, productCode: string | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetTransportBoxesResponse> {
         let url_ = this.baseUrl + "/api/transport-boxes?";
         if (skip === null)
             throw new Error("The parameter 'skip' cannot be null.");
@@ -2318,10 +2318,8 @@ export class ApiClient {
             url_ += "Code=" + encodeURIComponent("" + code) + "&";
         if (state !== undefined && state !== null)
             url_ += "State=" + encodeURIComponent("" + state) + "&";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         if (sortBy !== undefined && sortBy !== null)
             url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (sortDescending === null)
@@ -2398,14 +2396,12 @@ export class ApiClient {
         return Promise.resolve<CreateNewTransportBoxResponse>(null as any);
     }
 
-    transportBox_GetTransportBoxSummary(code: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetTransportBoxSummaryResponse> {
+    transportBox_GetTransportBoxSummary(code: string | null | undefined, productCode: string | null | undefined): Promise<GetTransportBoxSummaryResponse> {
         let url_ = this.baseUrl + "/api/transport-boxes/summary?";
         if (code !== undefined && code !== null)
             url_ += "Code=" + encodeURIComponent("" + code) + "&";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {

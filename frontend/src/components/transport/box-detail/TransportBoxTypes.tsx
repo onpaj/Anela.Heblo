@@ -1,4 +1,5 @@
 import { TransportBoxDto, CatalogItemDto } from '../../../api/generated/api-client';
+import { LastAddedItem } from '../../../api/hooks/useLastAddedItem';
 
 export interface TransportBoxDetailProps {
   boxId: number | null;
@@ -34,6 +35,9 @@ export interface TransportBoxItemsProps {
   handleAddItem: () => void;
   autocompleteData: any;
   autocompleteLoading: boolean;
+  // Quick add last item functionality
+  lastAddedItem: LastAddedItem | null;
+  handleQuickAdd: () => void;
 }
 
 export interface TransportBoxHistoryProps {
@@ -45,7 +49,6 @@ export interface TransportBoxActionsProps {
   transportBox: TransportBoxDto;
   changeStateMutation: any;
   handleStateChange: (newStateString: string) => void;
-  onClose: () => void;
 }
 
 export interface TransportBoxModalsProps {

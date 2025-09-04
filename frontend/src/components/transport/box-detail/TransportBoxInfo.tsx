@@ -12,69 +12,70 @@ const TransportBoxInfo: React.FC<TransportBoxInfoProps> = ({
   formatDate,
 }) => {
   return (
-    <div className="bg-gray-50 p-4 rounded-lg">
-      <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-        <Box className="h-5 w-5" />
+    <div className="bg-gray-50 p-3 rounded-lg">
+      <h3 className="text-base font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <Box className="h-4 w-4" />
         Základní informace
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 text-sm">
         <div>
-          <label className="block text-sm font-medium text-gray-700">ID</label>
-          <p className="mt-1 text-sm text-gray-900">{transportBox.id}</p>
+          <label className="block text-xs font-medium text-gray-600">ID</label>
+          <p className="mt-0.5 text-sm text-gray-900 font-medium">{transportBox.id}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Kód</label>
-          <p className="mt-1 text-sm text-gray-900">{transportBox.code || '-'}</p>
+          <label className="block text-xs font-medium text-gray-600">Kód</label>
+          <p className="mt-0.5 text-sm text-gray-900 font-medium">{transportBox.code || '-'}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Stav</label>
-          <div className="mt-1">
-            <TransportBoxStateBadge state={transportBox.state || ''} />
+          <label className="block text-xs font-medium text-gray-600">Stav</label>
+          <div className="mt-0.5">
+            <TransportBoxStateBadge state={transportBox.state || ''} size="sm" />
           </div>
         </div>
         {/* Location - only show in Reserve state */}
         {transportBox.state === 'Reserve' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700">Lokace</label>
-            <p className="mt-1 text-sm text-gray-900 flex items-center gap-1">
-              <MapPin className="h-4 w-4 text-gray-400" />
+            <label className="block text-xs font-medium text-gray-600">Lokace</label>
+            <p className="mt-0.5 text-sm text-gray-900 flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-gray-400" />
               {transportBox.location || '-'}
             </p>
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Počet položek</label>
-          <p className="mt-1 text-sm text-gray-900">{transportBox.itemCount}</p>
+          <label className="block text-xs font-medium text-gray-600">Položky</label>
+          <p className="mt-0.5 text-sm text-gray-900 font-medium">{transportBox.itemCount}</p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Poslední změna</label>
-          <p className="mt-1 text-sm text-gray-900 flex items-center gap-1">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            {formatDate(transportBox.lastStateChanged)}
+        <div className="lg:col-span-2">
+          <label className="block text-xs font-medium text-gray-600">Změna</label>
+          <p className="mt-0.5 text-xs text-gray-900 flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-gray-400 flex-shrink-0" />
+            <span className="break-all">{formatDate(transportBox.lastStateChanged)}</span>
           </p>
         </div>
       </div>
       
 
       {/* Notes/Description Section */}
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Poznámka k boxu</label>
+      <div className="mt-3 border-t border-gray-200 pt-3">
+        <label className="block text-xs font-medium text-gray-600 mb-1">Poznámka k boxu</label>
         {isFormEditable('notes') ? (
           <>
             <textarea
-              rows={3}
+              rows={2}
               value={descriptionInput}
               onChange={(e) => handleDescriptionChange(e.target.value)}
-              placeholder="Zadejte poznámku k tomuto boxu..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Zadejte poznámku..."
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none"
             />
-            <p className="mt-1 text-xs text-gray-600">
-              Poznámka se automaticky uloží při změně stavu boxu.
-              {isDescriptionChanged && <span className="text-orange-600 ml-1">(Máte neuložené změny)</span>}
-            </p>
+            {isDescriptionChanged && (
+              <p className="mt-1 text-xs text-orange-600">
+                Neuložené změny
+              </p>
+            )}
           </>
         ) : (
-          <p className="text-sm text-gray-900">
+          <p className="text-sm text-gray-900 bg-white rounded px-2 py-1.5 border border-gray-200 min-h-[2.5rem] flex items-center">
             {transportBox.description || 
               <span className="text-gray-400 italic">Žádná poznámka</span>}
           </p>

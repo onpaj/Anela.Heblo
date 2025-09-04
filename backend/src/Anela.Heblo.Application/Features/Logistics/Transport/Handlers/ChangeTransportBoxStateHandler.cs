@@ -55,6 +55,18 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                         ErrorMessage = "BoxCode is required for transition from New to Opened"
                     };
                 }
+
+                // Check if another active box with the same code already exists
+                var normalizedCode = request.BoxCode.ToUpper();
+                var isCodeActive = await _repository.IsBoxCodeActiveAsync(normalizedCode);
+                if (isCodeActive)
+                {
+                    return new ChangeTransportBoxStateResponse
+                    {
+                        Success = false,
+                        ErrorMessage = $"Transport box with code '{normalizedCode}' is already active. Only closed boxes can share the same code."
+                    };
+                }
             }
             if (box.State == TransportBoxState.Opened && request.NewState == TransportBoxState.Reserve)
             {

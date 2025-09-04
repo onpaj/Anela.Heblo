@@ -74,8 +74,7 @@ describe('useTransportBoxes hooks', () => {
         10, // take
         'BOX', // code
         'New', // state
-        null, // fromDate
-        null, // toDate
+        null, // productCode
         'id', // sortBy
         true // sortDescending
       );
@@ -103,8 +102,7 @@ describe('useTransportBoxes hooks', () => {
         5, // take
         null, // code
         null, // state
-        null, // fromDate
-        null, // toDate
+        null, // productCode
         null, // sortBy
         undefined // sortDescending
       );

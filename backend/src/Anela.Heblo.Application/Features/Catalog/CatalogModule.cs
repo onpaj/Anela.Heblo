@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
-using Anela.Heblo.Application.Features.Catalog.Fakes;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Model;
 using Anela.Heblo.Application.Features.Catalog.Services;
@@ -41,10 +40,7 @@ public static class CatalogModule
             options.IsBackgroundRefreshEnabled = true;
         });
 
-        // Register repositories based on feature flags
-        // For now, using empty implementations until features are fully implemented
         // TODO: Replace with real implementations when features are ready
-        services.AddTransient<ITransportBoxRepository, EmptyTransportBoxRepository>();
         services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
 
         // Register background service for periodic refresh operations

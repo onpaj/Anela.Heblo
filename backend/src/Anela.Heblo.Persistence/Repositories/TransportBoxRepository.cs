@@ -19,8 +19,7 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
         int take,
         string? code = null,
         TransportBoxState? state = null,
-        DateTime? fromDate = null,
-        DateTime? toDate = null,
+        string? productCode = null,
         string? sortBy = null,
         bool sortDescending = false,
         bool isActiveFilter = false)
@@ -43,14 +42,10 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             query = query.Where(x => x.State == state.Value);
         }
 
-        if (fromDate.HasValue)
-        {
-            query = query.Where(x => x.LastStateChanged >= fromDate.Value);
-        }
 
-        if (toDate.HasValue)
+        if (!string.IsNullOrWhiteSpace(productCode))
         {
-            query = query.Where(x => x.LastStateChanged <= toDate.Value);
+            query = query.Where(x => x.Items.Any(item => item.ProductCode != null && item.ProductCode.ToUpper().Contains(productCode.ToUpper())));
         }
 
         // Get total count before pagination
@@ -74,8 +69,8 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             .Take(take)
             .ToListAsync();
 
-        _logger.LogDebug("Retrieved {ItemCount} transport boxes out of {TotalCount} with filters - Code: {Code}, State: {State}",
-            items.Count, totalCount, code, state);
+        _logger.LogDebug("Retrieved {ItemCount} transport boxes out of {TotalCount} with filters - Code: {Code}, State: {State}, ProductCode: {ProductCode}",
+            items.Count, totalCount, code, state, productCode);
 
         return (items, totalCount);
     }

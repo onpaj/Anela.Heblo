@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Search, AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Package, Calendar, MapPin, Truck, Box, RefreshCw, Plus } from 'lucide-react';
+import { Search, AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Package, Calendar, MapPin, Truck, Box, RefreshCw, Plus, X } from 'lucide-react';
 import { 
   useTransportBoxesQuery,
   useTransportBoxSummaryQuery,
   GetTransportBoxesRequest
 } from '../../api/hooks/useTransportBoxes';
+import { CatalogAutocomplete } from '../common/CatalogAutocomplete';
+import { catalogItemToCodeAndName, PRODUCT_TYPE_FILTERS } from '../common/CatalogAutocompleteAdapters';
 import TransportBoxDetail from './TransportBoxDetail';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 
@@ -35,14 +37,11 @@ const TransportBoxList: React.FC = () => {
   
   // Filter states - separate input values from applied filters
   const [codeInput, setCodeInput] = useState('');
-  const [stateInput, setStateInput] = useState('');
-  const [fromDateInput, setFromDateInput] = useState('');
-  const [toDateInput, setToDateInput] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   
   const [codeFilter, setCodeFilter] = useState('');
-  const [stateFilter, setStateFilter] = useState('');
-  const [fromDateFilter, setFromDateFilter] = useState('');
-  const [toDateFilter, setToDateFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('ACTIVE');
+  const [productFilter, setProductFilter] = useState('');
   
   // Pagination states
   const [skip, setSkip] = useState(0);
@@ -65,8 +64,7 @@ const TransportBoxList: React.FC = () => {
     take,
     code: codeFilter || undefined,
     state: stateFilter || undefined,
-    fromDate: fromDateFilter ? new Date(fromDateFilter) : undefined,
-    toDate: toDateFilter ? new Date(toDateFilter) : undefined,
+    productCode: productFilter || undefined,
     sortBy,
     sortDescending,
   };
@@ -77,43 +75,36 @@ const TransportBoxList: React.FC = () => {
   // Fetch summary data (using same filters but no pagination)
   const summaryRequest = {
     code: codeFilter || undefined,
-    fromDate: fromDateFilter ? new Date(fromDateFilter) : undefined,
-    toDate: toDateFilter ? new Date(toDateFilter) : undefined,
+    productCode: productFilter || undefined,
   };
   const { data: summaryData } = useTransportBoxSummaryQuery(summaryRequest);
 
-  // Handle search/filter application
-  const handleApplyFilters = () => {
-    setCodeFilter(codeInput);
-    setStateFilter(stateInput);
-    setFromDateFilter(fromDateInput);
-    setToDateFilter(toDateInput);
+  // Product filter handling
+  const handleProductSelect = (productCodeAndName: string | null) => {
+    setSelectedProduct(productCodeAndName);
+    if (productCodeAndName) {
+      // Extract product code from "CODE - NAME" format
+      const productCode = productCodeAndName.split(' - ')[0];
+      setProductFilter(productCode);
+    } else {
+      setProductFilter('');
+    }
     setSkip(0); // Reset to first page
   };
 
-  // Handle Enter key press in code input
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleApplyFilters();
-    }
-  };
 
   // Handle clear filters
-  // const handleClearFilters = () => {
-  //   setCodeInput('');
-  //   setStateInput('');
-  //   setFromDateInput('');
-  //   setToDateInput('');
-  //   setCodeFilter('');
-  //   setStateFilter('');
-  //   setFromDateFilter('');
-  //   setToDateFilter('');
-  //   setSkip(0);
-  // };
+  const handleClearFilters = () => {
+    setCodeInput('');
+    setSelectedProduct(null);
+    setCodeFilter('');
+    setStateFilter('ACTIVE');
+    setProductFilter('');
+    setSkip(0);
+  };
 
   // Handle state filter from summary cards
   const handleStateFilterClick = (state: string) => {
-    setStateInput(state);
     setStateFilter(state);
     setSkip(0); // Reset to first page
   };
@@ -323,7 +314,12 @@ const TransportBoxList: React.FC = () => {
                           type="text"
                           value={codeInput}
                           onChange={(e) => setCodeInput(e.target.value)}
-                          onKeyPress={handleKeyPress}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              setCodeFilter(codeInput);
+                              setSkip(0);
+                            }
+                          }}
                           placeholder="Vyhledat..."
                           className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                         />
@@ -459,68 +455,76 @@ const TransportBoxList: React.FC = () => {
               {/* Filters */}
               <div>
                 <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Search */}
-                  <div>
+                <div className="flex gap-3 items-end">
+                  {/* Search - Now much smaller */}
+                  <div className="w-40">
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Vyhledat
+                      Kód boxu
                     </label>
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
                       <input
                         type="text"
                         value={codeInput}
-                        onChange={(e) => setCodeInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onChange={(e) => {
+                          setCodeInput(e.target.value);
+                          // Don't apply filter immediately - wait for Enter key
+                        }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            setCodeFilter(codeInput);
+                            setSkip(0);
+                          }
+                        }}
                         placeholder="Kód boxu..."
-                        className="pl-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="pl-8 pr-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                       />
+                      {codeInput && (
+                        <button
+                          onClick={() => {
+                            setCodeInput('');
+                            setCodeFilter('');
+                            setSkip(0);
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* State Filter */}
-                  <div>
+                  {/* Product Filter - Takes remaining space */}
+                  <div className="flex-1">
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Stav
+                      Produkt v boxu
                     </label>
-                    <select
-                      value={stateInput}
-                      onChange={(e) => setStateInput(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      <option value="">Všechny stavy</option>
-                      {Object.entries(stateLabels).map(([state, label]) => (
-                        <option key={state} value={state}>{label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Date From */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Od data
-                    </label>
-                    <input
-                      type="date"
-                      value={fromDateInput}
-                      onChange={(e) => setFromDateInput(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    <CatalogAutocomplete<string>
+                      value={selectedProduct}
+                      onSelect={handleProductSelect}
+                      placeholder="Vyhledat produkt..."
+                      productTypes={PRODUCT_TYPE_FILTERS.FINISHED_PRODUCTS}
+                      itemAdapter={catalogItemToCodeAndName}
+                      displayValue={(value) => value}
+                      size="sm"
+                      clearable
                     />
                   </div>
 
-                  {/* Date To */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Do data
-                    </label>
-                    <input
-                      type="date"
-                      value={toDateInput}
-                      onChange={(e) => setToDateInput(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
                 </div>
+
+                {/* Clear All Filters Button */}
+                {(codeFilter || productFilter) && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={handleClearFilters}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                      Vymazat všechny filtry
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
