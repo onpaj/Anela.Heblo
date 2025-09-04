@@ -1,46 +1,49 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Common;
 
+// Test service classes for generic testing
+public class TestService1 { }
+public class TestService2 { }
+
 public class BackgroundServiceReadinessTrackerTests
 {
-    private readonly ILogger<BackgroundServiceReadinessTracker> _logger;
+    private readonly Mock<ILogger<BackgroundServiceReadinessTracker>> _loggerMock;
     private readonly BackgroundServiceReadinessTracker _tracker;
 
     public BackgroundServiceReadinessTrackerTests()
     {
-        _logger = Substitute.For<ILogger<BackgroundServiceReadinessTracker>>();
-        _tracker = new BackgroundServiceReadinessTracker(_logger);
+        _loggerMock = new Mock<ILogger<BackgroundServiceReadinessTracker>>();
+        _tracker = new BackgroundServiceReadinessTracker(_loggerMock.Object);
     }
 
     [Fact]
     public void ReportInitialLoadCompleted_ShouldSetServiceAsReady()
     {
-        // Arrange
-        var serviceName = "TestService";
-
         // Act
-        _tracker.ReportInitialLoadCompleted(serviceName);
+        _tracker.ReportInitialLoadCompleted<TestService1>();
 
         // Assert
-        Assert.True(_tracker.IsServiceReady(serviceName));
+        Assert.True(_tracker.IsServiceReady<TestService1>());
     }
 
     [Fact]
     public void IsServiceReady_ShouldReturnFalseForUnknownService()
     {
         // Act & Assert
-        Assert.False(_tracker.IsServiceReady("UnknownService"));
+        Assert.False(_tracker.IsServiceReady<TestService1>());
     }
 
     [Fact]
     public void AreAllServicesReady_ShouldReturnFalseWhenCatalogServiceNotReady()
     {
         // Arrange
-        _tracker.ReportInitialLoadCompleted("FinancialAnalysisBackgroundService");
+        _tracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
 
         // Act & Assert
         Assert.False(_tracker.AreAllServicesReady());
@@ -50,7 +53,7 @@ public class BackgroundServiceReadinessTrackerTests
     public void AreAllServicesReady_ShouldReturnFalseWhenFinancialServiceNotReady()
     {
         // Arrange
-        _tracker.ReportInitialLoadCompleted("CatalogRefreshBackgroundService");
+        _tracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
 
         // Act & Assert
         Assert.False(_tracker.AreAllServicesReady());
@@ -60,8 +63,8 @@ public class BackgroundServiceReadinessTrackerTests
     public void AreAllServicesReady_ShouldReturnTrueWhenAllRequiredServicesReady()
     {
         // Arrange
-        _tracker.ReportInitialLoadCompleted("CatalogRefreshBackgroundService");
-        _tracker.ReportInitialLoadCompleted("FinancialAnalysisBackgroundService");
+        _tracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
+        _tracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
 
         // Act & Assert
         Assert.True(_tracker.AreAllServicesReady());
@@ -71,33 +74,43 @@ public class BackgroundServiceReadinessTrackerTests
     public void GetServiceStatuses_ShouldReturnAllReportedServices()
     {
         // Arrange
-        _tracker.ReportInitialLoadCompleted("Service1");
-        _tracker.ReportInitialLoadCompleted("Service2");
+        _tracker.ReportInitialLoadCompleted<TestService1>();
+        _tracker.ReportInitialLoadCompleted<TestService2>();
 
         // Act
         var statuses = _tracker.GetServiceStatuses();
 
         // Assert
         Assert.Equal(2, statuses.Count);
-        Assert.True(statuses["Service1"]);
-        Assert.True(statuses["Service2"]);
+        Assert.True(statuses["TestService1"]);
+        Assert.True(statuses["TestService2"]);
     }
 
     [Fact]
     public void ReportInitialLoadCompleted_ShouldLogCorrectly()
     {
-        // Arrange
-        var serviceName = "TestService";
-
         // Act
-        _tracker.ReportInitialLoadCompleted(serviceName);
+        _tracker.ReportInitialLoadCompleted<TestService1>();
 
         // Assert
-        _logger.Received(1).Log(
-            LogLevel.Information,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains($"Background service '{serviceName}' reported initial load completion")),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>());
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Background service 'TestService1' reported initial load completion")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void TypeSafety_ShouldDistinguishBetweenDifferentServiceTypes()
+    {
+        // Arrange
+        _tracker.ReportInitialLoadCompleted<TestService1>();
+
+        // Act & Assert
+        Assert.True(_tracker.IsServiceReady<TestService1>());
+        Assert.False(_tracker.IsServiceReady<TestService2>());
     }
 }

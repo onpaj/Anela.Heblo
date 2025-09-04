@@ -19,7 +19,7 @@ public class BackgroundServicesReadyHealthCheck : IHealthCheck
         {
             var statuses = _readinessTracker.GetServiceStatuses();
             var data = new Dictionary<string, object>();
-            
+
             foreach (var status in statuses)
             {
                 data[status.Key] = status.Value ? "Ready" : "NotReady";
@@ -31,14 +31,14 @@ public class BackgroundServicesReadyHealthCheck : IHealthCheck
 
         var serviceStatuses = _readinessTracker.GetServiceStatuses();
         var notReadyServices = serviceStatuses.Where(s => !s.Value).Select(s => s.Key).ToList();
-        
+
         var statusData = new Dictionary<string, object>();
         foreach (var status in serviceStatuses)
         {
             statusData[status.Key] = status.Value ? "Ready" : "NotReady";
         }
 
-        var description = notReadyServices.Any() 
+        var description = notReadyServices.Any()
             ? $"Waiting for services: {string.Join(", ", notReadyServices)}"
             : "Background services initialization pending";
 

@@ -33,15 +33,15 @@ public class FinancialAnalysisBackgroundService : BackgroundService
         {
             // Initial load on startup
             await RefreshFinancialDataAsync(stoppingToken);
-            
+
             // Report readiness after initial load
-            _readinessTracker.ReportInitialLoadCompleted(nameof(FinancialAnalysisBackgroundService));
+            _readinessTracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
             _logger.LogInformation("FinancialAnalysisBackgroundService initial load completed, service is ready");
         }
         else
         {
             // If refresh interval is zero (disabled), immediately report as ready
-            _readinessTracker.ReportInitialLoadCompleted(nameof(FinancialAnalysisBackgroundService));
+            _readinessTracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
             _logger.LogInformation("FinancialAnalysisBackgroundService refresh is disabled, service is ready");
         }
 

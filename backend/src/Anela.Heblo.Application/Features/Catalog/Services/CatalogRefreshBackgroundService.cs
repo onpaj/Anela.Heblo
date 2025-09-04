@@ -48,11 +48,11 @@ public class CatalogRefreshBackgroundService : BackgroundService
 
         // Perform initial load immediately (if intervals are not zero)
         await PerformRefreshCycle(stoppingToken, isInitialLoad: true);
-        
+
         // Check if all refresh intervals are zero (disabled), if so, report as ready immediately
         if (AreAllRefreshIntervalsDisabled())
         {
-            _readinessTracker.ReportInitialLoadCompleted(nameof(CatalogRefreshBackgroundService));
+            _readinessTracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
             _logger.LogInformation("All CatalogRefreshBackgroundService refresh intervals are disabled, service is ready");
         }
 
@@ -208,11 +208,11 @@ public class CatalogRefreshBackgroundService : BackgroundService
                     _lastManufactureCostRefresh = now;
                 }
             }
-            
+
             // Report readiness after initial load completes successfully
             if (isInitialLoad)
             {
-                _readinessTracker.ReportInitialLoadCompleted(nameof(CatalogRefreshBackgroundService));
+                _readinessTracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
                 _logger.LogInformation("CatalogRefreshBackgroundService initial load completed, service is ready");
             }
         }

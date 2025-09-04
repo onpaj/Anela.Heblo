@@ -1,27 +1,27 @@
 using Anela.Heblo.Application.Common;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using NSubstitute;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Common;
 
 public class BackgroundServicesReadyHealthCheckTests
 {
-    private readonly IBackgroundServiceReadinessTracker _readinessTracker;
+    private readonly Mock<IBackgroundServiceReadinessTracker> _readinessTrackerMock;
     private readonly BackgroundServicesReadyHealthCheck _healthCheck;
 
     public BackgroundServicesReadyHealthCheckTests()
     {
-        _readinessTracker = Substitute.For<IBackgroundServiceReadinessTracker>();
-        _healthCheck = new BackgroundServicesReadyHealthCheck(_readinessTracker);
+        _readinessTrackerMock = new Mock<IBackgroundServiceReadinessTracker>();
+        _healthCheck = new BackgroundServicesReadyHealthCheck(_readinessTrackerMock.Object);
     }
 
     [Fact]
     public async Task CheckHealthAsync_ShouldReturnHealthy_WhenAllServicesReady()
     {
         // Arrange
-        _readinessTracker.AreAllServicesReady().Returns(true);
-        _readinessTracker.GetServiceStatuses().Returns(new Dictionary<string, bool>
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(true);
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
         {
             { "CatalogRefreshBackgroundService", true },
             { "FinancialAnalysisBackgroundService", true }
@@ -43,8 +43,8 @@ public class BackgroundServicesReadyHealthCheckTests
     public async Task CheckHealthAsync_ShouldReturnUnhealthy_WhenSomeServicesNotReady()
     {
         // Arrange
-        _readinessTracker.AreAllServicesReady().Returns(false);
-        _readinessTracker.GetServiceStatuses().Returns(new Dictionary<string, bool>
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
         {
             { "CatalogRefreshBackgroundService", true },
             { "FinancialAnalysisBackgroundService", false }
@@ -66,8 +66,8 @@ public class BackgroundServicesReadyHealthCheckTests
     public async Task CheckHealthAsync_ShouldReturnUnhealthy_WhenNoServicesReported()
     {
         // Arrange
-        _readinessTracker.AreAllServicesReady().Returns(false);
-        _readinessTracker.GetServiceStatuses().Returns(new Dictionary<string, bool>());
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
@@ -82,8 +82,8 @@ public class BackgroundServicesReadyHealthCheckTests
     public async Task CheckHealthAsync_ShouldReturnUnhealthy_WithMultipleNotReadyServices()
     {
         // Arrange
-        _readinessTracker.AreAllServicesReady().Returns(false);
-        _readinessTracker.GetServiceStatuses().Returns(new Dictionary<string, bool>
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
         {
             { "CatalogRefreshBackgroundService", false },
             { "FinancialAnalysisBackgroundService", false }

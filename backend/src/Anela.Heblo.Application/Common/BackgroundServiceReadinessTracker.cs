@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Common;
@@ -13,36 +15,24 @@ public class BackgroundServiceReadinessTracker : IBackgroundServiceReadinessTrac
         _logger = logger;
     }
 
-    public void ReportInitialLoadCompleted(string serviceName)
+    public void ReportInitialLoadCompleted<TService>() where TService : class
     {
+        var serviceName = typeof(TService).Name;
         _serviceStatuses.AddOrUpdate(serviceName, true, (key, oldValue) => true);
-        _logger.LogInformation("Background service '{ServiceName}' reported initial load completion", serviceName);
+        _logger.LogInformation("Background service '{ServiceType}' reported initial load completion", typeof(TService).Name);
     }
 
-    public bool IsServiceReady(string serviceName)
+    public bool IsServiceReady<TService>() where TService : class
     {
+        var serviceName = typeof(TService).Name;
         return _serviceStatuses.TryGetValue(serviceName, out var isReady) && isReady;
     }
 
     public bool AreAllServicesReady()
     {
-        // Services that must be ready for the application to be considered ready
-        var requiredServices = new[]
-        {
-            "CatalogRefreshBackgroundService",
-            "FinancialAnalysisBackgroundService"
-        };
-
-        foreach (var service in requiredServices)
-        {
-            if (!IsServiceReady(service))
-            {
-                _logger.LogDebug("Service '{ServiceName}' is not ready yet", service);
-                return false;
-            }
-        }
-
-        return true;
+        // Check required services by their types
+        return IsServiceReady<CatalogRefreshBackgroundService>() &&
+               IsServiceReady<FinancialAnalysisBackgroundService>();
     }
 
     public IReadOnlyDictionary<string, bool> GetServiceStatuses()
