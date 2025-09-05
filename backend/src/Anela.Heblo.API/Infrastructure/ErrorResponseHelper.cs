@@ -51,7 +51,7 @@ public static class ErrorResponseHelper
             : null;
         return CreateErrorResponse<T>(errorCode, parameters);
     }
-    
+
     /// <summary>
     /// Creates a business rule violation error response
     /// </summary>

@@ -1,13 +1,10 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using FluentAssertions;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using MediatR;
-using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -384,17 +381,46 @@ public class ManufacturingStockAnalysisControllerTests
     }
 
     [Fact]
-    public async Task GetStockAnalysis_MediatorThrowsException_Returns500()
+    public async Task GetStockAnalysis_HandlerReturnsInvalidParametersError_ReturnsBadRequest()
     {
         // Arrange
+        var errorResponse = new GetManufacturingStockAnalysisResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.InvalidAnalysisParameters,
+            Params = new Dictionary<string, string> { ["parameters"] = "PageSize must be between 1 and 100" }
+        };
+
         _mediatorMock.Setup(m => m.Send(It.IsAny<GetManufacturingStockAnalysisRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Database error"));
+            .ReturnsAsync(errorResponse);
 
         // Act
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
-        objectResult.Subject.StatusCode.Should().Be(500);
+        var badRequestResult = result.Result.Should().BeOfType<BadRequestObjectResult>();
+        badRequestResult.Subject.Value.Should().Be(errorResponse);
+    }
+
+    [Fact]
+    public async Task GetStockAnalysis_HandlerReturnsDataNotAvailableError_ReturnsNotFound()
+    {
+        // Arrange
+        var errorResponse = new GetManufacturingStockAnalysisResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.ManufacturingDataNotAvailable,
+            Params = new Dictionary<string, string> { ["reason"] = "No finished products available for analysis" }
+        };
+
+        _mediatorMock.Setup(m => m.Send(It.IsAny<GetManufacturingStockAnalysisRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errorResponse);
+
+        // Act
+        var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
+
+        // Assert
+        var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>();
+        notFoundResult.Subject.Value.Should().Be(errorResponse);
     }
 }

@@ -45,6 +45,12 @@ const resources = {
         'StatusTransitionNotAllowed': 'Změna stavu není povolena',
         'InsufficientStock': 'Nedostatečné množství na skladě',
         
+        // Manufacture module errors
+        'ManufacturingDataNotAvailable': 'Výrobní data nejsou k dispozici pro analýzu',
+        'ManufactureAnalysisCalculationFailed': 'Výpočet výrobní analýzy selhal: {reason}',
+        'InvalidAnalysisParameters': 'Neplatné parametry analýzy: {parameters}',
+        'InsufficientManufacturingData': 'Nedostatečná data pro spolehlivou výrobní analýzu',
+        
         // Catalog module errors
         'CatalogItemNotFound': 'Položka katalogu nenalezena (ID: {id})',
         'ManufactureDifficultyNotFound': 'Nastavení obtížnosti výroby nenalezeno (ID: {id})',

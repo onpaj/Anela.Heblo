@@ -25,7 +25,7 @@ public enum ErrorCodes
     Forbidden = 0014,
     TokenExpired = 0015,
     Exception = 0099,
-    
+
 
     // Audit module errors (10XX) - reserved for future use
     // AuditError = 1001,
@@ -36,8 +36,11 @@ public enum ErrorCodes
     StatusTransitionNotAllowed = 1103,
     InsufficientStock = 1104,
 
-    // Manufacture module errors (12XX) - reserved for future use
-    // ManufactureError = 1201,
+    // Manufacture module errors (12XX)
+    ManufacturingDataNotAvailable = 1201,
+    ManufactureAnalysisCalculationFailed = 1202,
+    InvalidAnalysisParameters = 1203,
+    InsufficientManufacturingData = 1204,
 
     // Catalog module errors (13XX)
     CatalogItemNotFound = 1301,

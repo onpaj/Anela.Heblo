@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
@@ -25,6 +26,18 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         GetManufactureOutputRequest request,
         CancellationToken cancellationToken)
     {
+        // Validate analysis parameters
+        if (request.MonthsBack < 1 || request.MonthsBack > 60)
+        {
+            _logger.LogWarning("Invalid months back parameter: {MonthsBack}. Must be between 1 and 60", request.MonthsBack);
+            return new GetManufactureOutputResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidAnalysisParameters,
+                Params = new Dictionary<string, string> { ["parameters"] = "MonthsBack must be between 1 and 60" }
+            };
+        }
+
         // Calculate date range - last N months
         var toDate = DateTime.Now;
         var fromDate = toDate.AddMonths(-request.MonthsBack);
@@ -34,14 +47,20 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         // Get manufacture history for all products in the period
         var history = await _manufactureHistoryClient.GetHistoryAsync(fromDate, toDate, null, cancellationToken);
 
+        if (history == null || !history.Any())
+        {
+            _logger.LogInformation("No manufacturing history found for the specified period from {FromDate} to {ToDate}", fromDate, toDate);
+            // Return successful response with empty data rather than error, as this is a valid scenario
+        }
+
         // Get catalog items to get product names and difficulty
         var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
         var catalogDict = catalogItems
             .Where(w => w.ManufactureDifficulty.HasValue)
             .ToDictionary(c => c.ProductCode, c => c);
 
-        // Group by month and calculate weighted output
-        var monthlyData = history
+        // Group by month and calculate weighted output (handle empty history)
+        var monthlyData = (history ?? Enumerable.Empty<ManufactureHistoryRecord>())
             .GroupBy(h => new { Year = h.Date.Year, Month = h.Date.Month })
             .Select(monthGroup =>
             {

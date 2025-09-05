@@ -40,7 +40,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 {
                     Success = false,
                     ErrorCode = ErrorCodes.TransportBoxNotFound,
-                    Params = new Dictionary<string, string>() {{ nameof(request.BoxId), request.BoxId.ToString() }},
+                    Params = new Dictionary<string, string>() { { nameof(request.BoxId), request.BoxId.ToString() } },
                 };
             }
 
@@ -70,9 +70,9 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                         Params = new Dictionary<string, string> { { "code", normalizedCode } }
                     };
                 }
-                
+
                 // Close all stocked boxes
-                var (stocked, _) = await _repository.GetPagedListAsync(skip:0, take: 0, code: request.BoxCode, state: TransportBoxState.Stocked);
+                var (stocked, _) = await _repository.GetPagedListAsync(skip: 0, take: 0, code: request.BoxCode, state: TransportBoxState.Stocked);
                 foreach (var s in stocked)
                 {
                     s.Close(_timeProvider.GetUtcNow().UtcDateTime, _currentUserService.GetCurrentUser().Name ?? "System");

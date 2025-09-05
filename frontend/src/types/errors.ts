@@ -27,6 +27,12 @@ export enum ErrorCodes {
   StatusTransitionNotAllowed = 1103,
   InsufficientStock = 1104,
 
+  // Manufacture module errors (12XX)
+  ManufacturingDataNotAvailable = 1201,
+  ManufactureAnalysisCalculationFailed = 1202,
+  InvalidAnalysisParameters = 1203,
+  InsufficientManufacturingData = 1204,
+
   // Catalog module errors (13XX)
   CatalogItemNotFound = 1301,
   ManufactureDifficultyNotFound = 1302,

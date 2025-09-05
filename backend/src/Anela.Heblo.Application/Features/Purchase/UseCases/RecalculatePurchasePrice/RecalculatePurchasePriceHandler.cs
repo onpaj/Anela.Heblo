@@ -85,8 +85,8 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                     ProductCode = product.ProductCode,
                     Success = false,
                     ErrorCode = ErrorCodes.Exception,
-                    Params = new Dictionary<string, string> 
-                    { 
+                    Params = new Dictionary<string, string>
+                    {
                         { "message", errorMessage },
                         { "exceptionType", ex.GetType().Name }
                     }

@@ -112,7 +112,7 @@ public class ChangeTransportBoxStateHandlerTests
         _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-   
+
 
     [Fact]
     public async Task Handle_OpenedToInTransit_WithItems_ReturnsSuccess()
