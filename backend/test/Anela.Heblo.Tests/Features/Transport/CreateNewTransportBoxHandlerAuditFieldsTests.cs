@@ -13,6 +13,7 @@ namespace Anela.Heblo.Tests.Features.Transport;
 public class CreateNewTransportBoxHandlerAuditFieldsTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<CreateNewTransportBoxHandler>> _loggerMock;
     private readonly Mock<IMapper> _mapperMock;
@@ -21,6 +22,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
     public CreateNewTransportBoxHandlerAuditFieldsTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
+        _timeProviderMock = new Mock<TimeProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<CreateNewTransportBoxHandler>>();
         _mapperMock = new Mock<IMapper>();
@@ -29,8 +31,13 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
             .Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("12345678-1234-1234-1234-123456789012", "Test User", "test@example.com", true));
 
+        _timeProviderMock
+            .Setup(x => x.GetUtcNow())
+            .Returns(new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero));
+
         _handler = new CreateNewTransportBoxHandler(
             _repositoryMock.Object,
+            _timeProviderMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
             _mapperMock.Object);

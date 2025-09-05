@@ -6,5 +6,4 @@ namespace Anela.Heblo.Application.Features.Transport.UseCases;
 public class CreateNewTransportBoxResponse : BaseResponse
 {
     public TransportBoxDto? TransportBox { get; set; }
-    public string? ErrorMessage { get; set; }
 }

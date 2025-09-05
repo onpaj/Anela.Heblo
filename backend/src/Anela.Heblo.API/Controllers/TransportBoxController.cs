@@ -56,8 +56,7 @@ public class TransportBoxController : ControllerBase
 
         if (response.TransportBox == null)
         {
-            return NotFound(ErrorResponseHelper.CreateNotFoundError<GetTransportBoxByIdResponse>(
-                ErrorCodes.TransportBoxNotFound, id.ToString()));
+            return NotFound(response);
         }
 
         return Ok(response);
@@ -77,8 +76,7 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<ChangeTransportBoxStateResponse>(
-                ErrorCodes.TransportBoxStateChangeError, response.ErrorMessage));
+            return BadRequest(response);
         }
 
         return Ok(response);
@@ -96,8 +94,7 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreateNewTransportBoxResponse>(
-                ErrorCodes.TransportBoxCreationError, response.ErrorMessage));
+            return BadRequest(response);
         }
 
         return Ok(response);
@@ -118,8 +115,7 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<AddItemToBoxResponse>(
-                ErrorCodes.TransportBoxItemError, response.ErrorMessage));
+            return BadRequest(response);
         }
 
         return Ok(response);
@@ -143,8 +139,7 @@ public class TransportBoxController : ControllerBase
         var response = await _mediator.Send(request, cancellationToken);
         if (!response.Success)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<RemoveItemFromBoxResponse>(
-                ErrorCodes.TransportBoxItemError, response.ErrorMessage));
+            return BadRequest(response);
         }
         return Ok(response);
     }

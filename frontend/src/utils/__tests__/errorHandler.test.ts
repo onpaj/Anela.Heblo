@@ -1,32 +1,8 @@
+// Use real i18n instead of mocking - it's more reliable
+import '../../i18n';
+
 import { ErrorCodes } from '../../types/errors';
 import { getErrorMessage, handleApiError, isErrorResponse } from '../errorHandler';
-import '../../i18n'; // Initialize i18n for testing
-
-// Mock i18n for testing
-jest.mock('../../i18n', () => {
-  const mockT = jest.fn((key: string) => {
-    // Mock translation mapping that matches our new error code structure
-    const translations: Record<string, string> = {
-      'errors.1': 'Chyba validace',
-      'errors.2': 'Povinné pole chybí',
-      'errors.1101': 'Objednávka nenalezena (ID: {id})',
-      'errors.8': 'Neplatná operace',
-      'errors.10': 'Interní chyba serveru',
-      'errors.13': 'Neautorizovaný přístup',
-      // Legacy support
-      'errors.1000': 'Chyba validace',
-      'errors.2001': 'Objednávka nenalezena (ID: {id})',
-    };
-    return translations[key] || key;
-  });
-
-  return {
-    __esModule: true,
-    default: {
-      t: mockT,
-    },
-  };
-});
 
 describe('errorHandler', () => {
   describe('getErrorMessage', () => {
@@ -143,17 +119,19 @@ describe('Error Code Coverage', () => {
     const errorCodeValues = Object.values(ErrorCodes)
       .filter(value => typeof value === 'number') as number[];
     
-    // Check that we have error codes in expected ranges
-    const hasValidationErrors = errorCodeValues.some(code => code >= 1000 && code < 2000);
-    const hasNotFoundErrors = errorCodeValues.some(code => code >= 2000 && code < 3000);
-    const hasBusinessErrors = errorCodeValues.some(code => code >= 3000 && code < 4000);
-    const hasSystemErrors = errorCodeValues.some(code => code >= 5000 && code < 6000);
-    const hasAuthErrors = errorCodeValues.some(code => code >= 6000 && code < 7000);
+    // Check that we have error codes in expected ranges according to new structure
+    const hasGeneralErrors = errorCodeValues.some(code => code >= 1 && code <= 99);
+    const hasPurchaseErrors = errorCodeValues.some(code => code >= 1100 && code < 1200);
+    const hasCatalogErrors = errorCodeValues.some(code => code >= 1300 && code < 1400);
+    const hasTransportErrors = errorCodeValues.some(code => code >= 1400 && code < 1500);
+    const hasConfigErrors = errorCodeValues.some(code => code >= 1500 && code < 1600);
+    const hasExternalErrors = errorCodeValues.some(code => code >= 9000 && code < 9100);
     
-    expect(hasValidationErrors).toBe(true);
-    expect(hasNotFoundErrors).toBe(true);
-    expect(hasBusinessErrors).toBe(true);
-    expect(hasSystemErrors).toBe(true);
-    expect(hasAuthErrors).toBe(true);
+    expect(hasGeneralErrors).toBe(true);
+    expect(hasPurchaseErrors).toBe(true);
+    expect(hasCatalogErrors).toBe(true);
+    expect(hasTransportErrors).toBe(true);
+    expect(hasConfigErrors).toBe(true);
+    expect(hasExternalErrors).toBe(true);
   });
 });

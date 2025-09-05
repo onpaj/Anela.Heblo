@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Transport.UseCases;
 using Anela.Heblo.Application.Features.Transport.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
@@ -82,7 +83,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         // Assert - Druhý pokus by měl selhat
         secondResult.Success.Should().BeFalse();
-        secondResult.ErrorMessage.Should().Contain("Transport box with code 'B001' is already active");
+        secondResult.ErrorCode.Should().Be(ErrorCodes.DuplicateEntry);
     }
 
     [Fact]
@@ -119,7 +120,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         // Assert - Mělo by selhat kvůli case-insensitive duplicitě
         secondResult.Success.Should().BeFalse();
-        secondResult.ErrorMessage.Should().Contain("Transport box with code 'B001' is already active");
+        secondResult.ErrorCode.Should().Be(ErrorCodes.DuplicateEntry);
     }
 
     [Fact]

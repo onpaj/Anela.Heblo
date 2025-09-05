@@ -1,44 +1,52 @@
 /**
  * Error codes matching backend ErrorCodes enum
+ * Uses prefix-postfix system: First two digits = Module prefix, Last two digits = Specific error
  */
 export enum ErrorCodes {
-  // Validation errors (1000-1999)
-  ValidationError = 1000,
-  RequiredFieldMissing = 1001,
-  InvalidFormat = 1002,
-  InvalidValue = 1003,
-  InvalidDateRange = 1004,
+  // General errors (00XX)
+  ValidationError = 1,
+  RequiredFieldMissing = 2,
+  InvalidFormat = 3,
+  InvalidValue = 4,
+  InvalidDateRange = 5,
+  ResourceNotFound = 6,
+  BusinessRuleViolation = 7,
+  InvalidOperation = 8,
+  DuplicateEntry = 9,
+  InternalServerError = 10,
+  DatabaseError = 11,
+  ConfigurationError = 12,
+  Unauthorized = 13,
+  Forbidden = 14,
+  TokenExpired = 15,
 
-  // Not Found errors (2000-2999)
-  ResourceNotFound = 2000,
-  PurchaseOrderNotFound = 2001,
-  SupplierNotFound = 2002,
-  CatalogItemNotFound = 2003,
-  TransportBoxNotFound = 2004,
-  ConfigurationNotFound = 2005,
+  // Purchase module errors (11XX)
+  PurchaseOrderNotFound = 1101,
+  SupplierNotFound = 1102,
+  StatusTransitionNotAllowed = 1103,
+  InsufficientStock = 1104,
 
-  // Business Logic errors (3000-3999)
-  BusinessRuleViolation = 3000,
-  InvalidOperation = 3001,
-  StatusTransitionNotAllowed = 3002,
-  InsufficientStock = 3003,
-  DuplicateEntry = 3004,
+  // Catalog module errors (13XX)
+  CatalogItemNotFound = 1301,
+  ManufactureDifficultyNotFound = 1302,
+  ManufactureDifficultyConflict = 1303,
+  MarginCalculationError = 1304,
+  DataAccessUnavailable = 1305,
 
-  // External Service errors (4000-4999)
-  ExternalServiceError = 4000,
-  FlexiApiError = 4001,
-  ShoptetApiError = 4002,
-  PaymentGatewayError = 4003,
+  // Transport module errors (14XX)
+  TransportBoxNotFound = 1401,
+  TransportBoxStateChangeError = 1402,
+  TransportBoxCreationError = 1403,
+  TransportBoxItemError = 1404,
 
-  // System errors (5000-5999)
-  InternalServerError = 5000,
-  DatabaseError = 5001,
-  ConfigurationError = 5002,
+  // Configuration module errors (15XX)
+  ConfigurationNotFound = 1501,
 
-  // Authentication/Authorization errors (6000-6999)
-  Unauthorized = 6000,
-  Forbidden = 6001,
-  TokenExpired = 6002,
+  // External Service errors (90XX)
+  ExternalServiceError = 9001,
+  FlexiApiError = 9002,
+  ShoptetApiError = 9003,
+  PaymentGatewayError = 9004,
 }
 
 /**

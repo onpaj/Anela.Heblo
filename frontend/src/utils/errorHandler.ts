@@ -4,7 +4,8 @@ import i18n from '../i18n';
 /**
  * Formats an error message with parameters
  */
-function formatMessage(template: string, params?: Record<string, string>): string {
+function formatMessage(template: string | undefined, params?: Record<string, string>): string {
+  if (!template) return '';
   if (!params) return template;
 
   let message = template;
@@ -18,15 +19,25 @@ function formatMessage(template: string, params?: Record<string, string>): strin
  * Gets a localized error message for an error code
  */
 export function getErrorMessage(errorCode: ErrorCodes, params?: Record<string, string>): string {
-  const messageKey = `errors.${errorCode}`;
-  const message = i18n.t(messageKey);
+  // First try to find translation using ErrorCode enum name (string key)
+  const enumName = ErrorCodes[errorCode];
+  let messageKey = `errors.${enumName}`;
+  let message = i18n.t(messageKey);
 
-  // If translation not found, return generic error with code
-  if (message === messageKey) {
+  // If not found, try numeric key as fallback
+  if (message === messageKey || !message) {
+    const codeStr = errorCode.toString();
+    messageKey = `errors.${codeStr}`;
+    message = i18n.t(messageKey);
+  }
+
+  // If translation still not found, return generic error with numeric code
+  if (message === messageKey || !message) {
     return `Nastala chyba (kód: ${errorCode})`;
   }
 
-  return formatMessage(message, params);
+  const formatted = formatMessage(message, params);
+  return formatted || `Nastala chyba (kód: ${errorCode})`;
 }
 
 /**

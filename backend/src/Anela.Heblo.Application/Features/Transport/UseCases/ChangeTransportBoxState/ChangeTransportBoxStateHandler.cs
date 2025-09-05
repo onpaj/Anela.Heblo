@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -38,7 +39,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 return new ChangeTransportBoxStateResponse
                 {
                     Success = false,
-                    ErrorMessage = $"Transport box with ID {request.BoxId} not found."
+                    ErrorCode = ErrorCodes.TransportBoxNotFound,
+                    Params = new Dictionary<string, string>() {{ nameof(request.BoxId), request.BoxId.ToString() }},
                 };
             }
 
@@ -51,7 +53,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     return new ChangeTransportBoxStateResponse
                     {
                         Success = false,
-                        ErrorMessage = "BoxCode is required for transition from New to Opened"
+                        ErrorCode = ErrorCodes.RequiredFieldMissing,
+                        Params = new Dictionary<string, string> { { "field", "BoxCode" } }
                     };
                 }
 
@@ -63,7 +66,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     return new ChangeTransportBoxStateResponse
                     {
                         Success = false,
-                        ErrorMessage = $"Transport box with code '{normalizedCode}' is already active. Only closed boxes can share the same code."
+                        ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
+                        Params = new Dictionary<string, string> { { "code", normalizedCode } }
                     };
                 }
             }
@@ -74,7 +78,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     return new ChangeTransportBoxStateResponse
                     {
                         Success = false,
-                        ErrorMessage = "Location is required for transition from Opened to Reserved"
+                        ErrorCode = ErrorCodes.RequiredFieldMissing,
+                        Params = new Dictionary<string, string> { { "field", "Location" } }
                     };
                 }
             }
@@ -91,7 +96,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 return new ChangeTransportBoxStateResponse
                 {
                     Success = false,
-                    ErrorMessage = $"Condition not met for transition to {request.NewState}"
+                    ErrorCode = ErrorCodes.TransportBoxStateChangeError,
+                    Params = new Dictionary<string, string> { { "state", request.NewState.ToString() } }
                 };
             }
 
@@ -136,7 +142,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             return new ChangeTransportBoxStateResponse
             {
                 Success = false,
-                ErrorMessage = ex.Message
+                ErrorCode = ErrorCodes.ValidationError,
+                Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }
         catch (Exception ex)
@@ -145,7 +152,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             return new ChangeTransportBoxStateResponse
             {
                 Success = false,
-                ErrorMessage = "An error occurred while changing the box state."
+                ErrorCode = ErrorCodes.TransportBoxStateChangeError,
+                Params = new Dictionary<string, string> { { "boxId", request.BoxId.ToString() } }
             };
         }
     }

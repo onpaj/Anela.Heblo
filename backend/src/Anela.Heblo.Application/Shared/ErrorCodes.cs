@@ -49,6 +49,7 @@ public enum ErrorCodes
     TransportBoxStateChangeError = 1402,
     TransportBoxCreationError = 1403,
     TransportBoxItemError = 1404,
+    TransportBoxDuplicateActiveBoxFound = 1405,
 
     // Configuration module errors (15XX)
     ConfigurationNotFound = 1501,

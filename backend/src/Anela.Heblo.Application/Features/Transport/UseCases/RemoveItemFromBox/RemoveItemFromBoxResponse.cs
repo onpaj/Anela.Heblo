@@ -3,9 +3,7 @@ using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.Transport.UseCases;
 
-public class AddItemToBoxResponse : BaseResponse
+public class RemoveItemFromBoxResponse : BaseResponse
 {
-    public TransportBoxItemDto? Item { get; set; }
     public TransportBoxDto? TransportBox { get; set; }
-    public string? ErrorMessage { get; set; }
 }
