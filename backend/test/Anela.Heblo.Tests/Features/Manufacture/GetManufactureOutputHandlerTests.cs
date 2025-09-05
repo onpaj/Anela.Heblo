@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput;
-using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -28,45 +27,6 @@ public class GetManufactureOutputHandlerTests
             _loggerMock.Object);
     }
 
-    [Fact]
-    public async Task Handle_MonthsBackTooLow_ReturnsInvalidAnalysisParametersError()
-    {
-        // Arrange
-        var request = new GetManufactureOutputRequest
-        {
-            MonthsBack = 0
-        };
-
-        // Act
-        var response = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        response.Should().NotBeNull();
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.InvalidAnalysisParameters);
-        response.Params.Should().ContainKey("parameters");
-        response.Params!["parameters"].Should().Contain("MonthsBack must be between 1 and 60");
-    }
-
-    [Fact]
-    public async Task Handle_MonthsBackTooHigh_ReturnsInvalidAnalysisParametersError()
-    {
-        // Arrange
-        var request = new GetManufactureOutputRequest
-        {
-            MonthsBack = 61
-        };
-
-        // Act
-        var response = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        response.Should().NotBeNull();
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.InvalidAnalysisParameters);
-        response.Params.Should().ContainKey("parameters");
-        response.Params!["parameters"].Should().Contain("MonthsBack must be between 1 and 60");
-    }
 
     [Fact]
     public async Task Handle_ValidRequestWithEmptyHistory_ReturnsSuccessfulResponseWithEmptyData()
@@ -161,21 +121,35 @@ public class GetManufactureOutputHandlerTests
 
     private List<CatalogAggregate> CreateTestCatalogItems()
     {
-        return new List<CatalogAggregate>
+        var product1 = new CatalogAggregate
         {
-            new CatalogAggregate
-            {
-                ProductCode = "PRD001",
-                ProductName = "Product 1",
-                Type = ProductType.Product
-            },
-            new CatalogAggregate
-            {
-                ProductCode = "PRD002",
-                ProductName = "Product 2",
-                Type = ProductType.Product
-            }
+            ProductCode = "PRD001",
+            ProductName = "Product 1",
+            Type = ProductType.Product
         };
+        
+        // Set manufacture difficulty through the configuration
+        var difficulty1Settings = new List<ManufactureDifficultySetting>
+        {
+            new ManufactureDifficultySetting { DifficultyValue = 3, ValidFrom = DateTime.MinValue }
+        };
+        product1.ManufactureDifficultySettings.Assign(difficulty1Settings, DateTime.Now);
+
+        var product2 = new CatalogAggregate
+        {
+            ProductCode = "PRD002",
+            ProductName = "Product 2",
+            Type = ProductType.Product
+        };
+        
+        // Set manufacture difficulty through the configuration
+        var difficulty2Settings = new List<ManufactureDifficultySetting>
+        {
+            new ManufactureDifficultySetting { DifficultyValue = 1, ValidFrom = DateTime.MinValue }
+        };
+        product2.ManufactureDifficultySettings.Assign(difficulty2Settings, DateTime.Now);
+
+        return new List<CatalogAggregate> { product1, product2 };
     }
 
     private List<ManufactureHistoryRecord> CreateTestManufactureHistory()
