@@ -129,7 +129,12 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} className="p-4" onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+            e.preventDefault();
+            handleSubmit(e as any);
+          }
+        }}>
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
               <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />
@@ -160,12 +165,6 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               onChange={(e) => {
                 setAmount(e.target.value);
                 setError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSubmit(e as any);
-                }
               }}
               disabled={isLoading}
               placeholder="0"

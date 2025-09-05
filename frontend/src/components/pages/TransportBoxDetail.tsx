@@ -125,6 +125,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   const handleLocationSelectionSuccess = async () => {
     await handleModalSuccess();
     setIsLocationSelectionModalOpen(false);
+    // Auto-close main modal after successful reserve operation
+    onClose();
   };
 
   // Handle box number input for New state
@@ -280,6 +282,12 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       // Clear changed flags - cache invalidation is handled by mutation hook
       if (isDescriptionChanged) {
         setIsDescriptionChanged(false);
+      }
+      
+      // Auto-close modal for final states
+      if (newStateString === 'InTransit' || newStateString === 'Reserved') {
+        onClose();
+        return;
       }
       
       // State changed successfully - no toast needed for routine state changes

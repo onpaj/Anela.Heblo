@@ -54,6 +54,14 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                 type="number"
                 value={quantityInput}
                 onChange={(e) => setQuantityInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedProduct && quantityInput && parseFloat(quantityInput) > 0) {
+                      handleAddItem();
+                    }
+                  }
+                }}
                 step="0.01"
                 min="0"
                 placeholder="0"
