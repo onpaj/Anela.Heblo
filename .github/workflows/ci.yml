@@ -505,7 +505,7 @@ jobs:
   notify:
     name: 📢 CI/CD Notification
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-azure, frontend-tests, pr-comment]
+    needs: [build-and-push, deploy-azure, frontend-tests]
     if: always()
     steps:
       - name: 📱 Send Teams Notification
