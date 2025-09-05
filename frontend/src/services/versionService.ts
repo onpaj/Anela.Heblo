@@ -180,7 +180,7 @@ export class VersionService {
   }
 
   /**
-   * Update to new version - clear cache and reload
+   * Update to new version - clear cache and redirect to root
    */
   public updateToNewVersion(newVersion: string): void {
     try {
@@ -192,12 +192,12 @@ export class VersionService {
       // Clear various caches
       this.clearCaches();
       
-      // Reload the page
-      window.location.reload();
+      // Redirect to root path instead of reloading current page
+      window.location.href = '/';
     } catch (error) {
       console.error('Failed to update to new version:', error);
-      // Fallback - just reload
-      window.location.reload();
+      // Fallback - redirect to root
+      window.location.href = '/';
     }
   }
 

@@ -157,8 +157,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     switch (size) {
       case 'sm':
         return {
-          control: (base: any) => ({ ...base, minHeight: '32px', fontSize: '12px' }),
-          valueContainer: (base: any) => ({ ...base, padding: '2px 8px' }),
+          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '12px' }),
+          valueContainer: (base: any) => ({ ...base, padding: '5px 8px' }),
           input: (base: any) => ({ ...base, margin: '0px' })
         };
       case 'lg':
@@ -169,8 +169,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         };
       default: // md
         return {
-          control: (base: any) => ({ ...base, minHeight: '40px', fontSize: '14px' }),
-          valueContainer: (base: any) => ({ ...base, padding: '8px 12px' }),
+          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '14px' }),
+          valueContainer: (base: any) => ({ ...base, padding: '5px 12px' }),
           input: (base: any) => ({ ...base, margin: '0px' })
         };
     }

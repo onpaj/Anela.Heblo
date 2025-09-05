@@ -13,7 +13,7 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
   onMaterialSelect
 }) => {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 flex flex-col h-full">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Položky objednávky</h3>
         <div className="flex items-center space-x-4">
@@ -46,7 +46,7 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
       )}
 
       {/* Scrollable container for items */}
-      <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+      <div className="border border-gray-200 rounded-lg flex-1 overflow-y-auto">
         <div className="space-y-0">
           {/* Header row */}
           <div className="sticky top-0 bg-gray-50 grid grid-cols-12 gap-2 px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
