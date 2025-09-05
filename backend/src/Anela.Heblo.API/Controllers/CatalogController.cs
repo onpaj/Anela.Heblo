@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.AspNetCore.Authorization;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -274,12 +276,12 @@ public class CatalogController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid request for creating manufacture difficulty");
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreateManufactureDifficultyResponse>(ErrorCodes.InvalidValue, ex.Message));
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Business rule violation when creating manufacture difficulty");
-            return Conflict(ex.Message);
+            return Conflict(ErrorResponseHelper.CreateBusinessError<CreateManufactureDifficultyResponse>(ErrorCodes.ManufactureDifficultyConflict, ex.Message));
         }
         catch (Exception ex)
         {
@@ -295,7 +297,9 @@ public class CatalogController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("URL parameter ID must match request body ID");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdateManufactureDifficultyResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "URL parameter ID must match request body ID" } }));
         }
 
         _logger.LogInformation("Updating manufacture difficulty {Id} with value {DifficultyValue}",
@@ -311,12 +315,12 @@ public class CatalogController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid request for updating manufacture difficulty");
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdateManufactureDifficultyResponse>(ErrorCodes.InvalidValue, ex.Message));
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Business rule violation when updating manufacture difficulty");
-            return Conflict(ex.Message);
+            return Conflict(ErrorResponseHelper.CreateBusinessError<UpdateManufactureDifficultyResponse>(ErrorCodes.ManufactureDifficultyConflict, ex.Message));
         }
         catch (Exception ex)
         {
@@ -343,7 +347,8 @@ public class CatalogController : ControllerBase
             else
             {
                 _logger.LogWarning("Failed to delete manufacture difficulty {Id}: {Message}", id, response.Message);
-                return NotFound(response);
+                return NotFound(ErrorResponseHelper.CreateNotFoundError<DeleteManufactureDifficultyResponse>(
+                    ErrorCodes.ManufactureDifficultyNotFound, id.ToString()));
             }
         }
         catch (Exception ex)

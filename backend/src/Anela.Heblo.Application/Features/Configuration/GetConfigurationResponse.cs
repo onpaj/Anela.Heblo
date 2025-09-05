@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Configuration;
 
 /// <summary>
 /// Response containing application configuration information
 /// </summary>
-public class GetConfigurationResponse
+public class GetConfigurationResponse : BaseResponse
 {
     /// <summary>
     /// Application version from CI/CD pipeline or assembly

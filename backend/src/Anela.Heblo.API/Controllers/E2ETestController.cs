@@ -31,8 +31,8 @@ public class E2ETestController : ControllerBase
     [HttpGet("env-info")]
     public ActionResult<object> GetEnvironmentInfo()
     {
-        return Ok(new 
-        { 
+        return Ok(new
+        {
             environment = _environment.EnvironmentName,
             isDevelopment = _environment.IsDevelopment(),
             isProduction = _environment.IsProduction(),
@@ -51,13 +51,13 @@ public class E2ETestController : ControllerBase
     [HttpPost("auth")]
     public async Task<ActionResult<object>> CreateE2ESession()
     {
-        _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}", 
+        _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}",
             _environment.EnvironmentName, _environment.IsEnvironment("Staging"));
 
         // CRITICAL SECURITY: Only allow in Staging environment
         if (!_environment.IsEnvironment("Staging"))
         {
-            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging", 
+            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging",
                 _environment.EnvironmentName);
             return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
         }
@@ -105,11 +105,11 @@ public class E2ETestController : ControllerBase
 
         _logger.LogInformation("E2E Test: Created authenticated session for synthetic user");
 
-        return Ok(new 
-        { 
+        return Ok(new
+        {
             success = true,
             message = "E2E authentication session created successfully",
-            user = new 
+            user = new
             {
                 name = "E2E Test User",
                 id = "e2e-test-user-id",
@@ -131,23 +131,23 @@ public class E2ETestController : ControllerBase
         }
 
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
-        
+
         if (!isAuthenticated)
         {
-            return Ok(new 
-            { 
-                authenticated = false, 
+            return Ok(new
+            {
+                authenticated = false,
                 message = "Not authenticated - E2E override not active"
             });
         }
 
         var claims = User.Claims.ToDictionary(c => c.Type, c => c.Value);
-        
-        return Ok(new 
-        { 
+
+        return Ok(new
+        {
             authenticated = true,
             message = "E2E authentication override active",
-            user = new 
+            user = new
             {
                 name = User.Identity.Name ?? "E2E Test User",
                 claims = claims
@@ -214,11 +214,11 @@ public class E2ETestController : ControllerBase
             // Parse JWT token to get basic info
             var handler = new JwtSecurityTokenHandler();
             var jsonToken = handler.ReadJwtToken(token);
-            
+
             // Verify it's an app token (not user token)
             var appIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "appid");
             var tenantIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "tid");
-            
+
             if (appIdClaim == null || tenantIdClaim == null)
             {
                 _logger.LogWarning("E2E Test Authentication: Token missing required app claims");
@@ -231,14 +231,14 @@ public class E2ETestController : ControllerBase
 
             if (!string.IsNullOrEmpty(expectedClientId) && appIdClaim.Value != expectedClientId)
             {
-                _logger.LogWarning("E2E Test Authentication: Token client ID mismatch. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedClientId, appIdClaim.Value);
                 return false;
             }
 
             if (!string.IsNullOrEmpty(expectedTenantId) && tenantIdClaim.Value != expectedTenantId)
             {
-                _logger.LogWarning("E2E Test Authentication: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedTenantId, tenantIdClaim.Value);
                 return false;
             }
@@ -246,17 +246,17 @@ public class E2ETestController : ControllerBase
             // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
             var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-            
+
             if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
             {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}",
                     expectedIssuer, issuerClaim?.Value);
                 return false;
             }
 
             // CRITICAL SECURITY: Validate audience 
             var audienceClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "aud");
-            
+
             if (audienceClaim == null)
             {
                 _logger.LogWarning("E2E Test Authentication: Token missing audience claim");
@@ -275,7 +275,7 @@ public class E2ETestController : ControllerBase
                 }
             }
 
-            _logger.LogInformation("E2E Test Authentication: Service Principal token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}", 
+            _logger.LogInformation("E2E Test Authentication: Service Principal token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}",
                 appIdClaim.Value, tenantIdClaim.Value, issuerClaim.Value);
 
             return true;

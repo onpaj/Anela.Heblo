@@ -50,7 +50,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
         bool dataLoaded = false;
         IList<ProductPriceFlexiDto>? data = null;
-        
+
         // Safe cache access with disposed object protection
         try
         {
@@ -71,7 +71,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             try
             {
                 data = await GetAsync(0, cancellationToken);
-                
+
                 // Safe cache set with disposed object protection
                 try
                 {
@@ -81,7 +81,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
                 {
                     // Cache is disposed, skip caching but continue with the data
                 }
-                
+
                 dataLoaded = true;
             }
             catch (Exception ex)

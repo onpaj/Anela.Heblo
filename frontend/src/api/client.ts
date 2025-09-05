@@ -126,10 +126,19 @@ const extractErrorMessage = async (response: Response): Promise<{ message: strin
     if (contentType && contentType.includes('application/json')) {
       const errorData = await response.json();
       
-      // Check if this is a structured API response with success: false and errorMessage
-      const isStructuredError = errorData.success === false && errorData.errorMessage;
+      // Check if this is new BaseResponse structure with errorCode
+      if (errorData.success === false && errorData.errorCode) {
+        // Import error handler dynamically to avoid circular dependencies
+        const { getErrorMessage } = await import('../utils/errorHandler');
+        const message = getErrorMessage(errorData.errorCode, errorData.params);
+        return { 
+          message, 
+          isStructuredError: true 
+        };
+      }
       
-      if (isStructuredError) {
+      // Check if this is old structured API response with success: false and errorMessage
+      if (errorData.success === false && errorData.errorMessage) {
         return { 
           message: errorData.errorMessage, 
           isStructuredError: true 
@@ -141,19 +150,22 @@ const extractErrorMessage = async (response: Response): Promise<{ message: strin
                      errorData.title || 
                      errorData.detail || 
                      errorData.error || 
-                     `Server error ${response.status}`;
+                     JSON.stringify(errorData); // Show full body if no known fields
       
       return { message, isStructuredError: false };
     } else {
       const textResponse = await response.text();
+      // If body is empty, show status code with generic message
+      const message = textResponse || `API Call Error (${response.status})`;
       return { 
-        message: textResponse || `Server error ${response.status}`, 
+        message, 
         isStructuredError: false 
       };
     }
   } catch {
+    // Final fallback - just status code and generic message
     return { 
-      message: `Server error ${response.status}: ${response.statusText}`, 
+      message: `API Call Error (${response.status})`, 
       isStructuredError: false 
     };
   }

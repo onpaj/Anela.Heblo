@@ -1,9 +1,10 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 
-public class UpdatePurchaseOrderResponse
+public class UpdatePurchaseOrderResponse : BaseResponse
 {
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;

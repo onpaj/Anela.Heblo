@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Transport.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
@@ -43,7 +44,8 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
                 return new AddItemToBoxResponse
                 {
                     Success = false,
-                    ErrorMessage = $"Transport box with ID {request.BoxId} not found"
+                    ErrorCode = ErrorCodes.TransportBoxNotFound,
+                    Params = new Dictionary<string, string> { { "boxId", request.BoxId.ToString() } }
                 };
             }
 
@@ -78,7 +80,8 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
             return new AddItemToBoxResponse
             {
                 Success = false,
-                ErrorMessage = ex.Message
+                ErrorCode = ErrorCodes.ValidationError,
+                Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }
         catch (Exception ex)
@@ -89,7 +92,8 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
             return new AddItemToBoxResponse
             {
                 Success = false,
-                ErrorMessage = ex.Message
+                ErrorCode = ErrorCodes.ValidationError,
+                Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }
     }

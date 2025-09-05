@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Journal.Contracts;
 
-public class SearchJournalEntriesResponse
+public class SearchJournalEntriesResponse : BaseResponse
 {
     public List<JournalEntryDto> Entries { get; set; } = new();
     public int TotalCount { get; set; }

@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Audit.UseCases.GetAuditSummary;
 
 /// <summary>
 /// Response containing audit summary statistics
 /// </summary>
-public class GetAuditSummaryResponse
+public class GetAuditSummaryResponse : BaseResponse
 {
     /// <summary>
     /// Period start date for the summary
