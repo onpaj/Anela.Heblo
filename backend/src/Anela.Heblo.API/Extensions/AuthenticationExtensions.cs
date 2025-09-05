@@ -58,12 +58,14 @@ public static class AuthenticationExtensions
         if (builder.Environment.IsEnvironment("Staging"))
         {
             services.AddAuthentication()
-                .AddCookie("Cookies", options =>
+                .AddCookie(options =>
                 {
                     options.Cookie.Name = "E2ETestSession";
                     options.Cookie.HttpOnly = true;
                     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.ExpireTimeSpan = TimeSpan.FromHours(1);
+                    options.LoginPath = "/account/login"; // Fallback to login if not authenticated
+                    options.LogoutPath = "/account/logout";
                 });
         }
     }

@@ -105,8 +105,9 @@ public class E2ETestController : ControllerBase
         var identity = new ClaimsIdentity(claims, "E2ETest");
         var principal = new ClaimsPrincipal(identity);
 
-        // Sign in the synthetic user (create application session)
-        await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
+        // Sign in the synthetic user using the default authentication scheme
+        // This ensures compatibility with the main application's authentication
+        await HttpContext.SignInAsync(principal, new AuthenticationProperties
         {
             IsPersistent = false,
             ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)

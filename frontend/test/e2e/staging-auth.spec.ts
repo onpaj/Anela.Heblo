@@ -94,6 +94,14 @@ async function authenticateWithServicePrincipal(page: any) {
     const authResult = await response.json();
     console.log('E2E authentication session created:', authResult.message);
     
+    // Debug: Check if Set-Cookie header was sent
+    const setCookieHeaders = response.headers()['set-cookie'];
+    console.log('Set-Cookie headers:', setCookieHeaders);
+    
+    // Check all cookies in the browser context
+    const cookies = await page.context().cookies();
+    console.log('All cookies after auth:', cookies.map(c => ({ name: c.name, domain: c.domain, path: c.path })));
+    
     // Now navigate to the main application - we should have an authenticated session cookie
     console.log(`Navigating to main application: ${baseUrl}`);
     await page.goto(baseUrl);

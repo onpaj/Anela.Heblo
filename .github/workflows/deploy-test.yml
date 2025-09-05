@@ -251,3 +251,104 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Docker Image:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📱 Send Teams Notification
+        if: always()
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          # Skip if webhook URL is not configured
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "⚠️ Teams webhook not configured, skipping notification"
+            exit 0
+          fi
+          
+          # Determine status color and emoji
+          if [ "${{ needs.health-check.result }}" = "success" ]; then
+            COLOR="0078D7"  # Blue for test environment
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="Test Deployment Successful"
+          else
+            COLOR="FF0000"
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="Test Deployment Failed"
+          fi
+          
+          # Create Teams message payload
+          PAYLOAD=$(cat <<EOF
+          {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": "$COLOR",
+            "summary": "Heblo Test Deployment - $STATUS_TEXT",
+            "sections": [{
+              "activityTitle": "$STATUS_EMOJI Heblo Test Deployment",
+              "activitySubtitle": "$STATUS_TEXT",
+              "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+              "facts": [
+                {
+                  "name": "Branch",
+                  "value": "${{ inputs.branch }}"
+                },
+                {
+                  "name": "Environment",
+                  "value": "Test"
+                },
+                {
+                  "name": "Commit",
+                  "value": "\`${GITHUB_SHA:0:7}\`"
+                },
+                {
+                  "name": "Triggered by",
+                  "value": "${{ github.actor }}"
+                },
+                {
+                  "name": "Docker Image",
+                  "value": "${{ needs.build-and-push.outputs.image-tag }}"
+                }
+              ],
+              "markdown": true
+            }],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Application",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://${{ needs.deploy-azure.outputs.webapp-hostname }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Workflow",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+          
+          # Send notification to Teams
+          echo "📨 Sending Teams notification..."
+          RESPONSE=$(curl -X POST "$TEAMS_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            -s -w "\n%{http_code}")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Teams notification sent successfully"
+          else
+            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
+            echo "Response: $RESPONSE"
+            # Don't fail the workflow if Teams notification fails
+            exit 0
+          fi
