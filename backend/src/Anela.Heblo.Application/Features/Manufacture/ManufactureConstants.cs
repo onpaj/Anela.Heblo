@@ -18,4 +18,21 @@ public static class ManufactureConstants
     /// This ensures consistent calculation even when catalog data is incomplete.
     /// </summary>
     public const double DEFAULT_MANUFACTURE_DIFFICULTY = 1.0;
+
+    /// <summary>
+    /// Minimum allowed page size for paginated results.
+    /// </summary>
+    public const int MIN_PAGE_SIZE = 1;
+
+    /// <summary>
+    /// Maximum allowed page size for paginated results.
+    /// This limit prevents excessive memory usage and long processing times.
+    /// </summary>
+    public const int MAX_PAGE_SIZE = 100;
+
+    /// <summary>
+    /// Minimum allowed page number for pagination.
+    /// Page numbers start from 1 (not 0-based).
+    /// </summary>
+    public const int MIN_PAGE_NUMBER = 1;
 }

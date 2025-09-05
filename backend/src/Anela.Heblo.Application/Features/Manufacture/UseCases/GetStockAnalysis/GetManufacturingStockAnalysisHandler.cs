@@ -41,61 +41,11 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         GetManufacturingStockAnalysisRequest request,
         CancellationToken cancellationToken)
     {
-        // 1. Validate analysis parameters
-        if (request.TimePeriod == TimePeriodFilter.CustomPeriod)
-        {
-            if (!request.CustomFromDate.HasValue || !request.CustomToDate.HasValue)
-            {
-                _logger.LogWarning("Custom time period selected but dates are missing. FromDate: {FromDate}, ToDate: {ToDate}",
-                    request.CustomFromDate, request.CustomToDate);
-                return new GetManufacturingStockAnalysisResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.InvalidAnalysisParameters,
-                    Params = new Dictionary<string, string> { ["parameters"] = "CustomFromDate and CustomToDate are required when using CustomPeriod" }
-                };
-            }
-
-            if (request.CustomFromDate.Value > request.CustomToDate.Value)
-            {
-                _logger.LogWarning("Invalid date range: FromDate {FromDate} is after ToDate {ToDate}",
-                    request.CustomFromDate.Value, request.CustomToDate.Value);
-                return new GetManufacturingStockAnalysisResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.InvalidAnalysisParameters,
-                    Params = new Dictionary<string, string> { ["parameters"] = "FromDate must be before ToDate" }
-                };
-            }
-        }
-
-        if (request.PageSize < 1 || request.PageSize > 100)
-        {
-            _logger.LogWarning("Invalid page size: {PageSize}. Must be between 1 and 100", request.PageSize);
-            return new GetManufacturingStockAnalysisResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidAnalysisParameters,
-                Params = new Dictionary<string, string> { ["parameters"] = "PageSize must be between 1 and 100" }
-            };
-        }
-
-        if (request.PageNumber < 1)
-        {
-            _logger.LogWarning("Invalid page number: {PageNumber}. Must be greater than 0", request.PageNumber);
-            return new GetManufacturingStockAnalysisResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidAnalysisParameters,
-                Params = new Dictionary<string, string> { ["parameters"] = "PageNumber must be greater than 0" }
-            };
-        }
-
-        // 2. Calculate time period
+        // 1. Calculate time period
         var (fromDate, toDate) = _timePeriodCalculator.CalculateTimePeriod(
             request.TimePeriod, request.CustomFromDate, request.CustomToDate);
 
-        // 3. Get finished products data
+        // 2. Get finished products data
         var allCatalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
         var finishedProducts = allCatalogItems
             .Where(item => item.Type == ProductType.Product)
@@ -112,7 +62,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
             };
         }
 
-        // 4. Analyze all items for summary calculation
+        // 3. Analyze all items for summary calculation
         var allAnalysisItems = finishedProducts
             .Select(item => AnalyzeManufacturingStockItem(item, fromDate, toDate))
             .ToList();
@@ -124,18 +74,18 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
             .OrderBy(x => x)
             .ToList();
 
-        // 5. Filter and sort items for display
+        // 4. Filter and sort items for display
         var filteredItems = _filterService.FilterItems(allAnalysisItems, request);
         var sortedItems = _filterService.SortItems(filteredItems, request.SortBy, request.SortDescending);
 
-        // 6. Apply pagination
+        // 5. Apply pagination
         var totalCount = sortedItems.Count;
         var pagedItems = sortedItems
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToList();
 
-        // 7. Calculate summary from all items
+        // 6. Calculate summary from all items
         var summary = _filterService.CalculateSummary(allAnalysisItems, fromDate, toDate, productFamilies);
 
         return new GetManufacturingStockAnalysisResponse
