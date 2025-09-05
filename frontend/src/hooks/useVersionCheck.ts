@@ -55,11 +55,6 @@ export const useVersionCheck = (props: UseVersionCheckProps = {}): UseVersionChe
           action: {
             label: 'Update Now',
             onClick: () => versionService.updateToNewVersion(newVersion)
-          },
-          onClose: () => {
-            // Store the new version when user dismisses the notification
-            // so we don't show it again until next version
-            versionService.storeVersion(newVersion);
           }
         }
       );

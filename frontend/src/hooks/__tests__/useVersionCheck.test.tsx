@@ -99,8 +99,7 @@ describe('useVersionCheck', () => {
         action: expect.objectContaining({
           label: 'Update Now',
           onClick: expect.any(Function)
-        }),
-        onClose: expect.any(Function)
+        })
       })
     );
   });
