@@ -49,6 +49,7 @@ public class E2ETestController : ControllerBase
     /// Following E2E authentication best practices
     /// </summary>
     [HttpPost("auth")]
+    [AllowAnonymous]
     public async Task<ActionResult<object>> CreateE2ESession()
     {
         _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}", 
@@ -71,10 +72,18 @@ public class E2ETestController : ControllerBase
 
         var token = authHeader.Substring("Bearer ".Length);
 
-        // Validate Service Principal token (reuse existing validation logic)
-        if (!await ValidateServicePrincipalToken(token))
+        try
         {
-            return Unauthorized("Invalid Service Principal token");
+            // Validate Service Principal token (reuse existing validation logic)
+            if (!ValidateServicePrincipalToken(token))
+            {
+                return Unauthorized("Invalid Service Principal token");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "E2E Test: Error validating Service Principal token");
+            return StatusCode(500, new { error = "Token validation error", details = ex.Message });
         }
 
         // Create synthetic user session (following best practice)
@@ -96,8 +105,9 @@ public class E2ETestController : ControllerBase
         var identity = new ClaimsIdentity(claims, "E2ETest");
         var principal = new ClaimsPrincipal(identity);
 
-        // Sign in the synthetic user (create application session)
-        await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
+        // Sign in the synthetic user using the default authentication scheme
+        // This ensures compatibility with the main application's authentication
+        await HttpContext.SignInAsync(principal, new AuthenticationProperties
         {
             IsPersistent = false,
             ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
@@ -122,6 +132,7 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
+    [AllowAnonymous]
     public ActionResult<object> GetAuthStatus()
     {
         // CRITICAL SECURITY: Only allow in Staging environment
@@ -207,7 +218,7 @@ public class E2ETestController : ControllerBase
 </html>";
     }
 
-    private async Task<bool> ValidateServicePrincipalToken(string token)
+    private bool ValidateServicePrincipalToken(string token)
     {
         try
         {
@@ -243,14 +254,15 @@ public class E2ETestController : ControllerBase
                 return false;
             }
 
-            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
+            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD (accept both v1.0 and v2.0 tokens)
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
-            var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
+            var expectedIssuerV1 = $"https://sts.windows.net/{tenantIdClaim.Value}/";
+            var expectedIssuerV2 = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
             
-            if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
+            if (issuerClaim == null || (issuerClaim.Value != expectedIssuerV1 && issuerClaim.Value != expectedIssuerV2))
             {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}", 
-                    expectedIssuer, issuerClaim?.Value);
+                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}", 
+                    expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
                 return false;
             }
 

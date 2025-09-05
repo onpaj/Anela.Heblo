@@ -34,7 +34,7 @@ async function getServicePrincipalToken(): Promise<string> {
       grant_type: 'client_credentials',
       client_id: clientId,
       client_secret: clientSecret,
-      scope: `${clientId}/.default`, // Use app's own scope
+      scope: 'api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default', // Use backend API scope
     }),
   });
 
@@ -43,6 +43,22 @@ async function getServicePrincipalToken(): Promise<string> {
   }
 
   const tokenData = await response.json();
+  
+  // Debug: Parse the token to see what claims it has
+  try {
+    const tokenParts = tokenData.access_token.split('.');
+    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+    console.log('Token claims:', {
+      appid: payload.appid,
+      tid: payload.tid,
+      aud: payload.aud,
+      iss: payload.iss,
+      exp: new Date(payload.exp * 1000).toISOString()
+    });
+  } catch (e) {
+    console.log('Could not parse token for debugging');
+  }
+  
   return tokenData.access_token;
 }
 
@@ -77,6 +93,14 @@ async function authenticateWithServicePrincipal(page: any) {
     
     const authResult = await response.json();
     console.log('E2E authentication session created:', authResult.message);
+    
+    // Debug: Check if Set-Cookie header was sent
+    const setCookieHeaders = response.headers()['set-cookie'];
+    console.log('Set-Cookie headers:', setCookieHeaders);
+    
+    // Check all cookies in the browser context
+    const cookies = await page.context().cookies();
+    console.log('All cookies after auth:', cookies.map(c => ({ name: c.name, domain: c.domain, path: c.path })));
     
     // Now navigate to the main application - we should have an authenticated session cookie
     console.log(`Navigating to main application: ${baseUrl}`);

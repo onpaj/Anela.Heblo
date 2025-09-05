@@ -472,3 +472,114 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Release:** [View on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📱 Send Teams Notification
+        if: always()
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          # Skip if webhook URL is not configured
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "⚠️ Teams webhook not configured, skipping notification"
+            exit 0
+          fi
+          
+          # Determine status color and emoji
+          if [ "${{ needs.smoke-tests.result }}" = "success" ]; then
+            COLOR="00FF00"
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="Deployment Successful"
+          else
+            COLOR="FF0000"
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="Deployment Failed"
+          fi
+          
+          # Create Teams message payload
+          PAYLOAD=$(cat <<EOF
+          {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": "$COLOR",
+            "summary": "Heblo Production Deployment - $STATUS_TEXT",
+            "sections": [{
+              "activityTitle": "$STATUS_EMOJI Heblo Production Deployment",
+              "activitySubtitle": "$STATUS_TEXT",
+              "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+              "facts": [
+                {
+                  "name": "Version",
+                  "value": "${{ needs.version.outputs.version }}"
+                },
+                {
+                  "name": "Environment",
+                  "value": "Production"
+                },
+                {
+                  "name": "Commit",
+                  "value": "\`${GITHUB_SHA:0:7}\`"
+                },
+                {
+                  "name": "Author",
+                  "value": "${{ github.actor }}"
+                },
+                {
+                  "name": "Branch",
+                  "value": "${{ github.ref_name }}"
+                }
+              ],
+              "markdown": true
+            }],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Application",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://${{ needs.deploy-azure.outputs.webapp-hostname }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Release",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.tag }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Workflow",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+          
+          # Send notification to Teams
+          echo "📨 Sending Teams notification..."
+          RESPONSE=$(curl -X POST "$TEAMS_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            -s -w "\n%{http_code}")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Teams notification sent successfully"
+          else
+            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
+            echo "Response: $RESPONSE"
+            # Don't fail the workflow if Teams notification fails
+            exit 0
+          fi
