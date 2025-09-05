@@ -26,18 +26,6 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         GetManufactureOutputRequest request,
         CancellationToken cancellationToken)
     {
-        // Validate analysis parameters
-        if (request.MonthsBack < 1 || request.MonthsBack > 60)
-        {
-            _logger.LogWarning("Invalid months back parameter: {MonthsBack}. Must be between 1 and 60", request.MonthsBack);
-            return new GetManufactureOutputResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidAnalysisParameters,
-                Params = new Dictionary<string, string> { ["parameters"] = "MonthsBack must be between 1 and 60" }
-            };
-        }
-
         // Calculate date range - last N months
         var toDate = DateTime.Now;
         var fromDate = toDate.AddMonths(-request.MonthsBack);
@@ -75,7 +63,7 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
                         var quantity = productGroup.Sum(p => p.Amount);
 
                         // Get product info from catalog
-                        double difficulty = 1.0; // Default difficulty if not found
+                        double difficulty = Anela.Heblo.Application.Features.Manufacture.ManufactureConstants.DEFAULT_MANUFACTURE_DIFFICULTY;
                         string productName = productCode;
 
                         if (catalogDict.TryGetValue(productCode, out var catalogItem))
