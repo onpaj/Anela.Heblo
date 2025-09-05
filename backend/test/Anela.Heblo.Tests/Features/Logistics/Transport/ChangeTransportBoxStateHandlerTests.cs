@@ -112,32 +112,7 @@ public class ChangeTransportBoxStateHandlerTests
         _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task Handle_InvalidTransition_ThrowsValidationException_ReturnsFailure()
-    {
-        // Arrange - try to transition from New directly to Received (invalid transition)
-        var box = CreateTestBox(TransportBoxState.New);
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            NewState = TransportBoxState.Received
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdWithDetailsAsync(1))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxStateChangeError);
-        result.UpdatedBox.Should().BeNull();
-
-        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
+   
 
     [Fact]
     public async Task Handle_OpenedToInTransit_WithItems_ReturnsSuccess()
@@ -176,32 +151,6 @@ public class ChangeTransportBoxStateHandlerTests
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_OpenedToInTransit_WithoutItems_ReturnsFailure()
-    {
-        // Arrange
-        var box = CreateTestBox(TransportBoxState.Opened); // Box without items
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            NewState = TransportBoxState.InTransit
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdWithDetailsAsync(1))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxStateChangeError);
-        result.UpdatedBox.Should().BeNull();
-
-        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]

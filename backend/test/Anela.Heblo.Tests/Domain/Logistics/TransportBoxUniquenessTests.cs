@@ -83,7 +83,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         // Assert - Druhý pokus by měl selhat
         secondResult.Success.Should().BeFalse();
-        secondResult.ErrorCode.Should().Be(ErrorCodes.DuplicateEntry);
+        secondResult.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         // Assert - Mělo by selhat kvůli case-insensitive duplicitě
         secondResult.Success.Should().BeFalse();
-        secondResult.ErrorCode.Should().Be(ErrorCodes.DuplicateEntry);
+        secondResult.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
     }
 
     [Fact]

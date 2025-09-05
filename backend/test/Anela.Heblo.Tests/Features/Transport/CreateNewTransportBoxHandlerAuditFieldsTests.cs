@@ -64,7 +64,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
 
         // Assert
         capturedTransportBox.Should().NotBeNull();
-        capturedTransportBox!.CreationTime.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
+        capturedTransportBox!.CreationTime.Should().Be(new DateTime(2024, 1, 1, 12, 0, 0));
         capturedTransportBox.ConcurrencyStamp.Should().NotBeNullOrEmpty();
         capturedTransportBox.CreatorId.Should().Be(Guid.Parse("12345678-1234-1234-1234-123456789012"));
         capturedTransportBox.Description.Should().Be("Test Box");
