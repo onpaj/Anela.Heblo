@@ -24,7 +24,7 @@ public class HangfireBackgroundJobService
     /// <summary>
     /// Daily purchase price recalculation job (runs at 2:00 AM UTC)
     /// </summary>
-    [Queue("Heblo")]
+    [Queue("heblo")]
     public async Task RecalculatePurchasePricesAsync()
     {
         try

@@ -7,7 +7,7 @@ public class HangfireJobSchedulerService : IHostedService
     private readonly ILogger<HangfireJobSchedulerService> _logger;
     private readonly IWebHostEnvironment _environment;
 
-    private const string QueueName = "Heblo";
+    private const string QueueName = "heblo";
 
     public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment)
     {

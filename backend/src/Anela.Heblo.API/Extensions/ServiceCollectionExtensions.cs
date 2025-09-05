@@ -257,7 +257,7 @@ public static class ServiceCollectionExtensions
         {
             // Configure server options - ALWAYS only process Heblo queue
             options.WorkerCount = 1;
-            options.Queues = new[] { "Heblo" };
+            options.Queues = new[] { "heblo" };
         });
 
         // Only register job scheduler service in Production and Staging environments
