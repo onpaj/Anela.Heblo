@@ -1,4 +1,5 @@
 using Microsoft.Identity.Web;
+using Microsoft.AspNetCore.Http;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Domain.Features.Configuration;
 
@@ -52,6 +53,19 @@ public static class AuthenticationExtensions
             .EnableTokenAcquisitionToCallDownstreamApi()
             // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
             .AddInMemoryTokenCaches();
+        
+        // Add cookie authentication for E2E test sessions (staging environment)
+        if (builder.Environment.IsEnvironment("Staging"))
+        {
+            services.AddAuthentication()
+                .AddCookie("Cookies", options =>
+                {
+                    options.Cookie.Name = "E2ETestSession";
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+                });
+        }
     }
 
 }
