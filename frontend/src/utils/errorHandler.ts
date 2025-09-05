@@ -19,6 +19,11 @@ function formatMessage(template: string | undefined, params?: Record<string, str
  * Gets a localized error message for an error code
  */
 export function getErrorMessage(errorCode: ErrorCodes, params?: Record<string, string>): string {
+  // Special handling for Exception error code
+  if (errorCode === ErrorCodes.Exception && params?.exceptionType && params?.message) {
+    return `Chyba ${params.exceptionType}\n${params.message}`;
+  }
+
   // First try to find translation using ErrorCode enum name (string key)
   const enumName = ErrorCodes[errorCode];
   let messageKey = `errors.${enumName}`;

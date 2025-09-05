@@ -24,6 +24,8 @@ public enum ErrorCodes
     Unauthorized = 0013,
     Forbidden = 0014,
     TokenExpired = 0015,
+    Exception = 0099,
+    
 
     // Audit module errors (10XX) - reserved for future use
     // AuditError = 1001,
@@ -58,5 +60,5 @@ public enum ErrorCodes
     ExternalServiceError = 9001,
     FlexiApiError = 9002,
     ShoptetApiError = 9003,
-    PaymentGatewayError = 9004
+    PaymentGatewayError = 9004,
 }

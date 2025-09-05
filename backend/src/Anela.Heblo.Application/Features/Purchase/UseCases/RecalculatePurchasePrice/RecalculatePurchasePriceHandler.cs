@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using MediatR;
@@ -68,8 +69,7 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                 response.ProcessedProducts.Add(new ProductRecalculationResult
                 {
                     ProductCode = product.ProductCode,
-                    IsSuccess = true,
-                    ErrorMessage = null
+                    Success = true
                 });
 
                 response.SuccessCount++;
@@ -83,8 +83,13 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                 response.ProcessedProducts.Add(new ProductRecalculationResult
                 {
                     ProductCode = product.ProductCode,
-                    IsSuccess = false,
-                    ErrorMessage = errorMessage
+                    Success = false,
+                    ErrorCode = ErrorCodes.Exception,
+                    Params = new Dictionary<string, string> 
+                    { 
+                        { "message", errorMessage },
+                        { "exceptionType", ex.GetType().Name }
+                    }
                 });
 
                 _logger.LogError(ex, "Failed to recalculate price for product {ProductCode}: {ErrorMessage}",

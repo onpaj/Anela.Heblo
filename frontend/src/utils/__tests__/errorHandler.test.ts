@@ -25,6 +25,34 @@ describe('errorHandler', () => {
       const message = getErrorMessage(ErrorCodes.PurchaseOrderNotFound);
       expect(message).toBe('Objednávka nenalezena (ID: {id})'); // Placeholder not replaced
     });
+
+    it('should handle Exception error code with exceptionType and message params', () => {
+      const params = {
+        exceptionType: 'InvalidOperationException',
+        message: 'Product does not have BoM'
+      };
+      
+      const result = getErrorMessage(ErrorCodes.Exception, params);
+      
+      expect(result).toBe('Chyba InvalidOperationException\nProduct does not have BoM');
+    });
+
+    it('should fall back to standard translation when Exception params are incomplete', () => {
+      const params = {
+        message: 'Some error message'
+        // missing exceptionType
+      };
+      
+      const result = getErrorMessage(ErrorCodes.Exception, params);
+      
+      expect(result).toBe('Výjimka aplikace');
+    });
+
+    it('should handle Exception error code without params', () => {
+      const result = getErrorMessage(ErrorCodes.Exception);
+      
+      expect(result).toBe('Výjimka aplikace');
+    });
   });
 
   describe('handleApiError', () => {
@@ -57,6 +85,21 @@ describe('errorHandler', () => {
       const response = { success: false };
       const message = handleApiError(response);
       expect(message).toBe('Nastala neznámá chyba');
+    });
+
+    it('should handle Exception error code in API responses', () => {
+      const response = {
+        success: false,
+        errorCode: ErrorCodes.Exception,
+        params: {
+          exceptionType: 'ArgumentException',
+          message: 'Invalid product code'
+        }
+      };
+      
+      const result = handleApiError(response);
+      
+      expect(result).toBe('Chyba ArgumentException\nInvalid product code');
     });
   });
 

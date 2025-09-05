@@ -146,8 +146,7 @@ public class PurchaseOrdersController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderStatusResponse>(
-                ErrorCodes.InvalidValue, ex.Message));
+            return BadRequest(ErrorResponseHelper.CreateError<UpdatePurchaseOrderStatusResponse>(ex));
         }
         catch (InvalidOperationException ex)
         {
@@ -227,14 +226,11 @@ public class PurchaseOrdersController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<RecalculatePurchasePriceResponse>(
-                ErrorCodes.InvalidValue, ex.Message));
+            return BadRequest(ErrorResponseHelper.CreateError<RecalculatePurchasePriceResponse>(ex));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ErrorResponseHelper.CreateErrorResponse<RecalculatePurchasePriceResponse>(
-                ErrorCodes.InternalServerError,
-                new Dictionary<string, string> { { "detail", ex.Message } }));
+            return StatusCode(500, ErrorResponseHelper.CreateError<RecalculatePurchasePriceResponse>(ex));
         }
     }
 }

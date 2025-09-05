@@ -42,21 +42,11 @@ public class RecalculatePurchasePriceResponse : BaseResponse
     };
 }
 
-public class ProductRecalculationResult
+public class ProductRecalculationResult : BaseResponse
 {
     /// <summary>
     /// Product code that was processed.
     /// </summary>
     public string ProductCode { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Whether the recalculation was successful.
-    /// </summary>
-    public bool IsSuccess { get; set; }
-
-    /// <summary>
-    /// Error message if the recalculation failed.
-    /// </summary>
-    public string? ErrorMessage { get; set; }
 }
 

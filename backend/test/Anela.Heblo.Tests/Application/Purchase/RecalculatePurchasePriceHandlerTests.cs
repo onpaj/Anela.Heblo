@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
@@ -59,8 +60,8 @@ public class RecalculatePurchasePriceHandlerTests
 
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
-        processedProduct.IsSuccess.Should().BeTrue();
-        processedProduct.ErrorMessage.Should().BeNull();
+        processedProduct.Success.Should().BeTrue();
+        processedProduct.ErrorCode.Should().BeNull();
 
         _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -96,7 +97,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.ProcessedProducts.Should().HaveCount(2);
 
-        result.ProcessedProducts.Should().OnlyContain(p => p.IsSuccess);
+        result.ProcessedProducts.Should().OnlyContain(p => p.Success);
         result.ProcessedProducts.Select(p => p.ProductCode).Should().BeEquivalentTo(new[] { "PROD001", "PROD002" });
 
         _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
@@ -155,8 +156,10 @@ public class RecalculatePurchasePriceHandlerTests
 
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
-        processedProduct.IsSuccess.Should().BeFalse();
-        processedProduct.ErrorMessage.Should().Contain("does not have BoM");
+        processedProduct.Success.Should().BeFalse();
+        processedProduct.ErrorCode.Should().Be(ErrorCodes.Exception);
+        processedProduct.Params.Should().ContainKey("message");
+        processedProduct.Params["message"].Should().Contain("does not have BoM");
 
         _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -195,8 +198,10 @@ public class RecalculatePurchasePriceHandlerTests
 
         var processedProduct = result.ProcessedProducts.First();
         processedProduct.ProductCode.Should().Be(productCode);
-        processedProduct.IsSuccess.Should().BeFalse();
-        processedProduct.ErrorMessage.Should().Be(expectedError);
+        processedProduct.Success.Should().BeFalse();
+        processedProduct.ErrorCode.Should().Be(ErrorCodes.Exception);
+        processedProduct.Params.Should().ContainKey("message");
+        processedProduct.Params["message"].Should().Be(expectedError);
     }
 
     [Fact]
@@ -233,12 +238,14 @@ public class RecalculatePurchasePriceHandlerTests
         result.ProcessedProducts.Should().HaveCount(2);
 
         var successResult = result.ProcessedProducts.First(p => p.ProductCode == "PROD001");
-        successResult.IsSuccess.Should().BeTrue();
-        successResult.ErrorMessage.Should().BeNull();
+        successResult.Success.Should().BeTrue();
+        successResult.ErrorCode.Should().BeNull();
 
         var failResult = result.ProcessedProducts.First(p => p.ProductCode == "PROD002");
-        failResult.IsSuccess.Should().BeFalse();
-        failResult.ErrorMessage.Should().Be("Network timeout");
+        failResult.Success.Should().BeFalse();
+        failResult.ErrorCode.Should().Be(ErrorCodes.Exception);
+        failResult.Params.Should().ContainKey("message");
+        failResult.Params["message"].Should().Be("Network timeout");
     }
 
     [Fact]

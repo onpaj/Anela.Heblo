@@ -19,6 +19,7 @@ export enum ErrorCodes {
   Unauthorized = 13,
   Forbidden = 14,
   TokenExpired = 15,
+  Exception = 99,
 
   // Purchase module errors (11XX)
   PurchaseOrderNotFound = 1101,

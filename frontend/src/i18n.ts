@@ -37,6 +37,7 @@ const resources = {
         'Unauthorized': 'Neautorizovaný přístup',
         'Forbidden': 'Přístup zakázán',
         'TokenExpired': 'Token vypršel',
+        'Exception': 'Výjimka aplikace',
         
         // Purchase module errors
         'PurchaseOrderNotFound': 'Objednávka nenalezena (ID: {id})',
@@ -84,6 +85,7 @@ const resources = {
         '13': 'Neautorizovaný přístup',
         '14': 'Přístup zakázán',
         '15': 'Token vypršel',
+        '99': 'Výjimka aplikace',
         
         // Purchase module errors (11XX)
         '1101': 'Objednávka nenalezena (ID: {id})',

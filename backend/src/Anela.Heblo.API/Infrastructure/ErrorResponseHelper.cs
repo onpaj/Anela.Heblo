@@ -51,4 +51,16 @@ public static class ErrorResponseHelper
             : null;
         return CreateErrorResponse<T>(errorCode, parameters);
     }
+    
+    /// <summary>
+    /// Creates a business rule violation error response
+    /// </summary>
+    public static T CreateError<T>(Exception ex) where T : BaseResponse, new()
+    {
+        return CreateErrorResponse<T>(ErrorCodes.Exception, new Dictionary<string, string>()
+        {
+            { "message", ex.Message},
+            { "exceptionType", ex.GetType().Name}
+        });
+    }
 }
