@@ -36,7 +36,10 @@ public class CreateNewTransportBoxHandler : IRequestHandler<CreateNewTransportBo
             var transportBox = new TransportBox
             {
                 Description = request.Description,
-                CreatorId = Guid.TryParse(currentUser.Id, out var userId) ? userId : null
+                CreatorId = Guid.TryParse(currentUser.Id, out var userId) ? userId : null,
+                CreationTime = DateTime.UtcNow,
+                ConcurrencyStamp = Guid.NewGuid().ToString(),
+                ExtraProperties = "{}"
             };
 
             await _repository.AddAsync(transportBox, cancellationToken);

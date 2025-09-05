@@ -98,7 +98,6 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             TransportBoxState.InTransit,
             TransportBoxState.Received,
             TransportBoxState.Reserve,
-            TransportBoxState.Stocked
         };
 
         var upperBoxCode = boxCode.ToUpper();

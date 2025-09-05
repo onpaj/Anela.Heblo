@@ -29,10 +29,10 @@ public class TransportBox : Entity<int>
     public Guid? LastModifierId { get; set; }
 
     // EF Core managed concurrency stamp - required for backward compatibility with original system
-    public string? ConcurrencyStamp { get; set; }
+    public string ConcurrencyStamp { get; set; } = string.Empty;
 
     // Extra properties for backward compatibility with original system
-    public string? ExtraProperties { get; set; }
+    public string ExtraProperties { get; set; } = "{}";
 
     public IReadOnlyList<TransportBoxStateLog> StateLog => _stateLog;
 
