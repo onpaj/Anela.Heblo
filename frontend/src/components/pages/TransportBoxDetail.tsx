@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { X, Package, Clock, AlertCircle } from 'lucide-react';
 import { useTransportBoxByIdQuery, useChangeTransportBoxState } from '../../api/hooks/useTransportBoxes';
-import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
 import { useLastAddedItem } from '../../api/hooks/useLastAddedItem';
-import { CatalogItemDto, ProductType, TransportBoxState } from '../../api/generated/api-client';
+import { CatalogItemDto, TransportBoxState } from '../../api/generated/api-client';
 import { useToast } from '../../contexts/ToastContext';
 
 // Import new components
@@ -39,42 +38,9 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
   
   
   // Add item form
-  const [productInput, setProductInput] = useState('');
   const [quantityInput, setQuantityInput] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<CatalogItemDto | null>(null);
-  const [debouncedProductSearch, setDebouncedProductSearch] = useState('');
 
-  // Debounce product search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedProductSearch(productInput);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [productInput]);
-
-  // Fetch autocomplete data for Products (výrobky) and Goods (zboží) only
-  const { data: autocompleteData, isLoading: autocompleteLoading } = useCatalogAutocomplete(
-    debouncedProductSearch || undefined,
-    50,
-    [ProductType.Product, ProductType.Goods] // Only show manufactured products and goods for transport boxes
-  );
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (target && !target.closest('[data-autocomplete-container]')) {
-        // Clear search if no product is selected
-        if (!selectedProduct) {
-          setProductInput('');
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [selectedProduct]);
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -133,7 +99,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       
       
       // Reset add item form
-      setProductInput('');
       setQuantityInput('');
       setSelectedProduct(null);
       
@@ -266,7 +231,6 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         });
         
         // Clear form and refresh data
-        setProductInput('');
         setQuantityInput('');
         setSelectedProduct(null);
         refetch();
@@ -487,15 +451,11 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
                           isFormEditable={isFormEditable}
                           formatDate={formatDate}
                           handleRemoveItem={handleRemoveItem}
-                          productInput={productInput}
-                          setProductInput={setProductInput}
                           quantityInput={quantityInput}
                           setQuantityInput={setQuantityInput}
                           selectedProduct={selectedProduct}
                           setSelectedProduct={setSelectedProduct}
                           handleAddItem={handleAddItem}
-                          autocompleteData={autocompleteData}
-                          autocompleteLoading={autocompleteLoading}
                           lastAddedItem={lastAddedItem}
                           handleQuickAdd={() => setIsQuickAddModalOpen(true)}
                         />

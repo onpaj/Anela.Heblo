@@ -168,6 +168,12 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
                 setAmount(e.target.value);
                 setError(null);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
               disabled={isLoading}
               placeholder="0"
               min="0.01"

@@ -43,8 +43,9 @@ public class HangfireJobSchedulerService : IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in {Environment} environment", _environment.EnvironmentName);
-            throw;
+            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in {Environment} environment. Application startup will continue, but background jobs will not be scheduled.", _environment.EnvironmentName);
+            // Don't throw - let application start even if Hangfire job registration fails
+            // This allows the application to be functional even with Hangfire issues
         }
 
         return Task.CompletedTask;
