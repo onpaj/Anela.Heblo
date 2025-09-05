@@ -109,11 +109,8 @@ export const useChangeTransportBoxState = () => {
       
       const response = await client.transportBox_ChangeTransportBoxState(params.boxId, request);
       
-      // Check if the response indicates failure
-      if (!response.success && response.errorMessage) {
-        throw new Error(response.errorMessage);
-      }
-      
+      // No need to check for errors here - global error handler shows toasts
+      // If there was an error, SwaggerException will be thrown by generated client
       return response;
     },
     onSuccess: (data, variables) => {

@@ -158,7 +158,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
       console.error('Error assigning box number:', err);
       const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
       setBoxNumberError(errorMessage);
-      showError('Chyba při otevírání boxu', errorMessage);
+      // Toast is already shown by global error handler - no need to show another one
     }
   };
 
