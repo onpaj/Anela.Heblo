@@ -7,6 +7,8 @@ public class HangfireJobSchedulerService : IHostedService
     private readonly ILogger<HangfireJobSchedulerService> _logger;
     private readonly IWebHostEnvironment _environment;
 
+    private const string QueueName = "Heblo";
+
     public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment)
     {
         _logger = logger;
@@ -33,10 +35,9 @@ public class HangfireJobSchedulerService : IHostedService
                 "purchase-price-recalculation",
                 service => service.RecalculatePurchasePricesAsync(),
                 "0 2 * * *", // Daily at 2:00 AM UTC
-                new RecurringJobOptions
-                {
-                    TimeZone = TimeZoneInfo.Utc
-                });
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
 
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
