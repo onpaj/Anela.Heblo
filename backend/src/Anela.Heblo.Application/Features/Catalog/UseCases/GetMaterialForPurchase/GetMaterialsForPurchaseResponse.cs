@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 
-public class GetMaterialsForPurchaseResponse
+public class GetMaterialsForPurchaseResponse : BaseResponse
 {
     public List<MaterialForPurchaseDto> Materials { get; set; } = new();
 }

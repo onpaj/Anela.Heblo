@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Journal.Contracts
@@ -13,7 +14,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public string Color { get; set; } = "#6B7280";
     }
 
-    public class CreateJournalTagResponse
+    public class CreateJournalTagResponse : BaseResponse
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;

@@ -42,7 +42,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
         // Arrange
         var request = new CreateNewTransportBoxRequest { Description = "Test Box" };
         TransportBox? capturedTransportBox = null;
-        
+
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Callback<TransportBox, CancellationToken>((box, _) => capturedTransportBox = box)
@@ -70,7 +70,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
         // Arrange
         var request = new CreateNewTransportBoxRequest { Description = "Test Box" };
         TransportBox? capturedTransportBox = null;
-        
+
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Callback<TransportBox, CancellationToken>((box, _) => capturedTransportBox = box)
@@ -86,7 +86,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
         // Assert
         capturedTransportBox.Should().NotBeNull();
         capturedTransportBox!.ConcurrencyStamp.Should().NotBeNullOrEmpty();
-        
+
         // Should be a valid GUID format
         Guid.TryParse(capturedTransportBox.ConcurrencyStamp, out _).Should().BeTrue();
     }
@@ -97,7 +97,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
         // Arrange
         var request = new CreateNewTransportBoxRequest { Description = "Test Box" };
         TransportBox? capturedTransportBox = null;
-        
+
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .Callback<TransportBox, CancellationToken>((box, _) => capturedTransportBox = box)
@@ -114,7 +114,7 @@ public class CreateNewTransportBoxHandlerAuditFieldsTests
         capturedTransportBox.Should().NotBeNull();
         capturedTransportBox!.ExtraProperties.Should().NotBeNullOrEmpty();
         capturedTransportBox.ExtraProperties.Should().Be("{}");
-        
+
         // Should be valid JSON
         System.Text.Json.JsonDocument.Parse(capturedTransportBox.ExtraProperties).Should().NotBeNull();
     }

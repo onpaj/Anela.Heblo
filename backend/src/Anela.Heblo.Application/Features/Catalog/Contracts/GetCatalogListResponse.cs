@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Catalog.Contracts;
 
-public class GetCatalogListResponse
+public class GetCatalogListResponse : BaseResponse
 {
     public List<CatalogItemDto> Items { get; set; } = new();
     public int TotalCount { get; set; }

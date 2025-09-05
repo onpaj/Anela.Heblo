@@ -1,0 +1,35 @@
+{
+  "errors": {
+    "1000": "Chyba validace",
+    "1001": "Povinné pole chybí",
+    "1002": "Nesprávný formát",
+    "1003": "Neplatná hodnota",
+    "1004": "Neplatný rozsah dat",
+    
+    "2000": "Zdroj nenalezen",
+    "2001": "Objednávka nenalezena (ID: {id})",
+    "2002": "Dodavatel nenalezen",
+    "2003": "Položka katalogu nenalezena",
+    "2004": "Přepravní box nenalezen",
+    "2005": "Konfigurace nenalezena",
+    
+    "3000": "Porušení obchodního pravidla",
+    "3001": "Neplatná operace",
+    "3002": "Změna stavu není povolena",
+    "3003": "Nedostatečné množství na skladě",
+    "3004": "Duplicitní záznam",
+    
+    "4000": "Chyba externí služby",
+    "4001": "Chyba Flexi API",
+    "4002": "Chyba Shoptet API",
+    "4003": "Chyba platební brány",
+    
+    "5000": "Interní chyba serveru",
+    "5001": "Chyba databáze",
+    "5002": "Chyba konfigurace",
+    
+    "6000": "Neautorizovaný přístup",
+    "6001": "Přístup zakázán",
+    "6002": "Token vypršel"
+  }
+}

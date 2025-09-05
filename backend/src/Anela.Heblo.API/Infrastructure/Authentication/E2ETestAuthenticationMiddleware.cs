@@ -61,7 +61,7 @@ public class E2ETestAuthenticationMiddleware
         {
             // Validate the Service Principal token
             var isValid = await ValidateServicePrincipalToken(token);
-            
+
             if (!isValid)
             {
                 _logger.LogWarning("E2E Test Authentication: Invalid Service Principal token");
@@ -125,11 +125,11 @@ public class E2ETestAuthenticationMiddleware
             // Parse JWT token to get basic info
             var handler = new JwtSecurityTokenHandler();
             var jsonToken = handler.ReadJwtToken(token);
-            
+
             // Verify it's an app token (not user token)
             var appIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "appid");
             var tenantIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "tid");
-            
+
             if (appIdClaim == null || tenantIdClaim == null)
             {
                 _logger.LogWarning("E2E Test Authentication: Token missing required app claims");
@@ -142,14 +142,14 @@ public class E2ETestAuthenticationMiddleware
 
             if (!string.IsNullOrEmpty(expectedClientId) && appIdClaim.Value != expectedClientId)
             {
-                _logger.LogWarning("E2E Test Authentication: Token client ID mismatch. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedClientId, appIdClaim.Value);
                 return false;
             }
 
             if (!string.IsNullOrEmpty(expectedTenantId) && tenantIdClaim.Value != expectedTenantId)
             {
-                _logger.LogWarning("E2E Test Authentication: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedTenantId, tenantIdClaim.Value);
                 return false;
             }
@@ -157,17 +157,17 @@ public class E2ETestAuthenticationMiddleware
             // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
             var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-            
+
             if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
             {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}", 
+                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}",
                     expectedIssuer, issuerClaim?.Value);
                 return false;
             }
 
             // CRITICAL SECURITY: Validate audience - Service Principal tokens may have different audience formats
             var audienceClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "aud");
-            
+
             if (audienceClaim == null)
             {
                 _logger.LogWarning("E2E Test Authentication: Token missing audience claim");
@@ -193,7 +193,7 @@ public class E2ETestAuthenticationMiddleware
                 }
             }
 
-            _logger.LogInformation("E2E Test Authentication: Service Principal token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}", 
+            _logger.LogInformation("E2E Test Authentication: Service Principal token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}",
                 appIdClaim.Value, tenantIdClaim.Value, issuerClaim.Value);
 
             return true;

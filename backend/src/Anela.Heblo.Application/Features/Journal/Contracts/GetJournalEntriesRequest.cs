@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Journal.Contracts
@@ -12,7 +13,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public string SortDirection { get; set; } = "DESC";
     }
 
-    public class GetJournalEntriesResponse
+    public class GetJournalEntriesResponse : BaseResponse
     {
         public List<JournalEntryDto> Entries { get; set; } = new();
         public int TotalCount { get; set; }

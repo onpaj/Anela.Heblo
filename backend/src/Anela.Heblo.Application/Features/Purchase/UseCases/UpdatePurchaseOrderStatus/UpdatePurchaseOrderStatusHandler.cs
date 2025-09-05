@@ -53,13 +53,14 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
             _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",
                 purchaseOrder.OrderNumber, newStatus);
 
-            return new UpdatePurchaseOrderStatusResponse(
-                purchaseOrder.Id,
-                purchaseOrder.OrderNumber,
-                purchaseOrder.Status.ToString(),
-                purchaseOrder.UpdatedAt,
-                purchaseOrder.UpdatedBy
-            );
+            return new UpdatePurchaseOrderStatusResponse
+            {
+                Id = purchaseOrder.Id,
+                OrderNumber = purchaseOrder.OrderNumber,
+                Status = purchaseOrder.Status.ToString(),
+                UpdatedAt = purchaseOrder.UpdatedAt,
+                UpdatedBy = purchaseOrder.UpdatedBy
+            };
         }
         catch (InvalidOperationException ex)
         {

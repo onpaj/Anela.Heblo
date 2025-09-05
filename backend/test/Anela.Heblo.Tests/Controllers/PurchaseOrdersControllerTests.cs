@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
@@ -384,11 +385,11 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
 
         historyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var content = await historyResponse.Content.ReadFromJsonAsync<List<PurchaseOrderHistoryDto>>();
+        var content = await historyResponse.Content.ReadFromJsonAsync<ListResponse<PurchaseOrderHistoryDto>>();
         content.Should().NotBeNull();
-        content!.Should().HaveCount(2);
-        content.Should().Contain(h => h.Action.Contains("Order created"));
-        content.Should().Contain(h => h.Action.Contains("Status changed"));
+        content!.Items.Should().HaveCount(2);
+        content.Items.Should().Contain(h => h.Action.Contains("Order created"));
+        content.Items.Should().Contain(h => h.Action.Contains("Status changed"));
     }
 
     [Fact]

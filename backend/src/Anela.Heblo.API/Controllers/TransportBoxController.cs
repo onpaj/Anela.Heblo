@@ -2,6 +2,8 @@ using Anela.Heblo.Application.Features.Transport.UseCases;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -54,7 +56,8 @@ public class TransportBoxController : ControllerBase
 
         if (response.TransportBox == null)
         {
-            return NotFound($"Transport box with ID {id} not found");
+            return NotFound(ErrorResponseHelper.CreateNotFoundError<GetTransportBoxByIdResponse>(
+                ErrorCodes.TransportBoxNotFound, id.ToString()));
         }
 
         return Ok(response);
@@ -74,7 +77,8 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<ChangeTransportBoxStateResponse>(
+                ErrorCodes.TransportBoxStateChangeError, response.ErrorMessage));
         }
 
         return Ok(response);
@@ -92,7 +96,8 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreateNewTransportBoxResponse>(
+                ErrorCodes.TransportBoxCreationError, response.ErrorMessage));
         }
 
         return Ok(response);
@@ -113,7 +118,8 @@ public class TransportBoxController : ControllerBase
 
         if (!response.Success)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<AddItemToBoxResponse>(
+                ErrorCodes.TransportBoxItemError, response.ErrorMessage));
         }
 
         return Ok(response);
@@ -137,7 +143,8 @@ public class TransportBoxController : ControllerBase
         var response = await _mediator.Send(request, cancellationToken);
         if (!response.Success)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<RemoveItemFromBoxResponse>(
+                ErrorCodes.TransportBoxItemError, response.ErrorMessage));
         }
         return Ok(response);
     }

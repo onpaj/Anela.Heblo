@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 
-public class GetPurchaseStockAnalysisResponse
+public class GetPurchaseStockAnalysisResponse : BaseResponse
 {
     public List<StockAnalysisItemDto> Items { get; set; } = new();
 

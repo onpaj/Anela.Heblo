@@ -2,6 +2,8 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.SearchSuppliers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -24,7 +26,7 @@ public class SuppliersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<SearchSuppliersResponse>());
         }
 
         var response = await _mediator.Send(request, cancellationToken);

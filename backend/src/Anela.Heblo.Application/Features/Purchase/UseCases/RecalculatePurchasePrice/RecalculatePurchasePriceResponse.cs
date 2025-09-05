@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 
-public class RecalculatePurchasePriceResponse
+public class RecalculatePurchasePriceResponse : BaseResponse
 {
     /// <summary>
     /// Number of products successfully recalculated.

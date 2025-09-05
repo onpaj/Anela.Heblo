@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Transport.UseCases;
 
-public class GetTransportBoxSummaryResponse
+public class GetTransportBoxSummaryResponse : BaseResponse
 {
     public int TotalBoxes { get; set; }
     public int ActiveBoxes { get; set; } // All states except Closed

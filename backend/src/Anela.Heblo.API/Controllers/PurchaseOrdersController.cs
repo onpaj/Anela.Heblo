@@ -6,6 +6,8 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePric
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvoiceAcquired;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,7 +42,7 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<CreatePurchaseOrderResponse>());
         }
 
         try
@@ -50,7 +52,7 @@ public class PurchaseOrdersController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreatePurchaseOrderResponse>(ErrorCodes.InvalidValue, ex.Message));
         }
     }
 
@@ -64,7 +66,7 @@ public class PurchaseOrdersController : ControllerBase
 
         if (response == null)
         {
-            return NotFound($"Purchase order with ID {id} not found");
+            return NotFound(ErrorResponseHelper.CreateNotFoundError<GetPurchaseOrderByIdResponse>(ErrorCodes.PurchaseOrderNotFound, id.ToString()));
         }
 
         return Ok(response);
@@ -78,12 +80,14 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("Route ID does not match request ID");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "Route ID does not match request ID" } }));
         }
 
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderResponse>());
         }
 
         try
@@ -92,18 +96,21 @@ public class PurchaseOrdersController : ControllerBase
 
             if (response == null)
             {
-                return NotFound($"Purchase order with ID {id} not found");
+                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderResponse>(
+                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
             }
 
             return Ok(response);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderResponse>(
+                ErrorCodes.InvalidOperation, ex.Message));
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderResponse>(
+                ErrorCodes.InvalidValue, ex.Message));
         }
     }
 
@@ -115,12 +122,14 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("Route ID does not match request ID");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderStatusResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "Route ID does not match request ID" } }));
         }
 
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderStatusResponse>());
         }
 
         try
@@ -129,18 +138,21 @@ public class PurchaseOrdersController : ControllerBase
 
             if (response == null)
             {
-                return NotFound($"Purchase order with ID {id} not found");
+                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderStatusResponse>(
+                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
             }
 
             return Ok(response);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderStatusResponse>(
+                ErrorCodes.InvalidValue, ex.Message));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderStatusResponse>(
+                ErrorCodes.StatusTransitionNotAllowed, ex.Message));
         }
     }
 
@@ -152,7 +164,9 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("ID in route does not match ID in request body");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderInvoiceAcquiredResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "ID in route does not match ID in request body" } }));
         }
 
         try
@@ -161,19 +175,21 @@ public class PurchaseOrdersController : ControllerBase
 
             if (response == null)
             {
-                return NotFound($"Purchase order with ID {id} not found");
+                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderInvoiceAcquiredResponse>(
+                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
             }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderInvoiceAcquiredResponse>(
+                ErrorCodes.InvalidOperation, ex.Message));
         }
     }
 
     [HttpGet("{id:int}/history")]
-    public async Task<ActionResult<List<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
+    public async Task<ActionResult<ListResponse<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
@@ -182,10 +198,16 @@ public class PurchaseOrdersController : ControllerBase
 
         if (response == null)
         {
-            return NotFound($"Purchase order with ID {id} not found");
+            return NotFound(ErrorResponseHelper.CreateNotFoundError<ListResponse<PurchaseOrderHistoryDto>>(
+                ErrorCodes.PurchaseOrderNotFound, id.ToString()));
         }
 
-        return Ok(response.History);
+        var listResponse = new ListResponse<PurchaseOrderHistoryDto>
+        {
+            Items = response.History,
+            TotalCount = response.History.Count
+        };
+        return Ok(listResponse);
     }
 
     [HttpPost("recalculate-purchase-price")]
@@ -195,7 +217,7 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<RecalculatePurchasePriceResponse>());
         }
 
         try
@@ -205,11 +227,14 @@ public class PurchaseOrdersController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ErrorResponseHelper.CreateBusinessError<RecalculatePurchasePriceResponse>(
+                ErrorCodes.InvalidValue, ex.Message));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            return StatusCode(500, ErrorResponseHelper.CreateErrorResponse<RecalculatePurchasePriceResponse>(
+                ErrorCodes.InternalServerError,
+                new Dictionary<string, string> { { "detail", ex.Message } }));
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Journal.Contracts
@@ -23,7 +24,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public List<int>? TagIds { get; set; }
     }
 
-    public class UpdateJournalEntryResponse
+    public class UpdateJournalEntryResponse : BaseResponse
     {
         public int Id { get; set; }
         public DateTime ModifiedAt { get; set; }

@@ -237,7 +237,7 @@ public static class ServiceCollectionExtensions
         {
             // Use PostgreSQL storage for other environments
             // Try environment-specific connection string first, then fall back to DefaultConnection
-            var connectionString = configuration.GetConnectionString(environment.EnvironmentName) 
+            var connectionString = configuration.GetConnectionString(environment.EnvironmentName)
                                  ?? configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
