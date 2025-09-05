@@ -70,6 +70,14 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                         Params = new Dictionary<string, string> { { "code", normalizedCode } }
                     };
                 }
+                
+                // Close all stocked boxes
+                var (stocked, _) = await _repository.GetPagedListAsync(skip:0, take: 0, code: request.BoxCode, state: TransportBoxState.Stocked);
+                foreach (var s in stocked)
+                {
+                    s.Close(_timeProvider.GetUtcNow().UtcDateTime, _currentUserService.GetCurrentUser().Name ?? "System");
+                    await _repository.UpdateAsync(s, cancellationToken);
+                }
             }
             if (box.State == TransportBoxState.Opened && request.NewState == TransportBoxState.Reserve)
             {
