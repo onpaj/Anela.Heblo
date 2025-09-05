@@ -97,6 +97,16 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
+        // Mock IsBoxCodeActiveAsync for New -> Opened transition
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        // Mock GetPagedListAsync for closing stocked boxes
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedBoxResponse);

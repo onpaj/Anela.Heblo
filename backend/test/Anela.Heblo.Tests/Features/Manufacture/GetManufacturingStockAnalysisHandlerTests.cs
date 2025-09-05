@@ -188,7 +188,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>()))
             .Returns(ManufacturingStockSeverity.Adequate);
 
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<List<ManufactureHistoryRecord>>()))
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ManufactureHistoryRecord>>(), It.IsAny<int>()))
             .Returns(false);
 
         _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
