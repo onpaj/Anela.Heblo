@@ -44,6 +44,9 @@ const resources = {
         'SupplierNotFound': 'Dodavatel nenalezen (ID: {id})',
         'StatusTransitionNotAllowed': 'Změna stavu není povolena',
         'InsufficientStock': 'Nedostatečné množství na skladě',
+        'InvalidPurchaseOrderStatus': 'Neplatný stav objednávky: {status}',
+        'InvalidSupplier': 'Neplatný dodavatel: {supplierName}',
+        'PurchaseOrderUpdateFailed': 'Aktualizace objednávky {orderNumber} selhala: {message}',
         
         // Manufacture module errors
         'ManufacturingDataNotAvailable': 'Výrobní data nejsou k dispozici pro analýzu',

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using MediatR;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
 
-public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdRequest, GetPurchaseOrderByIdResponse?>
+public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdRequest, GetPurchaseOrderByIdResponse>
 {
     private readonly ILogger<GetPurchaseOrderByIdHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
@@ -25,7 +26,7 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         _catalogRepository = catalogRepository;
     }
 
-    public async Task<GetPurchaseOrderByIdResponse?> Handle(GetPurchaseOrderByIdRequest request, CancellationToken cancellationToken)
+    public async Task<GetPurchaseOrderByIdResponse> Handle(GetPurchaseOrderByIdRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting purchase order details for ID {Id}", request.Id);
 
@@ -34,7 +35,7 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         if (purchaseOrder == null)
         {
             _logger.LogWarning("Purchase order not found for ID {Id}", request.Id);
-            return null;
+            return new GetPurchaseOrderByIdResponse(ErrorCodes.PurchaseOrderNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
         _logger.LogInformation("Found purchase order {OrderNumber} with {LineCount} lines and {HistoryCount} history entries",

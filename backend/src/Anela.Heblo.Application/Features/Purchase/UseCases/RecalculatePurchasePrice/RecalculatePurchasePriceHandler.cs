@@ -30,7 +30,8 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
         // Validate request
         if (string.IsNullOrEmpty(request.ProductCode) && !request.RecalculateAll)
         {
-            throw new ArgumentException("Either ProductCode must be specified or RecalculateAll must be true");
+            _logger.LogWarning("Invalid request: Either ProductCode must be specified or RecalculateAll must be true");
+            return new RecalculatePurchasePriceResponse(ErrorCodes.InvalidValue, new Dictionary<string, string> { { "Message", "Either ProductCode must be specified or RecalculateAll must be true" } });
         }
 
         var products = await _catalogRepository.GetAllAsync(cancellationToken);
@@ -44,7 +45,8 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
             var product = products.SingleOrDefault(p => p.ProductCode == request.ProductCode);
             if (product == null)
             {
-                throw new ArgumentException($"Product with code '{request.ProductCode}' not found");
+                _logger.LogWarning("Product with code '{ProductCode}' not found", request.ProductCode);
+                return new RecalculatePurchasePriceResponse(ErrorCodes.CatalogItemNotFound, new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
             }
 
             productsToProcess = new List<CatalogAggregate> { product };

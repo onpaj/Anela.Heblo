@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 
-public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse?>
+public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse>
 {
     private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
@@ -29,7 +30,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         _supplierRepository = supplierRepository;
     }
 
-    public async Task<UpdatePurchaseOrderResponse?> Handle(UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    public async Task<UpdatePurchaseOrderResponse> Handle(UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Updating purchase order {Id}", request.Id);
 
@@ -38,7 +39,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         if (purchaseOrder == null)
         {
             _logger.LogWarning("Purchase order not found for ID {Id}", request.Id);
-            return null;
+            return new UpdatePurchaseOrderResponse(ErrorCodes.PurchaseOrderNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
         try
@@ -56,7 +57,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
             if (supplier == null)
             {
-                throw new ArgumentException($"Supplier with ID {request.SupplierId} not found");
+                _logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
+                return new UpdatePurchaseOrderResponse(ErrorCodes.SupplierNotFound, new Dictionary<string, string> { { "SupplierId", request.SupplierId.ToString() } });
             }
 
             purchaseOrder.Update(supplier.Id, supplier.Name, request.ExpectedDeliveryDate, request.ContactVia, request.Notes, updatedBy);
@@ -111,7 +113,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         {
             _logger.LogWarning("Cannot update purchase order {OrderNumber}: {Message}",
                 purchaseOrder.OrderNumber, ex.Message);
-            throw;
+            return new UpdatePurchaseOrderResponse(ErrorCodes.PurchaseOrderUpdateFailed, new Dictionary<string, string> { { "OrderNumber", purchaseOrder.OrderNumber }, { "Message", ex.Message } });
         }
     }
 

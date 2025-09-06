@@ -20,15 +20,15 @@ public class ManufacturingStockAnalysisControllerTests
     {
         _mediatorMock = new Mock<IMediator>();
         _controller = new ManufacturingStockAnalysisController(_mediatorMock.Object);
-        
+
         // Setup HttpContext for BaseApiController.Logger
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        
+
         var httpContext = new DefaultHttpContext();
         httpContext.RequestServices = serviceProvider;
-        
+
         _controller.ControllerContext = new ControllerContext()
         {
             HttpContext = httpContext

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -92,7 +93,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithNonExistentOrder_ShouldReturnNull()
+    public async Task Handle_WithNonExistentOrder_ShouldReturnError()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
 
@@ -102,11 +103,15 @@ public class UpdatePurchaseOrderStatusHandlerTests
 
         var result = await _handler.Handle(request, CancellationToken.None);
 
-        result.Should().BeNull();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.PurchaseOrderNotFound);
+        result.Params.Should().ContainKey("Id");
+        result.Params["Id"].Should().Be(ValidOrderId.ToString());
     }
 
     [Fact]
-    public async Task Handle_WithInvalidStatus_ShouldThrowArgumentException()
+    public async Task Handle_WithInvalidStatus_ShouldReturnError()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InvalidStatus");
         var purchaseOrder = CreateDraftPurchaseOrder();
@@ -115,14 +120,19 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
 
-        var action = async () => await _handler.Handle(request, CancellationToken.None);
+        var result = await _handler.Handle(request, CancellationToken.None);
 
-        await action.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("Invalid status: InvalidStatus");
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidPurchaseOrderStatus);
+        result.Params.Should().ContainKey("Status");
+        result.Params["Status"].Should().Be("InvalidStatus");
+        result.Params.Should().ContainKey("OrderNumber");
+        result.Params["OrderNumber"].Should().Be(ValidOrderNumber);
     }
 
     [Fact]
-    public async Task Handle_WithInvalidStatusTransition_ShouldThrowInvalidOperationException()
+    public async Task Handle_WithInvalidStatusTransition_ShouldReturnError()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
@@ -131,10 +141,14 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
 
-        var action = async () => await _handler.Handle(request, CancellationToken.None);
+        var result = await _handler.Handle(request, CancellationToken.None);
 
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Invalid status transition from Draft to Completed*");
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.StatusTransitionNotAllowed);
+        result.Params.Should().ContainKey("OrderNumber");
+        result.Params["OrderNumber"].Should().Be(ValidOrderNumber);
+        result.Params.Should().ContainKey("Message");
     }
 
     [Fact]
@@ -232,8 +246,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
 
-        var action = async () => await _handler.Handle(request, CancellationToken.None);
-        await action.Should().ThrowAsync<ArgumentException>();
+        await _handler.Handle(request, CancellationToken.None);
 
         _loggerMock.Verify(
             x => x.Log(
@@ -246,7 +259,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithInvalidTransition_ShouldLogWarningAndRethrow()
+    public async Task Handle_WithInvalidTransition_ShouldLogWarning()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
@@ -255,8 +268,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
 
-        var action = async () => await _handler.Handle(request, CancellationToken.None);
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        await _handler.Handle(request, CancellationToken.None);
 
         _loggerMock.Verify(
             x => x.Log(

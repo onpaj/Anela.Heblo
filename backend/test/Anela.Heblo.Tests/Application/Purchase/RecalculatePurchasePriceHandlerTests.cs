@@ -105,7 +105,7 @@ public class RecalculatePurchasePriceHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithSingleProductNotFound_ShouldThrowArgumentException()
+    public async Task Handle_WithSingleProductNotFound_ShouldReturnError()
     {
         // Arrange
         var products = new List<CatalogAggregate>();
@@ -119,9 +119,15 @@ public class RecalculatePurchasePriceHandlerTests
             RecalculateAll = false
         };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            _handler.Handle(request, CancellationToken.None));
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.CatalogItemNotFound);
+        result.Params.Should().ContainKey("ProductCode");
+        result.Params["ProductCode"].Should().Be("NONEXISTENT");
 
         _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -280,7 +286,7 @@ public class RecalculatePurchasePriceHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithInvalidRequest_ShouldThrowArgumentException()
+    public async Task Handle_WithInvalidRequest_ShouldReturnError()
     {
         // Arrange
         var request = new RecalculatePurchasePriceRequest
@@ -289,9 +295,15 @@ public class RecalculatePurchasePriceHandlerTests
             RecalculateAll = false
         };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            _handler.Handle(request, CancellationToken.None));
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
+        result.Params.Should().ContainKey("Message");
+        result.Params["Message"].Should().Be("Either ProductCode must be specified or RecalculateAll must be true");
     }
 
     [Fact]

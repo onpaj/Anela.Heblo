@@ -26,6 +26,9 @@ export enum ErrorCodes {
   SupplierNotFound = 1102,
   StatusTransitionNotAllowed = 1103,
   InsufficientStock = 1104,
+  InvalidPurchaseOrderStatus = 1105,
+  InvalidSupplier = 1106,
+  PurchaseOrderUpdateFailed = 1107,
 
   // Manufacture module errors (12XX)
   ManufacturingDataNotAvailable = 1201,

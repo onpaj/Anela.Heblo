@@ -19,4 +19,7 @@ public class UpdatePurchaseOrderResponse : BaseResponse
     public List<PurchaseOrderLineDto> Lines { get; set; } = null!;
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
+
+    public UpdatePurchaseOrderResponse() : base() { }
+    public UpdatePurchaseOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Extensions;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
@@ -39,7 +40,8 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
         if (supplier == null)
         {
-            throw new ArgumentException($"Supplier with ID {request.SupplierId} not found");
+            _logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
+            return new CreatePurchaseOrderResponse(ErrorCodes.SupplierNotFound, new Dictionary<string, string> { { "SupplierId", request.SupplierId.ToString() } });
         }
 
         _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", supplier.Name);

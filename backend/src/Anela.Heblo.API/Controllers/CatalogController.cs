@@ -198,7 +198,7 @@ public class CatalogController : BaseApiController
         CreateManufactureDifficultyRequest request)
     {
         var response = await _mediator.Send(request);
-        
+
         if (response.Success)
         {
             return CreatedAtAction(
@@ -206,7 +206,7 @@ public class CatalogController : BaseApiController
                 new { productCode = response.DifficultyHistory.ProductCode },
                 response);
         }
-        
+
         return HandleResponse(response);
     }
 

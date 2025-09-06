@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvoiceAcquired;
 
-public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdatePurchaseOrderInvoiceAcquiredRequest, UpdatePurchaseOrderInvoiceAcquiredResponse?>
+public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdatePurchaseOrderInvoiceAcquiredRequest, UpdatePurchaseOrderInvoiceAcquiredResponse>
 {
     private readonly ILogger<UpdatePurchaseOrderInvoiceAcquiredHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
@@ -21,7 +22,7 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdateP
         _currentUserService = currentUserService;
     }
 
-    public async Task<UpdatePurchaseOrderInvoiceAcquiredResponse?> Handle(UpdatePurchaseOrderInvoiceAcquiredRequest request, CancellationToken cancellationToken)
+    public async Task<UpdatePurchaseOrderInvoiceAcquiredResponse> Handle(UpdatePurchaseOrderInvoiceAcquiredRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Updating purchase order invoice acquired for ID {Id} to {InvoiceAcquired}", request.Id, request.InvoiceAcquired);
 
@@ -30,7 +31,7 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdateP
         if (purchaseOrder == null)
         {
             _logger.LogWarning("Purchase order not found for ID {Id}", request.Id);
-            return null;
+            return new UpdatePurchaseOrderInvoiceAcquiredResponse(ErrorCodes.PurchaseOrderNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
         try
@@ -56,7 +57,7 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdateP
         {
             _logger.LogError(ex, "Error updating invoice acquired for purchase order {OrderNumber}",
                 purchaseOrder.OrderNumber);
-            throw;
+            return new UpdatePurchaseOrderInvoiceAcquiredResponse(ErrorCodes.PurchaseOrderUpdateFailed, new Dictionary<string, string> { { "OrderNumber", purchaseOrder.OrderNumber }, { "Message", ex.Message } });
         }
     }
 }

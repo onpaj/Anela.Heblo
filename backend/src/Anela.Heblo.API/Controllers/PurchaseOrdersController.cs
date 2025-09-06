@@ -17,7 +17,7 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/purchase-orders")]
-public class PurchaseOrdersController : ControllerBase
+public class PurchaseOrdersController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -45,15 +45,14 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ErrorResponseHelper.CreateValidationError<CreatePurchaseOrderResponse>());
         }
 
-        try
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
         {
-            var response = await _mediator.Send(request, cancellationToken);
-            return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+            return HandleResponse(response);
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreatePurchaseOrderResponse>(ErrorCodes.InvalidValue, ex.Message));
-        }
+
+        return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
     }
 
     [HttpGet("{id:int}")]
@@ -64,12 +63,7 @@ public class PurchaseOrdersController : ControllerBase
         var request = new GetPurchaseOrderByIdRequest(id);
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (response == null)
-        {
-            return NotFound(ErrorResponseHelper.CreateNotFoundError<GetPurchaseOrderByIdResponse>(ErrorCodes.PurchaseOrderNotFound, id.ToString()));
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}")]
@@ -90,28 +84,8 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderResponse>(
-                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
-            }
-
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderResponse>(
-                ErrorCodes.InvalidOperation, ex.Message));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderResponse>(
-                ErrorCodes.InvalidValue, ex.Message));
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}/status")]
@@ -132,27 +106,8 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderStatusResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderStatusResponse>(
-                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
-            }
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateError<UpdatePurchaseOrderStatusResponse>(ex));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderStatusResponse>(
-                ErrorCodes.StatusTransitionNotAllowed, ex.Message));
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}/invoice-acquired")]
@@ -168,23 +123,8 @@ public class PurchaseOrdersController : ControllerBase
                 new Dictionary<string, string> { { "detail", "ID in route does not match ID in request body" } }));
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound(ErrorResponseHelper.CreateNotFoundError<UpdatePurchaseOrderInvoiceAcquiredResponse>(
-                    ErrorCodes.PurchaseOrderNotFound, id.ToString()));
-            }
-
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdatePurchaseOrderInvoiceAcquiredResponse>(
-                ErrorCodes.InvalidOperation, ex.Message));
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpGet("{id:int}/history")]
@@ -195,10 +135,9 @@ public class PurchaseOrdersController : ControllerBase
         var request = new GetPurchaseOrderByIdRequest(id);
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (response == null)
+        if (!response.Success)
         {
-            return NotFound(ErrorResponseHelper.CreateNotFoundError<ListResponse<PurchaseOrderHistoryDto>>(
-                ErrorCodes.PurchaseOrderNotFound, id.ToString()));
+            return HandleResponse<ListResponse<PurchaseOrderHistoryDto>>(new ListResponse<PurchaseOrderHistoryDto>(response.ErrorCode!.Value, response.Params));
         }
 
         var listResponse = new ListResponse<PurchaseOrderHistoryDto>
@@ -219,18 +158,7 @@ public class PurchaseOrdersController : ControllerBase
             return BadRequest(ErrorResponseHelper.CreateValidationError<RecalculatePurchasePriceResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ErrorResponseHelper.CreateError<RecalculatePurchasePriceResponse>(ex));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ErrorResponseHelper.CreateError<RecalculatePurchasePriceResponse>(ex));
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 }
