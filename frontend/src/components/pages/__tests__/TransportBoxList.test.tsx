@@ -526,7 +526,7 @@ describe('TransportBoxList', () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to create transport box:', 'Failed to create box');
+        expect(consoleSpy).toHaveBeenCalledWith('Error creating transport box:', 'Failed to create box');
       });
 
       consoleSpy.mockRestore();

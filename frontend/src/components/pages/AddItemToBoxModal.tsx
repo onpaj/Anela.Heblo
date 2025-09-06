@@ -21,19 +21,22 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<MaterialForPurchaseDto | null>(null);
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boxId) return;
 
+    setError(null); // Clear previous errors
+
     if (!selectedProduct || !selectedProduct.productCode || !selectedProduct.productName) {
-      alert('Produkt je povinný');
+      setError('Produkt je povinný');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Množství musí být kladné číslo');
+      setError('Množství musí být kladné číslo');
       return;
     }
 
@@ -53,12 +56,24 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
         // Reset form
         setSelectedProduct(null);
         setAmount('');
+        setError(null);
         onClose();
+      } else {
+        // Handle API errors
+        if (response.errorMessage?.includes('not found') || response.errorMessage?.includes('Product not found')) {
+          setError('Box nebyl nalezen. Obnovte stránku a zkuste znovu.');
+        } else {
+          setError(response.errorMessage || 'Došlo k chybě při přidávání položky.');
+        }
       }
-      // If response.success is false, the global error handler will show a toast
     } catch (err) {
-      // Network errors or other exceptions - global handler will show toast
+      // Network errors or other exceptions
       console.error('Error adding item to box:', err);
+      if (err instanceof Error && err.message.includes('Network')) {
+        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+      } else {
+        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,12 +83,14 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
     if (!isLoading) {
       setSelectedProduct(null);
       setAmount('');
+      setError(null);
       onClose();
     }
   };
 
   const handleProductSelect = (product: MaterialForPurchaseDto | null) => {
     setSelectedProduct(product);
+    if (error) setError(null); // Clear error when user selects product
   };
 
   if (!isOpen || !boxId) return null;
@@ -104,6 +121,11 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
             handleSubmit(e as any);
           }
         }}>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
+              {error}
+            </div>
+          )}
           <div className="mb-4">
             <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
               Produkt/Materiál
@@ -124,7 +146,10 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               type="number"
               id="amount"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                if (error) setError(null); // Clear error when user types amount
+              }}
               disabled={isLoading}
               placeholder="0"
               min="0.01"
