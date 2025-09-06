@@ -9,7 +9,7 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/manufacturing-stock-analysis")]
-public class ManufacturingStockAnalysisController : ControllerBase
+public class ManufacturingStockAnalysisController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -30,17 +30,6 @@ public class ManufacturingStockAnalysisController : ControllerBase
 
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (!response.Success)
-        {
-            return response.ErrorCode switch
-            {
-                ErrorCodes.InvalidAnalysisParameters => BadRequest(response),
-                ErrorCodes.ManufacturingDataNotAvailable => NotFound(response),
-                ErrorCodes.InsufficientManufacturingData => BadRequest(response),
-                _ => StatusCode(500, response)
-            };
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 }

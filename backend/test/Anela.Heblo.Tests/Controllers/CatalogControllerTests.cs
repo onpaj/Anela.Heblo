@@ -2,16 +2,13 @@ using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
 using FluentAssertions;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
-using FluentAssertions;
 using MediatR;
-using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Moq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Controllers;
@@ -19,14 +16,25 @@ namespace Anela.Heblo.Tests.Controllers;
 public class CatalogControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<ILogger<CatalogController>> _loggerMock;
     private readonly CatalogController _controller;
 
     public CatalogControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _loggerMock = new Mock<ILogger<CatalogController>>();
-        _controller = new CatalogController(_mediatorMock.Object, _loggerMock.Object);
+        _controller = new CatalogController(_mediatorMock.Object);
+        
+        // Setup HttpContext for BaseApiController.Logger
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        
+        var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = serviceProvider;
+        
+        _controller.ControllerContext = new ControllerContext()
+        {
+            HttpContext = httpContext
+        };
     }
 
     [Fact]

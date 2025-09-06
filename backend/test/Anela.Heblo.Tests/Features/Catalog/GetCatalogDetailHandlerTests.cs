@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -193,11 +194,14 @@ public class GetCatalogDetailHandlerTests
             .Setup(r => r.SingleOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<System.Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CatalogAggregate?)null);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _handler.Handle(request, CancellationToken.None));
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
 
-        exception.Message.Should().Contain("Product with code 'NONEXISTENT' not found");
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ProductNotFound);
+        response.Params.Should().ContainKey("productCode");
+        response.Params!["productCode"].Should().Be("NONEXISTENT");
     }
 
     [Fact]

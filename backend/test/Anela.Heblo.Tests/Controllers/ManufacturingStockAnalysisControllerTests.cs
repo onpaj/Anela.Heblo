@@ -5,6 +5,9 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -17,6 +20,19 @@ public class ManufacturingStockAnalysisControllerTests
     {
         _mediatorMock = new Mock<IMediator>();
         _controller = new ManufacturingStockAnalysisController(_mediatorMock.Object);
+        
+        // Setup HttpContext for BaseApiController.Logger
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        
+        var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = serviceProvider;
+        
+        _controller.ControllerContext = new ControllerContext()
+        {
+            HttpContext = httpContext
+        };
     }
 
     [Fact]
@@ -398,8 +414,9 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var badRequestResult = result.Result.Should().BeOfType<BadRequestObjectResult>();
-        badRequestResult.Subject.Value.Should().Be(errorResponse);
+        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
+        objectResult.Subject.StatusCode.Should().Be(400); // BadRequest
+        objectResult.Subject.Value.Should().Be(errorResponse);
     }
 
     [Fact]
@@ -420,7 +437,8 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>();
-        notFoundResult.Subject.Value.Should().Be(errorResponse);
+        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
+        objectResult.Subject.StatusCode.Should().Be(404); // NotFound
+        objectResult.Subject.Value.Should().Be(errorResponse);
     }
 }

@@ -127,7 +127,7 @@ public class GetManufactureOutputHandlerTests
             ProductName = "Product 1",
             Type = ProductType.Product
         };
-        
+
         // Set manufacture difficulty through the configuration
         var difficulty1Settings = new List<ManufactureDifficultySetting>
         {
@@ -141,7 +141,7 @@ public class GetManufactureOutputHandlerTests
             ProductName = "Product 2",
             Type = ProductType.Product
         };
-        
+
         // Set manufacture difficulty through the configuration
         var difficulty2Settings = new List<ManufactureDifficultySetting>
         {

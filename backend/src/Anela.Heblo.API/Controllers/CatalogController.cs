@@ -19,54 +19,28 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class CatalogController : ControllerBase
+public class CatalogController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<CatalogController> _logger;
 
-    public CatalogController(IMediator mediator, ILogger<CatalogController> logger)
+    public CatalogController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpGet]
     public async Task<ActionResult<GetCatalogListResponse>> GetCatalogList([FromQuery] GetCatalogListRequest request)
     {
-        _logger.LogInformation("Getting catalog list with page {PageNumber}, size {PageSize}, product name {ProductName}",
-            request.PageNumber, request.PageSize, request.ProductName);
-
-        try
-        {
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved catalog list with {Count} items, total {TotalCount}",
-                response.Items.Count, response.TotalCount);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get catalog list");
-            throw;
-        }
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
     [HttpGet("{productCode}")]
     public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode, [FromQuery] int monthsBack = 13)
     {
-        _logger.LogInformation("Getting catalog detail for product code {ProductCode} with {MonthsBack} months back", productCode, monthsBack);
-
-        try
-        {
-            var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = monthsBack };
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved catalog detail for product {ProductCode}", productCode);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get catalog detail for product {ProductCode}", productCode);
-            throw;
-        }
+        var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = monthsBack };
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
     }
 
     [HttpPost("refresh/transport")]
@@ -170,20 +144,8 @@ public class CatalogController : ControllerBase
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)
     {
-        _logger.LogInformation("Getting materials for purchase with search term '{SearchTerm}', limit {Limit}",
-            request.SearchTerm, request.Limit);
-
-        try
-        {
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved {Count} materials for purchase", response.Materials.Count);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get materials for purchase");
-            throw;
-        }
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
     [HttpGet("autocomplete")]
@@ -192,35 +154,23 @@ public class CatalogController : ControllerBase
         [FromQuery] int limit = 20,
         [FromQuery] ProductType[]? productTypes = null)
     {
-        _logger.LogInformation("Getting products for autocomplete with search term '{SearchTerm}', limit {Limit}, types {ProductTypes}",
-            searchTerm, limit, productTypes != null ? string.Join(",", productTypes) : "all");
-
-        try
+        var request = new GetCatalogListRequest
         {
-            var request = new GetCatalogListRequest
-            {
-                SearchTerm = searchTerm, // OR search in both ProductName and ProductCode
-                PageSize = limit,
-                PageNumber = 1
-            };
+            SearchTerm = searchTerm, // OR search in both ProductName and ProductCode
+            PageSize = limit,
+            PageNumber = 1
+        };
 
-            var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request);
 
-            // Filter by product types if specified
-            if (productTypes != null && productTypes.Length > 0)
-            {
-                response.Items = response.Items.Where(item => productTypes.Contains(item.Type)).ToList();
-                response.TotalCount = response.Items.Count;
-            }
-
-            _logger.LogInformation("Successfully retrieved {Count} products for autocomplete", response.Items.Count);
-            return Ok(response);
-        }
-        catch (Exception ex)
+        // Filter by product types if specified
+        if (productTypes != null && productTypes.Length > 0)
         {
-            _logger.LogError(ex, "Failed to get products for autocomplete");
-            throw;
+            response.Items = response.Items.Where(item => productTypes.Contains(item.Type)).ToList();
+            response.TotalCount = response.Items.Count;
         }
+
+        return Ok(response);
     }
 
     // Manufacture Difficulty Management Endpoints
@@ -230,27 +180,14 @@ public class CatalogController : ControllerBase
         string productCode,
         [FromQuery] DateTime? asOfDate = null)
     {
-        _logger.LogInformation("Getting manufacture difficulty history for product {ProductCode} as of {AsOfDate}",
-            productCode, asOfDate);
-
-        try
+        var request = new GetManufactureDifficultySettingsRequest
         {
-            var request = new GetManufactureDifficultySettingsRequest
-            {
-                ProductCode = productCode,
-                AsOfDate = asOfDate
-            };
+            ProductCode = productCode,
+            AsOfDate = asOfDate
+        };
 
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved manufacture difficulty history for product {ProductCode}",
-                productCode);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get manufacture difficulty history for product {ProductCode}", productCode);
-            throw;
-        }
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
     [HttpPost("manufacture-difficulty")]
@@ -260,34 +197,17 @@ public class CatalogController : ControllerBase
     public async Task<ActionResult<CreateManufactureDifficultyResponse>> CreateManufactureDifficulty(
         CreateManufactureDifficultyRequest request)
     {
-        _logger.LogInformation("Creating manufacture difficulty for product {ProductCode} with value {DifficultyValue}",
-            request.ProductCode, request.DifficultyValue);
-
-        try
+        var response = await _mediator.Send(request);
+        
+        if (response.Success)
         {
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully created manufacture difficulty {Id} for product {ProductCode}",
-                response.DifficultyHistory.Id, response.DifficultyHistory.ProductCode);
             return CreatedAtAction(
                 nameof(GetManufactureDifficultyHistory),
                 new { productCode = response.DifficultyHistory.ProductCode },
                 response);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid request for creating manufacture difficulty");
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<CreateManufactureDifficultyResponse>(ErrorCodes.InvalidValue, ex.Message));
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Business rule violation when creating manufacture difficulty");
-            return Conflict(ErrorResponseHelper.CreateBusinessError<CreateManufactureDifficultyResponse>(ErrorCodes.ManufactureDifficultyConflict, ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create manufacture difficulty");
-            throw;
-        }
+        
+        return HandleResponse(response);
     }
 
     [HttpPut("manufacture-difficulty/{id}")]
@@ -302,80 +222,24 @@ public class CatalogController : ControllerBase
                 new Dictionary<string, string> { { "detail", "URL parameter ID must match request body ID" } }));
         }
 
-        _logger.LogInformation("Updating manufacture difficulty {Id} with value {DifficultyValue}",
-            request.Id, request.DifficultyValue);
-
-        try
-        {
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully updated manufacture difficulty {Id}",
-                response.DifficultyHistory.Id);
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid request for updating manufacture difficulty");
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<UpdateManufactureDifficultyResponse>(ErrorCodes.InvalidValue, ex.Message));
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Business rule violation when updating manufacture difficulty");
-            return Conflict(ErrorResponseHelper.CreateBusinessError<UpdateManufactureDifficultyResponse>(ErrorCodes.ManufactureDifficultyConflict, ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update manufacture difficulty {Id}", id);
-            throw;
-        }
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
     }
 
     [HttpDelete("manufacture-difficulty/{id}")]
     public async Task<ActionResult<DeleteManufactureDifficultyResponse>> DeleteManufactureDifficulty(int id)
     {
-        _logger.LogInformation("Deleting manufacture difficulty {Id}", id);
-
-        try
-        {
-            var request = new DeleteManufactureDifficultyRequest { Id = id };
-            var response = await _mediator.Send(request);
-
-            if (response.Success)
-            {
-                _logger.LogInformation("Successfully deleted manufacture difficulty {Id}", id);
-                return Ok(response);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to delete manufacture difficulty {Id}: {Message}", id, response.Message);
-                return NotFound(ErrorResponseHelper.CreateNotFoundError<DeleteManufactureDifficultyResponse>(
-                    ErrorCodes.ManufactureDifficultyNotFound, id.ToString()));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete manufacture difficulty {Id}", id);
-            throw;
-        }
+        var request = new DeleteManufactureDifficultyRequest { Id = id };
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
     }
 
     [HttpGet("{productCode}/usage")]
     public async Task<ActionResult<GetProductUsageResponse>> GetProductUsage(string productCode)
     {
-        _logger.LogInformation("Getting product usage for product code {ProductCode}", productCode);
-
-        try
-        {
-            var request = new GetProductUsageRequest { ProductCode = productCode };
-            var response = await _mediator.Send(request);
-            _logger.LogInformation("Successfully retrieved product usage for product {ProductCode} - found {Count} products using it",
-                productCode, response.ManufactureTemplates.Count);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get product usage for product {ProductCode}", productCode);
-            throw;
-        }
+        var request = new GetProductUsageRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
 }
