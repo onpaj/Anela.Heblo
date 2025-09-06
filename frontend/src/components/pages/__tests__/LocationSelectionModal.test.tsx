@@ -128,16 +128,15 @@ describe('LocationSelectionModal', () => {
         { wrapper: createWrapper }
       );
 
-      await act(async () => {
-        rerender(
-          <LocationSelectionModal
-            isOpen={true}
-            onClose={mockOnClose}
-            boxId={1}
-            onSuccess={mockOnSuccess}
-          />
-        );
-      });
+      rerender(
+        <LocationSelectionModal
+          isOpen={true}
+          onClose={mockOnClose}
+          boxId={1}
+          onSuccess={mockOnSuccess}
+        />,
+        { wrapper: createWrapper }
+      );
 
       // Wait for localStorage to be called first
       await waitFor(() => {
@@ -291,8 +290,8 @@ describe('LocationSelectionModal', () => {
       // Wait for success callback and localStorage to be set
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalledTimes(1);
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'Kumbal');
       });
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'Kumbal');
     });
 
     it('should show loading state during submission', async () => {
@@ -404,11 +403,8 @@ describe('LocationSelectionModal', () => {
       );
 
       // Find close button (X button with SVG icon)
-      const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find(btn => btn.querySelector('svg'));
-      expect(closeButton).toBeInTheDocument();
-      
-      fireEvent.click(closeButton!);
+      const closeButton = screen.getByLabelText(/close/i);
+      fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
@@ -448,11 +444,8 @@ describe('LocationSelectionModal', () => {
       );
 
       // Close button (X button) - should still be clickable in loading state
-      const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find(btn => btn.querySelector('svg'));
-      expect(closeButton).toBeInTheDocument();
-      
-      fireEvent.click(closeButton!);
+      const closeButton = screen.getByLabelText(/close/i);
+      fireEvent.click(closeButton);
       
       // Component doesn't actually disable close button during loading
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -578,8 +571,8 @@ describe('LocationSelectionModal', () => {
 
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalledTimes(1);
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'SkladSkla');
       });
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('transportBox_lastSelectedLocation', 'SkladSkla');
     });
 
     it('should not save to localStorage on submission failure', async () => {
@@ -642,11 +635,10 @@ describe('LocationSelectionModal', () => {
       );
 
       const select = screen.getByLabelText('Vyberte lokaci pro rezervu:');
-      const options = select.querySelectorAll('option');
       
-      expect(options[1]).toHaveValue('Kumbal');
-      expect(options[2]).toHaveValue('Relax');
-      expect(options[3]).toHaveValue('SkladSkla');
+      expect(screen.getByRole('option', { name: /kumbal/i })).toHaveValue('Kumbal');
+      expect(screen.getByRole('option', { name: /relax/i })).toHaveValue('Relax');
+      expect(screen.getByRole('option', { name: /skladskla/i })).toHaveValue('SkladSkla');
     });
   });
 });

@@ -122,6 +122,28 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ConfigurationNotFound = 1501,
 
+    // Journal module errors (16XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    JournalEntryNotFound = 1601,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidJournalTitle = 1602,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidJournalContent = 1603,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    JournalTagNotFound = 1604,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    JournalTagCreationFailed = 1605,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidJournalDateFilter = 1606,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    JournalDeleteNotAllowed = 1607,
+    [HttpStatusCode(HttpStatusCode.Unauthorized)]
+    UnauthorizedJournalAccess = 1608,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    DuplicateJournalTag = 1609,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidJournalEntryData = 1610,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

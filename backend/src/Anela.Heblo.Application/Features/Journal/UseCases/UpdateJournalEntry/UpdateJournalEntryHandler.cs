@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -29,13 +30,19 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
             var currentUser = _currentUserService.GetCurrentUser();
             if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
             {
-                throw new UnauthorizedAccessException("User must be authenticated to update journal entries");
+                return new UpdateJournalEntryResponse(ErrorCodes.UnauthorizedJournalAccess, new Dictionary<string, string>
+                {
+                    { "resource", "journal_entry" }
+                });
             }
 
             var entry = await _journalRepository.GetByIdAsync(request.Id, cancellationToken);
             if (entry == null)
             {
-                throw new InvalidOperationException($"Journal entry with ID {request.Id} not found");
+                return new UpdateJournalEntryResponse(ErrorCodes.JournalEntryNotFound, new Dictionary<string, string>
+                {
+                    { "entryId", request.Id.ToString() }
+                });
             }
 
             // Check if user owns the entry (for now, allow all authenticated users to edit)

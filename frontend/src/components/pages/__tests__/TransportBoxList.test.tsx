@@ -252,8 +252,8 @@ describe('TransportBoxList', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Find the "New" state button in expanded view (contains text "Nový:" and count)
-      const newStateButton = screen.getByText('Nový:').closest('button');
-      fireEvent.click(newStateButton!);
+      const newStateButton = screen.getByRole('button', { name: /nový:/i });
+      fireEvent.click(newStateButton);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
@@ -298,9 +298,8 @@ describe('TransportBoxList', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // First collapse controls to show state summary cards
-      const collapseButton = screen.getByText(/filtry a nastavení/i).closest('button');
-      expect(collapseButton).not.toBeNull();
-      fireEvent.click(collapseButton!);
+      const collapseButton = screen.getByRole('button', { name: /filtry a nastavení/i });
+      fireEvent.click(collapseButton);
 
       // Now find a summary card button with title "Nový" state
       const newStateCard = screen.getByTitle('Nový');
@@ -431,54 +430,48 @@ describe('TransportBoxList', () => {
     it('should open detail modal when box row is clicked', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const boxRow = screen.getByText('BOX-001').closest('tr');
-      if (boxRow) {
-        fireEvent.click(boxRow);
+      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      fireEvent.click(boxRow);
 
-        await waitFor(() => {
-          expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
-          expect(screen.getByText('Transport Box Detail Modal - Box ID: 1')).toBeInTheDocument();
-        });
-      }
+      await waitFor(() => {
+        expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Transport Box Detail Modal - Box ID: 1')).toBeInTheDocument();
     });
 
     it('should close detail modal when close button is clicked', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Open modal first
-      const boxRow = screen.getByText('BOX-001').closest('tr');
-      if (boxRow) {
-        fireEvent.click(boxRow);
+      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      fireEvent.click(boxRow);
 
-        await waitFor(() => {
-          expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
-        });
+      await waitFor(() => {
+        expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
+      });
 
-        // Close modal
-        const closeButton = screen.getByText('Close Modal');
-        fireEvent.click(closeButton);
+      // Close modal
+      const closeButton = screen.getByText('Close Modal');
+      fireEvent.click(closeButton);
 
-        await waitFor(() => {
-          expect(screen.queryByTestId('transport-box-detail-modal')).not.toBeInTheDocument();
-        });
-      }
+      await waitFor(() => {
+        expect(screen.queryByTestId('transport-box-detail-modal')).not.toBeInTheDocument();
+      });
     });
 
     it('should refetch data when detail modal is closed', async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Open and close modal
-      const boxRow = screen.getByText('BOX-001').closest('tr');
-      if (boxRow) {
-        fireEvent.click(boxRow);
+      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      fireEvent.click(boxRow);
 
-        const closeButton = await screen.findByText('Close Modal');
-        fireEvent.click(closeButton);
+      const closeButton = await screen.findByText('Close Modal');
+      fireEvent.click(closeButton);
 
-        await waitFor(() => {
-          expect(mockRefetch).toHaveBeenCalledTimes(1);
-        });
-      }
+      await waitFor(() => {
+        expect(mockRefetch).toHaveBeenCalledTimes(1);
+      });
     });
   });
 
@@ -545,14 +538,13 @@ describe('TransportBoxList', () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Find the collapse button (chevron) - text may include count in parentheses
-      const collapseButton = screen.getByText(/filtry a nastavení/i).closest('button');
-      expect(collapseButton).not.toBeNull();
+      const collapseButton = screen.getByRole('button', { name: /filtry a nastavení/i });
       
       // Initially controls should be visible
       expect(screen.getByPlaceholderText('Kód boxu...')).toBeInTheDocument();
 
       // Click to collapse
-      fireEvent.click(collapseButton!);
+      fireEvent.click(collapseButton);
 
       // Controls should be hidden - the input should no longer be visible
       expect(screen.queryByPlaceholderText('Kód boxu...')).not.toBeInTheDocument();
