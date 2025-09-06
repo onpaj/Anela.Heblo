@@ -23,9 +23,19 @@ public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingSto
 
     public string? SearchTerm { get; set; }
 
+    /// <summary>
+    /// Page number for pagination. Must be at least 1.
+    /// </summary>
+    [Range(Anela.Heblo.Application.Features.Manufacture.ManufactureConstants.MIN_PAGE_NUMBER, int.MaxValue,
+           ErrorMessage = "PageNumber must be at least 1")]
     public int PageNumber { get; set; } = 1;
 
-    [Range(1, 100)]
+    /// <summary>
+    /// Number of items per page. Must be between 1 and 100.
+    /// </summary>
+    [Range(Anela.Heblo.Application.Features.Manufacture.ManufactureConstants.MIN_PAGE_SIZE,
+           Anela.Heblo.Application.Features.Manufacture.ManufactureConstants.MAX_PAGE_SIZE,
+           ErrorMessage = "PageSize must be between 1 and 100")]
     public int PageSize { get; set; } = 20;
 
     public ManufacturingStockSortBy SortBy { get; set; } = ManufacturingStockSortBy.StockDaysAvailable;
