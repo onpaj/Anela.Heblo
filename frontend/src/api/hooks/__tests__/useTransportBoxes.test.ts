@@ -161,7 +161,7 @@ describe('useTransportBoxes hooks', () => {
     it('should call API and invalidate queries on success', async () => {
       const mockResponse = {
         success: true,
-        errorMessage: null,
+        errorCode: null,
         updatedBox: { id: 1, code: 'BOX-001', state: 'Opened' }
       };
 
@@ -226,7 +226,7 @@ describe('useTransportBoxes hooks', () => {
     it('should handle mutation without description', async () => {
       const mockResponse = {
         success: true,
-        errorMessage: null,
+        errorCode: null,
         updatedBox: { id: 2, code: 'BOX-002', state: 'InTransit' }
       };
 

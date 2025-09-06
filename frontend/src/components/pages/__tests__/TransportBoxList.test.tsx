@@ -511,7 +511,7 @@ describe('TransportBoxList', () => {
         transportBox_CreateNewTransportBox: jest.fn().mockResolvedValue({
           success: false,
           transportBox: null,
-          errorMessage: 'Failed to create box'
+          errorCode: 'Failed to create box'
         })
       };
 

@@ -371,7 +371,7 @@ describe('AddItemToBoxModal', () => {
       mockApiClient.transportBox_AddItemToBox.mockResolvedValue({
         success: false,
         item: null,
-        errorMessage: 'Product not found'
+        errorCode: 'Product not found'
       });
 
       render(
@@ -396,7 +396,7 @@ describe('AddItemToBoxModal', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Box nebyl nalezen. Obnovte stránku a zkuste znovu.')).toBeInTheDocument();
+        expect(screen.getByText('Došlo k chybě při přidávání položky.')).toBeInTheDocument();
       });
 
       expect(mockOnSuccess).not.toHaveBeenCalled();
