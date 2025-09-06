@@ -1,22 +1,15 @@
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
-using FluentAssertions;
-using FluentAssertions;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Purchase;
 
@@ -127,7 +120,7 @@ public class GetPurchaseStockAnalysisHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidDateRange_ThrowsArgumentException()
+    public async Task Handle_InvalidDateRange_ReturnsError()
     {
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -135,8 +128,13 @@ public class GetPurchaseStockAnalysisHandlerTests
             ToDate = DateTime.UtcNow.AddDays(-1)
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(
-            () => _handler.Handle(request, CancellationToken.None));
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
+        result.Params.Should().ContainKey("FromDate");
+        result.Params.Should().ContainKey("ToDate");
     }
 
     [Fact]
