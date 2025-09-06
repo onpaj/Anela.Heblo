@@ -25,4 +25,7 @@ public class GetPurchaseOrderByIdResponse : BaseResponse
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
     public string? SupplierNote { get; set; }
+
+    public GetPurchaseOrderByIdResponse() : base() { }
+    public GetPurchaseOrderByIdResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }

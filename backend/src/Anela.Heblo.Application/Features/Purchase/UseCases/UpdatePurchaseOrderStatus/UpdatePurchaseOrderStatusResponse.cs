@@ -9,4 +9,7 @@ public class UpdatePurchaseOrderStatusResponse : BaseResponse
     public string Status { get; set; } = null!;
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
+
+    public UpdatePurchaseOrderStatusResponse() : base() { }
+    public UpdatePurchaseOrderStatusResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }

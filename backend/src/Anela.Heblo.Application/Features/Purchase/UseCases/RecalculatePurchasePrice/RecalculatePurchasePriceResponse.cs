@@ -40,6 +40,9 @@ public class RecalculatePurchasePriceResponse : BaseResponse
         _ when IsSuccess => $"Successfully recalculated prices for all {TotalCount} products",
         _ => $"Recalculated {SuccessCount} of {TotalCount} products ({FailedCount} failed)"
     };
+
+    public RecalculatePurchasePriceResponse() : base() { }
+    public RecalculatePurchasePriceResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }
 
 public class ProductRecalculationResult : BaseResponse

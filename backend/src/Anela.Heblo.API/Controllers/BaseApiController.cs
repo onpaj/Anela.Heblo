@@ -12,7 +12,7 @@ namespace Anela.Heblo.API.Controllers;
 public abstract class BaseApiController : ControllerBase
 {
     private ILogger? _logger;
-    
+
     /// <summary>
     /// Gets the logger for the current controller type
     /// </summary>
@@ -35,10 +35,10 @@ public abstract class BaseApiController : ControllerBase
         // Log warning for failed responses
         if (response.ErrorCode.HasValue)
         {
-            Logger.LogWarning("Request failed with error code {ErrorCode}: {Params}", 
-                response.ErrorCode, 
+            Logger.LogWarning("Request failed with error code {ErrorCode}: {Params}",
+                response.ErrorCode,
                 response.Params != null ? string.Join(", ", response.Params.Select(p => $"{p.Key}={p.Value}")) : "no params");
-            
+
             var statusCode = GetStatusCodeForError(response.ErrorCode.Value);
             return StatusCode((int)statusCode, response);
         }
@@ -56,7 +56,7 @@ public abstract class BaseApiController : ControllerBase
     {
         var field = typeof(ErrorCodes).GetField(errorCode.ToString());
         var attribute = field?.GetCustomAttribute<HttpStatusCodeAttribute>();
-        
+
         return attribute?.StatusCode ?? HttpStatusCode.BadRequest;
     }
 }

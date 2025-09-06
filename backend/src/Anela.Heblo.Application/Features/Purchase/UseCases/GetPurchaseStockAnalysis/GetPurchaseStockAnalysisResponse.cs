@@ -13,6 +13,9 @@ public class GetPurchaseStockAnalysisResponse : BaseResponse
     public int PageSize { get; set; }
 
     public StockAnalysisSummaryDto Summary { get; set; } = new();
+
+    public GetPurchaseStockAnalysisResponse() : base() { }
+    public GetPurchaseStockAnalysisResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }
 
 public class StockAnalysisItemDto

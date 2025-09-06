@@ -22,4 +22,7 @@ public class CreatePurchaseOrderResponse : BaseResponse
     public string CreatedBy { get; set; } = null!;
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
+
+    public CreatePurchaseOrderResponse() : base() { }
+    public CreatePurchaseOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }

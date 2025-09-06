@@ -57,6 +57,12 @@ public enum ErrorCodes
     StatusTransitionNotAllowed = 1103,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InsufficientStock = 1104,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidPurchaseOrderStatus = 1105,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidSupplier = 1106,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PurchaseOrderUpdateFailed = 1107,
 
     // Manufacture module errors (12XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
