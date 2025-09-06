@@ -59,6 +59,22 @@ public class CatalogController : ControllerBase
         {
             var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = monthsBack };
             var response = await _mediator.Send(request);
+
+            if (!response.Success)
+            {
+                switch (response.ErrorCode)
+                {
+                    case ErrorCodes.ProductNotFound:
+                        _logger.LogWarning("Product {ProductCode} not found", productCode);
+                        return NotFound(ErrorResponseHelper.CreateNotFoundError<GetCatalogDetailResponse>(
+                            ErrorCodes.ProductNotFound, productCode));
+                    default:
+                        _logger.LogWarning("Failed to get catalog detail for product {ProductCode}: {ErrorCode}",
+                            productCode, response.ErrorCode);
+                        return BadRequest(response);
+                }
+            }
+
             _logger.LogInformation("Successfully retrieved catalog detail for product {ProductCode}", productCode);
             return Ok(response);
         }

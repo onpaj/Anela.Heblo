@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
@@ -75,7 +76,12 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing product margins query");
-            throw new ProductMarginsException("Failed to retrieve product margins", ex);
+            return new GetProductMarginsResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.MarginCalculationError,
+                Params = new Dictionary<string, string> { { "details", ex.Message } }
+            };
         }
     }
 
@@ -95,7 +101,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve products from catalog repository");
-            throw new DataAccessException("Unable to access product catalog", ex);
+            throw; // Re-throw to be caught by the main handler
         }
     }
 
@@ -128,7 +134,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error applying filters to product query");
-            throw new ProductMarginsException("Failed to apply product filters", ex);
+            throw; // Re-throw to be caught by the main handler
         }
     }
 
@@ -229,7 +235,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error mapping product {ProductCode} to margin DTO", product?.ProductCode);
-            throw new MarginCalculationException($"Failed to create margin DTO for product {product?.ProductCode}", ex);
+            throw; // Re-throw to be caught by the main handler
         }
     }
 

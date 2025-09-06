@@ -57,6 +57,16 @@ const resources = {
         'ManufactureDifficultyConflict': 'Konflikt při ukládání obtížnosti výroby',
         'MarginCalculationError': 'Chyba při výpočtu marží',
         'DataAccessUnavailable': 'Zdroj dat není dostupný',
+        'ProductNotFound': 'Produkt s kódem {{productCode}} nebyl nalezen',
+        'MaterialNotFound': 'Materiál s ID {{materialId}} nebyl nalezen',
+        'InvalidSearchCriteria': 'Neplatná kritéria vyhledávání: {{criteria}}',
+        'ExternalSyncFailed': 'Synchronizace s externí službou selhala: {{details}}',
+        'AttributeError': 'Chyba atributu: {{attribute}}',
+        'SupplierLookupFailed': 'Vyhledání dodavatele selhalo: {{supplier}}',
+        'CategoryError': 'Chyba kategorie: {{category}}',
+        'UnitValidationFailed': 'Validace jednotky selhala: {{unit}}',
+        'AbraIntegrationFailed': 'Integrace s ABRA selhala: {{details}}',
+        'ShoptetSyncFailed': 'Synchronizace se Shoptet selhala: {{details}}',
         
         // Transport module errors
         'TransportBoxNotFound': 'Přepravní box nenalezen (ID: {id})',

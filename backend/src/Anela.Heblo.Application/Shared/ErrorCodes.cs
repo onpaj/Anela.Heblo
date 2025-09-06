@@ -48,6 +48,16 @@ public enum ErrorCodes
     ManufactureDifficultyConflict = 1303,
     MarginCalculationError = 1304,
     DataAccessUnavailable = 1305,
+    ProductNotFound = 1306,
+    MaterialNotFound = 1307,
+    InvalidSearchCriteria = 1308,
+    ExternalSyncFailed = 1309,
+    AttributeError = 1310,
+    SupplierLookupFailed = 1311,
+    CategoryError = 1312,
+    UnitValidationFailed = 1313,
+    AbraIntegrationFailed = 1314,
+    ShoptetSyncFailed = 1315,
 
     // Transport module errors (14XX)
     TransportBoxNotFound = 1401,

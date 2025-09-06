@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using AutoMapper;
 using MediatR;
@@ -30,7 +31,12 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
         if (catalogItem == null)
         {
-            throw new InvalidOperationException($"Product with code '{request.ProductCode}' not found.");
+            return new GetCatalogDetailResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ProductNotFound,
+                Params = new Dictionary<string, string> { { "productCode", request.ProductCode } }
+            };
         }
 
         // Convert historical data to DTOs with monthly grouping

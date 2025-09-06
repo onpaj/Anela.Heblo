@@ -31,33 +31,28 @@ public class ProductMarginsController : ControllerBase
         try
         {
             var response = await _mediator.Send(request);
+
+            if (!response.Success)
+            {
+                switch (response.ErrorCode)
+                {
+                    case ErrorCodes.MarginCalculationError:
+                        _logger.LogError("Margin calculation error: {Details}", response.Params?["details"]);
+                        return BadRequest(ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
+                            ErrorCodes.MarginCalculationError, response.Params?["details"] ?? "Margin calculation failed"));
+                    case ErrorCodes.DataAccessUnavailable:
+                        _logger.LogError("Data access error in product margins: {Details}", response.Params?["details"]);
+                        return StatusCode(503, ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
+                            ErrorCodes.DataAccessUnavailable, "Data source unavailable"));
+                    default:
+                        _logger.LogWarning("Failed to get product margins: {ErrorCode}", response.ErrorCode);
+                        return BadRequest(response);
+                }
+            }
+
             _logger.LogInformation("Successfully retrieved product margins with {Count} items, total {TotalCount}",
                 response.Items.Count, response.TotalCount);
             return Ok(response);
-        }
-        catch (DataAccessException ex)
-        {
-            _logger.LogError(ex, "Data access error in product margins");
-            return StatusCode(503, ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
-                ErrorCodes.DataAccessUnavailable, "Data source unavailable"));
-        }
-        catch (MarginCalculationException ex)
-        {
-            _logger.LogError(ex, "Margin calculation error");
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
-                ErrorCodes.MarginCalculationError, ex.Message));
-        }
-        catch (ProductMarginsException ex)
-        {
-            _logger.LogError(ex, "Product margins business logic error");
-            return BadRequest(ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
-                ErrorCodes.BusinessRuleViolation, ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning(ex, "Unauthorized access to product margins");
-            return StatusCode(403, ErrorResponseHelper.CreateBusinessError<GetProductMarginsResponse>(
-                ErrorCodes.Forbidden, "Insufficient permissions to access margin data"));
         }
         catch (Exception ex)
         {
