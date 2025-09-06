@@ -154,7 +154,7 @@ const TransportBoxList: React.FC = () => {
         refetch();
       } else {
         // Handle API error response
-        console.error('Error creating transport box:', response.errorMessage || 'Unknown error');
+        console.error('Error creating transport box:', response.errorCode || 'Unknown error');
       }
     } catch (error) {
       console.error('Error creating transport box:', error);

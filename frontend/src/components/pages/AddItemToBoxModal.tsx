@@ -60,10 +60,10 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
         onClose();
       } else {
         // Handle API errors
-        if (response.errorMessage?.includes('not found') || response.errorMessage?.includes('Product not found')) {
-          setError('Box nebyl nalezen. Obnovte stránku a zkuste znovu.');
+        if (response.errorCode) {
+          setError('Došlo k chybě při přidávání položky.');
         } else {
-          setError(response.errorMessage || 'Došlo k chybě při přidávání položky.');
+          setError('Došlo k chybě při přidávání položky.');
         }
       }
     } catch (err) {
