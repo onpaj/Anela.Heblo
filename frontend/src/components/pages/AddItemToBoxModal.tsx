@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, Loader, AlertCircle } from 'lucide-react';
+import { X, Package, Loader } from 'lucide-react';
 import { getAuthenticatedApiClient } from '../../api/client';
 import MaterialAutocomplete from '../common/MaterialAutocomplete';
 import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
@@ -21,49 +21,23 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<MaterialForPurchaseDto | null>(null);
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Helper function to provide user-friendly error messages
-  const getUserFriendlyErrorMessage = (serverError: string): string => {
-    const errorLower = serverError.toLowerCase();
-    
-    if (errorLower.includes('validation')) {
-      return 'Neplatné údaje. Zkontrolujte zadané hodnoty.';
-    }
-    if (errorLower.includes('not found')) {
-      return 'Box nebyl nalezen. Obnovte stránku a zkuste znovu.';
-    }
-    if (errorLower.includes('state')) {
-      return 'Box není ve správném stavu pro přidání položky.';
-    }
-    if (errorLower.includes('network') || errorLower.includes('connection')) {
-      return 'Chyba připojení. Zkontrolujte internetové připojení.';
-    }
-    if (errorLower.includes('timeout')) {
-      return 'Operace trvá příliš dlouho. Zkuste to později.';
-    }
-    
-    // Return original message for unrecognized errors
-    return serverError;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boxId) return;
 
     if (!selectedProduct || !selectedProduct.productCode || !selectedProduct.productName) {
-      setError('Produkt je povinný');
+      alert('Produkt je povinný');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Množství musí být kladné číslo');
+      alert('Množství musí být kladné číslo');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       const apiClient = await getAuthenticatedApiClient();
@@ -80,14 +54,11 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
         setSelectedProduct(null);
         setAmount('');
         onClose();
-      } else {
-        const errorMessage = response.errorMessage || 'Chyba při přidávání položky';
-        setError(getUserFriendlyErrorMessage(errorMessage));
       }
+      // If response.success is false, the global error handler will show a toast
     } catch (err) {
+      // Network errors or other exceptions - global handler will show toast
       console.error('Error adding item to box:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
-      setError(getUserFriendlyErrorMessage(errorMessage));
     } finally {
       setIsLoading(false);
     }
@@ -97,14 +68,12 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
     if (!isLoading) {
       setSelectedProduct(null);
       setAmount('');
-      setError(null);
       onClose();
     }
   };
 
   const handleProductSelect = (product: MaterialForPurchaseDto | null) => {
     setSelectedProduct(product);
-    setError(null);
   };
 
   if (!isOpen || !boxId) return null;
@@ -135,13 +104,6 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
             handleSubmit(e as any);
           }
         }}>
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />
-              <span className="text-sm text-red-800">{error}</span>
-            </div>
-          )}
-
           <div className="mb-4">
             <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
               Produkt/Materiál
@@ -162,10 +124,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               type="number"
               id="amount"
               value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setError(null);
-              }}
+              onChange={(e) => setAmount(e.target.value)}
               disabled={isLoading}
               placeholder="0"
               min="0.01"

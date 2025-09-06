@@ -646,15 +646,15 @@ const Dashboard: React.FC = () => {
                 
                 {/* Show failed products if any */}
                 {recalculatePricesMutation.data.processedProducts && 
-                 recalculatePricesMutation.data.processedProducts.some(p => !p.isSuccess) && (
+                 recalculatePricesMutation.data.processedProducts.some(p => !p.success) && (
                   <div className="mt-3">
                     <h5 className="text-sm font-medium text-red-800 mb-2">Produkty s chybami:</h5>
                     <div className="space-y-1">
                       {recalculatePricesMutation.data.processedProducts
-                        .filter(p => !p.isSuccess)
+                        .filter(p => !p.success)
                         .map((product, index) => (
                           <div key={index} className="text-xs text-red-700">
-                            <span className="font-mono">{product.productCode}</span>: {product.errorMessage}
+                            <span className="font-mono">{product.productCode}</span>: Chyba {product.errorCode}
                           </div>
                         ))}
                     </div>

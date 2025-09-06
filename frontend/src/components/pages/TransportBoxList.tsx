@@ -152,9 +152,8 @@ const TransportBoxList: React.FC = () => {
         setIsDetailModalOpen(true);
         // Refresh the data to show the new box in the list
         refetch();
-      } else {
-        console.error('Failed to create transport box:', response.errorMessage);
       }
+      // If response.success is false, the global error handler will show a toast
     } catch (error) {
       console.error('Error creating transport box:', error);
     }

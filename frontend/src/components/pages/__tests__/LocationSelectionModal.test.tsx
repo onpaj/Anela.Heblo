@@ -402,8 +402,8 @@ describe('LocationSelectionModal', () => {
         { wrapper: createWrapper }
       );
 
-      // Find close button (X button with SVG icon)
-      const closeButton = screen.getByRole('button', { name: '' }); // Button with X icon has no text/label
+      // Find close button by finding the button in the header area (outside the form)
+      const closeButton = screen.getAllByRole('button')[0]; // First button should be the X close button
       fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -444,7 +444,7 @@ describe('LocationSelectionModal', () => {
       );
 
       // Close button (X button) - should still be clickable in loading state
-      const closeButton = screen.getByLabelText(/close/i);
+      const closeButton = screen.getAllByRole('button')[0]; // First button should be the X close button
       fireEvent.click(closeButton);
       
       // Component doesn't actually disable close button during loading
