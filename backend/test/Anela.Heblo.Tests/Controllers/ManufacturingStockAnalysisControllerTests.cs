@@ -5,6 +5,9 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -17,6 +20,19 @@ public class ManufacturingStockAnalysisControllerTests
     {
         _mediatorMock = new Mock<IMediator>();
         _controller = new ManufacturingStockAnalysisController(_mediatorMock.Object);
+        
+        // Setup HttpContext for BaseApiController.Logger
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        
+        var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = serviceProvider;
+        
+        _controller.ControllerContext = new ControllerContext()
+        {
+            HttpContext = httpContext
+        };
     }
 
     [Fact]

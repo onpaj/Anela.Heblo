@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -10,6 +11,13 @@ namespace Anela.Heblo.API.Controllers;
 /// </summary>
 public abstract class BaseApiController : ControllerBase
 {
+    private ILogger? _logger;
+    
+    /// <summary>
+    /// Gets the logger for the current controller type
+    /// </summary>
+    protected ILogger Logger => _logger ??= HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+
     /// <summary>
     /// Handles a response from a MediatR handler and returns the appropriate HTTP status code
     /// based on the Success property and ErrorCode attribute
@@ -24,13 +32,18 @@ public abstract class BaseApiController : ControllerBase
             return Ok(response);
         }
 
+        // Log warning for failed responses
         if (response.ErrorCode.HasValue)
         {
+            Logger.LogWarning("Request failed with error code {ErrorCode}: {Params}", 
+                response.ErrorCode, 
+                response.Params != null ? string.Join(", ", response.Params.Select(p => $"{p.Key}={p.Value}")) : "no params");
+            
             var statusCode = GetStatusCodeForError(response.ErrorCode.Value);
             return StatusCode((int)statusCode, response);
         }
 
-        // Default to BadRequest if no error code is specified
+        Logger.LogWarning("Request failed without error code");
         return BadRequest(response);
     }
 
