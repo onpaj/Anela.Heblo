@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -29,7 +30,10 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.CreateJournalEntry
             var currentUser = _currentUserService.GetCurrentUser();
             if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
             {
-                throw new UnauthorizedAccessException("User must be authenticated to create journal entries");
+                return new CreateJournalEntryResponse(ErrorCodes.UnauthorizedJournalAccess, new Dictionary<string, string>
+                {
+                    { "resource", "journal_entry" }
+                });
             }
 
             var userId = currentUser.Id;

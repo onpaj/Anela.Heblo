@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Journal.UseCases.DeleteJournalEntry
 {
-    public class DeleteJournalEntryHandler : IRequestHandler<DeleteJournalEntryRequest, Unit>
+    public class DeleteJournalEntryHandler : IRequestHandler<DeleteJournalEntryRequest, DeleteJournalEntryResponse>
     {
         private readonly IJournalRepository _journalRepository;
         private readonly ICurrentUserService _currentUserService;
@@ -22,20 +23,26 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.DeleteJournalEntry
             _logger = logger;
         }
 
-        public async Task<Unit> Handle(
+        public async Task<DeleteJournalEntryResponse> Handle(
             DeleteJournalEntryRequest request,
             CancellationToken cancellationToken)
         {
             var currentUser = _currentUserService.GetCurrentUser();
             if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
             {
-                throw new UnauthorizedAccessException("User must be authenticated to delete journal entries");
+                return new DeleteJournalEntryResponse(ErrorCodes.UnauthorizedJournalAccess, new Dictionary<string, string>
+                {
+                    { "resource", "journal_entry" }
+                });
             }
 
             var entry = await _journalRepository.GetByIdAsync(request.Id, cancellationToken);
             if (entry == null)
             {
-                throw new InvalidOperationException($"Journal entry with ID {request.Id} not found");
+                return new DeleteJournalEntryResponse(ErrorCodes.JournalEntryNotFound, new Dictionary<string, string>
+                {
+                    { "entryId", request.Id.ToString() }
+                });
             }
 
             // Check if user owns the entry (for now, allow all authenticated users to delete)
@@ -48,7 +55,10 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.DeleteJournalEntry
                 request.Id,
                 currentUser.Id);
 
-            return Unit.Value;
+            return new DeleteJournalEntryResponse
+            {
+                Id = request.Id
+            };
         }
     }
 }

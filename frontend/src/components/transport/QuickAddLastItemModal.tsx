@@ -90,10 +90,8 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
         
         onSuccess();
         onClose();
-      } else {
-        const errorMessage = response.errorMessage || 'Chyba při přidávání položky';
-        setError(getUserFriendlyErrorMessage(errorMessage));
       }
+      // If response.success is false, the global error handler will show a toast
     } catch (err) {
       console.error('Error adding item to box:', err);
       const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';

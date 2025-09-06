@@ -151,8 +151,8 @@ describe('AddItemToBoxModal', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('selected-product')).toBeInTheDocument();
-        expect(screen.getByText('Selected: Test Product 1 (TEST001)')).toBeInTheDocument();
       });
+      expect(screen.getByText('Selected: Test Product 1 (TEST001)')).toBeInTheDocument();
 
       // Enter amount
       const amountInput = screen.getByLabelText('Množství');
@@ -574,8 +574,8 @@ describe('AddItemToBoxModal', () => {
 
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalledTimes(1);
-        expect(mockOnClose).toHaveBeenCalledTimes(1);
       });
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
 
       // Form should be reset (though modal is closed at this point)
       expect(mockApiClient.transportBox_AddItemToBox).toHaveBeenCalledTimes(1);

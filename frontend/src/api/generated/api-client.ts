@@ -1260,6 +1260,158 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    e2ETest_GetEnvironmentInfo(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/E2ETest/env-info";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processE2ETest_GetEnvironmentInfo(_response);
+        });
+    }
+
+    protected processE2ETest_GetEnvironmentInfo(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    e2ETest_CreateE2ESession(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/E2ETest/auth";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processE2ETest_CreateE2ESession(_response);
+        });
+    }
+
+    protected processE2ETest_CreateE2ESession(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    e2ETest_GetAuthStatus(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/E2ETest/auth-status";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processE2ETest_GetAuthStatus(_response);
+        });
+    }
+
+    protected processE2ETest_GetAuthStatus(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    e2ETest_GetE2EApp(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/E2ETest/app";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processE2ETest_GetE2EApp(_response);
+        });
+    }
+
+    protected processE2ETest_GetE2EApp(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
         let url_ = this.baseUrl + "/api/FinancialOverview?";
         if (months !== undefined && months !== null)
@@ -1394,6 +1546,13 @@ export class ApiClient {
             result400 = ProblemDetails.fromJS(resultData400);
             return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1464,7 +1623,7 @@ export class ApiClient {
         return Promise.resolve<SearchJournalEntriesResponse>(null as any);
     }
 
-    journal_GetJournalEntry(id: number): Promise<JournalEntryDto> {
+    journal_GetJournalEntry(id: number): Promise<GetJournalEntryResponse> {
         let url_ = this.baseUrl + "/api/Journal/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -1483,14 +1642,14 @@ export class ApiClient {
         });
     }
 
-    protected processJournal_GetJournalEntry(response: Response): Promise<JournalEntryDto> {
+    protected processJournal_GetJournalEntry(response: Response): Promise<GetJournalEntryResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = JournalEntryDto.fromJS(resultData200);
+            result200 = GetJournalEntryResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status === 404) {
@@ -1505,7 +1664,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<JournalEntryDto>(null as any);
+        return Promise.resolve<GetJournalEntryResponse>(null as any);
     }
 
     journal_UpdateJournalEntry(id: number, request: UpdateJournalEntryRequest): Promise<UpdateJournalEntryResponse> {
@@ -1548,12 +1707,12 @@ export class ApiClient {
             result404 = ProblemDetails.fromJS(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
-        } else if (status === 403) {
+        } else if (status === 401) {
             return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -1563,7 +1722,7 @@ export class ApiClient {
         return Promise.resolve<UpdateJournalEntryResponse>(null as any);
     }
 
-    journal_DeleteJournalEntry(id: number): Promise<void> {
+    journal_DeleteJournalEntry(id: number): Promise<DeleteJournalEntryResponse> {
         let url_ = this.baseUrl + "/api/Journal/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -1573,6 +1732,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "DELETE",
             headers: {
+                "Accept": "application/json"
             }
         };
 
@@ -1581,12 +1741,15 @@ export class ApiClient {
         });
     }
 
-    protected processJournal_DeleteJournalEntry(response: Response): Promise<void> {
+    protected processJournal_DeleteJournalEntry(response: Response): Promise<DeleteJournalEntryResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 204) {
+        if (status === 200) {
             return response.text().then((_responseText) => {
-            return;
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteJournalEntryResponse.fromJS(resultData200);
+            return result200;
             });
         } else if (status === 404) {
             return response.text().then((_responseText) => {
@@ -1595,19 +1758,19 @@ export class ApiClient {
             result404 = ProblemDetails.fromJS(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
-        } else if (status === 403) {
+        } else if (status === 401) {
             return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<DeleteJournalEntryResponse>(null as any);
     }
 
     journal_GetJournalTags(): Promise<GetJournalTagsResponse> {
@@ -1673,6 +1836,13 @@ export class ApiClient {
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result201 = CreateJournalTagResponse.fromJS(resultData201);
             return result201;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -2116,7 +2286,7 @@ export class ApiClient {
         return Promise.resolve<UpdatePurchaseOrderInvoiceAcquiredResponse>(null as any);
     }
 
-    purchaseOrders_GetPurchaseOrderHistory(id: number): Promise<PurchaseOrderHistoryDto[]> {
+    purchaseOrders_GetPurchaseOrderHistory(id: number): Promise<ListResponseOfPurchaseOrderHistoryDto> {
         let url_ = this.baseUrl + "/api/purchase-orders/{id}/history";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -2135,21 +2305,14 @@ export class ApiClient {
         });
     }
 
-    protected processPurchaseOrders_GetPurchaseOrderHistory(response: Response): Promise<PurchaseOrderHistoryDto[]> {
+    protected processPurchaseOrders_GetPurchaseOrderHistory(response: Response): Promise<ListResponseOfPurchaseOrderHistoryDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200!.push(PurchaseOrderHistoryDto.fromJS(item));
-            }
-            else {
-                result200 = <any>null;
-            }
+            result200 = ListResponseOfPurchaseOrderHistoryDto.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2157,7 +2320,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PurchaseOrderHistoryDto[]>(null as any);
+        return Promise.resolve<ListResponseOfPurchaseOrderHistoryDto>(null as any);
     }
 
     purchaseOrders_RecalculatePurchasePrice(request: RecalculatePurchasePriceRequest): Promise<RecalculatePurchasePriceResponse> {
@@ -2594,16 +2757,12 @@ export class ApiClient {
     }
 }
 
-export class GetProductMarginSummaryResponse implements IGetProductMarginSummaryResponse {
-    monthlyData?: MonthlyProductMarginDto[];
-    topProducts?: TopProductDto[];
-    totalMargin?: number;
-    timeWindow?: string;
-    groupingMode?: ProductGroupingMode;
-    fromDate?: Date;
-    toDate?: Date;
+export abstract class BaseResponse implements IBaseResponse {
+    success?: boolean;
+    errorCode?: ErrorCodes | undefined;
+    params?: { [key: string]: string; } | undefined;
 
-    constructor(data?: IGetProductMarginSummaryResponse) {
+    constructor(data?: IBaseResponse) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -2613,6 +2772,60 @@ export class GetProductMarginSummaryResponse implements IGetProductMarginSummary
     }
 
     init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.errorCode = _data["errorCode"];
+            if (_data["params"]) {
+                this.params = {} as any;
+                for (let key in _data["params"]) {
+                    if (_data["params"].hasOwnProperty(key))
+                        (<any>this.params)![key] = _data["params"][key];
+                }
+            }
+        }
+    }
+
+    static fromJS(data: any): BaseResponse {
+        data = typeof data === 'object' ? data : {};
+        throw new Error("The abstract class 'BaseResponse' cannot be instantiated.");
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["errorCode"] = this.errorCode;
+        if (this.params) {
+            data["params"] = {};
+            for (let key in this.params) {
+                if (this.params.hasOwnProperty(key))
+                    (<any>data["params"])[key] = (<any>this.params)[key];
+            }
+        }
+        return data;
+    }
+}
+
+export interface IBaseResponse {
+    success?: boolean;
+    errorCode?: ErrorCodes | undefined;
+    params?: { [key: string]: string; } | undefined;
+}
+
+export class GetProductMarginSummaryResponse extends BaseResponse implements IGetProductMarginSummaryResponse {
+    monthlyData?: MonthlyProductMarginDto[];
+    topProducts?: TopProductDto[];
+    totalMargin?: number;
+    timeWindow?: string;
+    groupingMode?: ProductGroupingMode;
+    fromDate?: Date;
+    toDate?: Date;
+
+    constructor(data?: IGetProductMarginSummaryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["monthlyData"])) {
                 this.monthlyData = [] as any;
@@ -2632,14 +2845,14 @@ export class GetProductMarginSummaryResponse implements IGetProductMarginSummary
         }
     }
 
-    static fromJS(data: any): GetProductMarginSummaryResponse {
+    static override fromJS(data: any): GetProductMarginSummaryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetProductMarginSummaryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.monthlyData)) {
             data["monthlyData"] = [];
@@ -2656,11 +2869,12 @@ export class GetProductMarginSummaryResponse implements IGetProductMarginSummary
         data["groupingMode"] = this.groupingMode;
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetProductMarginSummaryResponse {
+export interface IGetProductMarginSummaryResponse extends IBaseResponse {
     monthlyData?: MonthlyProductMarginDto[];
     topProducts?: TopProductDto[];
     totalMargin?: number;
@@ -2900,6 +3114,71 @@ export enum ProductGroupingMode {
     ProductCategory = "ProductCategory",
 }
 
+export enum ErrorCodes {
+    ValidationError = "ValidationError",
+    RequiredFieldMissing = "RequiredFieldMissing",
+    InvalidFormat = "InvalidFormat",
+    InvalidValue = "InvalidValue",
+    InvalidDateRange = "InvalidDateRange",
+    ResourceNotFound = "ResourceNotFound",
+    BusinessRuleViolation = "BusinessRuleViolation",
+    InvalidOperation = "InvalidOperation",
+    DuplicateEntry = "DuplicateEntry",
+    InternalServerError = "InternalServerError",
+    DatabaseError = "DatabaseError",
+    ConfigurationError = "ConfigurationError",
+    Unauthorized = "Unauthorized",
+    Forbidden = "Forbidden",
+    TokenExpired = "TokenExpired",
+    Exception = "Exception",
+    PurchaseOrderNotFound = "PurchaseOrderNotFound",
+    SupplierNotFound = "SupplierNotFound",
+    StatusTransitionNotAllowed = "StatusTransitionNotAllowed",
+    InsufficientStock = "InsufficientStock",
+    InvalidPurchaseOrderStatus = "InvalidPurchaseOrderStatus",
+    InvalidSupplier = "InvalidSupplier",
+    PurchaseOrderUpdateFailed = "PurchaseOrderUpdateFailed",
+    ManufacturingDataNotAvailable = "ManufacturingDataNotAvailable",
+    ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
+    InvalidAnalysisParameters = "InvalidAnalysisParameters",
+    InsufficientManufacturingData = "InsufficientManufacturingData",
+    CatalogItemNotFound = "CatalogItemNotFound",
+    ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
+    ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
+    MarginCalculationError = "MarginCalculationError",
+    DataAccessUnavailable = "DataAccessUnavailable",
+    ProductNotFound = "ProductNotFound",
+    MaterialNotFound = "MaterialNotFound",
+    InvalidSearchCriteria = "InvalidSearchCriteria",
+    ExternalSyncFailed = "ExternalSyncFailed",
+    AttributeError = "AttributeError",
+    SupplierLookupFailed = "SupplierLookupFailed",
+    CategoryError = "CategoryError",
+    UnitValidationFailed = "UnitValidationFailed",
+    AbraIntegrationFailed = "AbraIntegrationFailed",
+    ShoptetSyncFailed = "ShoptetSyncFailed",
+    TransportBoxNotFound = "TransportBoxNotFound",
+    TransportBoxStateChangeError = "TransportBoxStateChangeError",
+    TransportBoxCreationError = "TransportBoxCreationError",
+    TransportBoxItemError = "TransportBoxItemError",
+    TransportBoxDuplicateActiveBoxFound = "TransportBoxDuplicateActiveBoxFound",
+    ConfigurationNotFound = "ConfigurationNotFound",
+    JournalEntryNotFound = "JournalEntryNotFound",
+    InvalidJournalTitle = "InvalidJournalTitle",
+    InvalidJournalContent = "InvalidJournalContent",
+    JournalTagNotFound = "JournalTagNotFound",
+    JournalTagCreationFailed = "JournalTagCreationFailed",
+    InvalidJournalDateFilter = "InvalidJournalDateFilter",
+    JournalDeleteNotAllowed = "JournalDeleteNotAllowed",
+    UnauthorizedJournalAccess = "UnauthorizedJournalAccess",
+    DuplicateJournalTag = "DuplicateJournalTag",
+    InvalidJournalEntryData = "InvalidJournalEntryData",
+    ExternalServiceError = "ExternalServiceError",
+    FlexiApiError = "FlexiApiError",
+    ShoptetApiError = "ShoptetApiError",
+    PaymentGatewayError = "PaymentGatewayError",
+}
+
 export class ProblemDetails implements IProblemDetails {
     type?: string | undefined;
     title?: string | undefined;
@@ -2964,7 +3243,7 @@ export interface IProblemDetails {
     [key: string]: any;
 }
 
-export class GetCatalogListResponse implements IGetCatalogListResponse {
+export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
     items?: CatalogItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -2972,15 +3251,11 @@ export class GetCatalogListResponse implements IGetCatalogListResponse {
     totalPages?: number;
 
     constructor(data?: IGetCatalogListResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -2994,14 +3269,14 @@ export class GetCatalogListResponse implements IGetCatalogListResponse {
         }
     }
 
-    static fromJS(data: any): GetCatalogListResponse {
+    static override fromJS(data: any): GetCatalogListResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetCatalogListResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -3012,11 +3287,12 @@ export class GetCatalogListResponse implements IGetCatalogListResponse {
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["totalPages"] = this.totalPages;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetCatalogListResponse {
+export interface IGetCatalogListResponse extends IBaseResponse {
     items?: CatalogItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -3376,42 +3652,39 @@ export interface IPropertiesDto {
     seasonMonths?: number[];
 }
 
-export class GetCatalogDetailResponse implements IGetCatalogDetailResponse {
+export class GetCatalogDetailResponse extends BaseResponse implements IGetCatalogDetailResponse {
     item?: CatalogItemDto;
     historicalData?: CatalogHistoricalDataDto;
 
     constructor(data?: IGetCatalogDetailResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.item = _data["item"] ? CatalogItemDto.fromJS(_data["item"]) : <any>undefined;
             this.historicalData = _data["historicalData"] ? CatalogHistoricalDataDto.fromJS(_data["historicalData"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): GetCatalogDetailResponse {
+    static override fromJS(data: any): GetCatalogDetailResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetCatalogDetailResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["item"] = this.item ? this.item.toJSON() : <any>undefined;
         data["historicalData"] = this.historicalData ? this.historicalData.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetCatalogDetailResponse {
+export interface IGetCatalogDetailResponse extends IBaseResponse {
     item?: CatalogItemDto;
     historicalData?: CatalogHistoricalDataDto;
 }
@@ -3860,19 +4133,15 @@ export interface IMarginHistoryDto {
     totalCost?: number;
 }
 
-export class GetMaterialsForPurchaseResponse implements IGetMaterialsForPurchaseResponse {
+export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
     materials?: MaterialForPurchaseDto[];
 
     constructor(data?: IGetMaterialsForPurchaseResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["materials"])) {
                 this.materials = [] as any;
@@ -3882,25 +4151,26 @@ export class GetMaterialsForPurchaseResponse implements IGetMaterialsForPurchase
         }
     }
 
-    static fromJS(data: any): GetMaterialsForPurchaseResponse {
+    static override fromJS(data: any): GetMaterialsForPurchaseResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetMaterialsForPurchaseResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.materials)) {
             data["materials"] = [];
             for (let item of this.materials)
                 data["materials"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetMaterialsForPurchaseResponse {
+export interface IGetMaterialsForPurchaseResponse extends IBaseResponse {
     materials?: MaterialForPurchaseDto[];
 }
 
@@ -3964,21 +4234,17 @@ export interface IMaterialForPurchaseDto {
     minimalOrderQuantity?: string | undefined;
 }
 
-export class GetManufactureDifficultySettingsResponse implements IGetManufactureDifficultySettingsResponse {
+export class GetManufactureDifficultySettingsResponse extends BaseResponse implements IGetManufactureDifficultySettingsResponse {
     productCode?: string;
     settings?: ManufactureDifficultySettingDto[];
     currentSetting?: ManufactureDifficultySettingDto | undefined;
 
     constructor(data?: IGetManufactureDifficultySettingsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.productCode = _data["productCode"];
             if (Array.isArray(_data["settings"])) {
@@ -3990,14 +4256,14 @@ export class GetManufactureDifficultySettingsResponse implements IGetManufacture
         }
     }
 
-    static fromJS(data: any): GetManufactureDifficultySettingsResponse {
+    static override fromJS(data: any): GetManufactureDifficultySettingsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetManufactureDifficultySettingsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         if (Array.isArray(this.settings)) {
@@ -4006,11 +4272,12 @@ export class GetManufactureDifficultySettingsResponse implements IGetManufacture
                 data["settings"].push(item.toJSON());
         }
         data["currentSetting"] = this.currentSetting ? this.currentSetting.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetManufactureDifficultySettingsResponse {
+export interface IGetManufactureDifficultySettingsResponse extends IBaseResponse {
     productCode?: string;
     settings?: ManufactureDifficultySettingDto[];
     currentSetting?: ManufactureDifficultySettingDto | undefined;
@@ -4080,39 +4347,36 @@ export interface IManufactureDifficultySettingDto {
     isCurrent?: boolean;
 }
 
-export class CreateManufactureDifficultyResponse implements ICreateManufactureDifficultyResponse {
+export class CreateManufactureDifficultyResponse extends BaseResponse implements ICreateManufactureDifficultyResponse {
     difficultyHistory?: ManufactureDifficultySettingDto;
 
     constructor(data?: ICreateManufactureDifficultyResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): CreateManufactureDifficultyResponse {
+    static override fromJS(data: any): CreateManufactureDifficultyResponse {
         data = typeof data === 'object' ? data : {};
         let result = new CreateManufactureDifficultyResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ICreateManufactureDifficultyResponse {
+export interface ICreateManufactureDifficultyResponse extends IBaseResponse {
     difficultyHistory?: ManufactureDifficultySettingDto;
 }
 
@@ -4164,39 +4428,36 @@ export interface ICreateManufactureDifficultyRequest {
     validTo?: Date | undefined;
 }
 
-export class UpdateManufactureDifficultyResponse implements IUpdateManufactureDifficultyResponse {
+export class UpdateManufactureDifficultyResponse extends BaseResponse implements IUpdateManufactureDifficultyResponse {
     difficultyHistory?: ManufactureDifficultySettingDto;
 
     constructor(data?: IUpdateManufactureDifficultyResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): UpdateManufactureDifficultyResponse {
+    static override fromJS(data: any): UpdateManufactureDifficultyResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdateManufactureDifficultyResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdateManufactureDifficultyResponse {
+export interface IUpdateManufactureDifficultyResponse extends IBaseResponse {
     difficultyHistory?: ManufactureDifficultySettingDto;
 }
 
@@ -4248,59 +4509,48 @@ export interface IUpdateManufactureDifficultyRequest {
     validTo?: Date | undefined;
 }
 
-export class DeleteManufactureDifficultyResponse implements IDeleteManufactureDifficultyResponse {
-    success?: boolean;
+export class DeleteManufactureDifficultyResponse extends BaseResponse implements IDeleteManufactureDifficultyResponse {
     message?: string | undefined;
 
     constructor(data?: IDeleteManufactureDifficultyResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
             this.message = _data["message"];
         }
     }
 
-    static fromJS(data: any): DeleteManufactureDifficultyResponse {
+    static override fromJS(data: any): DeleteManufactureDifficultyResponse {
         data = typeof data === 'object' ? data : {};
         let result = new DeleteManufactureDifficultyResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
         data["message"] = this.message;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IDeleteManufactureDifficultyResponse {
-    success?: boolean;
+export interface IDeleteManufactureDifficultyResponse extends IBaseResponse {
     message?: string | undefined;
 }
 
-export class GetProductUsageResponse implements IGetProductUsageResponse {
+export class GetProductUsageResponse extends BaseResponse implements IGetProductUsageResponse {
     manufactureTemplates?: ManufactureTemplate[];
 
     constructor(data?: IGetProductUsageResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["manufactureTemplates"])) {
                 this.manufactureTemplates = [] as any;
@@ -4310,25 +4560,26 @@ export class GetProductUsageResponse implements IGetProductUsageResponse {
         }
     }
 
-    static fromJS(data: any): GetProductUsageResponse {
+    static override fromJS(data: any): GetProductUsageResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetProductUsageResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.manufactureTemplates)) {
             data["manufactureTemplates"] = [];
             for (let item of this.manufactureTemplates)
                 data["manufactureTemplates"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetProductUsageResponse {
+export interface IGetProductUsageResponse extends IBaseResponse {
     manufactureTemplates?: ManufactureTemplate[];
 }
 
@@ -4452,22 +4703,18 @@ export interface IIngredient {
     price?: number;
 }
 
-export class GetConfigurationResponse implements IGetConfigurationResponse {
+export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
 
     constructor(data?: IGetConfigurationResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.version = _data["version"];
             this.environment = _data["environment"];
@@ -4476,48 +4723,45 @@ export class GetConfigurationResponse implements IGetConfigurationResponse {
         }
     }
 
-    static fromJS(data: any): GetConfigurationResponse {
+    static override fromJS(data: any): GetConfigurationResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetConfigurationResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["version"] = this.version;
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
         data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetConfigurationResponse {
+export interface IGetConfigurationResponse extends IBaseResponse {
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
 }
 
-export class GetFinancialOverviewResponse implements IGetFinancialOverviewResponse {
+export class GetFinancialOverviewResponse extends BaseResponse implements IGetFinancialOverviewResponse {
     data!: MonthlyFinancialDataDto[];
     summary!: FinancialSummaryDto;
 
     constructor(data?: IGetFinancialOverviewResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
         if (!data) {
             this.data = [];
             this.summary = new FinancialSummaryDto();
         }
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["data"])) {
                 this.data = [] as any;
@@ -4528,14 +4772,14 @@ export class GetFinancialOverviewResponse implements IGetFinancialOverviewRespon
         }
     }
 
-    static fromJS(data: any): GetFinancialOverviewResponse {
+    static override fromJS(data: any): GetFinancialOverviewResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetFinancialOverviewResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.data)) {
             data["data"] = [];
@@ -4543,11 +4787,12 @@ export class GetFinancialOverviewResponse implements IGetFinancialOverviewRespon
                 data["data"].push(item.toJSON());
         }
         data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetFinancialOverviewResponse {
+export interface IGetFinancialOverviewResponse extends IBaseResponse {
     data: MonthlyFinancialDataDto[];
     summary: FinancialSummaryDto;
 }
@@ -4772,7 +5017,7 @@ export interface IStockSummaryDto {
     averageMonthlyTotalBalance?: number;
 }
 
-export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {
+export class GetJournalEntriesResponse extends BaseResponse implements IGetJournalEntriesResponse {
     entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -4782,15 +5027,11 @@ export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {
     hasPreviousPage?: boolean;
 
     constructor(data?: IGetJournalEntriesResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
@@ -4806,14 +5047,14 @@ export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {
         }
     }
 
-    static fromJS(data: any): GetJournalEntriesResponse {
+    static override fromJS(data: any): GetJournalEntriesResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetJournalEntriesResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.entries)) {
             data["entries"] = [];
@@ -4826,11 +5067,12 @@ export class GetJournalEntriesResponse implements IGetJournalEntriesResponse {
         data["totalPages"] = this.totalPages;
         data["hasNextPage"] = this.hasNextPage;
         data["hasPreviousPage"] = this.hasPreviousPage;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetJournalEntriesResponse {
+export interface IGetJournalEntriesResponse extends IBaseResponse {
     entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -4988,7 +5230,7 @@ export interface IJournalEntryTagDto {
     color?: string;
 }
 
-export class SearchJournalEntriesResponse implements ISearchJournalEntriesResponse {
+export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
     entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -4998,15 +5240,11 @@ export class SearchJournalEntriesResponse implements ISearchJournalEntriesRespon
     hasPreviousPage?: boolean;
 
     constructor(data?: ISearchJournalEntriesResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
@@ -5022,14 +5260,14 @@ export class SearchJournalEntriesResponse implements ISearchJournalEntriesRespon
         }
     }
 
-    static fromJS(data: any): SearchJournalEntriesResponse {
+    static override fromJS(data: any): SearchJournalEntriesResponse {
         data = typeof data === 'object' ? data : {};
         let result = new SearchJournalEntriesResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.entries)) {
             data["entries"] = [];
@@ -5042,11 +5280,12 @@ export class SearchJournalEntriesResponse implements ISearchJournalEntriesRespon
         data["totalPages"] = this.totalPages;
         data["hasNextPage"] = this.hasNextPage;
         data["hasPreviousPage"] = this.hasPreviousPage;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ISearchJournalEntriesResponse {
+export interface ISearchJournalEntriesResponse extends IBaseResponse {
     entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -5056,21 +5295,50 @@ export interface ISearchJournalEntriesResponse {
     hasPreviousPage?: boolean;
 }
 
-export class CreateJournalEntryResponse implements ICreateJournalEntryResponse {
+export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {
+    entry?: JournalEntryDto | undefined;
+
+    constructor(data?: IGetJournalEntryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.entry = _data["entry"] ? JournalEntryDto.fromJS(_data["entry"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetJournalEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetJournalEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["entry"] = this.entry ? this.entry.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetJournalEntryResponse extends IBaseResponse {
+    entry?: JournalEntryDto | undefined;
+}
+
+export class CreateJournalEntryResponse extends BaseResponse implements ICreateJournalEntryResponse {
     id?: number;
     createdAt?: Date;
     message?: string;
 
     constructor(data?: ICreateJournalEntryResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
@@ -5078,23 +5346,24 @@ export class CreateJournalEntryResponse implements ICreateJournalEntryResponse {
         }
     }
 
-    static fromJS(data: any): CreateJournalEntryResponse {
+    static override fromJS(data: any): CreateJournalEntryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new CreateJournalEntryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["message"] = this.message;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ICreateJournalEntryResponse {
+export interface ICreateJournalEntryResponse extends IBaseResponse {
     id?: number;
     createdAt?: Date;
     message?: string;
@@ -5168,21 +5437,17 @@ export interface ICreateJournalEntryRequest {
     tagIds?: number[] | undefined;
 }
 
-export class UpdateJournalEntryResponse implements IUpdateJournalEntryResponse {
+export class UpdateJournalEntryResponse extends BaseResponse implements IUpdateJournalEntryResponse {
     id?: number;
     modifiedAt?: Date;
     message?: string;
 
     constructor(data?: IUpdateJournalEntryResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
@@ -5190,23 +5455,24 @@ export class UpdateJournalEntryResponse implements IUpdateJournalEntryResponse {
         }
     }
 
-    static fromJS(data: any): UpdateJournalEntryResponse {
+    static override fromJS(data: any): UpdateJournalEntryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdateJournalEntryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
         data["message"] = this.message;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdateJournalEntryResponse {
+export interface IUpdateJournalEntryResponse extends IBaseResponse {
     id?: number;
     modifiedAt?: Date;
     message?: string;
@@ -5284,19 +5550,52 @@ export interface IUpdateJournalEntryRequest {
     tagIds?: number[] | undefined;
 }
 
-export class GetJournalTagsResponse implements IGetJournalTagsResponse {
-    tags?: JournalEntryTagDto[];
+export class DeleteJournalEntryResponse extends BaseResponse implements IDeleteJournalEntryResponse {
+    id?: number;
+    message?: string;
 
-    constructor(data?: IGetJournalTagsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
+    constructor(data?: IDeleteJournalEntryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.message = _data["message"];
         }
     }
 
-    init(_data?: any) {
+    static override fromJS(data: any): DeleteJournalEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteJournalEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteJournalEntryResponse extends IBaseResponse {
+    id?: number;
+    message?: string;
+}
+
+export class GetJournalTagsResponse extends BaseResponse implements IGetJournalTagsResponse {
+    tags?: JournalEntryTagDto[];
+
+    constructor(data?: IGetJournalTagsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["tags"])) {
                 this.tags = [] as any;
@@ -5306,43 +5605,40 @@ export class GetJournalTagsResponse implements IGetJournalTagsResponse {
         }
     }
 
-    static fromJS(data: any): GetJournalTagsResponse {
+    static override fromJS(data: any): GetJournalTagsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetJournalTagsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.tags)) {
             data["tags"] = [];
             for (let item of this.tags)
                 data["tags"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetJournalTagsResponse {
+export interface IGetJournalTagsResponse extends IBaseResponse {
     tags?: JournalEntryTagDto[];
 }
 
-export class CreateJournalTagResponse implements ICreateJournalTagResponse {
+export class CreateJournalTagResponse extends BaseResponse implements ICreateJournalTagResponse {
     id?: number;
     name?: string;
     color?: string;
 
     constructor(data?: ICreateJournalTagResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.name = _data["name"];
@@ -5350,23 +5646,24 @@ export class CreateJournalTagResponse implements ICreateJournalTagResponse {
         }
     }
 
-    static fromJS(data: any): CreateJournalTagResponse {
+    static override fromJS(data: any): CreateJournalTagResponse {
         data = typeof data === 'object' ? data : {};
         let result = new CreateJournalTagResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["name"] = this.name;
         data["color"] = this.color;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ICreateJournalTagResponse {
+export interface ICreateJournalTagResponse extends IBaseResponse {
     id?: number;
     name?: string;
     color?: string;
@@ -5412,19 +5709,15 @@ export interface ICreateJournalTagRequest {
     color?: string;
 }
 
-export class GetManufactureOutputResponse implements IGetManufactureOutputResponse {
+export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {
     months?: ManufactureOutputMonth[];
 
     constructor(data?: IGetManufactureOutputResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["months"])) {
                 this.months = [] as any;
@@ -5434,25 +5727,26 @@ export class GetManufactureOutputResponse implements IGetManufactureOutputRespon
         }
     }
 
-    static fromJS(data: any): GetManufactureOutputResponse {
+    static override fromJS(data: any): GetManufactureOutputResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetManufactureOutputResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.months)) {
             data["months"] = [];
             for (let item of this.months)
                 data["months"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetManufactureOutputResponse {
+export interface IGetManufactureOutputResponse extends IBaseResponse {
     months?: ManufactureOutputMonth[];
 }
 
@@ -5632,7 +5926,7 @@ export interface IProductionDetail {
     documentNumber?: string;
 }
 
-export class GetManufacturingStockAnalysisResponse implements IGetManufacturingStockAnalysisResponse {
+export class GetManufacturingStockAnalysisResponse extends BaseResponse implements IGetManufacturingStockAnalysisResponse {
     items?: ManufacturingStockItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -5640,15 +5934,11 @@ export class GetManufacturingStockAnalysisResponse implements IGetManufacturingS
     summary?: ManufacturingStockSummaryDto;
 
     constructor(data?: IGetManufacturingStockAnalysisResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -5662,14 +5952,14 @@ export class GetManufacturingStockAnalysisResponse implements IGetManufacturingS
         }
     }
 
-    static fromJS(data: any): GetManufacturingStockAnalysisResponse {
+    static override fromJS(data: any): GetManufacturingStockAnalysisResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetManufacturingStockAnalysisResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -5680,11 +5970,12 @@ export class GetManufacturingStockAnalysisResponse implements IGetManufacturingS
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetManufacturingStockAnalysisResponse {
+export interface IGetManufacturingStockAnalysisResponse extends IBaseResponse {
     items?: ManufacturingStockItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -5881,7 +6172,7 @@ export enum ManufacturingStockSortBy {
     BatchSize = "BatchSize",
 }
 
-export class GetProductMarginsResponse implements IGetProductMarginsResponse {
+export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
     items?: ProductMarginDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -5889,15 +6180,11 @@ export class GetProductMarginsResponse implements IGetProductMarginsResponse {
     totalPages?: number;
 
     constructor(data?: IGetProductMarginsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -5911,14 +6198,14 @@ export class GetProductMarginsResponse implements IGetProductMarginsResponse {
         }
     }
 
-    static fromJS(data: any): GetProductMarginsResponse {
+    static override fromJS(data: any): GetProductMarginsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetProductMarginsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -5929,11 +6216,12 @@ export class GetProductMarginsResponse implements IGetProductMarginsResponse {
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["totalPages"] = this.totalPages;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetProductMarginsResponse {
+export interface IGetProductMarginsResponse extends IBaseResponse {
     items?: ProductMarginDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -6009,7 +6297,7 @@ export interface IProductMarginDto {
     marginAmount?: number;
 }
 
-export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {
+export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {
     orders?: PurchaseOrderSummaryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -6017,15 +6305,11 @@ export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {
     totalPages?: number;
 
     constructor(data?: IGetPurchaseOrdersResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["orders"])) {
                 this.orders = [] as any;
@@ -6039,14 +6323,14 @@ export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {
         }
     }
 
-    static fromJS(data: any): GetPurchaseOrdersResponse {
+    static override fromJS(data: any): GetPurchaseOrdersResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetPurchaseOrdersResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.orders)) {
             data["orders"] = [];
@@ -6057,11 +6341,12 @@ export class GetPurchaseOrdersResponse implements IGetPurchaseOrdersResponse {
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["totalPages"] = this.totalPages;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetPurchaseOrdersResponse {
+export interface IGetPurchaseOrdersResponse extends IBaseResponse {
     orders?: PurchaseOrderSummaryDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -6166,7 +6451,7 @@ export enum ContactVia {
     Other = "Other",
 }
 
-export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse {
+export class CreatePurchaseOrderResponse extends BaseResponse implements ICreatePurchaseOrderResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6185,15 +6470,11 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
     updatedBy?: string | undefined;
 
     constructor(data?: ICreatePurchaseOrderResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
@@ -6222,14 +6503,14 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
         }
     }
 
-    static fromJS(data: any): CreatePurchaseOrderResponse {
+    static override fromJS(data: any): CreatePurchaseOrderResponse {
         data = typeof data === 'object' ? data : {};
         let result = new CreatePurchaseOrderResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
@@ -6255,11 +6536,12 @@ export class CreatePurchaseOrderResponse implements ICreatePurchaseOrderResponse
         data["createdBy"] = this.createdBy;
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
         data["updatedBy"] = this.updatedBy;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ICreatePurchaseOrderResponse {
+export interface ICreatePurchaseOrderResponse extends IBaseResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6522,7 +6804,7 @@ export interface ICreatePurchaseOrderLineRequest {
     notes?: string | undefined;
 }
 
-export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdResponse {
+export class GetPurchaseOrderByIdResponse extends BaseResponse implements IGetPurchaseOrderByIdResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6544,15 +6826,11 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
     supplierNote?: string | undefined;
 
     constructor(data?: IGetPurchaseOrderByIdResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
@@ -6584,14 +6862,14 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         }
     }
 
-    static fromJS(data: any): GetPurchaseOrderByIdResponse {
+    static override fromJS(data: any): GetPurchaseOrderByIdResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetPurchaseOrderByIdResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
@@ -6620,11 +6898,12 @@ export class GetPurchaseOrderByIdResponse implements IGetPurchaseOrderByIdRespon
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
         data["updatedBy"] = this.updatedBy;
         data["supplierNote"] = this.supplierNote;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetPurchaseOrderByIdResponse {
+export interface IGetPurchaseOrderByIdResponse extends IBaseResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6646,7 +6925,7 @@ export interface IGetPurchaseOrderByIdResponse {
     supplierNote?: string | undefined;
 }
 
-export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse {
+export class UpdatePurchaseOrderResponse extends BaseResponse implements IUpdatePurchaseOrderResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6662,15 +6941,11 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
     updatedBy?: string | undefined;
 
     constructor(data?: IUpdatePurchaseOrderResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
@@ -6692,14 +6967,14 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
         }
     }
 
-    static fromJS(data: any): UpdatePurchaseOrderResponse {
+    static override fromJS(data: any): UpdatePurchaseOrderResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdatePurchaseOrderResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
@@ -6718,11 +6993,12 @@ export class UpdatePurchaseOrderResponse implements IUpdatePurchaseOrderResponse
         }
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
         data["updatedBy"] = this.updatedBy;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdatePurchaseOrderResponse {
+export interface IUpdatePurchaseOrderResponse extends IBaseResponse {
     id?: number;
     orderNumber?: string;
     supplierId?: number;
@@ -6865,7 +7141,7 @@ export interface IUpdatePurchaseOrderLineRequest {
     notes?: string | undefined;
 }
 
-export class UpdatePurchaseOrderStatusResponse implements IUpdatePurchaseOrderStatusResponse {
+export class UpdatePurchaseOrderStatusResponse extends BaseResponse implements IUpdatePurchaseOrderStatusResponse {
     id?: number;
     orderNumber?: string;
     status?: string;
@@ -6873,15 +7149,11 @@ export class UpdatePurchaseOrderStatusResponse implements IUpdatePurchaseOrderSt
     updatedBy?: string | undefined;
 
     constructor(data?: IUpdatePurchaseOrderStatusResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
@@ -6891,25 +7163,26 @@ export class UpdatePurchaseOrderStatusResponse implements IUpdatePurchaseOrderSt
         }
     }
 
-    static fromJS(data: any): UpdatePurchaseOrderStatusResponse {
+    static override fromJS(data: any): UpdatePurchaseOrderStatusResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdatePurchaseOrderStatusResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
         data["status"] = this.status;
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
         data["updatedBy"] = this.updatedBy;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdatePurchaseOrderStatusResponse {
+export interface IUpdatePurchaseOrderStatusResponse extends IBaseResponse {
     id?: number;
     orderNumber?: string;
     status?: string;
@@ -6957,42 +7230,39 @@ export interface IUpdatePurchaseOrderStatusRequest {
     status?: string;
 }
 
-export class UpdatePurchaseOrderInvoiceAcquiredResponse implements IUpdatePurchaseOrderInvoiceAcquiredResponse {
+export class UpdatePurchaseOrderInvoiceAcquiredResponse extends BaseResponse implements IUpdatePurchaseOrderInvoiceAcquiredResponse {
     id?: number;
     invoiceAcquired?: boolean;
 
     constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.id = _data["id"];
             this.invoiceAcquired = _data["invoiceAcquired"];
         }
     }
 
-    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredResponse {
+    static override fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdatePurchaseOrderInvoiceAcquiredResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["invoiceAcquired"] = this.invoiceAcquired;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdatePurchaseOrderInvoiceAcquiredResponse {
+export interface IUpdatePurchaseOrderInvoiceAcquiredResponse extends IBaseResponse {
     id?: number;
     invoiceAcquired?: boolean;
 }
@@ -7037,7 +7307,52 @@ export interface IUpdatePurchaseOrderInvoiceAcquiredRequest {
     invoiceAcquired?: boolean;
 }
 
-export class RecalculatePurchasePriceResponse implements IRecalculatePurchasePriceResponse {
+export class ListResponseOfPurchaseOrderHistoryDto extends BaseResponse implements IListResponseOfPurchaseOrderHistoryDto {
+    items?: PurchaseOrderHistoryDto[];
+    totalCount?: number;
+
+    constructor(data?: IListResponseOfPurchaseOrderHistoryDto) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(PurchaseOrderHistoryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListResponseOfPurchaseOrderHistoryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListResponseOfPurchaseOrderHistoryDto();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListResponseOfPurchaseOrderHistoryDto extends IBaseResponse {
+    items?: PurchaseOrderHistoryDto[];
+    totalCount?: number;
+}
+
+export class RecalculatePurchasePriceResponse extends BaseResponse implements IRecalculatePurchasePriceResponse {
     successCount?: number;
     failedCount?: number;
     totalCount?: number;
@@ -7046,15 +7361,11 @@ export class RecalculatePurchasePriceResponse implements IRecalculatePurchasePri
     message?: string;
 
     constructor(data?: IRecalculatePurchasePriceResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.successCount = _data["successCount"];
             this.failedCount = _data["failedCount"];
@@ -7069,14 +7380,14 @@ export class RecalculatePurchasePriceResponse implements IRecalculatePurchasePri
         }
     }
 
-    static fromJS(data: any): RecalculatePurchasePriceResponse {
+    static override fromJS(data: any): RecalculatePurchasePriceResponse {
         data = typeof data === 'object' ? data : {};
         let result = new RecalculatePurchasePriceResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["successCount"] = this.successCount;
         data["failedCount"] = this.failedCount;
@@ -7088,11 +7399,12 @@ export class RecalculatePurchasePriceResponse implements IRecalculatePurchasePri
         }
         data["isSuccess"] = this.isSuccess;
         data["message"] = this.message;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IRecalculatePurchasePriceResponse {
+export interface IRecalculatePurchasePriceResponse extends IBaseResponse {
     successCount?: number;
     failedCount?: number;
     totalCount?: number;
@@ -7101,48 +7413,37 @@ export interface IRecalculatePurchasePriceResponse {
     message?: string;
 }
 
-export class ProductRecalculationResult implements IProductRecalculationResult {
+export class ProductRecalculationResult extends BaseResponse implements IProductRecalculationResult {
     productCode?: string;
-    isSuccess?: boolean;
-    errorMessage?: string | undefined;
 
     constructor(data?: IProductRecalculationResult) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.productCode = _data["productCode"];
-            this.isSuccess = _data["isSuccess"];
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
-    static fromJS(data: any): ProductRecalculationResult {
+    static override fromJS(data: any): ProductRecalculationResult {
         data = typeof data === 'object' ? data : {};
         let result = new ProductRecalculationResult();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
-        data["isSuccess"] = this.isSuccess;
-        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IProductRecalculationResult {
+export interface IProductRecalculationResult extends IBaseResponse {
     productCode?: string;
-    isSuccess?: boolean;
-    errorMessage?: string | undefined;
 }
 
 export class RecalculatePurchasePriceRequest implements IRecalculatePurchasePriceRequest {
@@ -7189,7 +7490,7 @@ export interface IRecalculatePurchasePriceRequest {
     forceReload?: boolean;
 }
 
-export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalysisResponse {
+export class GetPurchaseStockAnalysisResponse extends BaseResponse implements IGetPurchaseStockAnalysisResponse {
     items?: StockAnalysisItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -7197,15 +7498,11 @@ export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalys
     summary?: StockAnalysisSummaryDto;
 
     constructor(data?: IGetPurchaseStockAnalysisResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -7219,14 +7516,14 @@ export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalys
         }
     }
 
-    static fromJS(data: any): GetPurchaseStockAnalysisResponse {
+    static override fromJS(data: any): GetPurchaseStockAnalysisResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetPurchaseStockAnalysisResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -7237,11 +7534,12 @@ export class GetPurchaseStockAnalysisResponse implements IGetPurchaseStockAnalys
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetPurchaseStockAnalysisResponse {
+export interface IGetPurchaseStockAnalysisResponse extends IBaseResponse {
     items?: StockAnalysisItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -7491,19 +7789,15 @@ export enum StockAnalysisSortBy {
     LastPurchaseDate = "LastPurchaseDate",
 }
 
-export class SearchSuppliersResponse implements ISearchSuppliersResponse {
+export class SearchSuppliersResponse extends BaseResponse implements ISearchSuppliersResponse {
     suppliers?: SupplierDto[];
 
     constructor(data?: ISearchSuppliersResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["suppliers"])) {
                 this.suppliers = [] as any;
@@ -7513,25 +7807,26 @@ export class SearchSuppliersResponse implements ISearchSuppliersResponse {
         }
     }
 
-    static fromJS(data: any): SearchSuppliersResponse {
+    static override fromJS(data: any): SearchSuppliersResponse {
         data = typeof data === 'object' ? data : {};
         let result = new SearchSuppliersResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.suppliers)) {
             data["suppliers"] = [];
             for (let item of this.suppliers)
                 data["suppliers"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ISearchSuppliersResponse {
+export interface ISearchSuppliersResponse extends IBaseResponse {
     suppliers?: SupplierDto[];
 }
 
@@ -7595,22 +7890,18 @@ export interface ISupplierDto {
     url?: string | undefined;
 }
 
-export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {
+export class GetTransportBoxesResponse extends BaseResponse implements IGetTransportBoxesResponse {
     items?: TransportBoxDto[];
     totalCount?: number;
     skip?: number;
     take?: number;
 
     constructor(data?: IGetTransportBoxesResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -7623,14 +7914,14 @@ export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {
         }
     }
 
-    static fromJS(data: any): GetTransportBoxesResponse {
+    static override fromJS(data: any): GetTransportBoxesResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetTransportBoxesResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -7640,11 +7931,12 @@ export class GetTransportBoxesResponse implements IGetTransportBoxesResponse {
         data["totalCount"] = this.totalCount;
         data["skip"] = this.skip;
         data["take"] = this.take;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetTransportBoxesResponse {
+export interface IGetTransportBoxesResponse extends IBaseResponse {
     items?: TransportBoxDto[];
     totalCount?: number;
     skip?: number;
@@ -7931,21 +8223,17 @@ export interface ITransportBoxTransitionDto {
     label?: string;
 }
 
-export class GetTransportBoxSummaryResponse implements IGetTransportBoxSummaryResponse {
+export class GetTransportBoxSummaryResponse extends BaseResponse implements IGetTransportBoxSummaryResponse {
     totalBoxes?: number;
     activeBoxes?: number;
     statesCounts?: { [key: string]: number; };
 
     constructor(data?: IGetTransportBoxSummaryResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.totalBoxes = _data["totalBoxes"];
             this.activeBoxes = _data["activeBoxes"];
@@ -7959,14 +8247,14 @@ export class GetTransportBoxSummaryResponse implements IGetTransportBoxSummaryRe
         }
     }
 
-    static fromJS(data: any): GetTransportBoxSummaryResponse {
+    static override fromJS(data: any): GetTransportBoxSummaryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetTransportBoxSummaryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalBoxes"] = this.totalBoxes;
         data["activeBoxes"] = this.activeBoxes;
@@ -7977,93 +8265,80 @@ export class GetTransportBoxSummaryResponse implements IGetTransportBoxSummaryRe
                     (<any>data["statesCounts"])[key] = (<any>this.statesCounts)[key];
             }
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetTransportBoxSummaryResponse {
+export interface IGetTransportBoxSummaryResponse extends IBaseResponse {
     totalBoxes?: number;
     activeBoxes?: number;
     statesCounts?: { [key: string]: number; };
 }
 
-export class GetTransportBoxByIdResponse implements IGetTransportBoxByIdResponse {
+export class GetTransportBoxByIdResponse extends BaseResponse implements IGetTransportBoxByIdResponse {
     transportBox?: TransportBoxDto | undefined;
 
     constructor(data?: IGetTransportBoxByIdResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): GetTransportBoxByIdResponse {
+    static override fromJS(data: any): GetTransportBoxByIdResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetTransportBoxByIdResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetTransportBoxByIdResponse {
+export interface IGetTransportBoxByIdResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
 }
 
-export class ChangeTransportBoxStateResponse implements IChangeTransportBoxStateResponse {
-    success?: boolean;
-    errorMessage?: string | undefined;
+export class ChangeTransportBoxStateResponse extends BaseResponse implements IChangeTransportBoxStateResponse {
     updatedBox?: GetTransportBoxByIdResponse | undefined;
 
     constructor(data?: IChangeTransportBoxStateResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
-            this.errorMessage = _data["errorMessage"];
             this.updatedBox = _data["updatedBox"] ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): ChangeTransportBoxStateResponse {
+    static override fromJS(data: any): ChangeTransportBoxStateResponse {
         data = typeof data === 'object' ? data : {};
         let result = new ChangeTransportBoxStateResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["errorMessage"] = this.errorMessage;
         data["updatedBox"] = this.updatedBox ? this.updatedBox.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IChangeTransportBoxStateResponse {
-    success?: boolean;
-    errorMessage?: string | undefined;
+export interface IChangeTransportBoxStateResponse extends IBaseResponse {
     updatedBox?: GetTransportBoxByIdResponse | undefined;
 }
 
@@ -8131,48 +8406,37 @@ export enum TransportBoxState {
     Reserve = "Reserve",
 }
 
-export class CreateNewTransportBoxResponse implements ICreateNewTransportBoxResponse {
-    success?: boolean;
+export class CreateNewTransportBoxResponse extends BaseResponse implements ICreateNewTransportBoxResponse {
     transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
 
     constructor(data?: ICreateNewTransportBoxResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
             this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
-    static fromJS(data: any): CreateNewTransportBoxResponse {
+    static override fromJS(data: any): CreateNewTransportBoxResponse {
         data = typeof data === 'object' ? data : {};
         let result = new CreateNewTransportBoxResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
         data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface ICreateNewTransportBoxResponse {
-    success?: boolean;
+export interface ICreateNewTransportBoxResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
 }
 
 export class CreateNewTransportBoxRequest implements ICreateNewTransportBoxRequest {
@@ -8211,52 +8475,41 @@ export interface ICreateNewTransportBoxRequest {
     description?: string | undefined;
 }
 
-export class AddItemToBoxResponse implements IAddItemToBoxResponse {
-    success?: boolean;
+export class AddItemToBoxResponse extends BaseResponse implements IAddItemToBoxResponse {
     item?: TransportBoxItemDto | undefined;
     transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
 
     constructor(data?: IAddItemToBoxResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
             this.item = _data["item"] ? TransportBoxItemDto.fromJS(_data["item"]) : <any>undefined;
             this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
-    static fromJS(data: any): AddItemToBoxResponse {
+    static override fromJS(data: any): AddItemToBoxResponse {
         data = typeof data === 'object' ? data : {};
         let result = new AddItemToBoxResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
         data["item"] = this.item ? this.item.toJSON() : <any>undefined;
         data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IAddItemToBoxResponse {
-    success?: boolean;
+export interface IAddItemToBoxResponse extends IBaseResponse {
     item?: TransportBoxItemDto | undefined;
     transportBox?: TransportBoxDto | undefined;
-    errorMessage?: string | undefined;
 }
 
 export class AddItemToBoxRequest implements IAddItemToBoxRequest {
@@ -8307,47 +8560,36 @@ export interface IAddItemToBoxRequest {
     amount: number;
 }
 
-export class RemoveItemFromBoxResponse implements IRemoveItemFromBoxResponse {
-    success?: boolean;
-    errorMessage?: string | undefined;
+export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveItemFromBoxResponse {
     transportBox?: TransportBoxDto | undefined;
 
     constructor(data?: IRemoveItemFromBoxResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
-            this.errorMessage = _data["errorMessage"];
             this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): RemoveItemFromBoxResponse {
+    static override fromJS(data: any): RemoveItemFromBoxResponse {
         data = typeof data === 'object' ? data : {};
         let result = new RemoveItemFromBoxResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["errorMessage"] = this.errorMessage;
         data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IRemoveItemFromBoxResponse {
-    success?: boolean;
-    errorMessage?: string | undefined;
+export interface IRemoveItemFromBoxResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
 }
 

@@ -398,11 +398,11 @@ describe('TransportBoxDetail', () => {
         // Use getAllByText since B001 appears multiple times (in header and in basic info)
         const boxCodeDisplays = screen.getAllByText('B001');
         expect(boxCodeDisplays.length).toBeGreaterThan(0);
-        
-        // Verify no input field exists
-        const boxNumberInput = screen.queryByPlaceholderText('B001');
-        expect(boxNumberInput).not.toBeInTheDocument();
       });
+        
+      // Verify no input field exists
+      const boxNumberInput = screen.queryByPlaceholderText('B001');
+      expect(boxNumberInput).not.toBeInTheDocument();
     });
   });
 

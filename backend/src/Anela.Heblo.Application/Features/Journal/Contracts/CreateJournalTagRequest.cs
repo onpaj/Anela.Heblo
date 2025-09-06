@@ -19,5 +19,8 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Color { get; set; } = null!;
+
+        public CreateJournalTagResponse() : base() { }
+        public CreateJournalTagResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
     }
 }

@@ -81,6 +81,18 @@ const resources = {
         // Configuration module errors
         'ConfigurationNotFound': 'Konfigurace nenalezena (ID: {id})',
         
+        // Journal module errors
+        'JournalEntryNotFound': 'Záznam z deníku nebyl nalezen (ID: {{entryId}})',
+        'InvalidJournalTitle': 'Neplatný titulek deníku - musí mít {{minLength}}-{{maxLength}} znaků',
+        'InvalidJournalContent': 'Obsah deníku nemůže být prázdný',
+        'JournalTagNotFound': 'Značka deníku nenalezena ({{tagName}})',
+        'JournalTagCreationFailed': 'Vytvoření značky selhalo: {{tagName}}',
+        'InvalidJournalDateFilter': 'Neplatný filtr data: {{dateFilter}}',
+        'JournalDeleteNotAllowed': 'Mazání záznamu deníku není povoleno: {{reason}}',
+        'UnauthorizedJournalAccess': 'Můžete přistupovat pouze k vlastním záznamům ({{resource}})',
+        'DuplicateJournalTag': 'Značka s názvem {{tagName}} již existuje',
+        'InvalidJournalEntryData': 'Neplatná data záznamu deníku: {{field}}',
+        
         // External Service errors
         'ExternalServiceError': 'Chyba externí služby',
         'FlexiApiError': 'Chyba ABRA Flexi API',
@@ -104,6 +116,19 @@ const resources = {
         loading: 'Loading...',
         welcome: 'Welcome to Anela Heblo',
         appLoading: 'Application is loading...',
+      },
+      errors: {
+        // Journal module errors
+        'JournalEntryNotFound': 'Journal entry not found (ID: {{entryId}})',
+        'InvalidJournalTitle': 'Invalid journal title - must be {{minLength}}-{{maxLength}} characters',
+        'InvalidJournalContent': 'Journal content cannot be empty',
+        'JournalTagNotFound': 'Journal tag not found ({{tagName}})',
+        'JournalTagCreationFailed': 'Failed to create tag: {{tagName}}',
+        'InvalidJournalDateFilter': 'Invalid date filter: {{dateFilter}}',
+        'JournalDeleteNotAllowed': 'Cannot delete journal entry: {{reason}}',
+        'UnauthorizedJournalAccess': 'You can only access your own {{resource}}',
+        'DuplicateJournalTag': 'Tag with name {{tagName}} already exists',
+        'InvalidJournalEntryData': 'Invalid journal entry data: {{field}}',
       },
     },
   },

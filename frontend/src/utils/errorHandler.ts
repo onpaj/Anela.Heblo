@@ -20,7 +20,7 @@ function formatMessage(template: string | undefined, params?: Record<string, str
  */
 export function getErrorMessage(errorCode: ErrorCodes, params?: Record<string, string>): string {
   // Special handling for Exception error code
-  if (errorCode === ErrorCodes.Exception && params?.exceptionType && params?.message) {
+   if (errorCode === ErrorCodes.Exception && params?.exceptionType && params?.message) {
     return `Chyba ${params.exceptionType}\n${params.message}`;
   }
 

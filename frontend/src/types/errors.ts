@@ -62,6 +62,10 @@ export enum ErrorCodes {
   // Configuration module errors (15XX)
   ConfigurationNotFound = 1501,
 
+  // Journal module errors (16XX)
+  JournalEntryNotFound = 1601,
+  UnauthorizedJournalAccess = 1602,
+
   // External Service errors (90XX)
   ExternalServiceError = 9001,
   FlexiApiError = 9002,

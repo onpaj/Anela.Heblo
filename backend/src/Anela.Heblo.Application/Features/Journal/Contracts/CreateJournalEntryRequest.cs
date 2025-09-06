@@ -27,5 +27,8 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public int Id { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Message { get; set; } = "Journal entry created successfully";
+
+        public CreateJournalEntryResponse() : base() { }
+        public CreateJournalEntryResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
     }
 }
