@@ -78,6 +78,7 @@ public class ErrorHandlingTests
         var catalogErrors = errorCodes.Where(code => code >= 1300 && code < 1400).ToList(); // 13XX range
         var transportErrors = errorCodes.Where(code => code >= 1400 && code < 1500).ToList(); // 14XX range
         var configErrors = errorCodes.Where(code => code >= 1500 && code < 1600).ToList(); // 15XX range
+        var journalErrors = errorCodes.Where(code => code >= 1600 && code < 1700).ToList(); // 16XX range
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -86,12 +87,13 @@ public class ErrorHandlingTests
         Assert.True(catalogErrors.Count > 0, "Should have catalog errors in 13XX range");
         Assert.True(transportErrors.Count > 0, "Should have transport errors in 14XX range");
         Assert.True(configErrors.Count > 0, "Should have config errors in 15XX range");
+        Assert.True(journalErrors.Count > 0, "Should have journal errors in 16XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
         var categorizedCount = generalErrors.Count + auditErrors.Count + purchaseErrors.Count +
                               manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
-                              configErrors.Count + externalServiceErrors.Count;
+                              configErrors.Count + journalErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

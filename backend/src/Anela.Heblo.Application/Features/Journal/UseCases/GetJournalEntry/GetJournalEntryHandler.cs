@@ -44,6 +44,7 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.GetJournalEntry
                         .Distinct()
                         .ToList(),
                     Tags = entry.TagAssignments
+                        .Where(ta => ta.Tag != null)
                         .Select(ta => new JournalEntryTagDto
                         {
                             Id = ta.Tag.Id,

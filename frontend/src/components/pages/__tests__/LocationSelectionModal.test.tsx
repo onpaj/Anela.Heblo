@@ -403,7 +403,7 @@ describe('LocationSelectionModal', () => {
       );
 
       // Find close button (X button with SVG icon)
-      const closeButton = screen.getByLabelText(/close/i);
+      const closeButton = screen.getByRole('button', { name: '' }); // Button with X icon has no text/label
       fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -638,7 +638,7 @@ describe('LocationSelectionModal', () => {
       
       expect(screen.getByRole('option', { name: /kumbal/i })).toHaveValue('Kumbal');
       expect(screen.getByRole('option', { name: /relax/i })).toHaveValue('Relax');
-      expect(screen.getByRole('option', { name: /skladskla/i })).toHaveValue('SkladSkla');
+      expect(screen.getByRole('option', { name: /sklad skla/i })).toHaveValue('SkladSkla');
     });
   });
 });

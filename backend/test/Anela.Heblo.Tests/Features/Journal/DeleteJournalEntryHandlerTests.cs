@@ -93,11 +93,12 @@ public class DeleteJournalEntryHandlerTests
         var entryId = 999;
         var request = new DeleteJournalEntryRequest { Id = entryId };
 
-        var currentUser = new CurrentUser
-        {
-            IsAuthenticated = true,
-            Id = "user123"
-        };
+        var currentUser = new CurrentUser(
+            Id: "user123",
+            Name: "Test User",
+            Email: "test@example.com",
+            IsAuthenticated: true
+        );
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
