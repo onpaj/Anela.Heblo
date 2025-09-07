@@ -81,6 +81,13 @@ const resources = {
         // Configuration module errors
         'ConfigurationNotFound': 'Konfigurace nenalezena (ID: {id})',
         
+        // Analytics module errors
+        'AnalysisDataNotAvailable': 'Data pro analýzu {{product}} nejsou k dispozici pro období {{period}}',
+        'MarginCalculationFailed': 'Výpočet marží selhal: {{reason}}',
+        'InsufficientData': 'Nedostatečná data pro analýzu: minimum požadovaného období {{requiredPeriod}}',
+        'ProductNotFoundForAnalysis': 'Produkt {{productId}} nebyl nalezen pro analýzu',
+        'InvalidReportPeriod': 'Neplatné období sestavy: {{period}}',
+
         // Journal module errors
         'JournalEntryNotFound': 'Záznam z deníku nebyl nalezen (ID: {{entryId}})',
         'InvalidJournalTitle': 'Neplatný titulek deníku - musí mít {{minLength}}-{{maxLength}} znaků',
@@ -118,6 +125,13 @@ const resources = {
         appLoading: 'Application is loading...',
       },
       errors: {
+        // Analytics module errors
+        'AnalysisDataNotAvailable': 'No analysis data available for {{product}} in {{period}}',
+        'MarginCalculationFailed': 'Margin calculation failed: {{reason}}',
+        'InsufficientData': 'Insufficient data for analysis: minimum required period {{requiredPeriod}}',
+        'ProductNotFoundForAnalysis': 'Product {{productId}} not found for analysis',
+        'InvalidReportPeriod': 'Invalid report period: {{period}}',
+
         // Journal module errors
         'JournalEntryNotFound': 'Journal entry not found (ID: {{entryId}})',
         'InvalidJournalTitle': 'Invalid journal title - must be {{minLength}}-{{maxLength}} characters',
