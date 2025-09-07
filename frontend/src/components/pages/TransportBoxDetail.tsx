@@ -238,10 +238,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({ boxId, isOpen, 
         refetch();
         
         // Success item addition - no toast needed
-      } else {
-        const errorMessage = response.errorMessage || 'Neočekávaná chyba při přidávání položky';
-        showError('Chyba při přidávání položky', errorMessage);
       }
+      // If response.success is false, the global error handler will show a toast
     } catch (error) {
       console.error('Error adding item:', error);
       const errorMessage = error instanceof Error ? error.message : 'Neočekávaná chyba při přidávání položky';

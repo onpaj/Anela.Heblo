@@ -29,5 +29,8 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public int Id { get; set; }
         public DateTime ModifiedAt { get; set; }
         public string Message { get; set; } = "Journal entry updated successfully";
+
+        public UpdateJournalEntryResponse() : base() { }
+        public UpdateJournalEntryResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
     }
 }

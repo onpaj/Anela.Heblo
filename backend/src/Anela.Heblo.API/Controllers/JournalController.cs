@@ -10,7 +10,7 @@ namespace Anela.Heblo.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class JournalController : ControllerBase
+    public class JournalController : BaseApiController
     {
         private readonly IMediator _mediator;
 
@@ -24,10 +24,10 @@ namespace Anela.Heblo.API.Controllers
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(GetJournalEntriesResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetJournalEntries([FromQuery] GetJournalEntriesRequest request)
+        public async Task<ActionResult<GetJournalEntriesResponse>> GetJournalEntries([FromQuery] GetJournalEntriesRequest request)
         {
             var response = await _mediator.Send(request);
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -35,27 +35,24 @@ namespace Anela.Heblo.API.Controllers
         /// </summary>
         [HttpGet("search")]
         [ProducesResponseType(typeof(SearchJournalEntriesResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> SearchJournalEntries([FromQuery] SearchJournalEntriesRequest request)
+        public async Task<ActionResult<SearchJournalEntriesResponse>> SearchJournalEntries([FromQuery] SearchJournalEntriesRequest request)
         {
             var response = await _mediator.Send(request);
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>
         /// Get specific journal entry by ID
         /// </summary>
         [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(JournalEntryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(GetJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetJournalEntry(int id)
+        public async Task<ActionResult<GetJournalEntryResponse>> GetJournalEntry(int id)
         {
             var request = new GetJournalEntryRequest { Id = id };
             var response = await _mediator.Send(request);
 
-            if (response == null)
-                return NotFound($"Journal entry with ID {id} was not found.");
-
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -64,10 +61,17 @@ namespace Anela.Heblo.API.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(CreateJournalEntryResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateJournalEntry([FromBody] CreateJournalEntryRequest request)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<CreateJournalEntryResponse>> CreateJournalEntry([FromBody] CreateJournalEntryRequest request)
         {
             var response = await _mediator.Send(request);
-            return CreatedAtAction(nameof(GetJournalEntry), new { id = response.Id }, response);
+
+            if (response.Success)
+            {
+                return CreatedAtAction(nameof(GetJournalEntry), new { id = response.Id }, response);
+            }
+
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -76,26 +80,28 @@ namespace Anela.Heblo.API.Controllers
         [HttpPut("{id:int}")]
         [ProducesResponseType(typeof(UpdateJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> UpdateJournalEntry(int id, [FromBody] UpdateJournalEntryRequest request)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<UpdateJournalEntryResponse>> UpdateJournalEntry(int id, [FromBody] UpdateJournalEntryRequest request)
         {
             request.Id = id;
             var response = await _mediator.Send(request);
-            return Ok(response);
+
+            return HandleResponse(response);
         }
 
         /// <summary>
         /// Delete journal entry (soft delete)
         /// </summary>
         [HttpDelete("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(DeleteJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> DeleteJournalEntry(int id)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<DeleteJournalEntryResponse>> DeleteJournalEntry(int id)
         {
             var request = new DeleteJournalEntryRequest { Id = id };
-            await _mediator.Send(request);
-            return NoContent();
+            var response = await _mediator.Send(request);
+
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -103,11 +109,11 @@ namespace Anela.Heblo.API.Controllers
         /// </summary>
         [HttpGet("tags")]
         [ProducesResponseType(typeof(GetJournalTagsResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetJournalTags()
+        public async Task<ActionResult<GetJournalTagsResponse>> GetJournalTags()
         {
             var request = new GetJournalTagsRequest();
             var response = await _mediator.Send(request);
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -115,10 +121,17 @@ namespace Anela.Heblo.API.Controllers
         /// </summary>
         [HttpPost("tags")]
         [ProducesResponseType(typeof(CreateJournalTagResponse), StatusCodes.Status201Created)]
-        public async Task<IActionResult> CreateJournalTag([FromBody] CreateJournalTagRequest request)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<CreateJournalTagResponse>> CreateJournalTag([FromBody] CreateJournalTagRequest request)
         {
             var response = await _mediator.Send(request);
-            return CreatedAtAction(nameof(GetJournalTags), response);
+
+            if (response.Success)
+            {
+                return CreatedAtAction(nameof(GetJournalTags), response);
+            }
+
+            return HandleResponse(response);
         }
     }
 }
