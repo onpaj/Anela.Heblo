@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Application.Features.Analytics.Models;
+using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
@@ -12,60 +14,48 @@ namespace Anela.Heblo.Application.Features.Analytics;
 public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, GetMarginReportResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
+    private readonly IProductFilterService _productFilterService;
+    private readonly IMarginCalculationService _marginCalculationService;
+    private readonly IReportBuilderService _reportBuilderService;
 
-    public GetMarginReportHandler(IAnalyticsRepository analyticsRepository)
+    public GetMarginReportHandler(
+        IAnalyticsRepository analyticsRepository,
+        IProductFilterService productFilterService,
+        IMarginCalculationService marginCalculationService,
+        IReportBuilderService reportBuilderService)
     {
         _analyticsRepository = analyticsRepository;
+        _productFilterService = productFilterService;
+        _marginCalculationService = marginCalculationService;
+        _reportBuilderService = reportBuilderService;
     }
 
     public async Task<GetMarginReportResponse> Handle(GetMarginReportRequest request, CancellationToken cancellationToken)
     {
-        // Validate date range
+        // Basic input validation (kept here for backward compatibility with tests)
         if (request.StartDate > request.EndDate)
         {
-            return new GetMarginReportResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidDateRange,
-                Params = new Dictionary<string, string>
-                {
-                    { "startDate", request.StartDate.ToString("yyyy-MM-dd") },
-                    { "endDate", request.EndDate.ToString("yyyy-MM-dd") }
-                }
-            };
+            return CreateErrorResponse(ErrorCodes.InvalidDateRange, 
+                ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
+                ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
         }
 
-        // Validate report period (must be reasonable)
-        var periodDays = (request.EndDate - request.StartDate).TotalDays;
-        if (periodDays > 365 * 2) // More than 2 years
+        var totalDays = (request.EndDate - request.StartDate).TotalDays;
+        if (totalDays > AnalyticsConstants.MAX_REPORT_PERIOD_DAYS)
         {
-            return new GetMarginReportResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidReportPeriod,
-                Params = new Dictionary<string, string>
-                {
-                    { "period", $"{periodDays:F0} days" }
-                }
-            };
+            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod, 
+                ("period", $"{totalDays} days (max {AnalyticsConstants.MAX_REPORT_PERIOD_DAYS})"));
         }
 
-        if (periodDays <= 0)
+        if (totalDays < AnalyticsConstants.MIN_REPORT_PERIOD_DAYS)
         {
-            return new GetMarginReportResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidReportPeriod,
-                Params = new Dictionary<string, string>
-                {
-                    { "period", "Zero or negative days" }
-                }
-            };
+            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod, 
+                ("period", $"{totalDays} days (min {AnalyticsConstants.MIN_REPORT_PERIOD_DAYS})"));
         }
 
         try
         {
-            // Get products with sales in the period
+            // Get products stream from repository
             var productTypes = new[] { ProductType.Product, ProductType.Goods };
             var productsStream = _analyticsRepository.StreamProductsWithSalesAsync(
                 request.StartDate, 
@@ -73,174 +63,162 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
                 productTypes, 
                 cancellationToken);
 
-            var products = new List<Domain.Features.Analytics.AnalyticsProduct>();
-            await foreach (var product in productsStream.WithCancellation(cancellationToken))
-            {
-                // Apply filters if specified
-                if (!string.IsNullOrWhiteSpace(request.ProductFilter) && 
-                    !product.ProductName.Contains(request.ProductFilter, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                if (!string.IsNullOrWhiteSpace(request.CategoryFilter) && 
-                    !string.Equals(product.ProductCategory, request.CategoryFilter, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                products.Add(product);
-            }
+            // Apply filters and get products list
+            var products = await _productFilterService.FilterProductsAsync(
+                productsStream, 
+                request.ProductFilter, 
+                request.CategoryFilter, 
+                request.MaxProducts,
+                cancellationToken);
 
             if (!products.Any())
             {
-                return new GetMarginReportResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.AnalysisDataNotAvailable,
-                    Params = new Dictionary<string, string>
-                    {
-                        { "product", request.ProductFilter ?? "all products" },
-                        { "period", $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}" }
-                    }
-                };
+                return CreateErrorResponse(ErrorCodes.AnalysisDataNotAvailable, 
+                    ("product", request.ProductFilter ?? "all products"),
+                    ("period", $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}"));
             }
 
-            // Limit products to avoid performance issues
-            if (products.Count > request.MaxProducts)
+            // Process products and calculate margins
+            var reportData = await ProcessProductsForReport(products, request.StartDate, request.EndDate);
+
+            if (reportData.ProductSummaries.Count == 0)
             {
-                products = products.Take(request.MaxProducts).ToList();
+                return CreateErrorResponse(ErrorCodes.InsufficientData,
+                    ("requiredPeriod", $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}"));
             }
 
-            // Calculate report data
-            var productSummaries = new List<GetMarginReportResponse.ProductMarginSummary>();
-            var categoryTotals = new Dictionary<string, CategoryData>();
-
-            decimal totalMargin = 0;
-            decimal totalRevenue = 0;
-            decimal totalCost = 0;
-            int totalUnitsSold = 0;
-
-            foreach (var product in products)
-            {
-                var salesInPeriod = product.SalesHistory
-                    .Where(s => s.Date >= request.StartDate && s.Date <= request.EndDate)
-                    .ToList();
-
-                var unitsSold = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
-                if (unitsSold <= 0) continue;
-
-                try
-                {
-                    var revenue = (decimal)unitsSold * product.SellingPrice;
-                    var cost = (decimal)unitsSold * (product.SellingPrice - product.MarginAmount);
-                    var margin = revenue - cost;
-                    var marginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0;
-
-                    productSummaries.Add(new GetMarginReportResponse.ProductMarginSummary
-                    {
-                        ProductId = product.ProductCode,
-                        ProductName = product.ProductName,
-                        Category = product.ProductCategory ?? "Uncategorized",
-                        MarginAmount = margin,
-                        MarginPercentage = marginPercentage,
-                        Revenue = revenue,
-                        Cost = cost,
-                        UnitsSold = unitsSold
-                    });
-
-                    // Accumulate category data
-                    var category = product.ProductCategory ?? "Uncategorized";
-                    if (!categoryTotals.ContainsKey(category))
-                    {
-                        categoryTotals[category] = new CategoryData();
-                    }
-                    
-                    categoryTotals[category].TotalMargin += margin;
-                    categoryTotals[category].TotalRevenue += revenue;
-                    categoryTotals[category].ProductCount++;
-                    categoryTotals[category].TotalUnitsSold += unitsSold;
-
-                    // Accumulate overall totals
-                    totalMargin += margin;
-                    totalRevenue += revenue;
-                    totalCost += cost;
-                    totalUnitsSold += unitsSold;
-                }
-                catch (Exception ex)
-                {
-                    return new GetMarginReportResponse
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.MarginCalculationFailed,
-                        Params = new Dictionary<string, string>
-                        {
-                            { "reason", $"Error calculating margins for product {product.ProductName}: {ex.Message}" }
-                        }
-                    };
-                }
-            }
-
-            if (productSummaries.Count == 0)
-            {
-                return new GetMarginReportResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.InsufficientData,
-                    Params = new Dictionary<string, string>
-                    {
-                        { "requiredPeriod", $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}" }
-                    }
-                };
-            }
-
-            // Generate category summaries
-            var categorySummaries = categoryTotals.Select(kvp => new GetMarginReportResponse.CategoryMarginSummary
-            {
-                Category = kvp.Key,
-                TotalMargin = kvp.Value.TotalMargin,
-                TotalRevenue = kvp.Value.TotalRevenue,
-                AverageMarginPercentage = kvp.Value.TotalRevenue > 0 ? 
-                    (kvp.Value.TotalMargin / kvp.Value.TotalRevenue) * 100 : 0,
-                ProductCount = kvp.Value.ProductCount,
-                TotalUnitsSold = kvp.Value.TotalUnitsSold
-            }).ToList();
-
-            // Sort products by margin (descending)
-            productSummaries = productSummaries.OrderByDescending(p => p.MarginAmount).ToList();
-
-            var averageMarginPercentage = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
-
-            return new GetMarginReportResponse
-            {
-                Success = true,
-                ReportPeriodStart = request.StartDate,
-                ReportPeriodEnd = request.EndDate,
-                TotalMargin = totalMargin,
-                TotalRevenue = totalRevenue,
-                TotalCost = totalCost,
-                AverageMarginPercentage = averageMarginPercentage,
-                TotalProductsAnalyzed = productSummaries.Count,
-                TotalUnitsSold = totalUnitsSold,
-                ProductSummaries = productSummaries,
-                CategorySummaries = categorySummaries
-            };
+            // Build final response
+            return BuildSuccessResponse(request, reportData);
         }
         catch (Exception ex)
         {
-            return new GetMarginReportResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InternalServerError,
-                Params = new Dictionary<string, string>
-                {
-                    { "details", ex.Message }
-                }
-            };
+            return CreateErrorResponse(ErrorCodes.InternalServerError, ("details", ex.Message));
         }
     }
 
-    private class CategoryData
+    private async Task<ReportData> ProcessProductsForReport(
+        List<Domain.Features.Analytics.AnalyticsProduct> products, 
+        DateTime startDate, 
+        DateTime endDate)
     {
-        public decimal TotalMargin { get; set; }
-        public decimal TotalRevenue { get; set; }
-        public int ProductCount { get; set; }
-        public int TotalUnitsSold { get; set; }
+        var productSummaries = new List<GetMarginReportResponse.ProductMarginSummary>();
+        var categoryTotals = new Dictionary<string, CategoryData>();
+        var overallTotals = new OverallTotals();
+
+        foreach (var product in products)
+        {
+            // Check if product has sales data in the period
+            if (!HasSalesInPeriod(product, startDate, endDate))
+                continue;
+
+            // Calculate margins for this product
+            var marginResult = _marginCalculationService.CalculateProductMargins(product, startDate, endDate);
+            if (!marginResult.IsSuccess)
+                continue; // Skip products with calculation errors
+
+            // Build product summary
+            var productSummary = _reportBuilderService.BuildProductSummary(product, marginResult.Data!);
+            productSummaries.Add(productSummary);
+
+            // Accumulate category totals
+            AccumulateCategoryTotals(categoryTotals, product, marginResult.Data!);
+
+            // Accumulate overall totals
+            overallTotals.Add(marginResult.Data!);
+        }
+
+        // Sort products by margin (descending)
+        productSummaries = productSummaries.OrderByDescending(p => p.MarginAmount).ToList();
+
+        // Build category summaries
+        var categorySummaries = _reportBuilderService.BuildCategorySummaries(categoryTotals);
+
+        return new ReportData
+        {
+            ProductSummaries = productSummaries,
+            CategorySummaries = categorySummaries,
+            OverallTotals = overallTotals
+        };
+    }
+
+    private static bool HasSalesInPeriod(Domain.Features.Analytics.AnalyticsProduct product, DateTime startDate, DateTime endDate)
+    {
+        return product.SalesHistory.Any(s => s.Date >= startDate && s.Date <= endDate);
+    }
+
+    private static void AccumulateCategoryTotals(
+        Dictionary<string, CategoryData> categoryTotals, 
+        Domain.Features.Analytics.AnalyticsProduct product, 
+        MarginData marginData)
+    {
+        var category = product.ProductCategory ?? AnalyticsConstants.DEFAULT_CATEGORY;
+        if (!categoryTotals.ContainsKey(category))
+        {
+            categoryTotals[category] = new CategoryData();
+        }
+        
+        categoryTotals[category].TotalMargin += marginData.Margin;
+        categoryTotals[category].TotalRevenue += marginData.Revenue;
+        categoryTotals[category].ProductCount++;
+        categoryTotals[category].TotalUnitsSold += marginData.UnitsSold;
+    }
+
+    private GetMarginReportResponse BuildSuccessResponse(GetMarginReportRequest request, ReportData reportData)
+    {
+        var averageMarginPercentage = _marginCalculationService.CalculateMarginPercentage(
+            reportData.OverallTotals.TotalMargin, 
+            reportData.OverallTotals.TotalRevenue);
+
+        return new GetMarginReportResponse
+        {
+            Success = true,
+            ReportPeriodStart = request.StartDate,
+            ReportPeriodEnd = request.EndDate,
+            TotalMargin = reportData.OverallTotals.TotalMargin,
+            TotalRevenue = reportData.OverallTotals.TotalRevenue,
+            TotalCost = reportData.OverallTotals.TotalCost,
+            AverageMarginPercentage = averageMarginPercentage,
+            TotalProductsAnalyzed = reportData.ProductSummaries.Count,
+            TotalUnitsSold = reportData.OverallTotals.TotalUnitsSold,
+            ProductSummaries = reportData.ProductSummaries,
+            CategorySummaries = reportData.CategorySummaries
+        };
+    }
+
+    private static GetMarginReportResponse CreateErrorResponse(ErrorCodes errorCode, params (string key, string value)[] parameters)
+    {
+        return new GetMarginReportResponse
+        {
+            Success = false,
+            ErrorCode = errorCode,
+            Params = parameters?.ToDictionary(p => p.key, p => p.value)
+        };
+    }
+
+}
+
+/// <summary>
+/// Helper classes for organizing report calculation data
+/// </summary>
+internal class ReportData
+{
+    public List<GetMarginReportResponse.ProductMarginSummary> ProductSummaries { get; set; } = new();
+    public List<GetMarginReportResponse.CategoryMarginSummary> CategorySummaries { get; set; } = new();
+    public OverallTotals OverallTotals { get; set; } = new();
+}
+
+internal class OverallTotals
+{
+    public decimal TotalMargin { get; private set; }
+    public decimal TotalRevenue { get; private set; }
+    public decimal TotalCost { get; private set; }
+    public int TotalUnitsSold { get; private set; }
+
+    public void Add(MarginData marginData)
+    {
+        TotalMargin += marginData.Margin;
+        TotalRevenue += marginData.Revenue;
+        TotalCost += marginData.Cost;
+        TotalUnitsSold += marginData.UnitsSold;
     }
 }

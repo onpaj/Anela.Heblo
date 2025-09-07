@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -15,17 +17,126 @@ using Xunit;
 namespace Anela.Heblo.Tests.Features.Analytics;
 
 /// <summary>
-/// Unit tests for GetMarginReportHandler with result-based error handling
+/// Unit tests for GetMarginReportHandler with refactored services
 /// </summary>
 public class GetMarginReportHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
+    private readonly Mock<IProductFilterService> _productFilterServiceMock;
+    private readonly Mock<IMarginCalculationService> _marginCalculationServiceMock;
+    private readonly Mock<IReportBuilderService> _reportBuilderServiceMock;
     private readonly GetMarginReportHandler _handler;
 
     public GetMarginReportHandlerTests()
     {
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
-        _handler = new GetMarginReportHandler(_analyticsRepositoryMock.Object);
+        _productFilterServiceMock = new Mock<IProductFilterService>();
+        _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
+        _reportBuilderServiceMock = new Mock<IReportBuilderService>();
+        
+        _handler = new GetMarginReportHandler(
+            _analyticsRepositoryMock.Object,
+            _productFilterServiceMock.Object,
+            _marginCalculationServiceMock.Object,
+            _reportBuilderServiceMock.Object);
+        
+        // Set up default service behaviors for all tests
+        SetupDefaultServiceMocks();
+    }
+
+    private void SetupDefaultServiceMocks()
+    {
+        // Default margin calculation service behavior
+        _marginCalculationServiceMock
+            .Setup(x => x.CalculateProductMargins(It.IsAny<AnalyticsProduct>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns((AnalyticsProduct product, DateTime start, DateTime end) =>
+            {
+                var salesInPeriod = product.SalesHistory.Where(s => s.Date >= start && s.Date <= end).ToList();
+                var unitsSold = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
+                
+                if (unitsSold == 0)
+                {
+                    return ServiceMarginCalculationResult.Failure(ErrorCodes.InsufficientData);
+                }
+                
+                var revenue = unitsSold * product.SellingPrice;
+                var margin = unitsSold * product.MarginAmount;
+                var cost = revenue - margin;
+                
+                return ServiceMarginCalculationResult.Success(new MarginData
+                {
+                    Revenue = revenue,
+                    Cost = cost,
+                    Margin = margin,
+                    MarginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0,
+                    UnitsSold = unitsSold
+                });
+            });
+
+        // Default product filter service behavior - implements actual filtering logic
+        _productFilterServiceMock
+            .Setup(x => x.FilterProductsAsync(It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(async (IAsyncEnumerable<AnalyticsProduct> products, string productFilter, string categoryFilter, int maxProducts, CancellationToken ct) =>
+            {
+                var productList = new List<AnalyticsProduct>();
+                await foreach (var product in products.WithCancellation(ct))
+                {
+                    productList.Add(product);
+                }
+
+                // Apply product filter
+                if (!string.IsNullOrWhiteSpace(productFilter))
+                {
+                    productList = productList.Where(p => p.ProductName?.Contains(productFilter, StringComparison.OrdinalIgnoreCase) == true).ToList();
+                }
+
+                // Apply category filter
+                if (!string.IsNullOrWhiteSpace(categoryFilter))
+                {
+                    productList = productList.Where(p => string.Equals(p.ProductCategory, categoryFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                // Apply max products limit
+                if (maxProducts > 0)
+                {
+                    productList = productList.Take(maxProducts).ToList();
+                }
+
+                return productList;
+            });
+
+        // Default report builder service behavior
+        _reportBuilderServiceMock
+            .Setup(x => x.BuildProductSummary(It.IsAny<AnalyticsProduct>(), It.IsAny<MarginData>()))
+            .Returns((AnalyticsProduct product, MarginData data) => new GetMarginReportResponse.ProductMarginSummary
+            {
+                ProductId = product.ProductCode,
+                ProductName = product.ProductName,
+                Category = product.ProductCategory ?? "Uncategorized",
+                MarginAmount = data.Margin,
+                MarginPercentage = data.MarginPercentage,
+                Revenue = data.Revenue,
+                Cost = data.Cost,
+                UnitsSold = data.UnitsSold
+            });
+
+        _reportBuilderServiceMock
+            .Setup(x => x.BuildCategorySummaries(It.IsAny<Dictionary<string, CategoryData>>()))
+            .Returns((Dictionary<string, CategoryData> categoryTotals) =>
+                categoryTotals.Select(kvp => new GetMarginReportResponse.CategoryMarginSummary
+                {
+                    Category = kvp.Key,
+                    TotalMargin = kvp.Value.TotalMargin,
+                    TotalRevenue = kvp.Value.TotalRevenue,
+                    ProductCount = kvp.Value.ProductCount,
+                    TotalUnitsSold = kvp.Value.TotalUnitsSold,
+                    AverageMarginPercentage = kvp.Value.TotalRevenue > 0 ? (kvp.Value.TotalMargin / kvp.Value.TotalRevenue) * 100 : 0
+                }).ToList());
+
+        _marginCalculationServiceMock
+            .Setup(x => x.CalculateMarginPercentage(It.IsAny<decimal>(), It.IsAny<decimal>()))
+            .Returns((decimal margin, decimal revenue) => revenue > 0 ? (margin / revenue) * 100 : 0);
     }
 
     [Fact]
@@ -69,6 +180,7 @@ public class GetMarginReportHandlerTests
             }
         };
 
+
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
                 It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
@@ -86,8 +198,8 @@ public class GetMarginReportHandlerTests
         result.TotalUnitsSold.Should().Be(45); // 15 + 30
         result.ProductSummaries.Should().HaveCount(2);
         result.CategorySummaries.Should().HaveCount(2); // Electronics and Books
-        result.TotalMargin.Should().Be(3000m); // (15 * 100) + (30 * 50)
-        result.TotalRevenue.Should().Be(4650m); // (15 * 150) + (30 * 80)
+        result.TotalMargin.Should().Be(3000m); // 1500 + 1500
+        result.TotalRevenue.Should().Be(4650m); // 2250 + 2400
     }
 
     [Fact]

@@ -1,13 +1,15 @@
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.Analytics;
 
 /// <summary>
-/// 🔒 PERFORMANCE FIX: Enhanced analytics module with streaming architecture
-/// Registers new calculators and repository for memory-efficient processing
+/// Enhanced analytics module with refactored services and validation
+/// Registers new services for better separation of concerns and testability
 /// </summary>
 public static class AnalyticsModule
 {
@@ -15,14 +17,21 @@ public static class AnalyticsModule
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        // 🔒 PERFORMANCE FIX: Register new streaming repository
+        // Register repository
         services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
-        // 🔒 PERFORMANCE FIX: Register extracted calculators (single responsibility)
+        // Register refactored services for clean separation of concerns
+        services.AddScoped<IMarginCalculationService, MarginCalculationService>();
+        services.AddScoped<IProductFilterService, ProductFilterService>();
+        services.AddScoped<IReportBuilderService, ReportBuilderService>();
+
+        // Register validators for FluentValidation
+        services.AddScoped<IValidator<GetMarginReportRequest>, GetMarginReportRequestValidator>();
+        services.AddScoped<IValidator<GetProductMarginAnalysisRequest>, GetProductMarginAnalysisRequestValidator>();
+
+        // Legacy services (keeping for backward compatibility)
         services.AddScoped<MarginCalculator>();
         services.AddScoped<MonthlyBreakdownGenerator>();
-
-        // Keep existing service for time window parsing
         services.AddTransient<IProductMarginAnalysisService, ProductMarginAnalysisService>();
 
         return services;

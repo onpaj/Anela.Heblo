@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -15,17 +16,25 @@ using Xunit;
 namespace Anela.Heblo.Tests.Features.Analytics;
 
 /// <summary>
-/// Unit tests for GetProductMarginAnalysisHandler with result-based error handling
+/// Unit tests for GetProductMarginAnalysisHandler with refactored services
 /// </summary>
 public class GetProductMarginAnalysisHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
+    private readonly Mock<IMarginCalculationService> _marginCalculationServiceMock;
+    private readonly Mock<IReportBuilderService> _reportBuilderServiceMock;
     private readonly GetProductMarginAnalysisHandler _handler;
 
     public GetProductMarginAnalysisHandlerTests()
     {
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
-        _handler = new GetProductMarginAnalysisHandler(_analyticsRepositoryMock.Object);
+        _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
+        _reportBuilderServiceMock = new Mock<IReportBuilderService>();
+        
+        _handler = new GetProductMarginAnalysisHandler(
+            _analyticsRepositoryMock.Object,
+            _marginCalculationServiceMock.Object,
+            _reportBuilderServiceMock.Object);
     }
 
     [Fact]
@@ -54,9 +63,39 @@ public class GetProductMarginAnalysisHandlerTests
             }
         };
 
+        var marginData = new MarginData
+        {
+            Revenue = 6750m,
+            Cost = 2250m,
+            Margin = 4500m,
+            MarginPercentage = 66.67m,
+            UnitsSold = 45
+        };
+
+        var monthlyBreakdown = new List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>();
+        for (int month = 1; month <= 12; month++)
+        {
+            monthlyBreakdown.Add(new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+            {
+                Month = new DateTime(2024, month, 1),
+                UnitsSold = month == 3 ? 15 : month == 6 ? 30 : 0,
+                Revenue = month == 3 ? 2250m : month == 6 ? 4500m : 0,
+                MarginAmount = month == 3 ? 1500m : month == 6 ? 3000m : 0,
+                Cost = month == 3 ? 750m : month == 6 ? 1500m : 0
+            });
+        }
+
         _analyticsRepositoryMock
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
+
+        _marginCalculationServiceMock
+            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
+            .Returns(ServiceMarginCalculationResult.Success(marginData));
+
+        _reportBuilderServiceMock
+            .Setup(x => x.BuildMonthlyBreakdown(It.IsAny<List<SalesDataPoint>>(), productData, request.StartDate, request.EndDate))
+            .Returns(monthlyBreakdown);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -66,11 +105,11 @@ public class GetProductMarginAnalysisHandlerTests
         result.Success.Should().BeTrue();
         result.ProductId.Should().Be("PROD001");
         result.ProductName.Should().Be("Test Product");
-        result.TotalUnitsSold.Should().Be(45); // 10 + 5 + 20 + 10
-        result.TotalRevenue.Should().Be(6750m); // 45 * 150
-        result.TotalMargin.Should().Be(4500m); // 45 * 100
-        result.MarginPercentage.Should().BeApproximately(66.67m, 0.1m); // 4500 / 6750 * 100
-        result.MonthlyBreakdown.Should().HaveCount(12); // 12 months in the year
+        result.TotalUnitsSold.Should().Be(45);
+        result.TotalRevenue.Should().Be(6750m);
+        result.TotalMargin.Should().Be(4500m);
+        result.MarginPercentage.Should().BeApproximately(66.67m, 0.1m);
+        result.MonthlyBreakdown.Should().HaveCount(12);
     }
 
     [Fact]
@@ -213,6 +252,10 @@ public class GetProductMarginAnalysisHandlerTests
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
 
+        _marginCalculationServiceMock
+            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
+            .Returns(ServiceMarginCalculationResult.Failure(ErrorCodes.InsufficientData));
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -220,7 +263,7 @@ public class GetProductMarginAnalysisHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InsufficientData);
-        result.Params.Should().ContainKey("requiredPeriod");
+        result.Params.Should().ContainKey("reason");
     }
 
     [Fact]
@@ -248,9 +291,22 @@ public class GetProductMarginAnalysisHandlerTests
             }
         };
 
+        var marginData = new MarginData
+        {
+            Revenue = 2250m,
+            Cost = 750m,
+            Margin = 1500m,
+            MarginPercentage = 66.67m,
+            UnitsSold = 15
+        };
+
         _analyticsRepositoryMock
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
+
+        _marginCalculationServiceMock
+            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
+            .Returns(ServiceMarginCalculationResult.Success(marginData));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
