@@ -144,6 +144,18 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidJournalEntryData = 1610,
 
+    // Analytics module errors (17XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    AnalysisDataNotAvailable = 1701,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    MarginCalculationFailed = 1702,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InsufficientData = 1703,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ProductNotFoundForAnalysis = 1704,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidReportPeriod = 1705,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
