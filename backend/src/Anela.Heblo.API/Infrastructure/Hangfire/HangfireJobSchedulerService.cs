@@ -7,6 +7,8 @@ public class HangfireJobSchedulerService : IHostedService
     private readonly ILogger<HangfireJobSchedulerService> _logger;
     private readonly IWebHostEnvironment _environment;
 
+    private const string QueueName = "heblo";
+
     public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment)
     {
         _logger = logger;
@@ -33,17 +35,17 @@ public class HangfireJobSchedulerService : IHostedService
                 "purchase-price-recalculation",
                 service => service.RecalculatePurchasePricesAsync(),
                 "0 2 * * *", // Daily at 2:00 AM UTC
-                new RecurringJobOptions
-                {
-                    TimeZone = TimeZoneInfo.Utc
-                });
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
 
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in {Environment} environment", _environment.EnvironmentName);
-            throw;
+            _logger.LogError(ex, "Failed to register Hangfire recurring jobs in {Environment} environment. Application startup will continue, but background jobs will not be scheduled.", _environment.EnvironmentName);
+            // Don't throw - let application start even if Hangfire job registration fails
+            // This allows the application to be functional even with Hangfire issues
         }
 
         return Task.CompletedTask;

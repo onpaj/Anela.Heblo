@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, Loader, AlertCircle } from 'lucide-react';
+import { X, Package, Loader } from 'lucide-react';
 import { getAuthenticatedApiClient } from '../../api/client';
 import MaterialAutocomplete from '../common/MaterialAutocomplete';
 import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
@@ -23,33 +23,11 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to provide user-friendly error messages
-  const getUserFriendlyErrorMessage = (serverError: string): string => {
-    const errorLower = serverError.toLowerCase();
-    
-    if (errorLower.includes('validation')) {
-      return 'Neplatné údaje. Zkontrolujte zadané hodnoty.';
-    }
-    if (errorLower.includes('not found')) {
-      return 'Box nebyl nalezen. Obnovte stránku a zkuste znovu.';
-    }
-    if (errorLower.includes('state')) {
-      return 'Box není ve správném stavu pro přidání položky.';
-    }
-    if (errorLower.includes('network') || errorLower.includes('connection')) {
-      return 'Chyba připojení. Zkontrolujte internetové připojení.';
-    }
-    if (errorLower.includes('timeout')) {
-      return 'Operace trvá příliš dlouho. Zkuste to později.';
-    }
-    
-    // Return original message for unrecognized errors
-    return serverError;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boxId) return;
+
+    setError(null); // Clear previous errors
 
     if (!selectedProduct || !selectedProduct.productCode || !selectedProduct.productName) {
       setError('Produkt je povinný');
@@ -63,7 +41,6 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       const apiClient = await getAuthenticatedApiClient();
@@ -79,15 +56,24 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
         // Reset form
         setSelectedProduct(null);
         setAmount('');
+        setError(null);
         onClose();
       } else {
-        const errorMessage = response.errorMessage || 'Chyba při přidávání položky';
-        setError(getUserFriendlyErrorMessage(errorMessage));
+        // Handle API errors
+        if (response.errorCode) {
+          setError('Došlo k chybě při přidávání položky.');
+        } else {
+          setError('Došlo k chybě při přidávání položky.');
+        }
       }
     } catch (err) {
+      // Network errors or other exceptions
       console.error('Error adding item to box:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
-      setError(getUserFriendlyErrorMessage(errorMessage));
+      if (err instanceof Error && err.message.includes('Network')) {
+        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+      } else {
+        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +90,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
 
   const handleProductSelect = (product: MaterialForPurchaseDto | null) => {
     setSelectedProduct(product);
-    setError(null);
+    if (error) setError(null); // Clear error when user selects product
   };
 
   if (!isOpen || !boxId) return null;
@@ -129,14 +115,17 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} className="p-4" onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+            e.preventDefault();
+            handleSubmit(e as any);
+          }
+        }}>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />
-              <span className="text-sm text-red-800">{error}</span>
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
+              {error}
             </div>
           )}
-
           <div className="mb-4">
             <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
               Produkt/Materiál
@@ -159,7 +148,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value);
-                setError(null);
+                if (error) setError(null); // Clear error when user types amount
               }}
               disabled={isLoading}
               placeholder="0"

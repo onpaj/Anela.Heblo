@@ -90,10 +90,8 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
         
         onSuccess();
         onClose();
-      } else {
-        const errorMessage = response.errorMessage || 'Chyba při přidávání položky';
-        setError(getUserFriendlyErrorMessage(errorMessage));
       }
+      // If response.success is false, the global error handler will show a toast
     } catch (err) {
       console.error('Error adding item to box:', err);
       const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
@@ -133,7 +131,12 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} className="p-4" onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+            e.preventDefault();
+            handleSubmit(e as any);
+          }
+        }}>
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
               <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Xcc.Audit;
 
 namespace Anela.Heblo.Application.Features.Audit.UseCases.GetAuditLogs;
@@ -5,7 +6,7 @@ namespace Anela.Heblo.Application.Features.Audit.UseCases.GetAuditLogs;
 /// <summary>
 /// Response containing audit logs
 /// </summary>
-public class GetAuditLogsResponse
+public class GetAuditLogsResponse : BaseResponse
 {
     /// <summary>
     /// Number of audit logs returned

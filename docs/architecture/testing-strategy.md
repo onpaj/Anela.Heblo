@@ -10,7 +10,7 @@ This document defines the comprehensive testing approach for the Anela Heblo app
 2. **Test Pyramid Structure**: 
    - **70% Unit Tests** - Fast, isolated business logic validation
    - **20% Integration Tests** - API endpoints, database interactions, service integrations
-   - **10% E2E Tests** - Critical user journeys and complex workflows only
+   - **10% E2E Tests** - Critical user journeys, for regression tests on staging environment
 3. **Business Value Focus**: Test behavior and business rules, not implementation details
 4. **Fail-Fast Principle**: Tests should catch issues as early as possible in the development cycle
 5. **Maintainability Over Coverage**: Prefer maintainable tests with clear business value over high coverage percentages
@@ -245,11 +245,8 @@ npm test -- --testNamePattern="form validation"
 
 ### Environment Requirements
 
-**CRITICAL**: Playwright tests MUST ALWAYS use the automation environment:
-- **Backend Port**: 5001 with `ASPNETCORE_ENVIRONMENT=Automation`
-- **Frontend Port**: 3001 with automation configuration
-- **Authentication**: Mock authentication ALWAYS enabled
-- **Test URL**: `http://localhost:3001` (never port 3000)
+**CRITICAL**: Playwright tests MUST ALWAYS use deployed staging environment:
+- **Test URL**: `http://heblo.stg.anela.cz`
 
 ### Test Organization Structure
 

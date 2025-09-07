@@ -28,7 +28,6 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
       productTypes={PRODUCT_TYPE_FILTERS.PURCHASE_MATERIALS}
       itemAdapter={catalogItemToMaterial}
       displayValue={materialDisplayValue}
-      showSelectedInfo
       clearable
       size="md"
       disabled={disabled}

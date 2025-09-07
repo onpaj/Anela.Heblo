@@ -1,9 +1,10 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
 
-public class GetPurchaseOrderByIdResponse
+public class GetPurchaseOrderByIdResponse : BaseResponse
 {
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;
@@ -24,4 +25,7 @@ public class GetPurchaseOrderByIdResponse
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
     public string? SupplierNote { get; set; }
+
+    public GetPurchaseOrderByIdResponse() : base() { }
+    public GetPurchaseOrderByIdResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }

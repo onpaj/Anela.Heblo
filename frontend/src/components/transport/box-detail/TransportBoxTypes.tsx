@@ -26,15 +26,11 @@ export interface TransportBoxItemsProps {
   isFormEditable: (fieldType: 'items' | 'notes' | 'boxNumber') => boolean;
   formatDate: (dateString: string | Date | undefined) => string;
   handleRemoveItem: (itemId: number) => void;
-  productInput: string;
-  setProductInput: (value: string) => void;
   quantityInput: string;
   setQuantityInput: (value: string) => void;
   selectedProduct: CatalogItemDto | null;
   setSelectedProduct: (product: CatalogItemDto | null) => void;
   handleAddItem: () => void;
-  autocompleteData: any;
-  autocompleteLoading: boolean;
   // Quick add last item functionality
   lastAddedItem: LastAddedItem | null;
   handleQuickAdd: () => void;

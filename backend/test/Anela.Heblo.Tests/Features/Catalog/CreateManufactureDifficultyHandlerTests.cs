@@ -1,8 +1,10 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -45,11 +47,14 @@ public class CreateManufactureDifficultyHandlerTests
             ValidTo = new DateTime(2024, 1, 5) // ValidTo before ValidFrom
         };
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(
-            () => _handler.Handle(request, CancellationToken.None));
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
 
-        Assert.Equal("ValidFrom must be earlier than ValidTo", exception.Message);
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
+        response.Params.Should().ContainKey("field");
+        response.Params!["field"].Should().Be("ValidFrom must be earlier than ValidTo");
     }
 
     [Fact]

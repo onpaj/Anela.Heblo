@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using AutoMapper;
 using MediatR;
@@ -36,13 +37,23 @@ public class UpdateManufactureDifficultyHandler : IRequestHandler<UpdateManufact
         var existing = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (existing == null)
         {
-            throw new ArgumentException($"ManufactureDifficultyHistory with ID {request.Id} not found");
+            return new UpdateManufactureDifficultyResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ManufactureDifficultyNotFound,
+                Params = new Dictionary<string, string> { { "id", request.Id.ToString() } }
+            };
         }
 
         // Validate date range
         if (request.ValidFrom.HasValue && request.ValidTo.HasValue && request.ValidFrom >= request.ValidTo)
         {
-            throw new ArgumentException("ValidFrom must be earlier than ValidTo");
+            return new UpdateManufactureDifficultyResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidValue,
+                Params = new Dictionary<string, string> { { "field", "ValidFrom must be earlier than ValidTo" } }
+            };
         }
 
         // Check for overlaps (excluding the current record)
@@ -55,7 +66,12 @@ public class UpdateManufactureDifficultyHandler : IRequestHandler<UpdateManufact
 
         if (hasOverlap)
         {
-            throw new InvalidOperationException($"The specified date range overlaps with existing difficulty settings for product {existing.ProductCode}");
+            return new UpdateManufactureDifficultyResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ManufactureDifficultyConflict,
+                Params = new Dictionary<string, string> { { "productCode", existing.ProductCode } }
+            };
         }
 
         // Update the entity using AutoMapper to ensure proper DateTime handling

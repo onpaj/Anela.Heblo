@@ -210,13 +210,18 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ConcurrencyStamp")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
-                        .HasColumnName("ConcurrencyStamp");
+                        .HasColumnName("ConcurrencyStamp")
+                        .HasDefaultValueSql("gen_random_uuid()::text");
 
                     b.Property<DateTime>("CreationTime")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
-                        .HasColumnName("CreationTime");
+                        .HasColumnName("CreationTime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid?>("CreatorId")
                         .HasColumnType("uuid");
@@ -229,8 +234,11 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasColumnName("ExtraProperties");
+                        .HasColumnName("ExtraProperties")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp without time zone")
@@ -335,7 +343,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
@@ -343,7 +351,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("ExpectedDeliveryDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<bool>("InvoiceAcquired")
                         .HasColumnType("boolean");
@@ -353,7 +361,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("OrderDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
@@ -373,7 +381,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -401,7 +409,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("ChangedBy")
                         .IsRequired()

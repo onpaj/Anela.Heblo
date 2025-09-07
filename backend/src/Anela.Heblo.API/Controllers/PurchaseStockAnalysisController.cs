@@ -8,7 +8,7 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/purchase-stock-analysis")]
-public class PurchaseStockAnalysisController : ControllerBase
+public class PurchaseStockAnalysisController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -27,14 +27,7 @@ public class PurchaseStockAnalysisController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 }

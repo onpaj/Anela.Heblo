@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Journal.Contracts
@@ -7,7 +8,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
     {
     }
 
-    public class GetJournalTagsResponse
+    public class GetJournalTagsResponse : BaseResponse
     {
         public List<JournalEntryTagDto> Tags { get; set; } = new();
     }

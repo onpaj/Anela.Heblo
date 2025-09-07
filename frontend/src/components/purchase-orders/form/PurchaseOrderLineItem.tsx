@@ -46,7 +46,7 @@ const PurchaseOrderLineItem: React.FC<PurchaseOrderLineItemProps> = ({
             type="number"
             min="0"
             step="0.0001"
-            value={(line.unitPrice || 0).toFixed(4)}
+            value={line.unitPrice || ''}
             onChange={(e) => onUpdateLine(index, 'unitPrice', parseFloat(e.target.value) || 0)}
             className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 ${
               errors[`line_${index}_price`] ? 'border-red-300' : 'border-gray-300'
@@ -56,8 +56,8 @@ const PurchaseOrderLineItem: React.FC<PurchaseOrderLineItemProps> = ({
         </div>
 
         {/* Line Total */}
-        <div className="col-span-2 flex items-center justify-end pr-2">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="col-span-2 flex items-center justify-end">
+          <span className="text-sm font-medium text-gray-900 px-3 py-1.5">
             {(line.lineTotal || 0).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
           </span>
         </div>
@@ -79,7 +79,7 @@ const PurchaseOrderLineItem: React.FC<PurchaseOrderLineItemProps> = ({
           <button
             type="button"
             onClick={() => onRemoveLine(index)}
-            className="text-red-600 hover:text-red-800 transition-colors p-1"
+            className="text-red-600 hover:text-red-800 transition-colors px-3 py-1.5"
             title="Odstranit položku"
           >
             <Trash2 className="h-4 w-4" />

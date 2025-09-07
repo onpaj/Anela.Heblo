@@ -151,8 +151,8 @@ describe('AddItemToBoxModal', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('selected-product')).toBeInTheDocument();
-        expect(screen.getByText('Selected: Test Product 1 (TEST001)')).toBeInTheDocument();
       });
+      expect(screen.getByText('Selected: Test Product 1 (TEST001)')).toBeInTheDocument();
 
       // Enter amount
       const amountInput = screen.getByLabelText('Množství');
@@ -371,7 +371,7 @@ describe('AddItemToBoxModal', () => {
       mockApiClient.transportBox_AddItemToBox.mockResolvedValue({
         success: false,
         item: null,
-        errorMessage: 'Product not found'
+        errorCode: 'Product not found'
       });
 
       render(
@@ -396,7 +396,7 @@ describe('AddItemToBoxModal', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Box nebyl nalezen. Obnovte stránku a zkuste znovu.')).toBeInTheDocument();
+        expect(screen.getByText('Došlo k chybě při přidávání položky.')).toBeInTheDocument();
       });
 
       expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -574,8 +574,8 @@ describe('AddItemToBoxModal', () => {
 
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalledTimes(1);
-        expect(mockOnClose).toHaveBeenCalledTimes(1);
       });
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
 
       // Form should be reset (though modal is closed at this point)
       expect(mockApiClient.transportBox_AddItemToBox).toHaveBeenCalledTimes(1);

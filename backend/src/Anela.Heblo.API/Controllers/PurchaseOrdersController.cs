@@ -6,6 +6,8 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePric
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvoiceAcquired;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +17,7 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/purchase-orders")]
-public class PurchaseOrdersController : ControllerBase
+public class PurchaseOrdersController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -40,18 +42,17 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<CreatePurchaseOrderResponse>());
         }
 
-        try
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
         {
-            var response = await _mediator.Send(request, cancellationToken);
-            return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
+            return HandleResponse(response);
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+
+        return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = response.Id }, response);
     }
 
     [HttpGet("{id:int}")]
@@ -62,12 +63,7 @@ public class PurchaseOrdersController : ControllerBase
         var request = new GetPurchaseOrderByIdRequest(id);
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (response == null)
-        {
-            return NotFound($"Purchase order with ID {id} not found");
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}")]
@@ -78,33 +74,18 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("Route ID does not match request ID");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "Route ID does not match request ID" } }));
         }
 
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound($"Purchase order with ID {id} not found");
-            }
-
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}/status")]
@@ -115,33 +96,18 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("Route ID does not match request ID");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderStatusResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "Route ID does not match request ID" } }));
         }
 
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<UpdatePurchaseOrderStatusResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound($"Purchase order with ID {id} not found");
-            }
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPut("{id:int}/invoice-acquired")]
@@ -152,40 +118,34 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (id != request.Id)
         {
-            return BadRequest("ID in route does not match ID in request body");
+            return BadRequest(ErrorResponseHelper.CreateErrorResponse<UpdatePurchaseOrderInvoiceAcquiredResponse>(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "detail", "ID in route does not match ID in request body" } }));
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response == null)
-            {
-                return NotFound($"Purchase order with ID {id} not found");
-            }
-
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpGet("{id:int}/history")]
-    public async Task<ActionResult<List<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
+    public async Task<ActionResult<ListResponse<PurchaseOrderHistoryDto>>> GetPurchaseOrderHistory(
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
         var request = new GetPurchaseOrderByIdRequest(id);
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (response == null)
+        if (!response.Success)
         {
-            return NotFound($"Purchase order with ID {id} not found");
+            return HandleResponse<ListResponse<PurchaseOrderHistoryDto>>(new ListResponse<PurchaseOrderHistoryDto>(response.ErrorCode!.Value, response.Params));
         }
 
-        return Ok(response.History);
+        var listResponse = new ListResponse<PurchaseOrderHistoryDto>
+        {
+            Items = response.History,
+            TotalCount = response.History.Count
+        };
+        return Ok(listResponse);
     }
 
     [HttpPost("recalculate-purchase-price")]
@@ -195,21 +155,10 @@ public class PurchaseOrdersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<RecalculatePurchasePriceResponse>());
         }
 
-        try
-        {
-            var response = await _mediator.Send(request, cancellationToken);
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
     }
 }

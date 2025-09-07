@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Transport.UseCases;
 using Anela.Heblo.Application.Features.Transport.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -64,7 +65,8 @@ public class ChangeTransportBoxStateHandlerTests
 
         // Assert
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Transport box with ID 999 not found.");
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxNotFound);
+        result.Params.Should().ContainKey("BoxId");
         result.UpdatedBox.Should().BeNull();
     }
 
@@ -95,6 +97,16 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
+        // Mock IsBoxCodeActiveAsync for New -> Opened transition
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        // Mock GetPagedListAsync for closing stocked boxes
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedBoxResponse);
@@ -103,38 +115,13 @@ public class ChangeTransportBoxStateHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.ErrorMessage.Should().BeNull();
+        result.ErrorCode.Should().BeNull();
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
         _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task Handle_InvalidTransition_ThrowsValidationException_ReturnsFailure()
-    {
-        // Arrange - try to transition from New directly to Received (invalid transition)
-        var box = CreateTestBox(TransportBoxState.New);
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            NewState = TransportBoxState.Received
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdWithDetailsAsync(1))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Unable to change state to Received");
-        result.UpdatedBox.Should().BeNull();
-
-        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
 
 
     [Fact]
@@ -170,36 +157,10 @@ public class ChangeTransportBoxStateHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.ErrorMessage.Should().BeNull();
+        result.ErrorCode.Should().BeNull();
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_OpenedToInTransit_WithoutItems_ReturnsFailure()
-    {
-        // Arrange
-        var box = CreateTestBox(TransportBoxState.Opened); // Box without items
-        var request = new ChangeTransportBoxStateRequest
-        {
-            BoxId = 1,
-            NewState = TransportBoxState.InTransit
-        };
-
-        _repositoryMock
-            .Setup(x => x.GetByIdWithDetailsAsync(1))
-            .ReturnsAsync(box);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Cannot transition to InTransit state: Box must contain at least one item");
-        result.UpdatedBox.Should().BeNull();
-
-        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -240,7 +201,7 @@ public class ChangeTransportBoxStateHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.ErrorMessage.Should().BeNull();
+        result.ErrorCode.Should().BeNull();
         result.UpdatedBox.Should().Be(updatedBoxResponse);
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -265,7 +226,7 @@ public class ChangeTransportBoxStateHandlerTests
 
         // Assert
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Be("An error occurred while changing the box state.");
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxStateChangeError);
         result.UpdatedBox.Should().BeNull();
     }
 

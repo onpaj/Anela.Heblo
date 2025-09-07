@@ -255,7 +255,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          <div className="flex-1 flex flex-col p-4 space-y-4 min-h-0">
             
             {/* Material Resolvers for edit mode - hidden components that load materials for existing lines */}
             {isEditMode && pendingMaterialResolutions.size > 0 && formData.lines.map((line, index) => {
@@ -288,14 +288,16 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ isOpen, onClose, 
             />
 
             {/* Order Lines */}
-            <PurchaseOrderLines
-              formData={formData}
-              errors={errors}
-              onAddLine={addLine}
-              onRemoveLine={removeLine}
-              onUpdateLine={updateLine}
-              onMaterialSelect={handleMaterialSelect}
-            />
+            <div className="flex-1 min-h-0">
+              <PurchaseOrderLines
+                formData={formData}
+                errors={errors}
+                onAddLine={addLine}
+                onRemoveLine={removeLine}
+                onUpdateLine={updateLine}
+                onMaterialSelect={handleMaterialSelect}
+              />
+            </div>
           </div>
 
           {/* Footer */}

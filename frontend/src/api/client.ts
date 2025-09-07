@@ -118,26 +118,56 @@ export const getApiClient = (): ApiClient => {
 };
 
 /**
- * Extract error message from API response
+ * Extract error message from API response and check if it's a structured API error
  */
-const extractErrorMessage = async (response: Response): Promise<string> => {
+const extractErrorMessage = async (response: Response): Promise<{ message: string; isStructuredError: boolean }> => {
   try {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       const errorData = await response.json();
       
-      // Try common error message fields
-      return errorData.message || 
-             errorData.title || 
-             errorData.detail || 
-             errorData.error || 
-             `Server error ${response.status}`;
+      // Check if this is new BaseResponse structure with errorCode
+      if (errorData.success === false && errorData.errorCode) {
+        // Import error handler dynamically to avoid circular dependencies
+        const { getErrorMessage } = await import('../utils/errorHandler');
+        const message = getErrorMessage(errorData.errorCode, errorData.params);
+        return { 
+          message, 
+          isStructuredError: true 
+        };
+      }
+      
+      // Check if this is old structured API response with success: false and errorMessage
+      if (errorData.success === false && errorData.errorMessage) {
+        return { 
+          message: errorData.errorMessage, 
+          isStructuredError: true 
+        };
+      }
+      
+      // Try common error message fields for unstructured errors
+      const message = errorData.message || 
+                     errorData.title || 
+                     errorData.detail || 
+                     errorData.error || 
+                     JSON.stringify(errorData); // Show full body if no known fields
+      
+      return { message, isStructuredError: false };
     } else {
       const textResponse = await response.text();
-      return textResponse || `Server error ${response.status}`;
+      // If body is empty, show status code with generic message
+      const message = textResponse || `API Call Error (${response.status})`;
+      return { 
+        message, 
+        isStructuredError: false 
+      };
     }
   } catch {
-    return `Server error ${response.status}: ${response.statusText}`;
+    // Final fallback - just status code and generic message
+    return { 
+      message: `API Call Error (${response.status})`, 
+      isStructuredError: false 
+    };
   }
 };
 
@@ -170,11 +200,21 @@ export const getAuthenticatedApiClient = (showErrorToasts: boolean = true): ApiC
         const responseClone = response.clone();
         
         try {
-          const errorMessage = await extractErrorMessage(responseClone);
-          const title = `Chyba API (${response.status})`;
+          const errorInfo = await extractErrorMessage(responseClone);
           
-          console.error(`🚨 API Error [${response.status}] ${url}:`, errorMessage);
-          globalToastHandler(title, errorMessage);
+          // Show toast for all errors - centralized handling
+          console.log(`🔍 Error debug - isStructuredError: ${errorInfo.isStructuredError}, message: "${errorInfo.message}"`);
+          
+          if (errorInfo.isStructuredError) {
+            // Structured API error - show ErrorMessage
+            console.error(`🚨 Structured API Error [${response.status}] ${url}:`, errorInfo.message);
+            globalToastHandler('Chyba', errorInfo.message);
+          } else {
+            // Unstructured error - show StatusCode + Body
+            const title = `Chyba API (${response.status})`;
+            console.error(`🚨 Unstructured API Error [${response.status}] ${url}:`, errorInfo.message);
+            globalToastHandler(title, errorInfo.message);
+          }
         } catch (toastError) {
           console.error('🍞 Failed to show error toast:', toastError);
           // Fallback toast

@@ -22,18 +22,23 @@ public class TransportBoxConfiguration : IEntityTypeConfiguration<TransportBox>
         builder.Property(x => x.ConcurrencyStamp)
             .HasColumnName("ConcurrencyStamp")
             .HasMaxLength(40)
-            .HasColumnType("character varying(40)");
+            .HasColumnType("character varying(40)")
+            .IsRequired()
+            .HasDefaultValueSql("gen_random_uuid()::text");
 
         // Configure ExtraProperties for PostgreSQL backward compatibility
         builder.Property(x => x.ExtraProperties)
             .HasColumnName("ExtraProperties")
-            .HasColumnType("text");
+            .HasColumnType("text")
+            .IsRequired()
+            .HasDefaultValueSql("'{}'");
 
         // Configure CreationTime for PostgreSQL backward compatibility
         builder.Property(x => x.CreationTime)
             .HasColumnName("CreationTime")
             .HasColumnType("timestamp without time zone")
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Configure LastModificationTime for PostgreSQL backward compatibility
         builder.Property(x => x.LastModificationTime)

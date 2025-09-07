@@ -136,7 +136,7 @@ jobs:
       webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     environment:
       name: production
-      url: https://heblo.azurewebsites.net
+      url: https://heblo.anela.cz
     steps:
       - name: 🔐 Azure Login
         uses: azure/login@v2
@@ -368,7 +368,7 @@ jobs:
           
           # Test 1: Health check
           echo "🏥 Testing health endpoint..."
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL/health)
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL/health/live)
           if [ "$HEALTH_STATUS" != "200" ]; then
             echo "❌ Health check failed: $HEALTH_STATUS"
             exit 1

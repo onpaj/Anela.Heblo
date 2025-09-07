@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
 
-public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOrderStatusRequest, UpdatePurchaseOrderStatusResponse?>
+public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOrderStatusRequest, UpdatePurchaseOrderStatusResponse>
 {
     private readonly ILogger<UpdatePurchaseOrderStatusHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
@@ -21,7 +22,7 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
         _currentUserService = currentUserService;
     }
 
-    public async Task<UpdatePurchaseOrderStatusResponse?> Handle(UpdatePurchaseOrderStatusRequest request, CancellationToken cancellationToken)
+    public async Task<UpdatePurchaseOrderStatusResponse> Handle(UpdatePurchaseOrderStatusRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Updating purchase order status for ID {Id} to {Status}", request.Id, request.Status);
 
@@ -30,14 +31,14 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
         if (purchaseOrder == null)
         {
             _logger.LogWarning("Purchase order not found for ID {Id}", request.Id);
-            return null;
+            return new UpdatePurchaseOrderStatusResponse(ErrorCodes.PurchaseOrderNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
         if (!Enum.TryParse<PurchaseOrderStatus>(request.Status, out var newStatus))
         {
             _logger.LogWarning("Invalid status {Status} for purchase order {OrderNumber}",
                 request.Status, purchaseOrder.OrderNumber);
-            throw new ArgumentException($"Invalid status: {request.Status}");
+            return new UpdatePurchaseOrderStatusResponse(ErrorCodes.InvalidPurchaseOrderStatus, new Dictionary<string, string> { { "Status", request.Status }, { "OrderNumber", purchaseOrder.OrderNumber } });
         }
 
         try
@@ -53,19 +54,20 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
             _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",
                 purchaseOrder.OrderNumber, newStatus);
 
-            return new UpdatePurchaseOrderStatusResponse(
-                purchaseOrder.Id,
-                purchaseOrder.OrderNumber,
-                purchaseOrder.Status.ToString(),
-                purchaseOrder.UpdatedAt,
-                purchaseOrder.UpdatedBy
-            );
+            return new UpdatePurchaseOrderStatusResponse
+            {
+                Id = purchaseOrder.Id,
+                OrderNumber = purchaseOrder.OrderNumber,
+                Status = purchaseOrder.Status.ToString(),
+                UpdatedAt = purchaseOrder.UpdatedAt,
+                UpdatedBy = purchaseOrder.UpdatedBy
+            };
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning("Cannot update status for purchase order {OrderNumber}: {Message}",
                 purchaseOrder.OrderNumber, ex.Message);
-            throw;
+            return new UpdatePurchaseOrderStatusResponse(ErrorCodes.StatusTransitionNotAllowed, new Dictionary<string, string> { { "OrderNumber", purchaseOrder.OrderNumber }, { "Message", ex.Message } });
         }
     }
 }

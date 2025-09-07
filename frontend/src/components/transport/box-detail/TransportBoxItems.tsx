@@ -1,21 +1,19 @@
 import React from 'react';
 import { Package, Tag, Trash2, RotateCcw } from 'lucide-react';
 import { TransportBoxItemsProps } from './TransportBoxTypes';
+import { CatalogAutocomplete } from '../../common/CatalogAutocomplete';
+import { ProductType } from '../../../api/generated/api-client';
 
 const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
   transportBox,
   isFormEditable,
   formatDate,
   handleRemoveItem,
-  productInput,
-  setProductInput,
   quantityInput,
   setQuantityInput,
   selectedProduct,
   setSelectedProduct,
   handleAddItem,
-  autocompleteData,
-  autocompleteLoading,
   lastAddedItem,
   handleQuickAdd,
 }) => {
@@ -28,68 +26,27 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             <div className="md:col-span-8">
               <label className="block text-xs font-medium text-gray-700 mb-1">Produkt/Zboží</label>
-              <div className="relative" data-autocomplete-container>
-                <input
-                  type="text"
-                  value={selectedProduct ? selectedProduct.productName : productInput}
-                  onChange={(e) => {
-                    setProductInput(e.target.value);
-                    if (selectedProduct && e.target.value !== selectedProduct.productName) {
-                      setSelectedProduct(null);
-                    }
-                  }}
-                  placeholder="Začněte psát pro vyhledání..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                
-                {/* Autocomplete dropdown */}
-                {productInput && !selectedProduct && autocompleteData?.items && autocompleteData.items.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    <div className="py-1">
-                      {autocompleteData.items.map((item: any) => (
-                        <button
-                          key={item.productCode}
-                          onClick={() => {
-                            setSelectedProduct(item);
-                            setProductInput(item.productName || '');
-                          }}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-gray-900 font-medium truncate">
-                                {item.productName}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                <span className="font-mono">{item.productCode}</span> • Sklad: {item.stock?.available || 0}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+              <CatalogAutocomplete
+                value={selectedProduct}
+                onSelect={setSelectedProduct}
+                placeholder="Začněte psát pro vyhledání..."
+                productTypes={[ProductType.Product, ProductType.Goods]}
+                size="sm"
+                clearable
+                renderItem={(item) => (
+                  <div className="flex items-center space-x-3">
+                    <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-gray-900 font-medium truncate">
+                        {item.productName}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        <span className="font-mono">{item.productCode}</span> • Sklad: {item.stock?.available || 0}
+                      </div>
                     </div>
                   </div>
                 )}
-                
-                {/* Loading indicator */}
-                {autocompleteLoading && productInput && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Načítám...
-                    </div>
-                  </div>
-                )}
-                
-                {/* No results */}
-                {productInput && !autocompleteLoading && autocompleteData?.items && autocompleteData.items.length === 0 && !selectedProduct && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Žádné položky nenalezeny
-                    </div>
-                  </div>
-                )}
-              </div>
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-gray-700 mb-1">Množství</label>
@@ -97,6 +54,14 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                 type="number"
                 value={quantityInput}
                 onChange={(e) => setQuantityInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedProduct && quantityInput && parseFloat(quantityInput) > 0) {
+                      handleAddItem();
+                    }
+                  }
+                }}
                 step="0.01"
                 min="0"
                 placeholder="0"

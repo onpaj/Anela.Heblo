@@ -236,11 +236,13 @@ public static class ServiceCollectionExtensions
         else
         {
             // Use PostgreSQL storage for other environments
-            var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+            // Try environment-specific connection string first, then fall back to DefaultConnection
+            var connectionString = configuration.GetConnectionString(environment.EnvironmentName)
+                                 ?? configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                throw new InvalidOperationException("Database connection string is required for Hangfire. Please configure the DefaultConnection connection string.");
+                throw new InvalidOperationException($"Database connection string is required for Hangfire in {environment.EnvironmentName} environment. Please configure either '{environment.EnvironmentName}' or 'DefaultConnection' connection string.");
             }
 
             services.AddHangfire(config => config
@@ -255,7 +257,7 @@ public static class ServiceCollectionExtensions
         {
             // Configure server options - ALWAYS only process Heblo queue
             options.WorkerCount = 1;
-            options.Queues = new[] { "Heblo" };
+            options.Queues = new[] { "heblo" };
         });
 
         // Only register job scheduler service in Production and Staging environments

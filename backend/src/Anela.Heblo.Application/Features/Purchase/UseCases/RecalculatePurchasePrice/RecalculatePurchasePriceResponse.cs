@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 
-public class RecalculatePurchasePriceResponse
+public class RecalculatePurchasePriceResponse : BaseResponse
 {
     /// <summary>
     /// Number of products successfully recalculated.
@@ -38,23 +40,16 @@ public class RecalculatePurchasePriceResponse
         _ when IsSuccess => $"Successfully recalculated prices for all {TotalCount} products",
         _ => $"Recalculated {SuccessCount} of {TotalCount} products ({FailedCount} failed)"
     };
+
+    public RecalculatePurchasePriceResponse() : base() { }
+    public RecalculatePurchasePriceResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }
 
-public class ProductRecalculationResult
+public class ProductRecalculationResult : BaseResponse
 {
     /// <summary>
     /// Product code that was processed.
     /// </summary>
     public string ProductCode { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Whether the recalculation was successful.
-    /// </summary>
-    public bool IsSuccess { get; set; }
-
-    /// <summary>
-    /// Error message if the recalculation failed.
-    /// </summary>
-    public string? ErrorMessage { get; set; }
 }
 

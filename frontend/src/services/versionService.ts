@@ -9,6 +9,7 @@ export interface VersionInfo {
 
 export class VersionService {
   private static readonly STORAGE_KEY = 'app_version';
+  private static readonly NOTIFIED_VERSIONS_KEY = 'notified_versions';
   private static readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
   private lastCheckedVersion: string | null = null;
@@ -37,6 +38,44 @@ export class VersionService {
     } catch (error) {
       console.warn('Failed to store version:', error);
     }
+  }
+
+  /**
+   * Get the list of notified versions from localStorage
+   */
+  private getNotifiedVersions(): string[] {
+    try {
+      const notifiedVersions = localStorage.getItem(VersionService.NOTIFIED_VERSIONS_KEY);
+      return notifiedVersions ? JSON.parse(notifiedVersions) : [];
+    } catch (error) {
+      console.warn('Failed to read notified versions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Mark a version as notified to prevent showing the same notification repeatedly
+   */
+  private markVersionAsNotified(version: string): void {
+    try {
+      const notifiedVersions = this.getNotifiedVersions();
+      if (!notifiedVersions.includes(version)) {
+        notifiedVersions.push(version);
+        // Keep only the last 10 notified versions to prevent storage bloat
+        const trimmedVersions = notifiedVersions.slice(-10);
+        localStorage.setItem(VersionService.NOTIFIED_VERSIONS_KEY, JSON.stringify(trimmedVersions));
+      }
+    } catch (error) {
+      console.warn('Failed to mark version as notified:', error);
+    }
+  }
+
+  /**
+   * Check if a version has already been notified to the user
+   */
+  private isVersionNotified(version: string): boolean {
+    const notifiedVersions = this.getNotifiedVersions();
+    return notifiedVersions.includes(version);
   }
 
   /**
@@ -74,10 +113,11 @@ export class VersionService {
       }
 
       const hasUpdate = currentStoredVersion !== versionInfo.version;
+      const alreadyNotified = hasUpdate && this.isVersionNotified(versionInfo.version);
       
       return {
-        hasUpdate,
-        newVersion: hasUpdate ? versionInfo.version : undefined,
+        hasUpdate: hasUpdate && !alreadyNotified,
+        newVersion: hasUpdate && !alreadyNotified ? versionInfo.version : undefined,
         currentVersion: currentStoredVersion
       };
     } catch (error) {
@@ -99,6 +139,8 @@ export class VersionService {
         
         if (result.hasUpdate && result.newVersion && result.currentVersion) {
           console.log(`New version detected: ${result.newVersion} (current: ${result.currentVersion})`);
+          // Mark this version as notified to prevent repeated notifications
+          this.markVersionAsNotified(result.newVersion);
           onNewVersionDetected(result.newVersion, result.currentVersion);
         }
       } catch (error) {
@@ -138,7 +180,7 @@ export class VersionService {
   }
 
   /**
-   * Update to new version - clear cache and reload
+   * Update to new version - clear cache and redirect to root
    */
   public updateToNewVersion(newVersion: string): void {
     try {
@@ -150,12 +192,12 @@ export class VersionService {
       // Clear various caches
       this.clearCaches();
       
-      // Reload the page
-      window.location.reload();
+      // Redirect to root path instead of reloading current page
+      window.location.href = '/';
     } catch (error) {
       console.error('Failed to update to new version:', error);
-      // Fallback - just reload
-      window.location.reload();
+      // Fallback - redirect to root
+      window.location.href = '/';
     }
   }
 
@@ -170,6 +212,8 @@ export class VersionService {
       if (version) {
         localStorage.setItem(VersionService.STORAGE_KEY, version);
       }
+      // Clear notified versions so future updates can be shown
+      localStorage.removeItem(VersionService.NOTIFIED_VERSIONS_KEY);
 
       // Clear sessionStorage
       sessionStorage.clear();

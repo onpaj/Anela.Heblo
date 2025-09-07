@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput;
 
-public class GetManufactureOutputResponse
+public class GetManufactureOutputResponse : BaseResponse
 {
     public List<ManufactureOutputMonth> Months { get; set; } = new();
 }

@@ -28,4 +28,13 @@ public interface IAnalyticsRepository
         ProductType[] productTypes,
         ProductGroupingMode groupingMode,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets detailed product analysis data for a specific product
+    /// </summary>
+    Task<AnalyticsProduct?> GetProductAnalysisDataAsync(
+        string productId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
 }

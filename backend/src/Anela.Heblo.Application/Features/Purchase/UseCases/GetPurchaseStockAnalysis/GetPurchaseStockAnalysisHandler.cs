@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Services;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,8 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
 
         if (fromDate > toDate)
         {
-            throw new ArgumentException("FromDate must be before or equal to ToDate");
+            _logger.LogWarning("Invalid date range: FromDate {FromDate} is after ToDate {ToDate}", fromDate, toDate);
+            return new GetPurchaseStockAnalysisResponse(ErrorCodes.InvalidDateRange, new Dictionary<string, string> { { "FromDate", fromDate.ToString() }, { "ToDate", toDate.ToString() } });
         }
 
         var allCatalogItems = await _catalogRepository.GetAllAsync(cancellationToken);

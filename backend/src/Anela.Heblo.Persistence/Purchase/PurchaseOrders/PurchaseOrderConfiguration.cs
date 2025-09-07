@@ -27,9 +27,11 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
             .HasMaxLength(PurchaseOrderConstants.SupplierNameMaxLength);
 
         builder.Property(x => x.OrderDate)
-            .IsRequired();
+            .IsRequired()
+            .HasColumnType("timestamp");
 
-        builder.Property(x => x.ExpectedDeliveryDate);
+        builder.Property(x => x.ExpectedDeliveryDate)
+            .HasColumnType("timestamp");
 
         builder.Property(x => x.Status)
             .IsRequired()
@@ -43,12 +45,14 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
             .HasMaxLength(PurchaseOrderConstants.UserNameMaxLength);
 
         builder.Property(x => x.CreatedAt)
-            .IsRequired();
+            .IsRequired()
+            .HasColumnType("timestamp");
 
         builder.Property(x => x.UpdatedBy)
             .HasMaxLength(PurchaseOrderConstants.UserNameMaxLength);
 
-        builder.Property(x => x.UpdatedAt);
+        builder.Property(x => x.UpdatedAt)
+            .HasColumnType("timestamp");
 
         builder.HasMany(x => x.Lines)
             .WithOne()

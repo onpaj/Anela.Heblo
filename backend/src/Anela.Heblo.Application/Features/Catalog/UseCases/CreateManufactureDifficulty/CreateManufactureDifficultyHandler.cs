@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
@@ -37,7 +38,12 @@ public class CreateManufactureDifficultyHandler : IRequestHandler<CreateManufact
         // Validate date range
         if (request.ValidFrom.HasValue && request.ValidTo.HasValue && request.ValidFrom >= request.ValidTo)
         {
-            throw new ArgumentException("ValidFrom must be earlier than ValidTo");
+            return new CreateManufactureDifficultyResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidValue,
+                Params = new Dictionary<string, string> { { "field", "ValidFrom must be earlier than ValidTo" } }
+            };
         }
 
         // Resolve overlaps by adjusting existing periods

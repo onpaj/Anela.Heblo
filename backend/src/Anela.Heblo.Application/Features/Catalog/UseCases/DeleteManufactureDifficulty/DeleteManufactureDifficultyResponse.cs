@@ -1,7 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.Catalog.UseCases.DeleteManufactureDifficulty;
 
-public class DeleteManufactureDifficultyResponse
+public class DeleteManufactureDifficultyResponse : BaseResponse
 {
-    public bool Success { get; set; }
     public string? Message { get; set; }
 }

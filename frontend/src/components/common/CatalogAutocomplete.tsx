@@ -1,5 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronDown, Package, AlertCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Select, { 
+  StylesConfig, 
+  components, 
+  OptionProps, 
+  SingleValueProps,
+  SingleValue,
+  MultiValue,
+  ActionMeta
+} from 'react-select';
+import { Package, AlertCircle } from 'lucide-react';
 import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
 import { CatalogItemDto, ProductType } from '../../api/generated/api-client';
 
@@ -32,6 +41,15 @@ interface CatalogAutocompleteProps<T = CatalogItemDto> {
   renderItem?: (item: CatalogItemDto) => React.ReactNode; // Custom item rendering
 }
 
+// React Select Option type for our catalog items
+interface CatalogSelectOption {
+  value: string;
+  label: string;
+  productCode?: string;
+  productName?: string;
+  type?: ProductType;
+}
+
 export function CatalogAutocomplete<T = CatalogItemDto>({
   value,
   onSelect,
@@ -50,13 +68,38 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   displayValue,
   renderItem
 }: CatalogAutocompleteProps<T>) {
-  const [isOpen, setIsOpen] = useState(false);
+
+  // Convert CatalogItemDto to Select option format
+  const convertToOption = (item: CatalogItemDto): CatalogSelectOption => ({
+    value: item.productCode || '',
+    label: `${item.productName} (${item.productCode})`,
+    productCode: item.productCode,
+    productName: item.productName,
+    type: item.type
+  });
+
+  // Convert current value to select option
+  const getSelectValue = (): CatalogSelectOption | null => {
+    if (!value) return null;
+    
+    // If value is already a CatalogItemDto-like object
+    const catalogItem = value as any;
+    const displayName = catalogItem.productName || catalogItem.label || (displayValue ? displayValue(value) : String(value));
+    const code = catalogItem.productCode || catalogItem.value || '';
+    
+    return {
+      productCode: code,
+      productName: displayName,
+      value: code,
+      label: catalogItem.productName ? 
+        `${catalogItem.productName} (${catalogItem.productCode})` : 
+        displayName
+    } as CatalogSelectOption;
+  };
+
+  // State for search input with debouncing
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
 
   // Debounce search term
   useEffect(() => {
@@ -66,220 +109,217 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  // Fetch catalog items using autocomplete
-  const { data: autocompleteData, isLoading, error: fetchError } = useCatalogAutocomplete(
+  
+  // Use existing hook for data fetching
+  const { data: autocompleteData, isLoading } = useCatalogAutocomplete(
     debouncedSearchTerm.length >= searchMinLength ? debouncedSearchTerm : undefined,
     limit,
     productTypes
   );
 
-  // Extract items directly from autocomplete response using useMemo to stabilize reference
-  const items = useMemo(() => autocompleteData?.items || [], [autocompleteData?.items]);
+  // Convert hook data to options
+  const options = useMemo(() => {
+    if (!autocompleteData?.items) return [];
+    return autocompleteData.items.map(convertToOption);
+  }, [autocompleteData?.items]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setHighlightedIndex(-1);
-      }
-    };
+  // Handle input change for search
+  const handleInputChange = (inputValue: string) => {
+    setSearchTerm(inputValue);
+  };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Reset highlighted index when items change
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [items]);
-
-  // Sync searchTerm with external value changes (like clearing filters)
-  useEffect(() => {
-    if (!value) {
-      setSearchTerm('');
-    } else if (displayValue) {
-      setSearchTerm(displayValue(value));
-    } else {
-      // Default display logic for CatalogItemDto-like objects
-      setSearchTerm((value as any).productName || (value as any).productCode || String(value));
-    }
-  }, [value, displayValue]);
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (highlightedIndex >= 0 && listRef.current) {
-      const listItems = listRef.current.querySelectorAll('[data-item-index]');
-      const highlightedItem = listItems[highlightedIndex] as HTMLElement;
-      if (highlightedItem) {
-        highlightedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }
-  }, [highlightedIndex]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchTerm(newValue);
+  // Handle selection change
+  const handleChange = (
+    newValue: SingleValue<CatalogSelectOption> | MultiValue<CatalogSelectOption>, 
+    actionMeta: ActionMeta<CatalogSelectOption>
+  ) => {
+    const selectedOption = newValue as SingleValue<CatalogSelectOption>;
     
-    if (!isOpen && newValue.length > 0) {
-      setIsOpen(true);
-    }
-  };
-
-  const handleInputFocus = () => {
-    setIsOpen(true);
-  };
-
-  const handleInputBlur = () => {
-    // In manual entry mode, auto-add product when input loses focus
-    if (allowManualEntry && searchTerm.trim()) {
-      // Create a minimal item for manual entry
-      const manualItem = {
-        productCode: searchTerm.trim(),
-        productName: searchTerm.trim(),
-      } as CatalogItemDto;
-      
-      const adaptedItem = itemAdapter ? itemAdapter(manualItem) : (manualItem as T);
-      onSelect(adaptedItem);
-      setSearchTerm('');
-    }
-  };
-
-  const handleSelectItem = useCallback((item: CatalogItemDto) => {
-    const adaptedItem = itemAdapter ? itemAdapter(item) : (item as T);
-    onSelect(adaptedItem);
-    setSearchTerm(displayValue ? displayValue(adaptedItem) : item.productName || '');
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-  }, [onSelect, itemAdapter, displayValue]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        setIsOpen(true);
-      }
+    if (!selectedOption) {
+      onSelect(null);
       return;
     }
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < items.length - 1 ? prev + 1 : prev
-        );
-        break;
-        
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
-        break;
-        
-      case 'Enter':
-        e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < items.length) {
-          handleSelectItem(items[highlightedIndex]);
-        } else if (allowManualEntry && searchTerm.trim()) {
-          // Handle manual entry on Enter
-          handleInputBlur();
-        }
-        break;
-        
-      case 'Escape':
-        e.preventDefault();
-        setIsOpen(false);
-        setHighlightedIndex(-1);
-        break;
-    }
-  }, [isOpen, items, highlightedIndex, handleSelectItem, allowManualEntry, searchTerm, handleInputBlur]);
+    // Convert back to the expected format using constructor
+    const catalogItem = new CatalogItemDto({
+      productCode: selectedOption.productCode,
+      productName: selectedOption.productName,
+      type: selectedOption.type
+    });
 
-  const handleClear = () => {
-    onSelect(null);
-    setSearchTerm('');
-    setIsOpen(false);
-    inputRef.current?.focus();
+    const adaptedItem = itemAdapter ? itemAdapter(catalogItem) : (catalogItem as T);
+    onSelect(adaptedItem);
   };
 
-  // Determine display value
-  const getDisplayValue = () => {
-    if (value) {
-      if (displayValue) {
-        return displayValue(value);
+
+  // Size-dependent styles
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return {
+          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '12px' }),
+          valueContainer: (base: any) => ({ ...base, padding: '5px 8px' }),
+          input: (base: any) => ({ ...base, margin: '0px' })
+        };
+      case 'lg':
+        return {
+          control: (base: any) => ({ ...base, minHeight: '48px', fontSize: '16px' }),
+          valueContainer: (base: any) => ({ ...base, padding: '12px 16px' }),
+          input: (base: any) => ({ ...base, margin: '0px' })
+        };
+      default: // md
+        return {
+          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '14px' }),
+          valueContainer: (base: any) => ({ ...base, padding: '5px 12px' }),
+          input: (base: any) => ({ ...base, margin: '0px' })
+        };
+    }
+  };
+
+  // Custom styles to match Tailwind design
+  const customStyles: StylesConfig<CatalogSelectOption> = {
+    ...getSizeStyles(),
+    control: (base, state) => ({
+      ...base,
+      ...getSizeStyles().control(base),
+      borderColor: error 
+        ? '#fca5a5' 
+        : state.isFocused 
+          ? '#6366f1' 
+          : '#d1d5db',
+      borderRadius: '6px',
+      borderWidth: '1px',
+      boxShadow: state.isFocused 
+        ? error 
+          ? '0 0 0 1px #ef4444' 
+          : '0 0 0 1px #6366f1'
+        : 'none',
+      backgroundColor: disabled ? '#f9fafb' : 'white',
+      cursor: disabled ? 'not-allowed' : 'default',
+      '&:hover': {
+        borderColor: error ? '#fca5a5' : state.isFocused ? '#6366f1' : '#9ca3af'
       }
-      // Assume the value has productName if it's CatalogItemDto-like
-      return (value as any).productName || (value as any).productCode || String(value);
-    }
-    return searchTerm;
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected 
+        ? '#6366f1' 
+        : state.isFocused 
+          ? '#e0e7ff' 
+          : 'white',
+      color: state.isSelected 
+        ? 'white' 
+        : state.isFocused 
+          ? '#312e81' 
+          : '#111827',
+      cursor: 'pointer',
+      padding: '8px 12px'
+    }),
+    menu: (base) => ({
+      ...base,
+      borderRadius: '6px',
+      border: '1px solid #d1d5db',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      zIndex: 50
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '240px',
+      padding: '4px 0'
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#6b7280'
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: disabled ? '#6b7280' : '#111827'
+    }),
+    clearIndicator: (base) => ({
+      ...base,
+      color: '#9ca3af',
+      cursor: 'pointer',
+      '&:hover': {
+        color: '#6b7280'
+      }
+    }),
+    dropdownIndicator: (base) => ({
+      ...base,
+      color: '#9ca3af',
+      '&:hover': {
+        color: '#6b7280'
+      }
+    })
   };
 
-  // Size-dependent classes
-  const sizeClasses = {
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-3 py-2 text-sm',
-    lg: 'px-4 py-3 text-base'
+  // Custom Option component with icon
+  const CustomOption = (props: OptionProps<CatalogSelectOption>) => {
+    // Convert CatalogSelectOption back to CatalogItemDto for renderItem
+    const catalogItem = new CatalogItemDto({
+      productCode: props.data.productCode,
+      productName: props.data.productName,
+      type: props.data.type
+    });
+
+    return (
+      <components.Option {...props}>
+        <div className="flex items-center space-x-3">
+          <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            {renderItem ? renderItem(catalogItem) : (
+              <span className="text-gray-900 truncate">
+                {props.data.productName} <span className="text-gray-500 font-mono">({props.data.productCode})</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </components.Option>
+    );
   };
 
-  // Default item renderer
-  const defaultRenderItem = (item: CatalogItemDto) => (
-    <div className="flex items-center space-x-3">
-      <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
-      <div className="min-w-0 flex-1">
-        <span className="text-gray-900 truncate">
-          {item.productName} <span className="text-gray-500 font-mono">({item.productCode})</span>
-        </span>
-      </div>
-    </div>
-  );
+  // Custom SingleValue component
+  const CustomSingleValue = (props: SingleValueProps<CatalogSelectOption>) => {
+    return (
+      <components.SingleValue {...props}>
+        <div className="flex items-center space-x-2">
+          <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="truncate">
+            {displayValue && value ? displayValue(value) : props.data.productName}
+          </span>
+        </div>
+      </components.SingleValue>
+    );
+  };
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Input */}
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          value={getDisplayValue()}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          onBlur={allowManualEntry ? handleInputBlur : undefined}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={`
-            w-full pr-10 border rounded-md transition-colors
-            ${sizeClasses[size]}
-            ${error 
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-              : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-            }
-            ${disabled 
-              ? 'bg-gray-50 text-gray-500 cursor-not-allowed' 
-              : 'bg-white text-gray-900'
-            }
-            focus:outline-none focus:ring-1
-          `}
-        />
-        
-        {/* Clear button or dropdown arrow */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-          {value && clearable ? (
-            <button
-              onClick={handleClear}
-              disabled={disabled}
-              className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : (
-            <ChevronDown
-              className={`h-4 w-4 text-gray-400 transition-transform ${
-                isOpen ? 'transform rotate-180' : ''
-              }`}
-            />
-          )}
-        </div>
-      </div>
-
+    <div className={className}>
+      <Select
+        value={getSelectValue()}
+        onChange={handleChange}
+        options={options}
+        placeholder={placeholder}
+        isClearable={clearable}
+        isDisabled={disabled}
+        isSearchable={true}
+        isLoading={isLoading}
+        onInputChange={handleInputChange}
+        styles={customStyles}
+        components={{
+          Option: CustomOption,
+          SingleValue: CustomSingleValue
+        }}
+        noOptionsMessage={({ inputValue }) => 
+          inputValue ? 
+            'Žádné položky nenalezeny' : 
+            allowManualEntry ? 
+              'Začněte psát nebo zadejte vlastní hodnotu' :
+              'Začněte psát pro vyhledávání'
+        }
+        loadingMessage={() => 'Načítám...'}
+        menuPlacement="auto"
+        filterOption={null} // Disable built-in filtering since we handle it via API
+      />
+      
       {/* Selected product display */}
       {value && showSelectedInfo && (
         <div data-testid="selected-product" className="mt-1 text-sm text-gray-600">
@@ -293,51 +333,6 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         <div className="mt-1 flex items-center text-sm text-red-600">
           <AlertCircle className="h-4 w-4 mr-1" />
           {error}
-        </div>
-      )}
-
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-          {isLoading && (
-            <div className="px-3 py-2 text-sm text-gray-500">
-              Načítám...
-            </div>
-          )}
-          
-          {fetchError && (
-            <div className="px-3 py-2 text-sm text-red-600">
-              Chyba při načítání položek katalogu
-            </div>
-          )}
-          
-          {items.length > 0 ? (
-            <div className="py-1" ref={listRef}>
-              {items.map((item, index) => (
-                <button
-                  key={item.productCode || index}
-                  data-item-index={index}
-                  onClick={() => handleSelectItem(item)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  className={`w-full px-3 py-2 text-left focus:outline-none transition-colors ${
-                    index === highlightedIndex 
-                      ? 'bg-indigo-100 text-indigo-900' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  {renderItem ? renderItem(item) : defaultRenderItem(item)}
-                </button>
-              ))}
-            </div>
-          ) : (
-            !isLoading && !fetchError && (
-              <div className="px-3 py-2 text-sm text-gray-500">
-                {searchTerm ? 'Žádné položky nenalezeny' : 
-                 allowManualEntry ? 'Začněte psát nebo zadejte vlastní hodnotu' :
-                 'Začněte psát pro vyhledávání'}
-              </div>
-            )
-          )}
         </div>
       )}
     </div>

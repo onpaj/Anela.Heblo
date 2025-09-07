@@ -49,12 +49,39 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         };
 
         bool dataLoaded = false;
-        if (!_cache.TryGetValue(CacheKey, out IList<ProductPriceFlexiDto>? data))
+        IList<ProductPriceFlexiDto>? data = null;
+
+        // Safe cache access with disposed object protection
+        try
+        {
+            if (!_cache.TryGetValue(CacheKey, out data))
+            {
+                // Cache miss - load from source
+                data = null;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Cache is disposed, skip caching and load from source
+            data = null;
+        }
+
+        if (data == null)
         {
             try
             {
                 data = await GetAsync(0, cancellationToken);
-                _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
+
+                // Safe cache set with disposed object protection
+                try
+                {
+                    _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Cache is disposed, skip caching but continue with the data
+                }
+
                 dataLoaded = true;
             }
             catch (Exception ex)

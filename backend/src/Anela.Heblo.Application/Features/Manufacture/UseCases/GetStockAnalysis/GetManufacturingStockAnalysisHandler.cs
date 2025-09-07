@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -49,6 +50,17 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         var finishedProducts = allCatalogItems
             .Where(item => item.Type == ProductType.Product)
             .ToList();
+
+        if (!finishedProducts.Any())
+        {
+            _logger.LogWarning("No finished products found in catalog for manufacturing stock analysis");
+            return new GetManufacturingStockAnalysisResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ManufacturingDataNotAvailable,
+                Params = new Dictionary<string, string> { ["reason"] = "No finished products available for analysis" }
+            };
+        }
 
         // 3. Analyze all items for summary calculation
         var allAnalysisItems = finishedProducts

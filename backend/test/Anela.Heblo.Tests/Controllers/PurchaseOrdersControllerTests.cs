@@ -9,11 +9,13 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -21,11 +23,13 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
 {
     private readonly PurchaseOrdersTestFactory _factory;
     private readonly HttpClient _client;
+    private readonly ITestOutputHelper _output;
 
-    public PurchaseOrdersControllerTests(PurchaseOrdersTestFactory factory)
+    public PurchaseOrdersControllerTests(PurchaseOrdersTestFactory factory, ITestOutputHelper output)
     {
         _factory = factory;
         _client = _factory.CreateClient();
+        _output = output;
     }
 
     [Fact]
@@ -384,11 +388,11 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
 
         historyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var content = await historyResponse.Content.ReadFromJsonAsync<List<PurchaseOrderHistoryDto>>();
+        var content = await historyResponse.Content.ReadFromJsonAsync<ListResponse<PurchaseOrderHistoryDto>>();
         content.Should().NotBeNull();
-        content!.Should().HaveCount(2);
-        content.Should().Contain(h => h.Action.Contains("Order created"));
-        content.Should().Contain(h => h.Action.Contains("Status changed"));
+        content!.Items.Should().HaveCount(2);
+        content.Items.Should().Contain(h => h.Action.Contains("Order created"));
+        content.Items.Should().Contain(h => h.Action.Contains("Status changed"));
     }
 
     [Fact]
@@ -521,18 +525,25 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     }
 
     [Fact]
-    public async Task RecalculatePurchasePrice_WithSpecificProduct_ShouldReturnOk()
+    public async Task RecalculatePurchasePrice_WithSpecificProduct_ShouldReturnNotFound()
     {
         var request = new RecalculatePurchasePriceRequest
         {
-            ProductCode = "TEST_PRODUCT",
+            ProductCode = "NONEXISTENT_PRODUCT",
             RecalculateAll = false
         };
 
         var response = await _client.PostAsJsonAsync("/api/purchase-orders/recalculate-purchase-price", request);
 
-        // Should return OK even if product doesn't exist - it will be handled by the handler
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
+        // After refactoring to result-based error handling, non-existent product returns 404 Not Found
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        
+        // Test based on raw JSON structure
+        var rawContent = await response.Content.ReadAsStringAsync();
+        rawContent.Should().Contain("\"success\":false");
+        rawContent.Should().Contain("\"errorCode\":\"CatalogItemNotFound\"");
+        rawContent.Should().Contain("\"ProductCode\":\"NONEXISTENT_PRODUCT\"");
+        rawContent.Should().Contain("\"message\":\"No products found to recalculate\"");
     }
 
     [Fact]

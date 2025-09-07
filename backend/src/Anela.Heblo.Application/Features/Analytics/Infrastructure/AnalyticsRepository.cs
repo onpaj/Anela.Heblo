@@ -52,6 +52,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                     ProductFamily = product.ProductFamily,
                     ProductCategory = product.ProductCategory,
                     MarginAmount = product.MarginAmount,
+                    SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
                     EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
                     MaterialCost = GetLatestMaterialCost(product),
                     HandlingCost = GetLatestHandlingCost(product),
@@ -102,6 +103,42 @@ public class AnalyticsRepository : IAnalyticsRepository
         }
 
         return groupTotals;
+    }
+
+    public async Task<AnalyticsProduct?> GetProductAnalysisDataAsync(
+        string productId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: In real implementation, this would be a direct database query
+        // For now, use the catalog repository to get the product
+        var product = await _catalogRepository.GetByIdAsync(productId, cancellationToken);
+        if (product == null)
+            return null;
+
+        // Convert to analytics product with filtered sales data
+        return new AnalyticsProduct
+        {
+            ProductCode = product.ProductCode,
+            ProductName = product.ProductName,
+            Type = product.Type,
+            ProductFamily = product.ProductFamily,
+            ProductCategory = product.ProductCategory,
+            MarginAmount = product.MarginAmount,
+            SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
+            EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
+            MaterialCost = GetLatestMaterialCost(product),
+            HandlingCost = GetLatestHandlingCost(product),
+            SalesHistory = product.SalesHistory
+                .Select(s => new SalesDataPoint
+                {
+                    Date = s.Date,
+                    AmountB2B = s.AmountB2B,
+                    AmountB2C = s.AmountB2C
+                })
+                .ToList()
+        };
     }
 
     private string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode)

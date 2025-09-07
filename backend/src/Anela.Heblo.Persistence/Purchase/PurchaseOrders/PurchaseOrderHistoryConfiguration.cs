@@ -33,7 +33,8 @@ public class PurchaseOrderHistoryConfiguration : IEntityTypeConfiguration<Purcha
             .HasMaxLength(PurchaseOrderConstants.UserNameMaxLength);
 
         builder.Property(x => x.ChangedAt)
-            .IsRequired();
+            .IsRequired()
+            .HasColumnType("timestamp");
 
         builder.HasIndex(x => x.PurchaseOrderId);
         builder.HasIndex(x => x.ChangedAt);

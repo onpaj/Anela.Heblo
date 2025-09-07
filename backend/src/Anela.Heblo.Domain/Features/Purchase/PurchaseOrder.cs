@@ -128,7 +128,7 @@ public class PurchaseOrder : IEntity<int>
 
         SupplierId = supplierId;
         SupplierName = supplierName ?? throw new ArgumentNullException(nameof(supplierName));
-        ExpectedDeliveryDate = expectedDeliveryDate;
+        ExpectedDeliveryDate = expectedDeliveryDate?.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(expectedDeliveryDate.Value, DateTimeKind.Utc) : expectedDeliveryDate?.ToUniversalTime();
         ContactVia = contactVia;
         Notes = notes;
         UpdatedBy = updatedBy;

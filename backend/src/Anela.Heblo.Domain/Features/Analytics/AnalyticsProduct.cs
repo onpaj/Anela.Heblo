@@ -14,6 +14,7 @@ public class AnalyticsProduct
     public string? ProductFamily { get; init; }
     public string? ProductCategory { get; init; }
     public required decimal MarginAmount { get; init; }
+    public decimal SellingPrice { get; init; }
     public decimal? EshopPriceWithoutVat { get; init; }
     public decimal MaterialCost { get; init; }
     public decimal HandlingCost { get; init; }
