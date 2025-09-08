@@ -267,6 +267,7 @@ const CatalogList: React.FC = () => {
                 <SortableHeader column="productName">Název produktu</SortableHeader>
                 <SortableHeader column="type">Typ</SortableHeader>
                 <SortableHeader column="available">Dostupné</SortableHeader>
+                <SortableHeader column="reserve">V rezervě</SortableHeader>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Umístění
                 </th>
@@ -301,6 +302,15 @@ const CatalogList: React.FC = () => {
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
                       {Math.round((item.stock?.available || 0) * 100) / 100}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                    {(item.stock?.reserve || 0) > 0 ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-800">
+                        {Math.round((item.stock?.reserve || 0) * 100) / 100}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {item.location}

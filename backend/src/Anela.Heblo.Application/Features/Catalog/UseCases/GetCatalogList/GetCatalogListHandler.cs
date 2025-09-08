@@ -64,6 +64,7 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             "type" => request.SortDescending ? query.OrderByDescending(x => x.Type) : query.OrderBy(x => x.Type),
             "location" => request.SortDescending ? query.OrderByDescending(x => x.Location) : query.OrderBy(x => x.Location),
             "available" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Available) : query.OrderBy(x => x.Stock.Available),
+            "reserve" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Reserve) : query.OrderBy(x => x.Stock.Reserve),
             "erp" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Erp) : query.OrderBy(x => x.Stock.Erp),
             "eshop" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Eshop) : query.OrderBy(x => x.Stock.Eshop),
             _ => query.OrderBy(x => x.ProductCode) // Default sort by ProductCode

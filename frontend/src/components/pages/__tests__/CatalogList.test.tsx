@@ -431,4 +431,189 @@ describe('CatalogList', () => {
     // The pagination info should show filter status - format is "1-2 z 2 (filtrováno)"
     expect(screen.getByText(/\(filtrováno\)/)).toBeInTheDocument();
   });
+
+  describe('InReserve Column', () => {
+    it('should display InReserve column header with sorting capability', () => {
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: mockCatalogItems,
+          totalCount: 2,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      const reserveHeader = screen.getByText('V rezervě');
+      expect(reserveHeader).toBeInTheDocument();
+      
+      const headerCell = screen.getByRole('columnheader', { name: /V rezervě/ });
+      expect(headerCell).toHaveClass('cursor-pointer');
+    });
+
+    it('should display reserve amounts with amber styling when value is greater than 0', () => {
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: mockCatalogItems,
+          totalCount: 2,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      // TEST001 has reserve: 4.0
+      const reserveValue = screen.getByText('4');
+      expect(reserveValue).toBeInTheDocument();
+      expect(reserveValue).toHaveClass('bg-amber-100', 'text-amber-800');
+    });
+
+    it('should display dash (-) when reserve is 0 or null', () => {
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: mockCatalogItems,
+          totalCount: 2,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      // TEST002 has reserve: 0, so should display "-"
+      const dashElements = screen.getAllByText('-');
+      expect(dashElements.length).toBeGreaterThan(0);
+      
+      // Check that at least one dash has the correct styling
+      const reserveDash = dashElements.find(element => 
+        element.classList.contains('text-gray-400')
+      );
+      expect(reserveDash).toBeInTheDocument();
+    });
+
+    it('should handle reserve column sorting', () => {
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: mockCatalogItems,
+          totalCount: 2,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      const reserveHeader = screen.getByText('V rezervě');
+      fireEvent.click(reserveHeader);
+
+      // Check that the header is clickable and contains sorting elements
+      const headerCell = screen.getByRole('columnheader', { name: /V rezervě/ });
+      expect(headerCell).toHaveClass('cursor-pointer');
+      expect(headerCell).toHaveClass('hover:bg-gray-100');
+    });
+
+    it('should round reserve values correctly', () => {
+      const itemWithPreciseReserve = {
+        ...mockCatalogItems[0],
+        stock: {
+          ...mockCatalogItems[0].stock,
+          reserve: 12.345678,
+        },
+      };
+
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: [itemWithPreciseReserve],
+          totalCount: 1,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      expect(screen.getByText('12.35')).toBeInTheDocument();
+    });
+
+    it('should handle null stock gracefully', () => {
+      const itemWithNullStock = {
+        ...mockCatalogItems[0],
+        stock: null,
+      };
+
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: [itemWithNullStock],
+          totalCount: 1,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      // Should display dash for null stock
+      const dashElements = screen.getAllByText('-');
+      expect(dashElements.length).toBeGreaterThan(0);
+    });
+
+    it('should handle undefined reserve gracefully', () => {
+      const itemWithUndefinedReserve = {
+        ...mockCatalogItems[0],
+        stock: {
+          ...mockCatalogItems[0].stock,
+          reserve: undefined,
+        },
+      };
+
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: [itemWithUndefinedReserve],
+          totalCount: 1,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      // Should display dash for undefined reserve
+      const dashElements = screen.getAllByText('-');
+      expect(dashElements.length).toBeGreaterThan(0);
+    });
+
+    it('should position InReserve column after Dostupné column', () => {
+      mockUseCatalogQuery.mockReturnValue({
+        data: {
+          items: mockCatalogItems,
+          totalCount: 2,
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      } as any);
+
+      renderWithQueryClient(<CatalogList />);
+
+      // Get all column headers
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map(header => header.textContent);
+
+      // Find the positions of Dostupné and V rezervě
+      const availableIndex = headerTexts.findIndex(text => text?.includes('Dostupné'));
+      const reserveIndex = headerTexts.findIndex(text => text?.includes('V rezervě'));
+
+      expect(availableIndex).toBeLessThan(reserveIndex);
+      expect(reserveIndex - availableIndex).toBe(1);
+    });
+  });
 });
