@@ -20,7 +20,7 @@ on:
           - 'all'
 
 env:
-  STAGING_URL: https://heblo-test-staging.azurewebsites.net
+  STAGING_URL: https://heblo.stg.anela.cz
   NODE_VERSION: '18'
 
 jobs:
