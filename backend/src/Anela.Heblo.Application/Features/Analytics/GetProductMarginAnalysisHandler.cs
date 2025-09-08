@@ -36,7 +36,7 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
 
         if (request.StartDate > request.EndDate)
         {
-            return CreateErrorResponse(ErrorCodes.InvalidDateRange, 
+            return CreateErrorResponse(ErrorCodes.InvalidDateRange,
                 ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
                 ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
         }
@@ -45,14 +45,14 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
         {
             // Get product data
             var productData = await _analyticsRepository.GetProductAnalysisDataAsync(
-                request.ProductId, 
-                request.StartDate, 
-                request.EndDate, 
+                request.ProductId,
+                request.StartDate,
+                request.EndDate,
                 cancellationToken);
 
             if (productData == null)
             {
-                return CreateErrorResponse(ErrorCodes.ProductNotFoundForAnalysis, 
+                return CreateErrorResponse(ErrorCodes.ProductNotFoundForAnalysis,
                     ("productId", request.ProductId));
             }
 
@@ -68,7 +68,7 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
             var marginResult = _marginCalculationService.CalculateProductMargins(productData, request.StartDate, request.EndDate);
             if (!marginResult.IsSuccess)
             {
-                return CreateErrorResponse(marginResult.ErrorCode!.Value, 
+                return CreateErrorResponse(marginResult.ErrorCode!.Value,
                     ("reason", marginResult.ErrorMessage ?? "Unknown calculation error"));
             }
 

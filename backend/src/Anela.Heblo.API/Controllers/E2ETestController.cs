@@ -21,8 +21,8 @@ public class E2ETestController : ControllerBase
     private readonly IE2ESessionService _sessionService;
 
     public E2ETestController(
-        ILogger<E2ETestController> logger, 
-        IWebHostEnvironment environment, 
+        ILogger<E2ETestController> logger,
+        IWebHostEnvironment environment,
         IConfiguration configuration,
         IServicePrincipalTokenValidator tokenValidator,
         IE2ESessionService sessionService)

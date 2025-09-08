@@ -56,6 +56,13 @@ export class ApiClient {
             result200 = GetProductMarginSummaryResponse.fromJS(resultData200);
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
         } else if (status === 403) {
             return response.text().then((_responseText) => {
             let result403: any = null;
@@ -63,12 +70,177 @@ export class ApiClient {
             result403 = ProblemDetails.fromJS(resultData403);
             return throwException("A server side error occurred.", status, _responseText, _headers, result403);
             });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
         return Promise.resolve<GetProductMarginSummaryResponse>(null as any);
+    }
+
+    analytics_GetMarginAnalysis(productId: string | undefined, startDate: Date | undefined, endDate: Date | undefined, includeBreakdown: boolean | undefined): Promise<GetProductMarginAnalysisResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/margin-analysis?";
+        if (productId === null)
+            throw new Error("The parameter 'productId' cannot be null.");
+        else if (productId !== undefined)
+            url_ += "ProductId=" + encodeURIComponent("" + productId) + "&";
+        if (startDate === null)
+            throw new Error("The parameter 'startDate' cannot be null.");
+        else if (startDate !== undefined)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate === null)
+            throw new Error("The parameter 'endDate' cannot be null.");
+        else if (endDate !== undefined)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        if (includeBreakdown === null)
+            throw new Error("The parameter 'includeBreakdown' cannot be null.");
+        else if (includeBreakdown !== undefined)
+            url_ += "IncludeBreakdown=" + encodeURIComponent("" + includeBreakdown) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetMarginAnalysis(_response);
+        });
+    }
+
+    protected processAnalytics_GetMarginAnalysis(response: Response): Promise<GetProductMarginAnalysisResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductMarginAnalysisResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductMarginAnalysisResponse>(null as any);
+    }
+
+    analytics_GetMarginReport(startDate: Date | undefined, endDate: Date | undefined, productFilter: string | null | undefined, categoryFilter: string | null | undefined, includeDetailedBreakdown: boolean | undefined, maxProducts: number | undefined): Promise<GetMarginReportResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/margin-report?";
+        if (startDate === null)
+            throw new Error("The parameter 'startDate' cannot be null.");
+        else if (startDate !== undefined)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate === null)
+            throw new Error("The parameter 'endDate' cannot be null.");
+        else if (endDate !== undefined)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        if (productFilter !== undefined && productFilter !== null)
+            url_ += "ProductFilter=" + encodeURIComponent("" + productFilter) + "&";
+        if (categoryFilter !== undefined && categoryFilter !== null)
+            url_ += "CategoryFilter=" + encodeURIComponent("" + categoryFilter) + "&";
+        if (includeDetailedBreakdown === null)
+            throw new Error("The parameter 'includeDetailedBreakdown' cannot be null.");
+        else if (includeDetailedBreakdown !== undefined)
+            url_ += "IncludeDetailedBreakdown=" + encodeURIComponent("" + includeDetailedBreakdown) + "&";
+        if (maxProducts === null)
+            throw new Error("The parameter 'maxProducts' cannot be null.");
+        else if (maxProducts !== undefined)
+            url_ += "MaxProducts=" + encodeURIComponent("" + maxProducts) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetMarginReport(_response);
+        });
+    }
+
+    protected processAnalytics_GetMarginReport(response: Response): Promise<GetMarginReportResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMarginReportResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMarginReportResponse>(null as any);
     }
 
     audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
@@ -3173,6 +3345,11 @@ export enum ErrorCodes {
     UnauthorizedJournalAccess = "UnauthorizedJournalAccess",
     DuplicateJournalTag = "DuplicateJournalTag",
     InvalidJournalEntryData = "InvalidJournalEntryData",
+    AnalysisDataNotAvailable = "AnalysisDataNotAvailable",
+    MarginCalculationFailed = "MarginCalculationFailed",
+    InsufficientData = "InsufficientData",
+    ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
+    InvalidReportPeriod = "InvalidReportPeriod",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -3241,6 +3418,340 @@ export interface IProblemDetails {
     instance?: string | undefined;
 
     [key: string]: any;
+}
+
+export class GetProductMarginAnalysisResponse extends BaseResponse implements IGetProductMarginAnalysisResponse {
+    productId?: string;
+    productName?: string;
+    totalMargin?: number;
+    marginPercentage?: number;
+    totalRevenue?: number;
+    totalCost?: number;
+    totalUnitsSold?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+    monthlyBreakdown?: MonthlyMarginBreakdown[];
+
+    constructor(data?: IGetProductMarginAnalysisResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.productId = _data["productId"];
+            this.productName = _data["productName"];
+            this.totalMargin = _data["totalMargin"];
+            this.marginPercentage = _data["marginPercentage"];
+            this.totalRevenue = _data["totalRevenue"];
+            this.totalCost = _data["totalCost"];
+            this.totalUnitsSold = _data["totalUnitsSold"];
+            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
+            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
+            if (Array.isArray(_data["monthlyBreakdown"])) {
+                this.monthlyBreakdown = [] as any;
+                for (let item of _data["monthlyBreakdown"])
+                    this.monthlyBreakdown!.push(MonthlyMarginBreakdown.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetProductMarginAnalysisResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductMarginAnalysisResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productId"] = this.productId;
+        data["productName"] = this.productName;
+        data["totalMargin"] = this.totalMargin;
+        data["marginPercentage"] = this.marginPercentage;
+        data["totalRevenue"] = this.totalRevenue;
+        data["totalCost"] = this.totalCost;
+        data["totalUnitsSold"] = this.totalUnitsSold;
+        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
+        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
+        if (Array.isArray(this.monthlyBreakdown)) {
+            data["monthlyBreakdown"] = [];
+            for (let item of this.monthlyBreakdown)
+                data["monthlyBreakdown"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetProductMarginAnalysisResponse extends IBaseResponse {
+    productId?: string;
+    productName?: string;
+    totalMargin?: number;
+    marginPercentage?: number;
+    totalRevenue?: number;
+    totalCost?: number;
+    totalUnitsSold?: number;
+    analysisPeriodStart?: Date;
+    analysisPeriodEnd?: Date;
+    monthlyBreakdown?: MonthlyMarginBreakdown[];
+}
+
+export class MonthlyMarginBreakdown implements IMonthlyMarginBreakdown {
+    month?: Date;
+    marginAmount?: number;
+    revenue?: number;
+    cost?: number;
+    unitsSold?: number;
+
+    constructor(data?: IMonthlyMarginBreakdown) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.month = _data["month"] ? new Date(_data["month"].toString()) : <any>undefined;
+            this.marginAmount = _data["marginAmount"];
+            this.revenue = _data["revenue"];
+            this.cost = _data["cost"];
+            this.unitsSold = _data["unitsSold"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyMarginBreakdown {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyMarginBreakdown();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["month"] = this.month ? this.month.toISOString() : <any>undefined;
+        data["marginAmount"] = this.marginAmount;
+        data["revenue"] = this.revenue;
+        data["cost"] = this.cost;
+        data["unitsSold"] = this.unitsSold;
+        return data;
+    }
+}
+
+export interface IMonthlyMarginBreakdown {
+    month?: Date;
+    marginAmount?: number;
+    revenue?: number;
+    cost?: number;
+    unitsSold?: number;
+}
+
+export class GetMarginReportResponse extends BaseResponse implements IGetMarginReportResponse {
+    reportPeriodStart?: Date;
+    reportPeriodEnd?: Date;
+    totalMargin?: number;
+    totalRevenue?: number;
+    totalCost?: number;
+    averageMarginPercentage?: number;
+    totalProductsAnalyzed?: number;
+    totalUnitsSold?: number;
+    productSummaries?: ProductMarginSummary[];
+    categorySummaries?: CategoryMarginSummary[];
+
+    constructor(data?: IGetMarginReportResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.reportPeriodStart = _data["reportPeriodStart"] ? new Date(_data["reportPeriodStart"].toString()) : <any>undefined;
+            this.reportPeriodEnd = _data["reportPeriodEnd"] ? new Date(_data["reportPeriodEnd"].toString()) : <any>undefined;
+            this.totalMargin = _data["totalMargin"];
+            this.totalRevenue = _data["totalRevenue"];
+            this.totalCost = _data["totalCost"];
+            this.averageMarginPercentage = _data["averageMarginPercentage"];
+            this.totalProductsAnalyzed = _data["totalProductsAnalyzed"];
+            this.totalUnitsSold = _data["totalUnitsSold"];
+            if (Array.isArray(_data["productSummaries"])) {
+                this.productSummaries = [] as any;
+                for (let item of _data["productSummaries"])
+                    this.productSummaries!.push(ProductMarginSummary.fromJS(item));
+            }
+            if (Array.isArray(_data["categorySummaries"])) {
+                this.categorySummaries = [] as any;
+                for (let item of _data["categorySummaries"])
+                    this.categorySummaries!.push(CategoryMarginSummary.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMarginReportResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMarginReportResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["reportPeriodStart"] = this.reportPeriodStart ? this.reportPeriodStart.toISOString() : <any>undefined;
+        data["reportPeriodEnd"] = this.reportPeriodEnd ? this.reportPeriodEnd.toISOString() : <any>undefined;
+        data["totalMargin"] = this.totalMargin;
+        data["totalRevenue"] = this.totalRevenue;
+        data["totalCost"] = this.totalCost;
+        data["averageMarginPercentage"] = this.averageMarginPercentage;
+        data["totalProductsAnalyzed"] = this.totalProductsAnalyzed;
+        data["totalUnitsSold"] = this.totalUnitsSold;
+        if (Array.isArray(this.productSummaries)) {
+            data["productSummaries"] = [];
+            for (let item of this.productSummaries)
+                data["productSummaries"].push(item.toJSON());
+        }
+        if (Array.isArray(this.categorySummaries)) {
+            data["categorySummaries"] = [];
+            for (let item of this.categorySummaries)
+                data["categorySummaries"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMarginReportResponse extends IBaseResponse {
+    reportPeriodStart?: Date;
+    reportPeriodEnd?: Date;
+    totalMargin?: number;
+    totalRevenue?: number;
+    totalCost?: number;
+    averageMarginPercentage?: number;
+    totalProductsAnalyzed?: number;
+    totalUnitsSold?: number;
+    productSummaries?: ProductMarginSummary[];
+    categorySummaries?: CategoryMarginSummary[];
+}
+
+export class ProductMarginSummary implements IProductMarginSummary {
+    productId?: string;
+    productName?: string;
+    category?: string;
+    marginAmount?: number;
+    marginPercentage?: number;
+    revenue?: number;
+    cost?: number;
+    unitsSold?: number;
+
+    constructor(data?: IProductMarginSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productId = _data["productId"];
+            this.productName = _data["productName"];
+            this.category = _data["category"];
+            this.marginAmount = _data["marginAmount"];
+            this.marginPercentage = _data["marginPercentage"];
+            this.revenue = _data["revenue"];
+            this.cost = _data["cost"];
+            this.unitsSold = _data["unitsSold"];
+        }
+    }
+
+    static fromJS(data: any): ProductMarginSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductMarginSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productId"] = this.productId;
+        data["productName"] = this.productName;
+        data["category"] = this.category;
+        data["marginAmount"] = this.marginAmount;
+        data["marginPercentage"] = this.marginPercentage;
+        data["revenue"] = this.revenue;
+        data["cost"] = this.cost;
+        data["unitsSold"] = this.unitsSold;
+        return data;
+    }
+}
+
+export interface IProductMarginSummary {
+    productId?: string;
+    productName?: string;
+    category?: string;
+    marginAmount?: number;
+    marginPercentage?: number;
+    revenue?: number;
+    cost?: number;
+    unitsSold?: number;
+}
+
+export class CategoryMarginSummary implements ICategoryMarginSummary {
+    category?: string;
+    totalMargin?: number;
+    totalRevenue?: number;
+    averageMarginPercentage?: number;
+    productCount?: number;
+    totalUnitsSold?: number;
+
+    constructor(data?: ICategoryMarginSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.category = _data["category"];
+            this.totalMargin = _data["totalMargin"];
+            this.totalRevenue = _data["totalRevenue"];
+            this.averageMarginPercentage = _data["averageMarginPercentage"];
+            this.productCount = _data["productCount"];
+            this.totalUnitsSold = _data["totalUnitsSold"];
+        }
+    }
+
+    static fromJS(data: any): CategoryMarginSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new CategoryMarginSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["category"] = this.category;
+        data["totalMargin"] = this.totalMargin;
+        data["totalRevenue"] = this.totalRevenue;
+        data["averageMarginPercentage"] = this.averageMarginPercentage;
+        data["productCount"] = this.productCount;
+        data["totalUnitsSold"] = this.totalUnitsSold;
+        return data;
+    }
+}
+
+export interface ICategoryMarginSummary {
+    category?: string;
+    totalMargin?: number;
+    totalRevenue?: number;
+    averageMarginPercentage?: number;
+    productCount?: number;
+    totalUnitsSold?: number;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
@@ -5987,6 +6498,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
     optimalDaysSetup?: number;
@@ -6012,6 +6524,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.code = _data["code"];
             this.name = _data["name"];
             this.currentStock = _data["currentStock"];
+            this.reserve = _data["reserve"];
             this.salesInPeriod = _data["salesInPeriod"];
             this.dailySalesRate = _data["dailySalesRate"];
             this.optimalDaysSetup = _data["optimalDaysSetup"];
@@ -6037,6 +6550,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["code"] = this.code;
         data["name"] = this.name;
         data["currentStock"] = this.currentStock;
+        data["reserve"] = this.reserve;
         data["salesInPeriod"] = this.salesInPeriod;
         data["dailySalesRate"] = this.dailySalesRate;
         data["optimalDaysSetup"] = this.optimalDaysSetup;
@@ -6055,6 +6569,7 @@ export interface IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
     optimalDaysSetup?: number;
@@ -6163,6 +6678,7 @@ export enum ManufacturingStockSortBy {
     ProductCode = "ProductCode",
     ProductName = "ProductName",
     CurrentStock = "CurrentStock",
+    Reserve = "Reserve",
     SalesInPeriod = "SalesInPeriod",
     DailySales = "DailySales",
     OptimalDaysSetup = "OptimalDaysSetup",

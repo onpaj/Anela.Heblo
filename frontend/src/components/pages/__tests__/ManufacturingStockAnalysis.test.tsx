@@ -23,6 +23,7 @@ jest.mock('../../../api/hooks/useManufacturingStockAnalysis', () => ({
     ProductCode: 'ProductCode',
     ProductName: 'ProductName',
     CurrentStock: 'CurrentStock',
+    Reserve: 'Reserve',
     SalesInPeriod: 'SalesInPeriod',
     DailySales: 'DailySales',
     OptimalDaysSetup: 'OptimalDaysSetup',
@@ -86,6 +87,7 @@ describe('ManufacturingStockAnalysis', () => {
         code: 'PROD001',
         name: 'Test Product 1',
         currentStock: 100,
+        reserve: 15,
         salesInPeriod: 50,
         dailySalesRate: 2.5,
         optimalDaysSetup: 20,
@@ -101,6 +103,7 @@ describe('ManufacturingStockAnalysis', () => {
         code: 'PROD002',
         name: 'Test Product 2',
         currentStock: 5,
+        reserve: 0,
         salesInPeriod: 30,
         dailySalesRate: 3.0,
         optimalDaysSetup: 15,
@@ -198,6 +201,7 @@ describe('ManufacturingStockAnalysis', () => {
     // Check table headers - match actual component text
     expect(screen.getByText('Produkt')).toBeInTheDocument(); // Combines code and name
     expect(screen.getByText('Skladem')).toBeInTheDocument();
+    expect(screen.getByText('V rezervě')).toBeInTheDocument(); // New Reserve column
     expect(screen.getByText('Prodeje období')).toBeInTheDocument();
     expect(screen.getByText('Prodeje/den')).toBeInTheDocument();
     expect(screen.getByText('Nadsklad')).toBeInTheDocument(); // No "dní"

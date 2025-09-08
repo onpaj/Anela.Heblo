@@ -278,7 +278,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (isLoading) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={9} className="px-4 py-4">
+          <td colSpan={10} className="px-4 py-4">
             <div className="flex items-center justify-center">
               <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
               <span className="text-sm text-gray-600">Načítání produktů stejné řady...</span>
@@ -291,7 +291,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (items.length === 0) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={9} className="px-4 py-3">
+          <td colSpan={10} className="px-4 py-3">
             <div className="text-sm text-gray-500 text-center">
               Žádné další produkty v této řadě
             </div>
@@ -329,6 +329,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
             {/* Current Stock */}
             <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
               <div className="font-medium">{formatNumber(subItem.currentStock, 0)}</div>
+            </td>
+
+            {/* Reserve Stock */}
+            <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700" style={{ minWidth: '90px', width: '10%' }}>
+              {(subItem.reserve || 0) > 0 ? (
+                <div className="font-medium">{formatNumber(subItem.reserve, 0)}</div>
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
             </td>
 
             {/* Sales in Period */}
@@ -735,6 +744,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     <SortableHeader column={ManufacturingStockSortBy.CurrentStock} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
                       Skladem
                     </SortableHeader>
+                    <SortableHeader column={ManufacturingStockSortBy.Reserve} className="text-right" style={{ minWidth: '90px', width: '10%' }}>
+                      V rezervě
+                    </SortableHeader>
                     <SortableHeader column={ManufacturingStockSortBy.SalesInPeriod} className="text-right" style={{ minWidth: '100px', width: '12%' }}>
                       Prodeje období
                     </SortableHeader>
@@ -817,6 +829,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
                       {/* Current Stock */}
                       <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
                         <div className="font-bold">{formatNumber(item.currentStock, 0)}</div>
+                      </td>
+
+                      {/* Reserve Stock */}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900" style={{ minWidth: '90px', width: '10%' }}>
+                        {(item.reserve || 0) > 0 ? (
+                          <div className="font-bold">{formatNumber(item.reserve, 0)}</div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
 
                       {/* Sales in Period */}

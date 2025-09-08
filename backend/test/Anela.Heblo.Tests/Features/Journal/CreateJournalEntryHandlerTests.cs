@@ -144,7 +144,7 @@ public class CreateJournalEntryHandlerTests
 
         // Verify repository calls
         _repositoryMock.Verify(x => x.AddAsync(
-            It.Is<JournalEntry>(e => 
+            It.Is<JournalEntry>(e =>
                 e.Title == request.Title &&
                 e.Content == request.Content &&
                 e.CreatedByUserId == currentUser.Id),

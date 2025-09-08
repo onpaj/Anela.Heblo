@@ -77,10 +77,10 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
             var expectedIssuerV1 = $"https://sts.windows.net/{tenantIdClaim.Value}/";
             var expectedIssuerV2 = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-            
+
             if (issuerClaim == null || (issuerClaim.Value != expectedIssuerV1 && issuerClaim.Value != expectedIssuerV2))
             {
-                _logger.LogWarning("Service Principal token validation: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}", 
+                _logger.LogWarning("Service Principal token validation: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}",
                     expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
                 return false;
             }

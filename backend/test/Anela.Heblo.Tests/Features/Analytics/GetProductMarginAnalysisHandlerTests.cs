@@ -30,7 +30,7 @@ public class GetProductMarginAnalysisHandlerTests
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
         _reportBuilderServiceMock = new Mock<IReportBuilderService>();
-        
+
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
             _marginCalculationServiceMock.Object,

@@ -53,7 +53,7 @@ public static class AuthenticationExtensions
             .EnableTokenAcquisitionToCallDownstreamApi()
             // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
             .AddInMemoryTokenCaches();
-        
+
         // Add cookie authentication for E2E test sessions (staging and development environments)
         if (E2ETestAuthenticationMiddleware.ShouldBeRegistered(builder))
         {
@@ -63,8 +63,8 @@ public static class AuthenticationExtensions
                     options.Cookie.Name = "E2ETestSession";
                     options.Cookie.HttpOnly = true;
                     // Use secure policy only in staging, allow http in development
-                    options.Cookie.SecurePolicy = builder.Environment.IsEnvironment("Staging") 
-                        ? CookieSecurePolicy.Always 
+                    options.Cookie.SecurePolicy = builder.Environment.IsEnvironment("Staging")
+                        ? CookieSecurePolicy.Always
                         : CookieSecurePolicy.SameAsRequest;
                     options.ExpireTimeSpan = TimeSpan.FromHours(1);
                     options.LoginPath = "/account/login"; // Fallback to login if not authenticated

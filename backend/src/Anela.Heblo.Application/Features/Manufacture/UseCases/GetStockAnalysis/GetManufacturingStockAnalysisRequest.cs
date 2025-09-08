@@ -57,6 +57,7 @@ public enum ManufacturingStockSortBy
     ProductCode,
     ProductName,
     CurrentStock,
+    Reserve,
     SalesInPeriod,
     DailySales,
     OptimalDaysSetup,

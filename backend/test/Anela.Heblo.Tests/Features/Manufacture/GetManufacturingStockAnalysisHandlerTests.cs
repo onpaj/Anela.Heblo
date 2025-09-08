@@ -209,4 +209,88 @@ public class GetManufacturingStockAnalysisHandlerTests
             ProductFamilies = new List<string>()
         };
     }
+
+    [Fact]
+    public async Task Handle_StockCalculation_UsesTotalInsteadOfAvailable()
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Create a test catalog item with distinct Available and Reserve amounts
+        var catalogItems = new List<CatalogAggregate>
+        {
+            new CatalogAggregate
+            {
+                ProductCode = "TEST001",
+                ProductName = "Test Product",
+                Type = ProductType.Product,
+                Stock = new StockData
+                {
+                    Erp = 100m,       // Available = 100
+                    Eshop = 50m,
+                    Transport = 10m,
+                    Reserve = 25m,     // Reserve = 25, so Total = 135
+                    PrimaryStockSource = StockSource.Erp
+                },
+                Properties = new CatalogProperties
+                {
+                    OptimalStockDaysSetup = 30
+                }
+            }
+        };
+
+        // Set up mocks
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriod(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns((DateTime.Today.AddDays(-30), DateTime.Today));
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        decimal capturedStockAmount = 0;
+
+        // Capture the stock amount passed to CalculateStockDaysAvailable
+        _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
+            .Callback<decimal, double>((stock, rate) => capturedStockAmount = stock)
+            .Returns(20.0);
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<List<CatalogSaleRecord>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(5.0);
+
+        _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>()))
+            .Returns(0.0);
+
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>()))
+            .Returns(ManufacturingStockSeverity.Adequate);
+
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ManufactureHistoryRecord>>(), It.IsAny<int>()))
+            .Returns(false);
+
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns(new ManufacturingStockItemDto { Code = "TEST001", Reserve = 25 });
+
+        _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
+            .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
+
+        _filterServiceMock.Setup(x => x.SortItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<ManufacturingStockSortBy>(), It.IsAny<bool>()))
+            .Returns((List<ManufacturingStockItemDto> items, ManufacturingStockSortBy sortBy, bool desc) => items);
+
+        _filterServiceMock.Setup(x => x.CalculateSummary(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<List<string>>()))
+            .Returns(new ManufacturingStockSummaryDto());
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - Verify that Stock.Total (135) was used instead of Stock.Available (110)
+        capturedStockAmount.Should().Be(135m, "Handler should use Stock.Total (Available + Reserve) = 110 + 25 = 135");
+
+        // Verify the consumption calculator was called with the total stock
+        _consumptionCalculatorMock.Verify(
+            x => x.CalculateStockDaysAvailable(135m, 5.0),
+            Times.Once,
+            "Should call CalculateStockDaysAvailable with total stock including reserve");
+    }
 }

@@ -35,7 +35,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         // Basic input validation (kept here for backward compatibility with tests)
         if (request.StartDate > request.EndDate)
         {
-            return CreateErrorResponse(ErrorCodes.InvalidDateRange, 
+            return CreateErrorResponse(ErrorCodes.InvalidDateRange,
                 ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
                 ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
         }
@@ -43,13 +43,13 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         var totalDays = (request.EndDate - request.StartDate).TotalDays;
         if (totalDays > AnalyticsConstants.MAX_REPORT_PERIOD_DAYS)
         {
-            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod, 
+            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod,
                 ("period", $"{totalDays} days (max {AnalyticsConstants.MAX_REPORT_PERIOD_DAYS})"));
         }
 
         if (totalDays < AnalyticsConstants.MIN_REPORT_PERIOD_DAYS)
         {
-            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod, 
+            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod,
                 ("period", $"{totalDays} days (min {AnalyticsConstants.MIN_REPORT_PERIOD_DAYS})"));
         }
 
@@ -58,22 +58,22 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             // Get products stream from repository
             var productTypes = new[] { ProductType.Product, ProductType.Goods };
             var productsStream = _analyticsRepository.StreamProductsWithSalesAsync(
-                request.StartDate, 
-                request.EndDate, 
-                productTypes, 
+                request.StartDate,
+                request.EndDate,
+                productTypes,
                 cancellationToken);
 
             // Apply filters and get products list
             var products = await _productFilterService.FilterProductsAsync(
-                productsStream, 
-                request.ProductFilter, 
-                request.CategoryFilter, 
+                productsStream,
+                request.ProductFilter,
+                request.CategoryFilter,
                 request.MaxProducts,
                 cancellationToken);
 
             if (!products.Any())
             {
-                return CreateErrorResponse(ErrorCodes.AnalysisDataNotAvailable, 
+                return CreateErrorResponse(ErrorCodes.AnalysisDataNotAvailable,
                     ("product", request.ProductFilter ?? "all products"),
                     ("period", $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}"));
             }
@@ -97,8 +97,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
     }
 
     private async Task<ReportData> ProcessProductsForReport(
-        List<Domain.Features.Analytics.AnalyticsProduct> products, 
-        DateTime startDate, 
+        List<Domain.Features.Analytics.AnalyticsProduct> products,
+        DateTime startDate,
         DateTime endDate)
     {
         var productSummaries = new List<GetMarginReportResponse.ProductMarginSummary>();
@@ -147,8 +147,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
     }
 
     private static void AccumulateCategoryTotals(
-        Dictionary<string, CategoryData> categoryTotals, 
-        Domain.Features.Analytics.AnalyticsProduct product, 
+        Dictionary<string, CategoryData> categoryTotals,
+        Domain.Features.Analytics.AnalyticsProduct product,
         MarginData marginData)
     {
         var category = product.ProductCategory ?? AnalyticsConstants.DEFAULT_CATEGORY;
@@ -156,7 +156,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         {
             categoryTotals[category] = new CategoryData();
         }
-        
+
         categoryTotals[category].TotalMargin += marginData.Margin;
         categoryTotals[category].TotalRevenue += marginData.Revenue;
         categoryTotals[category].ProductCount++;
@@ -166,7 +166,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
     private GetMarginReportResponse BuildSuccessResponse(GetMarginReportRequest request, ReportData reportData)
     {
         var averageMarginPercentage = _marginCalculationService.CalculateMarginPercentage(
-            reportData.OverallTotals.TotalMargin, 
+            reportData.OverallTotals.TotalMargin,
             reportData.OverallTotals.TotalRevenue);
 
         return new GetMarginReportResponse
