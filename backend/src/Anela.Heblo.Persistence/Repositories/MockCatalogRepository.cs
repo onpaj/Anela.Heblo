@@ -241,6 +241,24 @@ public class MockCatalogRepository : ICatalogRepository
         return _mockData.Count(compiled);
     }
 
+    // Data loaded flags - always true for mock since all data is immediately available
+    public bool TransportDataLoaded => true;
+    public bool ReserveDataLoaded => true;
+    public bool SalesDataLoaded => true;
+    public bool AttributesDataLoaded => true;
+    public bool ErpStockDataLoaded => true;
+    public bool EshopStockDataLoaded => true;
+    public bool PurchaseHistoryDataLoaded => true;
+    public bool ManufactureHistoryDataLoaded => true;
+    public bool ConsumedHistoryDataLoaded => true;
+    public bool StockTakingDataLoaded => true;
+    public bool LotsDataLoaded => true;
+    public bool EshopPricesDataLoaded => true;
+    public bool ErpPricesDataLoaded => true;
+    public bool ManufactureDifficultySettingsDataLoaded => true;
+    public bool ManufactureDifficultyDataLoaded => true;
+    public bool ManufactureCostDataLoaded => true;
+
     // Refresh methods - no-op for mock
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshReserveData(CancellationToken ct) => Task.CompletedTask;

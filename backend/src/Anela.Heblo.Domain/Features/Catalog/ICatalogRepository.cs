@@ -19,6 +19,24 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshErpPricesData(CancellationToken ct);
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
 
+    // Data loaded flags - set once when cached data is populated
+    bool TransportDataLoaded { get; }
+    bool ReserveDataLoaded { get; }
+    bool SalesDataLoaded { get; }
+    bool AttributesDataLoaded { get; }
+    bool ErpStockDataLoaded { get; }
+    bool EshopStockDataLoaded { get; }
+    bool PurchaseHistoryDataLoaded { get; }
+    bool ManufactureHistoryDataLoaded { get; }
+    bool ConsumedHistoryDataLoaded { get; }
+    bool StockTakingDataLoaded { get; }
+    bool LotsDataLoaded { get; }
+    bool EshopPricesDataLoaded { get; }
+    bool ErpPricesDataLoaded { get; }
+    bool ManufactureDifficultySettingsDataLoaded { get; }
+    bool ManufactureDifficultyDataLoaded { get; }
+    bool ManufactureCostDataLoaded { get; }
+
     // Analytics methods
     Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(
         DateTime fromDate,

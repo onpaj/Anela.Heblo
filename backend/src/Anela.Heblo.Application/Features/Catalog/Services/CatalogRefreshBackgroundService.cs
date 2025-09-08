@@ -195,15 +195,14 @@ public class CatalogRefreshBackgroundService : BackgroundService
                 _lastManufactureDifficultyRefresh = now;
             }
 
-            // Refresh ManufactureCostData after ManufactureDifficulty and ManufactureHistory are refreshed
-            // Use the same interval as ManufactureHistory since both need to be fresh
-            if (_lastManufactureDifficultyRefresh >= _lastManufactureCostRefresh &&
-                _lastManufactureHistoryRefresh >= _lastManufactureCostRefresh)
+            // Refresh ManufactureCostData only after all other data sources are loaded
+            // Check that all required boolean flags are true
+            if (AreAllDataSourcesLoaded(catalogRepository))
             {
-                if (await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
+                if ((await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
                     _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
                     async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
-                    now, stoppingToken, isInitialLoad))
+                    now, stoppingToken, isInitialLoad)))
                 {
                     _lastManufactureCostRefresh = now;
                 }
@@ -281,5 +280,24 @@ public class CatalogRefreshBackgroundService : BackgroundService
                _options.EshopPricesRefreshInterval == TimeSpan.Zero &&
                _options.ErpPricesRefreshInterval == TimeSpan.Zero &&
                _options.ManufactureDifficultyRefreshInterval == TimeSpan.Zero;
+    }
+
+    private bool AreAllDataSourcesLoaded(ICatalogRepository catalogRepository)
+    {
+        return catalogRepository.TransportDataLoaded &&
+               catalogRepository.ReserveDataLoaded &&
+               catalogRepository.SalesDataLoaded &&
+               catalogRepository.AttributesDataLoaded &&
+               catalogRepository.ErpStockDataLoaded &&
+               catalogRepository.EshopStockDataLoaded &&
+               catalogRepository.PurchaseHistoryDataLoaded &&
+               catalogRepository.ManufactureHistoryDataLoaded &&
+               catalogRepository.ConsumedHistoryDataLoaded &&
+               catalogRepository.StockTakingDataLoaded &&
+               catalogRepository.LotsDataLoaded &&
+               catalogRepository.EshopPricesDataLoaded &&
+               catalogRepository.ErpPricesDataLoaded &&
+               catalogRepository.ManufactureDifficultySettingsDataLoaded &&
+               catalogRepository.ManufactureDifficultyDataLoaded;
     }
 }

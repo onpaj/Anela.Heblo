@@ -216,21 +216,12 @@ public class CatalogRepository : ICatalogRepository
 
     public async Task RefreshManufactureCostData(CancellationToken ct)
     {
-        // This must be called AFTER RefreshManufactureDifficultyData and RefreshManufactureHistoryData
-        // Build temporary products list with data needed for cost calculation
-        var products = CachedErpStockData.Select(s => new CatalogAggregate()
-        {
-            ProductCode = s.ProductCode,
-            Type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED,
-        }).ToList();
-
-
         // Add ManufactureHistory data
         var manufactureMap = CachedManufactureHistoryData
             .GroupBy(p => p.ProductCode)
             .ToDictionary(k => k.Key, v => v.ToList());
 
-        foreach (var product in products)
+        foreach (var product in CatalogData)
         {
             if (manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
             {
@@ -239,10 +230,7 @@ public class CatalogRepository : ICatalogRepository
         }
 
         // Calculate costs
-        CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(products, ct);
-
-        // Refresh difficulty settings data after other data is available
-        await RefreshManufactureDifficultySettingsData(null, ct);
+        CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(CatalogData, ct);
     }
 
     private async Task<List<CatalogAggregate>> GetCatalogDataAsync()
@@ -422,6 +410,12 @@ public class CatalogRepository : ICatalogRepository
                 product.ErpPrice = erpPrice;
             }
 
+            // Set ManufactureDifficultySettings with historical data and current value
+            if (CachedManufactureDifficultySettingsData.TryGetValue(product.ProductCode, out var difficultySettings))
+            {
+                product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
+            }
+            
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
@@ -429,16 +423,10 @@ public class CatalogRepository : ICatalogRepository
                     product.ManufactureCostHistory.ForEach(f => f.MaterialCostFromPurchasePrice = product.ErpPrice.PurchasePrice);
             }
 
-            // Set ManufactureDifficultySettings with historical data and current value
-            if (CachedManufactureDifficultySettingsData.TryGetValue(product.ProductCode, out var difficultySettings))
-            {
-                product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
-            }
-
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
         }
-
+        
         return products.ToList();
     }
 
@@ -524,6 +512,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedSalesData), value);
             InvalidateSourceData(nameof(CachedSalesData));
+            SalesDataLoaded = true;
         }
     }
 
@@ -536,6 +525,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedCatalogAttributesData), value);
             InvalidateSourceData(nameof(CachedCatalogAttributesData));
+            AttributesDataLoaded = true;
         }
     }
     private IDictionary<string, int> CachedInTransportData
@@ -545,6 +535,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedInTransportData), value);
             InvalidateSourceData(nameof(CachedInTransportData));
+            TransportDataLoaded = true;
         }
     }
 
@@ -555,6 +546,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedInReserveData), value);
             InvalidateSourceData(nameof(CachedInReserveData));
+            ReserveDataLoaded = true;
         }
     }
 
@@ -565,6 +557,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedErpStockData), value);
             InvalidateSourceData(nameof(CachedErpStockData));
+            ErpStockDataLoaded = true;
         }
     }
     private IList<EshopStock> CachedEshopStockData
@@ -574,6 +567,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedEshopStockData), value);
             InvalidateSourceData(nameof(CachedEshopStockData));
+            EshopStockDataLoaded = true;
         }
     }
     private IList<CatalogPurchaseRecord> CachedPurchaseHistoryData
@@ -583,6 +577,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedPurchaseHistoryData), value);
             InvalidateSourceData(nameof(CachedPurchaseHistoryData));
+            PurchaseHistoryDataLoaded = true;
         }
     }
     private IList<ManufactureHistoryRecord> CachedManufactureHistoryData
@@ -592,6 +587,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureHistoryData), value);
             InvalidateSourceData(nameof(CachedManufactureHistoryData));
+            ManufactureHistoryDataLoaded = true;
         }
     }
     private IList<ConsumedMaterialRecord> CachedConsumedData
@@ -601,6 +597,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedConsumedData), value);
             InvalidateSourceData(nameof(CachedConsumedData));
+            ConsumedHistoryDataLoaded = true;
         }
     }
 
@@ -611,6 +608,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedStockTakingData), value);
             InvalidateSourceData(nameof(CachedStockTakingData));
+            StockTakingDataLoaded = true;
         }
     }
 
@@ -621,6 +619,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedLotsData), value);
             InvalidateSourceData(nameof(CachedLotsData));
+            LotsDataLoaded = true;
         }
     }
 
@@ -631,6 +630,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedEshopPriceData), value);
             InvalidateSourceData(nameof(CachedEshopPriceData));
+            EshopPricesDataLoaded = true;
         }
     }
 
@@ -641,6 +641,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedErpPriceData), value);
             InvalidateSourceData(nameof(CachedErpPriceData));
+            ErpPricesDataLoaded = true;
         }
     }
 
@@ -651,6 +652,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureDifficultyData), value);
             InvalidateSourceData(nameof(CachedManufactureDifficultyData));
+            ManufactureDifficultyDataLoaded = true;
         }
     }
 
@@ -661,6 +663,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureCostData), value);
             InvalidateSourceData(nameof(CachedManufactureCostData));
+            ManufactureCostDataLoaded = true;
         }
     }
 
@@ -671,8 +674,27 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureDifficultySettingsData), value);
             InvalidateSourceData(nameof(CachedManufactureDifficultySettingsData));
+            ManufactureDifficultySettingsDataLoaded = true;
         }
     }
+
+    // Data loaded flags - set once when cached data is populated
+    public bool TransportDataLoaded { get; private set; }
+    public bool ReserveDataLoaded { get; private set; }
+    public bool SalesDataLoaded { get; private set; }
+    public bool AttributesDataLoaded { get; private set; }
+    public bool ErpStockDataLoaded { get; private set; }
+    public bool EshopStockDataLoaded { get; private set; }
+    public bool PurchaseHistoryDataLoaded { get; private set; }
+    public bool ManufactureHistoryDataLoaded { get; private set; }
+    public bool ConsumedHistoryDataLoaded { get; private set; }
+    public bool StockTakingDataLoaded { get; private set; }
+    public bool LotsDataLoaded { get; private set; }
+    public bool EshopPricesDataLoaded { get; private set; }
+    public bool ErpPricesDataLoaded { get; private set; }
+    public bool ManufactureDifficultySettingsDataLoaded { get; private set; }
+    public bool ManufactureDifficultyDataLoaded { get; private set; }
+    public bool ManufactureCostDataLoaded { get; private set; }
 
     private async Task<Dictionary<string, int>> GetProductsInTransport(CancellationToken ct)
     {
