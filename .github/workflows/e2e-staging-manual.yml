@@ -190,9 +190,9 @@ jobs:
             exit 1
           fi
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
       - name: 🧪 Run E2E tests against staging
         id: run-tests
