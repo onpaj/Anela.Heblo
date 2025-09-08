@@ -229,11 +229,32 @@ jobs:
           
           # Basic parsing from output log
           if [ -f test_output.log ]; then
-            PASSED=$(grep -c "✓" test_output.log || echo "0")
-            FAILED=$(grep -c "✖" test_output.log || echo "0")
-            echo "parsed_passed=$PASSED" >> $GITHUB_OUTPUT
-            echo "parsed_failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "📋 Debug: Last 10 lines of test output:"
+            tail -n 10 test_output.log
+            echo "📋 Debug: Looking for test result patterns..."
+            
+            # Try multiple patterns for passed tests
+            PASSED=$(grep -E -c "(✓|passed|PASSED)" test_output.log 2>/dev/null || echo "0")
+            FAILED=$(grep -E -c "(✖|×|failed|FAILED)" test_output.log 2>/dev/null || echo "0")
+            
+            # Also try to parse from the final summary line
+            if grep -q "passed" test_output.log; then
+              SUMMARY_PASSED=$(grep -o "[0-9]\+ passed" test_output.log | grep -o "[0-9]\+" | head -1 || echo "0")
+              if [ "$SUMMARY_PASSED" != "0" ]; then
+                PASSED="$SUMMARY_PASSED"
+              fi
+            fi
+            
+            # Ensure we have clean numeric values
+            PASSED=$(echo "$PASSED" | tr -d '\r\n' | sed 's/[^0-9]//g' || echo "0")
+            FAILED=$(echo "$FAILED" | tr -d '\r\n' | sed 's/[^0-9]//g' || echo "0")
+            
+            echo "📊 Parsed results: PASSED=$PASSED, FAILED=$FAILED"
+            
+            echo "parsed_passed=${PASSED}" >> $GITHUB_OUTPUT
+            echo "parsed_failed=${FAILED}" >> $GITHUB_OUTPUT
           else
+            echo "❌ test_output.log not found"
             echo "parsed_passed=0" >> $GITHUB_OUTPUT
             echo "parsed_failed=0" >> $GITHUB_OUTPUT
           fi
