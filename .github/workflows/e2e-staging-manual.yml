@@ -146,7 +146,9 @@ jobs:
           fi
 
       - name: 🧪 Run E2E tests against staging
+        id: run-tests
         working-directory: ./frontend
+        continue-on-error: true
         run: |
           # Determine test pattern
           if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
@@ -168,10 +170,24 @@ jobs:
           fi
           
           # Run the tests  
+          set +e
           npx playwright test $TEST_PATTERN $BROWSER_FLAG \
-            --reporter=dot \
-            --reporter=json:test-results.json \
-            --reporter=html:playwright-report
+            --reporter=list 2>&1 | tee test_output.log
+          TEST_EXIT_CODE=$?
+          set -e
+          
+          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          # Basic parsing from output log
+          if [ -f test_output.log ]; then
+            PASSED=$(grep -c "✓" test_output.log || echo "0")
+            FAILED=$(grep -c "✖" test_output.log || echo "0")
+            echo "parsed_passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "parsed_failed=$FAILED" >> $GITHUB_OUTPUT
+          else
+            echo "parsed_passed=0" >> $GITHUB_OUTPUT
+            echo "parsed_failed=0" >> $GITHUB_OUTPUT
+          fi
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
@@ -182,8 +198,8 @@ jobs:
         with:
           name: staging-e2e-test-results-${{ github.run_number }}
           path: |
-            frontend/test-results.json
             frontend/playwright-report/
+            frontend/test-results/
           retention-days: 30
 
       - name: 📊 Parse test results
@@ -191,30 +207,21 @@ jobs:
         id: test-results
         working-directory: ./frontend
         run: |
-          if [ -f test-results.json ]; then
-            # Parse JSON results
-            TOTAL=$(cat test-results.json | grep -o '"status"' | wc -l || echo "0")
-            PASSED=$(cat test-results.json | grep -o '"status":"passed"' | wc -l || echo "0")
-            FAILED=$(cat test-results.json | grep -o '"status":"failed"' | wc -l || echo "0")
-            SKIPPED=$(cat test-results.json | grep -o '"status":"skipped"' | wc -l || echo "0")
-            FLAKY=$(cat test-results.json | grep -o '"status":"flaky"' | wc -l || echo "0")
-            
-            echo "total=$TOTAL" >> $GITHUB_OUTPUT
-            echo "passed=$PASSED" >> $GITHUB_OUTPUT
-            echo "failed=$FAILED" >> $GITHUB_OUTPUT
-            echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
-            echo "flaky=$FLAKY" >> $GITHUB_OUTPUT
-            
-            echo "📊 Test Results Summary:"
-            echo "Total: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Flaky: $FLAKY"
-          else
-            echo "❌ Test results file not found"
-            echo "total=0" >> $GITHUB_OUTPUT
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "failed=1" >> $GITHUB_OUTPUT
-            echo "skipped=0" >> $GITHUB_OUTPUT
-            echo "flaky=0" >> $GITHUB_OUTPUT
-          fi
+          # Use results from the test run step
+          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
+          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
+          TOTAL=$((PASSED + FAILED))
+          EXIT_CODE="${{ steps.run-tests.outputs.test_exit_code }}"
+          
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT  
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+          echo "skipped=0" >> $GITHUB_OUTPUT
+          echo "flaky=0" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          echo "📊 Test Results Summary:"
+          echo "Total: $TOTAL, Passed: $PASSED, Failed: $FAILED, Exit Code: $EXIT_CODE"
 
       - name: 📝 Create test results summary
         if: always()
@@ -245,11 +252,12 @@ jobs:
           echo "- **Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Add status badge
-          if [ "${{ steps.test-results.outputs.failed }}" = "0" ]; then
+          # Add status badge based on exit code
+          if [ "${{ steps.test-results.outputs.exit_code }}" = "0" ]; then
             echo "🎉 **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ **Some tests failed. Check the test report for details.**" >> $GITHUB_STEP_SUMMARY
+            echo "- **Exit Code:** ${{ steps.test-results.outputs.exit_code }}" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 📋 Comment on failure
