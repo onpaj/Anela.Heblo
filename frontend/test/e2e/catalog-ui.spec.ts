@@ -7,10 +7,6 @@ const envPath = path.resolve(__dirname, '../../.env.test');
 console.log('Loading .env.test from:', envPath);
 config({ path: envPath });
 
-// Override URLs for direct testing against dev ports
-process.env.PLAYWRIGHT_BASE_URL = 'http://localhost:5000';
-process.env.PLAYWRIGHT_FRONTEND_URL = 'http://localhost:3000';
-
 async function getServicePrincipalToken(): Promise<string> {
   const clientId = process.env.AZURE_CLIENT_ID;
   const clientSecret = process.env.AZURE_CLIENT_SECRET;
@@ -74,7 +70,7 @@ async function createE2EAuthSession(page: any): Promise<void> {
     console.log('Service Principal token obtained successfully');
     
     // Call the E2E authentication endpoint to create session
-    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
+    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
     const authUrl = `${apiBaseUrl}/api/e2etest/auth`;
     
     console.log(`Creating E2E authentication session at: ${authUrl}`);
@@ -130,7 +126,7 @@ test.describe('Catalog UI E2E Tests', () => {
     });
     
     // First, establish E2E session with backend
-    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
+    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
     const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
     console.log(`First, establishing E2E session via: ${e2eAppUrl}`);
     
@@ -156,7 +152,7 @@ test.describe('Catalog UI E2E Tests', () => {
     }
     
     // Now navigate to the frontend with E2E parameter to trigger E2E mode
-    const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
     const frontendWithE2E = `${frontendUrl}?e2e=true`;
     console.log(`Now navigating to frontend with E2E mode: ${frontendWithE2E}`);
     
@@ -273,7 +269,7 @@ test.describe('Catalog UI E2E Tests', () => {
       await katalogElement.click();
     } else {
       console.log('Could not find "Katalog" link, trying direct navigation...');
-      const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
       await page.goto(`${frontendUrl}/catalog?e2e=true`);
     }
     
@@ -342,23 +338,23 @@ test.describe('Catalog UI E2E Tests', () => {
     console.log('Waiting for potential async content loading...');
     await page.waitForTimeout(5000);
     
-    // Final verification - look for any table rows, list items, or product elements
-    const productElementSelectors = [
-      'tr:not(:first-child)', // Table rows (excluding header)
-      'li', // List items
-      '[data-testid*="product"]', // Any element with product in test id
-      '.product', // Elements with product class
-      '[class*="product"]' // Elements with product in class name
+    // Enhanced validation - look for catalog table structure and validate data
+    console.log('🔍 Performing enhanced catalog data validation...');
+    
+    // First, look for table structure
+    const tableSelectors = [
+      'table',
+      '[role="table"]',
+      '.catalog-table',
+      '.product-table'
     ];
     
-    let foundProducts = false;
-    for (const selector of productElementSelectors) {
+    let catalogTable = null;
+    for (const selector of tableSelectors) {
       try {
-        const elements = page.locator(selector);
-        const count = await elements.count();
-        if (count > 0) {
-          console.log(`Found ${count} product elements with selector: ${selector}`);
-          foundProducts = true;
+        catalogTable = page.locator(selector).first();
+        if (await catalogTable.isVisible({ timeout: 3000 })) {
+          console.log(`Found catalog table with selector: ${selector}`);
           break;
         }
       } catch (e) {
@@ -366,15 +362,137 @@ test.describe('Catalog UI E2E Tests', () => {
       }
     }
     
-    if (foundProducts) {
-      console.log('✅ Successfully found product elements in catalog');
+    if (catalogTable && await catalogTable.isVisible()) {
+      // Validate table headers - look for common catalog columns
+      console.log('📋 Validating catalog table headers...');
+      const expectedHeaders = ['název', 'kód', 'cena', 'skladem', 'kategorie', 'product', 'name', 'code', 'price', 'stock', 'category'];
+      let foundHeaders = 0;
+      
+      for (const header of expectedHeaders) {
+        try {
+          const headerElement = catalogTable.locator(`th:has-text("${header}"), td:has-text("${header}")`).first();
+          if (await headerElement.isVisible({ timeout: 1000 })) {
+            console.log(`✅ Found header: ${header}`);
+            foundHeaders++;
+          }
+        } catch (e) {
+          // Header not found, continue
+        }
+      }
+      
+      console.log(`Found ${foundHeaders} catalog headers out of expected headers`);
+      
+      // Count and validate product rows
+      const productRows = catalogTable.locator('tr:not(:first-child), tbody tr');
+      const productCount = await productRows.count();
+      console.log(`📊 Found ${productCount} product rows in catalog`);
+      
+      if (productCount > 0) {
+        // Validate first few products have actual data
+        const maxRowsToCheck = Math.min(5, productCount);
+        let validProducts = 0;
+        
+        for (let i = 0; i < maxRowsToCheck; i++) {
+          try {
+            const row = productRows.nth(i);
+            const rowText = await row.textContent();
+            
+            // Check if row has substantial content (not just empty cells)
+            if (rowText && rowText.trim().length > 10) {
+              validProducts++;
+              console.log(`✅ Product row ${i + 1} contains data: ${rowText.substring(0, 50)}...`);
+            }
+          } catch (e) {
+            console.log(`⚠️  Could not validate product row ${i + 1}: ${e.message}`);
+          }
+        }
+        
+        console.log(`📈 Validated ${validProducts}/${maxRowsToCheck} product rows contain data`);
+        
+        // Ensure we have at least some valid products
+        expect(validProducts).toBeGreaterThan(0);
+        expect(productCount).toBeGreaterThan(0);
+      } else {
+        console.log('⚠️  No product rows found in table - might be empty catalog or different structure');
+        // Don't fail the test - empty catalog might be valid
+      }
     } else {
-      console.log('⚠️  No clear product elements found, but page loaded without errors');
-      // This might still be acceptable if the catalog is empty or uses different markup
-      const finalPageText = await page.locator('body').textContent();
-      expect(finalPageText?.length || 0).toBeGreaterThan(200); // At least some substantial content
+      // Fallback: Look for any product elements using broader selectors
+      console.log('📋 Table structure not found, looking for product elements with broader selectors...');
+      
+      const productElementSelectors = [
+        'tr:not(:first-child)', // Table rows (excluding header)
+        'li', // List items
+        '[data-testid*="product"]', // Any element with product in test id
+        '.product', // Elements with product class
+        '[class*="product"]', // Elements with product in class name
+        '[class*="catalog"]', // Elements with catalog in class name
+        'div[role="gridcell"]', // Grid cells
+        'article', // Article elements (might be used for product cards)
+      ];
+      
+      let foundProducts = false;
+      let totalElements = 0;
+      
+      for (const selector of productElementSelectors) {
+        try {
+          const elements = page.locator(selector);
+          const count = await elements.count();
+          if (count > 0) {
+            console.log(`📦 Found ${count} elements with selector: ${selector}`);
+            foundProducts = true;
+            totalElements += count;
+            
+            // Validate first few elements have content
+            const maxToCheck = Math.min(3, count);
+            for (let i = 0; i < maxToCheck; i++) {
+              const elementText = await elements.nth(i).textContent();
+              if (elementText && elementText.trim().length > 5) {
+                console.log(`✅ Element ${i + 1} contains: ${elementText.substring(0, 40)}...`);
+              }
+            }
+            break; // Use the first successful selector
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      if (foundProducts) {
+        console.log(`✅ Successfully found ${totalElements} catalog elements`);
+        expect(totalElements).toBeGreaterThan(0);
+      } else {
+        console.log('⚠️  No clear product elements found, validating page has catalog-related content');
+        const finalPageText = await page.locator('body').textContent();
+        
+        // Look for catalog-related content
+        const hasCatalogContent = finalPageText?.toLowerCase().includes('katalog') ||
+                                 finalPageText?.toLowerCase().includes('produkt') ||
+                                 finalPageText?.toLowerCase().includes('catalog') ||
+                                 finalPageText?.toLowerCase().includes('product');
+        
+        console.log('Page contains catalog-related content:', hasCatalogContent);
+        
+        // At minimum, ensure page loaded with substantial content
+        expect(finalPageText?.length || 0).toBeGreaterThan(200);
+        
+        if (hasCatalogContent) {
+          console.log('✅ Page contains catalog-related text content');
+        } else {
+          console.log('⚠️  Page loaded but may not contain expected catalog content');
+        }
+      }
     }
     
-    console.log('Catalog UI E2E test completed successfully');
+    // Final validation: Check for loading states or error messages
+    const pageText = await page.locator('body').textContent();
+    const hasError = pageText?.toLowerCase().includes('error') || 
+                    pageText?.toLowerCase().includes('chyba') ||
+                    pageText?.toLowerCase().includes('404') ||
+                    pageText?.toLowerCase().includes('401');
+    
+    expect(hasError).toBe(false); // Should not have error messages
+    
+    console.log('✅ Catalog UI E2E test completed successfully with enhanced validation');
   });
 });
