@@ -1,17 +1,22 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
+import { useE2EAuth, isE2ETestMode } from '../../auth/e2eAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  // Use mock auth in development if enabled
+  // Priority: E2E auth > Mock auth > Real auth
   const realAuth = useAuth();
   const mockAuth = useMockAuth();
+  const e2eAuth = useE2EAuth();
   
-  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
+  // Choose authentication method based on context
+  const auth = isE2ETestMode() ? e2eAuth : 
+               shouldUseMockAuth() ? mockAuth : 
+               realAuth;
   const { isAuthenticated, inProgress, login } = auth;
 
   useEffect(() => {

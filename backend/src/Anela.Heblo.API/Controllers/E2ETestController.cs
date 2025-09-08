@@ -55,12 +55,12 @@ public class E2ETestController : ControllerBase
         _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}",
             _environment.EnvironmentName, _environment.IsEnvironment("Staging"));
 
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging",
+            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging or Development",
                 _environment.EnvironmentName);
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Get Service Principal token from Authorization header
@@ -105,9 +105,9 @@ public class E2ETestController : ControllerBase
         var identity = new ClaimsIdentity(claims, "E2ETest");
         var principal = new ClaimsPrincipal(identity);
 
-        // Sign in the synthetic user using the default authentication scheme
-        // This ensures compatibility with the main application's authentication
-        await HttpContext.SignInAsync(principal, new AuthenticationProperties
+        // Sign in the synthetic user using the cookie authentication scheme
+        // This ensures compatibility with the E2E test session management
+        await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
         {
             IsPersistent = false,
             ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
@@ -132,13 +132,13 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = "Cookies")]
     public ActionResult<object> GetAuthStatus()
     {
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
@@ -170,12 +170,13 @@ public class E2ETestController : ControllerBase
     /// Serve E2E test version of the app with mock authentication
     /// </summary>
     [HttpGet("app")]
+    [Authorize(AuthenticationSchemes = "Cookies")]
     public ActionResult GetE2EApp()
     {
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Check if user is authenticated via E2E override

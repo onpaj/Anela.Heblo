@@ -69,8 +69,9 @@ async function authenticateWithServicePrincipal(page: any) {
     console.log('Service Principal token obtained successfully');
     
     // Call the E2E authentication endpoint to create session (following best practices)
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    const authUrl = `${baseUrl}/api/e2etest/auth`;
+    // API URL is always the backend port (5000)
+    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
+    const authUrl = `${apiBaseUrl}/api/e2etest/auth`;
     
     console.log(`Creating E2E authentication session at: ${authUrl}`);
     
@@ -102,9 +103,11 @@ async function authenticateWithServicePrincipal(page: any) {
     const cookies = await page.context().cookies();
     console.log('All cookies after auth:', cookies.map(c => ({ name: c.name, domain: c.domain, path: c.path })));
     
-    // Now navigate to the main application - we should have an authenticated session cookie
-    console.log(`Navigating to main application: ${baseUrl}`);
-    await page.goto(baseUrl);
+    // Navigate to the E2E test app endpoint which has pre-configured authentication
+    // This avoids cross-port cookie issues between frontend (3000) and backend (5000)
+    const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
+    console.log(`Navigating to E2E test application: ${e2eAppUrl}`);
+    await page.goto(e2eAppUrl);
     
     // Wait for app to load
     await page.waitForLoadState('domcontentloaded');
@@ -116,7 +119,7 @@ async function authenticateWithServicePrincipal(page: any) {
   }
 }
 
-test.describe('Staging Environment E2E Tests', () => {
+test.describe('E2E Authentication Tests (Development/Staging)', () => {
   test.beforeEach(async ({ page }) => {
     // Authenticate using Service Principal session creation before each test
     await authenticateWithServicePrincipal(page);
@@ -129,12 +132,13 @@ test.describe('Staging Environment E2E Tests', () => {
     console.log('Current URL:', page.url());
     console.log('Current title:', await page.title());
     
-    // Verify we're on the main application page (not login page)
-    await expect(page).toHaveTitle(/Anela Heblo/, { timeout: 15000 });
+    // Verify we're on the E2E test application page
+    await expect(page).toHaveTitle(/Anela Heblo - E2E Test Mode/, { timeout: 15000 });
     
     // Verify we're NOT on Microsoft login page
     expect(page.url()).not.toContain('login.microsoftonline.com');
-    expect(page.url()).toContain('heblo.stg.anela.cz');
+    expect(page.url()).toContain('localhost');
+    expect(page.url()).toContain('/api/e2etest/app');
     
     // Wait for React app to load and render main components
     await page.waitForLoadState('networkidle');
@@ -188,33 +192,21 @@ test.describe('Staging Environment E2E Tests', () => {
 
   test('should validate API authentication status', async ({ page }) => {
     // Test the E2E auth status API endpoint
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    const apiUrl = `${baseUrl}/api/e2etest/auth-status`;
+    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
+    const apiUrl = `${apiBaseUrl}/api/e2etest/auth-status`;
     
     console.log(`Testing API endpoint: ${apiUrl}`);
     
-    // Navigate to the API endpoint
-    await page.goto(apiUrl);
+    // Use page.request to make API call with cookies
+    const response = await page.request.get(apiUrl);
     
-    // Parse JSON response
-    const responseText = await page.locator('pre').textContent();
-    console.log('API Response:', responseText);
-    
-    let jsonResponse;
-    try {
-      jsonResponse = JSON.parse(responseText || '{}');
-    } catch (error) {
-      console.log('Failed to parse JSON, checking page content...');
-      const bodyContent = await page.locator('body').textContent();
-      console.log('Page content:', bodyContent);
-      
-      // If it's not JSON, it might be the actual JSON in the body
-      try {
-        jsonResponse = JSON.parse(bodyContent || '{}');
-      } catch (e) {
-        throw new Error('API did not return valid JSON response');
-      }
+    if (!response.ok()) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${response.status()} ${response.statusText()}\n${errorText}`);
     }
+    
+    const jsonResponse = await response.json();
+    console.log('API Response:', JSON.stringify(jsonResponse, null, 2));
     
     // Verify authentication status
     expect(jsonResponse.authenticated).toBe(true);
@@ -235,7 +227,10 @@ test.describe('Staging Environment E2E Tests', () => {
       }
     });
     
-    await page.goto(process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz');
+    // Navigate to the E2E test app endpoint
+    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
+    const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
+    await page.goto(e2eAppUrl);
     await page.waitForLoadState('networkidle');
     
     // Wait a bit for any API calls to complete

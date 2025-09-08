@@ -22,6 +22,7 @@ import { StatusBar } from './components/StatusBar';
 import { loadConfig, Config } from './config/runtimeConfig';
 import { setGlobalTokenProvider, setGlobalToastHandler } from './api/client';
 import { apiRequest } from './auth/msalConfig';
+import { isE2ETestMode, getE2EAccessToken } from './auth/e2eAuth';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
@@ -78,7 +79,13 @@ function App() {
         setMsalInstance(instance);
 
         // Set global token provider for API client
-        if (!appConfig.useMockAuth) {
+        if (isE2ETestMode()) {
+          console.log('🧪 Setting up E2E test authentication token provider');
+          setGlobalTokenProvider(async () => {
+            console.log('🎫 Providing E2E test token');
+            return getE2EAccessToken();
+          });
+        } else if (!appConfig.useMockAuth) {
           console.log('🔐 Setting up real authentication token provider');
           setGlobalTokenProvider(async () => {
             try {

@@ -54,15 +54,18 @@ public static class AuthenticationExtensions
             // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
             .AddInMemoryTokenCaches();
         
-        // Add cookie authentication for E2E test sessions (staging environment)
-        if (builder.Environment.IsEnvironment("Staging"))
+        // Add cookie authentication for E2E test sessions (staging and development environments)
+        if (builder.Environment.IsEnvironment("Staging") || builder.Environment.IsDevelopment())
         {
             services.AddAuthentication()
-                .AddCookie(options =>
+                .AddCookie("Cookies", options =>
                 {
                     options.Cookie.Name = "E2ETestSession";
                     options.Cookie.HttpOnly = true;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    // Use secure policy only in staging, allow http in development
+                    options.Cookie.SecurePolicy = builder.Environment.IsEnvironment("Staging") 
+                        ? CookieSecurePolicy.Always 
+                        : CookieSecurePolicy.SameAsRequest;
                     options.ExpireTimeSpan = TimeSpan.FromHours(1);
                     options.LoginPath = "/account/login"; // Fallback to login if not authenticated
                     options.LogoutPath = "/account/logout";

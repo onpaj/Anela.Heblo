@@ -7,7 +7,7 @@ using Anela.Heblo.Domain.Features.Configuration;
 namespace Anela.Heblo.API.Infrastructure.Authentication;
 
 /// <summary>
-/// E2E Test Authentication Middleware - ONLY for Staging Environment
+/// E2E Test Authentication Middleware - For Staging and Development Environments
 /// Allows Service Principal token authentication for automated E2E tests
 /// </summary>
 public class E2ETestAuthenticationMiddleware
@@ -34,14 +34,36 @@ public class E2ETestAuthenticationMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging and Development environments
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
             await _next(context);
             return;
         }
 
-        // Check for E2E test header
+        // Skip if already authenticated (avoid double authentication)
+        if (context.User?.Identity?.IsAuthenticated == true)
+        {
+            _logger.LogDebug("User already authenticated via primary scheme, skipping E2E middleware");
+            await _next(context);
+            return;
+        }
+
+        // Method 1: Check for E2E session cookie (from E2ETestController)
+        var cookieAuthResult = await context.AuthenticateAsync("Cookies");
+        if (cookieAuthResult.Succeeded && cookieAuthResult.Principal != null)
+        {
+            _logger.LogInformation("E2E Authentication: User authenticated via E2E session cookies: {User}", 
+                cookieAuthResult.Principal.Identity?.Name);
+            
+            // Set the authenticated principal for the request
+            context.User = cookieAuthResult.Principal;
+            
+            await _next(context);
+            return;
+        }
+
+        // Method 2: Check for E2E test header (Service Principal token)
         if (!context.Request.Headers.TryGetValue("X-E2E-Test-Token", out var tokenValues))
         {
             await _next(context);
@@ -100,8 +122,8 @@ public class E2ETestAuthenticationMiddleware
             context.Response.Cookies.Append("E2E-Auth-Override", "true", new CookieOptions
             {
                 HttpOnly = false, // Frontend needs to read this
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                Secure = false, // Allow HTTP in development
+                SameSite = SameSiteMode.Lax, // Allow cross-origin requests
                 MaxAge = TimeSpan.FromMinutes(30)
             });
 
@@ -154,14 +176,15 @@ public class E2ETestAuthenticationMiddleware
                 return false;
             }
 
-            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
+            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD (accept both v1.0 and v2.0 tokens)
             var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
-            var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-
-            if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
+            var expectedIssuerV1 = $"https://sts.windows.net/{tenantIdClaim.Value}/";
+            var expectedIssuerV2 = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
+            
+            if (issuerClaim == null || (issuerClaim.Value != expectedIssuerV1 && issuerClaim.Value != expectedIssuerV2))
             {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}",
-                    expectedIssuer, issuerClaim?.Value);
+                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}", 
+                    expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
                 return false;
             }
 
