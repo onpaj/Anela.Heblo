@@ -55,7 +55,7 @@ public static class AuthenticationExtensions
             .AddInMemoryTokenCaches();
         
         // Add cookie authentication for E2E test sessions (staging and development environments)
-        if (builder.Environment.IsEnvironment("Staging") || builder.Environment.IsDevelopment())
+        if (E2ETestAuthenticationMiddleware.ShouldBeRegistered(builder))
         {
             services.AddAuthentication()
                 .AddCookie("Cookies", options =>
@@ -70,6 +70,10 @@ public static class AuthenticationExtensions
                     options.LoginPath = "/account/login"; // Fallback to login if not authenticated
                     options.LogoutPath = "/account/logout";
                 });
+
+            // Register E2E testing services only when they're needed (real auth + staging/development)
+            services.AddScoped<IServicePrincipalTokenValidator, ServicePrincipalTokenValidator>();
+            services.AddScoped<IE2ESessionService, E2ESessionService>();
         }
     }
 

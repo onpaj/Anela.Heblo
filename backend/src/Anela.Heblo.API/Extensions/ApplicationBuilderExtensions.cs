@@ -68,8 +68,7 @@ public static class ApplicationBuilderExtensions
         // Use CORS
         app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
 
-        // E2E Test Authentication (for Staging and Development environments)
-        if (app.Environment.IsEnvironment("Staging") || app.Environment.IsDevelopment())
+        if (E2ETestAuthenticationMiddleware.ShouldBeRegistered(app))
         {
             app.UseMiddleware<E2ETestAuthenticationMiddleware>();
         }

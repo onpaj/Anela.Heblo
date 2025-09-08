@@ -122,4 +122,13 @@ public class E2ETestAuthenticationMiddleware
         await _next(context);
     }
 
+    public static bool ShouldBeRegistered(WebApplication app) => ShouldBeRegistered(app.Configuration, app.Environment);
+    
+    public static bool ShouldBeRegistered(WebApplicationBuilder builder) => ShouldBeRegistered(builder.Configuration, builder.Environment);
+    
+    public static bool ShouldBeRegistered(IConfiguration configuration, IHostEnvironment environment)
+    {
+        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+        return (environment.IsEnvironment("Staging") || environment.IsDevelopment()) && !useMockAuth;
+    }
 }
