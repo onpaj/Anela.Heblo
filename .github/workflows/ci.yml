@@ -500,3 +500,136 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
           echo "The test environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY
+
+  # Notification
+  notify:
+    name: 📢 CI/CD Notification
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-azure, frontend-tests]
+    if: always()
+    steps:
+      - name: 📱 Send Teams Notification
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          # Skip if webhook URL is not configured
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "⚠️ Teams webhook not configured, skipping notification"
+            exit 0
+          fi
+          
+          # Determine status color and emoji based on overall workflow status
+          if [ "${{ needs.deploy-azure.result }}" = "success" ] && [ "${{ needs.frontend-tests.result }}" = "success" ]; then
+            COLOR="28A745"  # Green for success
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="CI/CD Pipeline Successful"
+          elif [ "${{ needs.deploy-azure.result }}" = "failure" ] || [ "${{ needs.frontend-tests.result }}" = "failure" ]; then
+            COLOR="FF0000"  # Red for failure
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="CI/CD Pipeline Failed"
+          else
+            COLOR="FFA500"  # Orange for partial success/skipped
+            STATUS_EMOJI="⚠️"
+            STATUS_TEXT="CI/CD Pipeline Completed with Warnings"
+          fi
+          
+          # Get GitHub username of PR author for mention
+          PR_AUTHOR="${{ github.event.pull_request.user.login || github.actor }}"
+          
+          # Create Teams message payload with @mention
+          PAYLOAD=$(cat <<EOF
+          {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": "$COLOR",
+            "summary": "Heblo CI/CD - $STATUS_TEXT",
+            "sections": [{
+              "activityTitle": "$STATUS_EMOJI Heblo CI/CD Pipeline",
+              "activitySubtitle": "$STATUS_TEXT",
+              "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+              "text": "<at>$PR_AUTHOR</at> Your CI/CD pipeline has completed.",
+              "facts": [
+                {
+                  "name": "Branch",
+                  "value": "${{ github.ref_name }}"
+                },
+                {
+                  "name": "Environment",
+                  "value": "Test/Staging"
+                },
+                {
+                  "name": "Version",
+                  "value": "${{ needs.build-and-push.outputs.version }}"
+                },
+                {
+                  "name": "Commit",
+                  "value": "\`${GITHUB_SHA:0:7}\`"
+                },
+                {
+                  "name": "Author",
+                  "value": "${{ github.event.pull_request.user.login || github.actor }}"
+                },
+                {
+                  "name": "Tests Status",
+                  "value": "${{ needs.frontend-tests.result == 'success' && '✅ Passed' || '❌ Failed' }}"
+                },
+                {
+                  "name": "Deployment Status", 
+                  "value": "${{ needs.deploy-azure.result == 'success' && '✅ Deployed' || '❌ Failed' }}"
+                }
+              ],
+              "markdown": true
+            }],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Test Environment",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://${{ needs.deploy-azure.outputs.webapp-hostname }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Pull Request",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.event.pull_request.html_url || format('{0}/{1}/commit/{2}', github.server_url, github.repository, github.sha) }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Workflow",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+          
+          # Send notification to Teams
+          echo "📨 Sending Teams notification to @$PR_AUTHOR..."
+          RESPONSE=$(curl -X POST "$TEAMS_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            -s -w "\n%{http_code}")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Teams notification sent successfully"
+          else
+            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
+            echo "Response: $RESPONSE"
+            # Don't fail the workflow if Teams notification fails
+            exit 0
+          fi

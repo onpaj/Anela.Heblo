@@ -2,6 +2,7 @@
 import { ApiClient } from './generated/api-client';
 import { getConfig, shouldUseMockAuth } from '../config/runtimeConfig';
 import { mockAuthService } from '../auth/mockAuth';
+import { isE2ETestMode, getE2EAccessToken } from '../auth/e2eAuth';
 
 /**
  * Global toast handler for API errors
@@ -66,7 +67,17 @@ export const clearTokenCache = () => {
  * According to documentation specification (Authentication.md section 7.1.3)
  */
 const getAuthHeader = async (): Promise<string | null> => {
-  if (shouldUseMockAuth()) {
+  if (isE2ETestMode()) {
+    // E2E test mode - use session cookies, no Authorization header needed
+    const token = getE2EAccessToken();
+    if (token) {
+      console.log('🧪 Using E2E authentication token for API call');
+      return `Bearer ${token}`;
+    } else {
+      console.log('🧪 E2E mode: Using session cookies, no Authorization header');
+      return null; // No Authorization header - backend validates via cookies
+    }
+  } else if (shouldUseMockAuth()) {
     // Mock authentication - use mockAuthService
     const token = mockAuthService.getAccessToken();
     console.log('🧪 Using cached mock authentication token for API call');
@@ -185,13 +196,24 @@ export const getAuthenticatedApiClient = (showErrorToasts: boolean = true): ApiC
         'Content-Type': 'application/json',
       };
       
-      if (authHeader) {
+      // Handle E2E authentication with special header
+      if (isE2ETestMode()) {
+        const e2eToken = getE2EAccessToken();
+        if (e2eToken) {
+          console.log('🧪 Setting X-E2E-Test-Token header for API call');
+          headers['X-E2E-Test-Token'] = e2eToken;
+        } else {
+          console.log('🧪 E2E mode: Using session cookies, no special headers');
+        }
+      } else if (authHeader) {
         headers['Authorization'] = authHeader;
       }
       
       const response = await fetch(url, {
         ...init,
         headers,
+        // Include credentials (cookies) for E2E test mode
+        credentials: isE2ETestMode() ? 'include' : 'same-origin',
       });
       
       // Global error handling with toast notifications
@@ -249,6 +271,8 @@ export const getAuthenticatedApiClientWithProvider = (getAccessToken: () => Prom
       return fetch(url, {
         ...init,
         headers,
+        // Include credentials (cookies) for E2E test mode
+        credentials: isE2ETestMode() ? 'include' : 'same-origin',
       });
     }
   };

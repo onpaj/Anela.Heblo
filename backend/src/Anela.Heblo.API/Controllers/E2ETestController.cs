@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
+using Anela.Heblo.API.Infrastructure.Authentication;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -17,12 +17,21 @@ public class E2ETestController : ControllerBase
     private readonly ILogger<E2ETestController> _logger;
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
+    private readonly IServicePrincipalTokenValidator _tokenValidator;
+    private readonly IE2ESessionService _sessionService;
 
-    public E2ETestController(ILogger<E2ETestController> logger, IWebHostEnvironment environment, IConfiguration configuration)
+    public E2ETestController(
+        ILogger<E2ETestController> logger, 
+        IWebHostEnvironment environment, 
+        IConfiguration configuration,
+        IServicePrincipalTokenValidator tokenValidator,
+        IE2ESessionService sessionService)
     {
         _logger = logger;
         _environment = environment;
         _configuration = configuration;
+        _tokenValidator = tokenValidator;
+        _sessionService = sessionService;
     }
 
     /// <summary>
@@ -49,17 +58,18 @@ public class E2ETestController : ControllerBase
     /// Following E2E authentication best practices
     /// </summary>
     [HttpPost("auth")]
+    [AllowAnonymous]
     public async Task<ActionResult<object>> CreateE2ESession()
     {
         _logger.LogInformation("E2E Test: CreateE2ESession called. Environment: {Environment}, IsStaging: {IsStaging}",
             _environment.EnvironmentName, _environment.IsEnvironment("Staging"));
 
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging",
+            _logger.LogWarning("E2E Test: Access denied. Current environment: {Environment}, Expected: Staging or Development",
                 _environment.EnvironmentName);
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Get Service Principal token from Authorization header
@@ -71,39 +81,22 @@ public class E2ETestController : ControllerBase
 
         var token = authHeader.Substring("Bearer ".Length);
 
-        // Validate Service Principal token (reuse existing validation logic)
-        if (!await ValidateServicePrincipalToken(token))
+        try
         {
-            return Unauthorized("Invalid Service Principal token");
+            // Validate Service Principal token using dedicated validator
+            if (!await _tokenValidator.ValidateAsync(token))
+            {
+                return Unauthorized("Invalid Service Principal token");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "E2E Test: Error validating Service Principal token");
+            return StatusCode(500, new { error = "Token validation error", details = ex.Message });
         }
 
-        // Create synthetic user session (following best practice)
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, "e2e-test-user-id"),
-            new Claim(ClaimTypes.Name, "E2E Test User"),
-            new Claim(ClaimTypes.Email, "e2e-test@anela-heblo.com"),
-            new Claim("preferred_username", "e2e-test@anela-heblo.com"),
-            new Claim("name", "E2E Test User"),
-            new Claim("given_name", "E2E"),
-            new Claim("family_name", "Test"),
-            new Claim("oid", "e2e-test-object-id"),
-            new Claim("tid", _environment.EnvironmentName), // Use environment as tenant for testing
-            new Claim("scp", "access_as_user"),
-            new Claim("permission", "FinancialOverview.View")
-        };
-
-        var identity = new ClaimsIdentity(claims, "E2ETest");
-        var principal = new ClaimsPrincipal(identity);
-
-        // Sign in the synthetic user (create application session)
-        await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
-        {
-            IsPersistent = false,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
-        });
-
-        _logger.LogInformation("E2E Test: Created authenticated session for synthetic user");
+        // Create synthetic user session using dedicated service
+        await _sessionService.CreateE2EAuthenticationSessionAsync(HttpContext, _environment.EnvironmentName);
 
         return Ok(new
         {
@@ -122,12 +115,13 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
+    [Authorize(AuthenticationSchemes = "Cookies")]
     public ActionResult<object> GetAuthStatus()
     {
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
@@ -159,12 +153,13 @@ public class E2ETestController : ControllerBase
     /// Serve E2E test version of the app with mock authentication
     /// </summary>
     [HttpGet("app")]
+    [Authorize(AuthenticationSchemes = "Cookies")]
     public ActionResult GetE2EApp()
     {
-        // CRITICAL SECURITY: Only allow in Staging environment
-        if (!_environment.IsEnvironment("Staging"))
+        // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
         {
-            return NotFound(new { error = "E2E endpoints only available in Staging environment", currentEnvironment = _environment.EnvironmentName });
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
         }
 
         // Check if user is authenticated via E2E override
@@ -207,83 +202,4 @@ public class E2ETestController : ControllerBase
 </html>";
     }
 
-    private async Task<bool> ValidateServicePrincipalToken(string token)
-    {
-        try
-        {
-            // Parse JWT token to get basic info
-            var handler = new JwtSecurityTokenHandler();
-            var jsonToken = handler.ReadJwtToken(token);
-
-            // Verify it's an app token (not user token)
-            var appIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "appid");
-            var tenantIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "tid");
-
-            if (appIdClaim == null || tenantIdClaim == null)
-            {
-                _logger.LogWarning("E2E Test Authentication: Token missing required app claims");
-                return false;
-            }
-
-            // Check if it matches our expected Service Principal
-            var expectedClientId = _configuration["E2E:ExpectedClientId"];
-            var expectedTenantId = _configuration["E2E:ExpectedTenantId"];
-
-            if (!string.IsNullOrEmpty(expectedClientId) && appIdClaim.Value != expectedClientId)
-            {
-                _logger.LogWarning("E2E Test Authentication: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
-                    expectedClientId, appIdClaim.Value);
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(expectedTenantId) && tenantIdClaim.Value != expectedTenantId)
-            {
-                _logger.LogWarning("E2E Test Authentication: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}",
-                    expectedTenantId, tenantIdClaim.Value);
-                return false;
-            }
-
-            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD
-            var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
-            var expectedIssuer = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-
-            if (issuerClaim == null || issuerClaim.Value != expectedIssuer)
-            {
-                _logger.LogWarning("E2E Test Authentication: Invalid issuer. Expected: {Expected}, Got: {Actual}",
-                    expectedIssuer, issuerClaim?.Value);
-                return false;
-            }
-
-            // CRITICAL SECURITY: Validate audience 
-            var audienceClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "aud");
-
-            if (audienceClaim == null)
-            {
-                _logger.LogWarning("E2E Test Authentication: Token missing audience claim");
-                return false;
-            }
-
-            // CRITICAL SECURITY: Validate token expiration
-            var expClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "exp");
-            if (expClaim != null && long.TryParse(expClaim.Value, out var exp))
-            {
-                var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp);
-                if (expirationTime <= DateTimeOffset.UtcNow)
-                {
-                    _logger.LogWarning("E2E Test Authentication: Token has expired. Expiration: {Expiration}", expirationTime);
-                    return false;
-                }
-            }
-
-            _logger.LogInformation("E2E Test Authentication: Service Principal token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}",
-                appIdClaim.Value, tenantIdClaim.Value, issuerClaim.Value);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "E2E Test Authentication: Error parsing Service Principal token");
-            return false;
-        }
-    }
 }

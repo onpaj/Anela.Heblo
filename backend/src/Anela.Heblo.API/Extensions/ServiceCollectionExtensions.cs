@@ -10,6 +10,7 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Services;
+using Anela.Heblo.API.Infrastructure.Authentication;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -93,6 +94,10 @@ public static class ServiceCollectionExtensions
 
         // Register HttpClient for E2E testing middleware
         services.AddHttpClient();
+
+        // Register E2E testing services (only in Staging and Development environments)
+        services.AddScoped<IServicePrincipalTokenValidator, ServicePrincipalTokenValidator>();
+        services.AddScoped<IE2ESessionService, E2ESessionService>();
 
         // Built-in HTTP request logging
         services.AddHttpLogging(logging =>
