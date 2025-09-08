@@ -145,6 +145,55 @@ jobs:
             echo "🎯 Running ALL E2E tests"
           fi
 
+      - name: 🔐 Validate Azure credentials
+        working-directory: ./frontend
+        run: |
+          echo "🔍 Validating Azure service principal credentials..."
+          
+          # Check if credentials are present
+          if [ -z "$AZURE_CLIENT_ID" ] || [ -z "$AZURE_CLIENT_SECRET" ] || [ -z "$AZURE_TENANT_ID" ]; then
+            echo "❌ Missing Azure credentials"
+            echo "AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:+Present}"
+            echo "AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:+Present}"  
+            echo "AZURE_TENANT_ID: ${AZURE_TENANT_ID:+Present}"
+            exit 1
+          fi
+          
+          # Test basic token acquisition
+          echo "🔑 Testing token acquisition..."
+          RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=$AZURE_CLIENT_ID&client_secret=$AZURE_CLIENT_SECRET&scope=https://graph.microsoft.com/.default")
+          
+          if echo "$RESPONSE" | grep -q "access_token"; then
+            echo "✅ Basic token acquisition successful"
+          else
+            echo "❌ Token acquisition failed:"
+            echo "$RESPONSE" | jq '.' || echo "$RESPONSE"
+            exit 1
+          fi
+          
+          # Test backend API scope specifically
+          echo "🔑 Testing backend API scope access..."
+          API_RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=$AZURE_CLIENT_ID&client_secret=$AZURE_CLIENT_SECRET&scope=api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default")
+          
+          if echo "$API_RESPONSE" | grep -q "access_token"; then
+            echo "✅ Backend API scope access successful"
+          else
+            echo "❌ Backend API scope access failed:"
+            echo "$API_RESPONSE" | jq '.' || echo "$API_RESPONSE"
+            echo ""
+            echo "💡 This likely means the service principal needs to be granted permissions to the backend API."
+            echo "💡 The backend API scope is: api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default"
+            exit 1
+          fi
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
       - name: 🧪 Run E2E tests against staging
         id: run-tests
         working-directory: ./frontend
