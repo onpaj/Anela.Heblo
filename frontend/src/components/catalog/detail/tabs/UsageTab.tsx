@@ -58,6 +58,7 @@ const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Kód produktu</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Název produktu</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Množství</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">MMQ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -71,6 +72,9 @@ const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
                     </td>
                     <td className="py-3 px-4 text-right text-gray-900 font-medium">
                       {template.amount?.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) || '0'}
+                    </td>
+                    <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                      {template.batchSize?.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) || '0'}
                     </td>
                   </tr>
                 ))}
