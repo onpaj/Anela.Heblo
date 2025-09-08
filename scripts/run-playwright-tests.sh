@@ -18,8 +18,8 @@ echo -e "${BLUE}🎭 Starting Playwright tests with automation environment${NC}"
 
 # Kill any existing processes on automation ports
 echo -e "${YELLOW}🧹 Cleaning up existing processes...${NC}"
-lsof -ti:3001 | xargs kill -9 2>/dev/null || true
-lsof -ti:5001 | xargs kill -9 2>/dev/null || true
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:5000 | xargs kill -9 2>/dev/null || true
 
 # Wait a moment for ports to be free
 sleep 2
@@ -30,8 +30,8 @@ cleanup_and_exit() {
     echo -e "${YELLOW}🧹 Cleaning up...${NC}"
     [ ! -z "$BACKEND_PID" ] && kill $BACKEND_PID 2>/dev/null || true
     [ ! -z "$FRONTEND_PID" ] && kill $FRONTEND_PID 2>/dev/null || true
-    lsof -ti:3001 | xargs kill -9 2>/dev/null || true
-    lsof -ti:5001 | xargs kill -9 2>/dev/null || true
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    lsof -ti:5000 | xargs kill -9 2>/dev/null || true
     exit $exit_code
 }
 
@@ -41,13 +41,13 @@ BACKEND_DIR="$SCRIPT_DIR/../backend/src/Anela.Heblo.API"
 FRONTEND_DIR="$SCRIPT_DIR/../frontend"
 
 # Start backend in background (no waiting)
-echo -e "${BLUE}🚀 Starting automation backend on port 5001...${NC}"
+echo -e "${BLUE}🚀 Starting automation backend on port 5000...${NC}"
 cd "$BACKEND_DIR"
 ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation > /dev/null 2>&1 &
 BACKEND_PID=$!
 
 # Start frontend in background (no waiting)  
-echo -e "${BLUE}🚀 Starting automation frontend on port 3001...${NC}"
+echo -e "${BLUE}🚀 Starting automation frontend on port 3000...${NC}"
 cd "$FRONTEND_DIR"
 npm run start:automation > /dev/null 2>&1 &
 FRONTEND_PID=$!
@@ -58,7 +58,7 @@ echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
 # Wait for backend with retry logic (up to 30 seconds)
 BACKEND_READY=false
 for i in {1..30}; do
-    if curl -s http://localhost:5001/health/live > /dev/null 2>&1; then
+    if curl -s http://localhost:5000/health/live > /dev/null 2>&1; then
         BACKEND_READY=true
         echo -e "${GREEN}✅ Backend is ready${NC}"
         break
@@ -75,7 +75,7 @@ fi
 # Wait for frontend with retry logic (up to 20 seconds)
 FRONTEND_READY=false
 for i in {1..20}; do
-    if curl -s http://localhost:3001 > /dev/null 2>&1; then
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
         FRONTEND_READY=true
         echo -e "${GREEN}✅ Frontend is ready${NC}"
         break
