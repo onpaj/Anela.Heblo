@@ -167,9 +167,11 @@ jobs:
             BROWSER_FLAG="--project=$BROWSER"
           fi
           
-          # Run the tests
+          # Run the tests  
           npx playwright test $TEST_PATTERN $BROWSER_FLAG \
-            --reporter=list,json:test-results/results.json,html:playwright-report
+            --reporter=dot \
+            --reporter=json:test-results.json \
+            --reporter=html:playwright-report
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
@@ -180,7 +182,7 @@ jobs:
         with:
           name: staging-e2e-test-results-${{ github.run_number }}
           path: |
-            frontend/test-results/
+            frontend/test-results.json
             frontend/playwright-report/
           retention-days: 30
 
@@ -189,13 +191,13 @@ jobs:
         id: test-results
         working-directory: ./frontend
         run: |
-          if [ -f test-results/results.json ]; then
+          if [ -f test-results.json ]; then
             # Parse JSON results
-            TOTAL=$(cat test-results/results.json | grep -o '"status"' | wc -l || echo "0")
-            PASSED=$(cat test-results/results.json | grep -o '"status":"passed"' | wc -l || echo "0")
-            FAILED=$(cat test-results/results.json | grep -o '"status":"failed"' | wc -l || echo "0")
-            SKIPPED=$(cat test-results/results.json | grep -o '"status":"skipped"' | wc -l || echo "0")
-            FLAKY=$(cat test-results/results.json | grep -o '"status":"flaky"' | wc -l || echo "0")
+            TOTAL=$(cat test-results.json | grep -o '"status"' | wc -l || echo "0")
+            PASSED=$(cat test-results.json | grep -o '"status":"passed"' | wc -l || echo "0")
+            FAILED=$(cat test-results.json | grep -o '"status":"failed"' | wc -l || echo "0")
+            SKIPPED=$(cat test-results.json | grep -o '"status":"skipped"' | wc -l || echo "0")
+            FLAKY=$(cat test-results.json | grep -o '"status":"flaky"' | wc -l || echo "0")
             
             echo "total=$TOTAL" >> $GITHUB_OUTPUT
             echo "passed=$PASSED" >> $GITHUB_OUTPUT
