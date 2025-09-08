@@ -5101,6 +5101,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
     amount?: number;
     originalAmount?: number;
     ingredients?: Ingredient[];
+    batchSize?: number;
 
     constructor(data?: IManufactureTemplate) {
         if (data) {
@@ -5123,6 +5124,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
                 for (let item of _data["ingredients"])
                     this.ingredients!.push(Ingredient.fromJS(item));
             }
+            this.batchSize = _data["batchSize"];
         }
     }
 
@@ -5145,6 +5147,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
             for (let item of this.ingredients)
                 data["ingredients"].push(item.toJSON());
         }
+        data["batchSize"] = this.batchSize;
         return data;
     }
 }
@@ -5156,6 +5159,7 @@ export interface IManufactureTemplate {
     amount?: number;
     originalAmount?: number;
     ingredients?: Ingredient[];
+    batchSize?: number;
 }
 
 export class Ingredient implements IIngredient {

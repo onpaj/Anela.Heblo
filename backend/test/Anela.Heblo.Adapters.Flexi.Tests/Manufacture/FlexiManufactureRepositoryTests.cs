@@ -1,6 +1,5 @@
+using System.Reflection;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
-using AutoFixture;
-using AutoFixture.Xunit2;
 using FluentAssertions;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
@@ -10,48 +9,24 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 
 public class FlexiManufactureRepositoryTests
 {
-    private readonly Fixture _fixture = new();
-
-    [Theory]
-    [AutoData]
-    public async Task GetManufactureTemplateAsync_WhenBoMExists_ReturnsCorrectTemplate(
-        string productId,
-        string productCode,
-        string productName,
-        double amount)
+    
+    [Fact]
+    public async Task GetManufactureTemplateAsync_WhenBoMExists_ReturnsCorrectTemplate()
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
 
-        var headerBoM = new BoMItemV2
-        {
-            Id = 1,
-            Level = 1,
-            IngredientCode = $"code:{productCode}",
-            IngredientFullName = productName,
-            Amount = amount
-        };
+        var productId = "test-product-id";
+        var productCode = "TEST_PRODUCT";
+        var productName = "Test Product";
+        var amount = 100.0;
 
-        var ingredient1 = new BoMItemV2
-        {
-            Id = 2,
-            Level = 2,
-            IngredientCode = "code:INGREDIENT1",
-            IngredientFullName = "Ingredient 1",
-            Amount = 5.0
-        };
+        var headerBoM = CreateBoMItem(1, 1, amount, $"code:{productCode}", productName);
+        var ingredient1 = CreateBoMItem(2, 2, 5.0, "code:INGREDIENT1", "Ingredient 1");
+        var ingredient2 = CreateBoMItem(3, 3, 2.5, "code:INGREDIENT2", "Ingredient 2");
 
-        var ingredient2 = new BoMItemV2
-        {
-            Id = 3,
-            Level = 3,
-            IngredientCode = "code:INGREDIENT2",
-            IngredientFullName = "Ingredient 2",
-            Amount = 2.5
-        };
-
-        var bomList = new List<BoMItemV2> { headerBoM, ingredient1, ingredient2 };
+        var bomList = new List<BoMItemFlexiDto> { headerBoM, ingredient1, ingredient2 };
 
         mockBoMClient.Setup(x => x.GetAsync(productId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(bomList);
@@ -78,20 +53,20 @@ public class FlexiManufactureRepositoryTests
         result.Ingredients[1].Amount.Should().Be(2.5);
     }
 
-    [Theory]
-    [AutoData]
-    public async Task GetManufactureTemplateAsync_WhenNoHeaderFound_ThrowsApplicationException(string productId)
+    [Fact]
+    public async Task GetManufactureTemplateAsync_WhenNoHeaderFound_ThrowsApplicationException()
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
 
+        var productId = "test-product-id";
+
         // Only ingredients, no header with Level = 1
-        var bomList = new List<BoMItemV2>
-        {
-            new BoMItemV2 { Id = 1, Level = 2, IngredientCode = "code:INGREDIENT1", IngredientFullName = "Ingredient 1", Amount = 5.0 },
-            new BoMItemV2 { Id = 2, Level = 3, IngredientCode = "code:INGREDIENT2", IngredientFullName = "Ingredient 2", Amount = 2.5 }
-        };
+        var ingredient1 = CreateBoMItem(1, 2, 5.0, "code:INGREDIENT1", "Ingredient 1");
+        var ingredient2 = CreateBoMItem(2, 3, 2.5, "code:INGREDIENT2", "Ingredient 2");
+
+        var bomList = new List<BoMItemFlexiDto> { ingredient1, ingredient2 };
 
         mockBoMClient.Setup(x => x.GetAsync(productId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(bomList);
@@ -103,16 +78,17 @@ public class FlexiManufactureRepositoryTests
             .WithMessage($"No BoM header for product {productId} found");
     }
 
-    [Theory]
-    [AutoData]
-    public async Task GetManufactureTemplateAsync_WhenEmptyBoMReturned_ThrowsApplicationException(string productId)
+    [Fact]
+    public async Task GetManufactureTemplateAsync_WhenEmptyBoMReturned_ThrowsApplicationException()
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        
+        var productId = "test-product-id";
 
         mockBoMClient.Setup(x => x.GetAsync(productId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<BoMItemV2>());
+            .ReturnsAsync(new List<BoMItemFlexiDto>());
 
         // Act & Assert
         var act = async () => await repository.GetManufactureTemplateAsync(productId);
@@ -121,41 +97,23 @@ public class FlexiManufactureRepositoryTests
             .WithMessage($"No BoM header for product {productId} found");
     }
 
-    [Theory]
-    [AutoData]
-    public async Task FindByIngredientAsync_ReturnsTemplatesExcludingSameIngredient(
-        string ingredientCode,
-        CancellationToken cancellationToken)
+    [Fact]
+    public async Task FindByIngredientAsync_ReturnsTemplatesExcludingSameIngredient()
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        
+        var ingredientCode = "TESTINGREDIENT";
+        var cancellationToken = CancellationToken.None;
 
-        var templates = new List<BoMItemV2>
-        {
-            new BoMItemV2
-            {
-                Id = 1,
-                ParentCode = "code:PRODUCT1",
-                ParentFullName = "Product 1",
-                Amount = 10.0
-            },
-            new BoMItemV2
-            {
-                Id = 2,
-                ParentCode = "code:PRODUCT2",
-                ParentFullName = "Product 2",
-                Amount = 5.0
-            },
-            // This should be filtered out as it has the same code as the ingredient
-            new BoMItemV2
-            {
-                Id = 3,
-                ParentCode = $"code:{ingredientCode}",
-                ParentFullName = "Same as ingredient",
-                Amount = 1.0
-            }
-        };
+        var template1 = CreateBoMItem(1, 0, 10.0, "", "", "code:PRODUCT1", "Product 1");
+        var template2 = CreateBoMItem(2, 0, 5.0, "", "", "code:PRODUCT2", "Product 2");
+
+        // This should be filtered out as it has the same code as the ingredient
+        var template3 = CreateBoMItem(3, 0, 1.0, "", "", $"code:{ingredientCode}", "Same as ingredient");
+
+        var templates = new List<BoMItemFlexiDto> { template1, template2, template3 };
 
         mockBoMClient.Setup(x => x.GetByIngredientAsync(ingredientCode, cancellationToken))
             .ReturnsAsync(templates);
@@ -165,7 +123,7 @@ public class FlexiManufactureRepositoryTests
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().NotContain(x => x.ProductCode == ingredientCode);
+        result.Should().NotContain(x => x.ProductCode == "TESTINGREDIENT");
 
         result[0].TemplateId.Should().Be(1);
         result[0].ProductCode.Should().Be("PRODUCT1");
@@ -178,18 +136,18 @@ public class FlexiManufactureRepositoryTests
         result[1].Amount.Should().Be(5.0);
     }
 
-    [Theory]
-    [AutoData]
-    public async Task FindByIngredientAsync_WhenNoTemplatesFound_ReturnsEmptyList(
-        string ingredientCode,
-        CancellationToken cancellationToken)
+    [Fact]
+    public async Task FindByIngredientAsync_WhenNoTemplatesFound_ReturnsEmptyList()
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        
+        var ingredientCode = "TESTINGREDIENT";
+        var cancellationToken = CancellationToken.None;
 
         mockBoMClient.Setup(x => x.GetByIngredientAsync(ingredientCode, cancellationToken))
-            .ReturnsAsync(new List<BoMItemV2>());
+            .ReturnsAsync(new List<BoMItemFlexiDto>());
 
         // Act
         var result = await repository.FindByIngredientAsync(ingredientCode, cancellationToken);
@@ -205,25 +163,10 @@ public class FlexiManufactureRepositoryTests
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
 
-        var bomList = new List<BoMItemV2>
-        {
-            new BoMItemV2
-            {
-                Id = 1,
-                Level = 1,
-                IngredientCode = "code:  PRODUCT_WITH_SPACES  ",
-                IngredientFullName = "Product With Spaces",
-                Amount = 10.0
-            },
-            new BoMItemV2
-            {
-                Id = 2,
-                Level = 2,
-                IngredientCode = "code:INGREDIENT_NO_SPACES",
-                IngredientFullName = "Ingredient No Spaces",
-                Amount = 5.0
-            }
-        };
+        var headerBoM = CreateBoMItem(1, 1, 10.0, "code:  PRODUCT_WITH_SPACES  ", "Product With Spaces");
+        var ingredient = CreateBoMItem(2, 2, 5.0, "code:INGREDIENT_NO_SPACES", "Ingredient No Spaces");
+
+        var bomList = new List<BoMItemFlexiDto> { headerBoM, ingredient };
 
         mockBoMClient.Setup(x => x.GetAsync("test-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(bomList);
@@ -234,5 +177,52 @@ public class FlexiManufactureRepositoryTests
         // Assert
         result.ProductCode.Should().Be("PRODUCT_WITH_SPACES");
         result.Ingredients[0].ProductCode.Should().Be("INGREDIENT_NO_SPACES");
+    }
+
+    private BoMItemFlexiDto CreateBoMItem(int id, int level, double amount, string ingredientCode = "", string ingredientFullName = "", string parentCode = "", string parentFullName = "")
+    {
+        var item = new BoMItemFlexiDto
+        {
+            Id = id,
+            Level = level,
+            Amount = amount
+        };
+        
+        // Set up ingredient information
+        if (!string.IsNullOrEmpty(ingredientCode) || !string.IsNullOrEmpty(ingredientFullName))
+        {
+            item.Ingredient = new List<BomProductFlexiDto>
+            {
+                new () 
+                {
+                    Code = ingredientCode,
+                    Name = ingredientFullName
+                }
+            };
+        }
+        
+        // Set up parent information for FindByIngredientAsync
+        if (!string.IsNullOrEmpty(parentCode) || !string.IsNullOrEmpty(parentFullName))
+        {
+            item.ParentList = new List<ParentBomFlexiDto>
+            {
+                new ()
+                {
+                    Amount = amount,
+                    Name = parentFullName
+                }
+            };
+            
+            item.ParentProductList = new List<BomProductFlexiDto>
+            {
+                new ()
+                {
+                    Code = parentCode,
+                    Name = parentFullName,
+                }
+            };
+        }
+            
+        return item;
     }
 }

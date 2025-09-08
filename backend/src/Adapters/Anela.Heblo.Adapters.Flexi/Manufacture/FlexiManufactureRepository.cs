@@ -49,10 +49,11 @@ public class FlexiManufactureRepository : IManufactureRepository
         return templates
                 .Select(s => new ManufactureTemplate()
                 {
-                    ProductCode = s.ParentCode.RemoveCodePrefix(),
-                    ProductName = s.ParentFullName,
+                    ProductCode = s.ParentCode!.RemoveCodePrefix(),
+                    ProductName = s.ParentFullName!,
                     Amount = s.Amount,
-                    TemplateId = s.Id
+                    TemplateId = s.Id,
+                    BatchSize = s.Parent?.Amount ?? 0,
                 })
         .Where(w => w.ProductCode != ingredientCode)
         .ToList();
