@@ -1,0 +1,265 @@
+name: 🎭 Manual E2E Tests - Staging Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_pattern:
+        description: 'Test pattern (e.g., "catalog" or "auth", leave empty for all E2E tests)'
+        required: false
+        default: ''
+        type: string
+      browser:
+        description: 'Browser to run tests on'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - 'chromium'
+          - 'firefox'
+          - 'webkit'
+          - 'all'
+
+env:
+  STAGING_URL: https://heblo-test-staging.azurewebsites.net
+  NODE_VERSION: '18'
+
+jobs:
+  validate-staging-health:
+    name: 🏥 Validate Staging Health
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📊 Check Liveness Endpoint
+        id: liveness
+        run: |
+          echo "🔍 Checking liveness endpoint..."
+          response=$(curl -s -w "%{http_code}:%{response_code}" -o response_body.txt "${{ env.STAGING_URL }}/health/live")
+          http_code=$(echo $response | cut -d':' -f1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response body:"
+          cat response_body.txt
+          
+          if [ "$http_code" = "200" ]; then
+            echo "✅ Liveness check passed"
+            echo "liveness_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Liveness check failed with status $http_code"
+            echo "liveness_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: 📊 Check Readiness Endpoint
+        id: readiness
+        run: |
+          echo "🔍 Checking readiness endpoint..."
+          response=$(curl -s -w "%{http_code}:%{response_code}" -o response_body.txt "${{ env.STAGING_URL }}/health/ready")
+          http_code=$(echo $response | cut -d':' -f1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response body:"
+          cat response_body.txt
+          
+          if [ "$http_code" = "200" ]; then
+            echo "✅ Readiness check passed"
+            echo "readiness_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Readiness check failed with status $http_code"
+            echo "readiness_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: 📊 Check General Health Endpoint
+        id: health
+        run: |
+          echo "🔍 Checking general health endpoint..."
+          response=$(curl -s -w "%{http_code}:%{response_code}" -o response_body.txt "${{ env.STAGING_URL }}/health")
+          http_code=$(echo $response | cut -d':' -f1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response body:"
+          cat response_body.txt
+          
+          if [ "$http_code" = "200" ]; then
+            echo "✅ General health check passed"
+            echo "health_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ General health check failed with status $http_code"
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: 📝 Health Check Summary
+        run: |
+          echo "## 🏥 Staging Health Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Liveness | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Readiness | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| General Health | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Staging URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 **Validated at:** $(date)" >> $GITHUB_STEP_SUMMARY
+
+  run-e2e-tests:
+    name: 🎭 Run E2E Tests
+    runs-on: ubuntu-latest
+    needs: validate-staging-health
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: ./frontend
+        run: |
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            npx playwright install --with-deps
+          else
+            npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+          fi
+
+      - name: 📂 List E2E test files
+        working-directory: ./frontend
+        run: |
+          echo "🔍 Available E2E test files:"
+          find test/e2e -name "*.spec.ts" -type f | sort
+          echo ""
+          
+          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
+            echo "🎯 Tests matching pattern '${{ github.event.inputs.test_pattern }}':"
+            find test/e2e -name "*${{ github.event.inputs.test_pattern }}*.spec.ts" -type f | sort
+          else
+            echo "🎯 Running ALL E2E tests"
+          fi
+
+      - name: 🧪 Run E2E tests against staging
+        working-directory: ./frontend
+        run: |
+          # Determine test pattern
+          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
+            TEST_PATTERN="test/e2e/**/*${{ github.event.inputs.test_pattern }}*.spec.ts"
+            echo "🎯 Running tests with pattern: $TEST_PATTERN"
+          else
+            TEST_PATTERN="test/e2e/"
+            echo "🎯 Running all E2E tests from: $TEST_PATTERN"
+          fi
+          
+          # Determine browser(s)
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            echo "🌐 Running tests on all browsers"
+            BROWSER_FLAG=""
+          else
+            BROWSER="${{ github.event.inputs.browser || 'chromium' }}"
+            echo "🌐 Running tests on browser: $BROWSER"
+            BROWSER_FLAG="--project=$BROWSER"
+          fi
+          
+          # Run the tests
+          npx playwright test $TEST_PATTERN $BROWSER_FLAG \
+            --reporter=list \
+            --reporter=json:test-results/results.json \
+            --reporter=html:playwright-report/
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
+          CI: true
+
+      - name: 📤 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-e2e-test-results-${{ github.run_number }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 30
+
+      - name: 📊 Parse test results
+        if: always()
+        id: test-results
+        working-directory: ./frontend
+        run: |
+          if [ -f test-results/results.json ]; then
+            # Parse JSON results
+            TOTAL=$(cat test-results/results.json | grep -o '"status"' | wc -l || echo "0")
+            PASSED=$(cat test-results/results.json | grep -o '"status":"passed"' | wc -l || echo "0")
+            FAILED=$(cat test-results/results.json | grep -o '"status":"failed"' | wc -l || echo "0")
+            SKIPPED=$(cat test-results/results.json | grep -o '"status":"skipped"' | wc -l || echo "0")
+            FLAKY=$(cat test-results/results.json | grep -o '"status":"flaky"' | wc -l || echo "0")
+            
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+            echo "flaky=$FLAKY" >> $GITHUB_OUTPUT
+            
+            echo "📊 Test Results Summary:"
+            echo "Total: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Flaky: $FLAKY"
+          else
+            echo "❌ Test results file not found"
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=1" >> $GITHUB_OUTPUT
+            echo "skipped=0" >> $GITHUB_OUTPUT
+            echo "flaky=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📝 Create test results summary
+        if: always()
+        run: |
+          echo "## 🎭 E2E Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Tests** | ${{ steps.test-results.outputs.total }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ **Passed** | ${{ steps.test-results.outputs.passed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ **Failed** | ${{ steps.test-results.outputs.failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏭️ **Skipped** | ${{ steps.test-results.outputs.skipped }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **Flaky** | ${{ steps.test-results.outputs.flaky }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Test configuration details
+          echo "### 🔧 Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
+            echo "- **Test Pattern:** ${{ github.event.inputs.test_pattern }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Test Scope:** All E2E tests" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "- **Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add status badge
+          if [ "${{ steps.test-results.outputs.failed }}" = "0" ]; then
+            echo "🎉 **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Some tests failed. Check the test report for details.**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 📋 Comment on failure
+        if: failure()
+        run: |
+          echo "## ❌ E2E Test Execution Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The E2E test execution failed. This could be due to:" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment issues with staging" >> $GITHUB_STEP_SUMMARY
+          echo "- Test flakiness or timeout issues" >> $GITHUB_STEP_SUMMARY
+          echo "- Application bugs in the staging environment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the test artifacts and logs for more details." >> $GITHUB_STEP_SUMMARY
