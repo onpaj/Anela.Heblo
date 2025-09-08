@@ -12,6 +12,12 @@ public record StockData
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 
     public decimal Available => (PrimaryStockSource == StockSource.Erp ? Erp : Eshop) + Transport;
+
+    /// <summary>
+    /// Total stock including both available stock and reserve stock
+    /// </summary>
+    public decimal Total => Available + Reserve;
+
     public List<CatalogLot> Lots { get; set; } = new();
 
 }

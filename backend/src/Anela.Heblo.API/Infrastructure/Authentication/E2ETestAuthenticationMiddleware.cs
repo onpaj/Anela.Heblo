@@ -50,12 +50,12 @@ public class E2ETestAuthenticationMiddleware
         var cookieAuthResult = await context.AuthenticateAsync("Cookies");
         if (cookieAuthResult.Succeeded && cookieAuthResult.Principal != null)
         {
-            _logger.LogInformation("E2E Authentication: User authenticated via E2E session cookies: {User}", 
+            _logger.LogInformation("E2E Authentication: User authenticated via E2E session cookies: {User}",
                 cookieAuthResult.Principal.Identity?.Name);
-            
+
             // Set the authenticated principal for the request
             context.User = cookieAuthResult.Principal;
-            
+
             await _next(context);
             return;
         }
@@ -123,9 +123,9 @@ public class E2ETestAuthenticationMiddleware
     }
 
     public static bool ShouldBeRegistered(WebApplication app) => ShouldBeRegistered(app.Configuration, app.Environment);
-    
+
     public static bool ShouldBeRegistered(WebApplicationBuilder builder) => ShouldBeRegistered(builder.Configuration, builder.Environment);
-    
+
     public static bool ShouldBeRegistered(IConfiguration configuration, IHostEnvironment environment)
     {
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);

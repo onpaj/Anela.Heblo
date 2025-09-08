@@ -33,13 +33,13 @@ public class GetMarginReportHandlerTests
         _productFilterServiceMock = new Mock<IProductFilterService>();
         _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
         _reportBuilderServiceMock = new Mock<IReportBuilderService>();
-        
+
         _handler = new GetMarginReportHandler(
             _analyticsRepositoryMock.Object,
             _productFilterServiceMock.Object,
             _marginCalculationServiceMock.Object,
             _reportBuilderServiceMock.Object);
-        
+
         // Set up default service behaviors for all tests
         SetupDefaultServiceMocks();
     }
@@ -53,16 +53,16 @@ public class GetMarginReportHandlerTests
             {
                 var salesInPeriod = product.SalesHistory.Where(s => s.Date >= start && s.Date <= end).ToList();
                 var unitsSold = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
-                
+
                 if (unitsSold == 0)
                 {
                     return ServiceMarginCalculationResult.Failure(ErrorCodes.InsufficientData);
                 }
-                
+
                 var revenue = unitsSold * product.SellingPrice;
                 var margin = unitsSold * product.MarginAmount;
                 var cost = revenue - margin;
-                
+
                 return ServiceMarginCalculationResult.Success(new MarginData
                 {
                     Revenue = revenue,

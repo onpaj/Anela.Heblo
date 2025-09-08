@@ -135,7 +135,7 @@ public class GetJournalEntryHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.Entry.Should().NotBeNull();
-        
+
         // Check product associations
         result.Entry.AssociatedProducts.Should().HaveCount(3);
         result.Entry.AssociatedProducts.Should().Contain(new[] { "TON001", "TON002", "ABC001" });

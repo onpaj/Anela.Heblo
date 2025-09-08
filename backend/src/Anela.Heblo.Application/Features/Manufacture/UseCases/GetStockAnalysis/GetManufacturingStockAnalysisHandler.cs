@@ -106,8 +106,8 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         // Calculate total sales in period for display
         var salesInPeriod = item.GetTotalSold(fromDate, toDate);
 
-        // Calculate stock days available using domain service
-        var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Available, dailySalesRate);
+        // Calculate stock days available using domain service - now includes reserve stock
+        var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Total, dailySalesRate);
 
         // Calculate overstock percentage using domain service
         var overstockPercentage = _severityCalculator.CalculateOverstockPercentage(stockDaysAvailable, item.Properties.OptimalStockDaysSetup);

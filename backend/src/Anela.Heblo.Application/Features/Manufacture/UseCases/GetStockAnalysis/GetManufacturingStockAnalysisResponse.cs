@@ -23,6 +23,8 @@ public class ManufacturingStockItemDto
 
     public double CurrentStock { get; set; }
 
+    public double Reserve { get; set; }
+
     public double SalesInPeriod { get; set; }
 
     public double DailySalesRate { get; set; }

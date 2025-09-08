@@ -31,6 +31,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             Code = catalogItem.ProductCode,
             Name = catalogItem.ProductName,
             CurrentStock = (double)catalogItem.Stock.Available,
+            Reserve = (double)catalogItem.Stock.Reserve,
             SalesInPeriod = salesInPeriod,
             DailySalesRate = dailySalesRate,
             OptimalDaysSetup = catalogItem.Properties.OptimalStockDaysSetup,

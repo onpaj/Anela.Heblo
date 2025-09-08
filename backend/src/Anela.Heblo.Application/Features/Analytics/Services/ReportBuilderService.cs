@@ -10,12 +10,12 @@ public interface IReportBuilderService
         AnalyticsProduct productData,
         DateTime startDate,
         DateTime endDate);
-    
+
     List<GetMarginReportResponse.CategoryMarginSummary> BuildCategorySummaries(
         Dictionary<string, CategoryData> categoryTotals);
-    
+
     GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
-        AnalyticsProduct product, 
+        AnalyticsProduct product,
         MarginData marginData);
 }
 
@@ -65,7 +65,7 @@ public class ReportBuilderService : IReportBuilderService
             Category = kvp.Key,
             TotalMargin = kvp.Value.TotalMargin,
             TotalRevenue = kvp.Value.TotalRevenue,
-            AverageMarginPercentage = kvp.Value.TotalRevenue > 0 ? 
+            AverageMarginPercentage = kvp.Value.TotalRevenue > 0 ?
                 (kvp.Value.TotalMargin / kvp.Value.TotalRevenue) * 100 : 0,
             ProductCount = kvp.Value.ProductCount,
             TotalUnitsSold = kvp.Value.TotalUnitsSold
@@ -73,7 +73,7 @@ public class ReportBuilderService : IReportBuilderService
     }
 
     public GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
-        AnalyticsProduct product, 
+        AnalyticsProduct product,
         MarginData marginData)
     {
         return new GetMarginReportResponse.ProductMarginSummary

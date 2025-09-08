@@ -6,8 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.AspNetCore.Http;
 using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.API.Infrastructure.Authentication;
 
 namespace Anela.Heblo.Tests.Common;
 
@@ -60,6 +62,11 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
                 return new TelemetryClient(config);
             });
 
+            // Register mock E2E testing services for test environment
+            // These are needed for E2ETestController controller resolution tests
+            services.AddScoped<IServicePrincipalTokenValidator, MockServicePrincipalTokenValidator>();
+            services.AddScoped<IE2ESessionService, MockE2ESessionService>();
+
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
         });
@@ -107,5 +114,40 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await context.Database.EnsureDeletedAsync();
         await context.Database.EnsureCreatedAsync();
+    }
+}
+
+/// <summary>
+/// Mock implementation of IServicePrincipalTokenValidator for testing
+/// </summary>
+public class MockServicePrincipalTokenValidator : IServicePrincipalTokenValidator
+{
+    public Task<bool> ValidateAsync(string token)
+    {
+        // In test environment, always return true for any token
+        return Task.FromResult(true);
+    }
+}
+
+/// <summary>
+/// Mock implementation of IE2ESessionService for testing
+/// </summary>
+public class MockE2ESessionService : IE2ESessionService
+{
+    public Task CreateE2EAuthenticationSessionAsync(HttpContext httpContext, string environmentName)
+    {
+        // In test environment, do nothing - mock authentication is handled by MockAuthenticationHandler
+        return Task.CompletedTask;
+    }
+
+    public System.Security.Claims.Claim[] CreateSyntheticUserClaims(string environmentName)
+    {
+        // Return basic test claims
+        return new[]
+        {
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "test-user-id"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "Test User"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "test@anela-heblo.com")
+        };
     }
 }

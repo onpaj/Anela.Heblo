@@ -537,7 +537,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
 
         // After refactoring to result-based error handling, non-existent product returns 404 Not Found
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        
+
         // Test based on raw JSON structure
         var rawContent = await response.Content.ReadAsStringAsync();
         rawContent.Should().Contain("\"success\":false");
