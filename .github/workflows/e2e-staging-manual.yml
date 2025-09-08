@@ -191,6 +191,12 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
+          # Real Azure credentials for staging environment
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          # Additional test environment variables
+          PLAYWRIGHT_FRONTEND_URL: ${{ env.STAGING_URL }}
 
       - name: 📤 Upload test results
         uses: actions/upload-artifact@v4
