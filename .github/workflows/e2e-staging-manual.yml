@@ -169,9 +169,7 @@ jobs:
           
           # Run the tests
           npx playwright test $TEST_PATTERN $BROWSER_FLAG \
-            --reporter=list \
-            --reporter=json:test-results/results.json \
-            --reporter=html:playwright-report/
+            --reporter=list,json:test-results/results.json,html:playwright-report
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
