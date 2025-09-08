@@ -53,7 +53,7 @@ public class FlexiManufactureRepository : IManufactureRepository
                     ProductName = s.ParentFullName!,
                     Amount = s.Amount,
                     TemplateId = s.Id,
-                    BatchSize = s.Parent.Amount,
+                    BatchSize = s.Parent?.Amount ?? 0,
                 })
         .Where(w => w.ProductCode != ingredientCode)
         .ToList();

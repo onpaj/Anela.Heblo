@@ -263,6 +263,7 @@ public class GetProductUsageHandlerTests
                 ProductName = "Test Template",
                 Amount = 2500, // Template produces 2500g
                 OriginalAmount = 2500, // Base quantity for scaling
+                BatchSize = 2500, // Template batch size
                 Ingredients = new List<Ingredient>
                 {
                     new Ingredient
