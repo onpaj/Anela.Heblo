@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<JournalEntryProduct> JournalEntryProducts { get; set; } = null!;
     public DbSet<JournalEntryTag> JournalEntryTags { get; set; } = null!;
     public DbSet<JournalEntryTagAssignment> JournalEntryTagAssignments { get; set; } = null!;
+
+    // Gift Package Manufacturing module
+    public DbSet<GiftPackageManufactureLog> GiftPackageManufactureLogs { get; set; } = null!;
+    public DbSet<GiftPackageManufactureItem> GiftPackageManufactureItems { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
