@@ -9,7 +9,7 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 
 public class FlexiManufactureRepositoryTests
 {
-    
+
     [Fact]
     public async Task GetManufactureTemplateAsync_WhenBoMExists_ReturnsCorrectTemplate()
     {
@@ -84,7 +84,7 @@ public class FlexiManufactureRepositoryTests
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
-        
+
         var productId = "test-product-id";
 
         mockBoMClient.Setup(x => x.GetAsync(productId, It.IsAny<CancellationToken>()))
@@ -103,7 +103,7 @@ public class FlexiManufactureRepositoryTests
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
-        
+
         var ingredientCode = "TESTINGREDIENT";
         var cancellationToken = CancellationToken.None;
 
@@ -142,7 +142,7 @@ public class FlexiManufactureRepositoryTests
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
         var repository = new FlexiManufactureRepository(mockBoMClient.Object);
-        
+
         var ingredientCode = "TESTINGREDIENT";
         var cancellationToken = CancellationToken.None;
 
@@ -187,20 +187,20 @@ public class FlexiManufactureRepositoryTests
             Level = level,
             Amount = amount
         };
-        
+
         // Set up ingredient information
         if (!string.IsNullOrEmpty(ingredientCode) || !string.IsNullOrEmpty(ingredientFullName))
         {
             item.Ingredient = new List<BomProductFlexiDto>
             {
-                new () 
+                new ()
                 {
                     Code = ingredientCode,
                     Name = ingredientFullName
                 }
             };
         }
-        
+
         // Set up parent information for FindByIngredientAsync
         if (!string.IsNullOrEmpty(parentCode) || !string.IsNullOrEmpty(parentFullName))
         {
@@ -212,7 +212,7 @@ public class FlexiManufactureRepositoryTests
                     Name = parentFullName
                 }
             };
-            
+
             item.ParentProductList = new List<BomProductFlexiDto>
             {
                 new ()
@@ -222,7 +222,7 @@ public class FlexiManufactureRepositoryTests
                 }
             };
         }
-            
+
         return item;
     }
 }

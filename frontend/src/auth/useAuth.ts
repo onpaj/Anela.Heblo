@@ -1,9 +1,9 @@
-import { useMsal } from '@azure/msal-react';
-import { loginRequest, loginRedirectRequest, apiRequest } from './msalConfig';
-import { AccountInfo } from '@azure/msal-browser';
-import { UserStorage, StoredUserInfo } from './userStorage';
-import { useEffect, useState } from 'react';
-import { clearTokenCache } from '../api/client';
+import { useMsal } from "@azure/msal-react";
+import { loginRequest, loginRedirectRequest, apiRequest } from "./msalConfig";
+import { AccountInfo } from "@azure/msal-browser";
+import { UserStorage, StoredUserInfo } from "./userStorage";
+import { useEffect, useState } from "react";
+import { clearTokenCache } from "../api/client";
 
 export interface UserInfo {
   name: string;
@@ -14,7 +14,9 @@ export interface UserInfo {
 
 export const useAuth = () => {
   const { instance, accounts, inProgress } = useMsal();
-  const [storedUserInfo, setStoredUserInfo] = useState<StoredUserInfo | null>(null);
+  const [storedUserInfo, setStoredUserInfo] = useState<StoredUserInfo | null>(
+    null,
+  );
 
   const isAuthenticated = accounts.length > 0;
   const account: AccountInfo | null = accounts[0] || null;
@@ -39,15 +41,15 @@ export const useAuth = () => {
 
   // Helper function to extract user info from account
   const extractUserInfoFromAccount = (account: AccountInfo): UserInfo => {
-    const name = account.name || account.username || 'Unknown User';
-    const email = account.username || '';
-    
+    const name = account.name || account.username || "Unknown User";
+    const email = account.username || "";
+
     // Generate initials from name
     const initials = name
-      .split(' ')
-      .map(part => part.charAt(0).toUpperCase())
+      .split(" ")
+      .map((part) => part.charAt(0).toUpperCase())
       .slice(0, 2)
-      .join('');
+      .join("");
 
     // Extract roles from ID token claims
     const idTokenClaims = account.idTokenClaims as any;
@@ -66,12 +68,12 @@ export const useAuth = () => {
       // Try redirect flow first (better for SPA)
       await instance.loginRedirect(loginRedirectRequest);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       // Fallback to popup if redirect fails
       try {
         await instance.loginPopup(loginRequest);
       } catch (popupError) {
-        console.error('Popup login also failed:', popupError);
+        console.error("Popup login also failed:", popupError);
         throw popupError;
       }
     }
@@ -82,17 +84,17 @@ export const useAuth = () => {
       // Clear stored user info before logout
       UserStorage.clearUserInfo();
       setStoredUserInfo(null);
-      
+
       // Clear token cache
       clearTokenCache();
-      
+
       // Use redirect logout (more reliable for SPA)
       await instance.logoutRedirect({
         account: account,
         postLogoutRedirectUri: window.location.origin,
       });
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
       throw error;
     }
   };
@@ -115,7 +117,7 @@ export const useAuth = () => {
         });
         return response.accessToken;
       } catch (popupError) {
-        console.error('Token acquisition failed:', popupError);
+        console.error("Token acquisition failed:", popupError);
         return null;
       }
     }

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, RotateCcw, Loader, AlertCircle } from 'lucide-react';
-import { getAuthenticatedApiClient } from '../../api/client';
-import { AddItemToBoxRequest } from '../../api/generated/api-client';
-import { LastAddedItem } from '../../api/hooks/useLastAddedItem';
+import React, { useState, useEffect } from "react";
+import { X, RotateCcw, Loader, AlertCircle } from "lucide-react";
+import { getAuthenticatedApiClient } from "../../api/client";
+import { AddItemToBoxRequest } from "../../api/generated/api-client";
+import { LastAddedItem } from "../../api/hooks/useLastAddedItem";
 
 interface QuickAddLastItemModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface QuickAddLastItemModalProps {
   boxId: number | null;
   lastAddedItem: LastAddedItem | null;
   onSuccess: () => void;
-  onItemAdded?: (item: Omit<LastAddedItem, 'timestamp'>) => void;
+  onItemAdded?: (item: Omit<LastAddedItem, "timestamp">) => void;
 }
 
 const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
@@ -19,9 +19,9 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
   boxId,
   lastAddedItem,
   onSuccess,
-  onItemAdded
+  onItemAdded,
 }) => {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,23 +35,23 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
   // Helper function to provide user-friendly error messages
   const getUserFriendlyErrorMessage = (serverError: string): string => {
     const errorLower = serverError.toLowerCase();
-    
-    if (errorLower.includes('validation')) {
-      return 'Neplatné údaje. Zkontrolujte zadané hodnoty.';
+
+    if (errorLower.includes("validation")) {
+      return "Neplatné údaje. Zkontrolujte zadané hodnoty.";
     }
-    if (errorLower.includes('not found')) {
-      return 'Box nebyl nalezen. Obnovte stránku a zkuste znovu.';
+    if (errorLower.includes("not found")) {
+      return "Box nebyl nalezen. Obnovte stránku a zkuste znovu.";
     }
-    if (errorLower.includes('state')) {
-      return 'Box není ve správném stavu pro přidání položky.';
+    if (errorLower.includes("state")) {
+      return "Box není ve správném stavu pro přidání položky.";
     }
-    if (errorLower.includes('network') || errorLower.includes('connection')) {
-      return 'Chyba připojení. Zkontrolujte internetové připojení.';
+    if (errorLower.includes("network") || errorLower.includes("connection")) {
+      return "Chyba připojení. Zkontrolujte internetové připojení.";
     }
-    if (errorLower.includes('timeout')) {
-      return 'Operace trvá příliš dlouho. Zkuste to později.';
+    if (errorLower.includes("timeout")) {
+      return "Operace trvá příliš dlouho. Zkuste to později.";
     }
-    
+
     // Return original message for unrecognized errors
     return serverError;
   };
@@ -62,7 +62,7 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Množství musí být kladné číslo');
+      setError("Množství musí být kladné číslo");
       return;
     }
 
@@ -74,9 +74,12 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
       const request = new AddItemToBoxRequest({
         productCode: lastAddedItem.productCode,
         productName: lastAddedItem.productName,
-        amount: numAmount
+        amount: numAmount,
       });
-      const response = await apiClient.transportBox_AddItemToBox(boxId, request);
+      const response = await apiClient.transportBox_AddItemToBox(
+        boxId,
+        request,
+      );
 
       if (response.success) {
         // Call onItemAdded to update last added item if provided
@@ -84,17 +87,18 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           onItemAdded({
             productCode: lastAddedItem.productCode,
             productName: lastAddedItem.productName,
-            amount: numAmount
+            amount: numAmount,
           });
         }
-        
+
         onSuccess();
         onClose();
       }
       // If response.success is false, the global error handler will show a toast
     } catch (err) {
-      console.error('Error adding item to box:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Neočekávaná chyba';
+      console.error("Error adding item to box:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Neočekávaná chyba";
       setError(getUserFriendlyErrorMessage(errorMessage));
     } finally {
       setIsLoading(false);
@@ -103,7 +107,7 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
 
   const handleClose = () => {
     if (!isLoading) {
-      setAmount('');
+      setAmount("");
       setError(null);
       onClose();
     }
@@ -131,12 +135,20 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4" onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
-            e.preventDefault();
-            handleSubmit(e as any);
-          }
-        }}>
+        <form
+          onSubmit={handleSubmit}
+          className="p-4"
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              e.target instanceof HTMLInputElement &&
+              e.target.type === "number"
+            ) {
+              e.preventDefault();
+              handleSubmit(e as any);
+            }
+          }}
+        >
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
               <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />
@@ -160,7 +172,10 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           </div>
 
           <div className="mb-4">
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Množství
             </label>
             <input

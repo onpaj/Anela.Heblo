@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { UserInfo } from './useAuth';
-import { StoredUserInfo, UserStorage } from './userStorage';
+import { useState, useEffect } from "react";
+import { UserInfo } from "./useAuth";
+import { StoredUserInfo, UserStorage } from "./userStorage";
 
 // Types for the centralized mock auth service
 interface AuthResult {
@@ -19,11 +19,11 @@ interface MockUser extends UserInfo {
  */
 export const createMockUser = (): MockUser => {
   return {
-    id: 'mock-user-id',
-    name: 'Mock User',
-    email: 'mock@anela-heblo.com',
-    initials: 'MU',
-    roles: ['finance_reader'],
+    id: "mock-user-id",
+    name: "Mock User",
+    email: "mock@anela-heblo.com",
+    initials: "MU",
+    roles: ["finance_reader"],
   };
 };
 
@@ -36,14 +36,18 @@ export const createMockUser = (): MockUser => {
 export const shouldUseMockAuth = (): boolean => {
   // Check runtime config first, fallback to build-time env vars
   try {
-    const { getRuntimeConfig } = require('../config/runtimeConfig');
+    const { getRuntimeConfig } = require("../config/runtimeConfig");
     const config = getRuntimeConfig();
-    return config.useMockAuth || !config.azureClientId || !config.azureAuthority;
+    return (
+      config.useMockAuth || !config.azureClientId || !config.azureAuthority
+    );
   } catch {
     // Fallback to build-time environment variables if runtime config not available
-    return process.env.REACT_APP_USE_MOCK_AUTH === 'true' || 
-           !process.env.REACT_APP_AZURE_CLIENT_ID || 
-           !process.env.REACT_APP_AZURE_AUTHORITY;
+    return (
+      process.env.REACT_APP_USE_MOCK_AUTH === "true" ||
+      !process.env.REACT_APP_AZURE_CLIENT_ID ||
+      !process.env.REACT_APP_AZURE_AUTHORITY
+    );
   }
 };
 
@@ -51,7 +55,7 @@ export const shouldUseMockAuth = (): boolean => {
  * Simulate login delay for realistic testing
  */
 export const mockLoginDelay = (): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, 1000));
+  return new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 // Mock user data for development
@@ -68,17 +72,17 @@ export const mockAuthService = {
   login: async (): Promise<AuthResult> => {
     try {
       await mockLoginDelay();
-      
+
       UserStorage.setUserInfo(MOCK_USER);
-      
+
       return {
         success: true,
-        user: MOCK_USER
+        user: MOCK_USER,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Login failed'
+        error: error instanceof Error ? error.message : "Login failed",
       };
     }
   },
@@ -111,28 +115,30 @@ export const mockAuthService = {
    * Returns consistent token for mock authentication
    */
   getAccessToken: (): string => {
-    const token = 'mock-bearer-token';
-    console.log('🎭 Mock auth service providing fake token for API call');
+    const token = "mock-bearer-token";
+    console.log("🎭 Mock auth service providing fake token for API call");
     return token;
-  }
+  },
 };
 
 export const useMockAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [storedUserInfo, setStoredUserInfo] = useState<StoredUserInfo | null>(null);
+  const [storedUserInfo, setStoredUserInfo] = useState<StoredUserInfo | null>(
+    null,
+  );
 
   // Auto-authenticate in development
   useEffect(() => {
     // Simulate authentication delay
     const timer = setTimeout(() => {
       setIsAuthenticated(true);
-      
+
       // Store mock user info
       const mockStoredUser: StoredUserInfo = {
         ...MOCK_USER,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       };
-      
+
       UserStorage.setUserInfo(MOCK_USER);
       setStoredUserInfo(mockStoredUser);
     }, 100); // Short delay to simulate auth check
@@ -143,12 +149,12 @@ export const useMockAuth = () => {
   const login = async () => {
     // Mock login - just set authenticated state
     setIsAuthenticated(true);
-    
+
     const mockStoredUser: StoredUserInfo = {
       ...MOCK_USER,
-      lastLogin: new Date().toISOString()
+      lastLogin: new Date().toISOString(),
     };
-    
+
     UserStorage.setUserInfo(MOCK_USER);
     setStoredUserInfo(mockStoredUser);
   };
@@ -161,7 +167,7 @@ export const useMockAuth = () => {
 
   const getAccessToken = async (): Promise<string | null> => {
     // Return mock token
-    return isAuthenticated ? 'mock-access-token' : null;
+    return isAuthenticated ? "mock-access-token" : null;
   };
 
   const getUserInfo = (): UserInfo | null => {
@@ -174,16 +180,18 @@ export const useMockAuth = () => {
 
   return {
     isAuthenticated,
-    account: isAuthenticated ? { 
-      name: MOCK_USER.name, 
-      username: MOCK_USER.email,
-      localAccountId: 'mock-account-id',
-      homeAccountId: 'mock-home-account-id',
-      environment: 'mock-environment',
-      tenantId: 'mock-tenant-id',
-      idTokenClaims: { roles: MOCK_USER.roles }
-    } : null,
-    inProgress: 'none' as const,
+    account: isAuthenticated
+      ? {
+          name: MOCK_USER.name,
+          username: MOCK_USER.email,
+          localAccountId: "mock-account-id",
+          homeAccountId: "mock-home-account-id",
+          environment: "mock-environment",
+          tenantId: "mock-tenant-id",
+          idTokenClaims: { roles: MOCK_USER.roles },
+        }
+      : null,
+    inProgress: "none" as const,
     login,
     logout,
     getAccessToken,

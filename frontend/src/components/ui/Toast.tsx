@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { X, CheckCircle, AlertCircle, XCircle, Info } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from "react";
+import { X, CheckCircle, AlertCircle, XCircle, Info } from "lucide-react";
 
 export interface ToastAction {
   label: string;
@@ -8,7 +8,7 @@ export interface ToastAction {
 
 export interface ToastProps {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
   duration?: number;
@@ -17,46 +17,50 @@ export interface ToastProps {
 }
 
 interface ToastIconProps {
-  type: ToastProps['type'];
+  type: ToastProps["type"];
   className?: string;
 }
 
-const ToastIcon: React.FC<ToastIconProps> = ({ type, className = "h-5 w-5" }) => {
+const ToastIcon: React.FC<ToastIconProps> = ({
+  type,
+  className = "h-5 w-5",
+}) => {
   switch (type) {
-    case 'success':
+    case "success":
       return <CheckCircle className={`${className} text-green-500`} />;
-    case 'error':
+    case "error":
       return <XCircle className={`${className} text-red-500`} />;
-    case 'warning':
+    case "warning":
       return <AlertCircle className={`${className} text-yellow-500`} />;
-    case 'info':
+    case "info":
       return <Info className={`${className} text-blue-500`} />;
   }
 };
 
-const Toast: React.FC<ToastProps> = ({ 
-  id, 
-  type, 
-  title, 
-  message, 
-  duration = 5000, 
+const Toast: React.FC<ToastProps> = ({
+  id,
+  type,
+  title,
+  message,
+  duration = 5000,
   action,
-  onClose 
+  onClose,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
   const getToastStyles = () => {
-    const baseStyles = "max-w-2xl w-full bg-white border rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 transform transition-all duration-300 ease-in-out";
-    
+    const baseStyles =
+      "max-w-2xl w-full bg-white border rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 transform transition-all duration-300 ease-in-out";
+
     switch (type) {
-      case 'success':
+      case "success":
         return `${baseStyles} border-green-200`;
-      case 'error':
+      case "error":
         return `${baseStyles} border-red-200`;
-      case 'warning':
+      case "warning":
         return `${baseStyles} border-yellow-200`;
-      case 'info':
+      case "info":
         return `${baseStyles} border-blue-200`;
       default:
         return `${baseStyles} border-gray-200`;
@@ -82,11 +86,11 @@ const Toast: React.FC<ToastProps> = ({
     }
   }, [duration, id, onClose, handleClose]);
 
-  const transformClass = isLeaving 
-    ? 'translate-x-full opacity-0' 
-    : isVisible 
-    ? 'translate-x-0 opacity-100' 
-    : 'translate-x-full opacity-0';
+  const transformClass = isLeaving
+    ? "translate-x-full opacity-0"
+    : isVisible
+      ? "translate-x-0 opacity-100"
+      : "translate-x-full opacity-0";
 
   return (
     <div className={`${getToastStyles()} ${transformClass}`}>
@@ -96,14 +100,8 @@ const Toast: React.FC<ToastProps> = ({
             <ToastIcon type={type} />
           </div>
           <div className="ml-3 w-0 flex-1">
-            <p className="text-sm font-medium text-gray-900">
-              {title}
-            </p>
-            {message && (
-              <p className="mt-1 text-sm text-gray-500">
-                {message}
-              </p>
-            )}
+            <p className="text-sm font-medium text-gray-900">{title}</p>
+            {message && <p className="mt-1 text-sm text-gray-500">{message}</p>}
             {action && (
               <div className="mt-3 flex space-x-2">
                 <button

@@ -46,16 +46,16 @@ public class LocalizationCoverageTests
         // Act & Assert
         foreach (var errorCode in errorCodeValues)
         {
-            // Check for string key format ('ValidationError', 'PurchaseOrderNotFound', etc.)
+            // Check for string key format (ValidationError: "translation", etc.)
             var errorCodeName = ((ErrorCodes)errorCode).ToString();
-            var hasStringTranslation = Regex.IsMatch(i18nContent, $@"'{errorCodeName}':\s*'[^']*'", RegexOptions.Multiline);
+            var hasStringTranslation = Regex.IsMatch(i18nContent, $@"{errorCodeName}:\s*""[^""]*""", RegexOptions.Multiline);
 
-            // Check for direct numeric format ('1', '1101', etc.) in entire file
-            var hasDirectTranslation = Regex.IsMatch(i18nContent, $@"'{errorCode}':\s*'[^']*'", RegexOptions.Multiline);
+            // Check for direct numeric format ('1': 'translation', etc.) in entire file
+            var hasDirectTranslation = Regex.IsMatch(i18nContent, $@"'{errorCode}':\s*['""][^'""]*['""]", RegexOptions.Multiline);
 
-            // Check for padded format ('0001', etc.) - only for codes < 100
+            // Check for padded format ('0001': 'translation', etc.) - only for codes < 100
             var hasPaddedTranslation = errorCode < 100 &&
-                                     Regex.IsMatch(i18nContent, $@"'{errorCode:D4}':\s*'[^']*'", RegexOptions.Multiline);
+                                     Regex.IsMatch(i18nContent, $@"'{errorCode:D4}':\s*['""][^'""]*['""]", RegexOptions.Multiline);
 
             // Check legacy mappings for backward compatibility
             var hasLegacyTranslation = CheckLegacyTranslation(i18nContent, errorCode);
@@ -116,7 +116,7 @@ public class LocalizationCoverageTests
         if (legacyMappings.TryGetValue(errorCode, out var legacyCodes))
         {
             return legacyCodes.Any(legacyCode =>
-                Regex.IsMatch(fileContent, $@"'{legacyCode}':\s*'[^']*'"));
+                Regex.IsMatch(fileContent, $@"'{legacyCode}':\s*['""][^'""]*['""]"));
         }
 
         return false;

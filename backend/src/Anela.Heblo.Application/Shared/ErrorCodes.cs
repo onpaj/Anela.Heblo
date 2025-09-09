@@ -73,6 +73,14 @@ public enum ErrorCodes
     InvalidAnalysisParameters = 1203,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InsufficientManufacturingData = 1204,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ManufactureTemplateNotFound = 1205,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidBatchSize = 1206,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    IngredientNotFoundInTemplate = 1207,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidIngredientAmount = 1208,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

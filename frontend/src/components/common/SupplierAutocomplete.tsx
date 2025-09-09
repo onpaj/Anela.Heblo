@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Loader2, Building2 } from 'lucide-react';
-import { useSupplierSearch } from '../../api/hooks/useSuppliers';
-import { SupplierDto } from '../../api/generated/api-client';
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown, Loader2, Building2 } from "lucide-react";
+import { useSupplierSearch } from "../../api/hooks/useSuppliers";
+import { SupplierDto } from "../../api/generated/api-client";
 
 interface SupplierAutocompleteProps {
   value: SupplierDto | null;
@@ -18,11 +18,11 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
   placeholder = "Vyberte dodavatele...",
   error,
   className = "",
-  disabled = false
+  disabled = false,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -32,9 +32,9 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
   useEffect(() => {
     if (value && value.name) {
       setInputValue(value.name);
-      setSearchTerm('');
+      setSearchTerm("");
     } else {
-      setInputValue('');
+      setInputValue("");
     }
   }, [value]);
 
@@ -42,7 +42,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current && 
+        dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         inputRef.current &&
         !inputRef.current.contains(event.target as Node)
@@ -51,8 +51,8 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,42 +76,52 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
 
   const handleSupplierSelect = (supplier: SupplierDto) => {
     onSelect(supplier);
-    setInputValue(supplier.name || '');
-    setSearchTerm('');
+    setInputValue(supplier.name || "");
+    setSearchTerm("");
     setIsOpen(false);
     inputRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setIsOpen(false);
       inputRef.current?.blur();
-    } else if (e.key === 'ArrowDown' && suppliers.length > 0) {
+    } else if (e.key === "ArrowDown" && suppliers.length > 0) {
       e.preventDefault();
       setIsOpen(true);
       // Focus first option
-      const firstOption = dropdownRef.current?.querySelector('[role="option"]') as HTMLElement;
+      const firstOption = dropdownRef.current?.querySelector(
+        '[role="option"]',
+      ) as HTMLElement;
       firstOption?.focus();
     }
   };
 
-  const handleOptionKeyDown = (e: React.KeyboardEvent, supplier: SupplierDto, index: number) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+  const handleOptionKeyDown = (
+    e: React.KeyboardEvent,
+    supplier: SupplierDto,
+    index: number,
+  ) => {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleSupplierSelect(supplier);
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      const nextOption = dropdownRef.current?.querySelectorAll('[role="option"]')[index + 1] as HTMLElement;
+      const nextOption = dropdownRef.current?.querySelectorAll(
+        '[role="option"]',
+      )[index + 1] as HTMLElement;
       nextOption?.focus();
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (index === 0) {
         inputRef.current?.focus();
       } else {
-        const prevOption = dropdownRef.current?.querySelectorAll('[role="option"]')[index - 1] as HTMLElement;
+        const prevOption = dropdownRef.current?.querySelectorAll(
+          '[role="option"]',
+        )[index - 1] as HTMLElement;
         prevOption?.focus();
       }
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setIsOpen(false);
       inputRef.current?.focus();
     }
@@ -130,8 +140,8 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           className={`block w-full px-3 py-1.5 pr-8 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 ${
-            error ? 'border-red-300' : 'border-gray-300'
-          } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+            error ? "border-red-300" : "border-gray-300"
+          } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
           autoComplete="off"
           role="combobox"
           aria-expanded={isOpen}
@@ -147,9 +157,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
         </div>
       </div>
 
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
 
       {isOpen && (searchTerm || suppliers.length > 0) && (
         <div
@@ -179,10 +187,10 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900 truncate">
-                        {supplier.name || 'N/A'}
+                        {supplier.name || "N/A"}
                       </span>
                       <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                        {supplier.code || 'N/A'}
+                        {supplier.code || "N/A"}
                       </span>
                     </div>
                     {(supplier.email || supplier.phone) && (
@@ -190,9 +198,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
                         {supplier.email && (
                           <span className="mr-3">{supplier.email}</span>
                         )}
-                        {supplier.phone && (
-                          <span>{supplier.phone}</span>
-                        )}
+                        {supplier.phone && <span>{supplier.phone}</span>}
                       </div>
                     )}
                     {supplier.note && (

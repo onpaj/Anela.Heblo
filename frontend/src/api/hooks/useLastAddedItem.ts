@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface LastAddedItem {
   productCode: string;
@@ -7,11 +7,13 @@ export interface LastAddedItem {
   timestamp: number;
 }
 
-const STORAGE_KEY = 'transport-box-last-added-item';
+const STORAGE_KEY = "transport-box-last-added-item";
 const MAX_AGE_HOURS = 1; // Last item expires after 24 hours
 
 export const useLastAddedItem = () => {
-  const [lastAddedItem, setLastAddedItem] = useState<LastAddedItem | null>(null);
+  const [lastAddedItem, setLastAddedItem] = useState<LastAddedItem | null>(
+    null,
+  );
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -20,7 +22,7 @@ export const useLastAddedItem = () => {
       try {
         const parsed: LastAddedItem = JSON.parse(stored);
         const ageHours = (Date.now() - parsed.timestamp) / (1000 * 60 * 60);
-        
+
         if (ageHours < MAX_AGE_HOURS) {
           setLastAddedItem(parsed);
         } else {
@@ -28,18 +30,21 @@ export const useLastAddedItem = () => {
           localStorage.removeItem(STORAGE_KEY);
         }
       } catch (error) {
-        console.warn('Failed to parse last added item from localStorage:', error);
+        console.warn(
+          "Failed to parse last added item from localStorage:",
+          error,
+        );
         localStorage.removeItem(STORAGE_KEY);
       }
     }
   }, []);
 
-  const saveLastAddedItem = (item: Omit<LastAddedItem, 'timestamp'>) => {
+  const saveLastAddedItem = (item: Omit<LastAddedItem, "timestamp">) => {
     const itemWithTimestamp: LastAddedItem = {
       ...item,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     setLastAddedItem(itemWithTimestamp);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(itemWithTimestamp));
   };
@@ -52,6 +57,6 @@ export const useLastAddedItem = () => {
   return {
     lastAddedItem,
     saveLastAddedItem,
-    clearLastAddedItem
+    clearLastAddedItem,
   };
 };

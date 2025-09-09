@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
-import { ApiClient as GeneratedApiClient } from '../generated/api-client';
-import { 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthenticatedApiClient } from "../client";
+import { ApiClient as GeneratedApiClient } from "../generated/api-client";
+import {
   GetPurchaseOrdersResponse,
   GetPurchaseOrderByIdResponse,
   PurchaseOrderHistoryDto,
@@ -12,8 +12,8 @@ import {
   UpdatePurchaseOrderStatusRequest,
   UpdatePurchaseOrderStatusResponse,
   UpdatePurchaseOrderInvoiceAcquiredRequest,
-  UpdatePurchaseOrderInvoiceAcquiredResponse
-} from '../generated/api-client';
+  UpdatePurchaseOrderInvoiceAcquiredResponse,
+} from "../generated/api-client";
 
 // Define request interface matching the old API
 export interface GetPurchaseOrdersRequest {
@@ -31,12 +31,14 @@ export interface GetPurchaseOrdersRequest {
 
 // Query keys
 const purchaseOrderKeys = {
-  all: ['purchase-orders'] as const,
-  lists: () => [...purchaseOrderKeys.all, 'list'] as const,
-  list: (filters: GetPurchaseOrdersRequest) => [...purchaseOrderKeys.lists(), filters] as const,
-  details: () => [...purchaseOrderKeys.all, 'detail'] as const,
+  all: ["purchase-orders"] as const,
+  lists: () => [...purchaseOrderKeys.all, "list"] as const,
+  list: (filters: GetPurchaseOrdersRequest) =>
+    [...purchaseOrderKeys.lists(), filters] as const,
+  details: () => [...purchaseOrderKeys.all, "detail"] as const,
   detail: (id: number) => [...purchaseOrderKeys.details(), id] as const,
-  history: (id: number) => [...purchaseOrderKeys.detail(id), 'history'] as const,
+  history: (id: number) =>
+    [...purchaseOrderKeys.detail(id), "history"] as const,
 };
 
 // Helper to get the correct API client instance from generated file
@@ -54,26 +56,32 @@ export const usePurchaseOrdersQuery = (request: GetPurchaseOrdersRequest) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders`;
       const params = new URLSearchParams();
-      
-      if (request.searchTerm) params.append('SearchTerm', request.searchTerm);
-      if (request.status) params.append('Status', request.status);
-      if (request.fromDate) params.append('FromDate', request.fromDate.toISOString());
-      if (request.toDate) params.append('ToDate', request.toDate.toISOString());
-      if (request.supplierId) params.append('SupplierId', request.supplierId.toString());
-      if (request.activeOrdersOnly !== undefined) params.append('ActiveOrdersOnly', request.activeOrdersOnly.toString());
-      if (request.pageNumber) params.append('PageNumber', request.pageNumber.toString());
-      if (request.pageSize) params.append('PageSize', request.pageSize.toString());
-      if (request.sortBy) params.append('SortBy', request.sortBy);
-      if (request.sortDescending !== undefined) params.append('SortDescending', request.sortDescending.toString());
+
+      if (request.searchTerm) params.append("SearchTerm", request.searchTerm);
+      if (request.status) params.append("Status", request.status);
+      if (request.fromDate)
+        params.append("FromDate", request.fromDate.toISOString());
+      if (request.toDate) params.append("ToDate", request.toDate.toISOString());
+      if (request.supplierId)
+        params.append("SupplierId", request.supplierId.toString());
+      if (request.activeOrdersOnly !== undefined)
+        params.append("ActiveOrdersOnly", request.activeOrdersOnly.toString());
+      if (request.pageNumber)
+        params.append("PageNumber", request.pageNumber.toString());
+      if (request.pageSize)
+        params.append("PageSize", request.pageSize.toString());
+      if (request.sortBy) params.append("SortBy", request.sortBy);
+      if (request.sortDescending !== undefined)
+        params.append("SortDescending", request.sortDescending.toString());
 
       const queryString = params.toString();
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ''}`;
-      
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -93,12 +101,12 @@ export const usePurchaseOrderDetailQuery = (id: number) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders/${id}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -119,12 +127,12 @@ export const usePurchaseOrderHistoryQuery = (id: number) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders/${id}/history`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -140,20 +148,20 @@ export const usePurchaseOrderHistoryQuery = (id: number) => {
 
 export const useCreatePurchaseOrderMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (request: CreatePurchaseOrderRequest) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
@@ -170,20 +178,26 @@ export const useCreatePurchaseOrderMutation = () => {
 
 export const useUpdatePurchaseOrderMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, request }: { id: number; request: UpdatePurchaseOrderRequest }) => {
+    mutationFn: async ({
+      id,
+      request,
+    }: {
+      id: number;
+      request: UpdatePurchaseOrderRequest;
+    }) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders/${id}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
@@ -201,20 +215,26 @@ export const useUpdatePurchaseOrderMutation = () => {
 
 export const useUpdatePurchaseOrderStatusMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, request }: { id: number; request: UpdatePurchaseOrderStatusRequest }) => {
+    mutationFn: async ({
+      id,
+      request,
+    }: {
+      id: number;
+      request: UpdatePurchaseOrderStatusRequest;
+    }) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders/${id}/status`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
@@ -226,27 +246,35 @@ export const useUpdatePurchaseOrderStatusMutation = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.history(id) });
+      queryClient.invalidateQueries({
+        queryKey: purchaseOrderKeys.history(id),
+      });
     },
   });
 };
 
 export const useUpdatePurchaseOrderInvoiceAcquiredMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, request }: { id: number; request: UpdatePurchaseOrderInvoiceAcquiredRequest }) => {
+    mutationFn: async ({
+      id,
+      request,
+    }: {
+      id: number;
+      request: UpdatePurchaseOrderInvoiceAcquiredRequest;
+    }) => {
       const apiClient = getPurchaseOrdersClient();
       const relativeUrl = `/api/purchase-orders/${id}/invoice-acquired`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
@@ -278,5 +306,5 @@ export type {
   UpdatePurchaseOrderStatusRequest,
   UpdatePurchaseOrderStatusResponse,
   UpdatePurchaseOrderInvoiceAcquiredRequest,
-  UpdatePurchaseOrderInvoiceAcquiredResponse
-} from '../generated/api-client';
+  UpdatePurchaseOrderInvoiceAcquiredResponse,
+} from "../generated/api-client";

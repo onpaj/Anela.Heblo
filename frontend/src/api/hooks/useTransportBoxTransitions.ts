@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { useQuery } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 // Type-safe interface for accessing API client internals
 interface ApiClientWithInternals {
@@ -21,21 +21,27 @@ export interface GetAllowedTransitionsResponse {
   allowedTransitions: AllowedTransition[];
 }
 
-export const useAllowedTransitionsQuery = (boxId: number, enabled: boolean = true) => {
+export const useAllowedTransitionsQuery = (
+  boxId: number,
+  enabled: boolean = true,
+) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.transportBoxTransitions, boxId],
     queryFn: async (): Promise<GetAllowedTransitionsResponse> => {
-      const apiClient = getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
+      const apiClient =
+        getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
       const relativeUrl = `/api/transport-boxes/${boxId}/allowed-transitions`;
       const fullUrl = `${apiClient.baseUrl}${relativeUrl}`;
       const response = await apiClient.http.fetch(fullUrl, {
-        method: 'GET',
+        method: "GET",
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to get allowed transitions: ${response.statusText}`);
+        throw new Error(
+          `Failed to get allowed transitions: ${response.statusText}`,
+        );
       }
-      
+
       return response.json();
     },
     enabled: enabled && boxId > 0,

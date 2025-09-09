@@ -2024,6 +2024,119 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
+    manufactureBatch_GetBatchTemplate(productCode: string): Promise<CalculatedBatchSizeResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-batch/template/{productCode}";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureBatch_GetBatchTemplate(_response);
+        });
+    }
+
+    protected processManufactureBatch_GetBatchTemplate(response: Response): Promise<CalculatedBatchSizeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CalculatedBatchSizeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CalculatedBatchSizeResponse>(null as any);
+    }
+
+    manufactureBatch_CalculateBatchBySize(request: CalculatedBatchSizeRequest): Promise<CalculatedBatchSizeResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-batch/calculate-by-size";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureBatch_CalculateBatchBySize(_response);
+        });
+    }
+
+    protected processManufactureBatch_CalculateBatchBySize(response: Response): Promise<CalculatedBatchSizeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CalculatedBatchSizeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CalculatedBatchSizeResponse>(null as any);
+    }
+
+    manufactureBatch_CalculateBatchByIngredient(request: CalculateBatchByIngredientRequest): Promise<CalculateBatchByIngredientResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-batch/calculate-by-ingredient";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureBatch_CalculateBatchByIngredient(_response);
+        });
+    }
+
+    protected processManufactureBatch_CalculateBatchByIngredient(response: Response): Promise<CalculateBatchByIngredientResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CalculateBatchByIngredientResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CalculateBatchByIngredientResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -3314,6 +3427,10 @@ export enum ErrorCodes {
     ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
     InvalidAnalysisParameters = "InvalidAnalysisParameters",
     InsufficientManufacturingData = "InsufficientManufacturingData",
+    ManufactureTemplateNotFound = "ManufactureTemplateNotFound",
+    InvalidBatchSize = "InvalidBatchSize",
+    IngredientNotFoundInTemplate = "IngredientNotFoundInTemplate",
+    InvalidIngredientAmount = "InvalidIngredientAmount",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -6222,6 +6339,284 @@ export class CreateJournalTagRequest implements ICreateJournalTagRequest {
 export interface ICreateJournalTagRequest {
     name: string;
     color?: string;
+}
+
+export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {
+    productCode?: string;
+    productName?: string;
+    originalBatchSize?: number;
+    newBatchSize?: number;
+    scaleFactor?: number;
+    ingredients?: CalculatedIngredientDto[];
+
+    constructor(data?: ICalculatedBatchSizeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.originalBatchSize = _data["originalBatchSize"];
+            this.newBatchSize = _data["newBatchSize"];
+            this.scaleFactor = _data["scaleFactor"];
+            if (Array.isArray(_data["ingredients"])) {
+                this.ingredients = [] as any;
+                for (let item of _data["ingredients"])
+                    this.ingredients!.push(CalculatedIngredientDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): CalculatedBatchSizeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculatedBatchSizeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["originalBatchSize"] = this.originalBatchSize;
+        data["newBatchSize"] = this.newBatchSize;
+        data["scaleFactor"] = this.scaleFactor;
+        if (Array.isArray(this.ingredients)) {
+            data["ingredients"] = [];
+            for (let item of this.ingredients)
+                data["ingredients"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICalculatedBatchSizeResponse extends IBaseResponse {
+    productCode?: string;
+    productName?: string;
+    originalBatchSize?: number;
+    newBatchSize?: number;
+    scaleFactor?: number;
+    ingredients?: CalculatedIngredientDto[];
+}
+
+export class CalculatedIngredientDto implements ICalculatedIngredientDto {
+    productCode?: string;
+    productName?: string;
+    originalAmount?: number;
+    calculatedAmount?: number;
+    price?: number;
+    stockTotal?: number;
+
+    constructor(data?: ICalculatedIngredientDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.originalAmount = _data["originalAmount"];
+            this.calculatedAmount = _data["calculatedAmount"];
+            this.price = _data["price"];
+            this.stockTotal = _data["stockTotal"];
+        }
+    }
+
+    static fromJS(data: any): CalculatedIngredientDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculatedIngredientDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["originalAmount"] = this.originalAmount;
+        data["calculatedAmount"] = this.calculatedAmount;
+        data["price"] = this.price;
+        data["stockTotal"] = this.stockTotal;
+        return data;
+    }
+}
+
+export interface ICalculatedIngredientDto {
+    productCode?: string;
+    productName?: string;
+    originalAmount?: number;
+    calculatedAmount?: number;
+    price?: number;
+    stockTotal?: number;
+}
+
+export class CalculatedBatchSizeRequest implements ICalculatedBatchSizeRequest {
+    productCode?: string;
+    desiredBatchSize?: number | undefined;
+
+    constructor(data?: ICalculatedBatchSizeRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.desiredBatchSize = _data["desiredBatchSize"];
+        }
+    }
+
+    static fromJS(data: any): CalculatedBatchSizeRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculatedBatchSizeRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["desiredBatchSize"] = this.desiredBatchSize;
+        return data;
+    }
+}
+
+export interface ICalculatedBatchSizeRequest {
+    productCode?: string;
+    desiredBatchSize?: number | undefined;
+}
+
+export class CalculateBatchByIngredientResponse extends BaseResponse implements ICalculateBatchByIngredientResponse {
+    productCode?: string;
+    productName?: string;
+    originalBatchSize?: number;
+    newBatchSize?: number;
+    scaleFactor?: number;
+    scaledIngredientCode?: string;
+    scaledIngredientName?: string;
+    scaledIngredientOriginalAmount?: number;
+    scaledIngredientNewAmount?: number;
+    ingredients?: CalculatedIngredientDto[];
+
+    constructor(data?: ICalculateBatchByIngredientResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.originalBatchSize = _data["originalBatchSize"];
+            this.newBatchSize = _data["newBatchSize"];
+            this.scaleFactor = _data["scaleFactor"];
+            this.scaledIngredientCode = _data["scaledIngredientCode"];
+            this.scaledIngredientName = _data["scaledIngredientName"];
+            this.scaledIngredientOriginalAmount = _data["scaledIngredientOriginalAmount"];
+            this.scaledIngredientNewAmount = _data["scaledIngredientNewAmount"];
+            if (Array.isArray(_data["ingredients"])) {
+                this.ingredients = [] as any;
+                for (let item of _data["ingredients"])
+                    this.ingredients!.push(CalculatedIngredientDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): CalculateBatchByIngredientResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculateBatchByIngredientResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["originalBatchSize"] = this.originalBatchSize;
+        data["newBatchSize"] = this.newBatchSize;
+        data["scaleFactor"] = this.scaleFactor;
+        data["scaledIngredientCode"] = this.scaledIngredientCode;
+        data["scaledIngredientName"] = this.scaledIngredientName;
+        data["scaledIngredientOriginalAmount"] = this.scaledIngredientOriginalAmount;
+        data["scaledIngredientNewAmount"] = this.scaledIngredientNewAmount;
+        if (Array.isArray(this.ingredients)) {
+            data["ingredients"] = [];
+            for (let item of this.ingredients)
+                data["ingredients"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICalculateBatchByIngredientResponse extends IBaseResponse {
+    productCode?: string;
+    productName?: string;
+    originalBatchSize?: number;
+    newBatchSize?: number;
+    scaleFactor?: number;
+    scaledIngredientCode?: string;
+    scaledIngredientName?: string;
+    scaledIngredientOriginalAmount?: number;
+    scaledIngredientNewAmount?: number;
+    ingredients?: CalculatedIngredientDto[];
+}
+
+export class CalculateBatchByIngredientRequest implements ICalculateBatchByIngredientRequest {
+    productCode?: string;
+    ingredientCode?: string;
+    desiredIngredientAmount?: number;
+
+    constructor(data?: ICalculateBatchByIngredientRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.ingredientCode = _data["ingredientCode"];
+            this.desiredIngredientAmount = _data["desiredIngredientAmount"];
+        }
+    }
+
+    static fromJS(data: any): CalculateBatchByIngredientRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculateBatchByIngredientRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["ingredientCode"] = this.ingredientCode;
+        data["desiredIngredientAmount"] = this.desiredIngredientAmount;
+        return data;
+    }
+}
+
+export interface ICalculateBatchByIngredientRequest {
+    productCode?: string;
+    ingredientCode?: string;
+    desiredIngredientAmount?: number;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

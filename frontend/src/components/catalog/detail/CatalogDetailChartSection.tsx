@@ -1,15 +1,19 @@
-import React from 'react';
-import { BarChart3 } from 'lucide-react';
-import { CatalogItemDto, ProductType } from '../../../api/hooks/useCatalog';
-import { JournalEntryDto } from '../../../api/generated/api-client';
-import { shouldShowChartTabs, getInputTabName, getOutputTabName } from './CatalogDetailTypes';
-import ProductSummaryTabs from './charts/ProductSummaryTabs';
-import ProductChart from './charts/ProductChart';
+import React from "react";
+import { BarChart3 } from "lucide-react";
+import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
+import { JournalEntryDto } from "../../../api/generated/api-client";
+import {
+  shouldShowChartTabs,
+  getInputTabName,
+  getOutputTabName,
+} from "./CatalogDetailTypes";
+import ProductSummaryTabs from "./charts/ProductSummaryTabs";
+import ProductChart from "./charts/ProductChart";
 
 interface CatalogDetailChartSectionProps {
   item: CatalogItemDto;
-  activeChartTab: 'input' | 'output';
-  onChartTabChange: (tab: 'input' | 'output') => void;
+  activeChartTab: "input" | "output";
+  onChartTabChange: (tab: "input" | "output") => void;
   detailData: any;
   journalEntries: JournalEntryDto[];
 }
@@ -19,7 +23,7 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
   activeChartTab,
   onChartTabChange,
   detailData,
-  journalEntries
+  journalEntries,
 }) => {
   const productType = item.type || ProductType.UNDEFINED;
 
@@ -31,22 +35,22 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
             {/* Chart Tab Navigation */}
             <div className="flex border-b border-gray-200 mb-4">
               <button
-                onClick={() => onChartTabChange('input')}
+                onClick={() => onChartTabChange("input")}
                 className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
-                  activeChartTab === 'input'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  activeChartTab === "input"
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
                 <span>{getInputTabName(productType)}</span>
               </button>
               <button
-                onClick={() => onChartTabChange('output')}
+                onClick={() => onChartTabChange("output")}
                 className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
-                  activeChartTab === 'output'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  activeChartTab === "output"
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -61,7 +65,9 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
               salesData={detailData?.historicalData?.salesHistory || []}
               consumedData={detailData?.historicalData?.consumedHistory || []}
               purchaseData={detailData?.historicalData?.purchaseHistory || []}
-              manufactureData={detailData?.historicalData?.manufactureHistory || []}
+              manufactureData={
+                detailData?.historicalData?.manufactureHistory || []
+              }
             />
 
             {/* Chart Content */}
@@ -72,7 +78,9 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
                 salesData={detailData?.historicalData?.salesHistory || []}
                 consumedData={detailData?.historicalData?.consumedHistory || []}
                 purchaseData={detailData?.historicalData?.purchaseHistory || []}
-                manufactureData={detailData?.historicalData?.manufactureHistory || []}
+                manufactureData={
+                  detailData?.historicalData?.manufactureHistory || []
+                }
                 journalEntries={journalEntries}
               />
             </div>

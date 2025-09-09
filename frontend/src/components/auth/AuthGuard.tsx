@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { useAuth } from '../../auth/useAuth';
-import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
-import { useE2EAuth, isE2ETestMode } from '../../auth/e2eAuth';
+import React, { useEffect } from "react";
+import { useAuth } from "../../auth/useAuth";
+import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
+import { useE2EAuth, isE2ETestMode } from "../../auth/e2eAuth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -12,24 +12,26 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const realAuth = useAuth();
   const mockAuth = useMockAuth();
   const e2eAuth = useE2EAuth();
-  
+
   // Choose authentication method based on context
-  const auth = isE2ETestMode() ? e2eAuth : 
-               shouldUseMockAuth() ? mockAuth : 
-               realAuth;
+  const auth = isE2ETestMode()
+    ? e2eAuth
+    : shouldUseMockAuth()
+      ? mockAuth
+      : realAuth;
   const { isAuthenticated, inProgress, login } = auth;
 
   useEffect(() => {
     // If not authenticated and not in progress, trigger login
-    if (!isAuthenticated && inProgress === 'none') {
-      login().catch(error => {
-        console.error('Authentication failed:', error);
+    if (!isAuthenticated && inProgress === "none") {
+      login().catch((error) => {
+        console.error("Authentication failed:", error);
       });
     }
   }, [isAuthenticated, inProgress, login]);
 
   // Show loading while authentication is in progress
-  if (inProgress !== 'none') {
+  if (inProgress !== "none") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

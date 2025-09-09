@@ -1,5 +1,5 @@
-import { Configuration } from '@azure/msal-browser';
-import { shouldUseMockAuth } from './mockAuth';
+import { Configuration } from "@azure/msal-browser";
+import { shouldUseMockAuth } from "./mockAuth";
 
 /**
  * Authentication Configuration
@@ -19,22 +19,24 @@ export const useMockAuth = (): boolean => {
 // These values should be set via environment variables
 export const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.REACT_APP_AZURE_CLIENT_ID || 'your-client-id',
-    authority: process.env.REACT_APP_AZURE_AUTHORITY || 'https://login.microsoftonline.com/your-tenant-id',
+    clientId: process.env.REACT_APP_AZURE_CLIENT_ID || "your-client-id",
+    authority:
+      process.env.REACT_APP_AZURE_AUTHORITY ||
+      "https://login.microsoftonline.com/your-tenant-id",
     redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: "sessionStorage",
     storeAuthStateInCookie: false,
   },
 };
 
 // Login request configuration
 export const loginRequest = {
-  scopes: ['User.Read'],
+  scopes: ["User.Read"],
 };
 
 // Graph API endpoint for user info
 export const graphConfig = {
-  graphMeEndpoint: 'https://graph.microsoft.com/v1.0/me',
+  graphMeEndpoint: "https://graph.microsoft.com/v1.0/me",
 };

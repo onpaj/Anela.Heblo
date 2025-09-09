@@ -1,6 +1,6 @@
-import React from 'react';
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { useProductUsage } from '../../../../api/hooks/useProductUsage';
+import React from "react";
+import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { useProductUsage } from "../../../../api/hooks/useProductUsage";
 
 interface UsageTabProps {
   productCode: string;
@@ -47,7 +47,9 @@ const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <ArrowRight className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 mb-2">Tento produkt se nikde nepoužívá</p>
-          <p className="text-sm text-gray-400">Materiál nebo polotovar není součástí žádné výrobní šablony</p>
+          <p className="text-sm text-gray-400">
+            Materiál nebo polotovar není součástí žádné výrobní šablony
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -55,10 +57,18 @@ const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Kód produktu</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Název produktu</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">Množství</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">MMQ</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                    Kód produktu
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                    Název produktu
+                  </th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">
+                    Množství
+                  </th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">
+                    MMQ
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -67,14 +77,23 @@ const UsageTab: React.FC<UsageTabProps> = ({ productCode }) => {
                     <td className="py-3 px-4 text-gray-900 font-medium">
                       {template.productCode}
                     </td>
-                    <td className="py-3 px-4 text-gray-900" title={template.productName}>
+                    <td
+                      className="py-3 px-4 text-gray-900"
+                      title={template.productName}
+                    >
                       {template.productName}
                     </td>
                     <td className="py-3 px-4 text-right text-gray-900 font-medium">
-                      {template.amount?.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) || '0'}
+                      {template.amount?.toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4,
+                      }) || "0"}
                     </td>
                     <td className="py-3 px-4 text-right text-gray-900 font-medium">
-                      {template.batchSize?.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) || '0'}
+                      {template.batchSize?.toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4,
+                      }) || "0"}
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { GetProductUsageResponse } from '../generated/api-client';
+import { useQuery } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { GetProductUsageResponse } from "../generated/api-client";
 
 export const useProductUsage = (productCode: string) => {
   return useQuery<GetProductUsageResponse>({
@@ -15,6 +15,6 @@ export const useProductUsage = (productCode: string) => {
     },
     enabled: !!productCode,
     staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-    retry: 2
+    retry: 2,
   });
 };

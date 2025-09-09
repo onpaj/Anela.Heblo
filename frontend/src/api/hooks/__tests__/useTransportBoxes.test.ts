@@ -1,19 +1,26 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
-import { useTransportBoxesQuery, useTransportBoxByIdQuery, useChangeTransportBoxState } from '../useTransportBoxes';
-import * as clientModule from '../../client';
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import {
+  useTransportBoxesQuery,
+  useTransportBoxByIdQuery,
+  useChangeTransportBoxState,
+} from "../useTransportBoxes";
+import * as clientModule from "../../client";
 
 // Mock the client module
-jest.mock('../../client', () => ({
+jest.mock("../../client", () => ({
   getAuthenticatedApiClient: jest.fn(),
   QUERY_KEYS: {
-    transportBox: ['transport-boxes'],
-    transportBoxTransitions: ['transportBoxTransitions']
-  }
+    transportBox: ["transport-boxes"],
+    transportBoxTransitions: ["transportBoxTransitions"],
+  },
 }));
 
-const mockGetAuthenticatedApiClient = clientModule.getAuthenticatedApiClient as jest.MockedFunction<typeof clientModule.getAuthenticatedApiClient>;
+const mockGetAuthenticatedApiClient =
+  clientModule.getAuthenticatedApiClient as jest.MockedFunction<
+    typeof clientModule.getAuthenticatedApiClient
+  >;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
@@ -23,7 +30,11 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  return React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    children,
+  );
 };
 
 const mockApiClient = {
@@ -33,37 +44,38 @@ const mockApiClient = {
   transportBox_ChangeTransportBoxState: jest.fn(),
 };
 
-describe('useTransportBoxes hooks', () => {
+describe("useTransportBoxes hooks", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
   });
 
-  describe('useTransportBoxesQuery', () => {
-    it('should call API with correct parameters', async () => {
+  describe("useTransportBoxesQuery", () => {
+    it("should call API with correct parameters", async () => {
       const mockResponse = {
         items: [
-          { id: 1, code: 'BOX-001', state: 'New' },
-          { id: 2, code: 'BOX-002', state: 'Opened' },
+          { id: 1, code: "BOX-001", state: "New" },
+          { id: 2, code: "BOX-002", state: "Opened" },
         ],
         totalItems: 2,
       };
 
-      mockApiClient.transportBox_GetTransportBoxes.mockResolvedValue(mockResponse);
+      mockApiClient.transportBox_GetTransportBoxes.mockResolvedValue(
+        mockResponse,
+      );
 
       const request = {
         skip: 0,
         take: 10,
-        code: 'BOX',
-        state: 'New',
-        sortBy: 'id',
+        code: "BOX",
+        state: "New",
+        sortBy: "id",
         sortDescending: true,
       };
 
-      const { result } = renderHook(
-        () => useTransportBoxesQuery(request),
-        { wrapper: createWrapper }
-      );
+      const { result } = renderHook(() => useTransportBoxesQuery(request), {
+        wrapper: createWrapper,
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -72,26 +84,27 @@ describe('useTransportBoxes hooks', () => {
       expect(mockApiClient.transportBox_GetTransportBoxes).toHaveBeenCalledWith(
         0, // skip
         10, // take
-        'BOX', // code
-        'New', // state
+        "BOX", // code
+        "New", // state
         null, // productCode
-        'id', // sortBy
-        true // sortDescending
+        "id", // sortBy
+        true, // sortDescending
       );
 
       expect(result.current.data).toEqual(mockResponse);
     });
 
-    it('should handle null optional parameters correctly', async () => {
+    it("should handle null optional parameters correctly", async () => {
       const mockResponse = { items: [], totalItems: 0 };
-      mockApiClient.transportBox_GetTransportBoxes.mockResolvedValue(mockResponse);
+      mockApiClient.transportBox_GetTransportBoxes.mockResolvedValue(
+        mockResponse,
+      );
 
       const request = { skip: 0, take: 5 };
 
-      const { result } = renderHook(
-        () => useTransportBoxesQuery(request),
-        { wrapper: createWrapper }
-      );
+      const { result } = renderHook(() => useTransportBoxesQuery(request), {
+        wrapper: createWrapper,
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -104,78 +117,84 @@ describe('useTransportBoxes hooks', () => {
         null, // state
         null, // productCode
         null, // sortBy
-        undefined // sortDescending
+        undefined, // sortDescending
       );
     });
   });
 
-  describe('useTransportBoxByIdQuery', () => {
-    it('should fetch transport box by id when enabled', async () => {
+  describe("useTransportBoxByIdQuery", () => {
+    it("should fetch transport box by id when enabled", async () => {
       const mockResponse = {
-        transportBox: { id: 1, code: 'BOX-001', state: 'New' }
+        transportBox: { id: 1, code: "BOX-001", state: "New" },
       };
 
-      mockApiClient.transportBox_GetTransportBoxById.mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(
-        () => useTransportBoxByIdQuery(1, true),
-        { wrapper: createWrapper }
+      mockApiClient.transportBox_GetTransportBoxById.mockResolvedValue(
+        mockResponse,
       );
+
+      const { result } = renderHook(() => useTransportBoxByIdQuery(1, true), {
+        wrapper: createWrapper,
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockApiClient.transportBox_GetTransportBoxById).toHaveBeenCalledWith(1);
+      expect(
+        mockApiClient.transportBox_GetTransportBoxById,
+      ).toHaveBeenCalledWith(1);
       expect(result.current.data).toEqual(mockResponse);
     });
 
-    it('should not fetch when disabled', async () => {
-      const { result } = renderHook(
-        () => useTransportBoxByIdQuery(1, false),
-        { wrapper: createWrapper }
-      );
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('pending');
+    it("should not fetch when disabled", async () => {
+      const { result } = renderHook(() => useTransportBoxByIdQuery(1, false), {
+        wrapper: createWrapper,
       });
 
-      expect(mockApiClient.transportBox_GetTransportBoxById).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.status).toBe("pending");
+      });
+
+      expect(
+        mockApiClient.transportBox_GetTransportBoxById,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should not fetch when id is invalid', async () => {
-      const { result } = renderHook(
-        () => useTransportBoxByIdQuery(0, true),
-        { wrapper: createWrapper }
-      );
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('pending');
+    it("should not fetch when id is invalid", async () => {
+      const { result } = renderHook(() => useTransportBoxByIdQuery(0, true), {
+        wrapper: createWrapper,
       });
 
-      expect(mockApiClient.transportBox_GetTransportBoxById).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.status).toBe("pending");
+      });
+
+      expect(
+        mockApiClient.transportBox_GetTransportBoxById,
+      ).not.toHaveBeenCalled();
     });
   });
 
-  describe('useChangeTransportBoxState', () => {
-    it('should call API and invalidate queries on success', async () => {
+  describe("useChangeTransportBoxState", () => {
+    it("should call API and invalidate queries on success", async () => {
       const mockResponse = {
         success: true,
         errorCode: null,
-        updatedBox: { id: 1, code: 'BOX-001', state: 'Opened' }
+        updatedBox: { id: 1, code: "BOX-001", state: "Opened" },
       };
 
-      mockApiClient.transportBox_ChangeTransportBoxState.mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(
-        () => useChangeTransportBoxState(),
-        { wrapper: createWrapper }
+      mockApiClient.transportBox_ChangeTransportBoxState.mockResolvedValue(
+        mockResponse,
       );
+
+      const { result } = renderHook(() => useChangeTransportBoxState(), {
+        wrapper: createWrapper,
+      });
 
       const mutationParams = {
         boxId: 1,
         newState: 1, // TransportBoxState.Opened = 1
-        description: 'Opening box for inspection'
+        description: "Opening box for inspection",
       };
 
       await waitFor(() => {
@@ -186,30 +205,33 @@ describe('useTransportBoxes hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockApiClient.transportBox_ChangeTransportBoxState).toHaveBeenCalledWith(
+      expect(
+        mockApiClient.transportBox_ChangeTransportBoxState,
+      ).toHaveBeenCalledWith(
         1,
         expect.objectContaining({
           boxId: 1,
           newState: 1, // TransportBoxState.Opened = 1
-          description: 'Opening box for inspection'
-        })
+          description: "Opening box for inspection",
+        }),
       );
 
       expect(result.current.data).toEqual(mockResponse);
     });
 
-    it('should handle API errors correctly', async () => {
-      const mockError = new Error('State transition not allowed');
-      mockApiClient.transportBox_ChangeTransportBoxState.mockRejectedValue(mockError);
-
-      const { result } = renderHook(
-        () => useChangeTransportBoxState(),
-        { wrapper: createWrapper }
+    it("should handle API errors correctly", async () => {
+      const mockError = new Error("State transition not allowed");
+      mockApiClient.transportBox_ChangeTransportBoxState.mockRejectedValue(
+        mockError,
       );
+
+      const { result } = renderHook(() => useChangeTransportBoxState(), {
+        wrapper: createWrapper,
+      });
 
       const mutationParams = {
         boxId: 1,
-        newState: 'InvalidState'
+        newState: "InvalidState",
       };
 
       await waitFor(() => {
@@ -223,23 +245,24 @@ describe('useTransportBoxes hooks', () => {
       expect(result.current.error).toEqual(mockError);
     });
 
-    it('should handle mutation without description', async () => {
+    it("should handle mutation without description", async () => {
       const mockResponse = {
         success: true,
         errorCode: null,
-        updatedBox: { id: 2, code: 'BOX-002', state: 'InTransit' }
+        updatedBox: { id: 2, code: "BOX-002", state: "InTransit" },
       };
 
-      mockApiClient.transportBox_ChangeTransportBoxState.mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(
-        () => useChangeTransportBoxState(),
-        { wrapper: createWrapper }
+      mockApiClient.transportBox_ChangeTransportBoxState.mockResolvedValue(
+        mockResponse,
       );
+
+      const { result } = renderHook(() => useChangeTransportBoxState(), {
+        wrapper: createWrapper,
+      });
 
       const mutationParams = {
         boxId: 2,
-        newState: 2 // TransportBoxState.InTransit = 2
+        newState: 2, // TransportBoxState.InTransit = 2
       };
 
       await waitFor(() => {
@@ -250,13 +273,15 @@ describe('useTransportBoxes hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockApiClient.transportBox_ChangeTransportBoxState).toHaveBeenCalledWith(
+      expect(
+        mockApiClient.transportBox_ChangeTransportBoxState,
+      ).toHaveBeenCalledWith(
         2,
         expect.objectContaining({
           boxId: 2,
           newState: 2, // TransportBoxState.InTransit = 2
-          description: undefined
-        })
+          description: undefined,
+        }),
       );
     });
   });
