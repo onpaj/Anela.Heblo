@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Package, 
-  AlertTriangle, 
-  CheckCircle, 
   Clock, 
   Users, 
   Plus,
@@ -15,30 +13,33 @@ import {
 } from "lucide-react";
 import {
   useAvailableGiftPackages,
-  useValidateStockMutation,
-  useCreateGiftPackageManufacture,
   useManufactureLog,
+  getGiftPackageClient,
 } from "../../api/hooks/useGiftPackageManufacturing";
 import {
-  ValidateGiftPackageStockRequest,
   GiftPackageDto,
-  GiftPackageStockValidationDto,
+  GetGiftPackageDetailResponse,
 } from "../../api/generated/api-client";
 import { formatDistanceToNow } from "date-fns";
+import CatalogDetail from "./CatalogDetail";
 
 const GiftPackageManufacturing: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'production' | 'log'>('production');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedPackage, setSelectedPackage] = useState<GiftPackageDto | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [validation, setValidation] = useState<GiftPackageStockValidationDto | null>(null);
-  const [allowOverride, setAllowOverride] = useState<boolean>(false);
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+  const [selectedPackageCode, setSelectedPackageCode] = useState<string>('');
+  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
+  const [loadedGiftPackageDetail, setLoadedGiftPackageDetail] = useState<GetGiftPackageDetailResponse | null>(null);
+  
+  // Refs
+  const quantityInputRef = useRef<HTMLInputElement>(null);
   
   // API hooks
   const { data: availablePackages, isLoading: packagesLoading, error: packagesError } = useAvailableGiftPackages();
-  const validateMutation = useValidateStockMutation();
-  const manufactureMutation = useCreateGiftPackageManufacture();
   const { data: manufactureLog, refetch: refetchLog } = useManufactureLog(20);
 
   // Filter packages based on search input
@@ -49,29 +50,52 @@ const GiftPackageManufacturing: React.FC = () => {
 
   // Calculate suggested quantity and maximum manufacturable quantity
   const calculateQuantities = (pkg: GiftPackageDto) => {
-    if (!pkg.ingredients || pkg.ingredients.length === 0) return { maxQuantity: 0, suggestedQuantity: 0 };
+    // Use detailed data if available, otherwise fallback to basic data
+    const ingredients = loadedGiftPackageDetail?.giftPackage?.ingredients || pkg.ingredients;
+    
+    if (!ingredients || ingredients.length === 0) return { maxQuantity: 0, suggestedQuantity: 0 };
     
     const maxQuantity = Math.min(
-      ...pkg.ingredients.map(ingredient => 
+      ...ingredients.map(ingredient => 
         Math.floor((ingredient.availableStock || 0) / (ingredient.requiredQuantity || 1))
       )
     );
     
-    // Mock sales per day and suggested quantity calculation
-    const salesPerDay = Math.floor(Math.random() * 10) + 1; // Mock data
+    // Calculate suggested quantity based on real sales data
+    const salesPerDay = pkg.dailySales ?? 1; // Use real sales data from API
     const suggestedQuantity = Math.max(1, Math.min(maxQuantity, salesPerDay * 3)); // Suggest 3 days worth
     
-    return { maxQuantity, suggestedQuantity, salesPerDay };
+    return { maxQuantity, suggestedQuantity };
   };
 
   // Open modal for package manufacturing
-  const openManufacturingModal = (pkg: GiftPackageDto) => {
-    setSelectedPackage(pkg);
-    const { suggestedQuantity } = calculateQuantities(pkg);
-    setQuantity(suggestedQuantity);
-    setIsModalOpen(true);
-    setValidation(null);
-    setAllowOverride(false);
+  const openManufacturingModal = async (pkg: GiftPackageDto) => {
+    if (!pkg.code) return;
+    
+    setIsLoadingDetail(true);
+    setSelectedPackageCode(pkg.code);
+    
+    try {
+      // Call GetGiftPackageDetailAsync directly
+      const client = getGiftPackageClient();
+      const detail = await client.logistics_GetGiftPackageDetail(pkg.code);
+      
+      setLoadedGiftPackageDetail(detail);
+      setSelectedPackage(pkg);
+      const { suggestedQuantity } = calculateQuantities(pkg);
+      setQuantity(suggestedQuantity);
+      setIsModalOpen(true);
+      setIsLoadingDetail(false);
+    } catch (error) {
+      console.error("Failed to load gift package detail:", error);
+      setIsLoadingDetail(false);
+      setLoadedGiftPackageDetail(null);
+      // Still open modal with basic data
+      setSelectedPackage(pkg);
+      const { suggestedQuantity } = calculateQuantities(pkg);
+      setQuantity(suggestedQuantity);
+      setIsModalOpen(true);
+    }
   };
 
   // Close modal
@@ -79,37 +103,37 @@ const GiftPackageManufacturing: React.FC = () => {
     setIsModalOpen(false);
     setSelectedPackage(null);
     setQuantity(1);
-    setValidation(null);
-    setAllowOverride(false);
+    setSelectedPackageCode('');
+    setIsLoadingDetail(false);
+    setLoadedGiftPackageDetail(null);
   };
 
-  // Validate stock when modal opens or quantity changes
+  // Handle row click to open catalog detail
+  const handleRowClick = (productCode: string) => {
+    setSelectedProductCode(productCode);
+    setIsDetailModalOpen(true);
+  };
+
+  // Close catalog detail modal
+  const closeCatalogDetail = () => {
+    setIsDetailModalOpen(false);
+    setSelectedProductCode(null);
+  };
+
+  // Focus and select the quantity input when modal opens
   useEffect(() => {
-    if (selectedPackage && quantity > 0 && isModalOpen) {
-      const request = new ValidateGiftPackageStockRequest({
-        giftPackageCode: selectedPackage.code || "",
-        quantity,
-      });
-      
-      validateMutation.mutate(request, {
-        onSuccess: (data) => {
-          setValidation(data);
-        },
-        onError: () => {
-          setValidation(null);
-        },
-      });
+    if (isModalOpen && quantityInputRef.current) {
+      // Use setTimeout to ensure the modal is fully rendered
+      setTimeout(() => {
+        quantityInputRef.current?.focus();
+        quantityInputRef.current?.select();
+      }, 100);
     }
-  }, [selectedPackage, quantity, isModalOpen, validateMutation]);
+  }, [isModalOpen]);
 
   // Handle manufacturing (placeholder for now)
   const handleManufacture = async () => {
-    if (!selectedPackage || !validation) return;
-
-    if (!validation.hasSufficientStock && !allowOverride) {
-      alert("Nedostatek zásob. Povolit přepsání zásob pro pokračování.");
-      return;
-    }
+    if (!selectedPackage) return;
 
     // TODO: Implement actual manufacturing logic
     alert(`Výroba ${quantity}x ${selectedPackage.name} bude implementována později.`);
@@ -249,11 +273,12 @@ const GiftPackageManufacturing: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredPackages.map((pkg) => {
-                    const { maxQuantity, suggestedQuantity, salesPerDay } = calculateQuantities(pkg);
-                    const currentStock = Math.floor(Math.random() * 20) + 5; // Mock current stock
+                    const { maxQuantity, suggestedQuantity } = calculateQuantities(pkg);
+                    const currentStock = pkg.availableStock ?? 0; // Real stock data from API
+                    const salesPerDay = pkg.dailySales ?? 0; // Real sales data from API
                     
                     return (
-                      <tr key={pkg.code} className="hover:bg-gray-50">
+                      <tr key={pkg.code} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(pkg.code || "")}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
@@ -284,11 +309,18 @@ const GiftPackageManufacturing: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
-                            onClick={() => openManufacturingModal(pkg)}
-                            disabled={maxQuantity === 0}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openManufacturingModal(pkg);
+                            }}
+                            disabled={isLoadingDetail && selectedPackageCode === pkg.code}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                           >
-                            <Plus className="h-3 w-3 mr-1" />
+                            {isLoadingDetail && selectedPackageCode === pkg.code ? (
+                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Plus className="h-3 w-3 mr-1" />
+                            )}
                             Vyrobit
                           </button>
                         </td>
@@ -395,7 +427,7 @@ const GiftPackageManufacturing: React.FC = () => {
       {/* Manufacturing Modal */}
       {isModalOpen && selectedPackage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -410,15 +442,44 @@ const GiftPackageManufacturing: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 space-y-6">
+            <div className="p-8 space-y-8">
               {/* Package info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center mb-3">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center mb-4">
                   <Info className="h-5 w-5 text-indigo-600 mr-2" />
-                  <span className="font-medium text-gray-900">Složení balíčku</span>
+                  <span className="text-lg font-medium text-gray-900">Složení balíčku</span>
                 </div>
                 
-                {selectedPackage.ingredients && selectedPackage.ingredients.length > 0 && (
+                {isLoadingDetail ? (
+                  <div className="flex items-center justify-center py-4">
+                    <RefreshCw className="h-5 w-5 animate-spin text-indigo-600 mr-2" />
+                    <span className="text-gray-600">Načítám detail balíčku...</span>
+                  </div>
+                ) : loadedGiftPackageDetail?.giftPackage?.ingredients && loadedGiftPackageDetail.giftPackage.ingredients.length > 0 ? (
+                  <div className="space-y-2">
+                    {loadedGiftPackageDetail.giftPackage.ingredients.map((ingredient, idx) => {
+                      const totalNeeded = (ingredient.requiredQuantity || 0) * quantity;
+                      const isAvailable = (ingredient.availableStock || 0) >= totalNeeded;
+                      
+                      return (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                          <div>
+                            <span className="font-medium text-gray-900">{ingredient.productName}</span>
+                            <span className="text-sm text-gray-500 ml-2">({ingredient.productCode})</span>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-sm font-medium ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                              {totalNeeded} ks potřeba
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {ingredient.availableStock} ks skladem
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : selectedPackage?.ingredients && selectedPackage.ingredients.length > 0 ? (
                   <div className="space-y-2">
                     {selectedPackage.ingredients.map((ingredient, idx) => {
                       const totalNeeded = (ingredient.requiredQuantity || 0) * quantity;
@@ -442,92 +503,50 @@ const GiftPackageManufacturing: React.FC = () => {
                       );
                     })}
                   </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    Žádné ingredience nejsou k dispozici.
+                  </div>
                 )}
               </div>
 
               {/* Quantity input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-indigo-50 rounded-lg p-6">
+                <label className="block text-lg font-medium text-gray-900 mb-3">
                   Množství k výrobě
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max={calculateQuantities(selectedPackage).maxQuantity}
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Maximum možné: {calculateQuantities(selectedPackage).maxQuantity} ks
-                </p>
+                <div className="flex items-end gap-4">
+                  <div className="flex-1 max-w-xs">
+                    <input
+                      ref={quantityInputRef}
+                      type="number"
+                      min="1"
+                      max={calculateQuantities(selectedPackage).maxQuantity}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="w-full px-4 py-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="text-gray-600">
+                    <span className="text-sm">Maximum: </span>
+                    <span className="font-medium text-lg">{calculateQuantities(selectedPackage).maxQuantity} ks</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Stock validation */}
-              {validation && (
-                <div className={`p-4 rounded-lg ${
-                  validation.hasSufficientStock 
-                    ? "bg-green-50 border border-green-200" 
-                    : "bg-orange-50 border border-orange-200"
-                }`}>
-                  <div className="flex items-center mb-2">
-                    {validation.hasSufficientStock ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                    ) : (
-                      <AlertTriangle className="h-5 w-5 text-orange-600 mr-2" />
-                    )}
-                    <span className={`font-medium ${
-                      validation.hasSufficientStock ? "text-green-900" : "text-orange-900"
-                    }`}>
-                      {validation.hasSufficientStock 
-                        ? "Dostatečné zásoby" 
-                        : "Nedostatečné zásoby"}
-                    </span>
-                  </div>
-                  
-                  {!validation.hasSufficientStock && validation.shortages && (
-                    <div className="space-y-1">
-                      <p className="text-sm text-orange-700 mb-2">Chybějící položky:</p>
-                      {validation.shortages.map((shortage, idx) => (
-                        <div key={idx} className="text-sm text-orange-800">
-                          <span className="font-medium">{shortage.productName}</span>: 
-                          potřeba {shortage.requiredQuantity}, k dispozici {shortage.availableStock}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Stock override checkbox */}
-              {validation && !validation.hasSufficientStock && (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="allowOverride"
-                    checked={allowOverride}
-                    onChange={(e) => setAllowOverride(e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="allowOverride" className="ml-2 text-sm text-gray-700">
-                    Povolit výrobu i při nedostatku zásob
-                  </label>
-                </div>
-              )}
             </div>
 
             {/* Modal footer */}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-8 py-6 border-t border-gray-200 flex justify-end space-x-4">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-6 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 Zrušit
               </button>
               <button
                 onClick={handleManufacture}
-                disabled={!validation || (!validation.hasSufficientStock && !allowOverride)}
-                className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-6 py-3 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 Vyrobit
               </button>
@@ -535,6 +554,13 @@ const GiftPackageManufacturing: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Catalog Detail Modal */}
+      <CatalogDetail 
+        productCode={selectedProductCode}
+        isOpen={isDetailModalOpen}
+        onClose={closeCatalogDetail}
+      />
     </div>
   );
 };

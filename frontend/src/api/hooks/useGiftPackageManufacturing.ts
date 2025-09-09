@@ -25,7 +25,7 @@ const giftPackageKeys = {
 };
 
 // Helper to get the correct API client instance
-const getGiftPackageClient = (): GeneratedApiClient => {
+export const getGiftPackageClient = (): GeneratedApiClient => {
   const apiClient = getAuthenticatedApiClient();
   return apiClient as any as GeneratedApiClient;
 };

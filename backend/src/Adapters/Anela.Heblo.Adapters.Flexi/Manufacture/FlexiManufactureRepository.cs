@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Manufacture;
+using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
@@ -65,7 +66,7 @@ public class FlexiManufactureRepository : IManufactureRepository
 
     public async Task<List<ProductPart>> GetSetParts(string setProductCode, CancellationToken cancellationToken = default)
     {
-        var setParts = await _productSetsClient.GetAsync(setProductCode, cancellationToken);
+        var setParts = await _productSetsClient.GetAsync(setProductCode, cancellationToken: cancellationToken);
         
         return setParts
             .Select(s => new ProductPart()

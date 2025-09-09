@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetManufactureLog;
-using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.ValidateGiftPackageStock;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -49,17 +48,6 @@ public class LogisticsController : BaseApiController
         return HandleResponse(response);
     }
 
-    /// <summary>
-    /// Validate source product availability for gift package manufacturing
-    /// </summary>
-    [HttpPost("gift-packages/validate-stock")]
-    public async Task<ActionResult<ValidateGiftPackageStockResponse>> ValidateGiftPackageStock(
-        [FromBody] ValidateGiftPackageStockRequest request,
-        CancellationToken cancellationToken)
-    {
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
-    }
 
     /// <summary>
     /// Execute gift package manufacturing process

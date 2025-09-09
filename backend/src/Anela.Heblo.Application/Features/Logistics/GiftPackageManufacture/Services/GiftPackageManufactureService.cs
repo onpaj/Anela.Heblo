@@ -105,41 +105,6 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return giftPackage;
     }
 
-    
-    public async Task<GiftPackageStockValidationDto> ValidateStockAsync(string giftPackageCode, int quantity, CancellationToken cancellationToken = default)
-    {
-        // Get detailed package info with ingredients
-        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
-
-        var shortages = new List<StockShortageDto>();
-        var hasSufficientStock = true;
-
-        foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
-        {
-            var requiredQuantity = ingredient.RequiredQuantity * quantity;
-            
-            if (ingredient.AvailableStock < requiredQuantity)
-            {
-                hasSufficientStock = false;
-                shortages.Add(new StockShortageDto
-                {
-                    ProductCode = ingredient.ProductCode,
-                    ProductName = ingredient.ProductName,
-                    RequiredQuantity = requiredQuantity,
-                    AvailableStock = ingredient.AvailableStock
-                });
-            }
-        }
-
-        return new GiftPackageStockValidationDto
-        {
-            GiftPackageCode = giftPackageCode,
-            RequestedQuantity = quantity,
-            HasSufficientStock = hasSufficientStock,
-            Shortages = shortages
-        };
-    }
-
     public async Task<GiftPackageManufactureDto> CreateManufactureAsync(
         string giftPackageCode, 
         int quantity, 
@@ -147,19 +112,11 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         Guid userId, 
         CancellationToken cancellationToken = default)
     {
-        // Validate stock first
-        var validation = await ValidateStockAsync(giftPackageCode, quantity, cancellationToken);
-        
-        if (!validation.HasSufficientStock && !allowStockOverride)
-        {
-            throw new InvalidOperationException("Insufficient stock for manufacturing. Use stock override to proceed.");
-        }
-
         // Create the manufacture log
         var manufactureLog = new GiftPackageManufactureLog(
             giftPackageCode,
             quantity,
-            !validation.HasSufficientStock,
+            false,
             _timeProvider.GetUtcNow().DateTime,
             userId);
 

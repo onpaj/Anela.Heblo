@@ -8,8 +8,6 @@ public interface IGiftPackageManufactureService
     
     Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, CancellationToken cancellationToken = default);
     
-    Task<GiftPackageStockValidationDto> ValidateStockAsync(string giftPackageCode, int quantity, CancellationToken cancellationToken = default);
-    
     Task<GiftPackageManufactureDto> CreateManufactureAsync(
         string giftPackageCode, 
         int quantity, 
