@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Loader2 } from 'lucide-react';
-import { useChangeTransportBoxState } from '../../api/hooks/useTransportBoxes';
-import { TransportBoxState } from '../../api/generated/api-client';
+import React, { useState, useEffect } from "react";
+import { X, MapPin, Loader2 } from "lucide-react";
+import { useChangeTransportBoxState } from "../../api/hooks/useTransportBoxes";
+import { TransportBoxState } from "../../api/generated/api-client";
 
 interface LocationSelectionModalProps {
   isOpen: boolean;
@@ -12,13 +12,13 @@ interface LocationSelectionModalProps {
 
 // Available locations from TransportBoxLocation enum
 const LOCATIONS = [
-  { value: 'Kumbal', label: 'Kumbal' },
-  { value: 'Relax', label: 'Relax' },
-  { value: 'SkladSkla', label: 'Sklad Skla' },
+  { value: "Kumbal", label: "Kumbal" },
+  { value: "Relax", label: "Relax" },
+  { value: "SkladSkla", label: "Sklad Skla" },
 ];
 
 // LocalStorage key for storing last selected location
-const LAST_LOCATION_KEY = 'transportBox_lastSelectedLocation';
+const LAST_LOCATION_KEY = "transportBox_lastSelectedLocation";
 
 const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
   isOpen,
@@ -26,7 +26,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
   boxId,
   onSuccess,
 }) => {
-  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const changeStateMutation = useChangeTransportBoxState();
 
@@ -34,10 +34,10 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const lastLocation = localStorage.getItem(LAST_LOCATION_KEY);
-      if (lastLocation && LOCATIONS.some(l => l.value === lastLocation)) {
+      if (lastLocation && LOCATIONS.some((l) => l.value === lastLocation)) {
         setSelectedLocation(lastLocation);
       } else {
-        setSelectedLocation('');
+        setSelectedLocation("");
       }
       setError(null);
     }
@@ -53,22 +53,22 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
       await changeStateMutation.mutateAsync({
         boxId,
         newState: TransportBoxState.Reserve,
-        location: selectedLocation
+        location: selectedLocation,
       });
-      
+
       // Save selected location to localStorage for next time
       localStorage.setItem(LAST_LOCATION_KEY, selectedLocation);
-      
+
       onSuccess();
-      setSelectedLocation(''); // Reset form
+      setSelectedLocation(""); // Reset form
     } catch (err) {
-      console.error('Error changing to InReserve state:', err);
-      setError(err instanceof Error ? err.message : 'Neočekávaná chyba');
+      console.error("Error changing to InReserve state:", err);
+      setError(err instanceof Error ? err.message : "Neočekávaná chyba");
     }
   };
 
   const handleClose = () => {
-    setSelectedLocation('');
+    setSelectedLocation("");
     setError(null);
     onClose();
   };
@@ -82,9 +82,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-indigo-600" />
-            <h3 className="text-lg font-medium text-gray-900">
-              Výběr lokace
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900">Výběr lokace</h3>
           </div>
           <button
             onClick={handleClose}
@@ -97,7 +95,10 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
         {/* Content */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="location"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Vyberte lokaci pro rezervu:
             </label>
             <select
@@ -142,7 +143,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
                   Ukládám...
                 </>
               ) : (
-                'Přesunout do rezervy'
+                "Přesunout do rezervy"
               )}
             </button>
           </div>

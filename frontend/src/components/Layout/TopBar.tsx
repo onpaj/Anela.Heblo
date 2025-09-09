@@ -1,15 +1,17 @@
-import React from 'react';
-import { Menu } from 'lucide-react';
-import UserProfile from '../auth/UserProfile';
+import React from "react";
+import { Menu } from "lucide-react";
+import UserProfile from "../auth/UserProfile";
 
 interface TopBarProps {
   onMenuClick: () => void;
 }
 
 const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
-
   return (
-    <header data-testid="topbar" className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header
+      data-testid="topbar"
+      className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm"
+    >
       <div className="flex items-center justify-between h-16 px-4">
         {/* Left side - Mobile menu button and App logo */}
         <div className="flex items-center">
@@ -29,7 +31,9 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
             <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
               <span className="text-white font-bold text-sm">AH</span>
             </div>
-            <span className="ml-3 text-base font-medium text-gray-900 hidden sm:block">Anela Heblo</span>
+            <span className="ml-3 text-base font-medium text-gray-900 hidden sm:block">
+              Anela Heblo
+            </span>
           </div>
         </div>
 

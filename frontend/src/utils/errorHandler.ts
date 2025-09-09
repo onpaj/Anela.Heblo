@@ -1,16 +1,19 @@
-import { BaseResponse, ErrorCodes } from '../types/errors';
-import i18n from '../i18n';
+import { BaseResponse, ErrorCodes } from "../types/errors";
+import i18n from "../i18n";
 
 /**
  * Formats an error message with parameters
  */
-function formatMessage(template: string | undefined, params?: Record<string, string>): string {
-  if (!template) return '';
+function formatMessage(
+  template: string | undefined,
+  params?: Record<string, string>,
+): string {
+  if (!template) return "";
   if (!params) return template;
 
   let message = template;
   Object.entries(params).forEach(([key, value]) => {
-    message = message.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+    message = message.replace(new RegExp(`\\{${key}\\}`, "g"), value);
   });
   return message;
 }
@@ -18,9 +21,16 @@ function formatMessage(template: string | undefined, params?: Record<string, str
 /**
  * Gets a localized error message for an error code
  */
-export function getErrorMessage(errorCode: ErrorCodes, params?: Record<string, string>): string {
+export function getErrorMessage(
+  errorCode: ErrorCodes,
+  params?: Record<string, string>,
+): string {
   // Special handling for Exception error code
-   if (errorCode === ErrorCodes.Exception && params?.exceptionType && params?.message) {
+  if (
+    errorCode === ErrorCodes.Exception &&
+    params?.exceptionType &&
+    params?.message
+  ) {
     return `Chyba ${params.exceptionType}\n${params.message}`;
   }
 
@@ -50,11 +60,11 @@ export function getErrorMessage(errorCode: ErrorCodes, params?: Record<string, s
  */
 export function handleApiError(response: BaseResponse): string {
   if (response.success) {
-    return '';
+    return "";
   }
 
   if (!response.errorCode) {
-    return 'Nastala neznámá chyba';
+    return "Nastala neznámá chyba";
   }
 
   return getErrorMessage(response.errorCode, response.params);
@@ -64,10 +74,12 @@ export function handleApiError(response: BaseResponse): string {
  * Checks if a response is an error response
  */
 export function isErrorResponse(response: any): response is BaseResponse {
-  return response != null && 
-         typeof response === 'object' && 
-         'success' in response && 
-         response.success === false;
+  return (
+    response != null &&
+    typeof response === "object" &&
+    "success" in response &&
+    response.success === false
+  );
 }
 
 /**
@@ -90,10 +102,10 @@ export function extractErrorMessage(error: any): string {
   }
 
   // Handle string errors
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return error;
   }
 
   // Default fallback
-  return 'Nastala neočekávaná chyba';
+  return "Nastala neočekávaná chyba";
 }

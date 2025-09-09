@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface LoadingContextType {
   isLoading: boolean;
@@ -13,7 +13,7 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export const useLoading = () => {
   const context = useContext(LoadingContext);
   if (context === undefined) {
-    throw new Error('useLoading must be used within a LoadingProvider');
+    throw new Error("useLoading must be used within a LoadingProvider");
   }
   return context;
 };
@@ -22,15 +22,17 @@ interface LoadingProviderProps {
   children: ReactNode;
 }
 
-export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) => {
+export const LoadingProvider: React.FC<LoadingProviderProps> = ({
+  children,
+}) => {
   const [loadingCount, setLoadingCount] = useState(0);
 
   const incrementLoading = () => {
-    setLoadingCount(prev => prev + 1);
+    setLoadingCount((prev) => prev + 1);
   };
 
   const decrementLoading = () => {
-    setLoadingCount(prev => Math.max(0, prev - 1));
+    setLoadingCount((prev) => Math.max(0, prev - 1));
   };
 
   const setIsLoading = (loading: boolean) => {
@@ -44,13 +46,13 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
   const isLoading = loadingCount > 0;
 
   return (
-    <LoadingContext.Provider 
-      value={{ 
-        isLoading, 
-        setIsLoading, 
-        loadingCount, 
-        incrementLoading, 
-        decrementLoading 
+    <LoadingContext.Provider
+      value={{
+        isLoading,
+        setIsLoading,
+        loadingCount,
+        incrementLoading,
+        decrementLoading,
       }}
     >
       {children}

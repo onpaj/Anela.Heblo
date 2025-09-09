@@ -29,6 +29,7 @@ public class FlexiManufactureRepository : IManufactureRepository
             ProductCode = header.IngredientCode.RemoveCodePrefix(),
             ProductName = header.IngredientFullName,
             Amount = header.Amount,
+            OriginalAmount = header.Amount,
             Ingredients = ingredients.Select(s =>
             {
                 return new Ingredient()

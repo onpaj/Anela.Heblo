@@ -1,40 +1,40 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Select, { 
-  StylesConfig, 
-  components, 
-  OptionProps, 
+import React, { useState, useEffect, useMemo } from "react";
+import Select, {
+  StylesConfig,
+  components,
+  OptionProps,
   SingleValueProps,
   SingleValue,
   MultiValue,
-  ActionMeta
-} from 'react-select';
-import { Package, AlertCircle } from 'lucide-react';
-import { useCatalogAutocomplete } from '../../api/hooks/useCatalogAutocomplete';
-import { CatalogItemDto, ProductType } from '../../api/generated/api-client';
+  ActionMeta,
+} from "react-select";
+import { Package, AlertCircle } from "lucide-react";
+import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
+import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
 
 // Generic interface for the autocomplete component
 interface CatalogAutocompleteProps<T = CatalogItemDto> {
   // Core props
   value?: T | null;
   onSelect: (item: T | null) => void;
-  
+
   // Search and filtering
   placeholder?: string;
   searchMinLength?: number;
   limit?: number;
   productTypes?: ProductType[]; // Optional filtering by product types
-  
+
   // UI customization
   disabled?: boolean;
   error?: string;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  
+  size?: "sm" | "md" | "lg";
+
   // Behavior
   clearable?: boolean;
   showSelectedInfo?: boolean; // Show selected product info below input
   allowManualEntry?: boolean; // Allow typing custom values (like Journal form)
-  
+
   // Data transformation
   itemAdapter?: (item: CatalogItemDto) => T; // Convert CatalogItemDto to desired type
   displayValue?: (item: T) => string; // How to display selected item
@@ -60,46 +60,48 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   disabled = false,
   error,
   className = "",
-  size = 'md',
+  size = "md",
   clearable = true,
   showSelectedInfo = false,
   allowManualEntry = false,
   itemAdapter,
   displayValue,
-  renderItem
+  renderItem,
 }: CatalogAutocompleteProps<T>) {
-
   // Convert CatalogItemDto to Select option format
   const convertToOption = (item: CatalogItemDto): CatalogSelectOption => ({
-    value: item.productCode || '',
+    value: item.productCode || "",
     label: `${item.productName} (${item.productCode})`,
     productCode: item.productCode,
     productName: item.productName,
-    type: item.type
+    type: item.type,
   });
 
   // Convert current value to select option
   const getSelectValue = (): CatalogSelectOption | null => {
     if (!value) return null;
-    
+
     // If value is already a CatalogItemDto-like object
     const catalogItem = value as any;
-    const displayName = catalogItem.productName || catalogItem.label || (displayValue ? displayValue(value) : String(value));
-    const code = catalogItem.productCode || catalogItem.value || '';
-    
+    const displayName =
+      catalogItem.productName ||
+      catalogItem.label ||
+      (displayValue ? displayValue(value) : String(value));
+    const code = catalogItem.productCode || catalogItem.value || "";
+
     return {
       productCode: code,
       productName: displayName,
       value: code,
-      label: catalogItem.productName ? 
-        `${catalogItem.productName} (${catalogItem.productCode})` : 
-        displayName
+      label: catalogItem.productName
+        ? `${catalogItem.productName} (${catalogItem.productCode})`
+        : displayName,
     } as CatalogSelectOption;
   };
 
   // State for search input with debouncing
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Debounce search term
   useEffect(() => {
@@ -109,12 +111,14 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
-  
+
   // Use existing hook for data fetching
   const { data: autocompleteData, isLoading } = useCatalogAutocomplete(
-    debouncedSearchTerm.length >= searchMinLength ? debouncedSearchTerm : undefined,
+    debouncedSearchTerm.length >= searchMinLength
+      ? debouncedSearchTerm
+      : undefined,
     limit,
-    productTypes
+    productTypes,
   );
 
   // Convert hook data to options
@@ -130,11 +134,13 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
 
   // Handle selection change
   const handleChange = (
-    newValue: SingleValue<CatalogSelectOption> | MultiValue<CatalogSelectOption>, 
-    actionMeta: ActionMeta<CatalogSelectOption>
+    newValue:
+      | SingleValue<CatalogSelectOption>
+      | MultiValue<CatalogSelectOption>,
+    actionMeta: ActionMeta<CatalogSelectOption>,
   ) => {
     const selectedOption = newValue as SingleValue<CatalogSelectOption>;
-    
+
     if (!selectedOption) {
       onSelect(null);
       return;
@@ -144,34 +150,49 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     const catalogItem = new CatalogItemDto({
       productCode: selectedOption.productCode,
       productName: selectedOption.productName,
-      type: selectedOption.type
+      type: selectedOption.type,
     });
 
-    const adaptedItem = itemAdapter ? itemAdapter(catalogItem) : (catalogItem as T);
+    const adaptedItem = itemAdapter
+      ? itemAdapter(catalogItem)
+      : (catalogItem as T);
     onSelect(adaptedItem);
   };
-
 
   // Size-dependent styles
   const getSizeStyles = () => {
     switch (size) {
-      case 'sm':
+      case "sm":
         return {
-          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '12px' }),
-          valueContainer: (base: any) => ({ ...base, padding: '5px 8px' }),
-          input: (base: any) => ({ ...base, margin: '0px' })
+          control: (base: any) => ({
+            ...base,
+            minHeight: "32px",
+            height: "34px",
+            fontSize: "12px",
+          }),
+          valueContainer: (base: any) => ({ ...base, padding: "5px 8px" }),
+          input: (base: any) => ({ ...base, margin: "0px" }),
         };
-      case 'lg':
+      case "lg":
         return {
-          control: (base: any) => ({ ...base, minHeight: '48px', fontSize: '16px' }),
-          valueContainer: (base: any) => ({ ...base, padding: '12px 16px' }),
-          input: (base: any) => ({ ...base, margin: '0px' })
+          control: (base: any) => ({
+            ...base,
+            minHeight: "48px",
+            fontSize: "16px",
+          }),
+          valueContainer: (base: any) => ({ ...base, padding: "12px 16px" }),
+          input: (base: any) => ({ ...base, margin: "0px" }),
         };
       default: // md
         return {
-          control: (base: any) => ({ ...base, minHeight: '32px', height: '34px', fontSize: '14px' }),
-          valueContainer: (base: any) => ({ ...base, padding: '5px 12px' }),
-          input: (base: any) => ({ ...base, margin: '0px' })
+          control: (base: any) => ({
+            ...base,
+            minHeight: "32px",
+            height: "34px",
+            fontSize: "14px",
+          }),
+          valueContainer: (base: any) => ({ ...base, padding: "5px 12px" }),
+          input: (base: any) => ({ ...base, margin: "0px" }),
         };
     }
   };
@@ -182,74 +203,75 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     control: (base, state) => ({
       ...base,
       ...getSizeStyles().control(base),
-      borderColor: error 
-        ? '#fca5a5' 
-        : state.isFocused 
-          ? '#6366f1' 
-          : '#d1d5db',
-      borderRadius: '6px',
-      borderWidth: '1px',
-      boxShadow: state.isFocused 
-        ? error 
-          ? '0 0 0 1px #ef4444' 
-          : '0 0 0 1px #6366f1'
-        : 'none',
-      backgroundColor: disabled ? '#f9fafb' : 'white',
-      cursor: disabled ? 'not-allowed' : 'default',
-      '&:hover': {
-        borderColor: error ? '#fca5a5' : state.isFocused ? '#6366f1' : '#9ca3af'
-      }
+      borderColor: error ? "#fca5a5" : state.isFocused ? "#6366f1" : "#d1d5db",
+      borderRadius: "6px",
+      borderWidth: "1px",
+      boxShadow: state.isFocused
+        ? error
+          ? "0 0 0 1px #ef4444"
+          : "0 0 0 1px #6366f1"
+        : "none",
+      backgroundColor: disabled ? "#f9fafb" : "white",
+      cursor: disabled ? "not-allowed" : "default",
+      "&:hover": {
+        borderColor: error
+          ? "#fca5a5"
+          : state.isFocused
+            ? "#6366f1"
+            : "#9ca3af",
+      },
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isSelected 
-        ? '#6366f1' 
-        : state.isFocused 
-          ? '#e0e7ff' 
-          : 'white',
-      color: state.isSelected 
-        ? 'white' 
-        : state.isFocused 
-          ? '#312e81' 
-          : '#111827',
-      cursor: 'pointer',
-      padding: '8px 12px'
+      backgroundColor: state.isSelected
+        ? "#6366f1"
+        : state.isFocused
+          ? "#e0e7ff"
+          : "white",
+      color: state.isSelected
+        ? "white"
+        : state.isFocused
+          ? "#312e81"
+          : "#111827",
+      cursor: "pointer",
+      padding: "8px 12px",
     }),
     menu: (base) => ({
       ...base,
-      borderRadius: '6px',
-      border: '1px solid #d1d5db',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      zIndex: 50
+      borderRadius: "6px",
+      border: "1px solid #d1d5db",
+      boxShadow:
+        "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+      zIndex: 50,
     }),
     menuList: (base) => ({
       ...base,
-      maxHeight: '240px',
-      padding: '4px 0'
+      maxHeight: "240px",
+      padding: "4px 0",
     }),
     placeholder: (base) => ({
       ...base,
-      color: '#6b7280'
+      color: "#6b7280",
     }),
     singleValue: (base) => ({
       ...base,
-      color: disabled ? '#6b7280' : '#111827'
+      color: disabled ? "#6b7280" : "#111827",
     }),
     clearIndicator: (base) => ({
       ...base,
-      color: '#9ca3af',
-      cursor: 'pointer',
-      '&:hover': {
-        color: '#6b7280'
-      }
+      color: "#9ca3af",
+      cursor: "pointer",
+      "&:hover": {
+        color: "#6b7280",
+      },
     }),
     dropdownIndicator: (base) => ({
       ...base,
-      color: '#9ca3af',
-      '&:hover': {
-        color: '#6b7280'
-      }
-    })
+      color: "#9ca3af",
+      "&:hover": {
+        color: "#6b7280",
+      },
+    }),
   };
 
   // Custom Option component with icon
@@ -258,7 +280,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     const catalogItem = new CatalogItemDto({
       productCode: props.data.productCode,
       productName: props.data.productName,
-      type: props.data.type
+      type: props.data.type,
     });
 
     return (
@@ -266,9 +288,14 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         <div className="flex items-center space-x-3">
           <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <div className="min-w-0 flex-1">
-            {renderItem ? renderItem(catalogItem) : (
+            {renderItem ? (
+              renderItem(catalogItem)
+            ) : (
               <span className="text-gray-900 truncate">
-                {props.data.productName} <span className="text-gray-500 font-mono">({props.data.productCode})</span>
+                {props.data.productName}{" "}
+                <span className="text-gray-500 font-mono">
+                  ({props.data.productCode})
+                </span>
               </span>
             )}
           </div>
@@ -284,7 +311,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         <div className="flex items-center space-x-2">
           <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <span className="truncate">
-            {displayValue && value ? displayValue(value) : props.data.productName}
+            {displayValue && value
+              ? displayValue(value)
+              : props.data.productName}
           </span>
         </div>
       </components.SingleValue>
@@ -306,24 +335,28 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         styles={customStyles}
         components={{
           Option: CustomOption,
-          SingleValue: CustomSingleValue
+          SingleValue: CustomSingleValue,
         }}
-        noOptionsMessage={({ inputValue }) => 
-          inputValue ? 
-            'Žádné položky nenalezeny' : 
-            allowManualEntry ? 
-              'Začněte psát nebo zadejte vlastní hodnotu' :
-              'Začněte psát pro vyhledávání'
+        noOptionsMessage={({ inputValue }) =>
+          inputValue
+            ? "Žádné položky nenalezeny"
+            : allowManualEntry
+              ? "Začněte psát nebo zadejte vlastní hodnotu"
+              : "Začněte psát pro vyhledávání"
         }
-        loadingMessage={() => 'Načítám...'}
+        loadingMessage={() => "Načítám..."}
         menuPlacement="auto"
         filterOption={null} // Disable built-in filtering since we handle it via API
       />
-      
+
       {/* Selected product display */}
       {value && showSelectedInfo && (
-        <div data-testid="selected-product" className="mt-1 text-sm text-gray-600">
-          Selected: {displayValue ? displayValue(value) : (value as any).productName} 
+        <div
+          data-testid="selected-product"
+          className="mt-1 text-sm text-gray-600"
+        >
+          Selected:{" "}
+          {displayValue ? displayValue(value) : (value as any).productName}
           {(value as any).productCode && ` (${(value as any).productCode})`}
         </div>
       )}

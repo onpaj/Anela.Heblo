@@ -1,11 +1,13 @@
-import React from 'react';
-import { Loader2 } from 'lucide-react';
+import React from "react";
+import { Loader2 } from "lucide-react";
 
 interface LoadingIndicatorProps {
   isVisible: boolean;
 }
 
-export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ isVisible }) => {
+export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
+  isVisible,
+}) => {
   if (!isVisible) return null;
 
   return (

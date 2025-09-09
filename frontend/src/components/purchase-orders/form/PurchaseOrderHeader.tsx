@@ -1,14 +1,14 @@
-import React from 'react';
-import { FileText, Calendar, Truck, Phone } from 'lucide-react';
-import { ContactVia } from '../../../api/generated/api-client';
-import SupplierAutocomplete from '../../common/SupplierAutocomplete';
-import { PurchaseOrderHeaderProps } from './PurchaseOrderTypes';
+import React from "react";
+import { FileText, Calendar, Truck, Phone } from "lucide-react";
+import { ContactVia } from "../../../api/generated/api-client";
+import SupplierAutocomplete from "../../common/SupplierAutocomplete";
+import { PurchaseOrderHeaderProps } from "./PurchaseOrderTypes";
 
 const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
   formData,
   errors,
   onInputChange,
-  onSupplierSelect
+  onSupplierSelect,
 }) => {
   return (
     <div className="space-y-3">
@@ -16,13 +16,16 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
         <FileText className="h-5 w-5 mr-2 text-gray-500" />
         Základní informace
       </h3>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left side - Basic info */}
         <div className="space-y-3">
           {/* Order Number */}
           <div>
-            <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="orderNumber"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               <FileText className="h-4 w-4 inline mr-1" />
               Číslo objednávky *
             </label>
@@ -30,9 +33,9 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
               type="text"
               id="orderNumber"
               value={formData.orderNumber}
-              onChange={(e) => onInputChange('orderNumber', e.target.value)}
+              onChange={(e) => onInputChange("orderNumber", e.target.value)}
               className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                errors.orderNumber ? 'border-red-300' : 'border-gray-300'
+                errors.orderNumber ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Číslo objednávky (např. PO20250101-1015)"
             />
@@ -60,7 +63,10 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
           <div className="grid grid-cols-3 gap-3">
             {/* Order Date */}
             <div>
-              <label htmlFor="orderDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="orderDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 <Calendar className="h-4 w-4 inline mr-1" />
                 Objednáno *
               </label>
@@ -68,9 +74,9 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
                 type="date"
                 id="orderDate"
                 value={formData.orderDate}
-                onChange={(e) => onInputChange('orderDate', e.target.value)}
+                onChange={(e) => onInputChange("orderDate", e.target.value)}
                 className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.orderDate ? 'border-red-300' : 'border-gray-300'
+                  errors.orderDate ? "border-red-300" : "border-gray-300"
                 }`}
               />
               {errors.orderDate && (
@@ -80,7 +86,10 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
 
             {/* Expected Delivery Date */}
             <div>
-              <label htmlFor="expectedDeliveryDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="expectedDeliveryDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 <Calendar className="h-4 w-4 inline mr-1" />
                 Dodání
               </label>
@@ -88,26 +97,42 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
                 type="date"
                 id="expectedDeliveryDate"
                 value={formData.expectedDeliveryDate}
-                onChange={(e) => onInputChange('expectedDeliveryDate', e.target.value)}
+                onChange={(e) =>
+                  onInputChange("expectedDeliveryDate", e.target.value)
+                }
                 className={`block w-full px-3 py-1.5 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.expectedDeliveryDate ? 'border-red-300' : 'border-gray-300'
+                  errors.expectedDeliveryDate
+                    ? "border-red-300"
+                    : "border-gray-300"
                 }`}
               />
               {errors.expectedDeliveryDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.expectedDeliveryDate}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.expectedDeliveryDate}
+                </p>
               )}
             </div>
 
             {/* Contact Via */}
             <div>
-              <label htmlFor="contactVia" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="contactVia"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 <Phone className="h-4 w-4 inline mr-1" />
                 Kontakt
               </label>
               <select
                 id="contactVia"
-                value={formData.contactVia || ''}
-                onChange={(e) => onInputChange('contactVia', e.target.value === '' ? null : e.target.value as ContactVia)}
+                value={formData.contactVia || ""}
+                onChange={(e) =>
+                  onInputChange(
+                    "contactVia",
+                    e.target.value === ""
+                      ? null
+                      : (e.target.value as ContactVia),
+                  )
+                }
                 className="block w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">Vyberte způsob kontaktu</option>
@@ -128,9 +153,12 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
             <FileText className="h-4 w-4 mr-2 text-gray-500" />
             Poznámky
           </h4>
-          
+
           <div>
-            <label htmlFor="supplierNote" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="supplierNote"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Poznámka od dodavatele
             </label>
             <div className="bg-gray-50 rounded-md p-3 min-h-[60px] text-sm text-gray-600 italic border">
@@ -139,13 +167,16 @@ const PurchaseOrderHeader: React.FC<PurchaseOrderHeaderProps> = ({
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="notes"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Poznámky k objednávce
             </label>
             <textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => onInputChange('notes', e.target.value)}
+              onChange={(e) => onInputChange("notes", e.target.value)}
               rows={4}
               className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 resize-none"
               placeholder="Volitelné poznámky k objednávce..."

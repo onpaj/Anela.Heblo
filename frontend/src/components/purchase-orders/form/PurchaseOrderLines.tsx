@@ -1,8 +1,8 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
-import { PurchaseOrderLinesProps } from './PurchaseOrderTypes';
-import { calculateTotal } from './PurchaseOrderHelpers';
-import PurchaseOrderLineItem from './PurchaseOrderLineItem';
+import React from "react";
+import { Plus } from "lucide-react";
+import { PurchaseOrderLinesProps } from "./PurchaseOrderTypes";
+import { calculateTotal } from "./PurchaseOrderHelpers";
+import PurchaseOrderLineItem from "./PurchaseOrderLineItem";
 
 const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
   formData,
@@ -10,18 +10,30 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
   onAddLine,
   onRemoveLine,
   onUpdateLine,
-  onMaterialSelect
+  onMaterialSelect,
 }) => {
   return (
     <div className="space-y-3 flex flex-col h-full">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Položky objednávky</h3>
+        <h3 className="text-lg font-medium text-gray-900">
+          Položky objednávky
+        </h3>
         <div className="flex items-center space-x-4">
           {/* Total */}
-          {formData.lines.some(line => line.selectedMaterial && (line.quantity || 0) > 0 && (line.unitPrice || 0) > 0) && (
+          {formData.lines.some(
+            (line) =>
+              line.selectedMaterial &&
+              (line.quantity || 0) > 0 &&
+              (line.unitPrice || 0) > 0,
+          ) && (
             <div className="text-sm text-gray-600">
-              Celkem: <span className="font-semibold text-indigo-600 text-base">
-                {calculateTotal(formData.lines).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
+              Celkem:{" "}
+              <span className="font-semibold text-indigo-600 text-base">
+                {calculateTotal(formData.lines).toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                Kč
               </span>
             </div>
           )}
@@ -37,7 +49,7 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
           </button>
         </div>
       </div>
-      
+
       {/* Lines validation error - moved to top */}
       {errors.lines && (
         <div className="bg-red-50 border border-red-200 rounded-md p-3">

@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { ApiClient } from '../generated/api-client';
-import { 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { ApiClient } from "../generated/api-client";
+import {
   GetTransportBoxesResponse,
   GetTransportBoxByIdResponse,
   ChangeTransportBoxStateRequest,
   ChangeTransportBoxStateResponse,
-  TransportBoxState
-} from '../generated/api-client';
+  TransportBoxState,
+} from "../generated/api-client";
 
 // Define request interface matching the backend contract
 export interface GetTransportBoxesRequest {
@@ -23,10 +23,11 @@ export interface GetTransportBoxesRequest {
 // Query keys
 const transportBoxKeys = {
   all: QUERY_KEYS.transportBox,
-  lists: () => [...QUERY_KEYS.transportBox, 'list'] as const,
-  list: (filters: GetTransportBoxesRequest) => [...QUERY_KEYS.transportBox, 'list', filters] as const,
-  details: () => [...QUERY_KEYS.transportBox, 'detail'] as const,
-  detail: (id: number) => [...QUERY_KEYS.transportBox, 'detail', id] as const,
+  lists: () => [...QUERY_KEYS.transportBox, "list"] as const,
+  list: (filters: GetTransportBoxesRequest) =>
+    [...QUERY_KEYS.transportBox, "list", filters] as const,
+  details: () => [...QUERY_KEYS.transportBox, "detail"] as const,
+  detail: (id: number) => [...QUERY_KEYS.transportBox, "detail", id] as const,
 };
 
 // Helper to get the correct API client instance from generated file
@@ -47,14 +48,17 @@ export const useTransportBoxesQuery = (request: GetTransportBoxesRequest) => {
         request.state || null,
         request.productCode || null,
         request.sortBy || null,
-        request.sortDescending
+        request.sortDescending,
       );
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useTransportBoxByIdQuery = (id: number, enabled: boolean = true) => {
+export const useTransportBoxByIdQuery = (
+  id: number,
+  enabled: boolean = true,
+) => {
   return useQuery({
     queryKey: transportBoxKeys.detail(id),
     queryFn: async (): Promise<GetTransportBoxByIdResponse> => {
@@ -67,25 +71,32 @@ export const useTransportBoxByIdQuery = (id: number, enabled: boolean = true) =>
 };
 
 // Convenience hook for getting all transport boxes with default pagination
-export const useTransportBoxesList = (filters?: Omit<GetTransportBoxesRequest, 'skip' | 'take'>) => {
+export const useTransportBoxesList = (
+  filters?: Omit<GetTransportBoxesRequest, "skip" | "take">,
+) => {
   return useTransportBoxesQuery({
     skip: 0,
     take: 50,
-    sortBy: 'id',
+    sortBy: "id",
     sortDescending: true,
     ...filters,
   });
 };
 
 // Hook for transport box summary
-export const useTransportBoxSummaryQuery = (request: Omit<GetTransportBoxesRequest, 'skip' | 'take' | 'sortBy' | 'sortDescending'>) => {
+export const useTransportBoxSummaryQuery = (
+  request: Omit<
+    GetTransportBoxesRequest,
+    "skip" | "take" | "sortBy" | "sortDescending"
+  >,
+) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.transportBox, 'summary', request],
+    queryKey: [...QUERY_KEYS.transportBox, "summary", request],
     queryFn: async () => {
       const client = getTransportBoxClient();
       return await client.transportBox_GetTransportBoxSummary(
         request.code || null,
-        request.productCode || null
+        request.productCode || null,
       );
     },
     staleTime: 1000 * 60 * 2, // 2 minutes for summary
@@ -95,35 +106,52 @@ export const useTransportBoxSummaryQuery = (request: Omit<GetTransportBoxesReque
 // Mutation hook for changing transport box state
 export const useChangeTransportBoxState = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (params: { boxId: number; newState: TransportBoxState; description?: string; boxNumber?: string; location?: string }): Promise<ChangeTransportBoxStateResponse> => {
+    mutationFn: async (params: {
+      boxId: number;
+      newState: TransportBoxState;
+      description?: string;
+      boxNumber?: string;
+      location?: string;
+    }): Promise<ChangeTransportBoxStateResponse> => {
       const client = getTransportBoxClient();
       const request = new ChangeTransportBoxStateRequest({
         boxId: params.boxId,
         newState: params.newState,
         description: params.description,
         boxCode: params.boxNumber,
-        location: params.location
+        location: params.location,
       });
-      
-      const response = await client.transportBox_ChangeTransportBoxState(params.boxId, request);
-      
+
+      const response = await client.transportBox_ChangeTransportBoxState(
+        params.boxId,
+        request,
+      );
+
       // No need to check for errors here - global error handler shows toasts
       // If there was an error, SwaggerException will be thrown by generated client
       return response;
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
+      queryClient.invalidateQueries({
+        queryKey: transportBoxKeys.detail(variables.boxId),
+      });
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.transportBox, 'summary'] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.transportBox, "summary"],
+      });
+
       // Also invalidate any transition-related queries
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId],
+      });
+
       // Force refetch of the specific box detail to ensure fresh data
-      queryClient.refetchQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
+      queryClient.refetchQueries({
+        queryKey: transportBoxKeys.detail(variables.boxId),
+      });
     },
   });
 };

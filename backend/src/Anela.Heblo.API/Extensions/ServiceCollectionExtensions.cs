@@ -11,6 +11,7 @@ using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Services;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.API.Infrastructure.Hangfire;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -246,11 +247,27 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException($"Database connection string is required for Hangfire in {environment.EnvironmentName} environment. Please configure either '{environment.EnvironmentName}' or 'DefaultConnection' connection string.");
             }
 
+            // Initialize Hangfire schema before configuring Hangfire
+            using (var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole()))
+            {
+                var logger = loggerFactory.CreateLogger<HangfireSchemaInitializer>();
+                var schemaInitializer = new HangfireSchemaInitializer(connectionString, logger);
+                schemaInitializer.EnsureSchemaExistsAsync().GetAwaiter().GetResult();
+            }
+
             services.AddHangfire(config => config
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
-                .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+                .UsePostgreSqlStorage(options =>
+                {
+                    options.UseNpgsqlConnection(connectionString);
+                }, new PostgreSqlStorageOptions
+                {
+                    // Use isolated schema to avoid conflicts with other applications
+                    SchemaName = "hangfire_heblo",
+                    PrepareSchemaIfNecessary = true // We handle schema creation manually
+                }));
         }
 
         // Always add Hangfire server with Heblo queue - NEVER allow fallback to Default queue

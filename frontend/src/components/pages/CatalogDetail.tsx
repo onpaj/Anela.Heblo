@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X, Package, Loader2, AlertCircle } from 'lucide-react';
-import { CatalogItemDto, useCatalogDetail } from '../../api/hooks/useCatalog';
-import { JournalEntryDto } from '../../api/generated/api-client';
-import { useJournalEntriesByProduct } from '../../api/hooks/useJournal';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { X, Package, Loader2, AlertCircle } from "lucide-react";
+import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
+import { JournalEntryDto } from "../../api/generated/api-client";
+import { useJournalEntriesByProduct } from "../../api/hooks/useJournal";
+import { useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,10 +14,10 @@ import {
   Legend,
   LineElement,
   PointElement,
-} from 'chart.js';
-import CatalogDetailTabs from '../catalog/detail/CatalogDetailTabs';
-import CatalogDetailChartSection from '../catalog/detail/CatalogDetailChartSection';
-import CatalogDetailModals from '../catalog/detail/CatalogDetailModals';
+} from "chart.js";
+import CatalogDetailTabs from "../catalog/detail/CatalogDetailTabs";
+import CatalogDetailChartSection from "../catalog/detail/CatalogDetailChartSection";
+import CatalogDetailModals from "../catalog/detail/CatalogDetailModals";
 
 ChartJS.register(
   CategoryScale,
@@ -27,7 +27,7 @@ ChartJS.register(
   Tooltip,
   Legend,
   LineElement,
-  PointElement
+  PointElement,
 );
 
 interface CatalogDetailProps {
@@ -35,52 +35,71 @@ interface CatalogDetailProps {
   productCode?: string | null;
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'basic' | 'history' | 'margins' | 'usage';
+  defaultTab?: "basic" | "history" | "margins" | "usage";
 }
 
-const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen, onClose, defaultTab = 'basic' }) => {
-  const [activeTab, setActiveTab] = useState<'basic' | 'history' | 'margins' | 'journal' | 'usage'>(defaultTab as any);
-  const [activeChartTab, setActiveChartTab] = useState<'input' | 'output'>('output');
+const CatalogDetail: React.FC<CatalogDetailProps> = ({
+  item,
+  productCode,
+  isOpen,
+  onClose,
+  defaultTab = "basic",
+}) => {
+  const [activeTab, setActiveTab] = useState<
+    "basic" | "history" | "margins" | "journal" | "usage"
+  >(defaultTab as any);
+  const [activeChartTab, setActiveChartTab] = useState<"input" | "output">(
+    "output",
+  );
   const [showJournalModal, setShowJournalModal] = useState(false);
-  const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntryDto | undefined>(undefined);
-  const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] = useState(false);
+  const [selectedJournalEntry, setSelectedJournalEntry] = useState<
+    JournalEntryDto | undefined
+  >(undefined);
+  const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] =
+    useState(false);
   const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item
-  const effectiveProductCode = productCode || item?.productCode || '';
-  
+  const effectiveProductCode = productCode || item?.productCode || "";
+
   // Fetch detailed data from API - always use full history (999 months)
   const monthsBack = 999;
-  const { data: detailData, isLoading: detailLoading, error: detailError, refetch: refetchCatalogDetail } = useCatalogDetail(effectiveProductCode, monthsBack);
-  
+  const {
+    data: detailData,
+    isLoading: detailLoading,
+    error: detailError,
+    refetch: refetchCatalogDetail,
+  } = useCatalogDetail(effectiveProductCode, monthsBack);
+
   // Use item from prop if provided, otherwise use item from API detail data
   const effectiveItem = item || detailData?.item;
-  
+
   // Fetch journal entries for the product
-  const { data: journalData } = useJournalEntriesByProduct(effectiveProductCode);
+  const { data: journalData } =
+    useJournalEntriesByProduct(effectiveProductCode);
 
   // Reset tab and chart state when modal opens with new item or different default tab
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
-      setActiveChartTab('output'); // Default to output tab (sales/consumption)
+      setActiveChartTab("output"); // Default to output tab (sales/consumption)
     }
   }, [isOpen, defaultTab, effectiveProductCode]);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -93,11 +112,11 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
   if (!isOpen || (!effectiveItem && !detailLoading)) {
     return null;
   }
-  
+
   // Show loading spinner while fetching data
   if (!effectiveItem && detailLoading) {
     return (
-      <div 
+      <div
         onClick={handleBackdropClick}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       >
@@ -108,14 +127,14 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
       </div>
     );
   }
-  
+
   // Return null if no effective item available
   if (!effectiveItem) {
     return null;
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
@@ -125,8 +144,12 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
           <div className="flex items-center space-x-3">
             <Package className="h-6 w-6 text-indigo-600" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{effectiveItem.productName}</h2>
-              <p className="text-sm text-gray-500">Kód: {effectiveItem.productCode}</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {effectiveItem.productName}
+              </h2>
+              <p className="text-sm text-gray-500">
+                Kód: {effectiveItem.productCode}
+              </p>
             </div>
           </div>
           <button
@@ -143,7 +166,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <div className="text-gray-500">Načítání detailů produktu...</div>
+                <div className="text-gray-500">
+                  Načítání detailů produktu...
+                </div>
               </div>
             </div>
           ) : detailError ? (
@@ -164,14 +189,18 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
                   detailData={detailData}
                   isLoading={detailLoading}
                   journalEntries={journalData?.entries || []}
-                  onManufactureDifficultyClick={() => setShowManufactureDifficultyModal(true)}
+                  onManufactureDifficultyClick={() =>
+                    setShowManufactureDifficultyModal(true)
+                  }
                   onAddJournalEntry={() => setShowJournalModal(true)}
                   onEditJournalEntry={(entry) => {
                     setSelectedJournalEntry(entry);
                     setShowJournalModal(true);
                   }}
                   onViewAllEntries={() => {
-                    navigate(`/journal?productCode=${effectiveItem.productCode}`);
+                    navigate(
+                      `/journal?productCode=${effectiveItem.productCode}`,
+                    );
                     onClose();
                   }}
                 />
@@ -199,7 +228,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
           </button>
         </div>
       </div>
-      
+
       {/* Modals */}
       <CatalogDetailModals
         item={effectiveItem}
@@ -210,7 +239,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({ item, productCode, isOpen
         }}
         selectedJournalEntry={selectedJournalEntry}
         showManufactureDifficultyModal={showManufactureDifficultyModal}
-        onCloseManufactureDifficultyModal={() => setShowManufactureDifficultyModal(false)}
+        onCloseManufactureDifficultyModal={() =>
+          setShowManufactureDifficultyModal(false)
+        }
         refetchCatalogDetail={refetchCatalogDetail}
       />
     </div>

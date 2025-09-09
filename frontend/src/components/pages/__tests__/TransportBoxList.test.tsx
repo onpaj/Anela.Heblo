@@ -1,20 +1,23 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import TransportBoxList from '../TransportBoxList';
-import { useTransportBoxesQuery, useTransportBoxSummaryQuery } from '../../../api/hooks/useTransportBoxes';
-import { TestRouterWrapper } from '../../../test-utils/router-wrapper';
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import TransportBoxList from "../TransportBoxList";
+import {
+  useTransportBoxesQuery,
+  useTransportBoxSummaryQuery,
+} from "../../../api/hooks/useTransportBoxes";
+import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 
 // Mock the hooks
-jest.mock('../../../api/hooks/useTransportBoxes', () => ({
+jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxesQuery: jest.fn(),
   useTransportBoxSummaryQuery: jest.fn(),
 }));
 
 // Mock the CatalogAutocomplete component
-jest.mock('../../common/CatalogAutocomplete', () => ({
+jest.mock("../../common/CatalogAutocomplete", () => ({
   CatalogAutocomplete: jest.fn(({ onSelect, placeholder }) => (
-    <input 
+    <input
       placeholder={placeholder}
       data-testid="catalog-autocomplete"
       onChange={(e) => onSelect && onSelect(null)}
@@ -23,7 +26,7 @@ jest.mock('../../common/CatalogAutocomplete', () => ({
 }));
 
 // Mock the TransportBoxDetail component
-jest.mock('../TransportBoxDetail', () => {
+jest.mock("../TransportBoxDetail", () => {
   return function MockTransportBoxDetail({ isOpen, onClose, boxId }: any) {
     return isOpen ? (
       <div data-testid="transport-box-detail-modal">
@@ -35,29 +38,30 @@ jest.mock('../TransportBoxDetail', () => {
 });
 
 // Mock the API client for creating new boxes
-jest.mock('../../../api/client', () => ({
+jest.mock("../../../api/client", () => ({
   getAuthenticatedApiClient: jest.fn(),
   QUERY_KEYS: {
-    catalog: ['catalog'],
-    transportBox: ['transport-boxes'],
-    transportBoxTransitions: ['transportBoxTransitions']
-  }
+    catalog: ["catalog"],
+    transportBox: ["transport-boxes"],
+    transportBoxTransitions: ["transportBoxTransitions"],
+  },
 }));
 
 // Mock the generated API client
-jest.mock('../../../api/generated/api-client', () => ({
+jest.mock("../../../api/generated/api-client", () => ({
   CreateNewTransportBoxRequest: jest.fn().mockImplementation((data) => data),
   ProductType: {
-    Material: 'Material',
-    Product: 'Product',
-    SemiProduct: 'SemiProduct',
-    Goods: 'Goods',
-    UNDEFINED: 'UNDEFINED'
-  }
+    Material: "Material",
+    Product: "Product",
+    SemiProduct: "SemiProduct",
+    Goods: "Goods",
+    UNDEFINED: "UNDEFINED",
+  },
 }));
 
 const mockUseTransportBoxesQuery = useTransportBoxesQuery as jest.Mock;
-const mockUseTransportBoxSummaryQuery = useTransportBoxSummaryQuery as jest.Mock;
+const mockUseTransportBoxSummaryQuery =
+  useTransportBoxSummaryQuery as jest.Mock;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
@@ -66,12 +70,10 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
       mutations: { retry: false },
     },
   });
-  
+
   return (
     <TestRouterWrapper>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </TestRouterWrapper>
   );
 };
@@ -79,62 +81,62 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 const mockTransportBoxes = [
   {
     id: 1,
-    code: 'BOX-001',
-    state: 'New',
-    description: 'Test box 1',
-    createdAt: '2024-01-01T10:00:00Z',
-    updatedAt: '2024-01-01T10:00:00Z',
+    code: "BOX-001",
+    state: "New",
+    description: "Test box 1",
+    createdAt: "2024-01-01T10:00:00Z",
+    updatedAt: "2024-01-01T10:00:00Z",
     itemsCount: 5,
-    location: null
+    location: null,
   },
   {
     id: 2,
-    code: 'BOX-002',
-    state: 'Opened',
-    description: 'Test box 2',
-    createdAt: '2024-01-02T10:00:00Z',
-    updatedAt: '2024-01-02T10:00:00Z',
+    code: "BOX-002",
+    state: "Opened",
+    description: "Test box 2",
+    createdAt: "2024-01-02T10:00:00Z",
+    updatedAt: "2024-01-02T10:00:00Z",
     itemsCount: 3,
-    location: 'Warehouse A'
+    location: "Warehouse A",
   },
   {
     id: 3,
-    code: 'BOX-003',
-    state: 'InTransit',
-    description: 'Test box 3',
-    createdAt: '2024-01-03T10:00:00Z',
-    updatedAt: '2024-01-03T10:00:00Z',
+    code: "BOX-003",
+    state: "InTransit",
+    description: "Test box 3",
+    createdAt: "2024-01-03T10:00:00Z",
+    updatedAt: "2024-01-03T10:00:00Z",
     itemsCount: 8,
-    location: null
-  }
+    location: null,
+  },
 ];
 
 const mockSummaryData = {
   totalBoxes: 3,
   activeBoxes: 2,
   statesCounts: {
-    'New': 1,
-    'Opened': 1,
-    'InTransit': 1,
-    'Received': 0,
-    'Stocked': 0,
-    'Reserve': 0,
-    'Closed': 0,
-    'Error': 0
-  }
+    New: 1,
+    Opened: 1,
+    InTransit: 1,
+    Received: 0,
+    Stocked: 0,
+    Reserve: 0,
+    Closed: 0,
+    Error: 0,
+  },
 };
 
-describe('TransportBoxList', () => {
+describe("TransportBoxList", () => {
   const mockRefetch = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockUseTransportBoxesQuery.mockReturnValue({
       data: {
         items: mockTransportBoxes,
         totalCount: 3,
-        totalPages: 1
+        totalPages: 1,
       },
       isLoading: false,
       error: null,
@@ -148,41 +150,41 @@ describe('TransportBoxList', () => {
     });
   });
 
-  describe('Basic rendering', () => {
-    it('should render transport box list correctly', () => {
+  describe("Basic rendering", () => {
+    it("should render transport box list correctly", () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Transportní boxy')).toBeInTheDocument();
-      expect(screen.getByText('Otevřít nový box')).toBeInTheDocument();
-      
+      expect(screen.getByText("Transportní boxy")).toBeInTheDocument();
+      expect(screen.getByText("Otevřít nový box")).toBeInTheDocument();
+
       // Controls should be expanded by default, so search input should be visible
-      expect(screen.getByPlaceholderText('Kód boxu...')).toBeInTheDocument();
-      expect(screen.getByText('Kód boxu')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Kód boxu...")).toBeInTheDocument();
+      expect(screen.getByText("Kód boxu")).toBeInTheDocument();
     });
 
-    it('should display transport boxes in table', () => {
+    it("should display transport boxes in table", () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('BOX-001')).toBeInTheDocument();
-      expect(screen.getByText('BOX-002')).toBeInTheDocument();
-      expect(screen.getByText('BOX-003')).toBeInTheDocument();
-      
+      expect(screen.getByText("BOX-001")).toBeInTheDocument();
+      expect(screen.getByText("BOX-002")).toBeInTheDocument();
+      expect(screen.getByText("BOX-003")).toBeInTheDocument();
+
       // Check for state labels in table
-      expect(screen.getByText('Nový')).toBeInTheDocument();
-      expect(screen.getByText('Otevřený')).toBeInTheDocument();
-      expect(screen.getByText('V přepravě')).toBeInTheDocument();
+      expect(screen.getByText("Nový")).toBeInTheDocument();
+      expect(screen.getByText("Otevřený")).toBeInTheDocument();
+      expect(screen.getByText("V přepravě")).toBeInTheDocument();
     });
 
-    it('should display summary statistics', () => {
+    it("should display summary statistics", () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Celkem:')).toBeInTheDocument();
-      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.getByText("Celkem:")).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
     });
   });
 
-  describe('Loading state', () => {
-    it('should show loading spinner when data is loading', () => {
+  describe("Loading state", () => {
+    it("should show loading spinner when data is loading", () => {
       mockUseTransportBoxesQuery.mockReturnValue({
         data: null,
         isLoading: true,
@@ -192,187 +194,199 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Načítání dat...')).toBeInTheDocument();
+      expect(screen.getByText("Načítání dat...")).toBeInTheDocument();
     });
   });
 
-  describe('Error state', () => {
-    it('should show error message when data loading fails', () => {
+  describe("Error state", () => {
+    it("should show error message when data loading fails", () => {
       mockUseTransportBoxesQuery.mockReturnValue({
         data: null,
         isLoading: false,
-        error: new Error('Network error'),
+        error: new Error("Network error"),
         refetch: mockRefetch,
       });
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Chyba při načítání transportních boxů')).toBeInTheDocument();
-      expect(screen.getByText('Zkusit znovu')).toBeInTheDocument();
+      expect(
+        screen.getByText("Chyba při načítání transportních boxů"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
     });
 
-    it('should retry loading when retry button is clicked', () => {
+    it("should retry loading when retry button is clicked", () => {
       mockUseTransportBoxesQuery.mockReturnValue({
         data: null,
         isLoading: false,
-        error: new Error('Network error'),
+        error: new Error("Network error"),
         refetch: mockRefetch,
       });
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const retryButton = screen.getByText('Zkusit znovu');
+      const retryButton = screen.getByText("Zkusit znovu");
       fireEvent.click(retryButton);
 
       expect(mockRefetch).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Filtering functionality', () => {
-    it('should filter by code when search is performed', async () => {
+  describe("Filtering functionality", () => {
+    it("should filter by code when search is performed", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const searchInput = screen.getByPlaceholderText('Kód boxu...');
+      const searchInput = screen.getByPlaceholderText("Kód boxu...");
 
-      fireEvent.change(searchInput, { target: { value: 'BOX-001' } });
-      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
+      fireEvent.change(searchInput, { target: { value: "BOX-001" } });
+      fireEvent.keyPress(searchInput, {
+        key: "Enter",
+        code: "Enter",
+        charCode: 13,
+      });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            code: 'BOX-001',
+            code: "BOX-001",
             skip: 0,
-            take: 20
-          })
+            take: 20,
+          }),
         );
       });
     });
 
-    it('should filter by state when state filter is selected', async () => {
+    it("should filter by state when state filter is selected", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Find the "New" state button in expanded view (contains text "Nový:" and count)
-      const newStateButton = screen.getByRole('button', { name: /nový:/i });
+      const newStateButton = screen.getByRole("button", { name: /nový:/i });
       fireEvent.click(newStateButton);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            state: 'New',
+            state: "New",
             skip: 0,
-            take: 20
-          })
+            take: 20,
+          }),
         );
       });
     });
 
-    it('should trigger search on Enter key press', async () => {
+    it("should trigger search on Enter key press", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const searchInput = screen.getByPlaceholderText('Kód boxu...');
-      
-      fireEvent.change(searchInput, { target: { value: 'BOX-002' } });
-      fireEvent.keyPress(searchInput, { key: 'Enter', code: 'Enter', charCode: 13 });
+      const searchInput = screen.getByPlaceholderText("Kód boxu...");
+
+      fireEvent.change(searchInput, { target: { value: "BOX-002" } });
+      fireEvent.keyPress(searchInput, {
+        key: "Enter",
+        code: "Enter",
+        charCode: 13,
+      });
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            code: 'BOX-002'
-          })
+            code: "BOX-002",
+          }),
         );
       });
     });
 
-    it('should render filter controls section', async () => {
+    it("should render filter controls section", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Check that the expanded controls section renders properly
-      expect(screen.getByText('Filtry')).toBeInTheDocument();
-      expect(screen.getByText('Kód boxu')).toBeInTheDocument();
-      expect(screen.getByText('Produkt v boxu')).toBeInTheDocument();
+      expect(screen.getByText("Filtry")).toBeInTheDocument();
+      expect(screen.getByText("Kód boxu")).toBeInTheDocument();
+      expect(screen.getByText("Produkt v boxu")).toBeInTheDocument();
     });
   });
 
-  describe('State filter from summary cards', () => {
-    it('should filter by state when summary card is clicked', async () => {
+  describe("State filter from summary cards", () => {
+    it("should filter by state when summary card is clicked", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // First collapse controls to show state summary cards
-      const collapseButton = screen.getByRole('button', { name: /filtry a nastavení/i });
+      const collapseButton = screen.getByRole("button", {
+        name: /filtry a nastavení/i,
+      });
       fireEvent.click(collapseButton);
 
       // Now find a summary card button with title "Nový" state
-      const newStateCard = screen.getByTitle('Nový');
+      const newStateCard = screen.getByTitle("Nový");
       fireEvent.click(newStateCard);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            state: 'New',
-            skip: 0
-          })
+            state: "New",
+            skip: 0,
+          }),
         );
       });
     });
   });
 
-  describe('Sorting functionality', () => {
-    it('should sort by column when column header is clicked', async () => {
+  describe("Sorting functionality", () => {
+    it("should sort by column when column header is clicked", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const codeHeader = screen.getByText('Kód');
+      const codeHeader = screen.getByText("Kód");
       fireEvent.click(codeHeader);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            sortBy: 'code',
+            sortBy: "code",
             sortDescending: true,
-            skip: 0
-          })
+            skip: 0,
+          }),
         );
       });
     });
 
-    it('should toggle sort direction when same column is clicked twice', async () => {
+    it("should toggle sort direction when same column is clicked twice", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const codeHeader = screen.getByText('Kód');
-      
+      const codeHeader = screen.getByText("Kód");
+
       // First click - should sort descending
       fireEvent.click(codeHeader);
-      
+
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            sortBy: 'code',
-            sortDescending: true
-          })
+            sortBy: "code",
+            sortDescending: true,
+          }),
         );
       });
 
       // Second click - should sort ascending
       fireEvent.click(codeHeader);
-      
+
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            sortBy: 'code',
-            sortDescending: false
-          })
+            sortBy: "code",
+            sortDescending: false,
+          }),
         );
       });
     });
   });
 
-  describe('Pagination functionality', () => {
-    it('should navigate to next page when next button is clicked', async () => {
+  describe("Pagination functionality", () => {
+    it("should navigate to next page when next button is clicked", async () => {
       // Mock data with multiple pages
       mockUseTransportBoxesQuery.mockReturnValue({
         data: {
           items: mockTransportBoxes,
           totalCount: 50, // More than 20 items to enable pagination
-          totalPages: 3
+          totalPages: 3,
         },
         isLoading: false,
         error: null,
@@ -381,26 +395,26 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const nextButton = screen.getByRole('button', { name: /další/i });
+      const nextButton = screen.getByRole("button", { name: /další/i });
       fireEvent.click(nextButton);
 
       await waitFor(() => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
             skip: 20,
-            take: 20
-          })
+            take: 20,
+          }),
         );
       });
     });
 
-    it('should navigate to specific page when page number is clicked', async () => {
+    it("should navigate to specific page when page number is clicked", async () => {
       // Mock data with multiple pages
       mockUseTransportBoxesQuery.mockReturnValue({
         data: {
           items: mockTransportBoxes,
           totalCount: 50,
-          totalPages: 3
+          totalPages: 3,
         },
         isLoading: false,
         error: null,
@@ -409,9 +423,11 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const pageButtons = screen.getAllByText('2');
+      const pageButtons = screen.getAllByText("2");
       // Find the pagination button (should be in a button element)
-      const pageButton = pageButtons.find(element => element.tagName === 'BUTTON');
+      const pageButton = pageButtons.find(
+        (element) => element.tagName === "BUTTON",
+      );
       expect(pageButton).toBeDefined();
       fireEvent.click(pageButton!);
 
@@ -419,54 +435,62 @@ describe('TransportBoxList', () => {
         expect(mockUseTransportBoxesQuery).toHaveBeenLastCalledWith(
           expect.objectContaining({
             skip: 20,
-            take: 20
-          })
+            take: 20,
+          }),
         );
       });
     });
   });
 
-  describe('Transport box detail modal', () => {
-    it('should open detail modal when box row is clicked', async () => {
+  describe("Transport box detail modal", () => {
+    it("should open detail modal when box row is clicked", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      const boxRow = screen.getByRole("row", { name: /box-001/i });
       fireEvent.click(boxRow);
 
       await waitFor(() => {
-        expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
+        expect(
+          screen.getByTestId("transport-box-detail-modal"),
+        ).toBeInTheDocument();
       });
-      expect(screen.getByText('Transport Box Detail Modal - Box ID: 1')).toBeInTheDocument();
+      expect(
+        screen.getByText("Transport Box Detail Modal - Box ID: 1"),
+      ).toBeInTheDocument();
     });
 
-    it('should close detail modal when close button is clicked', async () => {
+    it("should close detail modal when close button is clicked", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Open modal first
-      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      const boxRow = screen.getByRole("row", { name: /box-001/i });
       fireEvent.click(boxRow);
 
       await waitFor(() => {
-        expect(screen.getByTestId('transport-box-detail-modal')).toBeInTheDocument();
+        expect(
+          screen.getByTestId("transport-box-detail-modal"),
+        ).toBeInTheDocument();
       });
 
       // Close modal
-      const closeButton = screen.getByText('Close Modal');
+      const closeButton = screen.getByText("Close Modal");
       fireEvent.click(closeButton);
 
       await waitFor(() => {
-        expect(screen.queryByTestId('transport-box-detail-modal')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("transport-box-detail-modal"),
+        ).not.toBeInTheDocument();
       });
     });
 
-    it('should refetch data when detail modal is closed', async () => {
+    it("should refetch data when detail modal is closed", async () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Open and close modal
-      const boxRow = screen.getByRole('row', { name: /box-001/i });
+      const boxRow = screen.getByRole("row", { name: /box-001/i });
       fireEvent.click(boxRow);
 
-      const closeButton = await screen.findByText('Close Modal');
+      const closeButton = await screen.findByText("Close Modal");
       fireEvent.click(closeButton);
 
       await waitFor(() => {
@@ -475,89 +499,105 @@ describe('TransportBoxList', () => {
     });
   });
 
-  describe('Create new transport box', () => {
+  describe("Create new transport box", () => {
     it('should create new box when "Otevřít nový box" is clicked', async () => {
       const mockApiClient = {
         transportBox_CreateNewTransportBox: jest.fn().mockResolvedValue({
           success: true,
-          transportBox: { id: 4, code: 'BOX-004' },
-          errorMessage: null
-        })
+          transportBox: { id: 4, code: "BOX-004" },
+          errorMessage: null,
+        }),
       };
 
-      const { getAuthenticatedApiClient } = require('../../../api/client');
+      const { getAuthenticatedApiClient } = require("../../../api/client");
       (getAuthenticatedApiClient as jest.Mock).mockResolvedValue(mockApiClient);
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const createButton = screen.getByText('Otevřít nový box');
+      const createButton = screen.getByText("Otevřít nový box");
       fireEvent.click(createButton);
 
-      await waitFor(() => {
-        expect(mockApiClient.transportBox_CreateNewTransportBox).toHaveBeenCalled();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(
+            mockApiClient.transportBox_CreateNewTransportBox,
+          ).toHaveBeenCalled();
+        },
+        { timeout: 3000 },
+      );
 
       // Should open detail modal for new box
       await waitFor(() => {
-        expect(screen.getByText('Transport Box Detail Modal - Box ID: 4')).toBeInTheDocument();
+        expect(
+          screen.getByText("Transport Box Detail Modal - Box ID: 4"),
+        ).toBeInTheDocument();
       });
 
       // Should refresh the list
       expect(mockRefetch).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle create box error gracefully', async () => {
+    it("should handle create box error gracefully", async () => {
       const mockApiClient = {
         transportBox_CreateNewTransportBox: jest.fn().mockResolvedValue({
           success: false,
           transportBox: null,
-          errorCode: 'Failed to create box'
-        })
+          errorCode: "Failed to create box",
+        }),
       };
 
-      const { getAuthenticatedApiClient } = await import('../../../api/client');
+      const { getAuthenticatedApiClient } = await import("../../../api/client");
       (getAuthenticatedApiClient as jest.Mock).mockResolvedValue(mockApiClient);
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const createButton = screen.getByText('Otevřít nový box');
+      const createButton = screen.getByText("Otevřít nový box");
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Error creating transport box:', 'Failed to create box');
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Error creating transport box:",
+          "Failed to create box",
+        );
       });
 
       consoleSpy.mockRestore();
     });
   });
 
-  describe('Controls collapse functionality', () => {
-    it('should toggle controls visibility when collapse button is clicked', () => {
+  describe("Controls collapse functionality", () => {
+    it("should toggle controls visibility when collapse button is clicked", () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
       // Find the collapse button (chevron) - text may include count in parentheses
-      const collapseButton = screen.getByRole('button', { name: /filtry a nastavení/i });
-      
+      const collapseButton = screen.getByRole("button", {
+        name: /filtry a nastavení/i,
+      });
+
       // Initially controls should be visible
-      expect(screen.getByPlaceholderText('Kód boxu...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Kód boxu...")).toBeInTheDocument();
 
       // Click to collapse
       fireEvent.click(collapseButton);
 
       // Controls should be hidden - the input should no longer be visible
-      expect(screen.queryByPlaceholderText('Kód boxu...')).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText("Kód boxu..."),
+      ).not.toBeInTheDocument();
     });
   });
 
-  describe('Empty state', () => {
-    it('should show empty state when no boxes are found', () => {
+  describe("Empty state", () => {
+    it("should show empty state when no boxes are found", () => {
       mockUseTransportBoxesQuery.mockReturnValue({
         data: {
           items: [],
           totalCount: 0,
-          totalPages: 0
+          totalPages: 0,
         },
         isLoading: false,
         error: null,
@@ -566,15 +606,15 @@ describe('TransportBoxList', () => {
 
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      expect(screen.getByText('Žádné výsledky')).toBeInTheDocument();
+      expect(screen.getByText("Žádné výsledky")).toBeInTheDocument();
     });
   });
 
-  describe('Refresh functionality', () => {
-    it('should refresh data when refresh button is clicked', () => {
+  describe("Refresh functionality", () => {
+    it("should refresh data when refresh button is clicked", () => {
       render(<TransportBoxList />, { wrapper: createWrapper });
 
-      const refreshButton = screen.getByRole('button', { name: /obnovit/i });
+      const refreshButton = screen.getByRole("button", { name: /obnovit/i });
       fireEvent.click(refreshButton);
 
       expect(mockRefetch).toHaveBeenCalledTimes(1);

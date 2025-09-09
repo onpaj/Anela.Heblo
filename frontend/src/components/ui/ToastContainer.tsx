@@ -1,6 +1,6 @@
-import React from 'react';
-import { createPortal } from 'react-dom';
-import Toast, { ToastProps } from './Toast';
+import React from "react";
+import { createPortal } from "react-dom";
+import Toast, { ToastProps } from "./Toast";
 
 interface ToastContainerProps {
   toasts: ToastProps[];
@@ -16,7 +16,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onClose }) => {
         <Toast key={toast.id} {...toast} onClose={onClose} />
       ))}
     </div>,
-    document.body
+    document.body,
   );
 };
 

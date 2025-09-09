@@ -1,7 +1,7 @@
-import { UserInfo } from './useAuth';
+import { UserInfo } from "./useAuth";
 
-const USER_INFO_KEY = 'anela_heblo_user_info';
-const LAST_LOGIN_KEY = 'anela_heblo_last_login';
+const USER_INFO_KEY = "anela_heblo_user_info";
+const LAST_LOGIN_KEY = "anela_heblo_last_login";
 
 export interface StoredUserInfo extends UserInfo {
   lastLogin: string;
@@ -28,9 +28,9 @@ export class UserStorage {
       sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(storedUserInfo));
       sessionStorage.setItem(LAST_LOGIN_KEY, storedUserInfo.lastLogin);
 
-      console.log('User info stored successfully');
+      console.log("User info stored successfully");
     } catch (error) {
-      console.warn('Failed to store user info:', error);
+      console.warn("Failed to store user info:", error);
     }
   }
 
@@ -46,14 +46,14 @@ export class UserStorage {
 
       // Check if expired
       if (userInfo.expiresAt && new Date() > new Date(userInfo.expiresAt)) {
-        console.log('Stored user info expired, clearing...');
+        console.log("Stored user info expired, clearing...");
         this.clearUserInfo();
         return null;
       }
 
       return userInfo;
     } catch (error) {
-      console.warn('Failed to retrieve user info:', error);
+      console.warn("Failed to retrieve user info:", error);
       return null;
     }
   }
@@ -65,9 +65,9 @@ export class UserStorage {
     try {
       sessionStorage.removeItem(USER_INFO_KEY);
       sessionStorage.removeItem(LAST_LOGIN_KEY);
-      console.log('User info cleared from storage');
+      console.log("User info cleared from storage");
     } catch (error) {
-      console.warn('Failed to clear user info:', error);
+      console.warn("Failed to clear user info:", error);
     }
   }
 
@@ -87,7 +87,7 @@ export class UserStorage {
       const lastLogin = sessionStorage.getItem(LAST_LOGIN_KEY);
       return lastLogin ? new Date(lastLogin) : null;
     } catch (error) {
-      console.warn('Failed to get last login:', error);
+      console.warn("Failed to get last login:", error);
       return null;
     }
   }

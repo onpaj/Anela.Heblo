@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { useQuery } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 export interface ManufactureOutputResponse {
   months: ManufactureOutputMonth[];
@@ -37,18 +37,20 @@ export const useManufactureOutputQuery = (monthsBack: number = 13) => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/manufacture-output?monthsBack=${monthsBack}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json',
+          Accept: "application/json",
         },
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch manufacture output: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch manufacture output: ${response.statusText}`,
+        );
       }
-      
+
       const data = await response.json();
       return data as ManufactureOutputResponse;
     },
@@ -59,10 +61,20 @@ export const useManufactureOutputQuery = (monthsBack: number = 13) => {
 
 // Helper function to format month display
 export const formatMonthDisplay = (monthStr: string): string => {
-  const [year, month] = monthStr.split('-');
+  const [year, month] = monthStr.split("-");
   const months = [
-    'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
-    'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
+    "Leden",
+    "Únor",
+    "Březen",
+    "Duben",
+    "Květen",
+    "Červen",
+    "Červenec",
+    "Srpen",
+    "Září",
+    "Říjen",
+    "Listopad",
+    "Prosinec",
   ];
   const monthIndex = parseInt(month, 10) - 1;
   return `${months[monthIndex]} ${year}`;
@@ -70,10 +82,20 @@ export const formatMonthDisplay = (monthStr: string): string => {
 
 // Helper function to get month short name
 export const getMonthShortName = (monthStr: string): string => {
-  const [, month] = monthStr.split('-');
+  const [, month] = monthStr.split("-");
   const monthsShort = [
-    'Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer',
-    'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'
+    "Led",
+    "Úno",
+    "Bře",
+    "Dub",
+    "Kvě",
+    "Čer",
+    "Čvc",
+    "Srp",
+    "Zář",
+    "Říj",
+    "Lis",
+    "Pro",
   ];
   const monthIndex = parseInt(month, 10) - 1;
   return monthsShort[monthIndex];
