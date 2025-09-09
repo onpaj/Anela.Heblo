@@ -3,6 +3,7 @@ using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 
@@ -11,13 +12,15 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
 {
     private readonly FlexiIntegrationTestFixture _fixture;
     private readonly IBoMClient _bomClient;
+    private readonly IProductSetsClient _productSetsClient;
     private readonly FlexiManufactureRepository _repository;
 
     public FlexiManufactureRepositoryIntegrationTests(FlexiIntegrationTestFixture fixture)
     {
         _fixture = fixture;
         _bomClient = _fixture.ServiceProvider.GetRequiredService<IBoMClient>();
-        _repository = new FlexiManufactureRepository(_bomClient);
+        _productSetsClient = _fixture.ServiceProvider.GetRequiredService<IProductSetsClient>();
+        _repository = new FlexiManufactureRepository(_bomClient, _productSetsClient);
     }
 
     [Theory]

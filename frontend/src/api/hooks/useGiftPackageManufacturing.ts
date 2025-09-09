@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { ApiClient as GeneratedApiClient } from "../generated/api-client";
 import {
   GetAvailableGiftPackagesResponse,
@@ -11,18 +11,6 @@ import {
   GetManufactureLogResponse,
 } from "../generated/api-client";
 
-// Query keys
-const giftPackageKeys = {
-  all: ["gift-packages"] as const,
-  available: () => [...giftPackageKeys.all, "available"] as const,
-  detail: (giftPackageCode: string) => [...giftPackageKeys.all, "detail", giftPackageCode] as const,
-  validation: () => [...giftPackageKeys.all, "validation"] as const,
-  validateStock: (giftPackageCode: string, quantity: number) =>
-    [...giftPackageKeys.validation(), giftPackageCode, quantity] as const,
-  manufacture: () => [...giftPackageKeys.all, "manufacture"] as const,
-  log: () => [...giftPackageKeys.manufacture(), "log"] as const,
-  logWithCount: (count: number) => [...giftPackageKeys.log(), count] as const,
-};
 
 // Helper to get the correct API client instance
 export const getGiftPackageClient = (): GeneratedApiClient => {
@@ -42,7 +30,7 @@ export interface GiftPackageQueryParams {
  */
 export const useAvailableGiftPackages = (params?: GiftPackageQueryParams) => {
   return useQuery({
-    queryKey: [...giftPackageKeys.available(), params?.fromDate, params?.toDate],
+    queryKey: [...QUERY_KEYS.giftPackages, "available", params?.fromDate, params?.toDate],
     queryFn: async (): Promise<GetAvailableGiftPackagesResponse> => {
       const client = getGiftPackageClient();
       // TODO: When API supports date parameters, pass them here:
@@ -59,7 +47,7 @@ export const useAvailableGiftPackages = (params?: GiftPackageQueryParams) => {
  */
 export const useGiftPackageDetail = (giftPackageCode?: string) => {
   return useQuery({
-    queryKey: giftPackageKeys.detail(giftPackageCode || ""),
+    queryKey: [...QUERY_KEYS.giftPackages, "detail", giftPackageCode || ""],
     queryFn: async (): Promise<GetGiftPackageDetailResponse> => {
       if (!giftPackageCode) {
         throw new Error("Gift package code is required");
@@ -82,7 +70,7 @@ export const useValidateGiftPackageStock = (
   quantity?: number
 ) => {
   return useQuery({
-    queryKey: giftPackageKeys.validateStock(giftPackageCode || "", quantity || 0),
+    queryKey: [...QUERY_KEYS.giftPackages, "validation", giftPackageCode || "", quantity || 0],
     queryFn: async (): Promise<ValidateGiftPackageStockResponse> => {
       if (!giftPackageCode || !quantity) {
         throw new Error("Gift package code and quantity are required");
@@ -127,9 +115,9 @@ export const useCreateGiftPackageManufacture = () => {
     },
     onSuccess: () => {
       // Invalidate and refetch related queries after successful manufacturing
-      queryClient.invalidateQueries({ queryKey: giftPackageKeys.available() });
-      queryClient.invalidateQueries({ queryKey: giftPackageKeys.log() });
-      queryClient.invalidateQueries({ queryKey: giftPackageKeys.validation() });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "available"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "validation"] });
     },
   });
 };
@@ -139,7 +127,7 @@ export const useCreateGiftPackageManufacture = () => {
  */
 export const useManufactureLog = (count: number = 10) => {
   return useQuery({
-    queryKey: giftPackageKeys.logWithCount(count),
+    queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log", count],
     queryFn: async (): Promise<GetManufactureLogResponse> => {
       const client = getGiftPackageClient();
       return await client.logistics_GetManufactureLog(count);
@@ -149,5 +137,12 @@ export const useManufactureLog = (count: number = 10) => {
   });
 };
 
-// Export query keys for external use (e.g., manual cache invalidation)
-export { giftPackageKeys };
+// Export centralized query key factory for external use (e.g., manual cache invalidation)
+export const giftPackageQueryKeys = {
+  all: () => QUERY_KEYS.giftPackages,
+  available: () => [...QUERY_KEYS.giftPackages, "available"] as const,
+  detail: (giftPackageCode: string) => [...QUERY_KEYS.giftPackages, "detail", giftPackageCode] as const,
+  validation: () => [...QUERY_KEYS.giftPackages, "validation"] as const,
+  manufacture: () => [...QUERY_KEYS.giftPackages, "manufacture"] as const,
+  log: () => [...QUERY_KEYS.giftPackages, "manufacture", "log"] as const,
+};
