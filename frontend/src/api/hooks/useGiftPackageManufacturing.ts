@@ -30,14 +30,23 @@ export const getGiftPackageClient = (): GeneratedApiClient => {
   return apiClient as any as GeneratedApiClient;
 };
 
+// Parameters for gift package queries (for future API extensions)
+export interface GiftPackageQueryParams {
+  fromDate?: Date;
+  toDate?: Date;
+}
+
 /**
  * Hook to get available gift packages (without detailed BOM information)
+ * Note: Current API doesn't support date parameters, but hook is prepared for future extension
  */
-export const useAvailableGiftPackages = () => {
+export const useAvailableGiftPackages = (params?: GiftPackageQueryParams) => {
   return useQuery({
-    queryKey: giftPackageKeys.available(),
+    queryKey: [...giftPackageKeys.available(), params?.fromDate, params?.toDate],
     queryFn: async (): Promise<GetAvailableGiftPackagesResponse> => {
       const client = getGiftPackageClient();
+      // TODO: When API supports date parameters, pass them here:
+      // return await client.logistics_GetAvailableGiftPackages(params?.fromDate, params?.toDate);
       return await client.logistics_GetAvailableGiftPackages();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

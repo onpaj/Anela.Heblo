@@ -40,14 +40,23 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         var giftPackages = new List<GiftPackageDto>();
 
+        // Calculate date range for daily sales calculation (last 12 months)
+        var toDate = _timeProvider.GetUtcNow().DateTime;
+        var fromDate = toDate.AddYears(-1);
+        var daysDiff = Math.Max((toDate - fromDate).Days, 1);
+
         foreach (var product in setProducts)
         {
+            // Calculate daily sales from sales history
+            var totalSalesInPeriod = product.GetTotalSold(fromDate, toDate);
+            var dailySales = (decimal)(totalSalesInPeriod / daysDiff);
+
             var giftPackage = new GiftPackageDto
             {
                 Code = product.ProductCode,
                 Name = product.ProductName,
                 AvailableStock = (int)product.Stock.Available,
-                DailySales = 0, // TODO: Calculate from SalesHistory
+                DailySales = dailySales,
                 OverstockLimit = (int)product.Properties.StockMinSetup
                 // Ingredients will be loaded separately when detail is requested
             };
@@ -68,13 +77,22 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
         }
 
+        // Calculate date range for daily sales calculation (last 12 months)
+        var toDate = _timeProvider.GetUtcNow().DateTime;
+        var fromDate = toDate.AddYears(-1);
+        var daysDiff = Math.Max((toDate - fromDate).Days, 1);
+
+        // Calculate daily sales from sales history
+        var totalSalesInPeriod = product.GetTotalSold(fromDate, toDate);
+        var dailySales = (decimal)(totalSalesInPeriod / daysDiff);
+
         // Create the detailed gift package with ingredients
         var giftPackage = new GiftPackageDto
         {
             Code = product.ProductCode,
             Name = product.ProductName,
             AvailableStock = (int)product.Stock.Available,
-            DailySales = 0, // TODO: Calculate from SalesHistory
+            DailySales = dailySales,
             OverstockLimit = (int)product.Properties.StockMinSetup,
             Ingredients = new List<GiftPackageIngredientDto>()
         };

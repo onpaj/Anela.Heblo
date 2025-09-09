@@ -1,565 +1,1255 @@
-import React, { useState, useEffect, useRef } from "react";
-import { 
-  Package, 
-  Clock, 
-  Users, 
-  Plus,
+import React, { useState, useMemo } from "react";
+import {
+  Search,
   RefreshCw,
-  AlertCircle,
-  X,
-  TrendingUp,
+  Download,
+  AlertTriangle,
+  TrendingDown,
+  CheckCircle,
+  Package,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  HelpCircle,
+  Plus,
   Info,
-  Search
 } from "lucide-react";
-import {
-  useAvailableGiftPackages,
-  useManufactureLog,
-  getGiftPackageClient,
-} from "../../api/hooks/useGiftPackageManufacturing";
-import {
-  GiftPackageDto,
-  GetGiftPackageDetailResponse,
-} from "../../api/generated/api-client";
-import { formatDistanceToNow } from "date-fns";
+import { useGiftPackageDetail, useAvailableGiftPackages } from "../../api/hooks/useGiftPackageManufacturing";
+import { StockSeverity } from "../../api/generated/api-client";
 import CatalogDetail from "./CatalogDetail";
+import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+
+// Filter types
+interface GiftPackageFilters {
+  fromDate: Date;
+  toDate: Date;
+  searchTerm: string;
+  severity: StockSeverity | "All";
+  pageNumber: number;
+  pageSize: number;
+  sortBy: GiftPackageSortBy;
+  sortDescending: boolean;
+}
+
+enum GiftPackageSortBy {
+  ProductCode = "ProductCode",
+  ProductName = "ProductName",
+  AvailableStock = "AvailableStock",
+  DailySales = "DailySales",
+  SuggestedQuantity = "SuggestedQuantity",
+}
+
+interface GiftPackage {
+  code: string;
+  name: string;
+  availableStock: number;
+  dailySales: number;
+  suggestedQuantity: number;
+  severity: StockSeverity;
+}
+
+interface GiftPackageSummary {
+  totalPackages: number;
+  criticalCount: number;
+  lowStockCount: number;
+  optimalCount: number;
+  overstockedCount: number;
+  notConfiguredCount: number;
+}
 
 const GiftPackageManufacturing: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'production' | 'log'>('production');
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedPackage, setSelectedPackage] = useState<GiftPackageDto | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [searchFilter, setSearchFilter] = useState<string>('');
+  // State for filters
+  const [filters, setFilters] = useState<GiftPackageFilters>({
+    fromDate: new Date(
+      new Date().getFullYear() - 1,
+      new Date().getMonth(),
+      new Date().getDate(),
+    ),
+    toDate: new Date(),
+    searchTerm: "",
+    severity: "All",
+    pageNumber: 1,
+    pageSize: 20,
+    sortBy: GiftPackageSortBy.SuggestedQuantity,
+    sortDescending: true,
+  });
+
+  // State for manufacturing modal 
+  const [selectedPackage, setSelectedPackage] = useState<GiftPackage | null>(null);
+  const [isManufactureModalOpen, setIsManufactureModalOpen] = useState(false);
+  
+  // State for catalog detail modal
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
-  const [selectedPackageCode, setSelectedPackageCode] = useState<string>('');
-  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
-  const [loadedGiftPackageDetail, setLoadedGiftPackageDetail] = useState<GetGiftPackageDetailResponse | null>(null);
-  
-  // Refs
-  const quantityInputRef = useRef<HTMLInputElement>(null);
-  
-  // API hooks
-  const { data: availablePackages, isLoading: packagesLoading, error: packagesError } = useAvailableGiftPackages();
-  const { data: manufactureLog, refetch: refetchLog } = useManufactureLog(20);
+  const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
 
-  // Filter packages based on search input
-  const filteredPackages = availablePackages?.giftPackages?.filter(pkg => 
-    (pkg.name?.toLowerCase().includes(searchFilter.toLowerCase()) || false) ||
-    (pkg.code?.toLowerCase().includes(searchFilter.toLowerCase()) || false)
-  ) || [];
+  // State for collapsible sections
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+  
+  // Load gift package data from backend with date parameters
+  const { data: giftPackageData, isLoading: giftPackageLoading, error: giftPackageError, refetch } = useAvailableGiftPackages({
+    fromDate: filters.fromDate,
+    toDate: filters.toDate
+  });
+  
+  // Load gift package detail with components when modal is open
+  const { data: giftPackageDetail, isLoading: detailLoading } = useGiftPackageDetail(
+    selectedPackage?.code
+  );
 
-  // Calculate suggested quantity and maximum manufacturable quantity
-  const calculateQuantities = (pkg: GiftPackageDto) => {
-    // Use detailed data if available, otherwise fallback to basic data
-    const ingredients = loadedGiftPackageDetail?.giftPackage?.ingredients || pkg.ingredients;
+  // Process gift package data with date-range-based calculation
+  const { giftPackages, summary } = useMemo(() => {
+    if (!giftPackageData?.giftPackages) return { giftPackages: [], summary: null };
     
-    if (!ingredients || ingredients.length === 0) return { maxQuantity: 0, suggestedQuantity: 0 };
+    const packages: GiftPackage[] = giftPackageData.giftPackages.map(pkg => {
+        const availableStock = pkg.availableStock ?? 0;
+        const dailySales = pkg.dailySales ?? 0;
+        
+        // Calculate period for reference (currently unused but may be useful for future features)
+        const daysDiff = Math.ceil((filters.toDate.getTime() - filters.fromDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Calculate suggested quantity for weekly production
+        const suggestedQuantity = Math.max(0, Math.ceil(dailySales * 7) - availableStock);
+        
+        // Severity calculation based on backend data
+        let severity: StockSeverity;
+        if (availableStock <= 0 || (dailySales > 0 && availableStock < dailySales * 2)) {
+          severity = StockSeverity.Critical;
+        } else if (dailySales > 0 && availableStock < dailySales * 7) {
+          severity = StockSeverity.Low;
+        } else if (pkg.overstockLimit && availableStock > pkg.overstockLimit) {
+          severity = StockSeverity.Overstocked;
+        } else if (dailySales > 0) {
+          severity = StockSeverity.Optimal;
+        } else {
+          severity = StockSeverity.NotConfigured;
+        }
+        
+        return {
+          code: pkg.code!,
+          name: pkg.name!,
+          availableStock,
+          dailySales,
+          suggestedQuantity,
+          severity,
+        };
+      });
     
-    const maxQuantity = Math.min(
-      ...ingredients.map(ingredient => 
-        Math.floor((ingredient.availableStock || 0) / (ingredient.requiredQuantity || 1))
-      )
-    );
+    // Calculate summary
+    const summaryData: GiftPackageSummary = {
+      totalPackages: packages.length,
+      criticalCount: packages.filter(p => p.severity === StockSeverity.Critical).length,
+      lowStockCount: packages.filter(p => p.severity === StockSeverity.Low).length,
+      optimalCount: packages.filter(p => p.severity === StockSeverity.Optimal).length,
+      overstockedCount: packages.filter(p => p.severity === StockSeverity.Overstocked).length,
+      notConfiguredCount: packages.filter(p => p.severity === StockSeverity.NotConfigured).length,
+    };
     
-    // Calculate suggested quantity based on real sales data
-    const salesPerDay = pkg.dailySales ?? 1; // Use real sales data from API
-    const suggestedQuantity = Math.max(1, Math.min(maxQuantity, salesPerDay * 3)); // Suggest 3 days worth
+    return { giftPackages: packages, summary: summaryData };
+  }, [giftPackageData?.giftPackages, filters.fromDate, filters.toDate]);
+  
+  // Data automatically refetches when query key changes (filters.fromDate, filters.toDate are in queryKey)
+  // No need for manual useEffect since React Query handles this automatically
+  
+  // Apply filters, sorting, and pagination
+  const { filteredPackages, totalCount, totalPages } = useMemo(() => {
+    let filtered = giftPackages;
     
-    return { maxQuantity, suggestedQuantity };
+    // Apply search filter
+    if (filters.searchTerm.trim()) {
+      const term = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(pkg => 
+        pkg.name.toLowerCase().includes(term) || 
+        pkg.code.toLowerCase().includes(term)
+      );
+    }
+    
+    // Apply severity filter
+    if (filters.severity !== "All") {
+      filtered = filtered.filter(pkg => pkg.severity === filters.severity);
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (filters.sortBy) {
+        case GiftPackageSortBy.ProductCode:
+          aValue = a.code;
+          bValue = b.code;
+          break;
+        case GiftPackageSortBy.ProductName:
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case GiftPackageSortBy.AvailableStock:
+          aValue = a.availableStock;
+          bValue = b.availableStock;
+          break;
+        case GiftPackageSortBy.DailySales:
+          aValue = a.dailySales;
+          bValue = b.dailySales;
+          break;
+        case GiftPackageSortBy.SuggestedQuantity:
+          aValue = a.suggestedQuantity;
+          bValue = b.suggestedQuantity;
+          break;
+        default:
+          aValue = a.code;
+          bValue = b.code;
+      }
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return filters.sortDescending ? -comparison : comparison;
+      } else {
+        const comparison = (aValue || 0) - (bValue || 0);
+        return filters.sortDescending ? -comparison : comparison;
+      }
+    });
+    
+    const total = filtered.length;
+    const pages = Math.ceil(total / filters.pageSize);
+    
+    // Apply pagination
+    const startIndex = (filters.pageNumber - 1) * filters.pageSize;
+    const paginatedPackages = filtered.slice(startIndex, startIndex + filters.pageSize);
+    
+    return { 
+      filteredPackages: paginatedPackages, 
+      totalCount: total, 
+      totalPages: pages 
+    };
+  }, [giftPackages, filters]);
+
+  // Handler for filter changes
+  const handleFilterChange = (newFilters: Partial<GiftPackageFilters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, pageNumber: 1 }));
   };
 
-  // Open modal for package manufacturing
-  const openManufacturingModal = async (pkg: GiftPackageDto) => {
-    if (!pkg.code) return;
-    
-    setIsLoadingDetail(true);
-    setSelectedPackageCode(pkg.code);
-    
-    try {
-      // Call GetGiftPackageDetailAsync directly
-      const client = getGiftPackageClient();
-      const detail = await client.logistics_GetGiftPackageDetail(pkg.code);
-      
-      setLoadedGiftPackageDetail(detail);
-      setSelectedPackage(pkg);
-      const { suggestedQuantity } = calculateQuantities(pkg);
-      setQuantity(suggestedQuantity);
-      setIsModalOpen(true);
-      setIsLoadingDetail(false);
-    } catch (error) {
-      console.error("Failed to load gift package detail:", error);
-      setIsLoadingDetail(false);
-      setLoadedGiftPackageDetail(null);
-      // Still open modal with basic data
-      setSelectedPackage(pkg);
-      const { suggestedQuantity } = calculateQuantities(pkg);
-      setQuantity(suggestedQuantity);
-      setIsModalOpen(true);
+  // Handler for pagination
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setFilters((prev) => ({ ...prev, pageNumber: newPage }));
     }
   };
 
-  // Close modal
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedPackage(null);
-    setQuantity(1);
-    setSelectedPackageCode('');
-    setIsLoadingDetail(false);
-    setLoadedGiftPackageDetail(null);
+  // Handler for page size change
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, pageSize: newPageSize, pageNumber: 1 }));
   };
 
-  // Handle row click to open catalog detail
-  const handleRowClick = (productCode: string) => {
+  // Handler for sorting
+  const handleSort = (column: GiftPackageSortBy) => {
+    setFilters((prev) => ({
+      ...prev,
+      sortBy: column,
+      sortDescending: prev.sortBy === column ? !prev.sortDescending : true,
+      pageNumber: 1,
+    }));
+  };
+
+  // Export functionality (placeholder)
+  const handleExport = () => {
+    console.log("Export to CSV");
+  };
+
+  // Quick date range selectors
+  const handleQuickDateRange = (
+    type: "last12months" | "previousQuarter" | "nextQuarter",
+  ) => {
+    const now = new Date();
+    let fromDate: Date;
+    let toDate: Date;
+
+    switch (type) {
+      case "last12months":
+        fromDate = new Date(
+          now.getFullYear() - 1,
+          now.getMonth(),
+          now.getDate(),
+        );
+        toDate = new Date();
+        break;
+
+      case "previousQuarter":
+        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+
+      case "nextQuarter":
+        const lastYear = now.getFullYear() - 1;
+        fromDate = new Date(lastYear, now.getMonth(), 1);
+        toDate = new Date(lastYear, now.getMonth() + 3, 0);
+        break;
+
+      default:
+        return;
+    }
+
+    handleFilterChange({ fromDate, toDate });
+  };
+
+  // Get tooltip text for date range buttons
+  const getDateRangeTooltip = (
+    type: "last12months" | "previousQuarter" | "nextQuarter",
+  ) => {
+    const now = new Date();
+    let fromDate: Date;
+    let toDate: Date;
+
+    switch (type) {
+      case "last12months":
+        fromDate = new Date(
+          now.getFullYear() - 1,
+          now.getMonth(),
+          now.getDate(),
+        );
+        toDate = new Date();
+        break;
+
+      case "previousQuarter":
+        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+
+      case "nextQuarter":
+        const lastYear = now.getFullYear() - 1;
+        fromDate = new Date(lastYear, now.getMonth(), 1);
+        toDate = new Date(lastYear, now.getMonth() + 3, 0);
+        break;
+
+      default:
+        return "";
+    }
+
+    return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
+  };
+
+  // Handle severity filter click from summary cards
+  const handleSeverityFilterClick = (severity: StockSeverity | "All") => {
+    handleFilterChange({ severity });
+  };
+
+  // Manufacturing modal handlers
+  const handleRowClick = (pkg: GiftPackage) => {
+    setSelectedPackage(pkg);
+    setIsManufactureModalOpen(true);
+  };
+  
+  // Catalog detail handlers
+  const handleCatalogDetailClick = (productCode: string) => {
     setSelectedProductCode(productCode);
-    setIsDetailModalOpen(true);
+    setIsCatalogDetailOpen(true);
   };
-
-  // Close catalog detail modal
-  const closeCatalogDetail = () => {
-    setIsDetailModalOpen(false);
+  
+  const handleCloseCatalogDetail = () => {
+    setIsCatalogDetailOpen(false);
     setSelectedProductCode(null);
   };
-
-  // Focus and select the quantity input when modal opens
-  useEffect(() => {
-    if (isModalOpen && quantityInputRef.current) {
-      // Use setTimeout to ensure the modal is fully rendered
-      setTimeout(() => {
-        quantityInputRef.current?.focus();
-        quantityInputRef.current?.select();
-      }, 100);
-    }
-  }, [isModalOpen]);
-
-  // Handle manufacturing (placeholder for now)
-  const handleManufacture = async () => {
+  
+  const handleCloseManufactureModal = () => {
+    setIsManufactureModalOpen(false);
+    setSelectedPackage(null);
+  };
+  
+  const handleManufacture = async (quantity: number) => {
     if (!selectedPackage) return;
-
-    // TODO: Implement actual manufacturing logic
-    alert(`Výroba ${quantity}x ${selectedPackage.name} bude implementována později.`);
-    closeModal();
-    refetchLog();
+    
+    try {
+      console.log(`Výroba ${quantity}x ${selectedPackage.name}`);
+      // TODO: Call actual manufacturing API
+      handleCloseManufactureModal();
+      refetch(); // Refresh data after manufacturing
+    } catch (error) {
+      console.error('Manufacturing error:', error);
+    }
   };
 
-  if (packagesLoading) {
-    return (
-      <div className="mx-auto px-4 py-6">
-        <div className="flex items-center justify-center min-h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-indigo-600" />
-          <span className="ml-2 text-lg text-gray-600">Načítání...</span>
-        </div>
-      </div>
-    );
-  }
+  // Sortable header component
+  const SortableHeader: React.FC<{
+    column: GiftPackageSortBy;
+    children: React.ReactNode;
+    className?: string;
+  }> = ({ column, children, className = "" }) => {
+    const isActive = filters.sortBy === column;
+    const isAscending = isActive && !filters.sortDescending;
+    const isDescending = isActive && filters.sortDescending;
 
-  if (packagesError) {
     return (
-      <div className="mx-auto px-4 py-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center">
-            <AlertCircle className="h-6 w-6 text-red-600 mr-2" />
-            <h3 className="text-lg font-semibold text-red-900">Chyba při načítání dat</h3>
+      <th
+        scope="col"
+        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center space-x-1">
+          <span>{children}</span>
+          <div className="flex flex-col">
+            <ChevronUp
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+            />
+            <ChevronDown
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+            />
           </div>
-          <p className="mt-2 text-red-700">
-            Nepodařilo se načíst dostupné dárkové balíčky. Zkuste stránku obnovit.
-          </p>
+        </div>
+      </th>
+    );
+  };
+
+  // Get row background color based on severity
+  const getRowColorClass = (severity: StockSeverity) => {
+    switch (severity) {
+      case StockSeverity.Critical:
+        return "bg-red-50/30 hover:bg-red-50/50";
+      case StockSeverity.Low:
+        return "bg-amber-50/30 hover:bg-amber-50/50";
+      case StockSeverity.Optimal:
+        return "bg-emerald-50/30 hover:bg-emerald-50/50";
+      case StockSeverity.Overstocked:
+        return "bg-blue-50/30 hover:bg-blue-50/50";
+      case StockSeverity.NotConfigured:
+        return "bg-gray-50/30 hover:bg-gray-50/50";
+      default:
+        return "hover:bg-gray-50";
+    }
+  };
+  
+  // Get color strip for severity
+  const getSeverityStripColor = (severity: StockSeverity) => {
+    if (filters.severity !== "All") {
+      return "";
+    }
+
+    switch (severity) {
+      case StockSeverity.Critical:
+        return "bg-red-500";
+      case StockSeverity.Low:
+        return "bg-amber-500";
+      case StockSeverity.Optimal:
+        return "bg-emerald-500";
+      case StockSeverity.Overstocked:
+        return "bg-blue-500";
+      case StockSeverity.NotConfigured:
+        return "bg-gray-400";
+      default:
+        return "";
+    }
+  };
+  
+  const isLoading = giftPackageLoading;
+  const error = giftPackageError;
+  
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+              <h3 className="text-lg font-medium text-red-800">
+                Chyba při načítání dat
+              </h3>
+            </div>
+            <p className="mt-2 text-sm text-red-700">
+              {error instanceof Error ? error.message : "Neočekávaná chyba"}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-4 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Zkusit znovu
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <Package className="h-8 w-8 text-indigo-600 mr-3" />
-          <h1 className="text-3xl font-bold text-gray-900">
-            Výroba dárkových balíčků
-          </h1>
-        </div>
-        <p className="text-gray-600">
-          Spravujte výrobu dárkových balíčků a sledujte historii výroby.
-        </p>
+    <div
+      className="flex flex-col w-full"
+      style={{ height: PAGE_CONTAINER_HEIGHT }}
+    >
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 mb-3">
+        <h1 className="text-lg font-semibold text-gray-900">
+          Výroba dárkových balíčků
+        </h1>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+      {/* Controls - Single Collapsible Block */}
+      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
+        <div className="p-3 border-b border-gray-200">
+          <div className="flex items-center justify-between">
             <button
-              onClick={() => setActiveTab('production')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'production'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              onClick={() => setIsControlsCollapsed(!isControlsCollapsed)}
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
             >
-              <div className="flex items-center">
-                <Package className="h-4 w-4 mr-2" />
-                Výroba
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('log')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'log'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2" />
-                Log
-              </div>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Production Tab Content */}
-      {activeTab === 'production' && (
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Dostupné dárkové balíčky</h3>
-              {/* Search Filter */}
-              <div className="relative max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Hledat podle názvu nebo kódu..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {filteredPackages.length > 0 ? (
-            <>
-              {/* Results count */}
-              {searchFilter && (
-                <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    Nalezeno {filteredPackages.length} z {availablePackages?.giftPackages?.length || 0} balíčků
-                  </p>
-                </div>
+              {isControlsCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
               )}
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Název / Kód
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Aktuálně skladem
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Prodeje / den
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Navrhované množství
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Akce
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPackages.map((pkg) => {
-                    const { maxQuantity, suggestedQuantity } = calculateQuantities(pkg);
-                    const currentStock = pkg.availableStock ?? 0; // Real stock data from API
-                    const salesPerDay = pkg.dailySales ?? 0; // Real sales data from API
-                    
-                    return (
-                      <tr key={pkg.code} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(pkg.code || "")}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
-                            <div className="text-sm text-gray-500">{pkg.code}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`text-sm font-medium ${
-                            currentStock < 10 ? 'text-red-600' : 
-                            currentStock < 20 ? 'text-orange-600' : 'text-green-600'
-                          }`}>
-                            {currentStock} ks
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center text-sm text-gray-900">
-                            <TrendingUp className="h-4 w-4 mr-1 text-gray-400" />
-                            {salesPerDay} ks/den
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-indigo-600">
-                            {suggestedQuantity} ks
-                          </span>
-                          <div className="text-xs text-gray-500">
-                            (max: {maxQuantity} ks)
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openManufacturingModal(pkg);
-                            }}
-                            disabled={isLoadingDetail && selectedPackageCode === pkg.code}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed"
-                          >
-                            {isLoadingDetail && selectedPackageCode === pkg.code ? (
-                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                            ) : (
-                              <Plus className="h-3 w-3 mr-1" />
-                            )}
-                            Vyrobit
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : searchFilter ? (
-            <div className="text-center py-12">
-              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Žádné balíčky neodpovídají hledanému výrazu "{searchFilter}".</p>
-              <button
-                onClick={() => setSearchFilter('')}
-                className="mt-2 text-indigo-600 hover:text-indigo-700 text-sm"
-              >
-                Vymazat filtr
-              </button>
-            </div>
-          ) : availablePackages?.giftPackages && availablePackages.giftPackages.length > 0 ? (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Žádné balíčky neodpovídají hledanému výrazu.</p>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Žádné dárkové balíčky nejsou k dispozici.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Log Tab Content */}
-      {activeTab === 'log' && (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Historie výroby</h3>
-            <button
-              onClick={() => refetchLog()}
-              className="p-2 text-gray-500 hover:text-gray-700"
-              title="Obnovit historii"
-            >
-              <RefreshCw className="h-4 w-4" />
+              <span>Filtry a nastavení</span>
+              {summary && (
+                <span className="text-xs text-gray-500">
+                  ({summary.totalPackages} balíčků)
+                </span>
+              )}
             </button>
-          </div>
-          
-          {manufactureLog?.manufactureLogs && manufactureLog.manufactureLogs.length > 0 ? (
-            <div className="space-y-3">
-              {manufactureLog.manufactureLogs.map((log) => (
-                <div key={log.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <Package className="h-4 w-4 text-gray-600 mr-2" />
-                        <span className="font-medium text-gray-900">
-                          {log.giftPackageCode}
+
+            <div className="flex items-center space-x-3">
+              {/* Always visible controls when collapsed */}
+              {isControlsCollapsed && (
+                <>
+                  {/* Quick summary when collapsed - clickable */}
+                  {summary && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <button
+                        onClick={() => handleSeverityFilterClick("All")}
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-gray-100 ${
+                          filters.severity === "All"
+                            ? "bg-gray-100 ring-1 ring-gray-300"
+                            : ""
+                        }`}
+                        title="Všechny balíčky"
+                      >
+                        <span className="text-gray-700 font-medium">
+                          {summary.totalPackages}
                         </span>
-                        <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
-                          {log.quantityCreated}x
+                      </button>
+                      <span className="text-gray-400">|</span>
+                      <button
+                        onClick={() => handleSeverityFilterClick(StockSeverity.Critical)}
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-red-50 ${
+                          filters.severity === StockSeverity.Critical
+                            ? "bg-red-50 ring-1 ring-red-300"
+                            : ""
+                        }`}
+                        title="Kritické zásoby"
+                      >
+                        <span className="text-red-600 font-medium">
+                          {summary.criticalCount}
                         </span>
-                        {log.stockOverrideApplied && (
-                          <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">
-                            Override
-                          </span>
-                        )}
+                      </button>
+                      <button
+                        onClick={() => handleSeverityFilterClick(StockSeverity.Low)}
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-amber-50 ${
+                          filters.severity === StockSeverity.Low
+                            ? "bg-amber-50 ring-1 ring-amber-300"
+                            : ""
+                        }`}
+                        title="Nízké zásoby"
+                      >
+                        <span className="text-orange-600 font-medium">
+                          {summary.lowStockCount}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleSeverityFilterClick(StockSeverity.Optimal)}
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-emerald-50 ${
+                          filters.severity === StockSeverity.Optimal
+                            ? "bg-emerald-50 ring-1 ring-emerald-300"
+                            : ""
+                        }`}
+                        title="Optimální zásoby"
+                      >
+                        <span className="text-green-600 font-medium">
+                          {summary.optimalCount}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {/* Search field when collapsed */}
+                  <div className="flex-1 max-w-xs">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                      <input
+                        type="text"
+                        value={filters.searchTerm || ""}
+                        onChange={(e) =>
+                          handleFilterChange({ searchTerm: e.target.value })
+                        }
+                        placeholder="Vyhledat..."
+                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Action buttons - always visible */}
+              <button
+                onClick={() => refetch()}
+                disabled={giftPackageLoading}
+                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`h-3 w-3 mr-1 ${giftPackageLoading ? "animate-spin" : ""}`}
+                />
+                {isControlsCollapsed ? "" : "Obnovit"}
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                {isControlsCollapsed ? "" : "Export"}
+              </button>
+
+              {/* Help */}
+              <div className="relative group">
+                <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="absolute right-0 top-6 w-80 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                  <div className="space-y-2">
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-red-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-red-200">
+                          Kritické:
+                        </span>{" "}
+                        Nulové zásoby nebo vysoká poptávka
                       </div>
-                      
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{formatDistanceToNow(new Date(log.createdAt || ""), { addSuffix: true })}</span>
-                        <Users className="h-3 w-3 ml-4 mr-1" />
-                        <span>Uživatel: {log.createdBy}</span>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-amber-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-amber-200">
+                          Nízké:
+                        </span>{" "}
+                        Doporučuje se výroba
                       </div>
-                      
-                      {log.consumedItems && log.consumedItems.length > 0 && (
-                        <div className="text-sm">
-                          <p className="text-gray-600 mb-1">Spotřebované položky:</p>
-                          <div className="space-y-1">
-                            {log.consumedItems.map((item, idx) => (
-                              <div key={idx} className="text-gray-800">
-                                {item.productCode}: {item.quantityConsumed}x
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-emerald-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-emerald-200">
+                          Optimální:
+                        </span>{" "}
+                        Zásoby jsou v pořádku
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-blue-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-blue-200">
+                          Přeskladněno:
+                        </span>{" "}
+                        Vysoké zásoby
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-gray-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-gray-200">
+                          Nezkonfigurováno:
+                        </span>{" "}
+                        Chybí data o prodeji
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Zatím žádná historie výroby.</p>
-            </div>
-          )}
+          </div>
         </div>
-      )}
 
-      {/* Manufacturing Modal */}
-      {isModalOpen && selectedPackage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Výroba: {selectedPackage.name}
+        {!isControlsCollapsed && (
+          <div className="p-3 space-y-4">
+            {/* Summary Cards */}
+            {summary && (
+              <div>
+                <h3 className="text-xs font-medium text-gray-700 mb-2">
+                  Přehled stavů zásob
                 </h3>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-8 space-y-8">
-              {/* Package info */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <div className="flex items-center mb-4">
-                  <Info className="h-5 w-5 text-indigo-600 mr-2" />
-                  <span className="text-lg font-medium text-gray-900">Složení balíčku</span>
-                </div>
-                
-                {isLoadingDetail ? (
-                  <div className="flex items-center justify-center py-4">
-                    <RefreshCw className="h-5 w-5 animate-spin text-indigo-600 mr-2" />
-                    <span className="text-gray-600">Načítám detail balíčku...</span>
-                  </div>
-                ) : loadedGiftPackageDetail?.giftPackage?.ingredients && loadedGiftPackageDetail.giftPackage.ingredients.length > 0 ? (
-                  <div className="space-y-2">
-                    {loadedGiftPackageDetail.giftPackage.ingredients.map((ingredient, idx) => {
-                      const totalNeeded = (ingredient.requiredQuantity || 0) * quantity;
-                      const isAvailable = (ingredient.availableStock || 0) >= totalNeeded;
-                      
-                      return (
-                        <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                          <div>
-                            <span className="font-medium text-gray-900">{ingredient.productName}</span>
-                            <span className="text-sm text-gray-500 ml-2">({ingredient.productCode})</span>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-sm font-medium ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                              {totalNeeded} ks potřeba
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {ingredient.availableStock} ks skladem
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : selectedPackage?.ingredients && selectedPackage.ingredients.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedPackage.ingredients.map((ingredient, idx) => {
-                      const totalNeeded = (ingredient.requiredQuantity || 0) * quantity;
-                      const isAvailable = (ingredient.availableStock || 0) >= totalNeeded;
-                      
-                      return (
-                        <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                          <div>
-                            <span className="font-medium text-gray-900">{ingredient.productName}</span>
-                            <span className="text-sm text-gray-500 ml-2">({ingredient.productCode})</span>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-sm font-medium ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                              {totalNeeded} ks potřeba
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {ingredient.availableStock} ks skladem
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    Žádné ingredience nejsou k dispozici.
-                  </div>
-                )}
-              </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <button
+                    onClick={() => handleSeverityFilterClick("All")}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-100 ${
+                      filters.severity === "All"
+                        ? "bg-gray-100 ring-1 ring-gray-300"
+                        : ""
+                    }`}
+                  >
+                    <Package className="h-3 w-3 text-blue-500 mr-1" />
+                    <span className="text-gray-600">Celkem:</span>
+                    <span className="font-semibold text-gray-900 ml-1">
+                      {summary.totalPackages}
+                    </span>
+                  </button>
 
-              {/* Quantity input */}
-              <div className="bg-indigo-50 rounded-lg p-6">
-                <label className="block text-lg font-medium text-gray-900 mb-3">
-                  Množství k výrobě
-                </label>
-                <div className="flex items-end gap-4">
-                  <div className="flex-1 max-w-xs">
+                  <button
+                    onClick={() => handleSeverityFilterClick(StockSeverity.Critical)}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-red-50 ${
+                      filters.severity === StockSeverity.Critical
+                        ? "bg-red-50 ring-1 ring-red-300"
+                        : ""
+                    }`}
+                  >
+                    <AlertTriangle className="h-3 w-3 text-red-500 mr-1" />
+                    <span className="text-gray-600">Kritické:</span>
+                    <span className="font-semibold text-red-600 ml-1">
+                      {summary.criticalCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSeverityFilterClick(StockSeverity.Low)}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-amber-50 ${
+                      filters.severity === StockSeverity.Low
+                        ? "bg-amber-50 ring-1 ring-amber-300"
+                        : ""
+                    }`}
+                  >
+                    <TrendingDown className="h-3 w-3 text-orange-500 mr-1" />
+                    <span className="text-gray-600">Nízké:</span>
+                    <span className="font-semibold text-orange-600 ml-1">
+                      {summary.lowStockCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSeverityFilterClick(StockSeverity.Optimal)}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-emerald-50 ${
+                      filters.severity === StockSeverity.Optimal
+                        ? "bg-emerald-50 ring-1 ring-emerald-300"
+                        : ""
+                    }`}
+                  >
+                    <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                    <span className="text-gray-600">Optimální:</span>
+                    <span className="font-semibold text-green-600 ml-1">
+                      {summary.optimalCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSeverityFilterClick(StockSeverity.Overstocked)}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-blue-50 ${
+                      filters.severity === StockSeverity.Overstocked
+                        ? "bg-blue-50 ring-1 ring-blue-300"
+                        : ""
+                    }`}
+                  >
+                    <Package className="h-3 w-3 text-blue-500 mr-1" />
+                    <span className="text-gray-600">Přeskladněno:</span>
+                    <span className="font-semibold text-blue-600 ml-1">
+                      {summary.overstockedCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSeverityFilterClick(StockSeverity.NotConfigured)}
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-50 ${
+                      filters.severity === StockSeverity.NotConfigured
+                        ? "bg-gray-50 ring-1 ring-gray-300"
+                        : ""
+                    }`}
+                  >
+                    <Settings className="h-3 w-3 text-gray-500 mr-1" />
+                    <span className="text-gray-600">Nezkonfigurováno:</span>
+                    <span className="font-semibold text-gray-600 ml-1">
+                      {summary.notConfiguredCount}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div>
+              <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Search */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Vyhledat
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
                     <input
-                      ref={quantityInputRef}
-                      type="number"
-                      min="1"
-                      max={calculateQuantities(selectedPackage).maxQuantity}
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      className="w-full px-4 py-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      type="text"
+                      value={filters.searchTerm || ""}
+                      onChange={(e) =>
+                        handleFilterChange({ searchTerm: e.target.value })
+                      }
+                      placeholder="Kód, název balíčku..."
+                      className="pl-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                     />
                   </div>
-                  <div className="text-gray-600">
-                    <span className="text-sm">Maximum: </span>
-                    <span className="font-medium text-lg">{calculateQuantities(selectedPackage).maxQuantity} ks</span>
+                </div>
+
+                {/* Date From */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Od data
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.fromDate?.toISOString().split("T")[0] || ""}
+                    onChange={(e) =>
+                      handleFilterChange({ fromDate: new Date(e.target.value) })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Date To */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Do data
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.toDate?.toISOString().split("T")[0] || ""}
+                    onChange={(e) =>
+                      handleFilterChange({ toDate: new Date(e.target.value) })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Quick Date Range Selectors */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Rychlé volby
+                  </label>
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleQuickDateRange("last12months")}
+                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
+                        title={getDateRangeTooltip("last12months")}
+                      >
+                        Y2Y
+                      </button>
+                      <button
+                        onClick={() => handleQuickDateRange("previousQuarter")}
+                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
+                        title={getDateRangeTooltip("previousQuarter")}
+                      >
+                        PrevQ
+                      </button>
+                      <button
+                        onClick={() => handleQuickDateRange("nextQuarter")}
+                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
+                        title={getDateRangeTooltip("nextQuarter")}
+                      >
+                        NextQ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Results Table */}
+      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+            <span className="ml-2 text-gray-600">Načítání balíčků...</span>
+          </div>
+        ) : filteredPackages.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Žádné výsledky
+              </h3>
+              <p className="text-gray-600">
+                Zkuste upravit filtry nebo vyhledávací kritéria.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <SortableHeader
+                    column={GiftPackageSortBy.ProductCode}
+                    className="text-left w-40"
+                  >
+                    Balíček
+                  </SortableHeader>
+                  <SortableHeader
+                    column={GiftPackageSortBy.AvailableStock}
+                    className="text-right"
+                  >
+                    Skladem
+                  </SortableHeader>
+                  <SortableHeader
+                    column={GiftPackageSortBy.DailySales}
+                    className="text-right hidden md:table-cell"
+                  >
+                    Prodeje/den
+                  </SortableHeader>
+                  <SortableHeader
+                    column={GiftPackageSortBy.SuggestedQuantity}
+                    className="text-right"
+                  >
+                    Doporučeno
+                  </SortableHeader>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredPackages.map((pkg) => (
+                  <tr
+                    key={pkg.code}
+                    className={`${getRowColorClass(pkg.severity)} hover:bg-gray-50 cursor-pointer transition-colors duration-150`}
+                    onClick={() => handleRowClick(pkg)}
+                    title="Klikněte pro zobrazení komponent balíčku a výrobu"
+                  >
+                    {/* Package Info */}
+                    <td className="px-6 py-4 whitespace-nowrap w-40">
+                      <div className="flex items-center">
+                        {/* Color strip based on severity */}
+                        {getSeverityStripColor(pkg.severity) && (
+                          <div
+                            className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(pkg.severity)}`}
+                          ></div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-gray-900 truncate">
+                              {pkg.name}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCatalogDetailClick(pkg.code);
+                              }}
+                              className="flex-shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
+                              title="Zobrazit detail produktu"
+                            >
+                              <Info className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {pkg.code}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Available Stock */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <div className="font-bold">
+                        {pkg.availableStock.toFixed(0)}
+                      </div>
+                    </td>
+
+                    {/* Daily Sales - Hidden on mobile */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
+                      <div>{pkg.dailySales.toFixed(1)}</div>
+                      <div className="text-xs text-gray-500 md:hidden">
+                        {pkg.dailySales.toFixed(1)}/den
+                      </div>
+                    </td>
+
+                    {/* Suggested Quantity */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <div className={`font-bold ${
+                        pkg.suggestedQuantity > 0 ? "text-orange-600" : "text-green-600"
+                      }`}>
+                        {pkg.suggestedQuantity}
+                      </div>
+                      <div className="text-xs text-gray-500 md:hidden">
+                        {pkg.dailySales.toFixed(1)}/den
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination - Compact */}
+        {totalCount > 0 && (
+          <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(filters.pageNumber - 1)}
+                disabled={filters.pageNumber <= 1}
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Předchozí
+              </button>
+              <button
+                onClick={() => handlePageChange(filters.pageNumber + 1)}
+                disabled={filters.pageNumber >= totalPages}
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Další
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-3">
+                <p className="text-xs text-gray-600">
+                  {(filters.pageNumber - 1) * filters.pageSize + 1}-
+                  {Math.min(
+                    filters.pageNumber * filters.pageSize,
+                    totalCount,
+                  )}{" "}
+                  z {totalCount}
+                </p>
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-gray-600">Zobrazit:</span>
+                  <select
+                    value={filters.pageSize}
+                    onChange={(e) =>
+                      handlePageSizeChange(Number(e.target.value))
+                    }
+                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <nav
+                  className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                  aria-label="Pagination"
+                >
+                  <button
+                    onClick={() => handlePageChange(filters.pageNumber - 1)}
+                    disabled={filters.pageNumber <= 1}
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </button>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (filters.pageNumber <= 3) {
+                      pageNum = i + 1;
+                    } else if (filters.pageNumber >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = filters.pageNumber - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                          pageNum === filters.pageNumber
+                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
+                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => handlePageChange(filters.pageNumber + 1)}
+                    disabled={filters.pageNumber >= totalPages}
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manufacturing Modal with Gift Package Components */}
+      {isManufactureModalOpen && selectedPackage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Balíček: {selectedPackage.name}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Kód: {selectedPackage.code}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseManufactureModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Plus className="h-6 w-6 rotate-45" />
+              </button>
+            </div>
+
+            {/* Content - scrollable */}
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Package Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Informace o balíčku
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Aktuální sklad:</span>
+                    <div className="font-semibold text-gray-900">{selectedPackage.availableStock.toFixed(0)} ks</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Prodeje/den:</span>
+                    <div className="font-semibold text-gray-900">{selectedPackage.dailySales.toFixed(1)} ks</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Doporučeno:</span>
+                    <div className="font-semibold text-orange-600">{selectedPackage.suggestedQuantity} ks</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Týdenní spotřeba:</span>
+                    <div className="font-semibold text-gray-900">{(selectedPackage.dailySales * 7).toFixed(1)} ks</div>
                   </div>
                 </div>
               </div>
 
-            </div>
+              {/* Gift Package Components */}
+              <div className="bg-white border rounded-lg">
+                <div className="px-4 py-3 bg-gray-50 border-b rounded-t-lg">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <Package className="h-5 w-5 mr-2" />
+                    Komponenty balíčku
+                    {giftPackageDetail?.giftPackage?.ingredients && (
+                      <span className="ml-2 text-sm font-normal text-gray-600">
+                        ({giftPackageDetail.giftPackage.ingredients.length})
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                
+                <div className="max-h-80 overflow-y-auto">
+                  {detailLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-gray-400 mr-2" />
+                      <span className="text-gray-600">Načítání komponent...</span>
+                    </div>
+                  ) : giftPackageDetail?.giftPackage?.ingredients && giftPackageDetail.giftPackage.ingredients.length > 0 ? (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Komponenta
+                          </th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Potřeba/ks
+                          </th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Skladem
+                          </th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stav
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {giftPackageDetail.giftPackage.ingredients.map((ingredient, index) => {
+                          const requiredQuantity = ingredient.requiredQuantity || 0;
+                          const availableStock = ingredient.availableStock || 0;
+                          const isInStock = ingredient.hasSufficientStock || false;
+                          
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {ingredient.productName}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {ingredient.productCode}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                {requiredQuantity.toFixed(1)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                {availableStock.toFixed(1)}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    isInStock
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {isInStock ? "✓ Skladem" : "⚠ Chybí"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="flex items-center justify-center py-8 text-gray-500">
+                      <Package className="h-8 w-8 mr-3" />
+                      <span>Komponenty nejsou k dispozici</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            {/* Modal footer */}
-            <div className="px-8 py-6 border-t border-gray-200 flex justify-end space-x-4">
-              <button
-                onClick={closeModal}
-                className="px-6 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Zrušit
-              </button>
-              <button
-                onClick={handleManufacture}
-                className="px-6 py-3 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Vyrobit
-              </button>
+              {/* Manufacturing Form */}
+              <div className="bg-indigo-50 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Výrobní příkaz
+                </h3>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Množství k výrobě
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      defaultValue={Math.max(1, selectedPackage.suggestedQuantity)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Zadejte množství"
+                    />
+                  </div>
+                  <div className="flex-shrink-0 pt-7">
+                    <button
+                      onClick={() => {
+                        // TODO: Get quantity from input
+                        handleManufacture(selectedPackage.suggestedQuantity);
+                      }}
+                      className="flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Zahájit výrobu
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
-
+      
       {/* Catalog Detail Modal */}
-      <CatalogDetail 
+      <CatalogDetail
         productCode={selectedProductCode}
-        isOpen={isDetailModalOpen}
-        onClose={closeCatalogDetail}
+        isOpen={isCatalogDetailOpen}
+        onClose={handleCloseCatalogDetail}
+        defaultTab="basic"
       />
     </div>
   );
