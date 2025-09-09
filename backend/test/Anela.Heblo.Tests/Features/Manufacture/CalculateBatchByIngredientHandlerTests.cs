@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Moq;
 using Xunit;
@@ -9,12 +11,14 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CalculateBatchByIngredientHandlerTests
 {
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly CalculateBatchByIngredientHandler _handler;
 
     public CalculateBatchByIngredientHandlerTests()
     {
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
-        _handler = new CalculateBatchByIngredientHandler(_manufactureRepositoryMock.Object);
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _handler = new CalculateBatchByIngredientHandler(_manufactureRepositoryMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]
@@ -29,7 +33,8 @@ public class CalculateBatchByIngredientHandlerTests
         {
             ProductCode = productCode,
             ProductName = "Test Product",
-            BatchSize = 100.0,
+            Amount = 100.0,
+            OriginalAmount = 100.0,
             Ingredients = new List<Ingredient>
             {
                 new Ingredient
@@ -48,9 +53,22 @@ public class CalculateBatchByIngredientHandlerTests
                 }
             }
         };
+        
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            MinimalManufactureQuantity = 100.0
+        };
 
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
+        
+        // Setup catalog items with stock information
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("ING001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CatalogAggregate { Stock = new StockData { Erp = 100m } });
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("ING002", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CatalogAggregate { Stock = new StockData { Erp = 200m } });
 
         var request = new CalculateBatchByIngredientRequest
         {

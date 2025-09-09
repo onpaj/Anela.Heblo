@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Calculator, RotateCcw, Package, Beaker } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
+import CatalogDetail from "./CatalogDetail";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
 
@@ -26,6 +27,10 @@ const ManufactureBatchCalculator: React.FC = () => {
   const [calculationResult, setCalculationResult] =
     useState<CalculatedBatchSizeResponse | CalculateBatchByIngredientResponse | null>(null);
   const [template, setTemplate] = useState<CalculatedBatchSizeResponse | null>(null);
+
+  // Modal state for catalog detail
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItemDto | null>(null);
+  const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
 
   const {
     getBatchTemplate,
@@ -95,6 +100,23 @@ const ManufactureBatchCalculator: React.FC = () => {
     setSelectedIngredientCode("");
   };
 
+  const handleIngredientClick = (productCode: string, productName: string) => {
+    // Create a minimal CatalogItemDto for the modal using the constructor
+    const catalogItem = new CatalogItemDto({
+      productCode: productCode,
+      productName: productName,
+      type: ProductType.Material, // Ingredients are typically materials
+    });
+    
+    setSelectedCatalogItem(catalogItem);
+    setIsCatalogDetailOpen(true);
+  };
+
+  const handleCloseCatalogDetail = () => {
+    setIsCatalogDetailOpen(false);
+    setSelectedCatalogItem(null);
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header */}
@@ -111,159 +133,166 @@ const ManufactureBatchCalculator: React.FC = () => {
 
       {/* Controls */}
       <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
-        <div className="space-y-4">
-          {/* Product Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Vyberte polotovar
-            </label>
-            <CatalogAutocomplete
-              value={selectedProduct}
-              onSelect={handleProductSelect}
-              placeholder="Vyhledejte polotovar..."
-              productTypes={[ProductType.SemiProduct]}
-              className="max-w-md"
-            />
-          </div>
-
-          {/* Calculation Mode Toggle */}
-          {template && (
+        <div className="space-y-3">
+          {/* Product Selection Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Způsob výpočtu
+                Vyberte polotovar
               </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="calculationMode"
-                    value="batch-size"
-                    checked={calculationMode === "batch-size"}
-                    onChange={(e) =>
-                      setCalculationMode(e.target.value as CalculationMode)
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Podle velikosti dávky</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="calculationMode"
-                    value="ingredient"
-                    checked={calculationMode === "ingredient"}
-                    onChange={(e) =>
-                      setCalculationMode(e.target.value as CalculationMode)
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Podle ingredience</span>
-                </label>
-              </div>
+              <CatalogAutocomplete
+                value={selectedProduct}
+                onSelect={handleProductSelect}
+                placeholder="Vyhledejte polotovar..."
+                productTypes={[ProductType.SemiProduct]}
+                className="w-full"
+              />
             </div>
-          )}
-
-          {/* Batch Size Calculation */}
-          {template && calculationMode === "batch-size" && (
-            <div className="flex gap-4 items-end">
+            
+            {/* Calculation Mode Toggle - moved to same row */}
+            {template && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Požadovaná velikost dávky (g)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Způsob výpočtu
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={desiredBatchSize}
-                  onChange={(e) => setDesiredBatchSize(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && desiredBatchSize && !isLoading) {
-                      handleCalculateBySize();
-                    }
-                  }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32"
-                  placeholder="0.00"
-                />
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="calculationMode"
+                      value="batch-size"
+                      checked={calculationMode === "batch-size"}
+                      onChange={(e) =>
+                        setCalculationMode(e.target.value as CalculationMode)
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Podle velikosti dávky</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="calculationMode"
+                      value="ingredient"
+                      checked={calculationMode === "ingredient"}
+                      onChange={(e) =>
+                        setCalculationMode(e.target.value as CalculationMode)
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Podle ingredience</span>
+                  </label>
+                </div>
               </div>
-              <button
-                onClick={handleCalculateBySize}
-                disabled={!desiredBatchSize || isLoading}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Calculator className="h-4 w-4" />
-                Vypočítat
-              </button>
-              <button
-                onClick={resetCalculation}
-                className="bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-600 flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Ingredient Calculation */}
-          {template && calculationMode === "ingredient" && (
-            <div className="flex gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ingredience
-                </label>
-                <select
-                  value={selectedIngredientCode}
-                  onChange={(e) => setSelectedIngredientCode(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-64"
-                >
-                  <option value="">Vyberte ingredienci...</option>
-                  {template.ingredients?.map((ingredient) => (
-                    <option
-                      key={ingredient.productCode}
-                      value={ingredient.productCode}
+          {/* Calculation Inputs Row */}
+          {template && (
+            <div className="border-t border-gray-200 pt-3">
+              {calculationMode === "batch-size" ? (
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div className="w-40">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Požadovaná velikost dávky (g)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={desiredBatchSize}
+                      onChange={(e) => setDesiredBatchSize(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && desiredBatchSize && !isLoading) {
+                          handleCalculateBySize();
+                        }
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCalculateBySize}
+                      disabled={!desiredBatchSize || isLoading}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
                     >
-                      {ingredient.productName} ({ingredient.productCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Požadované množství (g)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={desiredIngredientAmount}
-                  onChange={(e) => setDesiredIngredientAmount(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && selectedIngredientCode && desiredIngredientAmount && !isLoading) {
-                      handleCalculateByIngredient();
-                    }
-                  }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32"
-                  placeholder="0.00"
-                />
-              </div>
-              <button
-                onClick={handleCalculateByIngredient}
-                disabled={
-                  !selectedIngredientCode ||
-                  !desiredIngredientAmount ||
-                  isLoading
-                }
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Calculator className="h-4 w-4" />
-                Vypočítat
-              </button>
-              <button
-                onClick={resetCalculation}
-                className="bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-600 flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
+                      <Calculator className="h-4 w-4" />
+                      Vypočítat
+                    </button>
+                    <button
+                      onClick={resetCalculation}
+                      className="bg-gray-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-600 flex items-center gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div className="flex-1 min-w-64">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ingredience
+                    </label>
+                    <select
+                      value={selectedIngredientCode}
+                      onChange={(e) => setSelectedIngredientCode(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                    >
+                      <option value="">Vyberte ingredienci...</option>
+                      {template.ingredients?.map((ingredient) => (
+                        <option
+                          key={ingredient.productCode}
+                          value={ingredient.productCode}
+                        >
+                          {ingredient.productName} ({ingredient.productCode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-32">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Požadované množství (g)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={desiredIngredientAmount}
+                      onChange={(e) => setDesiredIngredientAmount(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && selectedIngredientCode && desiredIngredientAmount && !isLoading) {
+                          handleCalculateByIngredient();
+                        }
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCalculateByIngredient}
+                      disabled={
+                        !selectedIngredientCode ||
+                        !desiredIngredientAmount ||
+                        isLoading
+                      }
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <Calculator className="h-4 w-4" />
+                      Vypočítat
+                    </button>
+                    <button
+                      onClick={resetCalculation}
+                      className="bg-gray-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-600 flex items-center gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -299,7 +328,9 @@ const ManufactureBatchCalculator: React.FC = () => {
                 {template.ingredients?.map((ingredient, index: number) => (
                   <tr
                     key={ingredient.productCode}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50 cursor-pointer transition-colors duration-150`}
+                    onClick={() => handleIngredientClick(ingredient.productCode || "", ingredient.productName || "")}
+                    title="Klikněte pro zobrazení detailu ingredience"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {ingredient.productName}
@@ -379,6 +410,9 @@ const ManufactureBatchCalculator: React.FC = () => {
                     Přepočítané množství
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Skladem
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rozdíl
                   </th>
                 </tr>
@@ -387,13 +421,17 @@ const ManufactureBatchCalculator: React.FC = () => {
                 {calculationResult.ingredients?.map((ingredient, index) => {
                   const originalAmount = ingredient.originalAmount ?? 0;
                   const calculatedAmount = ingredient.calculatedAmount ?? 0;
+                  const stockTotal = ingredient.stockTotal ?? 0;
                   const difference = calculatedAmount - originalAmount;
                   const isIncrease = difference > 0;
+                  const hasEnoughStock = stockTotal >= calculatedAmount;
 
                   return (
                     <tr
                       key={ingredient.productCode}
-                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50 cursor-pointer transition-colors duration-150`}
+                      onClick={() => handleIngredientClick(ingredient.productCode || "", ingredient.productName || "")}
+                      title="Klikněte pro zobrazení detailu ingredience"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {ingredient.productName}
@@ -406,6 +444,17 @@ const ManufactureBatchCalculator: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {calculatedAmount.toFixed(2)}g
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <span
+                          className={`inline-flex items-center ${
+                            hasEnoughStock
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {stockTotal.toFixed(2)}g
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span
@@ -454,6 +503,14 @@ const ManufactureBatchCalculator: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Catalog Detail Modal */}
+      <CatalogDetail
+        item={selectedCatalogItem}
+        isOpen={isCatalogDetailOpen}
+        onClose={handleCloseCatalogDetail}
+        defaultTab="basic"
+      />
     </div>
   );
 };

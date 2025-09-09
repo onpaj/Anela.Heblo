@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -8,10 +9,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBy
 public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchByIngredientRequest, CalculateBatchByIngredientResponse>
 {
     private readonly IManufactureRepository _manufactureRepository;
+    private readonly ICatalogRepository _catalogRepository;
 
-    public CalculateBatchByIngredientHandler(IManufactureRepository manufactureRepository)
+    public CalculateBatchByIngredientHandler(IManufactureRepository manufactureRepository, ICatalogRepository catalogRepository)
     {
         _manufactureRepository = manufactureRepository;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<CalculateBatchByIngredientResponse> Handle(CalculateBatchByIngredientRequest request, CancellationToken cancellationToken)
@@ -42,6 +45,23 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
             var scaleFactor = request.DesiredIngredientAmount / targetIngredient.Amount;
             var newBatchSize = template.OriginalAmount * scaleFactor;
 
+            // Create ingredients list with stock information
+            var ingredientsWithStock = new List<CalculatedIngredientDto>();
+            foreach (var ingredient in template.Ingredients)
+            {
+                var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
+                
+                ingredientsWithStock.Add(new CalculatedIngredientDto
+                {
+                    ProductCode = ingredient.ProductCode,
+                    ProductName = ingredient.ProductName,
+                    OriginalAmount = ingredient.Amount,
+                    CalculatedAmount = Math.Round(ingredient.Amount * scaleFactor, 2),
+                    Price = ingredient.Price,
+                    StockTotal = ingredientCatalog?.Stock?.Total ?? 0
+                });
+            }
+
             return new CalculateBatchByIngredientResponse
             {
                 Success = true,
@@ -54,14 +74,7 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
                 ScaledIngredientName = targetIngredient.ProductName,
                 ScaledIngredientOriginalAmount = targetIngredient.Amount,
                 ScaledIngredientNewAmount = request.DesiredIngredientAmount,
-                Ingredients = template.Ingredients.Select(i => new CalculatedIngredientDto
-                {
-                    ProductCode = i.ProductCode,
-                    ProductName = i.ProductName,
-                    OriginalAmount = i.Amount,
-                    CalculatedAmount = Math.Round(i.Amount * scaleFactor, 2),
-                    Price = i.Price
-                }).ToList()
+                Ingredients = ingredientsWithStock
             };
         }
         catch (Exception ex)

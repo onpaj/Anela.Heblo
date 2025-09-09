@@ -6408,6 +6408,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
     originalAmount?: number;
     calculatedAmount?: number;
     price?: number;
+    stockTotal?: number;
 
     constructor(data?: ICalculatedIngredientDto) {
         if (data) {
@@ -6425,6 +6426,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
             this.originalAmount = _data["originalAmount"];
             this.calculatedAmount = _data["calculatedAmount"];
             this.price = _data["price"];
+            this.stockTotal = _data["stockTotal"];
         }
     }
 
@@ -6442,6 +6444,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
         data["originalAmount"] = this.originalAmount;
         data["calculatedAmount"] = this.calculatedAmount;
         data["price"] = this.price;
+        data["stockTotal"] = this.stockTotal;
         return data;
     }
 }
@@ -6452,6 +6455,7 @@ export interface ICalculatedIngredientDto {
     originalAmount?: number;
     calculatedAmount?: number;
     price?: number;
+    stockTotal?: number;
 }
 
 export class CalculatedBatchSizeRequest implements ICalculatedBatchSizeRequest {

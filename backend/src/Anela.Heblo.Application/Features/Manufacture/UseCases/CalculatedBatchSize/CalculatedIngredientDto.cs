@@ -7,4 +7,5 @@ public class CalculatedIngredientDto
     public double OriginalAmount { get; set; }
     public double CalculatedAmount { get; set; }
     public decimal Price { get; set; }
+    public decimal StockTotal { get; set; }
 }

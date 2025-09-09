@@ -9,12 +9,15 @@ jest.mock("../../client", () => ({
   getAuthenticatedApiClient: jest.fn(),
 }));
 
-const mockFetch = jest.fn();
+const mockManufactureBatch_GetBatchTemplate = jest.fn();
+const mockManufactureBatch_CalculateBatchBySize = jest.fn();
+const mockManufactureBatch_CalculateBatchByIngredient = jest.fn();
+
 const mockApiClient = {
   baseUrl: "http://localhost:5001",
-  http: {
-    fetch: mockFetch,
-  },
+  manufactureBatch_GetBatchTemplate: mockManufactureBatch_GetBatchTemplate,
+  manufactureBatch_CalculateBatchBySize: mockManufactureBatch_CalculateBatchBySize,
+  manufactureBatch_CalculateBatchByIngredient: mockManufactureBatch_CalculateBatchByIngredient,
 };
 
 // Cast the mocked import to access the mocked function
@@ -23,6 +26,9 @@ const { getAuthenticatedApiClient } = require("../../client");
 describe("useManufactureBatch", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockManufactureBatch_GetBatchTemplate.mockClear();
+    mockManufactureBatch_CalculateBatchBySize.mockClear();
+    mockManufactureBatch_CalculateBatchByIngredient.mockClear();
     getAuthenticatedApiClient.mockResolvedValue(mockApiClient);
   });
 
@@ -44,10 +50,7 @@ describe("useManufactureBatch", () => {
         ],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      mockManufactureBatch_GetBatchTemplate.mockResolvedValueOnce(mockResponse);
 
       const { result } = renderHook(() => useManufactureBatch());
 
@@ -58,23 +61,13 @@ describe("useManufactureBatch", () => {
 
       // Assert
       expect(response).toEqual(mockResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:5001/api/manufacture-batch/template/TEST001",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
+      expect(mockManufactureBatch_GetBatchTemplate).toHaveBeenCalledWith("TEST001");
     });
 
     it("should handle fetch error", async () => {
       // Arrange
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: "Not Found",
-      });
+      const errorMessage = "Not Found";
+      mockManufactureBatch_GetBatchTemplate.mockRejectedValueOnce(new Error(errorMessage));
 
       const { result } = renderHook(() => useManufactureBatch());
 
@@ -82,13 +75,11 @@ describe("useManufactureBatch", () => {
       await act(async () => {
         await expect(
           result.current.getBatchTemplate("NONEXISTENT"),
-        ).rejects.toThrow("Failed to get batch template: Not Found");
+        ).rejects.toThrow(errorMessage);
       });
 
       await waitFor(() => {
-        expect(result.current.error).toBe(
-          "Failed to get batch template: Not Found",
-        );
+        expect(result.current.error).toBe(errorMessage);
       });
     });
   });
@@ -114,10 +105,7 @@ describe("useManufactureBatch", () => {
         ],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      mockManufactureBatch_CalculateBatchBySize.mockResolvedValueOnce(mockResponse);
 
       const { result } = renderHook(() => useManufactureBatch());
 
@@ -128,18 +116,11 @@ describe("useManufactureBatch", () => {
 
       // Assert
       expect(response).toEqual(mockResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:5001/api/manufacture-batch/calculate-by-size",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            productCode: "TEST001",
-            desiredBatchSize: 150.0,
-          }),
-        },
+      expect(mockManufactureBatch_CalculateBatchBySize).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productCode: "TEST001",
+          desiredBatchSize: 150.0,
+        })
       );
     });
   });
@@ -169,10 +150,7 @@ describe("useManufactureBatch", () => {
         ],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      mockManufactureBatch_CalculateBatchByIngredient.mockResolvedValueOnce(mockResponse);
 
       const { result } = renderHook(() => useManufactureBatch());
 
@@ -187,19 +165,12 @@ describe("useManufactureBatch", () => {
 
       // Assert
       expect(response).toEqual(mockResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:5001/api/manufacture-batch/calculate-by-ingredient",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            productCode: "TEST001",
-            ingredientCode: "ING001",
-            desiredIngredientAmount: 75.0,
-          }),
-        },
+      expect(mockManufactureBatch_CalculateBatchByIngredient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productCode: "TEST001",
+          ingredientCode: "ING001",
+          desiredIngredientAmount: 75.0,
+        })
       );
     });
   });
@@ -207,15 +178,11 @@ describe("useManufactureBatch", () => {
   describe("loading state", () => {
     it("should update loading state during API calls", async () => {
       // Arrange
-      mockFetch.mockImplementationOnce(
+      mockManufactureBatch_GetBatchTemplate.mockImplementationOnce(
         () =>
           new Promise((resolve) =>
             setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                }),
+              () => resolve({ success: true }),
               100,
             ),
           ),
