@@ -266,7 +266,7 @@ public static class ServiceCollectionExtensions
                 {
                     // Use isolated schema to avoid conflicts with other applications
                     SchemaName = "hangfire_heblo",
-                    PrepareSchemaIfNecessary = false // We handle schema creation manually
+                    PrepareSchemaIfNecessary = true // We handle schema creation manually
                 }));
         }
 
