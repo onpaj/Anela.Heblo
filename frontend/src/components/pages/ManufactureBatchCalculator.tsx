@@ -1,25 +1,8 @@
 import React, { useState } from "react";
 import { Calculator, RotateCcw, Package, Beaker } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
-import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
+import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
-
-interface CalculationResult {
-  productCode: string;
-  productName: string;
-  originalBatchSize: number;
-  newBatchSize: number;
-  scaleFactor: number;
-  ingredients: CalculatedIngredient[];
-}
-
-interface CalculatedIngredient {
-  productCode: string;
-  productName: string;
-  originalAmount: number;
-  calculatedAmount: number;
-  price: number;
-}
 
 type CalculationMode = "batch-size" | "ingredient";
 
@@ -41,8 +24,8 @@ const ManufactureBatchCalculator: React.FC = () => {
 
   // Results state
   const [calculationResult, setCalculationResult] =
-    useState<CalculationResult | null>(null);
-  const [template, setTemplate] = useState<any>(null);
+    useState<CalculatedBatchSizeResponse | CalculateBatchByIngredientResponse | null>(null);
+  const [template, setTemplate] = useState<CalculatedBatchSizeResponse | null>(null);
 
   const {
     getBatchTemplate,
@@ -79,14 +62,7 @@ const ManufactureBatchCalculator: React.FC = () => {
       );
 
       if (result.success) {
-        setCalculationResult({
-          productCode: result.productCode,
-          productName: result.productName,
-          originalBatchSize: result.originalBatchSize,
-          newBatchSize: result.newBatchSize,
-          scaleFactor: result.scaleFactor,
-          ingredients: result.ingredients,
-        });
+        setCalculationResult(result);
       }
     } catch (error) {
       console.error("Error calculating by size:", error);
@@ -105,14 +81,7 @@ const ManufactureBatchCalculator: React.FC = () => {
       );
 
       if (result.success) {
-        setCalculationResult({
-          productCode: result.productCode,
-          productName: result.productName,
-          originalBatchSize: result.originalBatchSize,
-          newBatchSize: result.newBatchSize,
-          scaleFactor: result.scaleFactor,
-          ingredients: result.ingredients,
-        });
+        setCalculationResult(result);
       }
     } catch (error) {
       console.error("Error calculating by ingredient:", error);
@@ -152,7 +121,7 @@ const ManufactureBatchCalculator: React.FC = () => {
               value={selectedProduct}
               onSelect={handleProductSelect}
               placeholder="Vyhledejte polotovar..."
-              productTypes={[ProductType.Semiproduct]}
+              productTypes={[ProductType.SemiProduct]}
               className="max-w-md"
             />
           </div>
@@ -207,6 +176,11 @@ const ManufactureBatchCalculator: React.FC = () => {
                   min="0"
                   value={desiredBatchSize}
                   onChange={(e) => setDesiredBatchSize(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && desiredBatchSize && !isLoading) {
+                      handleCalculateBySize();
+                    }
+                  }}
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32"
                   placeholder="0.00"
                 />
@@ -242,7 +216,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm w-64"
                 >
                   <option value="">Vyberte ingredienci...</option>
-                  {template.ingredients?.map((ingredient: any) => (
+                  {template.ingredients?.map((ingredient) => (
                     <option
                       key={ingredient.productCode}
                       value={ingredient.productCode}
@@ -262,6 +236,11 @@ const ManufactureBatchCalculator: React.FC = () => {
                   min="0"
                   value={desiredIngredientAmount}
                   onChange={(e) => setDesiredIngredientAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && selectedIngredientCode && desiredIngredientAmount && !isLoading) {
+                      handleCalculateByIngredient();
+                    }
+                  }}
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32"
                   placeholder="0.00"
                 />
@@ -299,7 +278,7 @@ const ManufactureBatchCalculator: React.FC = () => {
           </h3>
           <p className="text-sm text-gray-600 mb-3">
             <strong>{template.productName}</strong> ({template.productCode}) -
-            Dávka: {template.batchSize}g
+            Dávka: {template.originalBatchSize}g
           </p>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -317,7 +296,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {template.ingredients?.map((ingredient: any, index: number) => (
+                {template.ingredients?.map((ingredient, index: number) => (
                   <tr
                     key={ingredient.productCode}
                     className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
@@ -329,7 +308,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                       {ingredient.productCode}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {ingredient.amount.toFixed(2)}
+                      {ingredient.originalAmount?.toFixed(2) ?? "N/A"}
                     </td>
                   </tr>
                 ))}
@@ -343,23 +322,42 @@ const ManufactureBatchCalculator: React.FC = () => {
       {calculationResult && (
         <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
-              <Beaker className="h-4 w-4" />
-              Přepočítaný recept
-            </h3>
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="flex items-center justify-between">
+              <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+                <Beaker className="h-4 w-4" />
+                Přepočítaný recept
+              </h3>
+              
+              {/* Prominent display of key metrics */}
+              <div className="flex gap-4 text-right">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Původní dávka</div>
+                  <div className="text-xl font-bold text-gray-700">
+                    {calculationResult.originalBatchSize}g
+                  </div>
+                </div>
+                <div className="flex items-center text-2xl font-bold text-gray-400">
+                  →
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Nová dávka</div>
+                  <div className="text-xl font-bold text-indigo-600">
+                    {calculationResult.newBatchSize}g
+                  </div>
+                </div>
+                <div className="border-l border-gray-300 pl-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Faktor přepočtu</div>
+                  <div className="text-xl font-bold text-emerald-600">
+                    {calculationResult.scaleFactor?.toFixed(3) ?? "N/A"}×
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-3 text-sm text-gray-600">
               <p>
                 <strong>Produkt:</strong> {calculationResult.productName} (
                 {calculationResult.productCode})
-              </p>
-              <p>
-                <strong>Velikost dávky:</strong>{" "}
-                {calculationResult.originalBatchSize}g →{" "}
-                {calculationResult.newBatchSize}g
-              </p>
-              <p>
-                <strong>Faktor přepočtu:</strong>{" "}
-                {calculationResult.scaleFactor.toFixed(3)}x
               </p>
             </div>
           </div>
@@ -386,9 +384,10 @@ const ManufactureBatchCalculator: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {calculationResult.ingredients.map((ingredient, index) => {
-                  const difference =
-                    ingredient.calculatedAmount - ingredient.originalAmount;
+                {calculationResult.ingredients?.map((ingredient, index) => {
+                  const originalAmount = ingredient.originalAmount ?? 0;
+                  const calculatedAmount = ingredient.calculatedAmount ?? 0;
+                  const difference = calculatedAmount - originalAmount;
                   const isIncrease = difference > 0;
 
                   return (
@@ -403,10 +402,10 @@ const ManufactureBatchCalculator: React.FC = () => {
                         {ingredient.productCode}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {ingredient.originalAmount.toFixed(2)}g
+                        {originalAmount.toFixed(2)}g
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {ingredient.calculatedAmount.toFixed(2)}g
+                        {calculatedAmount.toFixed(2)}g
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span
@@ -419,12 +418,12 @@ const ManufactureBatchCalculator: React.FC = () => {
                           }`}
                         >
                           {isIncrease ? "+" : ""}
-                          {difference.toFixed(2)}g
+                          {difference?.toFixed(2) ?? "N/A"}g
                         </span>
                       </td>
                     </tr>
                   );
-                })}
+                }) ?? []}
               </tbody>
             </table>
           </div>

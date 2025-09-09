@@ -174,26 +174,46 @@ describe("Authenticated API Usage", () => {
         return;
       }
 
-      lines.forEach((line, index) => {
-        const trimmedLine = line.trim();
+      // Find queryKey declarations that span multiple lines
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-        // Check for hardcoded query keys in useQuery
-        if (
-          trimmedLine.includes("queryKey:") &&
-          trimmedLine.includes("[") &&
-          !trimmedLine.includes("QUERY_KEYS") &&
-          !trimmedLine.includes("...QUERY_KEYS")
-        ) {
-          // Skip if it's a comment or part of a comment
-          if (!trimmedLine.startsWith("//") && !trimmedLine.startsWith("*")) {
+        // Check for queryKey: [ pattern (start of queryKey declaration)
+        if (line.includes("queryKey:") && line.includes("[")) {
+          // Skip if it's a comment
+          if (line.startsWith("//") || line.startsWith("*")) {
+            continue;
+          }
+
+          // Check if this line already contains QUERY_KEYS
+          if (line.includes("QUERY_KEYS") || line.includes("...QUERY_KEYS")) {
+            continue;
+          }
+
+          // Look ahead to find the complete queryKey array (up to 10 lines)
+          let queryKeyBlock = line;
+          let j = i + 1;
+          let foundClosingBracket = line.includes("]");
+          
+          while (j < lines.length && j < i + 10 && !foundClosingBracket) {
+            const nextLine = lines[j].trim();
+            queryKeyBlock += " " + nextLine;
+            if (nextLine.includes("]")) {
+              foundClosingBracket = true;
+            }
+            j++;
+          }
+
+          // Check if the complete queryKey block uses QUERY_KEYS
+          if (!queryKeyBlock.includes("QUERY_KEYS") && !queryKeyBlock.includes("...QUERY_KEYS")) {
             violations.push({
               file: file.replace(apiHooksDir, ""),
-              line: index + 1,
-              content: trimmedLine,
+              line: i + 1,
+              content: line,
             });
           }
         }
-      });
+      }
     });
 
     if (violations.length > 0) {

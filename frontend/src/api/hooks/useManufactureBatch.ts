@@ -1,52 +1,6 @@
 import { useState } from "react";
 import { getAuthenticatedApiClient } from "../client";
-
-export interface BatchTemplateResponse {
-  success: boolean;
-  productCode: string;
-  productName: string;
-  batchSize: number;
-  ingredients: BatchIngredient[];
-}
-
-export interface BatchIngredient {
-  productCode: string;
-  productName: string;
-  amount: number;
-  price: number;
-}
-
-export interface CalculateBySizeResponse {
-  success: boolean;
-  productCode: string;
-  productName: string;
-  originalBatchSize: number;
-  newBatchSize: number;
-  scaleFactor: number;
-  ingredients: CalculatedIngredient[];
-}
-
-export interface CalculateByIngredientResponse {
-  success: boolean;
-  productCode: string;
-  productName: string;
-  originalBatchSize: number;
-  newBatchSize: number;
-  scaleFactor: number;
-  scaledIngredientCode: string;
-  scaledIngredientName: string;
-  scaledIngredientOriginalAmount: number;
-  scaledIngredientNewAmount: number;
-  ingredients: CalculatedIngredient[];
-}
-
-export interface CalculatedIngredient {
-  productCode: string;
-  productName: string;
-  originalAmount: number;
-  calculatedAmount: number;
-  price: number;
-}
+import { CalculatedBatchSizeResponse, CalculatedBatchSizeRequest, CalculateBatchByIngredientRequest, CalculateBatchByIngredientResponse } from "../generated/api-client";
 
 export const useManufactureBatch = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,28 +8,14 @@ export const useManufactureBatch = () => {
 
   const getBatchTemplate = async (
     productCode: string,
-  ): Promise<BatchTemplateResponse> => {
+  ): Promise<CalculatedBatchSizeResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/manufacture-batch/template/${encodeURIComponent(productCode)}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get batch template: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data as BatchTemplateResponse;
+      const result = await apiClient.manufactureBatch_GetBatchTemplate(productCode);
+      return result;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
@@ -89,34 +29,18 @@ export const useManufactureBatch = () => {
   const calculateBySize = async (
     productCode: string,
     desiredBatchSize: number,
-  ): Promise<CalculateBySizeResponse> => {
+  ): Promise<CalculatedBatchSizeResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = "/api/manufacture-batch/calculate-by-size";
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const requestBody = {
+      const request = new CalculatedBatchSizeRequest({
         productCode,
         desiredBatchSize,
-      };
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to calculate by size: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data as CalculateBySizeResponse;
+      const result = await apiClient.manufactureBatch_CalculateBatchBySize(request);
+      return result;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
@@ -131,37 +55,19 @@ export const useManufactureBatch = () => {
     productCode: string,
     ingredientCode: string,
     desiredIngredientAmount: number,
-  ): Promise<CalculateByIngredientResponse> => {
+  ): Promise<CalculateBatchByIngredientResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = "/api/manufacture-batch/calculate-by-ingredient";
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const requestBody = {
+      const request = new CalculateBatchByIngredientRequest({
         productCode,
         ingredientCode,
         desiredIngredientAmount,
-      };
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
       });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to calculate by ingredient: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-      return data as CalculateByIngredientResponse;
+      const result = await apiClient.manufactureBatch_CalculateBatchByIngredient(request);
+      return result;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";

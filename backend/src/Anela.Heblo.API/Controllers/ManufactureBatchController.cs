@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetBatchTemplate;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,19 +19,19 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpGet("template/{productCode}")]
-    public async Task<ActionResult<GetBatchTemplateResponse>> GetBatchTemplate(
+    public async Task<ActionResult<CalculatedBatchSizeResponse>> GetBatchTemplate(
         string productCode,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetBatchTemplateRequest { ProductCode = productCode };
+        var request = new CalculatedBatchSizeRequest { ProductCode = productCode };
         var response = await _mediator.Send(request, cancellationToken);
 
         return HandleResponse(response);
     }
 
     [HttpPost("calculate-by-size")]
-    public async Task<ActionResult<CalculateBatchBySizeResponse>> CalculateBatchBySize(
-        [FromBody] CalculateBatchBySizeRequest request,
+    public async Task<ActionResult<CalculatedBatchSizeResponse>> CalculateBatchBySize(
+        [FromBody] CalculatedBatchSizeRequest request,
         CancellationToken cancellationToken = default)
     {
         var response = await _mediator.Send(request, cancellationToken);

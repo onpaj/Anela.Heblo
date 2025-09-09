@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Validators;
 
-public class CalculateBatchBySizeRequestValidator : AbstractValidator<CalculateBatchBySizeRequest>
+public class CalculateBatchBySizeRequestValidator : AbstractValidator<CalculatedBatchSizeRequest>
 {
     public CalculateBatchBySizeRequestValidator()
     {

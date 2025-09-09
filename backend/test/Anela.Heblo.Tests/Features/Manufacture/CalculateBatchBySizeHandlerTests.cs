@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog;
 using Moq;
 using Xunit;
 
@@ -9,12 +10,14 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CalculateBatchBySizeHandlerTests
 {
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
-    private readonly CalculateBatchBySizeHandler _handler;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly CalculatedBatchSizeHandler _handler;
 
     public CalculateBatchBySizeHandlerTests()
     {
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
-        _handler = new CalculateBatchBySizeHandler(_manufactureRepositoryMock.Object);
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _handler = new CalculatedBatchSizeHandler(_manufactureRepositoryMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]
@@ -27,7 +30,7 @@ public class CalculateBatchBySizeHandlerTests
         {
             ProductCode = productCode,
             ProductName = "Test Product",
-            BatchSize = 100.0,
+            OriginalAmount = 100.0,
             Ingredients = new List<Ingredient>
             {
                 new Ingredient
@@ -47,10 +50,20 @@ public class CalculateBatchBySizeHandlerTests
             }
         };
 
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            MinimalManufactureQuantity = 100.0
+        };
+
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
-        var request = new CalculateBatchBySizeRequest
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var request = new CalculatedBatchSizeRequest
         {
             ProductCode = productCode,
             DesiredBatchSize = desiredBatchSize
@@ -83,14 +96,14 @@ public class CalculateBatchBySizeHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NonExistentProductCode_ReturnsErrorResponse()
+    public async Task Handle_NonExistentTemplate_ReturnsErrorResponse()
     {
         // Arrange
         const string productCode = "NONEXISTENT";
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureTemplate?)null);
 
-        var request = new CalculateBatchBySizeRequest
+        var request = new CalculatedBatchSizeRequest
         {
             ProductCode = productCode,
             DesiredBatchSize = 150.0
@@ -105,6 +118,39 @@ public class CalculateBatchBySizeHandlerTests
     }
 
     [Fact]
+    public async Task Handle_NonExistentProduct_ReturnsErrorResponse()
+    {
+        // Arrange
+        const string productCode = "NONEXISTENT";
+        var template = new ManufactureTemplate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            OriginalAmount = 100.0,
+            Ingredients = new List<Ingredient>()
+        };
+
+        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CatalogAggregate?)null);
+
+        var request = new CalculatedBatchSizeRequest
+        {
+            ProductCode = productCode,
+            DesiredBatchSize = 150.0
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.ProductNotFound, result.ErrorCode);
+    }
+
+    [Fact]
     public async Task Handle_InvalidOriginalBatchSize_ReturnsErrorResponse()
     {
         // Arrange
@@ -113,14 +159,24 @@ public class CalculateBatchBySizeHandlerTests
         {
             ProductCode = productCode,
             ProductName = "Test Product",
-            BatchSize = 0.0, // Invalid batch size
+            OriginalAmount = 0.0, // Invalid batch size
             Ingredients = new List<Ingredient>()
+        };
+
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            MinimalManufactureQuantity = 100.0
         };
 
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
-        var request = new CalculateBatchBySizeRequest
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var request = new CalculatedBatchSizeRequest
         {
             ProductCode = productCode,
             DesiredBatchSize = 150.0
@@ -132,5 +188,56 @@ public class CalculateBatchBySizeHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.InvalidBatchSize, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Handle_NullDesiredBatchSize_UsesMinimalManufactureQuantity()
+    {
+        // Arrange
+        const string productCode = "TEST001";
+        var template = new ManufactureTemplate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            OriginalAmount = 100.0,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient
+                {
+                    ProductCode = "ING001",
+                    ProductName = "Ingredient 1",
+                    Amount = 50.0,
+                    Price = 10.00m
+                }
+            }
+        };
+
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            MinimalManufactureQuantity = 200.0
+        };
+
+        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var request = new CalculatedBatchSizeRequest
+        {
+            ProductCode = productCode,
+            DesiredBatchSize = null // Should use MinimalManufactureQuantity
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(200.0, result.NewBatchSize);
+        Assert.Equal(2.0, result.ScaleFactor); // 200/100 = 2.0
+        Assert.Equal(100.0, result.Ingredients[0].CalculatedAmount); // 50 * 2.0 = 100.0
     }
 }

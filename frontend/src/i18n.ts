@@ -57,6 +57,10 @@ const resources = {
         InvalidAnalysisParameters: "Neplatné parametry analýzy: {parameters}",
         InsufficientManufacturingData:
           "Nedostatečná data pro spolehlivou výrobní analýzu",
+        ManufactureTemplateNotFound: "Výrobní šablona nebyla nalezena",
+        InvalidBatchSize: "Neplatná velikost dávky",
+        IngredientNotFoundInTemplate: "Ingredience nebyla nalezena v šabloně",
+        InvalidIngredientAmount: "Neplatné množství ingredience",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",

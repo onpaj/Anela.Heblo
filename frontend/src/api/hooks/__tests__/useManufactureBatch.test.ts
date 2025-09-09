@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { useManufactureBatch } from "../useManufactureBatch";
 
 // Mock the authenticated API client
@@ -52,7 +52,9 @@ describe("useManufactureBatch", () => {
       const { result } = renderHook(() => useManufactureBatch());
 
       // Act
-      const response = await result.current.getBatchTemplate("TEST001");
+      const response = await act(async () => {
+        return await result.current.getBatchTemplate("TEST001");
+      });
 
       // Assert
       expect(response).toEqual(mockResponse);
@@ -77,9 +79,11 @@ describe("useManufactureBatch", () => {
       const { result } = renderHook(() => useManufactureBatch());
 
       // Act & Assert
-      await expect(
-        result.current.getBatchTemplate("NONEXISTENT"),
-      ).rejects.toThrow("Failed to get batch template: Not Found");
+      await act(async () => {
+        await expect(
+          result.current.getBatchTemplate("NONEXISTENT"),
+        ).rejects.toThrow("Failed to get batch template: Not Found");
+      });
 
       await waitFor(() => {
         expect(result.current.error).toBe(
@@ -118,7 +122,9 @@ describe("useManufactureBatch", () => {
       const { result } = renderHook(() => useManufactureBatch());
 
       // Act
-      const response = await result.current.calculateBySize("TEST001", 150.0);
+      const response = await act(async () => {
+        return await result.current.calculateBySize("TEST001", 150.0);
+      });
 
       // Assert
       expect(response).toEqual(mockResponse);
@@ -171,11 +177,13 @@ describe("useManufactureBatch", () => {
       const { result } = renderHook(() => useManufactureBatch());
 
       // Act
-      const response = await result.current.calculateByIngredient(
-        "TEST001",
-        "ING001",
-        75.0,
-      );
+      const response = await act(async () => {
+        return await result.current.calculateByIngredient(
+          "TEST001",
+          "ING001",
+          75.0,
+        );
+      });
 
       // Assert
       expect(response).toEqual(mockResponse);
@@ -219,7 +227,10 @@ describe("useManufactureBatch", () => {
       expect(result.current.isLoading).toBe(false);
 
       // Act
-      const promise = result.current.getBatchTemplate("TEST001");
+      let promise: Promise<any>;
+      act(() => {
+        promise = result.current.getBatchTemplate("TEST001");
+      });
 
       // Should be loading during the call
       await waitFor(() => {
@@ -227,7 +238,9 @@ describe("useManufactureBatch", () => {
       });
 
       // Wait for completion
-      await promise;
+      await act(async () => {
+        await promise;
+      });
 
       // Should not be loading after completion
       await waitFor(() => {

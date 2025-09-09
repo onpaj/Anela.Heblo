@@ -40,14 +40,14 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
             }
 
             var scaleFactor = request.DesiredIngredientAmount / targetIngredient.Amount;
-            var newBatchSize = template.BatchSize * scaleFactor;
+            var newBatchSize = template.OriginalAmount * scaleFactor;
 
             return new CalculateBatchByIngredientResponse
             {
                 Success = true,
                 ProductCode = template.ProductCode,
                 ProductName = template.ProductName,
-                OriginalBatchSize = template.BatchSize,
+                OriginalBatchSize = template.OriginalAmount,
                 NewBatchSize = Math.Round(newBatchSize, 2),
                 ScaleFactor = scaleFactor,
                 ScaledIngredientCode = targetIngredient.ProductCode,
