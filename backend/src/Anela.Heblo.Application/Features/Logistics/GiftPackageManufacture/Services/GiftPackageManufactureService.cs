@@ -34,50 +34,87 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
     public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(CancellationToken cancellationToken = default)
     {
-        // For MVP, we'll return a hardcoded list of gift packages
-        // In the future, this would query ABRA for actual gift package BOMs
-        var giftPackages = new List<GiftPackageDto>
+        // Get all products with ProductType.Set from catalog
+        var catalogData = await _catalogRepository.GetAllAsync(cancellationToken);
+        var setProducts = catalogData.Where(x => x.Type == ProductType.Set).ToList();
+
+        var giftPackages = new List<GiftPackageDto>();
+
+        foreach (var product in setProducts)
         {
-            new GiftPackageDto
+            var giftPackage = new GiftPackageDto
             {
-                Code = "GIFT001",
-                Name = "Basic Gift Package",
-                Ingredients = new List<GiftPackageIngredientDto>
-                {
-                    new() { ProductCode = "PROD001", ProductName = "Product 1", RequiredQuantity = 2, AvailableStock = 10 },
-                    new() { ProductCode = "PROD002", ProductName = "Product 2", RequiredQuantity = 1, AvailableStock = 5 }
-                }
-            },
-            new GiftPackageDto
-            {
-                Code = "GIFT002",
-                Name = "Premium Gift Package",
-                Ingredients = new List<GiftPackageIngredientDto>
-                {
-                    new() { ProductCode = "PROD003", ProductName = "Product 3", RequiredQuantity = 1, AvailableStock = 3 },
-                    new() { ProductCode = "PROD004", ProductName = "Product 4", RequiredQuantity = 2, AvailableStock = 8 },
-                    new() { ProductCode = "PROD005", ProductName = "Product 5", RequiredQuantity = 1, AvailableStock = 2 }
-                }
-            }
-        };
+                Code = product.ProductCode,
+                Name = product.ProductName,
+                AvailableStock = (int)product.Stock.Available,
+                DailySales = 0, // TODO: Calculate from SalesHistory
+                OverstockLimit = (int)product.Properties.StockMinSetup
+                // Ingredients will be loaded separately when detail is requested
+            };
+
+            giftPackages.Add(giftPackage);
+        }
 
         return giftPackages;
     }
 
+    public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, CancellationToken cancellationToken = default)
+    {
+        // Get the basic product info from catalog
+        var product = await _catalogRepository.GetByIdAsync(giftPackageCode, cancellationToken);
+
+        if (product == null || product.Type != ProductType.Set)
+        {
+            throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
+        }
+
+        // Create the detailed gift package with ingredients
+        var giftPackage = new GiftPackageDto
+        {
+            Code = product.ProductCode,
+            Name = product.ProductName,
+            AvailableStock = (int)product.Stock.Available,
+            DailySales = 0, // TODO: Calculate from SalesHistory
+            OverstockLimit = (int)product.Properties.StockMinSetup,
+            Ingredients = new List<GiftPackageIngredientDto>()
+        };
+
+        // Load BOM (Bill of Materials) from manufacture repository
+        var productParts = await _manufactureRepository.GetSetParts(giftPackageCode, cancellationToken);
+        
+        // Map ProductPart objects to GiftPackageIngredientDto with stock data
+        var ingredients = new List<GiftPackageIngredientDto>();
+        foreach (var part in productParts)
+        {
+            // Load product from catalog to get available stock
+            var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode, cancellationToken);
+            
+            var ingredient = new GiftPackageIngredientDto
+            {
+                ProductCode = part.ProductCode,
+                ProductName = part.ProductName,
+                RequiredQuantity = part.Amount,
+                AvailableStock = (double)(ingredientProduct?.Stock.Available ?? 0)
+            };
+            
+            ingredients.Add(ingredient);
+        }
+        
+        giftPackage.Ingredients = ingredients;
+
+        return giftPackage;
+    }
+
+    
     public async Task<GiftPackageStockValidationDto> ValidateStockAsync(string giftPackageCode, int quantity, CancellationToken cancellationToken = default)
     {
-        var giftPackages = await GetAvailableGiftPackagesAsync(cancellationToken);
-        var giftPackage = giftPackages.FirstOrDefault(x => x.Code == giftPackageCode);
-
-        if (giftPackage == null)
-        {
-            throw new ArgumentException($"Gift package '{giftPackageCode}' not found");
-        }
+        // Get detailed package info with ingredients
+        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
 
         var shortages = new List<StockShortageDto>();
         var hasSufficientStock = true;
 
-        foreach (var ingredient in giftPackage.Ingredients)
+        foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
         {
             var requiredQuantity = ingredient.RequiredQuantity * quantity;
             
@@ -126,11 +163,10 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             _timeProvider.GetUtcNow().DateTime,
             userId);
 
-        // Add consumed items
-        var giftPackages = await GetAvailableGiftPackagesAsync(cancellationToken);
-        var giftPackage = giftPackages.First(x => x.Code == giftPackageCode);
+        // Add consumed items - get detailed info with ingredients
+        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
         
-        foreach (var ingredient in giftPackage.Ingredients)
+        foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
         {
             var consumedQuantity = (int)(ingredient.RequiredQuantity * quantity);
             manufactureLog.AddConsumedItem(ingredient.ProductCode, consumedQuantity);

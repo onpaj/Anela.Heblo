@@ -43,6 +43,7 @@ export const useProductMarginsQuery = (
       if (productType === "Material") productTypeEnum = ProductType.Material;
       if (productType === "SemiProduct")
         productTypeEnum = ProductType.SemiProduct;
+      if (productType === "Set") productTypeEnum = ProductType.Set;
 
       return apiClient.productMargins_GetProductMargins(
         productCode || null,

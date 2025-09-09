@@ -4,7 +4,10 @@ public class GiftPackageDto
 {
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public List<GiftPackageIngredientDto> Ingredients { get; set; } = new();
+    public int AvailableStock { get; set; }
+    public decimal DailySales { get; set; }
+    public int OverstockLimit { get; set; }
+    public List<GiftPackageIngredientDto>? Ingredients { get; set; }
 }
 
 public class GiftPackageIngredientDto

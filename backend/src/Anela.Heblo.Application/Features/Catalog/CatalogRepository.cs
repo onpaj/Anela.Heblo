@@ -311,7 +311,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 Erp = s.Stock
             },
-            Type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED,
+            Type = GetProductType(s),
             MinimalOrderQuantity = s.MOQ,
             HasLots = s.HasLots,
             HasExpiration = s.HasExpiration,
@@ -428,6 +428,16 @@ public class CatalogRepository : ICatalogRepository
         }
 
         return products.ToList();
+    }
+
+    private static ProductType GetProductType(ErpStock s)
+    {
+        var type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED;
+        
+        if(type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
+            return ProductType.Set;
+
+        return type;
     }
 
     public async Task ExecuteBackgroundMergeAsync(CancellationToken cancellationToken = default)

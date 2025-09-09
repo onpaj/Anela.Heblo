@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.CreateGiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
+using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetManufactureLog;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.ValidateGiftPackageStock;
 using Anela.Heblo.Domain.Features.Users;
@@ -24,13 +25,26 @@ public class LogisticsController : BaseApiController
     }
 
     /// <summary>
-    /// Get available gift package types with BOM information
+    /// Get available gift package types (basic info only, without ingredients)
     /// </summary>
     [HttpGet("gift-packages/available")]
     public async Task<ActionResult<GetAvailableGiftPackagesResponse>> GetAvailableGiftPackages(
         CancellationToken cancellationToken)
     {
         var request = new GetAvailableGiftPackagesRequest();
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Get detailed gift package information with ingredients/BOM
+    /// </summary>
+    [HttpGet("gift-packages/{giftPackageCode}/detail")]
+    public async Task<ActionResult<GetGiftPackageDetailResponse>> GetGiftPackageDetail(
+        string giftPackageCode,
+        CancellationToken cancellationToken)
+    {
+        var request = new GetGiftPackageDetailRequest { GiftPackageCode = giftPackageCode };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }

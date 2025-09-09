@@ -8,12 +8,15 @@ namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 public class FlexiManufactureRepository : IManufactureRepository
 {
     private readonly IBoMClient _bomClient;
+    private readonly IProductSetsClient _productSetsClient;
 
     public FlexiManufactureRepository(
-        IBoMClient bomClient
+        IBoMClient bomClient,
+        IProductSetsClient productSetsClient
         )
     {
         _bomClient = bomClient;
+        _productSetsClient = productSetsClient;
     }
 
     public async Task<ManufactureTemplate> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
@@ -58,5 +61,19 @@ public class FlexiManufactureRepository : IManufactureRepository
                 })
         .Where(w => w.ProductCode != ingredientCode)
         .ToList();
+    }
+
+    public async Task<List<ProductPart>> GetSetParts(string setProductCode, CancellationToken cancellationToken = default)
+    {
+        var setParts = await _productSetsClient.GetAsync(setProductCode, cancellationToken);
+        
+        return setParts
+            .Select(s => new ProductPart()
+            {
+                ProductCode = s.Product.Code,
+                ProductName = s.Product.Name,
+                Amount = s.Quantity,
+            })
+            .ToList();
     }
 }
