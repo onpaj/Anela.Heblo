@@ -80,12 +80,14 @@ public class ShoptetStockClient : IEshopStockClient
             Map(m => m.Code).Index(0);
             Map(m => m.PairCode).Index(1);
             Map(m => m.Name).Index(2);
-            Map(m => m.Stock).Index(17)
+            Map(m => m.Stock).Index(25)
                 .TypeConverterOption
                 .NullValues(string.Empty)
                 .Default(0m);
-            Map(m => m.NameSuffix).Index(7);
-            Map(m => m.Location).Index(18);
+            Map(m => m.NameSuffix).Index(15);
+            Map(m => m.Location).Index(26);
+            Map(m => m.DefaultImage).Index(3);
+            Map(m => m.Image).Index(4);
         }
     }
 }
