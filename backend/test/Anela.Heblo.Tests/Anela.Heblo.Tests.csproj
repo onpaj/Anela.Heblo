@@ -31,4 +31,8 @@
     <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Infrastructure\" />
+  </ItemGroup>
+
 </Project>
