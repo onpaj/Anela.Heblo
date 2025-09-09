@@ -1,16 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, AlertCircle, Loader2, Calendar, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
-import { cs } from 'date-fns/locale';
-import { 
-  ManufactureDifficultySettingDto, 
-  CreateManufactureDifficultyRequest
-} from '../api/generated/api-client';
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Loader2,
+  Calendar,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
+import {
+  ManufactureDifficultySettingDto,
+  CreateManufactureDifficultyRequest,
+} from "../api/generated/api-client";
 import {
   useManufactureDifficultySettings,
   useCreateManufactureDifficulty,
-  useDeleteManufactureDifficulty
-} from '../api/hooks/useManufactureDifficulty';
+  useDeleteManufactureDifficulty,
+} from "../api/hooks/useManufactureDifficulty";
 
 interface ManufactureDifficultyModalProps {
   isOpen: boolean;
@@ -31,18 +41,21 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
   onClose,
   productCode,
   productName,
-  currentDifficulty
+  currentDifficulty,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     difficultyValue: 1,
-    validFrom: '',
-    validTo: ''
+    validFrom: "",
+    validTo: "",
   });
   const [formErrors, setFormErrors] = useState<{ [key: string]: boolean }>({});
 
   // API hooks
-  const { data, isLoading, error } = useManufactureDifficultySettings(productCode, isOpen);
+  const { data, isLoading, error } = useManufactureDifficultySettings(
+    productCode,
+    isOpen,
+  );
   const createMutation = useCreateManufactureDifficulty();
   const deleteMutation = useDeleteManufactureDifficulty();
 
@@ -52,8 +65,8 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
       setShowForm(false);
       setFormData({
         difficultyValue: 1,
-        validFrom: '',
-        validTo: ''
+        validFrom: "",
+        validTo: "",
       });
       setFormErrors({});
     }
@@ -62,7 +75,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
   // Keyboard event listener for Esc key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         if (showForm) {
           setShowForm(false);
         } else {
@@ -72,11 +85,11 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, showForm, onClose]);
 
@@ -112,7 +125,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -122,49 +135,53 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
       const request = new CreateManufactureDifficultyRequest({
         productCode: productCode,
         difficultyValue: formData.difficultyValue,
-        validFrom: formData.validFrom ? new Date(formData.validFrom) : undefined,
-        validTo: formData.validTo ? new Date(formData.validTo) : undefined
+        validFrom: formData.validFrom
+          ? new Date(formData.validFrom)
+          : undefined,
+        validTo: formData.validTo ? new Date(formData.validTo) : undefined,
       });
-      
+
       await createMutation.mutateAsync(request);
 
       // Reset form
       setShowForm(false);
       setFormData({
         difficultyValue: 1,
-        validFrom: '',
-        validTo: ''
+        validFrom: "",
+        validTo: "",
       });
       setFormErrors({});
     } catch (error) {
-      console.error('Error saving manufacture difficulty:', error);
+      console.error("Error saving manufacture difficulty:", error);
     }
   };
 
   const handleDelete = async (item: ManufactureDifficultySettingDto) => {
-    if (window.confirm('Opravdu chcete smazat toto nastavení náročnosti výroby?')) {
+    if (
+      window.confirm("Opravdu chcete smazat toto nastavení náročnosti výroby?")
+    ) {
       try {
         await deleteMutation.mutateAsync({ id: item.id!, productCode });
       } catch (error) {
-        console.error('Error deleting manufacture difficulty:', error);
+        console.error("Error deleting manufacture difficulty:", error);
       }
     }
   };
 
   const handleAdd = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     setFormData({
       difficultyValue: 1,
       validFrom: today,
-      validTo: ''
+      validTo: "",
     });
     setFormErrors({});
     setShowForm(true);
   };
 
   const formatDate = (date: Date | string | undefined) => {
-    if (!date) return '-';
-    return format(new Date(date), 'dd.MM.yyyy', { locale: cs });
+    if (!date) return "-";
+    return format(new Date(date), "dd.MM.yyyy", { locale: cs });
   };
 
   const getStatusIcon = (item: ManufactureDifficultySettingDto) => {
@@ -175,11 +192,11 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
         </div>
       );
     }
-    
+
     const now = new Date();
     const validFrom = item.validFrom ? new Date(item.validFrom) : null;
     const validTo = item.validTo ? new Date(item.validTo) : null;
-    
+
     if (validFrom && validFrom > now) {
       return (
         <div title="Platné v budoucnosti">
@@ -187,7 +204,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
         </div>
       );
     }
-    
+
     if (validTo && validTo < now) {
       return (
         <div title="Již neplatné">
@@ -195,16 +212,16 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
         </div>
       );
     }
-    
+
     return null;
   };
 
-  const sortedSettings = data?.settings 
+  const sortedSettings = data?.settings
     ? [...data.settings].sort((a, b) => {
         // Current setting first
         if (a.isCurrent && !b.isCurrent) return -1;
         if (!a.isCurrent && b.isCurrent) return 1;
-        
+
         // Then by validFrom date (newest first)
         const aDate = a.validFrom ? new Date(a.validFrom).getTime() : 0;
         const bDate = b.validFrom ? new Date(b.validFrom).getTime() : 0;
@@ -217,7 +234,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
@@ -227,8 +244,12 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
           <div className="flex items-center space-x-3">
             <Calendar className="h-6 w-6 text-indigo-600" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Náročnost výroby</h2>
-              <p className="text-sm text-gray-500">{productName} (Kód: {productCode})</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Náročnost výroby
+              </h2>
+              <p className="text-sm text-gray-500">
+                {productName} (Kód: {productCode})
+              </p>
             </div>
           </div>
           <button
@@ -245,7 +266,9 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <span className="text-gray-500">Načítání nastavení náročnosti...</span>
+                <span className="text-gray-500">
+                  Načítání nastavení náročnosti...
+                </span>
               </div>
             </div>
           ) : error ? (
@@ -274,8 +297,12 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                         {data.currentSetting.difficultyValue}
                       </div>
                       <div className="text-sm text-green-600">
-                        {data.currentSetting.validFrom ? `od ${formatDate(data.currentSetting.validFrom)}` : 'odjakživa'}
-                        {data.currentSetting.validTo ? ` do ${formatDate(data.currentSetting.validTo)}` : ' do odvolání'}
+                        {data.currentSetting.validFrom
+                          ? `od ${formatDate(data.currentSetting.validFrom)}`
+                          : "odjakživa"}
+                        {data.currentSetting.validTo
+                          ? ` do ${formatDate(data.currentSetting.validTo)}`
+                          : " do odvolání"}
                       </div>
                     </div>
                   </div>
@@ -288,7 +315,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Nové nastavení náročnosti
                   </h3>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -300,17 +327,26 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                           step="1"
                           min="1"
                           value={formData.difficultyValue}
-                          onChange={(e) => setFormData({ ...formData, difficultyValue: parseInt(e.target.value) || 0 })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              difficultyValue: parseInt(e.target.value) || 0,
+                            })
+                          }
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                            formErrors.difficultyValue ? 'border-red-300' : 'border-gray-300'
+                            formErrors.difficultyValue
+                              ? "border-red-300"
+                              : "border-gray-300"
                           }`}
                           required
                         />
                         {formErrors.difficultyValue && (
-                          <p className="text-sm text-red-600 mt-1">Hodnota musí být celé číslo větší než 0</p>
+                          <p className="text-sm text-red-600 mt-1">
+                            Hodnota musí být celé číslo větší než 0
+                          </p>
                         )}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Platné od
@@ -318,14 +354,23 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                         <input
                           type="date"
                           value={formData.validFrom}
-                          onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              validFrom: e.target.value,
+                            })
+                          }
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                            formErrors.validFrom ? 'border-red-300' : 'border-gray-300'
+                            formErrors.validFrom
+                              ? "border-red-300"
+                              : "border-gray-300"
                           }`}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Nepovinné - nechat prázdné pro "odjakživa"</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Nepovinné - nechat prázdné pro "odjakživa"
+                        </p>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Platné do
@@ -333,19 +378,29 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                         <input
                           type="date"
                           value={formData.validTo}
-                          onChange={(e) => setFormData({ ...formData, validTo: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              validTo: e.target.value,
+                            })
+                          }
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                            formErrors.validTo ? 'border-red-300' : 'border-gray-300'
+                            formErrors.validTo
+                              ? "border-red-300"
+                              : "border-gray-300"
                           }`}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Nepovinné - nechat prázdné pro "do odvolání"</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Nepovinné - nechat prázdné pro "do odvolání"
+                        </p>
                       </div>
                     </div>
 
                     {(formErrors.validFrom || formErrors.validTo) && (
                       <div className="bg-red-50 border border-red-200 rounded-md p-3">
                         <p className="text-sm text-red-600">
-                          Datum "Platné od" musí být dřívější než datum "Platné do"
+                          Datum "Platné od" musí být dřívější než datum "Platné
+                          do"
                         </p>
                       </div>
                     )}
@@ -395,7 +450,9 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                   {sortedSettings.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-lg">
                       <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-gray-500 mb-4">Žádná nastavení náročnosti výroby</p>
+                      <p className="text-gray-500 mb-4">
+                        Žádná nastavení náročnosti výroby
+                      </p>
                       <button
                         onClick={handleAdd}
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50"
@@ -410,9 +467,9 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                         <div
                           key={setting.id}
                           className={`bg-white border rounded-lg p-4 ${
-                            setting.isCurrent 
-                              ? 'border-green-300 bg-green-50' 
-                              : 'border-gray-200 hover:shadow-sm'
+                            setting.isCurrent
+                              ? "border-green-300 bg-green-50"
+                              : "border-gray-200 hover:shadow-sm"
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -423,20 +480,25 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                                   {setting.difficultyValue}
                                 </div>
                               </div>
-                              
+
                               <div className="text-sm text-gray-600">
                                 <div>
-                                  <strong>Platnost:</strong> 
-                                  {setting.validFrom ? ` od ${formatDate(setting.validFrom)}` : ' odjakživa'}
-                                  {setting.validTo ? ` do ${formatDate(setting.validTo)}` : ' do odvolání'}
+                                  <strong>Platnost:</strong>
+                                  {setting.validFrom
+                                    ? ` od ${formatDate(setting.validFrom)}`
+                                    : " odjakživa"}
+                                  {setting.validTo
+                                    ? ` do ${formatDate(setting.validTo)}`
+                                    : " do odvolání"}
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">
-                                  Vytvořeno: {formatDate(setting.createdAt)} 
-                                  {setting.createdBy && ` (${setting.createdBy})`}
+                                  Vytvořeno: {formatDate(setting.createdAt)}
+                                  {setting.createdBy &&
+                                    ` (${setting.createdBy})`}
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleDelete(setting)}

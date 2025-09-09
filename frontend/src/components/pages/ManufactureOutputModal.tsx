@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { X, Calendar, Package, TrendingUp } from 'lucide-react';
-import { 
-  ManufactureOutputMonth, 
-  ProductContribution, 
+import React, { useState } from "react";
+import { X, Calendar, Package, TrendingUp } from "lucide-react";
+import {
+  ManufactureOutputMonth,
+  ProductContribution,
   ProductionDetail,
-  formatMonthDisplay 
-} from '../../api/hooks/useManufactureOutput';
+  formatMonthDisplay,
+} from "../../api/hooks/useManufactureOutput";
 
 interface ManufactureOutputModalProps {
   isOpen: boolean;
@@ -16,24 +16,27 @@ interface ManufactureOutputModalProps {
 const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
   isOpen,
   onClose,
-  monthData
+  monthData,
 }) => {
-  const [selectedProduct, setSelectedProduct] = useState<ProductContribution | null>(null);
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductContribution | null>(null);
 
   if (!isOpen || !monthData) return null;
 
-  const productionRecordsForProduct = selectedProduct 
-    ? monthData.productionDetails.filter(detail => detail.productCode === selectedProduct.productCode)
+  const productionRecordsForProduct = selectedProduct
+    ? monthData.productionDetails.filter(
+        (detail) => detail.productCode === selectedProduct.productCode,
+      )
     : [];
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('cs-CZ');
+    return new Date(dateStr).toLocaleDateString("cs-CZ");
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('cs-CZ', {
-      style: 'currency',
-      currency: 'CZK',
+    return new Intl.NumberFormat("cs-CZ", {
+      style: "currency",
+      currency: "CZK",
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -96,12 +99,12 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {monthData.products.map((product) => (
-                    <tr 
+                    <tr
                       key={product.productCode}
                       className={`cursor-pointer transition-colors ${
                         selectedProduct?.productCode === product.productCode
-                          ? 'bg-indigo-50 border-l-4 border-indigo-500'
-                          : 'hover:bg-gray-50'
+                          ? "bg-indigo-50 border-l-4 border-indigo-500"
+                          : "hover:bg-gray-50"
                       }`}
                       onClick={() => setSelectedProduct(product)}
                     >

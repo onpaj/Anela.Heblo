@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X, Package, Loader } from 'lucide-react';
-import { getAuthenticatedApiClient } from '../../api/client';
-import MaterialAutocomplete from '../common/MaterialAutocomplete';
-import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
-import { AddItemToBoxRequest } from '../../api/generated/api-client';
+import React, { useState } from "react";
+import { X, Package, Loader } from "lucide-react";
+import { getAuthenticatedApiClient } from "../../api/client";
+import MaterialAutocomplete from "../common/MaterialAutocomplete";
+import { MaterialForPurchaseDto } from "../../api/hooks/useMaterials";
+import { AddItemToBoxRequest } from "../../api/generated/api-client";
 
 interface AddItemToBoxModalProps {
   isOpen: boolean;
@@ -16,10 +16,11 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   isOpen,
   onClose,
   boxId,
-  onSuccess
+  onSuccess,
 }) => {
-  const [selectedProduct, setSelectedProduct] = useState<MaterialForPurchaseDto | null>(null);
-  const [amount, setAmount] = useState('');
+  const [selectedProduct, setSelectedProduct] =
+    useState<MaterialForPurchaseDto | null>(null);
+  const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,14 +30,18 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
 
     setError(null); // Clear previous errors
 
-    if (!selectedProduct || !selectedProduct.productCode || !selectedProduct.productName) {
-      setError('Produkt je povinný');
+    if (
+      !selectedProduct ||
+      !selectedProduct.productCode ||
+      !selectedProduct.productName
+    ) {
+      setError("Produkt je povinný");
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Množství musí být kladné číslo');
+      setError("Množství musí být kladné číslo");
       return;
     }
 
@@ -47,32 +52,35 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
       const request = new AddItemToBoxRequest({
         productCode: selectedProduct.productCode,
         productName: selectedProduct.productName,
-        amount: numAmount
+        amount: numAmount,
       });
-      const response = await apiClient.transportBox_AddItemToBox(boxId, request);
+      const response = await apiClient.transportBox_AddItemToBox(
+        boxId,
+        request,
+      );
 
       if (response.success) {
         onSuccess();
         // Reset form
         setSelectedProduct(null);
-        setAmount('');
+        setAmount("");
         setError(null);
         onClose();
       } else {
         // Handle API errors
         if (response.errorCode) {
-          setError('Došlo k chybě při přidávání položky.');
+          setError("Došlo k chybě při přidávání položky.");
         } else {
-          setError('Došlo k chybě při přidávání položky.');
+          setError("Došlo k chybě při přidávání položky.");
         }
       }
     } catch (err) {
       // Network errors or other exceptions
-      console.error('Error adding item to box:', err);
-      if (err instanceof Error && err.message.includes('Network')) {
-        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+      console.error("Error adding item to box:", err);
+      if (err instanceof Error && err.message.includes("Network")) {
+        setError("Chyba připojení. Zkontrolujte internetové připojení.");
       } else {
-        setError('Chyba připojení. Zkontrolujte internetové připojení.');
+        setError("Chyba připojení. Zkontrolujte internetové připojení.");
       }
     } finally {
       setIsLoading(false);
@@ -82,7 +90,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
   const handleClose = () => {
     if (!isLoading) {
       setSelectedProduct(null);
-      setAmount('');
+      setAmount("");
       setError(null);
       onClose();
     }
@@ -115,19 +123,30 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4" onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
-            e.preventDefault();
-            handleSubmit(e as any);
-          }
-        }}>
+        <form
+          onSubmit={handleSubmit}
+          className="p-4"
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              e.target instanceof HTMLInputElement &&
+              e.target.type === "number"
+            ) {
+              e.preventDefault();
+              handleSubmit(e as any);
+            }
+          }}
+        >
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
               {error}
             </div>
           )}
           <div className="mb-4">
-            <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="product"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Produkt/Materiál
             </label>
             <MaterialAutocomplete
@@ -139,7 +158,10 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           </div>
 
           <div className="mb-4">
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Množství
             </label>
             <input

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { X, AlertCircle } from 'lucide-react';
-import JournalEntryForm from './JournalEntryForm';
-import { useDeleteJournalEntry } from '../api/hooks/useJournal';
-import type { JournalEntryDto } from '../api/generated/api-client';
+import { useEffect, useState } from "react";
+import { X, AlertCircle } from "lucide-react";
+import JournalEntryForm from "./JournalEntryForm";
+import { useDeleteJournalEntry } from "../api/hooks/useJournal";
+import type { JournalEntryDto } from "../api/generated/api-client";
 
 interface JournalEntryModalProps {
   isOpen: boolean;
@@ -11,27 +11,32 @@ interface JournalEntryModalProps {
   isEdit?: boolean;
 }
 
-export default function JournalEntryModal({ isOpen, onClose, entry, isEdit = false }: JournalEntryModalProps) {
+export default function JournalEntryModal({
+  isOpen,
+  onClose,
+  entry,
+  isEdit = false,
+}: JournalEntryModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteEntry = useDeleteJournalEntry();
 
   // Handle Escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen && !showDeleteConfirm) {
+      if (event.key === "Escape" && isOpen && !showDeleteConfirm) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, onClose, showDeleteConfirm]);
 
@@ -51,7 +56,7 @@ export default function JournalEntryModal({ isOpen, onClose, entry, isEdit = fal
         await deleteEntry.mutateAsync(entry.id);
         onClose();
       } catch (error) {
-        console.error('Failed to delete journal entry:', error);
+        console.error("Failed to delete journal entry:", error);
       }
     }
   };
@@ -62,7 +67,7 @@ export default function JournalEntryModal({ isOpen, onClose, entry, isEdit = fal
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            {isEdit ? 'Upravit záznam' : 'Nový záznam'}
+            {isEdit ? "Upravit záznam" : "Nový záznam"}
           </h3>
           <button
             onClick={onClose}
@@ -100,7 +105,9 @@ export default function JournalEntryModal({ isOpen, onClose, entry, isEdit = fal
                   </h3>
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
-                      Opravdu chcete smazat záznam "{entry?.title || 'Bez názvu'}"? Tuto akci nelze vrátit zpět.
+                      Opravdu chcete smazat záznam "
+                      {entry?.title || "Bez názvu"}"? Tuto akci nelze vrátit
+                      zpět.
                     </p>
                   </div>
                 </div>
@@ -112,7 +119,7 @@ export default function JournalEntryModal({ isOpen, onClose, entry, isEdit = fal
                 disabled={deleteEntry.isPending}
                 className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
               >
-                {deleteEntry.isPending ? 'Mazání...' : 'Smazat'}
+                {deleteEntry.isPending ? "Mazání..." : "Smazat"}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}

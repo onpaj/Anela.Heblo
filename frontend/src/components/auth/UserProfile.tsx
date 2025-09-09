@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { User, LogIn, LogOut, ChevronUp } from 'lucide-react';
-import { useAuth } from '../../auth/useAuth';
-import { useMockAuth, shouldUseMockAuth } from '../../auth/mockAuth';
+import React, { useState } from "react";
+import { User, LogIn, LogOut, ChevronUp } from "lucide-react";
+import { useAuth } from "../../auth/useAuth";
+import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 
 interface UserProfileProps {
   compact?: boolean;
@@ -11,10 +11,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
   // Use mock auth in development if enabled
   const realAuth = useAuth();
   const mockAuth = useMockAuth();
-  
+
   const auth = shouldUseMockAuth() ? mockAuth : realAuth;
-  const { isAuthenticated, login, logout, getUserInfo, getStoredUserInfo, inProgress } = auth;
-  
+  const {
+    isAuthenticated,
+    login,
+    logout,
+    getUserInfo,
+    getStoredUserInfo,
+    inProgress,
+  } = auth;
+
   const [showMenu, setShowMenu] = useState(false);
   const userInfo = getUserInfo();
   const storedUserInfo = getStoredUserInfo();
@@ -23,7 +30,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
     try {
       await login();
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     }
   };
 
@@ -32,13 +39,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
       await logout();
       setShowMenu(false);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
-  if (inProgress === 'login' || inProgress === 'logout') {
+  if (inProgress === "login" || inProgress === "logout") {
     return (
-      <div className={`flex items-center ${compact ? 'justify-center' : 'justify-center p-2'}`}>
+      <div
+        className={`flex items-center ${compact ? "justify-center" : "justify-center p-2"}`}
+      >
         <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
       </div>
     );
@@ -70,9 +79,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
           <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
             Sign in
           </p>
-          <p className="text-xs text-gray-500">
-            Click to authenticate
-          </p>
+          <p className="text-xs text-gray-500">Click to authenticate</p>
         </div>
         <LogIn className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
       </button>
@@ -88,7 +95,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
           title={`${userInfo?.name} (${userInfo?.email})`}
         >
           <span className="text-white text-sm font-medium">
-            {userInfo?.initials || 'U'}
+            {userInfo?.initials || "U"}
           </span>
         </button>
 
@@ -96,11 +103,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
         {showMenu && (
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 min-w-48 z-50">
             <div className="px-4 py-2 border-b border-gray-100">
-              <p className="text-sm font-medium text-neutral-slate">{userInfo?.name}</p>
+              <p className="text-sm font-medium text-neutral-slate">
+                {userInfo?.name}
+              </p>
               <p className="text-xs text-gray-500">{userInfo?.email}</p>
               {storedUserInfo?.lastLogin && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Last login: {new Date(storedUserInfo.lastLogin).toLocaleString()}
+                  Last login:{" "}
+                  {new Date(storedUserInfo.lastLogin).toLocaleString()}
                 </p>
               )}
               {userInfo?.roles && userInfo.roles.length > 0 && (
@@ -137,21 +147,21 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
       >
         <div className="w-8 h-8 bg-primary-blue rounded-full flex items-center justify-center">
           <span className="text-white text-sm font-medium">
-            {userInfo?.initials || 'U'}
+            {userInfo?.initials || "U"}
           </span>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-neutral-slate group-hover:text-neutral-slate truncate">
-            {userInfo?.name || 'User'}
+            {userInfo?.name || "User"}
           </p>
           <p className="text-xs text-gray-500 truncate">
-            {userInfo?.email || 'user@example.com'}
+            {userInfo?.email || "user@example.com"}
           </p>
         </div>
-        <ChevronUp 
+        <ChevronUp
           className={`h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-transform ${
-            showMenu ? 'rotate-180' : ''
-          }`} 
+            showMenu ? "rotate-180" : ""
+          }`}
         />
       </button>
 
@@ -159,11 +169,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
       {showMenu && (
         <div className="absolute bottom-full left-0 right-0 mb-2 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 z-50">
           <div className="px-4 py-2 border-b border-gray-100">
-            <p className="text-sm font-medium text-neutral-slate">{userInfo?.name}</p>
+            <p className="text-sm font-medium text-neutral-slate">
+              {userInfo?.name}
+            </p>
             <p className="text-xs text-gray-500">{userInfo?.email}</p>
             {storedUserInfo?.lastLogin && (
               <p className="text-xs text-gray-400 mt-1">
-                Last login: {new Date(storedUserInfo.lastLogin).toLocaleString()}
+                Last login:{" "}
+                {new Date(storedUserInfo.lastLogin).toLocaleString()}
               </p>
             )}
             {userInfo?.roles && userInfo.roles.length > 0 && (

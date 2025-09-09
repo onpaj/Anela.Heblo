@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import TopBar from './TopBar';
+import React, { useState } from "react";
+import Sidebar from "./Sidebar";
+import TopBar from "./TopBar";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,30 +15,33 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
-      
+
       {/* Sidebar */}
-      <Sidebar 
-        isOpen={sidebarOpen} 
+      <Sidebar
+        isOpen={sidebarOpen}
         isCollapsed={sidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onMenuClick={() => setSidebarOpen(true)}
       />
-      
+
       {/* Main content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'} pt-16 md:pt-0`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
+      >
         {/* Page content */}
         <main className="flex-1 relative overflow-auto">
           <div className="p-3 md:p-4 bg-gray-50">
-            <div className="w-full">
-              {children}
-            </div>
+            <div className="w-full">{children}</div>
           </div>
         </main>
       </div>
-      
+
       {/* Status bar with sidebar state */}
-      {statusBar && React.cloneElement(statusBar as React.ReactElement, { sidebarCollapsed })}
+      {statusBar &&
+        React.cloneElement(statusBar as React.ReactElement, {
+          sidebarCollapsed,
+        })}
     </div>
   );
 };

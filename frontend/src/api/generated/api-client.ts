@@ -9,9144 +9,11300 @@
 // ReSharper disable InconsistentNaming
 
 export class ApiClient {
-    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
-    private baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
-        this.http = http ? http : window as any;
-        this.baseUrl = baseUrl ?? "";
-    }
-
-    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined): Promise<GetProductMarginSummaryResponse> {
-        let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
-        if (timeWindow === null)
-            throw new Error("The parameter 'timeWindow' cannot be null.");
-        else if (timeWindow !== undefined)
-            url_ += "TimeWindow=" + encodeURIComponent("" + timeWindow) + "&";
-        if (topProductCount === null)
-            throw new Error("The parameter 'topProductCount' cannot be null.");
-        else if (topProductCount !== undefined)
-            url_ += "TopProductCount=" + encodeURIComponent("" + topProductCount) + "&";
-        if (groupingMode === null)
-            throw new Error("The parameter 'groupingMode' cannot be null.");
-        else if (groupingMode !== undefined)
-            url_ += "GroupingMode=" + encodeURIComponent("" + groupingMode) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAnalytics_GetProductMarginSummary(_response);
-        });
-    }
-
-    protected processAnalytics_GetProductMarginSummary(response: Response): Promise<GetProductMarginSummaryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetProductMarginSummaryResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status === 500) {
-            return response.text().then((_responseText) => {
-            return throwException("A server side error occurred.", status, _responseText, _headers);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetProductMarginSummaryResponse>(null as any);
-    }
-
-    analytics_GetMarginAnalysis(productId: string | undefined, startDate: Date | undefined, endDate: Date | undefined, includeBreakdown: boolean | undefined): Promise<GetProductMarginAnalysisResponse> {
-        let url_ = this.baseUrl + "/api/Analytics/margin-analysis?";
-        if (productId === null)
-            throw new Error("The parameter 'productId' cannot be null.");
-        else if (productId !== undefined)
-            url_ += "ProductId=" + encodeURIComponent("" + productId) + "&";
-        if (startDate === null)
-            throw new Error("The parameter 'startDate' cannot be null.");
-        else if (startDate !== undefined)
-            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
-        if (endDate === null)
-            throw new Error("The parameter 'endDate' cannot be null.");
-        else if (endDate !== undefined)
-            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
-        if (includeBreakdown === null)
-            throw new Error("The parameter 'includeBreakdown' cannot be null.");
-        else if (includeBreakdown !== undefined)
-            url_ += "IncludeBreakdown=" + encodeURIComponent("" + includeBreakdown) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAnalytics_GetMarginAnalysis(_response);
-        });
-    }
-
-    protected processAnalytics_GetMarginAnalysis(response: Response): Promise<GetProductMarginAnalysisResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetProductMarginAnalysisResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status === 500) {
-            return response.text().then((_responseText) => {
-            return throwException("A server side error occurred.", status, _responseText, _headers);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetProductMarginAnalysisResponse>(null as any);
-    }
-
-    analytics_GetMarginReport(startDate: Date | undefined, endDate: Date | undefined, productFilter: string | null | undefined, categoryFilter: string | null | undefined, includeDetailedBreakdown: boolean | undefined, maxProducts: number | undefined): Promise<GetMarginReportResponse> {
-        let url_ = this.baseUrl + "/api/Analytics/margin-report?";
-        if (startDate === null)
-            throw new Error("The parameter 'startDate' cannot be null.");
-        else if (startDate !== undefined)
-            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
-        if (endDate === null)
-            throw new Error("The parameter 'endDate' cannot be null.");
-        else if (endDate !== undefined)
-            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
-        if (productFilter !== undefined && productFilter !== null)
-            url_ += "ProductFilter=" + encodeURIComponent("" + productFilter) + "&";
-        if (categoryFilter !== undefined && categoryFilter !== null)
-            url_ += "CategoryFilter=" + encodeURIComponent("" + categoryFilter) + "&";
-        if (includeDetailedBreakdown === null)
-            throw new Error("The parameter 'includeDetailedBreakdown' cannot be null.");
-        else if (includeDetailedBreakdown !== undefined)
-            url_ += "IncludeDetailedBreakdown=" + encodeURIComponent("" + includeDetailedBreakdown) + "&";
-        if (maxProducts === null)
-            throw new Error("The parameter 'maxProducts' cannot be null.");
-        else if (maxProducts !== undefined)
-            url_ += "MaxProducts=" + encodeURIComponent("" + maxProducts) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAnalytics_GetMarginReport(_response);
-        });
-    }
-
-    protected processAnalytics_GetMarginReport(response: Response): Promise<GetMarginReportResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetMarginReportResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status === 500) {
-            return response.text().then((_responseText) => {
-            return throwException("A server side error occurred.", status, _responseText, _headers);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetMarginReportResponse>(null as any);
-    }
-
-    audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Audit/data-loads?";
-        if (limit !== undefined && limit !== null)
-            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAudit_GetDataLoadAuditLogs(_response);
-        });
-    }
-
-    protected processAudit_GetDataLoadAuditLogs(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    audit_GetAuditSummary(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Audit/summary?";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAudit_GetAuditSummary(_response);
-        });
-    }
-
-    protected processAudit_GetAuditSummary(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
-        let url_ = this.baseUrl + "/api/Catalog?";
-        if (type !== undefined && type !== null)
-            url_ += "Type=" + encodeURIComponent("" + type) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy !== undefined && sortBy !== null)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        if (productName !== undefined && productName !== null)
-            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
-        if (productCode !== undefined && productCode !== null)
-            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetCatalogList(_response);
-        });
-    }
-
-    protected processCatalog_GetCatalogList(response: Response): Promise<GetCatalogListResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetCatalogListResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetCatalogListResponse>(null as any);
-    }
-
-    catalog_GetCatalogDetail(productCode: string, monthsBack: number | undefined): Promise<GetCatalogDetailResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/{productCode}?";
-        if (productCode === undefined || productCode === null)
-            throw new Error("The parameter 'productCode' must be defined.");
-        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
-        if (monthsBack === null)
-            throw new Error("The parameter 'monthsBack' cannot be null.");
-        else if (monthsBack !== undefined)
-            url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetCatalogDetail(_response);
-        });
-    }
-
-    protected processCatalog_GetCatalogDetail(response: Response): Promise<GetCatalogDetailResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetCatalogDetailResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetCatalogDetailResponse>(null as any);
-    }
-
-    catalog_RefreshTransportData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/transport";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshTransportData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshTransportData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshReserveData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/reserve";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshReserveData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshReserveData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshSalesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/sales";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshSalesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshSalesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshAttributesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/attributes";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshAttributesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshAttributesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshErpStockData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/erp-stock";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshErpStockData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshErpStockData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshEshopStockData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-stock";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshEshopStockData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshEshopStockData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshPurchaseHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/purchase-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshPurchaseHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshPurchaseHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshManufactureHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshManufactureHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshManufactureHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshConsumedHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/consumed-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshConsumedHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshConsumedHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshStockTakingData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/stock-taking";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshStockTakingData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshStockTakingData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshLotsData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/lots";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshLotsData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshLotsData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshEshopPricesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-prices";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshEshopPricesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshEshopPricesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshErpPricesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/erp-prices";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshErpPricesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshErpPricesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshManufactureDifficultyData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-difficulty";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshManufactureDifficultyData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshManufactureDifficultyData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_GetMaterialsForPurchase(searchTerm: string | null | undefined, limit: number | undefined): Promise<GetMaterialsForPurchaseResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (limit === null)
-            throw new Error("The parameter 'limit' cannot be null.");
-        else if (limit !== undefined)
-            url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetMaterialsForPurchase(_response);
-        });
-    }
-
-    protected processCatalog_GetMaterialsForPurchase(response: Response): Promise<GetMaterialsForPurchaseResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetMaterialsForPurchaseResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetMaterialsForPurchaseResponse>(null as any);
-    }
-
-    catalog_GetProductsForAutocomplete(searchTerm: string | null | undefined, limit: number | undefined, productTypes: ProductType[] | null | undefined): Promise<GetCatalogListResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/autocomplete?";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "searchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (limit === null)
-            throw new Error("The parameter 'limit' cannot be null.");
-        else if (limit !== undefined)
-            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
-        if (productTypes !== undefined && productTypes !== null)
-            productTypes && productTypes.forEach(item => { url_ += "productTypes=" + encodeURIComponent("" + item) + "&"; });
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetProductsForAutocomplete(_response);
-        });
-    }
-
-    protected processCatalog_GetProductsForAutocomplete(response: Response): Promise<GetCatalogListResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetCatalogListResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetCatalogListResponse>(null as any);
-    }
-
-    catalog_GetManufactureDifficultyHistory(productCode: string, asOfDate: Date | null | undefined): Promise<GetManufactureDifficultySettingsResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/{productCode}/manufacture-difficulty?";
-        if (productCode === undefined || productCode === null)
-            throw new Error("The parameter 'productCode' must be defined.");
-        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
-        if (asOfDate !== undefined && asOfDate !== null)
-            url_ += "asOfDate=" + encodeURIComponent(asOfDate ? "" + asOfDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetManufactureDifficultyHistory(_response);
-        });
-    }
-
-    protected processCatalog_GetManufactureDifficultyHistory(response: Response): Promise<GetManufactureDifficultySettingsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetManufactureDifficultySettingsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetManufactureDifficultySettingsResponse>(null as any);
-    }
-
-    catalog_CreateManufactureDifficulty(request: CreateManufactureDifficultyRequest): Promise<CreateManufactureDifficultyResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_CreateManufactureDifficulty(_response);
-        });
-    }
-
-    protected processCatalog_CreateManufactureDifficulty(response: Response): Promise<CreateManufactureDifficultyResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 201) {
-            return response.text().then((_responseText) => {
-            let result201: any = null;
-            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = CreateManufactureDifficultyResponse.fromJS(resultData201);
-            return result201;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-            });
-        } else if (status === 409) {
-            return response.text().then((_responseText) => {
-            let result409: any = null;
-            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result409 = ProblemDetails.fromJS(resultData409);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreateManufactureDifficultyResponse>(null as any);
-    }
-
-    catalog_UpdateManufactureDifficulty(id: number, request: UpdateManufactureDifficultyRequest): Promise<UpdateManufactureDifficultyResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_UpdateManufactureDifficulty(_response);
-        });
-    }
-
-    protected processCatalog_UpdateManufactureDifficulty(response: Response): Promise<UpdateManufactureDifficultyResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UpdateManufactureDifficultyResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UpdateManufactureDifficultyResponse>(null as any);
-    }
-
-    catalog_DeleteManufactureDifficulty(id: number): Promise<DeleteManufactureDifficultyResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "DELETE",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_DeleteManufactureDifficulty(_response);
-        });
-    }
-
-    protected processCatalog_DeleteManufactureDifficulty(response: Response): Promise<DeleteManufactureDifficultyResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = DeleteManufactureDifficultyResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<DeleteManufactureDifficultyResponse>(null as any);
-    }
-
-    catalog_GetProductUsage(productCode: string): Promise<GetProductUsageResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/{productCode}/usage";
-        if (productCode === undefined || productCode === null)
-            throw new Error("The parameter 'productCode' must be defined.");
-        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_GetProductUsage(_response);
-        });
-    }
-
-    protected processCatalog_GetProductUsage(response: Response): Promise<GetProductUsageResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetProductUsageResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetProductUsageResponse>(null as any);
-    }
-
-    configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
-        let url_ = this.baseUrl + "/api/Configuration";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processConfiguration_GetConfiguration(_response);
-        });
-    }
-
-    protected processConfiguration_GetConfiguration(response: Response): Promise<GetConfigurationResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetConfigurationResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetConfigurationResponse>(null as any);
-    }
-
-    diagnostics_TestLogging(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Diagnostics/test-logging";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processDiagnostics_TestLogging(_response);
-        });
-    }
-
-    protected processDiagnostics_TestLogging(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    diagnostics_TestException(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Diagnostics/test-exception";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processDiagnostics_TestException(_response);
-        });
-    }
-
-    protected processDiagnostics_TestException(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    diagnostics_Health(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Diagnostics/health";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processDiagnostics_Health(_response);
-        });
-    }
-
-    protected processDiagnostics_Health(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    diagnostics_GetApplicationInsightsConfig(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Diagnostics/appinsights-config";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processDiagnostics_GetApplicationInsightsConfig(_response);
-        });
-    }
-
-    protected processDiagnostics_GetApplicationInsightsConfig(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    e2ETest_GetEnvironmentInfo(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/E2ETest/env-info";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processE2ETest_GetEnvironmentInfo(_response);
-        });
-    }
-
-    protected processE2ETest_GetEnvironmentInfo(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    e2ETest_CreateE2ESession(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/E2ETest/auth";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processE2ETest_CreateE2ESession(_response);
-        });
-    }
-
-    protected processE2ETest_CreateE2ESession(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    e2ETest_GetAuthStatus(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/E2ETest/auth-status";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processE2ETest_GetAuthStatus(_response);
-        });
-    }
-
-    protected processE2ETest_GetAuthStatus(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    e2ETest_GetE2EApp(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/E2ETest/app";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processE2ETest_GetE2EApp(_response);
-        });
-    }
-
-    protected processE2ETest_GetE2EApp(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
-        let url_ = this.baseUrl + "/api/FinancialOverview?";
-        if (months !== undefined && months !== null)
-            url_ += "months=" + encodeURIComponent("" + months) + "&";
-        if (includeStockData === null)
-            throw new Error("The parameter 'includeStockData' cannot be null.");
-        else if (includeStockData !== undefined)
-            url_ += "includeStockData=" + encodeURIComponent("" + includeStockData) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processFinancialOverview_GetFinancialOverview(_response);
-        });
-    }
-
-    protected processFinancialOverview_GetFinancialOverview(response: Response): Promise<GetFinancialOverviewResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetFinancialOverviewResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetFinancialOverviewResponse>(null as any);
-    }
-
-    journal_GetJournalEntries(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<GetJournalEntriesResponse> {
-        let url_ = this.baseUrl + "/api/Journal?";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy === null)
-            throw new Error("The parameter 'sortBy' cannot be null.");
-        else if (sortBy !== undefined)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDirection === null)
-            throw new Error("The parameter 'sortDirection' cannot be null.");
-        else if (sortDirection !== undefined)
-            url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_GetJournalEntries(_response);
-        });
-    }
-
-    protected processJournal_GetJournalEntries(response: Response): Promise<GetJournalEntriesResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetJournalEntriesResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetJournalEntriesResponse>(null as any);
-    }
-
-    journal_CreateJournalEntry(request: CreateJournalEntryRequest): Promise<CreateJournalEntryResponse> {
-        let url_ = this.baseUrl + "/api/Journal";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_CreateJournalEntry(_response);
-        });
-    }
-
-    protected processJournal_CreateJournalEntry(response: Response): Promise<CreateJournalEntryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 201) {
-            return response.text().then((_responseText) => {
-            let result201: any = null;
-            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = CreateJournalEntryResponse.fromJS(resultData201);
-            return result201;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-            });
-        } else if (status === 401) {
-            return response.text().then((_responseText) => {
-            let result401: any = null;
-            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result401 = ProblemDetails.fromJS(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreateJournalEntryResponse>(null as any);
-    }
-
-    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
-        let url_ = this.baseUrl + "/api/Journal/search?";
-        if (searchText !== undefined && searchText !== null)
-            url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
-        if (dateFrom !== undefined && dateFrom !== null)
-            url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
-        if (dateTo !== undefined && dateTo !== null)
-            url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
-        if (productCodePrefix !== undefined && productCodePrefix !== null)
-            url_ += "ProductCodePrefix=" + encodeURIComponent("" + productCodePrefix) + "&";
-        if (tagIds !== undefined && tagIds !== null)
-            tagIds && tagIds.forEach(item => { url_ += "TagIds=" + encodeURIComponent("" + item) + "&"; });
-        if (createdByUserId !== undefined && createdByUserId !== null)
-            url_ += "CreatedByUserId=" + encodeURIComponent("" + createdByUserId) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy === null)
-            throw new Error("The parameter 'sortBy' cannot be null.");
-        else if (sortBy !== undefined)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDirection === null)
-            throw new Error("The parameter 'sortDirection' cannot be null.");
-        else if (sortDirection !== undefined)
-            url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_SearchJournalEntries(_response);
-        });
-    }
-
-    protected processJournal_SearchJournalEntries(response: Response): Promise<SearchJournalEntriesResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = SearchJournalEntriesResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<SearchJournalEntriesResponse>(null as any);
-    }
-
-    journal_GetJournalEntry(id: number): Promise<GetJournalEntryResponse> {
-        let url_ = this.baseUrl + "/api/Journal/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_GetJournalEntry(_response);
-        });
-    }
-
-    protected processJournal_GetJournalEntry(response: Response): Promise<GetJournalEntryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetJournalEntryResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetJournalEntryResponse>(null as any);
-    }
-
-    journal_UpdateJournalEntry(id: number, request: UpdateJournalEntryRequest): Promise<UpdateJournalEntryResponse> {
-        let url_ = this.baseUrl + "/api/Journal/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_UpdateJournalEntry(_response);
-        });
-    }
-
-    protected processJournal_UpdateJournalEntry(response: Response): Promise<UpdateJournalEntryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UpdateJournalEntryResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status === 401) {
-            return response.text().then((_responseText) => {
-            let result401: any = null;
-            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result401 = ProblemDetails.fromJS(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UpdateJournalEntryResponse>(null as any);
-    }
-
-    journal_DeleteJournalEntry(id: number): Promise<DeleteJournalEntryResponse> {
-        let url_ = this.baseUrl + "/api/Journal/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "DELETE",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_DeleteJournalEntry(_response);
-        });
-    }
-
-    protected processJournal_DeleteJournalEntry(response: Response): Promise<DeleteJournalEntryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = DeleteJournalEntryResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status === 404) {
-            return response.text().then((_responseText) => {
-            let result404: any = null;
-            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result404 = ProblemDetails.fromJS(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-            });
-        } else if (status === 401) {
-            return response.text().then((_responseText) => {
-            let result401: any = null;
-            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result401 = ProblemDetails.fromJS(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<DeleteJournalEntryResponse>(null as any);
-    }
-
-    journal_GetJournalTags(): Promise<GetJournalTagsResponse> {
-        let url_ = this.baseUrl + "/api/Journal/tags";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_GetJournalTags(_response);
-        });
-    }
-
-    protected processJournal_GetJournalTags(response: Response): Promise<GetJournalTagsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetJournalTagsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetJournalTagsResponse>(null as any);
-    }
-
-    journal_CreateJournalTag(request: CreateJournalTagRequest): Promise<CreateJournalTagResponse> {
-        let url_ = this.baseUrl + "/api/Journal/tags";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processJournal_CreateJournalTag(_response);
-        });
-    }
-
-    protected processJournal_CreateJournalTag(response: Response): Promise<CreateJournalTagResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 201) {
-            return response.text().then((_responseText) => {
-            let result201: any = null;
-            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = CreateJournalTagResponse.fromJS(resultData201);
-            return result201;
-            });
-        } else if (status === 401) {
-            return response.text().then((_responseText) => {
-            let result401: any = null;
-            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result401 = ProblemDetails.fromJS(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreateJournalTagResponse>(null as any);
-    }
-
-    manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
-        let url_ = this.baseUrl + "/api/manufacture-output?";
-        if (monthsBack === null)
-            throw new Error("The parameter 'monthsBack' cannot be null.");
-        else if (monthsBack !== undefined)
-            url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processManufactureOutput_GetManufactureOutput(_response);
-        });
-    }
-
-    protected processManufactureOutput_GetManufactureOutput(response: Response): Promise<GetManufactureOutputResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetManufactureOutputResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetManufactureOutputResponse>(null as any);
-    }
-
-    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
-        let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
-        if (timePeriod === null)
-            throw new Error("The parameter 'timePeriod' cannot be null.");
-        else if (timePeriod !== undefined)
-            url_ += "TimePeriod=" + encodeURIComponent("" + timePeriod) + "&";
-        if (customFromDate !== undefined && customFromDate !== null)
-            url_ += "CustomFromDate=" + encodeURIComponent(customFromDate ? "" + customFromDate.toISOString() : "") + "&";
-        if (customToDate !== undefined && customToDate !== null)
-            url_ += "CustomToDate=" + encodeURIComponent(customToDate ? "" + customToDate.toISOString() : "") + "&";
-        if (productFamily !== undefined && productFamily !== null)
-            url_ += "ProductFamily=" + encodeURIComponent("" + productFamily) + "&";
-        if (criticalItemsOnly === null)
-            throw new Error("The parameter 'criticalItemsOnly' cannot be null.");
-        else if (criticalItemsOnly !== undefined)
-            url_ += "CriticalItemsOnly=" + encodeURIComponent("" + criticalItemsOnly) + "&";
-        if (majorItemsOnly === null)
-            throw new Error("The parameter 'majorItemsOnly' cannot be null.");
-        else if (majorItemsOnly !== undefined)
-            url_ += "MajorItemsOnly=" + encodeURIComponent("" + majorItemsOnly) + "&";
-        if (adequateItemsOnly === null)
-            throw new Error("The parameter 'adequateItemsOnly' cannot be null.");
-        else if (adequateItemsOnly !== undefined)
-            url_ += "AdequateItemsOnly=" + encodeURIComponent("" + adequateItemsOnly) + "&";
-        if (unconfiguredOnly === null)
-            throw new Error("The parameter 'unconfiguredOnly' cannot be null.");
-        else if (unconfiguredOnly !== undefined)
-            url_ += "UnconfiguredOnly=" + encodeURIComponent("" + unconfiguredOnly) + "&";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy === null)
-            throw new Error("The parameter 'sortBy' cannot be null.");
-        else if (sortBy !== undefined)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processManufacturingStockAnalysis_GetStockAnalysis(_response);
-        });
-    }
-
-    protected processManufacturingStockAnalysis_GetStockAnalysis(response: Response): Promise<GetManufacturingStockAnalysisResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetManufacturingStockAnalysisResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
-    }
-
-    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
-        let url_ = this.baseUrl + "/api/ProductMargins?";
-        if (productCode !== undefined && productCode !== null)
-            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
-        if (productName !== undefined && productName !== null)
-            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
-        if (productType !== undefined && productType !== null)
-            url_ += "ProductType=" + encodeURIComponent("" + productType) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy !== undefined && sortBy !== null)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        if (dateFrom !== undefined && dateFrom !== null)
-            url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
-        if (dateTo !== undefined && dateTo !== null)
-            url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processProductMargins_GetProductMargins(_response);
-        });
-    }
-
-    protected processProductMargins_GetProductMargins(response: Response): Promise<GetProductMarginsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetProductMarginsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetProductMarginsResponse>(null as any);
-    }
-
-    purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, supplierId: number | null | undefined, activeOrdersOnly: boolean | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders?";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (status !== undefined && status !== null)
-            url_ += "Status=" + encodeURIComponent("" + status) + "&";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        if (supplierId !== undefined && supplierId !== null)
-            url_ += "SupplierId=" + encodeURIComponent("" + supplierId) + "&";
-        if (activeOrdersOnly !== undefined && activeOrdersOnly !== null)
-            url_ += "ActiveOrdersOnly=" + encodeURIComponent("" + activeOrdersOnly) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy === null)
-            throw new Error("The parameter 'sortBy' cannot be null.");
-        else if (sortBy !== undefined)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_GetPurchaseOrders(_response);
-        });
-    }
-
-    protected processPurchaseOrders_GetPurchaseOrders(response: Response): Promise<GetPurchaseOrdersResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetPurchaseOrdersResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetPurchaseOrdersResponse>(null as any);
-    }
-
-    purchaseOrders_CreatePurchaseOrder(request: CreatePurchaseOrderRequest): Promise<CreatePurchaseOrderResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_CreatePurchaseOrder(_response);
-        });
-    }
-
-    protected processPurchaseOrders_CreatePurchaseOrder(response: Response): Promise<CreatePurchaseOrderResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = CreatePurchaseOrderResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreatePurchaseOrderResponse>(null as any);
-    }
-
-    purchaseOrders_GetPurchaseOrderById(id: number): Promise<GetPurchaseOrderByIdResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_GetPurchaseOrderById(_response);
-        });
-    }
-
-    protected processPurchaseOrders_GetPurchaseOrderById(response: Response): Promise<GetPurchaseOrderByIdResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetPurchaseOrderByIdResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetPurchaseOrderByIdResponse>(null as any);
-    }
-
-    purchaseOrders_UpdatePurchaseOrder(id: number, request: UpdatePurchaseOrderRequest): Promise<UpdatePurchaseOrderResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_UpdatePurchaseOrder(_response);
-        });
-    }
-
-    protected processPurchaseOrders_UpdatePurchaseOrder(response: Response): Promise<UpdatePurchaseOrderResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UpdatePurchaseOrderResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UpdatePurchaseOrderResponse>(null as any);
-    }
-
-    purchaseOrders_UpdatePurchaseOrderStatus(id: number, request: UpdatePurchaseOrderStatusRequest): Promise<UpdatePurchaseOrderStatusResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders/{id}/status";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_UpdatePurchaseOrderStatus(_response);
-        });
-    }
-
-    protected processPurchaseOrders_UpdatePurchaseOrderStatus(response: Response): Promise<UpdatePurchaseOrderStatusResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UpdatePurchaseOrderStatusResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UpdatePurchaseOrderStatusResponse>(null as any);
-    }
-
-    purchaseOrders_UpdateInvoiceAcquired(id: number, request: UpdatePurchaseOrderInvoiceAcquiredRequest): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders/{id}/invoice-acquired";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_UpdateInvoiceAcquired(_response);
-        });
-    }
-
-    protected processPurchaseOrders_UpdateInvoiceAcquired(response: Response): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UpdatePurchaseOrderInvoiceAcquiredResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UpdatePurchaseOrderInvoiceAcquiredResponse>(null as any);
-    }
-
-    purchaseOrders_GetPurchaseOrderHistory(id: number): Promise<ListResponseOfPurchaseOrderHistoryDto> {
-        let url_ = this.baseUrl + "/api/purchase-orders/{id}/history";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_GetPurchaseOrderHistory(_response);
-        });
-    }
-
-    protected processPurchaseOrders_GetPurchaseOrderHistory(response: Response): Promise<ListResponseOfPurchaseOrderHistoryDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ListResponseOfPurchaseOrderHistoryDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ListResponseOfPurchaseOrderHistoryDto>(null as any);
-    }
-
-    purchaseOrders_RecalculatePurchasePrice(request: RecalculatePurchasePriceRequest): Promise<RecalculatePurchasePriceResponse> {
-        let url_ = this.baseUrl + "/api/purchase-orders/recalculate-purchase-price";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseOrders_RecalculatePurchasePrice(_response);
-        });
-    }
-
-    protected processPurchaseOrders_RecalculatePurchasePrice(response: Response): Promise<RecalculatePurchasePriceResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = RecalculatePurchasePriceResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<RecalculatePurchasePriceResponse>(null as any);
-    }
-
-    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
-        let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        if (stockStatus === null)
-            throw new Error("The parameter 'stockStatus' cannot be null.");
-        else if (stockStatus !== undefined)
-            url_ += "StockStatus=" + encodeURIComponent("" + stockStatus) + "&";
-        if (onlyConfigured === null)
-            throw new Error("The parameter 'onlyConfigured' cannot be null.");
-        else if (onlyConfigured !== undefined)
-            url_ += "OnlyConfigured=" + encodeURIComponent("" + onlyConfigured) + "&";
-        if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy === null)
-            throw new Error("The parameter 'sortBy' cannot be null.");
-        else if (sortBy !== undefined)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processPurchaseStockAnalysis_GetStockAnalysis(_response);
-        });
-    }
-
-    protected processPurchaseStockAnalysis_GetStockAnalysis(response: Response): Promise<GetPurchaseStockAnalysisResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetPurchaseStockAnalysisResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
-    }
-
-    suppliers_SearchSuppliers(searchTerm: string | undefined, limit: number | undefined): Promise<SearchSuppliersResponse> {
-        let url_ = this.baseUrl + "/api/suppliers/search?";
-        if (searchTerm === null)
-            throw new Error("The parameter 'searchTerm' cannot be null.");
-        else if (searchTerm !== undefined)
-            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (limit === null)
-            throw new Error("The parameter 'limit' cannot be null.");
-        else if (limit !== undefined)
-            url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processSuppliers_SearchSuppliers(_response);
-        });
-    }
-
-    protected processSuppliers_SearchSuppliers(response: Response): Promise<SearchSuppliersResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = SearchSuppliersResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<SearchSuppliersResponse>(null as any);
-    }
-
-    transportBox_GetTransportBoxes(skip: number | undefined, take: number | undefined, code: string | null | undefined, state: string | null | undefined, productCode: string | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetTransportBoxesResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes?";
-        if (skip === null)
-            throw new Error("The parameter 'skip' cannot be null.");
-        else if (skip !== undefined)
-            url_ += "Skip=" + encodeURIComponent("" + skip) + "&";
-        if (take === null)
-            throw new Error("The parameter 'take' cannot be null.");
-        else if (take !== undefined)
-            url_ += "Take=" + encodeURIComponent("" + take) + "&";
-        if (code !== undefined && code !== null)
-            url_ += "Code=" + encodeURIComponent("" + code) + "&";
-        if (state !== undefined && state !== null)
-            url_ += "State=" + encodeURIComponent("" + state) + "&";
-        if (productCode !== undefined && productCode !== null)
-            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
-        if (sortBy !== undefined && sortBy !== null)
-            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_GetTransportBoxes(_response);
-        });
-    }
-
-    protected processTransportBox_GetTransportBoxes(response: Response): Promise<GetTransportBoxesResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetTransportBoxesResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetTransportBoxesResponse>(null as any);
-    }
-
-    transportBox_CreateNewTransportBox(request: CreateNewTransportBoxRequest): Promise<CreateNewTransportBoxResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_CreateNewTransportBox(_response);
-        });
-    }
-
-    protected processTransportBox_CreateNewTransportBox(response: Response): Promise<CreateNewTransportBoxResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = CreateNewTransportBoxResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreateNewTransportBoxResponse>(null as any);
-    }
-
-    transportBox_GetTransportBoxSummary(code: string | null | undefined, productCode: string | null | undefined): Promise<GetTransportBoxSummaryResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/summary?";
-        if (code !== undefined && code !== null)
-            url_ += "Code=" + encodeURIComponent("" + code) + "&";
-        if (productCode !== undefined && productCode !== null)
-            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_GetTransportBoxSummary(_response);
-        });
-    }
-
-    protected processTransportBox_GetTransportBoxSummary(response: Response): Promise<GetTransportBoxSummaryResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetTransportBoxSummaryResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetTransportBoxSummaryResponse>(null as any);
-    }
-
-    transportBox_GetTransportBoxById(id: number): Promise<GetTransportBoxByIdResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_GetTransportBoxById(_response);
-        });
-    }
-
-    protected processTransportBox_GetTransportBoxById(response: Response): Promise<GetTransportBoxByIdResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetTransportBoxByIdResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetTransportBoxByIdResponse>(null as any);
-    }
-
-    transportBox_ChangeTransportBoxState(id: number, request: ChangeTransportBoxStateRequest): Promise<ChangeTransportBoxStateResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}/state";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_ChangeTransportBoxState(_response);
-        });
-    }
-
-    protected processTransportBox_ChangeTransportBoxState(response: Response): Promise<ChangeTransportBoxStateResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ChangeTransportBoxStateResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ChangeTransportBoxStateResponse>(null as any);
-    }
-
-    transportBox_AddItemToBox(id: number, request: AddItemToBoxRequest): Promise<AddItemToBoxResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}/items";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_AddItemToBox(_response);
-        });
-    }
-
-    protected processTransportBox_AddItemToBox(response: Response): Promise<AddItemToBoxResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = AddItemToBoxResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<AddItemToBoxResponse>(null as any);
-    }
-
-    transportBox_RemoveItemFromBox(id: number, itemId: number): Promise<RemoveItemFromBoxResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}/items/{itemId}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (itemId === undefined || itemId === null)
-            throw new Error("The parameter 'itemId' must be defined.");
-        url_ = url_.replace("{itemId}", encodeURIComponent("" + itemId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "DELETE",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processTransportBox_RemoveItemFromBox(_response);
-        });
-    }
-
-    protected processTransportBox_RemoveItemFromBox(response: Response): Promise<RemoveItemFromBoxResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = RemoveItemFromBoxResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<RemoveItemFromBoxResponse>(null as any);
-    }
+  private http: {
+    fetch(url: RequestInfo, init?: RequestInit): Promise<Response>;
+  };
+  private baseUrl: string;
+  protected jsonParseReviver: ((key: string, value: any) => any) | undefined =
+    undefined;
+
+  constructor(
+    baseUrl?: string,
+    http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> },
+  ) {
+    this.http = http ? http : (window as any);
+    this.baseUrl = baseUrl ?? "";
+  }
+
+  analytics_GetProductMarginSummary(
+    timeWindow: string | undefined,
+    topProductCount: number | undefined,
+    groupingMode: ProductGroupingMode | undefined,
+  ): Promise<GetProductMarginSummaryResponse> {
+    let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
+    if (timeWindow === null)
+      throw new Error("The parameter 'timeWindow' cannot be null.");
+    else if (timeWindow !== undefined)
+      url_ += "TimeWindow=" + encodeURIComponent("" + timeWindow) + "&";
+    if (topProductCount === null)
+      throw new Error("The parameter 'topProductCount' cannot be null.");
+    else if (topProductCount !== undefined)
+      url_ +=
+        "TopProductCount=" + encodeURIComponent("" + topProductCount) + "&";
+    if (groupingMode === null)
+      throw new Error("The parameter 'groupingMode' cannot be null.");
+    else if (groupingMode !== undefined)
+      url_ += "GroupingMode=" + encodeURIComponent("" + groupingMode) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processAnalytics_GetProductMarginSummary(_response);
+    });
+  }
+
+  protected processAnalytics_GetProductMarginSummary(
+    response: Response,
+  ): Promise<GetProductMarginSummaryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetProductMarginSummaryResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 400) {
+      return response.text().then((_responseText) => {
+        let result400: any = null;
+        let resultData400 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result400 = ProblemDetails.fromJS(resultData400);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result400,
+        );
+      });
+    } else if (status === 403) {
+      return response.text().then((_responseText) => {
+        let result403: any = null;
+        let resultData403 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result403 = ProblemDetails.fromJS(resultData403);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result403,
+        );
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status === 500) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetProductMarginSummaryResponse>(null as any);
+  }
+
+  analytics_GetMarginAnalysis(
+    productId: string | undefined,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    includeBreakdown: boolean | undefined,
+  ): Promise<GetProductMarginAnalysisResponse> {
+    let url_ = this.baseUrl + "/api/Analytics/margin-analysis?";
+    if (productId === null)
+      throw new Error("The parameter 'productId' cannot be null.");
+    else if (productId !== undefined)
+      url_ += "ProductId=" + encodeURIComponent("" + productId) + "&";
+    if (startDate === null)
+      throw new Error("The parameter 'startDate' cannot be null.");
+    else if (startDate !== undefined)
+      url_ +=
+        "StartDate=" +
+        encodeURIComponent(startDate ? "" + startDate.toISOString() : "") +
+        "&";
+    if (endDate === null)
+      throw new Error("The parameter 'endDate' cannot be null.");
+    else if (endDate !== undefined)
+      url_ +=
+        "EndDate=" +
+        encodeURIComponent(endDate ? "" + endDate.toISOString() : "") +
+        "&";
+    if (includeBreakdown === null)
+      throw new Error("The parameter 'includeBreakdown' cannot be null.");
+    else if (includeBreakdown !== undefined)
+      url_ +=
+        "IncludeBreakdown=" + encodeURIComponent("" + includeBreakdown) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processAnalytics_GetMarginAnalysis(_response);
+    });
+  }
+
+  protected processAnalytics_GetMarginAnalysis(
+    response: Response,
+  ): Promise<GetProductMarginAnalysisResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetProductMarginAnalysisResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 400) {
+      return response.text().then((_responseText) => {
+        let result400: any = null;
+        let resultData400 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result400 = ProblemDetails.fromJS(resultData400);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result400,
+        );
+      });
+    } else if (status === 403) {
+      return response.text().then((_responseText) => {
+        let result403: any = null;
+        let resultData403 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result403 = ProblemDetails.fromJS(resultData403);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result403,
+        );
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status === 500) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetProductMarginAnalysisResponse>(null as any);
+  }
+
+  analytics_GetMarginReport(
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    productFilter: string | null | undefined,
+    categoryFilter: string | null | undefined,
+    includeDetailedBreakdown: boolean | undefined,
+    maxProducts: number | undefined,
+  ): Promise<GetMarginReportResponse> {
+    let url_ = this.baseUrl + "/api/Analytics/margin-report?";
+    if (startDate === null)
+      throw new Error("The parameter 'startDate' cannot be null.");
+    else if (startDate !== undefined)
+      url_ +=
+        "StartDate=" +
+        encodeURIComponent(startDate ? "" + startDate.toISOString() : "") +
+        "&";
+    if (endDate === null)
+      throw new Error("The parameter 'endDate' cannot be null.");
+    else if (endDate !== undefined)
+      url_ +=
+        "EndDate=" +
+        encodeURIComponent(endDate ? "" + endDate.toISOString() : "") +
+        "&";
+    if (productFilter !== undefined && productFilter !== null)
+      url_ += "ProductFilter=" + encodeURIComponent("" + productFilter) + "&";
+    if (categoryFilter !== undefined && categoryFilter !== null)
+      url_ += "CategoryFilter=" + encodeURIComponent("" + categoryFilter) + "&";
+    if (includeDetailedBreakdown === null)
+      throw new Error(
+        "The parameter 'includeDetailedBreakdown' cannot be null.",
+      );
+    else if (includeDetailedBreakdown !== undefined)
+      url_ +=
+        "IncludeDetailedBreakdown=" +
+        encodeURIComponent("" + includeDetailedBreakdown) +
+        "&";
+    if (maxProducts === null)
+      throw new Error("The parameter 'maxProducts' cannot be null.");
+    else if (maxProducts !== undefined)
+      url_ += "MaxProducts=" + encodeURIComponent("" + maxProducts) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processAnalytics_GetMarginReport(_response);
+    });
+  }
+
+  protected processAnalytics_GetMarginReport(
+    response: Response,
+  ): Promise<GetMarginReportResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetMarginReportResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 400) {
+      return response.text().then((_responseText) => {
+        let result400: any = null;
+        let resultData400 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result400 = ProblemDetails.fromJS(resultData400);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result400,
+        );
+      });
+    } else if (status === 403) {
+      return response.text().then((_responseText) => {
+        let result403: any = null;
+        let resultData403 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result403 = ProblemDetails.fromJS(resultData403);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result403,
+        );
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status === 500) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetMarginReportResponse>(null as any);
+  }
+
+  audit_GetDataLoadAuditLogs(
+    limit: number | null | undefined,
+    fromDate: Date | null | undefined,
+    toDate: Date | null | undefined,
+  ): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Audit/data-loads?";
+    if (limit !== undefined && limit !== null)
+      url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+    if (fromDate !== undefined && fromDate !== null)
+      url_ +=
+        "fromDate=" +
+        encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") +
+        "&";
+    if (toDate !== undefined && toDate !== null)
+      url_ +=
+        "toDate=" +
+        encodeURIComponent(toDate ? "" + toDate.toISOString() : "") +
+        "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processAudit_GetDataLoadAuditLogs(_response);
+    });
+  }
+
+  protected processAudit_GetDataLoadAuditLogs(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  audit_GetAuditSummary(
+    fromDate: Date | null | undefined,
+    toDate: Date | null | undefined,
+  ): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Audit/summary?";
+    if (fromDate !== undefined && fromDate !== null)
+      url_ +=
+        "fromDate=" +
+        encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") +
+        "&";
+    if (toDate !== undefined && toDate !== null)
+      url_ +=
+        "toDate=" +
+        encodeURIComponent(toDate ? "" + toDate.toISOString() : "") +
+        "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processAudit_GetAuditSummary(_response);
+    });
+  }
+
+  protected processAudit_GetAuditSummary(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_GetCatalogList(
+    type: ProductType | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: string | null | undefined,
+    sortDescending: boolean | undefined,
+    productName: string | null | undefined,
+    productCode: string | null | undefined,
+    searchTerm: string | null | undefined,
+  ): Promise<GetCatalogListResponse> {
+    let url_ = this.baseUrl + "/api/Catalog?";
+    if (type !== undefined && type !== null)
+      url_ += "Type=" + encodeURIComponent("" + type) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy !== undefined && sortBy !== null)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    if (productName !== undefined && productName !== null)
+      url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+    if (productCode !== undefined && productCode !== null)
+      url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetCatalogList(_response);
+    });
+  }
+
+  protected processCatalog_GetCatalogList(
+    response: Response,
+  ): Promise<GetCatalogListResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetCatalogListResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetCatalogListResponse>(null as any);
+  }
+
+  catalog_GetCatalogDetail(
+    productCode: string,
+    monthsBack: number | undefined,
+  ): Promise<GetCatalogDetailResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/{productCode}?";
+    if (productCode === undefined || productCode === null)
+      throw new Error("The parameter 'productCode' must be defined.");
+    url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+    if (monthsBack === null)
+      throw new Error("The parameter 'monthsBack' cannot be null.");
+    else if (monthsBack !== undefined)
+      url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetCatalogDetail(_response);
+    });
+  }
+
+  protected processCatalog_GetCatalogDetail(
+    response: Response,
+  ): Promise<GetCatalogDetailResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetCatalogDetailResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetCatalogDetailResponse>(null as any);
+  }
+
+  catalog_RefreshTransportData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/transport";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshTransportData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshTransportData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshReserveData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/reserve";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshReserveData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshReserveData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshSalesData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/sales";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshSalesData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshSalesData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshAttributesData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/attributes";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshAttributesData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshAttributesData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshErpStockData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/erp-stock";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshErpStockData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshErpStockData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshEshopStockData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-stock";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshEshopStockData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshEshopStockData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshPurchaseHistoryData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/purchase-history";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshPurchaseHistoryData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshPurchaseHistoryData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshManufactureHistoryData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-history";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshManufactureHistoryData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshManufactureHistoryData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshConsumedHistoryData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/consumed-history";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshConsumedHistoryData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshConsumedHistoryData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshStockTakingData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/stock-taking";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshStockTakingData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshStockTakingData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshLotsData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/lots";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshLotsData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshLotsData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshEshopPricesData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-prices";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshEshopPricesData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshEshopPricesData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshErpPricesData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/erp-prices";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshErpPricesData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshErpPricesData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_RefreshManufactureDifficultyData(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-difficulty";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_RefreshManufactureDifficultyData(_response);
+    });
+  }
+
+  protected processCatalog_RefreshManufactureDifficultyData(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  catalog_GetMaterialsForPurchase(
+    searchTerm: string | null | undefined,
+    limit: number | undefined,
+  ): Promise<GetMaterialsForPurchaseResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (limit === null)
+      throw new Error("The parameter 'limit' cannot be null.");
+    else if (limit !== undefined)
+      url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetMaterialsForPurchase(_response);
+    });
+  }
+
+  protected processCatalog_GetMaterialsForPurchase(
+    response: Response,
+  ): Promise<GetMaterialsForPurchaseResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetMaterialsForPurchaseResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetMaterialsForPurchaseResponse>(null as any);
+  }
+
+  catalog_GetProductsForAutocomplete(
+    searchTerm: string | null | undefined,
+    limit: number | undefined,
+    productTypes: ProductType[] | null | undefined,
+  ): Promise<GetCatalogListResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/autocomplete?";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "searchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (limit === null)
+      throw new Error("The parameter 'limit' cannot be null.");
+    else if (limit !== undefined)
+      url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+    if (productTypes !== undefined && productTypes !== null)
+      productTypes &&
+        productTypes.forEach((item) => {
+          url_ += "productTypes=" + encodeURIComponent("" + item) + "&";
+        });
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetProductsForAutocomplete(_response);
+    });
+  }
+
+  protected processCatalog_GetProductsForAutocomplete(
+    response: Response,
+  ): Promise<GetCatalogListResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetCatalogListResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetCatalogListResponse>(null as any);
+  }
+
+  catalog_GetManufactureDifficultyHistory(
+    productCode: string,
+    asOfDate: Date | null | undefined,
+  ): Promise<GetManufactureDifficultySettingsResponse> {
+    let url_ =
+      this.baseUrl + "/api/Catalog/{productCode}/manufacture-difficulty?";
+    if (productCode === undefined || productCode === null)
+      throw new Error("The parameter 'productCode' must be defined.");
+    url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+    if (asOfDate !== undefined && asOfDate !== null)
+      url_ +=
+        "asOfDate=" +
+        encodeURIComponent(asOfDate ? "" + asOfDate.toISOString() : "") +
+        "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetManufactureDifficultyHistory(_response);
+    });
+  }
+
+  protected processCatalog_GetManufactureDifficultyHistory(
+    response: Response,
+  ): Promise<GetManufactureDifficultySettingsResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 =
+          GetManufactureDifficultySettingsResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetManufactureDifficultySettingsResponse>(
+      null as any,
+    );
+  }
+
+  catalog_CreateManufactureDifficulty(
+    request: CreateManufactureDifficultyRequest,
+  ): Promise<CreateManufactureDifficultyResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_CreateManufactureDifficulty(_response);
+    });
+  }
+
+  protected processCatalog_CreateManufactureDifficulty(
+    response: Response,
+  ): Promise<CreateManufactureDifficultyResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 201) {
+      return response.text().then((_responseText) => {
+        let result201: any = null;
+        let resultData201 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result201 = CreateManufactureDifficultyResponse.fromJS(resultData201);
+        return result201;
+      });
+    } else if (status === 400) {
+      return response.text().then((_responseText) => {
+        let result400: any = null;
+        let resultData400 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result400 = ProblemDetails.fromJS(resultData400);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result400,
+        );
+      });
+    } else if (status === 409) {
+      return response.text().then((_responseText) => {
+        let result409: any = null;
+        let resultData409 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result409 = ProblemDetails.fromJS(resultData409);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result409,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<CreateManufactureDifficultyResponse>(null as any);
+  }
+
+  catalog_UpdateManufactureDifficulty(
+    id: number,
+    request: UpdateManufactureDifficultyRequest,
+  ): Promise<UpdateManufactureDifficultyResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_UpdateManufactureDifficulty(_response);
+    });
+  }
+
+  protected processCatalog_UpdateManufactureDifficulty(
+    response: Response,
+  ): Promise<UpdateManufactureDifficultyResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = UpdateManufactureDifficultyResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<UpdateManufactureDifficultyResponse>(null as any);
+  }
+
+  catalog_DeleteManufactureDifficulty(
+    id: number,
+  ): Promise<DeleteManufactureDifficultyResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/manufacture-difficulty/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_DeleteManufactureDifficulty(_response);
+    });
+  }
+
+  protected processCatalog_DeleteManufactureDifficulty(
+    response: Response,
+  ): Promise<DeleteManufactureDifficultyResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = DeleteManufactureDifficultyResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<DeleteManufactureDifficultyResponse>(null as any);
+  }
+
+  catalog_GetProductUsage(
+    productCode: string,
+  ): Promise<GetProductUsageResponse> {
+    let url_ = this.baseUrl + "/api/Catalog/{productCode}/usage";
+    if (productCode === undefined || productCode === null)
+      throw new Error("The parameter 'productCode' must be defined.");
+    url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processCatalog_GetProductUsage(_response);
+    });
+  }
+
+  protected processCatalog_GetProductUsage(
+    response: Response,
+  ): Promise<GetProductUsageResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetProductUsageResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetProductUsageResponse>(null as any);
+  }
+
+  configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
+    let url_ = this.baseUrl + "/api/Configuration";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processConfiguration_GetConfiguration(_response);
+    });
+  }
+
+  protected processConfiguration_GetConfiguration(
+    response: Response,
+  ): Promise<GetConfigurationResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetConfigurationResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetConfigurationResponse>(null as any);
+  }
+
+  diagnostics_TestLogging(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Diagnostics/test-logging";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processDiagnostics_TestLogging(_response);
+    });
+  }
+
+  protected processDiagnostics_TestLogging(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  diagnostics_TestException(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Diagnostics/test-exception";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processDiagnostics_TestException(_response);
+    });
+  }
+
+  protected processDiagnostics_TestException(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  diagnostics_Health(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Diagnostics/health";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processDiagnostics_Health(_response);
+    });
+  }
+
+  protected processDiagnostics_Health(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  diagnostics_GetApplicationInsightsConfig(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/Diagnostics/appinsights-config";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processDiagnostics_GetApplicationInsightsConfig(_response);
+    });
+  }
+
+  protected processDiagnostics_GetApplicationInsightsConfig(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  e2ETest_GetEnvironmentInfo(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/E2ETest/env-info";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processE2ETest_GetEnvironmentInfo(_response);
+    });
+  }
+
+  protected processE2ETest_GetEnvironmentInfo(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  e2ETest_CreateE2ESession(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/E2ETest/auth";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "POST",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processE2ETest_CreateE2ESession(_response);
+    });
+  }
+
+  protected processE2ETest_CreateE2ESession(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  e2ETest_GetAuthStatus(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/E2ETest/auth-status";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processE2ETest_GetAuthStatus(_response);
+    });
+  }
+
+  protected processE2ETest_GetAuthStatus(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  e2ETest_GetE2EApp(): Promise<FileResponse> {
+    let url_ = this.baseUrl + "/api/E2ETest/app";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processE2ETest_GetE2EApp(_response);
+    });
+  }
+
+  protected processE2ETest_GetE2EApp(
+    response: Response,
+  ): Promise<FileResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200 || status === 206) {
+      const contentDisposition = response.headers
+        ? response.headers.get("content-disposition")
+        : undefined;
+      let fileNameMatch = contentDisposition
+        ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(
+            contentDisposition,
+          )
+        : undefined;
+      let fileName =
+        fileNameMatch && fileNameMatch.length > 1
+          ? fileNameMatch[3] || fileNameMatch[2]
+          : undefined;
+      if (fileName) {
+        fileName = decodeURIComponent(fileName);
+      } else {
+        fileNameMatch = contentDisposition
+          ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition)
+          : undefined;
+        fileName =
+          fileNameMatch && fileNameMatch.length > 1
+            ? fileNameMatch[1]
+            : undefined;
+      }
+      return response.blob().then((blob) => {
+        return {
+          fileName: fileName,
+          data: blob,
+          status: status,
+          headers: _headers,
+        };
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<FileResponse>(null as any);
+  }
+
+  financialOverview_GetFinancialOverview(
+    months: number | null | undefined,
+    includeStockData: boolean | undefined,
+  ): Promise<GetFinancialOverviewResponse> {
+    let url_ = this.baseUrl + "/api/FinancialOverview?";
+    if (months !== undefined && months !== null)
+      url_ += "months=" + encodeURIComponent("" + months) + "&";
+    if (includeStockData === null)
+      throw new Error("The parameter 'includeStockData' cannot be null.");
+    else if (includeStockData !== undefined)
+      url_ +=
+        "includeStockData=" + encodeURIComponent("" + includeStockData) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processFinancialOverview_GetFinancialOverview(_response);
+    });
+  }
+
+  protected processFinancialOverview_GetFinancialOverview(
+    response: Response,
+  ): Promise<GetFinancialOverviewResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetFinancialOverviewResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 403) {
+      return response.text().then((_responseText) => {
+        let result403: any = null;
+        let resultData403 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result403 = ProblemDetails.fromJS(resultData403);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result403,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetFinancialOverviewResponse>(null as any);
+  }
+
+  journal_GetJournalEntries(
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: string | undefined,
+    sortDirection: string | undefined,
+  ): Promise<GetJournalEntriesResponse> {
+    let url_ = this.baseUrl + "/api/Journal?";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy === null)
+      throw new Error("The parameter 'sortBy' cannot be null.");
+    else if (sortBy !== undefined)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDirection === null)
+      throw new Error("The parameter 'sortDirection' cannot be null.");
+    else if (sortDirection !== undefined)
+      url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_GetJournalEntries(_response);
+    });
+  }
+
+  protected processJournal_GetJournalEntries(
+    response: Response,
+  ): Promise<GetJournalEntriesResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetJournalEntriesResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetJournalEntriesResponse>(null as any);
+  }
+
+  journal_CreateJournalEntry(
+    request: CreateJournalEntryRequest,
+  ): Promise<CreateJournalEntryResponse> {
+    let url_ = this.baseUrl + "/api/Journal";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_CreateJournalEntry(_response);
+    });
+  }
+
+  protected processJournal_CreateJournalEntry(
+    response: Response,
+  ): Promise<CreateJournalEntryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 201) {
+      return response.text().then((_responseText) => {
+        let result201: any = null;
+        let resultData201 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result201 = CreateJournalEntryResponse.fromJS(resultData201);
+        return result201;
+      });
+    } else if (status === 400) {
+      return response.text().then((_responseText) => {
+        let result400: any = null;
+        let resultData400 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result400 = ProblemDetails.fromJS(resultData400);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result400,
+        );
+      });
+    } else if (status === 401) {
+      return response.text().then((_responseText) => {
+        let result401: any = null;
+        let resultData401 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result401 = ProblemDetails.fromJS(resultData401);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result401,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<CreateJournalEntryResponse>(null as any);
+  }
+
+  journal_SearchJournalEntries(
+    searchText: string | null | undefined,
+    dateFrom: Date | null | undefined,
+    dateTo: Date | null | undefined,
+    productCodePrefix: string | null | undefined,
+    tagIds: number[] | null | undefined,
+    createdByUserId: string | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: string | undefined,
+    sortDirection: string | undefined,
+  ): Promise<SearchJournalEntriesResponse> {
+    let url_ = this.baseUrl + "/api/Journal/search?";
+    if (searchText !== undefined && searchText !== null)
+      url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
+    if (dateFrom !== undefined && dateFrom !== null)
+      url_ +=
+        "DateFrom=" +
+        encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") +
+        "&";
+    if (dateTo !== undefined && dateTo !== null)
+      url_ +=
+        "DateTo=" +
+        encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") +
+        "&";
+    if (productCodePrefix !== undefined && productCodePrefix !== null)
+      url_ +=
+        "ProductCodePrefix=" + encodeURIComponent("" + productCodePrefix) + "&";
+    if (tagIds !== undefined && tagIds !== null)
+      tagIds &&
+        tagIds.forEach((item) => {
+          url_ += "TagIds=" + encodeURIComponent("" + item) + "&";
+        });
+    if (createdByUserId !== undefined && createdByUserId !== null)
+      url_ +=
+        "CreatedByUserId=" + encodeURIComponent("" + createdByUserId) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy === null)
+      throw new Error("The parameter 'sortBy' cannot be null.");
+    else if (sortBy !== undefined)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDirection === null)
+      throw new Error("The parameter 'sortDirection' cannot be null.");
+    else if (sortDirection !== undefined)
+      url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_SearchJournalEntries(_response);
+    });
+  }
+
+  protected processJournal_SearchJournalEntries(
+    response: Response,
+  ): Promise<SearchJournalEntriesResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = SearchJournalEntriesResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<SearchJournalEntriesResponse>(null as any);
+  }
+
+  journal_GetJournalEntry(id: number): Promise<GetJournalEntryResponse> {
+    let url_ = this.baseUrl + "/api/Journal/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_GetJournalEntry(_response);
+    });
+  }
+
+  protected processJournal_GetJournalEntry(
+    response: Response,
+  ): Promise<GetJournalEntryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetJournalEntryResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetJournalEntryResponse>(null as any);
+  }
+
+  journal_UpdateJournalEntry(
+    id: number,
+    request: UpdateJournalEntryRequest,
+  ): Promise<UpdateJournalEntryResponse> {
+    let url_ = this.baseUrl + "/api/Journal/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_UpdateJournalEntry(_response);
+    });
+  }
+
+  protected processJournal_UpdateJournalEntry(
+    response: Response,
+  ): Promise<UpdateJournalEntryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = UpdateJournalEntryResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status === 401) {
+      return response.text().then((_responseText) => {
+        let result401: any = null;
+        let resultData401 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result401 = ProblemDetails.fromJS(resultData401);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result401,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<UpdateJournalEntryResponse>(null as any);
+  }
+
+  journal_DeleteJournalEntry(id: number): Promise<DeleteJournalEntryResponse> {
+    let url_ = this.baseUrl + "/api/Journal/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_DeleteJournalEntry(_response);
+    });
+  }
+
+  protected processJournal_DeleteJournalEntry(
+    response: Response,
+  ): Promise<DeleteJournalEntryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = DeleteJournalEntryResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status === 404) {
+      return response.text().then((_responseText) => {
+        let result404: any = null;
+        let resultData404 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result404 = ProblemDetails.fromJS(resultData404);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result404,
+        );
+      });
+    } else if (status === 401) {
+      return response.text().then((_responseText) => {
+        let result401: any = null;
+        let resultData401 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result401 = ProblemDetails.fromJS(resultData401);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result401,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<DeleteJournalEntryResponse>(null as any);
+  }
+
+  journal_GetJournalTags(): Promise<GetJournalTagsResponse> {
+    let url_ = this.baseUrl + "/api/Journal/tags";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_GetJournalTags(_response);
+    });
+  }
+
+  protected processJournal_GetJournalTags(
+    response: Response,
+  ): Promise<GetJournalTagsResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetJournalTagsResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetJournalTagsResponse>(null as any);
+  }
+
+  journal_CreateJournalTag(
+    request: CreateJournalTagRequest,
+  ): Promise<CreateJournalTagResponse> {
+    let url_ = this.baseUrl + "/api/Journal/tags";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processJournal_CreateJournalTag(_response);
+    });
+  }
+
+  protected processJournal_CreateJournalTag(
+    response: Response,
+  ): Promise<CreateJournalTagResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 201) {
+      return response.text().then((_responseText) => {
+        let result201: any = null;
+        let resultData201 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result201 = CreateJournalTagResponse.fromJS(resultData201);
+        return result201;
+      });
+    } else if (status === 401) {
+      return response.text().then((_responseText) => {
+        let result401: any = null;
+        let resultData401 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result401 = ProblemDetails.fromJS(resultData401);
+        return throwException(
+          "A server side error occurred.",
+          status,
+          _responseText,
+          _headers,
+          result401,
+        );
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<CreateJournalTagResponse>(null as any);
+  }
+
+  manufactureOutput_GetManufactureOutput(
+    monthsBack: number | undefined,
+  ): Promise<GetManufactureOutputResponse> {
+    let url_ = this.baseUrl + "/api/manufacture-output?";
+    if (monthsBack === null)
+      throw new Error("The parameter 'monthsBack' cannot be null.");
+    else if (monthsBack !== undefined)
+      url_ += "monthsBack=" + encodeURIComponent("" + monthsBack) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processManufactureOutput_GetManufactureOutput(_response);
+    });
+  }
+
+  protected processManufactureOutput_GetManufactureOutput(
+    response: Response,
+  ): Promise<GetManufactureOutputResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetManufactureOutputResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetManufactureOutputResponse>(null as any);
+  }
+
+  manufacturingStockAnalysis_GetStockAnalysis(
+    timePeriod: TimePeriodFilter | undefined,
+    customFromDate: Date | null | undefined,
+    customToDate: Date | null | undefined,
+    productFamily: string | null | undefined,
+    criticalItemsOnly: boolean | undefined,
+    majorItemsOnly: boolean | undefined,
+    adequateItemsOnly: boolean | undefined,
+    unconfiguredOnly: boolean | undefined,
+    searchTerm: string | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: ManufacturingStockSortBy | undefined,
+    sortDescending: boolean | undefined,
+  ): Promise<GetManufacturingStockAnalysisResponse> {
+    let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
+    if (timePeriod === null)
+      throw new Error("The parameter 'timePeriod' cannot be null.");
+    else if (timePeriod !== undefined)
+      url_ += "TimePeriod=" + encodeURIComponent("" + timePeriod) + "&";
+    if (customFromDate !== undefined && customFromDate !== null)
+      url_ +=
+        "CustomFromDate=" +
+        encodeURIComponent(
+          customFromDate ? "" + customFromDate.toISOString() : "",
+        ) +
+        "&";
+    if (customToDate !== undefined && customToDate !== null)
+      url_ +=
+        "CustomToDate=" +
+        encodeURIComponent(
+          customToDate ? "" + customToDate.toISOString() : "",
+        ) +
+        "&";
+    if (productFamily !== undefined && productFamily !== null)
+      url_ += "ProductFamily=" + encodeURIComponent("" + productFamily) + "&";
+    if (criticalItemsOnly === null)
+      throw new Error("The parameter 'criticalItemsOnly' cannot be null.");
+    else if (criticalItemsOnly !== undefined)
+      url_ +=
+        "CriticalItemsOnly=" + encodeURIComponent("" + criticalItemsOnly) + "&";
+    if (majorItemsOnly === null)
+      throw new Error("The parameter 'majorItemsOnly' cannot be null.");
+    else if (majorItemsOnly !== undefined)
+      url_ += "MajorItemsOnly=" + encodeURIComponent("" + majorItemsOnly) + "&";
+    if (adequateItemsOnly === null)
+      throw new Error("The parameter 'adequateItemsOnly' cannot be null.");
+    else if (adequateItemsOnly !== undefined)
+      url_ +=
+        "AdequateItemsOnly=" + encodeURIComponent("" + adequateItemsOnly) + "&";
+    if (unconfiguredOnly === null)
+      throw new Error("The parameter 'unconfiguredOnly' cannot be null.");
+    else if (unconfiguredOnly !== undefined)
+      url_ +=
+        "UnconfiguredOnly=" + encodeURIComponent("" + unconfiguredOnly) + "&";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy === null)
+      throw new Error("The parameter 'sortBy' cannot be null.");
+    else if (sortBy !== undefined)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processManufacturingStockAnalysis_GetStockAnalysis(_response);
+    });
+  }
+
+  protected processManufacturingStockAnalysis_GetStockAnalysis(
+    response: Response,
+  ): Promise<GetManufacturingStockAnalysisResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetManufacturingStockAnalysisResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
+  }
+
+  productMargins_GetProductMargins(
+    productCode: string | null | undefined,
+    productName: string | null | undefined,
+    productType: ProductType | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: string | null | undefined,
+    sortDescending: boolean | undefined,
+    dateFrom: Date | null | undefined,
+    dateTo: Date | null | undefined,
+  ): Promise<GetProductMarginsResponse> {
+    let url_ = this.baseUrl + "/api/ProductMargins?";
+    if (productCode !== undefined && productCode !== null)
+      url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+    if (productName !== undefined && productName !== null)
+      url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+    if (productType !== undefined && productType !== null)
+      url_ += "ProductType=" + encodeURIComponent("" + productType) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy !== undefined && sortBy !== null)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    if (dateFrom !== undefined && dateFrom !== null)
+      url_ +=
+        "DateFrom=" +
+        encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") +
+        "&";
+    if (dateTo !== undefined && dateTo !== null)
+      url_ +=
+        "DateTo=" +
+        encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") +
+        "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processProductMargins_GetProductMargins(_response);
+    });
+  }
+
+  protected processProductMargins_GetProductMargins(
+    response: Response,
+  ): Promise<GetProductMarginsResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetProductMarginsResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetProductMarginsResponse>(null as any);
+  }
+
+  purchaseOrders_GetPurchaseOrders(
+    searchTerm: string | null | undefined,
+    status: string | null | undefined,
+    fromDate: Date | null | undefined,
+    toDate: Date | null | undefined,
+    supplierId: number | null | undefined,
+    activeOrdersOnly: boolean | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: string | undefined,
+    sortDescending: boolean | undefined,
+  ): Promise<GetPurchaseOrdersResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders?";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (status !== undefined && status !== null)
+      url_ += "Status=" + encodeURIComponent("" + status) + "&";
+    if (fromDate !== undefined && fromDate !== null)
+      url_ +=
+        "FromDate=" +
+        encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") +
+        "&";
+    if (toDate !== undefined && toDate !== null)
+      url_ +=
+        "ToDate=" +
+        encodeURIComponent(toDate ? "" + toDate.toISOString() : "") +
+        "&";
+    if (supplierId !== undefined && supplierId !== null)
+      url_ += "SupplierId=" + encodeURIComponent("" + supplierId) + "&";
+    if (activeOrdersOnly !== undefined && activeOrdersOnly !== null)
+      url_ +=
+        "ActiveOrdersOnly=" + encodeURIComponent("" + activeOrdersOnly) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy === null)
+      throw new Error("The parameter 'sortBy' cannot be null.");
+    else if (sortBy !== undefined)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_GetPurchaseOrders(_response);
+    });
+  }
+
+  protected processPurchaseOrders_GetPurchaseOrders(
+    response: Response,
+  ): Promise<GetPurchaseOrdersResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetPurchaseOrdersResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetPurchaseOrdersResponse>(null as any);
+  }
+
+  purchaseOrders_CreatePurchaseOrder(
+    request: CreatePurchaseOrderRequest,
+  ): Promise<CreatePurchaseOrderResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_CreatePurchaseOrder(_response);
+    });
+  }
+
+  protected processPurchaseOrders_CreatePurchaseOrder(
+    response: Response,
+  ): Promise<CreatePurchaseOrderResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = CreatePurchaseOrderResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<CreatePurchaseOrderResponse>(null as any);
+  }
+
+  purchaseOrders_GetPurchaseOrderById(
+    id: number,
+  ): Promise<GetPurchaseOrderByIdResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_GetPurchaseOrderById(_response);
+    });
+  }
+
+  protected processPurchaseOrders_GetPurchaseOrderById(
+    response: Response,
+  ): Promise<GetPurchaseOrderByIdResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetPurchaseOrderByIdResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetPurchaseOrderByIdResponse>(null as any);
+  }
+
+  purchaseOrders_UpdatePurchaseOrder(
+    id: number,
+    request: UpdatePurchaseOrderRequest,
+  ): Promise<UpdatePurchaseOrderResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_UpdatePurchaseOrder(_response);
+    });
+  }
+
+  protected processPurchaseOrders_UpdatePurchaseOrder(
+    response: Response,
+  ): Promise<UpdatePurchaseOrderResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = UpdatePurchaseOrderResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<UpdatePurchaseOrderResponse>(null as any);
+  }
+
+  purchaseOrders_UpdatePurchaseOrderStatus(
+    id: number,
+    request: UpdatePurchaseOrderStatusRequest,
+  ): Promise<UpdatePurchaseOrderStatusResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders/{id}/status";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_UpdatePurchaseOrderStatus(_response);
+    });
+  }
+
+  protected processPurchaseOrders_UpdatePurchaseOrderStatus(
+    response: Response,
+  ): Promise<UpdatePurchaseOrderStatusResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = UpdatePurchaseOrderStatusResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<UpdatePurchaseOrderStatusResponse>(null as any);
+  }
+
+  purchaseOrders_UpdateInvoiceAcquired(
+    id: number,
+    request: UpdatePurchaseOrderInvoiceAcquiredRequest,
+  ): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders/{id}/invoice-acquired";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_UpdateInvoiceAcquired(_response);
+    });
+  }
+
+  protected processPurchaseOrders_UpdateInvoiceAcquired(
+    response: Response,
+  ): Promise<UpdatePurchaseOrderInvoiceAcquiredResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 =
+          UpdatePurchaseOrderInvoiceAcquiredResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<UpdatePurchaseOrderInvoiceAcquiredResponse>(
+      null as any,
+    );
+  }
+
+  purchaseOrders_GetPurchaseOrderHistory(
+    id: number,
+  ): Promise<ListResponseOfPurchaseOrderHistoryDto> {
+    let url_ = this.baseUrl + "/api/purchase-orders/{id}/history";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_GetPurchaseOrderHistory(_response);
+    });
+  }
+
+  protected processPurchaseOrders_GetPurchaseOrderHistory(
+    response: Response,
+  ): Promise<ListResponseOfPurchaseOrderHistoryDto> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = ListResponseOfPurchaseOrderHistoryDto.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<ListResponseOfPurchaseOrderHistoryDto>(null as any);
+  }
+
+  purchaseOrders_RecalculatePurchasePrice(
+    request: RecalculatePurchasePriceRequest,
+  ): Promise<RecalculatePurchasePriceResponse> {
+    let url_ = this.baseUrl + "/api/purchase-orders/recalculate-purchase-price";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseOrders_RecalculatePurchasePrice(_response);
+    });
+  }
+
+  protected processPurchaseOrders_RecalculatePurchasePrice(
+    response: Response,
+  ): Promise<RecalculatePurchasePriceResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = RecalculatePurchasePriceResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<RecalculatePurchasePriceResponse>(null as any);
+  }
+
+  purchaseStockAnalysis_GetStockAnalysis(
+    fromDate: Date | null | undefined,
+    toDate: Date | null | undefined,
+    stockStatus: StockStatusFilter | undefined,
+    onlyConfigured: boolean | undefined,
+    searchTerm: string | null | undefined,
+    pageNumber: number | undefined,
+    pageSize: number | undefined,
+    sortBy: StockAnalysisSortBy | undefined,
+    sortDescending: boolean | undefined,
+  ): Promise<GetPurchaseStockAnalysisResponse> {
+    let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
+    if (fromDate !== undefined && fromDate !== null)
+      url_ +=
+        "FromDate=" +
+        encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") +
+        "&";
+    if (toDate !== undefined && toDate !== null)
+      url_ +=
+        "ToDate=" +
+        encodeURIComponent(toDate ? "" + toDate.toISOString() : "") +
+        "&";
+    if (stockStatus === null)
+      throw new Error("The parameter 'stockStatus' cannot be null.");
+    else if (stockStatus !== undefined)
+      url_ += "StockStatus=" + encodeURIComponent("" + stockStatus) + "&";
+    if (onlyConfigured === null)
+      throw new Error("The parameter 'onlyConfigured' cannot be null.");
+    else if (onlyConfigured !== undefined)
+      url_ += "OnlyConfigured=" + encodeURIComponent("" + onlyConfigured) + "&";
+    if (searchTerm !== undefined && searchTerm !== null)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (pageNumber === null)
+      throw new Error("The parameter 'pageNumber' cannot be null.");
+    else if (pageNumber !== undefined)
+      url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+    if (pageSize === null)
+      throw new Error("The parameter 'pageSize' cannot be null.");
+    else if (pageSize !== undefined)
+      url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+    if (sortBy === null)
+      throw new Error("The parameter 'sortBy' cannot be null.");
+    else if (sortBy !== undefined)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processPurchaseStockAnalysis_GetStockAnalysis(_response);
+    });
+  }
+
+  protected processPurchaseStockAnalysis_GetStockAnalysis(
+    response: Response,
+  ): Promise<GetPurchaseStockAnalysisResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetPurchaseStockAnalysisResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
+  }
+
+  suppliers_SearchSuppliers(
+    searchTerm: string | undefined,
+    limit: number | undefined,
+  ): Promise<SearchSuppliersResponse> {
+    let url_ = this.baseUrl + "/api/suppliers/search?";
+    if (searchTerm === null)
+      throw new Error("The parameter 'searchTerm' cannot be null.");
+    else if (searchTerm !== undefined)
+      url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+    if (limit === null)
+      throw new Error("The parameter 'limit' cannot be null.");
+    else if (limit !== undefined)
+      url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processSuppliers_SearchSuppliers(_response);
+    });
+  }
+
+  protected processSuppliers_SearchSuppliers(
+    response: Response,
+  ): Promise<SearchSuppliersResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = SearchSuppliersResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<SearchSuppliersResponse>(null as any);
+  }
+
+  transportBox_GetTransportBoxes(
+    skip: number | undefined,
+    take: number | undefined,
+    code: string | null | undefined,
+    state: string | null | undefined,
+    productCode: string | null | undefined,
+    sortBy: string | null | undefined,
+    sortDescending: boolean | undefined,
+  ): Promise<GetTransportBoxesResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes?";
+    if (skip === null) throw new Error("The parameter 'skip' cannot be null.");
+    else if (skip !== undefined)
+      url_ += "Skip=" + encodeURIComponent("" + skip) + "&";
+    if (take === null) throw new Error("The parameter 'take' cannot be null.");
+    else if (take !== undefined)
+      url_ += "Take=" + encodeURIComponent("" + take) + "&";
+    if (code !== undefined && code !== null)
+      url_ += "Code=" + encodeURIComponent("" + code) + "&";
+    if (state !== undefined && state !== null)
+      url_ += "State=" + encodeURIComponent("" + state) + "&";
+    if (productCode !== undefined && productCode !== null)
+      url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+    if (sortBy !== undefined && sortBy !== null)
+      url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+    if (sortDescending === null)
+      throw new Error("The parameter 'sortDescending' cannot be null.");
+    else if (sortDescending !== undefined)
+      url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_GetTransportBoxes(_response);
+    });
+  }
+
+  protected processTransportBox_GetTransportBoxes(
+    response: Response,
+  ): Promise<GetTransportBoxesResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetTransportBoxesResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetTransportBoxesResponse>(null as any);
+  }
+
+  transportBox_CreateNewTransportBox(
+    request: CreateNewTransportBoxRequest,
+  ): Promise<CreateNewTransportBoxResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes";
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_CreateNewTransportBox(_response);
+    });
+  }
+
+  protected processTransportBox_CreateNewTransportBox(
+    response: Response,
+  ): Promise<CreateNewTransportBoxResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = CreateNewTransportBoxResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<CreateNewTransportBoxResponse>(null as any);
+  }
+
+  transportBox_GetTransportBoxSummary(
+    code: string | null | undefined,
+    productCode: string | null | undefined,
+  ): Promise<GetTransportBoxSummaryResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes/summary?";
+    if (code !== undefined && code !== null)
+      url_ += "Code=" + encodeURIComponent("" + code) + "&";
+    if (productCode !== undefined && productCode !== null)
+      url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_GetTransportBoxSummary(_response);
+    });
+  }
+
+  protected processTransportBox_GetTransportBoxSummary(
+    response: Response,
+  ): Promise<GetTransportBoxSummaryResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetTransportBoxSummaryResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetTransportBoxSummaryResponse>(null as any);
+  }
+
+  transportBox_GetTransportBoxById(
+    id: number,
+  ): Promise<GetTransportBoxByIdResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes/{id}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_GetTransportBoxById(_response);
+    });
+  }
+
+  protected processTransportBox_GetTransportBoxById(
+    response: Response,
+  ): Promise<GetTransportBoxByIdResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = GetTransportBoxByIdResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<GetTransportBoxByIdResponse>(null as any);
+  }
+
+  transportBox_ChangeTransportBoxState(
+    id: number,
+    request: ChangeTransportBoxStateRequest,
+  ): Promise<ChangeTransportBoxStateResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes/{id}/state";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_ChangeTransportBoxState(_response);
+    });
+  }
+
+  protected processTransportBox_ChangeTransportBoxState(
+    response: Response,
+  ): Promise<ChangeTransportBoxStateResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = ChangeTransportBoxStateResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<ChangeTransportBoxStateResponse>(null as any);
+  }
+
+  transportBox_AddItemToBox(
+    id: number,
+    request: AddItemToBoxRequest,
+  ): Promise<AddItemToBoxResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes/{id}/items";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    url_ = url_.replace(/[?&]$/, "");
+
+    const content_ = JSON.stringify(request);
+
+    let options_: RequestInit = {
+      body: content_,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_AddItemToBox(_response);
+    });
+  }
+
+  protected processTransportBox_AddItemToBox(
+    response: Response,
+  ): Promise<AddItemToBoxResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = AddItemToBoxResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<AddItemToBoxResponse>(null as any);
+  }
+
+  transportBox_RemoveItemFromBox(
+    id: number,
+    itemId: number,
+  ): Promise<RemoveItemFromBoxResponse> {
+    let url_ = this.baseUrl + "/api/transport-boxes/{id}/items/{itemId}";
+    if (id === undefined || id === null)
+      throw new Error("The parameter 'id' must be defined.");
+    url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    if (itemId === undefined || itemId === null)
+      throw new Error("The parameter 'itemId' must be defined.");
+    url_ = url_.replace("{itemId}", encodeURIComponent("" + itemId));
+    url_ = url_.replace(/[?&]$/, "");
+
+    let options_: RequestInit = {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    return this.http.fetch(url_, options_).then((_response: Response) => {
+      return this.processTransportBox_RemoveItemFromBox(_response);
+    });
+  }
+
+  protected processTransportBox_RemoveItemFromBox(
+    response: Response,
+  ): Promise<RemoveItemFromBoxResponse> {
+    const status = response.status;
+    let _headers: any = {};
+    if (response.headers && response.headers.forEach) {
+      response.headers.forEach((v: any, k: any) => (_headers[k] = v));
+    }
+    if (status === 200) {
+      return response.text().then((_responseText) => {
+        let result200: any = null;
+        let resultData200 =
+          _responseText === ""
+            ? null
+            : JSON.parse(_responseText, this.jsonParseReviver);
+        result200 = RemoveItemFromBoxResponse.fromJS(resultData200);
+        return result200;
+      });
+    } else if (status !== 200 && status !== 204) {
+      return response.text().then((_responseText) => {
+        return throwException(
+          "An unexpected server error occurred.",
+          status,
+          _responseText,
+          _headers,
+        );
+      });
+    }
+    return Promise.resolve<RemoveItemFromBoxResponse>(null as any);
+  }
 }
 
 export abstract class BaseResponse implements IBaseResponse {
-    success?: boolean;
-    errorCode?: ErrorCodes | undefined;
-    params?: { [key: string]: string; } | undefined;
+  success?: boolean;
+  errorCode?: ErrorCodes | undefined;
+  params?: { [key: string]: string } | undefined;
 
-    constructor(data?: IBaseResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
+  constructor(data?: IBaseResponse) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
+    }
+  }
+
+  init(_data?: any) {
+    if (_data) {
+      this.success = _data["success"];
+      this.errorCode = _data["errorCode"];
+      if (_data["params"]) {
+        this.params = {} as any;
+        for (let key in _data["params"]) {
+          if (_data["params"].hasOwnProperty(key))
+            (<any>this.params)![key] = _data["params"][key];
         }
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.success = _data["success"];
-            this.errorCode = _data["errorCode"];
-            if (_data["params"]) {
-                this.params = {} as any;
-                for (let key in _data["params"]) {
-                    if (_data["params"].hasOwnProperty(key))
-                        (<any>this.params)![key] = _data["params"][key];
-                }
-            }
-        }
-    }
+  static fromJS(data: any): BaseResponse {
+    data = typeof data === "object" ? data : {};
+    throw new Error(
+      "The abstract class 'BaseResponse' cannot be instantiated.",
+    );
+  }
 
-    static fromJS(data: any): BaseResponse {
-        data = typeof data === 'object' ? data : {};
-        throw new Error("The abstract class 'BaseResponse' cannot be instantiated.");
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["success"] = this.success;
+    data["errorCode"] = this.errorCode;
+    if (this.params) {
+      data["params"] = {};
+      for (let key in this.params) {
+        if (this.params.hasOwnProperty(key))
+          (<any>data["params"])[key] = (<any>this.params)[key];
+      }
     }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["errorCode"] = this.errorCode;
-        if (this.params) {
-            data["params"] = {};
-            for (let key in this.params) {
-                if (this.params.hasOwnProperty(key))
-                    (<any>data["params"])[key] = (<any>this.params)[key];
-            }
-        }
-        return data;
-    }
+    return data;
+  }
 }
 
 export interface IBaseResponse {
-    success?: boolean;
-    errorCode?: ErrorCodes | undefined;
-    params?: { [key: string]: string; } | undefined;
+  success?: boolean;
+  errorCode?: ErrorCodes | undefined;
+  params?: { [key: string]: string } | undefined;
 }
 
-export class GetProductMarginSummaryResponse extends BaseResponse implements IGetProductMarginSummaryResponse {
-    monthlyData?: MonthlyProductMarginDto[];
-    topProducts?: TopProductDto[];
-    totalMargin?: number;
-    timeWindow?: string;
-    groupingMode?: ProductGroupingMode;
-    fromDate?: Date;
-    toDate?: Date;
+export class GetProductMarginSummaryResponse
+  extends BaseResponse
+  implements IGetProductMarginSummaryResponse
+{
+  monthlyData?: MonthlyProductMarginDto[];
+  topProducts?: TopProductDto[];
+  totalMargin?: number;
+  timeWindow?: string;
+  groupingMode?: ProductGroupingMode;
+  fromDate?: Date;
+  toDate?: Date;
 
-    constructor(data?: IGetProductMarginSummaryResponse) {
-        super(data);
-    }
+  constructor(data?: IGetProductMarginSummaryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["monthlyData"])) {
-                this.monthlyData = [] as any;
-                for (let item of _data["monthlyData"])
-                    this.monthlyData!.push(MonthlyProductMarginDto.fromJS(item));
-            }
-            if (Array.isArray(_data["topProducts"])) {
-                this.topProducts = [] as any;
-                for (let item of _data["topProducts"])
-                    this.topProducts!.push(TopProductDto.fromJS(item));
-            }
-            this.totalMargin = _data["totalMargin"];
-            this.timeWindow = _data["timeWindow"];
-            this.groupingMode = _data["groupingMode"];
-            this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
-            this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["monthlyData"])) {
+        this.monthlyData = [] as any;
+        for (let item of _data["monthlyData"])
+          this.monthlyData!.push(MonthlyProductMarginDto.fromJS(item));
+      }
+      if (Array.isArray(_data["topProducts"])) {
+        this.topProducts = [] as any;
+        for (let item of _data["topProducts"])
+          this.topProducts!.push(TopProductDto.fromJS(item));
+      }
+      this.totalMargin = _data["totalMargin"];
+      this.timeWindow = _data["timeWindow"];
+      this.groupingMode = _data["groupingMode"];
+      this.fromDate = _data["fromDate"]
+        ? new Date(_data["fromDate"].toString())
+        : <any>undefined;
+      this.toDate = _data["toDate"]
+        ? new Date(_data["toDate"].toString())
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetProductMarginSummaryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetProductMarginSummaryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetProductMarginSummaryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetProductMarginSummaryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.monthlyData)) {
-            data["monthlyData"] = [];
-            for (let item of this.monthlyData)
-                data["monthlyData"].push(item.toJSON());
-        }
-        if (Array.isArray(this.topProducts)) {
-            data["topProducts"] = [];
-            for (let item of this.topProducts)
-                data["topProducts"].push(item.toJSON());
-        }
-        data["totalMargin"] = this.totalMargin;
-        data["timeWindow"] = this.timeWindow;
-        data["groupingMode"] = this.groupingMode;
-        data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
-        data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.monthlyData)) {
+      data["monthlyData"] = [];
+      for (let item of this.monthlyData)
+        data["monthlyData"].push(item.toJSON());
     }
+    if (Array.isArray(this.topProducts)) {
+      data["topProducts"] = [];
+      for (let item of this.topProducts)
+        data["topProducts"].push(item.toJSON());
+    }
+    data["totalMargin"] = this.totalMargin;
+    data["timeWindow"] = this.timeWindow;
+    data["groupingMode"] = this.groupingMode;
+    data["fromDate"] = this.fromDate
+      ? this.fromDate.toISOString()
+      : <any>undefined;
+    data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetProductMarginSummaryResponse extends IBaseResponse {
-    monthlyData?: MonthlyProductMarginDto[];
-    topProducts?: TopProductDto[];
-    totalMargin?: number;
-    timeWindow?: string;
-    groupingMode?: ProductGroupingMode;
-    fromDate?: Date;
-    toDate?: Date;
+  monthlyData?: MonthlyProductMarginDto[];
+  topProducts?: TopProductDto[];
+  totalMargin?: number;
+  timeWindow?: string;
+  groupingMode?: ProductGroupingMode;
+  fromDate?: Date;
+  toDate?: Date;
 }
 
 export class MonthlyProductMarginDto implements IMonthlyProductMarginDto {
-    year?: number;
-    month?: number;
-    monthDisplay?: string;
-    productSegments?: ProductMarginSegmentDto[];
-    totalMonthMargin?: number;
+  year?: number;
+  month?: number;
+  monthDisplay?: string;
+  productSegments?: ProductMarginSegmentDto[];
+  totalMonthMargin?: number;
 
-    constructor(data?: IMonthlyProductMarginDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IMonthlyProductMarginDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.year = _data["year"];
-            this.month = _data["month"];
-            this.monthDisplay = _data["monthDisplay"];
-            if (Array.isArray(_data["productSegments"])) {
-                this.productSegments = [] as any;
-                for (let item of _data["productSegments"])
-                    this.productSegments!.push(ProductMarginSegmentDto.fromJS(item));
-            }
-            this.totalMonthMargin = _data["totalMonthMargin"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.year = _data["year"];
+      this.month = _data["month"];
+      this.monthDisplay = _data["monthDisplay"];
+      if (Array.isArray(_data["productSegments"])) {
+        this.productSegments = [] as any;
+        for (let item of _data["productSegments"])
+          this.productSegments!.push(ProductMarginSegmentDto.fromJS(item));
+      }
+      this.totalMonthMargin = _data["totalMonthMargin"];
     }
+  }
 
-    static fromJS(data: any): MonthlyProductMarginDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new MonthlyProductMarginDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): MonthlyProductMarginDto {
+    data = typeof data === "object" ? data : {};
+    let result = new MonthlyProductMarginDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["year"] = this.year;
-        data["month"] = this.month;
-        data["monthDisplay"] = this.monthDisplay;
-        if (Array.isArray(this.productSegments)) {
-            data["productSegments"] = [];
-            for (let item of this.productSegments)
-                data["productSegments"].push(item.toJSON());
-        }
-        data["totalMonthMargin"] = this.totalMonthMargin;
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["year"] = this.year;
+    data["month"] = this.month;
+    data["monthDisplay"] = this.monthDisplay;
+    if (Array.isArray(this.productSegments)) {
+      data["productSegments"] = [];
+      for (let item of this.productSegments)
+        data["productSegments"].push(item.toJSON());
     }
+    data["totalMonthMargin"] = this.totalMonthMargin;
+    return data;
+  }
 }
 
 export interface IMonthlyProductMarginDto {
-    year?: number;
-    month?: number;
-    monthDisplay?: string;
-    productSegments?: ProductMarginSegmentDto[];
-    totalMonthMargin?: number;
+  year?: number;
+  month?: number;
+  monthDisplay?: string;
+  productSegments?: ProductMarginSegmentDto[];
+  totalMonthMargin?: number;
 }
 
 export class ProductMarginSegmentDto implements IProductMarginSegmentDto {
-    groupKey?: string;
-    displayName?: string;
-    marginContribution?: number;
-    percentage?: number;
-    colorCode?: string;
-    isOther?: boolean;
-    averageMarginPerPiece?: number;
-    unitsSold?: number;
-    averageSellingPriceWithoutVat?: number;
-    averageMaterialCosts?: number;
-    averageLaborCosts?: number;
-    productCount?: number;
-    productCode?: string;
-    productName?: string;
-    marginPerPiece?: number;
-    sellingPriceWithoutVat?: number;
-    materialCosts?: number;
-    laborCosts?: number;
+  groupKey?: string;
+  displayName?: string;
+  marginContribution?: number;
+  percentage?: number;
+  colorCode?: string;
+  isOther?: boolean;
+  averageMarginPerPiece?: number;
+  unitsSold?: number;
+  averageSellingPriceWithoutVat?: number;
+  averageMaterialCosts?: number;
+  averageLaborCosts?: number;
+  productCount?: number;
+  productCode?: string;
+  productName?: string;
+  marginPerPiece?: number;
+  sellingPriceWithoutVat?: number;
+  materialCosts?: number;
+  laborCosts?: number;
 
-    constructor(data?: IProductMarginSegmentDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProductMarginSegmentDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.groupKey = _data["groupKey"];
-            this.displayName = _data["displayName"];
-            this.marginContribution = _data["marginContribution"];
-            this.percentage = _data["percentage"];
-            this.colorCode = _data["colorCode"];
-            this.isOther = _data["isOther"];
-            this.averageMarginPerPiece = _data["averageMarginPerPiece"];
-            this.unitsSold = _data["unitsSold"];
-            this.averageSellingPriceWithoutVat = _data["averageSellingPriceWithoutVat"];
-            this.averageMaterialCosts = _data["averageMaterialCosts"];
-            this.averageLaborCosts = _data["averageLaborCosts"];
-            this.productCount = _data["productCount"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.marginPerPiece = _data["marginPerPiece"];
-            this.sellingPriceWithoutVat = _data["sellingPriceWithoutVat"];
-            this.materialCosts = _data["materialCosts"];
-            this.laborCosts = _data["laborCosts"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.groupKey = _data["groupKey"];
+      this.displayName = _data["displayName"];
+      this.marginContribution = _data["marginContribution"];
+      this.percentage = _data["percentage"];
+      this.colorCode = _data["colorCode"];
+      this.isOther = _data["isOther"];
+      this.averageMarginPerPiece = _data["averageMarginPerPiece"];
+      this.unitsSold = _data["unitsSold"];
+      this.averageSellingPriceWithoutVat =
+        _data["averageSellingPriceWithoutVat"];
+      this.averageMaterialCosts = _data["averageMaterialCosts"];
+      this.averageLaborCosts = _data["averageLaborCosts"];
+      this.productCount = _data["productCount"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.marginPerPiece = _data["marginPerPiece"];
+      this.sellingPriceWithoutVat = _data["sellingPriceWithoutVat"];
+      this.materialCosts = _data["materialCosts"];
+      this.laborCosts = _data["laborCosts"];
     }
+  }
 
-    static fromJS(data: any): ProductMarginSegmentDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductMarginSegmentDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProductMarginSegmentDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductMarginSegmentDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["groupKey"] = this.groupKey;
-        data["displayName"] = this.displayName;
-        data["marginContribution"] = this.marginContribution;
-        data["percentage"] = this.percentage;
-        data["colorCode"] = this.colorCode;
-        data["isOther"] = this.isOther;
-        data["averageMarginPerPiece"] = this.averageMarginPerPiece;
-        data["unitsSold"] = this.unitsSold;
-        data["averageSellingPriceWithoutVat"] = this.averageSellingPriceWithoutVat;
-        data["averageMaterialCosts"] = this.averageMaterialCosts;
-        data["averageLaborCosts"] = this.averageLaborCosts;
-        data["productCount"] = this.productCount;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["marginPerPiece"] = this.marginPerPiece;
-        data["sellingPriceWithoutVat"] = this.sellingPriceWithoutVat;
-        data["materialCosts"] = this.materialCosts;
-        data["laborCosts"] = this.laborCosts;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["groupKey"] = this.groupKey;
+    data["displayName"] = this.displayName;
+    data["marginContribution"] = this.marginContribution;
+    data["percentage"] = this.percentage;
+    data["colorCode"] = this.colorCode;
+    data["isOther"] = this.isOther;
+    data["averageMarginPerPiece"] = this.averageMarginPerPiece;
+    data["unitsSold"] = this.unitsSold;
+    data["averageSellingPriceWithoutVat"] = this.averageSellingPriceWithoutVat;
+    data["averageMaterialCosts"] = this.averageMaterialCosts;
+    data["averageLaborCosts"] = this.averageLaborCosts;
+    data["productCount"] = this.productCount;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["marginPerPiece"] = this.marginPerPiece;
+    data["sellingPriceWithoutVat"] = this.sellingPriceWithoutVat;
+    data["materialCosts"] = this.materialCosts;
+    data["laborCosts"] = this.laborCosts;
+    return data;
+  }
 }
 
 export interface IProductMarginSegmentDto {
-    groupKey?: string;
-    displayName?: string;
-    marginContribution?: number;
-    percentage?: number;
-    colorCode?: string;
-    isOther?: boolean;
-    averageMarginPerPiece?: number;
-    unitsSold?: number;
-    averageSellingPriceWithoutVat?: number;
-    averageMaterialCosts?: number;
-    averageLaborCosts?: number;
-    productCount?: number;
-    productCode?: string;
-    productName?: string;
-    marginPerPiece?: number;
-    sellingPriceWithoutVat?: number;
-    materialCosts?: number;
-    laborCosts?: number;
+  groupKey?: string;
+  displayName?: string;
+  marginContribution?: number;
+  percentage?: number;
+  colorCode?: string;
+  isOther?: boolean;
+  averageMarginPerPiece?: number;
+  unitsSold?: number;
+  averageSellingPriceWithoutVat?: number;
+  averageMaterialCosts?: number;
+  averageLaborCosts?: number;
+  productCount?: number;
+  productCode?: string;
+  productName?: string;
+  marginPerPiece?: number;
+  sellingPriceWithoutVat?: number;
+  materialCosts?: number;
+  laborCosts?: number;
 }
 
 export class TopProductDto implements ITopProductDto {
-    groupKey?: string;
-    displayName?: string;
-    totalMargin?: number;
-    colorCode?: string;
-    rank?: number;
-    productCode?: string;
-    productName?: string;
+  groupKey?: string;
+  displayName?: string;
+  totalMargin?: number;
+  colorCode?: string;
+  rank?: number;
+  productCode?: string;
+  productName?: string;
 
-    constructor(data?: ITopProductDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ITopProductDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.groupKey = _data["groupKey"];
-            this.displayName = _data["displayName"];
-            this.totalMargin = _data["totalMargin"];
-            this.colorCode = _data["colorCode"];
-            this.rank = _data["rank"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.groupKey = _data["groupKey"];
+      this.displayName = _data["displayName"];
+      this.totalMargin = _data["totalMargin"];
+      this.colorCode = _data["colorCode"];
+      this.rank = _data["rank"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
     }
+  }
 
-    static fromJS(data: any): TopProductDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TopProductDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): TopProductDto {
+    data = typeof data === "object" ? data : {};
+    let result = new TopProductDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["groupKey"] = this.groupKey;
-        data["displayName"] = this.displayName;
-        data["totalMargin"] = this.totalMargin;
-        data["colorCode"] = this.colorCode;
-        data["rank"] = this.rank;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["groupKey"] = this.groupKey;
+    data["displayName"] = this.displayName;
+    data["totalMargin"] = this.totalMargin;
+    data["colorCode"] = this.colorCode;
+    data["rank"] = this.rank;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    return data;
+  }
 }
 
 export interface ITopProductDto {
-    groupKey?: string;
-    displayName?: string;
-    totalMargin?: number;
-    colorCode?: string;
-    rank?: number;
-    productCode?: string;
-    productName?: string;
+  groupKey?: string;
+  displayName?: string;
+  totalMargin?: number;
+  colorCode?: string;
+  rank?: number;
+  productCode?: string;
+  productName?: string;
 }
 
 export enum ProductGroupingMode {
-    Products = "Products",
-    ProductFamily = "ProductFamily",
-    ProductCategory = "ProductCategory",
+  Products = "Products",
+  ProductFamily = "ProductFamily",
+  ProductCategory = "ProductCategory",
 }
 
 export enum ErrorCodes {
-    ValidationError = "ValidationError",
-    RequiredFieldMissing = "RequiredFieldMissing",
-    InvalidFormat = "InvalidFormat",
-    InvalidValue = "InvalidValue",
-    InvalidDateRange = "InvalidDateRange",
-    ResourceNotFound = "ResourceNotFound",
-    BusinessRuleViolation = "BusinessRuleViolation",
-    InvalidOperation = "InvalidOperation",
-    DuplicateEntry = "DuplicateEntry",
-    InternalServerError = "InternalServerError",
-    DatabaseError = "DatabaseError",
-    ConfigurationError = "ConfigurationError",
-    Unauthorized = "Unauthorized",
-    Forbidden = "Forbidden",
-    TokenExpired = "TokenExpired",
-    Exception = "Exception",
-    PurchaseOrderNotFound = "PurchaseOrderNotFound",
-    SupplierNotFound = "SupplierNotFound",
-    StatusTransitionNotAllowed = "StatusTransitionNotAllowed",
-    InsufficientStock = "InsufficientStock",
-    InvalidPurchaseOrderStatus = "InvalidPurchaseOrderStatus",
-    InvalidSupplier = "InvalidSupplier",
-    PurchaseOrderUpdateFailed = "PurchaseOrderUpdateFailed",
-    ManufacturingDataNotAvailable = "ManufacturingDataNotAvailable",
-    ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
-    InvalidAnalysisParameters = "InvalidAnalysisParameters",
-    InsufficientManufacturingData = "InsufficientManufacturingData",
-    CatalogItemNotFound = "CatalogItemNotFound",
-    ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
-    ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
-    MarginCalculationError = "MarginCalculationError",
-    DataAccessUnavailable = "DataAccessUnavailable",
-    ProductNotFound = "ProductNotFound",
-    MaterialNotFound = "MaterialNotFound",
-    InvalidSearchCriteria = "InvalidSearchCriteria",
-    ExternalSyncFailed = "ExternalSyncFailed",
-    AttributeError = "AttributeError",
-    SupplierLookupFailed = "SupplierLookupFailed",
-    CategoryError = "CategoryError",
-    UnitValidationFailed = "UnitValidationFailed",
-    AbraIntegrationFailed = "AbraIntegrationFailed",
-    ShoptetSyncFailed = "ShoptetSyncFailed",
-    TransportBoxNotFound = "TransportBoxNotFound",
-    TransportBoxStateChangeError = "TransportBoxStateChangeError",
-    TransportBoxCreationError = "TransportBoxCreationError",
-    TransportBoxItemError = "TransportBoxItemError",
-    TransportBoxDuplicateActiveBoxFound = "TransportBoxDuplicateActiveBoxFound",
-    ConfigurationNotFound = "ConfigurationNotFound",
-    JournalEntryNotFound = "JournalEntryNotFound",
-    InvalidJournalTitle = "InvalidJournalTitle",
-    InvalidJournalContent = "InvalidJournalContent",
-    JournalTagNotFound = "JournalTagNotFound",
-    JournalTagCreationFailed = "JournalTagCreationFailed",
-    InvalidJournalDateFilter = "InvalidJournalDateFilter",
-    JournalDeleteNotAllowed = "JournalDeleteNotAllowed",
-    UnauthorizedJournalAccess = "UnauthorizedJournalAccess",
-    DuplicateJournalTag = "DuplicateJournalTag",
-    InvalidJournalEntryData = "InvalidJournalEntryData",
-    AnalysisDataNotAvailable = "AnalysisDataNotAvailable",
-    MarginCalculationFailed = "MarginCalculationFailed",
-    InsufficientData = "InsufficientData",
-    ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
-    InvalidReportPeriod = "InvalidReportPeriod",
-    ExternalServiceError = "ExternalServiceError",
-    FlexiApiError = "FlexiApiError",
-    ShoptetApiError = "ShoptetApiError",
-    PaymentGatewayError = "PaymentGatewayError",
+  ValidationError = "ValidationError",
+  RequiredFieldMissing = "RequiredFieldMissing",
+  InvalidFormat = "InvalidFormat",
+  InvalidValue = "InvalidValue",
+  InvalidDateRange = "InvalidDateRange",
+  ResourceNotFound = "ResourceNotFound",
+  BusinessRuleViolation = "BusinessRuleViolation",
+  InvalidOperation = "InvalidOperation",
+  DuplicateEntry = "DuplicateEntry",
+  InternalServerError = "InternalServerError",
+  DatabaseError = "DatabaseError",
+  ConfigurationError = "ConfigurationError",
+  Unauthorized = "Unauthorized",
+  Forbidden = "Forbidden",
+  TokenExpired = "TokenExpired",
+  Exception = "Exception",
+  PurchaseOrderNotFound = "PurchaseOrderNotFound",
+  SupplierNotFound = "SupplierNotFound",
+  StatusTransitionNotAllowed = "StatusTransitionNotAllowed",
+  InsufficientStock = "InsufficientStock",
+  InvalidPurchaseOrderStatus = "InvalidPurchaseOrderStatus",
+  InvalidSupplier = "InvalidSupplier",
+  PurchaseOrderUpdateFailed = "PurchaseOrderUpdateFailed",
+  ManufacturingDataNotAvailable = "ManufacturingDataNotAvailable",
+  ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
+  InvalidAnalysisParameters = "InvalidAnalysisParameters",
+  InsufficientManufacturingData = "InsufficientManufacturingData",
+  CatalogItemNotFound = "CatalogItemNotFound",
+  ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
+  ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
+  MarginCalculationError = "MarginCalculationError",
+  DataAccessUnavailable = "DataAccessUnavailable",
+  ProductNotFound = "ProductNotFound",
+  MaterialNotFound = "MaterialNotFound",
+  InvalidSearchCriteria = "InvalidSearchCriteria",
+  ExternalSyncFailed = "ExternalSyncFailed",
+  AttributeError = "AttributeError",
+  SupplierLookupFailed = "SupplierLookupFailed",
+  CategoryError = "CategoryError",
+  UnitValidationFailed = "UnitValidationFailed",
+  AbraIntegrationFailed = "AbraIntegrationFailed",
+  ShoptetSyncFailed = "ShoptetSyncFailed",
+  TransportBoxNotFound = "TransportBoxNotFound",
+  TransportBoxStateChangeError = "TransportBoxStateChangeError",
+  TransportBoxCreationError = "TransportBoxCreationError",
+  TransportBoxItemError = "TransportBoxItemError",
+  TransportBoxDuplicateActiveBoxFound = "TransportBoxDuplicateActiveBoxFound",
+  ConfigurationNotFound = "ConfigurationNotFound",
+  JournalEntryNotFound = "JournalEntryNotFound",
+  InvalidJournalTitle = "InvalidJournalTitle",
+  InvalidJournalContent = "InvalidJournalContent",
+  JournalTagNotFound = "JournalTagNotFound",
+  JournalTagCreationFailed = "JournalTagCreationFailed",
+  InvalidJournalDateFilter = "InvalidJournalDateFilter",
+  JournalDeleteNotAllowed = "JournalDeleteNotAllowed",
+  UnauthorizedJournalAccess = "UnauthorizedJournalAccess",
+  DuplicateJournalTag = "DuplicateJournalTag",
+  InvalidJournalEntryData = "InvalidJournalEntryData",
+  AnalysisDataNotAvailable = "AnalysisDataNotAvailable",
+  MarginCalculationFailed = "MarginCalculationFailed",
+  InsufficientData = "InsufficientData",
+  ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
+  InvalidReportPeriod = "InvalidReportPeriod",
+  ExternalServiceError = "ExternalServiceError",
+  FlexiApiError = "FlexiApiError",
+  ShoptetApiError = "ShoptetApiError",
+  PaymentGatewayError = "PaymentGatewayError",
 }
 
 export class ProblemDetails implements IProblemDetails {
-    type?: string | undefined;
-    title?: string | undefined;
-    status?: number | undefined;
-    detail?: string | undefined;
-    instance?: string | undefined;
+  type?: string | undefined;
+  title?: string | undefined;
+  status?: number | undefined;
+  detail?: string | undefined;
+  instance?: string | undefined;
 
-    [key: string]: any;
+  [key: string]: any;
 
-    constructor(data?: IProblemDetails) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProblemDetails) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            for (var property in _data) {
-                if (_data.hasOwnProperty(property))
-                    this[property] = _data[property];
-            }
-            this.type = _data["type"];
-            this.title = _data["title"];
-            this.status = _data["status"];
-            this.detail = _data["detail"];
-            this.instance = _data["instance"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      for (var property in _data) {
+        if (_data.hasOwnProperty(property)) this[property] = _data[property];
+      }
+      this.type = _data["type"];
+      this.title = _data["title"];
+      this.status = _data["status"];
+      this.detail = _data["detail"];
+      this.instance = _data["instance"];
     }
+  }
 
-    static fromJS(data: any): ProblemDetails {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProblemDetails();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProblemDetails {
+    data = typeof data === "object" ? data : {};
+    let result = new ProblemDetails();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        for (var property in this) {
-            if (this.hasOwnProperty(property))
-                data[property] = this[property];
-        }
-        data["type"] = this.type;
-        data["title"] = this.title;
-        data["status"] = this.status;
-        data["detail"] = this.detail;
-        data["instance"] = this.instance;
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    for (var property in this) {
+      if (this.hasOwnProperty(property)) data[property] = this[property];
     }
+    data["type"] = this.type;
+    data["title"] = this.title;
+    data["status"] = this.status;
+    data["detail"] = this.detail;
+    data["instance"] = this.instance;
+    return data;
+  }
 }
 
 export interface IProblemDetails {
-    type?: string | undefined;
-    title?: string | undefined;
-    status?: number | undefined;
-    detail?: string | undefined;
-    instance?: string | undefined;
+  type?: string | undefined;
+  title?: string | undefined;
+  status?: number | undefined;
+  detail?: string | undefined;
+  instance?: string | undefined;
 
-    [key: string]: any;
+  [key: string]: any;
 }
 
-export class GetProductMarginAnalysisResponse extends BaseResponse implements IGetProductMarginAnalysisResponse {
-    productId?: string;
-    productName?: string;
-    totalMargin?: number;
-    marginPercentage?: number;
-    totalRevenue?: number;
-    totalCost?: number;
-    totalUnitsSold?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
-    monthlyBreakdown?: MonthlyMarginBreakdown[];
+export class GetProductMarginAnalysisResponse
+  extends BaseResponse
+  implements IGetProductMarginAnalysisResponse
+{
+  productId?: string;
+  productName?: string;
+  totalMargin?: number;
+  marginPercentage?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  totalUnitsSold?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
+  monthlyBreakdown?: MonthlyMarginBreakdown[];
 
-    constructor(data?: IGetProductMarginAnalysisResponse) {
-        super(data);
-    }
+  constructor(data?: IGetProductMarginAnalysisResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.productId = _data["productId"];
-            this.productName = _data["productName"];
-            this.totalMargin = _data["totalMargin"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.totalRevenue = _data["totalRevenue"];
-            this.totalCost = _data["totalCost"];
-            this.totalUnitsSold = _data["totalUnitsSold"];
-            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
-            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
-            if (Array.isArray(_data["monthlyBreakdown"])) {
-                this.monthlyBreakdown = [] as any;
-                for (let item of _data["monthlyBreakdown"])
-                    this.monthlyBreakdown!.push(MonthlyMarginBreakdown.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.productId = _data["productId"];
+      this.productName = _data["productName"];
+      this.totalMargin = _data["totalMargin"];
+      this.marginPercentage = _data["marginPercentage"];
+      this.totalRevenue = _data["totalRevenue"];
+      this.totalCost = _data["totalCost"];
+      this.totalUnitsSold = _data["totalUnitsSold"];
+      this.analysisPeriodStart = _data["analysisPeriodStart"]
+        ? new Date(_data["analysisPeriodStart"].toString())
+        : <any>undefined;
+      this.analysisPeriodEnd = _data["analysisPeriodEnd"]
+        ? new Date(_data["analysisPeriodEnd"].toString())
+        : <any>undefined;
+      if (Array.isArray(_data["monthlyBreakdown"])) {
+        this.monthlyBreakdown = [] as any;
+        for (let item of _data["monthlyBreakdown"])
+          this.monthlyBreakdown!.push(MonthlyMarginBreakdown.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetProductMarginAnalysisResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetProductMarginAnalysisResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetProductMarginAnalysisResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetProductMarginAnalysisResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productId"] = this.productId;
-        data["productName"] = this.productName;
-        data["totalMargin"] = this.totalMargin;
-        data["marginPercentage"] = this.marginPercentage;
-        data["totalRevenue"] = this.totalRevenue;
-        data["totalCost"] = this.totalCost;
-        data["totalUnitsSold"] = this.totalUnitsSold;
-        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
-        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
-        if (Array.isArray(this.monthlyBreakdown)) {
-            data["monthlyBreakdown"] = [];
-            for (let item of this.monthlyBreakdown)
-                data["monthlyBreakdown"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productId"] = this.productId;
+    data["productName"] = this.productName;
+    data["totalMargin"] = this.totalMargin;
+    data["marginPercentage"] = this.marginPercentage;
+    data["totalRevenue"] = this.totalRevenue;
+    data["totalCost"] = this.totalCost;
+    data["totalUnitsSold"] = this.totalUnitsSold;
+    data["analysisPeriodStart"] = this.analysisPeriodStart
+      ? this.analysisPeriodStart.toISOString()
+      : <any>undefined;
+    data["analysisPeriodEnd"] = this.analysisPeriodEnd
+      ? this.analysisPeriodEnd.toISOString()
+      : <any>undefined;
+    if (Array.isArray(this.monthlyBreakdown)) {
+      data["monthlyBreakdown"] = [];
+      for (let item of this.monthlyBreakdown)
+        data["monthlyBreakdown"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetProductMarginAnalysisResponse extends IBaseResponse {
-    productId?: string;
-    productName?: string;
-    totalMargin?: number;
-    marginPercentage?: number;
-    totalRevenue?: number;
-    totalCost?: number;
-    totalUnitsSold?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
-    monthlyBreakdown?: MonthlyMarginBreakdown[];
+  productId?: string;
+  productName?: string;
+  totalMargin?: number;
+  marginPercentage?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  totalUnitsSold?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
+  monthlyBreakdown?: MonthlyMarginBreakdown[];
 }
 
 export class MonthlyMarginBreakdown implements IMonthlyMarginBreakdown {
-    month?: Date;
-    marginAmount?: number;
-    revenue?: number;
-    cost?: number;
-    unitsSold?: number;
+  month?: Date;
+  marginAmount?: number;
+  revenue?: number;
+  cost?: number;
+  unitsSold?: number;
 
-    constructor(data?: IMonthlyMarginBreakdown) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IMonthlyMarginBreakdown) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.month = _data["month"] ? new Date(_data["month"].toString()) : <any>undefined;
-            this.marginAmount = _data["marginAmount"];
-            this.revenue = _data["revenue"];
-            this.cost = _data["cost"];
-            this.unitsSold = _data["unitsSold"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.month = _data["month"]
+        ? new Date(_data["month"].toString())
+        : <any>undefined;
+      this.marginAmount = _data["marginAmount"];
+      this.revenue = _data["revenue"];
+      this.cost = _data["cost"];
+      this.unitsSold = _data["unitsSold"];
     }
+  }
 
-    static fromJS(data: any): MonthlyMarginBreakdown {
-        data = typeof data === 'object' ? data : {};
-        let result = new MonthlyMarginBreakdown();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): MonthlyMarginBreakdown {
+    data = typeof data === "object" ? data : {};
+    let result = new MonthlyMarginBreakdown();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["month"] = this.month ? this.month.toISOString() : <any>undefined;
-        data["marginAmount"] = this.marginAmount;
-        data["revenue"] = this.revenue;
-        data["cost"] = this.cost;
-        data["unitsSold"] = this.unitsSold;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["month"] = this.month ? this.month.toISOString() : <any>undefined;
+    data["marginAmount"] = this.marginAmount;
+    data["revenue"] = this.revenue;
+    data["cost"] = this.cost;
+    data["unitsSold"] = this.unitsSold;
+    return data;
+  }
 }
 
 export interface IMonthlyMarginBreakdown {
-    month?: Date;
-    marginAmount?: number;
-    revenue?: number;
-    cost?: number;
-    unitsSold?: number;
+  month?: Date;
+  marginAmount?: number;
+  revenue?: number;
+  cost?: number;
+  unitsSold?: number;
 }
 
-export class GetMarginReportResponse extends BaseResponse implements IGetMarginReportResponse {
-    reportPeriodStart?: Date;
-    reportPeriodEnd?: Date;
-    totalMargin?: number;
-    totalRevenue?: number;
-    totalCost?: number;
-    averageMarginPercentage?: number;
-    totalProductsAnalyzed?: number;
-    totalUnitsSold?: number;
-    productSummaries?: ProductMarginSummary[];
-    categorySummaries?: CategoryMarginSummary[];
+export class GetMarginReportResponse
+  extends BaseResponse
+  implements IGetMarginReportResponse
+{
+  reportPeriodStart?: Date;
+  reportPeriodEnd?: Date;
+  totalMargin?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  averageMarginPercentage?: number;
+  totalProductsAnalyzed?: number;
+  totalUnitsSold?: number;
+  productSummaries?: ProductMarginSummary[];
+  categorySummaries?: CategoryMarginSummary[];
 
-    constructor(data?: IGetMarginReportResponse) {
-        super(data);
-    }
+  constructor(data?: IGetMarginReportResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.reportPeriodStart = _data["reportPeriodStart"] ? new Date(_data["reportPeriodStart"].toString()) : <any>undefined;
-            this.reportPeriodEnd = _data["reportPeriodEnd"] ? new Date(_data["reportPeriodEnd"].toString()) : <any>undefined;
-            this.totalMargin = _data["totalMargin"];
-            this.totalRevenue = _data["totalRevenue"];
-            this.totalCost = _data["totalCost"];
-            this.averageMarginPercentage = _data["averageMarginPercentage"];
-            this.totalProductsAnalyzed = _data["totalProductsAnalyzed"];
-            this.totalUnitsSold = _data["totalUnitsSold"];
-            if (Array.isArray(_data["productSummaries"])) {
-                this.productSummaries = [] as any;
-                for (let item of _data["productSummaries"])
-                    this.productSummaries!.push(ProductMarginSummary.fromJS(item));
-            }
-            if (Array.isArray(_data["categorySummaries"])) {
-                this.categorySummaries = [] as any;
-                for (let item of _data["categorySummaries"])
-                    this.categorySummaries!.push(CategoryMarginSummary.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.reportPeriodStart = _data["reportPeriodStart"]
+        ? new Date(_data["reportPeriodStart"].toString())
+        : <any>undefined;
+      this.reportPeriodEnd = _data["reportPeriodEnd"]
+        ? new Date(_data["reportPeriodEnd"].toString())
+        : <any>undefined;
+      this.totalMargin = _data["totalMargin"];
+      this.totalRevenue = _data["totalRevenue"];
+      this.totalCost = _data["totalCost"];
+      this.averageMarginPercentage = _data["averageMarginPercentage"];
+      this.totalProductsAnalyzed = _data["totalProductsAnalyzed"];
+      this.totalUnitsSold = _data["totalUnitsSold"];
+      if (Array.isArray(_data["productSummaries"])) {
+        this.productSummaries = [] as any;
+        for (let item of _data["productSummaries"])
+          this.productSummaries!.push(ProductMarginSummary.fromJS(item));
+      }
+      if (Array.isArray(_data["categorySummaries"])) {
+        this.categorySummaries = [] as any;
+        for (let item of _data["categorySummaries"])
+          this.categorySummaries!.push(CategoryMarginSummary.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetMarginReportResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetMarginReportResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetMarginReportResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetMarginReportResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["reportPeriodStart"] = this.reportPeriodStart ? this.reportPeriodStart.toISOString() : <any>undefined;
-        data["reportPeriodEnd"] = this.reportPeriodEnd ? this.reportPeriodEnd.toISOString() : <any>undefined;
-        data["totalMargin"] = this.totalMargin;
-        data["totalRevenue"] = this.totalRevenue;
-        data["totalCost"] = this.totalCost;
-        data["averageMarginPercentage"] = this.averageMarginPercentage;
-        data["totalProductsAnalyzed"] = this.totalProductsAnalyzed;
-        data["totalUnitsSold"] = this.totalUnitsSold;
-        if (Array.isArray(this.productSummaries)) {
-            data["productSummaries"] = [];
-            for (let item of this.productSummaries)
-                data["productSummaries"].push(item.toJSON());
-        }
-        if (Array.isArray(this.categorySummaries)) {
-            data["categorySummaries"] = [];
-            for (let item of this.categorySummaries)
-                data["categorySummaries"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["reportPeriodStart"] = this.reportPeriodStart
+      ? this.reportPeriodStart.toISOString()
+      : <any>undefined;
+    data["reportPeriodEnd"] = this.reportPeriodEnd
+      ? this.reportPeriodEnd.toISOString()
+      : <any>undefined;
+    data["totalMargin"] = this.totalMargin;
+    data["totalRevenue"] = this.totalRevenue;
+    data["totalCost"] = this.totalCost;
+    data["averageMarginPercentage"] = this.averageMarginPercentage;
+    data["totalProductsAnalyzed"] = this.totalProductsAnalyzed;
+    data["totalUnitsSold"] = this.totalUnitsSold;
+    if (Array.isArray(this.productSummaries)) {
+      data["productSummaries"] = [];
+      for (let item of this.productSummaries)
+        data["productSummaries"].push(item.toJSON());
     }
+    if (Array.isArray(this.categorySummaries)) {
+      data["categorySummaries"] = [];
+      for (let item of this.categorySummaries)
+        data["categorySummaries"].push(item.toJSON());
+    }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetMarginReportResponse extends IBaseResponse {
-    reportPeriodStart?: Date;
-    reportPeriodEnd?: Date;
-    totalMargin?: number;
-    totalRevenue?: number;
-    totalCost?: number;
-    averageMarginPercentage?: number;
-    totalProductsAnalyzed?: number;
-    totalUnitsSold?: number;
-    productSummaries?: ProductMarginSummary[];
-    categorySummaries?: CategoryMarginSummary[];
+  reportPeriodStart?: Date;
+  reportPeriodEnd?: Date;
+  totalMargin?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  averageMarginPercentage?: number;
+  totalProductsAnalyzed?: number;
+  totalUnitsSold?: number;
+  productSummaries?: ProductMarginSummary[];
+  categorySummaries?: CategoryMarginSummary[];
 }
 
 export class ProductMarginSummary implements IProductMarginSummary {
-    productId?: string;
-    productName?: string;
-    category?: string;
-    marginAmount?: number;
-    marginPercentage?: number;
-    revenue?: number;
-    cost?: number;
-    unitsSold?: number;
+  productId?: string;
+  productName?: string;
+  category?: string;
+  marginAmount?: number;
+  marginPercentage?: number;
+  revenue?: number;
+  cost?: number;
+  unitsSold?: number;
 
-    constructor(data?: IProductMarginSummary) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProductMarginSummary) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productId = _data["productId"];
-            this.productName = _data["productName"];
-            this.category = _data["category"];
-            this.marginAmount = _data["marginAmount"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.revenue = _data["revenue"];
-            this.cost = _data["cost"];
-            this.unitsSold = _data["unitsSold"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productId = _data["productId"];
+      this.productName = _data["productName"];
+      this.category = _data["category"];
+      this.marginAmount = _data["marginAmount"];
+      this.marginPercentage = _data["marginPercentage"];
+      this.revenue = _data["revenue"];
+      this.cost = _data["cost"];
+      this.unitsSold = _data["unitsSold"];
     }
+  }
 
-    static fromJS(data: any): ProductMarginSummary {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductMarginSummary();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProductMarginSummary {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductMarginSummary();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productId"] = this.productId;
-        data["productName"] = this.productName;
-        data["category"] = this.category;
-        data["marginAmount"] = this.marginAmount;
-        data["marginPercentage"] = this.marginPercentage;
-        data["revenue"] = this.revenue;
-        data["cost"] = this.cost;
-        data["unitsSold"] = this.unitsSold;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productId"] = this.productId;
+    data["productName"] = this.productName;
+    data["category"] = this.category;
+    data["marginAmount"] = this.marginAmount;
+    data["marginPercentage"] = this.marginPercentage;
+    data["revenue"] = this.revenue;
+    data["cost"] = this.cost;
+    data["unitsSold"] = this.unitsSold;
+    return data;
+  }
 }
 
 export interface IProductMarginSummary {
-    productId?: string;
-    productName?: string;
-    category?: string;
-    marginAmount?: number;
-    marginPercentage?: number;
-    revenue?: number;
-    cost?: number;
-    unitsSold?: number;
+  productId?: string;
+  productName?: string;
+  category?: string;
+  marginAmount?: number;
+  marginPercentage?: number;
+  revenue?: number;
+  cost?: number;
+  unitsSold?: number;
 }
 
 export class CategoryMarginSummary implements ICategoryMarginSummary {
-    category?: string;
-    totalMargin?: number;
-    totalRevenue?: number;
-    averageMarginPercentage?: number;
-    productCount?: number;
-    totalUnitsSold?: number;
+  category?: string;
+  totalMargin?: number;
+  totalRevenue?: number;
+  averageMarginPercentage?: number;
+  productCount?: number;
+  totalUnitsSold?: number;
 
-    constructor(data?: ICategoryMarginSummary) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICategoryMarginSummary) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.category = _data["category"];
-            this.totalMargin = _data["totalMargin"];
-            this.totalRevenue = _data["totalRevenue"];
-            this.averageMarginPercentage = _data["averageMarginPercentage"];
-            this.productCount = _data["productCount"];
-            this.totalUnitsSold = _data["totalUnitsSold"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.category = _data["category"];
+      this.totalMargin = _data["totalMargin"];
+      this.totalRevenue = _data["totalRevenue"];
+      this.averageMarginPercentage = _data["averageMarginPercentage"];
+      this.productCount = _data["productCount"];
+      this.totalUnitsSold = _data["totalUnitsSold"];
     }
+  }
 
-    static fromJS(data: any): CategoryMarginSummary {
-        data = typeof data === 'object' ? data : {};
-        let result = new CategoryMarginSummary();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CategoryMarginSummary {
+    data = typeof data === "object" ? data : {};
+    let result = new CategoryMarginSummary();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["category"] = this.category;
-        data["totalMargin"] = this.totalMargin;
-        data["totalRevenue"] = this.totalRevenue;
-        data["averageMarginPercentage"] = this.averageMarginPercentage;
-        data["productCount"] = this.productCount;
-        data["totalUnitsSold"] = this.totalUnitsSold;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["category"] = this.category;
+    data["totalMargin"] = this.totalMargin;
+    data["totalRevenue"] = this.totalRevenue;
+    data["averageMarginPercentage"] = this.averageMarginPercentage;
+    data["productCount"] = this.productCount;
+    data["totalUnitsSold"] = this.totalUnitsSold;
+    return data;
+  }
 }
 
 export interface ICategoryMarginSummary {
-    category?: string;
-    totalMargin?: number;
-    totalRevenue?: number;
-    averageMarginPercentage?: number;
-    productCount?: number;
-    totalUnitsSold?: number;
+  category?: string;
+  totalMargin?: number;
+  totalRevenue?: number;
+  averageMarginPercentage?: number;
+  productCount?: number;
+  totalUnitsSold?: number;
 }
 
-export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
-    items?: CatalogItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+export class GetCatalogListResponse
+  extends BaseResponse
+  implements IGetCatalogListResponse
+{
+  items?: CatalogItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 
-    constructor(data?: IGetCatalogListResponse) {
-        super(data);
-    }
+  constructor(data?: IGetCatalogListResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(CatalogItemDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(CatalogItemDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.totalPages = _data["totalPages"];
     }
+  }
 
-    static override fromJS(data: any): GetCatalogListResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetCatalogListResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetCatalogListResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetCatalogListResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["totalPages"] = this.totalPages;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetCatalogListResponse extends IBaseResponse {
-    items?: CatalogItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+  items?: CatalogItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 export class CatalogItemDto implements ICatalogItemDto {
-    productCode?: string;
-    productName?: string;
-    type?: ProductType;
-    stock?: StockDto;
-    price?: PriceDto;
-    properties?: PropertiesDto;
-    location?: string;
-    minimalOrderQuantity?: string;
-    minimalManufactureQuantity?: number;
-    manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
-    supplierName?: string | undefined;
-    note?: string | undefined;
+  productCode?: string;
+  productName?: string;
+  type?: ProductType;
+  stock?: StockDto;
+  price?: PriceDto;
+  properties?: PropertiesDto;
+  location?: string;
+  minimalOrderQuantity?: string;
+  minimalManufactureQuantity?: number;
+  manufactureDifficulty?: number;
+  marginPercentage?: number;
+  marginAmount?: number;
+  supplierName?: string | undefined;
+  note?: string | undefined;
 
-    constructor(data?: ICatalogItemDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogItemDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.type = _data["type"];
-            this.stock = _data["stock"] ? StockDto.fromJS(_data["stock"]) : <any>undefined;
-            this.price = _data["price"] ? PriceDto.fromJS(_data["price"]) : <any>undefined;
-            this.properties = _data["properties"] ? PropertiesDto.fromJS(_data["properties"]) : <any>undefined;
-            this.location = _data["location"];
-            this.minimalOrderQuantity = _data["minimalOrderQuantity"];
-            this.minimalManufactureQuantity = _data["minimalManufactureQuantity"];
-            this.manufactureDifficulty = _data["manufactureDifficulty"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.marginAmount = _data["marginAmount"];
-            this.supplierName = _data["supplierName"];
-            this.note = _data["note"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.type = _data["type"];
+      this.stock = _data["stock"]
+        ? StockDto.fromJS(_data["stock"])
+        : <any>undefined;
+      this.price = _data["price"]
+        ? PriceDto.fromJS(_data["price"])
+        : <any>undefined;
+      this.properties = _data["properties"]
+        ? PropertiesDto.fromJS(_data["properties"])
+        : <any>undefined;
+      this.location = _data["location"];
+      this.minimalOrderQuantity = _data["minimalOrderQuantity"];
+      this.minimalManufactureQuantity = _data["minimalManufactureQuantity"];
+      this.manufactureDifficulty = _data["manufactureDifficulty"];
+      this.marginPercentage = _data["marginPercentage"];
+      this.marginAmount = _data["marginAmount"];
+      this.supplierName = _data["supplierName"];
+      this.note = _data["note"];
     }
+  }
 
-    static fromJS(data: any): CatalogItemDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogItemDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogItemDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogItemDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["type"] = this.type;
-        data["stock"] = this.stock ? this.stock.toJSON() : <any>undefined;
-        data["price"] = this.price ? this.price.toJSON() : <any>undefined;
-        data["properties"] = this.properties ? this.properties.toJSON() : <any>undefined;
-        data["location"] = this.location;
-        data["minimalOrderQuantity"] = this.minimalOrderQuantity;
-        data["minimalManufactureQuantity"] = this.minimalManufactureQuantity;
-        data["manufactureDifficulty"] = this.manufactureDifficulty;
-        data["marginPercentage"] = this.marginPercentage;
-        data["marginAmount"] = this.marginAmount;
-        data["supplierName"] = this.supplierName;
-        data["note"] = this.note;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["type"] = this.type;
+    data["stock"] = this.stock ? this.stock.toJSON() : <any>undefined;
+    data["price"] = this.price ? this.price.toJSON() : <any>undefined;
+    data["properties"] = this.properties
+      ? this.properties.toJSON()
+      : <any>undefined;
+    data["location"] = this.location;
+    data["minimalOrderQuantity"] = this.minimalOrderQuantity;
+    data["minimalManufactureQuantity"] = this.minimalManufactureQuantity;
+    data["manufactureDifficulty"] = this.manufactureDifficulty;
+    data["marginPercentage"] = this.marginPercentage;
+    data["marginAmount"] = this.marginAmount;
+    data["supplierName"] = this.supplierName;
+    data["note"] = this.note;
+    return data;
+  }
 }
 
 export interface ICatalogItemDto {
-    productCode?: string;
-    productName?: string;
-    type?: ProductType;
-    stock?: StockDto;
-    price?: PriceDto;
-    properties?: PropertiesDto;
-    location?: string;
-    minimalOrderQuantity?: string;
-    minimalManufactureQuantity?: number;
-    manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
-    supplierName?: string | undefined;
-    note?: string | undefined;
+  productCode?: string;
+  productName?: string;
+  type?: ProductType;
+  stock?: StockDto;
+  price?: PriceDto;
+  properties?: PropertiesDto;
+  location?: string;
+  minimalOrderQuantity?: string;
+  minimalManufactureQuantity?: number;
+  manufactureDifficulty?: number;
+  marginPercentage?: number;
+  marginAmount?: number;
+  supplierName?: string | undefined;
+  note?: string | undefined;
 }
 
 export enum ProductType {
-    UNDEFINED = "UNDEFINED",
-    Goods = "Goods",
-    Material = "Material",
-    SemiProduct = "SemiProduct",
-    Product = "Product",
+  UNDEFINED = "UNDEFINED",
+  Goods = "Goods",
+  Material = "Material",
+  SemiProduct = "SemiProduct",
+  Product = "Product",
 }
 
 export class StockDto implements IStockDto {
-    eshop?: number;
-    erp?: number;
-    transport?: number;
-    reserve?: number;
-    available?: number;
+  eshop?: number;
+  erp?: number;
+  transport?: number;
+  reserve?: number;
+  available?: number;
 
-    constructor(data?: IStockDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IStockDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.eshop = _data["eshop"];
-            this.erp = _data["erp"];
-            this.transport = _data["transport"];
-            this.reserve = _data["reserve"];
-            this.available = _data["available"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.eshop = _data["eshop"];
+      this.erp = _data["erp"];
+      this.transport = _data["transport"];
+      this.reserve = _data["reserve"];
+      this.available = _data["available"];
     }
+  }
 
-    static fromJS(data: any): StockDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): StockDto {
+    data = typeof data === "object" ? data : {};
+    let result = new StockDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["eshop"] = this.eshop;
-        data["erp"] = this.erp;
-        data["transport"] = this.transport;
-        data["reserve"] = this.reserve;
-        data["available"] = this.available;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["eshop"] = this.eshop;
+    data["erp"] = this.erp;
+    data["transport"] = this.transport;
+    data["reserve"] = this.reserve;
+    data["available"] = this.available;
+    return data;
+  }
 }
 
 export interface IStockDto {
-    eshop?: number;
-    erp?: number;
-    transport?: number;
-    reserve?: number;
-    available?: number;
+  eshop?: number;
+  erp?: number;
+  transport?: number;
+  reserve?: number;
+  available?: number;
 }
 
 export class PriceDto implements IPriceDto {
-    currentSellingPrice?: number | undefined;
-    currentPurchasePrice?: number | undefined;
-    sellingPriceWithVat?: number | undefined;
-    purchasePriceWithVat?: number | undefined;
-    eshopPrice?: EshopPriceDto | undefined;
-    erpPrice?: ErpPriceDto | undefined;
+  currentSellingPrice?: number | undefined;
+  currentPurchasePrice?: number | undefined;
+  sellingPriceWithVat?: number | undefined;
+  purchasePriceWithVat?: number | undefined;
+  eshopPrice?: EshopPriceDto | undefined;
+  erpPrice?: ErpPriceDto | undefined;
 
-    constructor(data?: IPriceDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IPriceDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.currentSellingPrice = _data["currentSellingPrice"];
-            this.currentPurchasePrice = _data["currentPurchasePrice"];
-            this.sellingPriceWithVat = _data["sellingPriceWithVat"];
-            this.purchasePriceWithVat = _data["purchasePriceWithVat"];
-            this.eshopPrice = _data["eshopPrice"] ? EshopPriceDto.fromJS(_data["eshopPrice"]) : <any>undefined;
-            this.erpPrice = _data["erpPrice"] ? ErpPriceDto.fromJS(_data["erpPrice"]) : <any>undefined;
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.currentSellingPrice = _data["currentSellingPrice"];
+      this.currentPurchasePrice = _data["currentPurchasePrice"];
+      this.sellingPriceWithVat = _data["sellingPriceWithVat"];
+      this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+      this.eshopPrice = _data["eshopPrice"]
+        ? EshopPriceDto.fromJS(_data["eshopPrice"])
+        : <any>undefined;
+      this.erpPrice = _data["erpPrice"]
+        ? ErpPriceDto.fromJS(_data["erpPrice"])
+        : <any>undefined;
     }
+  }
 
-    static fromJS(data: any): PriceDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PriceDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): PriceDto {
+    data = typeof data === "object" ? data : {};
+    let result = new PriceDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["currentSellingPrice"] = this.currentSellingPrice;
-        data["currentPurchasePrice"] = this.currentPurchasePrice;
-        data["sellingPriceWithVat"] = this.sellingPriceWithVat;
-        data["purchasePriceWithVat"] = this.purchasePriceWithVat;
-        data["eshopPrice"] = this.eshopPrice ? this.eshopPrice.toJSON() : <any>undefined;
-        data["erpPrice"] = this.erpPrice ? this.erpPrice.toJSON() : <any>undefined;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["currentSellingPrice"] = this.currentSellingPrice;
+    data["currentPurchasePrice"] = this.currentPurchasePrice;
+    data["sellingPriceWithVat"] = this.sellingPriceWithVat;
+    data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+    data["eshopPrice"] = this.eshopPrice
+      ? this.eshopPrice.toJSON()
+      : <any>undefined;
+    data["erpPrice"] = this.erpPrice ? this.erpPrice.toJSON() : <any>undefined;
+    return data;
+  }
 }
 
 export interface IPriceDto {
-    currentSellingPrice?: number | undefined;
-    currentPurchasePrice?: number | undefined;
-    sellingPriceWithVat?: number | undefined;
-    purchasePriceWithVat?: number | undefined;
-    eshopPrice?: EshopPriceDto | undefined;
-    erpPrice?: ErpPriceDto | undefined;
+  currentSellingPrice?: number | undefined;
+  currentPurchasePrice?: number | undefined;
+  sellingPriceWithVat?: number | undefined;
+  purchasePriceWithVat?: number | undefined;
+  eshopPrice?: EshopPriceDto | undefined;
+  erpPrice?: ErpPriceDto | undefined;
 }
 
 export class EshopPriceDto implements IEshopPriceDto {
-    priceWithVat?: number;
-    purchasePrice?: number;
-    priceWithoutVat?: number;
+  priceWithVat?: number;
+  purchasePrice?: number;
+  priceWithoutVat?: number;
 
-    constructor(data?: IEshopPriceDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IEshopPriceDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.priceWithVat = _data["priceWithVat"];
-            this.purchasePrice = _data["purchasePrice"];
-            this.priceWithoutVat = _data["priceWithoutVat"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.priceWithVat = _data["priceWithVat"];
+      this.purchasePrice = _data["purchasePrice"];
+      this.priceWithoutVat = _data["priceWithoutVat"];
     }
+  }
 
-    static fromJS(data: any): EshopPriceDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new EshopPriceDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): EshopPriceDto {
+    data = typeof data === "object" ? data : {};
+    let result = new EshopPriceDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["priceWithVat"] = this.priceWithVat;
-        data["purchasePrice"] = this.purchasePrice;
-        data["priceWithoutVat"] = this.priceWithoutVat;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["priceWithVat"] = this.priceWithVat;
+    data["purchasePrice"] = this.purchasePrice;
+    data["priceWithoutVat"] = this.priceWithoutVat;
+    return data;
+  }
 }
 
 export interface IEshopPriceDto {
-    priceWithVat?: number;
-    purchasePrice?: number;
-    priceWithoutVat?: number;
+  priceWithVat?: number;
+  purchasePrice?: number;
+  priceWithoutVat?: number;
 }
 
 export class ErpPriceDto implements IErpPriceDto {
-    priceWithoutVat?: number;
-    priceWithVat?: number;
-    purchasePrice?: number;
-    purchasePriceWithVat?: number;
+  priceWithoutVat?: number;
+  priceWithVat?: number;
+  purchasePrice?: number;
+  purchasePriceWithVat?: number;
 
-    constructor(data?: IErpPriceDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IErpPriceDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.priceWithoutVat = _data["priceWithoutVat"];
-            this.priceWithVat = _data["priceWithVat"];
-            this.purchasePrice = _data["purchasePrice"];
-            this.purchasePriceWithVat = _data["purchasePriceWithVat"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.priceWithoutVat = _data["priceWithoutVat"];
+      this.priceWithVat = _data["priceWithVat"];
+      this.purchasePrice = _data["purchasePrice"];
+      this.purchasePriceWithVat = _data["purchasePriceWithVat"];
     }
+  }
 
-    static fromJS(data: any): ErpPriceDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ErpPriceDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ErpPriceDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ErpPriceDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["priceWithoutVat"] = this.priceWithoutVat;
-        data["priceWithVat"] = this.priceWithVat;
-        data["purchasePrice"] = this.purchasePrice;
-        data["purchasePriceWithVat"] = this.purchasePriceWithVat;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["priceWithoutVat"] = this.priceWithoutVat;
+    data["priceWithVat"] = this.priceWithVat;
+    data["purchasePrice"] = this.purchasePrice;
+    data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+    return data;
+  }
 }
 
 export interface IErpPriceDto {
-    priceWithoutVat?: number;
-    priceWithVat?: number;
-    purchasePrice?: number;
-    purchasePriceWithVat?: number;
+  priceWithoutVat?: number;
+  priceWithVat?: number;
+  purchasePrice?: number;
+  purchasePriceWithVat?: number;
 }
 
 export class PropertiesDto implements IPropertiesDto {
-    optimalStockDaysSetup?: number;
-    stockMinSetup?: number;
-    batchSize?: number;
-    seasonMonths?: number[];
+  optimalStockDaysSetup?: number;
+  stockMinSetup?: number;
+  batchSize?: number;
+  seasonMonths?: number[];
 
-    constructor(data?: IPropertiesDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IPropertiesDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.optimalStockDaysSetup = _data["optimalStockDaysSetup"];
-            this.stockMinSetup = _data["stockMinSetup"];
-            this.batchSize = _data["batchSize"];
-            if (Array.isArray(_data["seasonMonths"])) {
-                this.seasonMonths = [] as any;
-                for (let item of _data["seasonMonths"])
-                    this.seasonMonths!.push(item);
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.optimalStockDaysSetup = _data["optimalStockDaysSetup"];
+      this.stockMinSetup = _data["stockMinSetup"];
+      this.batchSize = _data["batchSize"];
+      if (Array.isArray(_data["seasonMonths"])) {
+        this.seasonMonths = [] as any;
+        for (let item of _data["seasonMonths"]) this.seasonMonths!.push(item);
+      }
     }
+  }
 
-    static fromJS(data: any): PropertiesDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PropertiesDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): PropertiesDto {
+    data = typeof data === "object" ? data : {};
+    let result = new PropertiesDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["optimalStockDaysSetup"] = this.optimalStockDaysSetup;
-        data["stockMinSetup"] = this.stockMinSetup;
-        data["batchSize"] = this.batchSize;
-        if (Array.isArray(this.seasonMonths)) {
-            data["seasonMonths"] = [];
-            for (let item of this.seasonMonths)
-                data["seasonMonths"].push(item);
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["optimalStockDaysSetup"] = this.optimalStockDaysSetup;
+    data["stockMinSetup"] = this.stockMinSetup;
+    data["batchSize"] = this.batchSize;
+    if (Array.isArray(this.seasonMonths)) {
+      data["seasonMonths"] = [];
+      for (let item of this.seasonMonths) data["seasonMonths"].push(item);
     }
+    return data;
+  }
 }
 
 export interface IPropertiesDto {
-    optimalStockDaysSetup?: number;
-    stockMinSetup?: number;
-    batchSize?: number;
-    seasonMonths?: number[];
+  optimalStockDaysSetup?: number;
+  stockMinSetup?: number;
+  batchSize?: number;
+  seasonMonths?: number[];
 }
 
-export class GetCatalogDetailResponse extends BaseResponse implements IGetCatalogDetailResponse {
-    item?: CatalogItemDto;
-    historicalData?: CatalogHistoricalDataDto;
+export class GetCatalogDetailResponse
+  extends BaseResponse
+  implements IGetCatalogDetailResponse
+{
+  item?: CatalogItemDto;
+  historicalData?: CatalogHistoricalDataDto;
 
-    constructor(data?: IGetCatalogDetailResponse) {
-        super(data);
-    }
+  constructor(data?: IGetCatalogDetailResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.item = _data["item"] ? CatalogItemDto.fromJS(_data["item"]) : <any>undefined;
-            this.historicalData = _data["historicalData"] ? CatalogHistoricalDataDto.fromJS(_data["historicalData"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.item = _data["item"]
+        ? CatalogItemDto.fromJS(_data["item"])
+        : <any>undefined;
+      this.historicalData = _data["historicalData"]
+        ? CatalogHistoricalDataDto.fromJS(_data["historicalData"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetCatalogDetailResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetCatalogDetailResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetCatalogDetailResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetCatalogDetailResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
-        data["historicalData"] = this.historicalData ? this.historicalData.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+    data["historicalData"] = this.historicalData
+      ? this.historicalData.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetCatalogDetailResponse extends IBaseResponse {
-    item?: CatalogItemDto;
-    historicalData?: CatalogHistoricalDataDto;
+  item?: CatalogItemDto;
+  historicalData?: CatalogHistoricalDataDto;
 }
 
 export class CatalogHistoricalDataDto implements ICatalogHistoricalDataDto {
-    salesHistory?: CatalogSalesRecordDto[];
-    purchaseHistory?: CatalogPurchaseRecordDto[];
-    consumedHistory?: CatalogConsumedRecordDto[];
-    manufactureHistory?: CatalogManufactureRecordDto[];
-    manufactureCostHistory?: ManufactureCostDto[];
-    marginHistory?: MarginHistoryDto[];
+  salesHistory?: CatalogSalesRecordDto[];
+  purchaseHistory?: CatalogPurchaseRecordDto[];
+  consumedHistory?: CatalogConsumedRecordDto[];
+  manufactureHistory?: CatalogManufactureRecordDto[];
+  manufactureCostHistory?: ManufactureCostDto[];
+  marginHistory?: MarginHistoryDto[];
 
-    constructor(data?: ICatalogHistoricalDataDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogHistoricalDataDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            if (Array.isArray(_data["salesHistory"])) {
-                this.salesHistory = [] as any;
-                for (let item of _data["salesHistory"])
-                    this.salesHistory!.push(CatalogSalesRecordDto.fromJS(item));
-            }
-            if (Array.isArray(_data["purchaseHistory"])) {
-                this.purchaseHistory = [] as any;
-                for (let item of _data["purchaseHistory"])
-                    this.purchaseHistory!.push(CatalogPurchaseRecordDto.fromJS(item));
-            }
-            if (Array.isArray(_data["consumedHistory"])) {
-                this.consumedHistory = [] as any;
-                for (let item of _data["consumedHistory"])
-                    this.consumedHistory!.push(CatalogConsumedRecordDto.fromJS(item));
-            }
-            if (Array.isArray(_data["manufactureHistory"])) {
-                this.manufactureHistory = [] as any;
-                for (let item of _data["manufactureHistory"])
-                    this.manufactureHistory!.push(CatalogManufactureRecordDto.fromJS(item));
-            }
-            if (Array.isArray(_data["manufactureCostHistory"])) {
-                this.manufactureCostHistory = [] as any;
-                for (let item of _data["manufactureCostHistory"])
-                    this.manufactureCostHistory!.push(ManufactureCostDto.fromJS(item));
-            }
-            if (Array.isArray(_data["marginHistory"])) {
-                this.marginHistory = [] as any;
-                for (let item of _data["marginHistory"])
-                    this.marginHistory!.push(MarginHistoryDto.fromJS(item));
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      if (Array.isArray(_data["salesHistory"])) {
+        this.salesHistory = [] as any;
+        for (let item of _data["salesHistory"])
+          this.salesHistory!.push(CatalogSalesRecordDto.fromJS(item));
+      }
+      if (Array.isArray(_data["purchaseHistory"])) {
+        this.purchaseHistory = [] as any;
+        for (let item of _data["purchaseHistory"])
+          this.purchaseHistory!.push(CatalogPurchaseRecordDto.fromJS(item));
+      }
+      if (Array.isArray(_data["consumedHistory"])) {
+        this.consumedHistory = [] as any;
+        for (let item of _data["consumedHistory"])
+          this.consumedHistory!.push(CatalogConsumedRecordDto.fromJS(item));
+      }
+      if (Array.isArray(_data["manufactureHistory"])) {
+        this.manufactureHistory = [] as any;
+        for (let item of _data["manufactureHistory"])
+          this.manufactureHistory!.push(
+            CatalogManufactureRecordDto.fromJS(item),
+          );
+      }
+      if (Array.isArray(_data["manufactureCostHistory"])) {
+        this.manufactureCostHistory = [] as any;
+        for (let item of _data["manufactureCostHistory"])
+          this.manufactureCostHistory!.push(ManufactureCostDto.fromJS(item));
+      }
+      if (Array.isArray(_data["marginHistory"])) {
+        this.marginHistory = [] as any;
+        for (let item of _data["marginHistory"])
+          this.marginHistory!.push(MarginHistoryDto.fromJS(item));
+      }
     }
+  }
 
-    static fromJS(data: any): CatalogHistoricalDataDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogHistoricalDataDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogHistoricalDataDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogHistoricalDataDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.salesHistory)) {
-            data["salesHistory"] = [];
-            for (let item of this.salesHistory)
-                data["salesHistory"].push(item.toJSON());
-        }
-        if (Array.isArray(this.purchaseHistory)) {
-            data["purchaseHistory"] = [];
-            for (let item of this.purchaseHistory)
-                data["purchaseHistory"].push(item.toJSON());
-        }
-        if (Array.isArray(this.consumedHistory)) {
-            data["consumedHistory"] = [];
-            for (let item of this.consumedHistory)
-                data["consumedHistory"].push(item.toJSON());
-        }
-        if (Array.isArray(this.manufactureHistory)) {
-            data["manufactureHistory"] = [];
-            for (let item of this.manufactureHistory)
-                data["manufactureHistory"].push(item.toJSON());
-        }
-        if (Array.isArray(this.manufactureCostHistory)) {
-            data["manufactureCostHistory"] = [];
-            for (let item of this.manufactureCostHistory)
-                data["manufactureCostHistory"].push(item.toJSON());
-        }
-        if (Array.isArray(this.marginHistory)) {
-            data["marginHistory"] = [];
-            for (let item of this.marginHistory)
-                data["marginHistory"].push(item.toJSON());
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.salesHistory)) {
+      data["salesHistory"] = [];
+      for (let item of this.salesHistory)
+        data["salesHistory"].push(item.toJSON());
     }
+    if (Array.isArray(this.purchaseHistory)) {
+      data["purchaseHistory"] = [];
+      for (let item of this.purchaseHistory)
+        data["purchaseHistory"].push(item.toJSON());
+    }
+    if (Array.isArray(this.consumedHistory)) {
+      data["consumedHistory"] = [];
+      for (let item of this.consumedHistory)
+        data["consumedHistory"].push(item.toJSON());
+    }
+    if (Array.isArray(this.manufactureHistory)) {
+      data["manufactureHistory"] = [];
+      for (let item of this.manufactureHistory)
+        data["manufactureHistory"].push(item.toJSON());
+    }
+    if (Array.isArray(this.manufactureCostHistory)) {
+      data["manufactureCostHistory"] = [];
+      for (let item of this.manufactureCostHistory)
+        data["manufactureCostHistory"].push(item.toJSON());
+    }
+    if (Array.isArray(this.marginHistory)) {
+      data["marginHistory"] = [];
+      for (let item of this.marginHistory)
+        data["marginHistory"].push(item.toJSON());
+    }
+    return data;
+  }
 }
 
 export interface ICatalogHistoricalDataDto {
-    salesHistory?: CatalogSalesRecordDto[];
-    purchaseHistory?: CatalogPurchaseRecordDto[];
-    consumedHistory?: CatalogConsumedRecordDto[];
-    manufactureHistory?: CatalogManufactureRecordDto[];
-    manufactureCostHistory?: ManufactureCostDto[];
-    marginHistory?: MarginHistoryDto[];
+  salesHistory?: CatalogSalesRecordDto[];
+  purchaseHistory?: CatalogPurchaseRecordDto[];
+  consumedHistory?: CatalogConsumedRecordDto[];
+  manufactureHistory?: CatalogManufactureRecordDto[];
+  manufactureCostHistory?: ManufactureCostDto[];
+  marginHistory?: MarginHistoryDto[];
 }
 
 export class CatalogSalesRecordDto implements ICatalogSalesRecordDto {
-    year?: number;
-    month?: number;
-    amountTotal?: number;
-    amountB2B?: number;
-    amountB2C?: number;
-    sumTotal?: number;
-    sumB2B?: number;
-    sumB2C?: number;
+  year?: number;
+  month?: number;
+  amountTotal?: number;
+  amountB2B?: number;
+  amountB2C?: number;
+  sumTotal?: number;
+  sumB2B?: number;
+  sumB2C?: number;
 
-    constructor(data?: ICatalogSalesRecordDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogSalesRecordDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.year = _data["year"];
-            this.month = _data["month"];
-            this.amountTotal = _data["amountTotal"];
-            this.amountB2B = _data["amountB2B"];
-            this.amountB2C = _data["amountB2C"];
-            this.sumTotal = _data["sumTotal"];
-            this.sumB2B = _data["sumB2B"];
-            this.sumB2C = _data["sumB2C"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.year = _data["year"];
+      this.month = _data["month"];
+      this.amountTotal = _data["amountTotal"];
+      this.amountB2B = _data["amountB2B"];
+      this.amountB2C = _data["amountB2C"];
+      this.sumTotal = _data["sumTotal"];
+      this.sumB2B = _data["sumB2B"];
+      this.sumB2C = _data["sumB2C"];
     }
+  }
 
-    static fromJS(data: any): CatalogSalesRecordDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogSalesRecordDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogSalesRecordDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogSalesRecordDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["year"] = this.year;
-        data["month"] = this.month;
-        data["amountTotal"] = this.amountTotal;
-        data["amountB2B"] = this.amountB2B;
-        data["amountB2C"] = this.amountB2C;
-        data["sumTotal"] = this.sumTotal;
-        data["sumB2B"] = this.sumB2B;
-        data["sumB2C"] = this.sumB2C;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["year"] = this.year;
+    data["month"] = this.month;
+    data["amountTotal"] = this.amountTotal;
+    data["amountB2B"] = this.amountB2B;
+    data["amountB2C"] = this.amountB2C;
+    data["sumTotal"] = this.sumTotal;
+    data["sumB2B"] = this.sumB2B;
+    data["sumB2C"] = this.sumB2C;
+    return data;
+  }
 }
 
 export interface ICatalogSalesRecordDto {
-    year?: number;
-    month?: number;
-    amountTotal?: number;
-    amountB2B?: number;
-    amountB2C?: number;
-    sumTotal?: number;
-    sumB2B?: number;
-    sumB2C?: number;
+  year?: number;
+  month?: number;
+  amountTotal?: number;
+  amountB2B?: number;
+  amountB2C?: number;
+  sumTotal?: number;
+  sumB2B?: number;
+  sumB2C?: number;
 }
 
 export class CatalogPurchaseRecordDto implements ICatalogPurchaseRecordDto {
-    date?: Date;
-    supplierName?: string;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    documentNumber?: string;
-    year?: number;
-    month?: number;
+  date?: Date;
+  supplierName?: string;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  documentNumber?: string;
+  year?: number;
+  month?: number;
 
-    constructor(data?: ICatalogPurchaseRecordDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogPurchaseRecordDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.supplierName = _data["supplierName"];
-            this.amount = _data["amount"];
-            this.pricePerPiece = _data["pricePerPiece"];
-            this.priceTotal = _data["priceTotal"];
-            this.documentNumber = _data["documentNumber"];
-            this.year = _data["year"];
-            this.month = _data["month"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.supplierName = _data["supplierName"];
+      this.amount = _data["amount"];
+      this.pricePerPiece = _data["pricePerPiece"];
+      this.priceTotal = _data["priceTotal"];
+      this.documentNumber = _data["documentNumber"];
+      this.year = _data["year"];
+      this.month = _data["month"];
     }
+  }
 
-    static fromJS(data: any): CatalogPurchaseRecordDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogPurchaseRecordDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogPurchaseRecordDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogPurchaseRecordDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["supplierName"] = this.supplierName;
-        data["amount"] = this.amount;
-        data["pricePerPiece"] = this.pricePerPiece;
-        data["priceTotal"] = this.priceTotal;
-        data["documentNumber"] = this.documentNumber;
-        data["year"] = this.year;
-        data["month"] = this.month;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["supplierName"] = this.supplierName;
+    data["amount"] = this.amount;
+    data["pricePerPiece"] = this.pricePerPiece;
+    data["priceTotal"] = this.priceTotal;
+    data["documentNumber"] = this.documentNumber;
+    data["year"] = this.year;
+    data["month"] = this.month;
+    return data;
+  }
 }
 
 export interface ICatalogPurchaseRecordDto {
-    date?: Date;
-    supplierName?: string;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    documentNumber?: string;
-    year?: number;
-    month?: number;
+  date?: Date;
+  supplierName?: string;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  documentNumber?: string;
+  year?: number;
+  month?: number;
 }
 
 export class CatalogConsumedRecordDto implements ICatalogConsumedRecordDto {
-    year?: number;
-    month?: number;
-    amount?: number;
-    productName?: string;
+  year?: number;
+  month?: number;
+  amount?: number;
+  productName?: string;
 
-    constructor(data?: ICatalogConsumedRecordDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogConsumedRecordDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.year = _data["year"];
-            this.month = _data["month"];
-            this.amount = _data["amount"];
-            this.productName = _data["productName"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.year = _data["year"];
+      this.month = _data["month"];
+      this.amount = _data["amount"];
+      this.productName = _data["productName"];
     }
+  }
 
-    static fromJS(data: any): CatalogConsumedRecordDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogConsumedRecordDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogConsumedRecordDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogConsumedRecordDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["year"] = this.year;
-        data["month"] = this.month;
-        data["amount"] = this.amount;
-        data["productName"] = this.productName;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["year"] = this.year;
+    data["month"] = this.month;
+    data["amount"] = this.amount;
+    data["productName"] = this.productName;
+    return data;
+  }
 }
 
 export interface ICatalogConsumedRecordDto {
-    year?: number;
-    month?: number;
-    amount?: number;
-    productName?: string;
+  year?: number;
+  month?: number;
+  amount?: number;
+  productName?: string;
 }
 
-export class CatalogManufactureRecordDto implements ICatalogManufactureRecordDto {
-    date?: Date;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    productCode?: string;
-    documentNumber?: string;
-    year?: number | undefined;
-    month?: number | undefined;
+export class CatalogManufactureRecordDto
+  implements ICatalogManufactureRecordDto
+{
+  date?: Date;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  productCode?: string;
+  documentNumber?: string;
+  year?: number | undefined;
+  month?: number | undefined;
 
-    constructor(data?: ICatalogManufactureRecordDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICatalogManufactureRecordDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.amount = _data["amount"];
-            this.pricePerPiece = _data["pricePerPiece"];
-            this.priceTotal = _data["priceTotal"];
-            this.productCode = _data["productCode"];
-            this.documentNumber = _data["documentNumber"];
-            this.year = _data["year"];
-            this.month = _data["month"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.amount = _data["amount"];
+      this.pricePerPiece = _data["pricePerPiece"];
+      this.priceTotal = _data["priceTotal"];
+      this.productCode = _data["productCode"];
+      this.documentNumber = _data["documentNumber"];
+      this.year = _data["year"];
+      this.month = _data["month"];
     }
+  }
 
-    static fromJS(data: any): CatalogManufactureRecordDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogManufactureRecordDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CatalogManufactureRecordDto {
+    data = typeof data === "object" ? data : {};
+    let result = new CatalogManufactureRecordDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["amount"] = this.amount;
-        data["pricePerPiece"] = this.pricePerPiece;
-        data["priceTotal"] = this.priceTotal;
-        data["productCode"] = this.productCode;
-        data["documentNumber"] = this.documentNumber;
-        data["year"] = this.year;
-        data["month"] = this.month;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["amount"] = this.amount;
+    data["pricePerPiece"] = this.pricePerPiece;
+    data["priceTotal"] = this.priceTotal;
+    data["productCode"] = this.productCode;
+    data["documentNumber"] = this.documentNumber;
+    data["year"] = this.year;
+    data["month"] = this.month;
+    return data;
+  }
 }
 
 export interface ICatalogManufactureRecordDto {
-    date?: Date;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    productCode?: string;
-    documentNumber?: string;
-    year?: number | undefined;
-    month?: number | undefined;
+  date?: Date;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  productCode?: string;
+  documentNumber?: string;
+  year?: number | undefined;
+  month?: number | undefined;
 }
 
 export class ManufactureCostDto implements IManufactureCostDto {
-    date?: Date;
-    materialCost?: number;
-    handlingCost?: number;
-    total?: number;
+  date?: Date;
+  materialCost?: number;
+  handlingCost?: number;
+  total?: number;
 
-    constructor(data?: IManufactureCostDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufactureCostDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.materialCost = _data["materialCost"];
-            this.handlingCost = _data["handlingCost"];
-            this.total = _data["total"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.materialCost = _data["materialCost"];
+      this.handlingCost = _data["handlingCost"];
+      this.total = _data["total"];
     }
+  }
 
-    static fromJS(data: any): ManufactureCostDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufactureCostDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufactureCostDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufactureCostDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["materialCost"] = this.materialCost;
-        data["handlingCost"] = this.handlingCost;
-        data["total"] = this.total;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["materialCost"] = this.materialCost;
+    data["handlingCost"] = this.handlingCost;
+    data["total"] = this.total;
+    return data;
+  }
 }
 
 export interface IManufactureCostDto {
-    date?: Date;
-    materialCost?: number;
-    handlingCost?: number;
-    total?: number;
+  date?: Date;
+  materialCost?: number;
+  handlingCost?: number;
+  total?: number;
 }
 
 export class MarginHistoryDto implements IMarginHistoryDto {
-    date?: Date;
-    marginAmount?: number;
-    marginPercentage?: number;
-    sellingPrice?: number;
-    totalCost?: number;
+  date?: Date;
+  marginAmount?: number;
+  marginPercentage?: number;
+  sellingPrice?: number;
+  totalCost?: number;
 
-    constructor(data?: IMarginHistoryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IMarginHistoryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.marginAmount = _data["marginAmount"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.sellingPrice = _data["sellingPrice"];
-            this.totalCost = _data["totalCost"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.marginAmount = _data["marginAmount"];
+      this.marginPercentage = _data["marginPercentage"];
+      this.sellingPrice = _data["sellingPrice"];
+      this.totalCost = _data["totalCost"];
     }
+  }
 
-    static fromJS(data: any): MarginHistoryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new MarginHistoryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): MarginHistoryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new MarginHistoryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["marginAmount"] = this.marginAmount;
-        data["marginPercentage"] = this.marginPercentage;
-        data["sellingPrice"] = this.sellingPrice;
-        data["totalCost"] = this.totalCost;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["marginAmount"] = this.marginAmount;
+    data["marginPercentage"] = this.marginPercentage;
+    data["sellingPrice"] = this.sellingPrice;
+    data["totalCost"] = this.totalCost;
+    return data;
+  }
 }
 
 export interface IMarginHistoryDto {
-    date?: Date;
-    marginAmount?: number;
-    marginPercentage?: number;
-    sellingPrice?: number;
-    totalCost?: number;
+  date?: Date;
+  marginAmount?: number;
+  marginPercentage?: number;
+  sellingPrice?: number;
+  totalCost?: number;
 }
 
-export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
-    materials?: MaterialForPurchaseDto[];
+export class GetMaterialsForPurchaseResponse
+  extends BaseResponse
+  implements IGetMaterialsForPurchaseResponse
+{
+  materials?: MaterialForPurchaseDto[];
 
-    constructor(data?: IGetMaterialsForPurchaseResponse) {
-        super(data);
-    }
+  constructor(data?: IGetMaterialsForPurchaseResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["materials"])) {
-                this.materials = [] as any;
-                for (let item of _data["materials"])
-                    this.materials!.push(MaterialForPurchaseDto.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["materials"])) {
+        this.materials = [] as any;
+        for (let item of _data["materials"])
+          this.materials!.push(MaterialForPurchaseDto.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetMaterialsForPurchaseResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetMaterialsForPurchaseResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetMaterialsForPurchaseResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetMaterialsForPurchaseResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.materials)) {
-            data["materials"] = [];
-            for (let item of this.materials)
-                data["materials"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.materials)) {
+      data["materials"] = [];
+      for (let item of this.materials) data["materials"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetMaterialsForPurchaseResponse extends IBaseResponse {
-    materials?: MaterialForPurchaseDto[];
+  materials?: MaterialForPurchaseDto[];
 }
 
 export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
-    productCode?: string;
-    productName?: string;
-    productType?: string;
-    lastPurchasePrice?: number | undefined;
-    location?: string | undefined;
-    currentStock?: number;
-    minimalOrderQuantity?: string | undefined;
+  productCode?: string;
+  productName?: string;
+  productType?: string;
+  lastPurchasePrice?: number | undefined;
+  location?: string | undefined;
+  currentStock?: number;
+  minimalOrderQuantity?: string | undefined;
 
-    constructor(data?: IMaterialForPurchaseDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IMaterialForPurchaseDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.productType = _data["productType"];
-            this.lastPurchasePrice = _data["lastPurchasePrice"];
-            this.location = _data["location"];
-            this.currentStock = _data["currentStock"];
-            this.minimalOrderQuantity = _data["minimalOrderQuantity"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.productType = _data["productType"];
+      this.lastPurchasePrice = _data["lastPurchasePrice"];
+      this.location = _data["location"];
+      this.currentStock = _data["currentStock"];
+      this.minimalOrderQuantity = _data["minimalOrderQuantity"];
     }
+  }
 
-    static fromJS(data: any): MaterialForPurchaseDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new MaterialForPurchaseDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): MaterialForPurchaseDto {
+    data = typeof data === "object" ? data : {};
+    let result = new MaterialForPurchaseDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["productType"] = this.productType;
-        data["lastPurchasePrice"] = this.lastPurchasePrice;
-        data["location"] = this.location;
-        data["currentStock"] = this.currentStock;
-        data["minimalOrderQuantity"] = this.minimalOrderQuantity;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["productType"] = this.productType;
+    data["lastPurchasePrice"] = this.lastPurchasePrice;
+    data["location"] = this.location;
+    data["currentStock"] = this.currentStock;
+    data["minimalOrderQuantity"] = this.minimalOrderQuantity;
+    return data;
+  }
 }
 
 export interface IMaterialForPurchaseDto {
-    productCode?: string;
-    productName?: string;
-    productType?: string;
-    lastPurchasePrice?: number | undefined;
-    location?: string | undefined;
-    currentStock?: number;
-    minimalOrderQuantity?: string | undefined;
+  productCode?: string;
+  productName?: string;
+  productType?: string;
+  lastPurchasePrice?: number | undefined;
+  location?: string | undefined;
+  currentStock?: number;
+  minimalOrderQuantity?: string | undefined;
 }
 
-export class GetManufactureDifficultySettingsResponse extends BaseResponse implements IGetManufactureDifficultySettingsResponse {
-    productCode?: string;
-    settings?: ManufactureDifficultySettingDto[];
-    currentSetting?: ManufactureDifficultySettingDto | undefined;
+export class GetManufactureDifficultySettingsResponse
+  extends BaseResponse
+  implements IGetManufactureDifficultySettingsResponse
+{
+  productCode?: string;
+  settings?: ManufactureDifficultySettingDto[];
+  currentSetting?: ManufactureDifficultySettingDto | undefined;
 
-    constructor(data?: IGetManufactureDifficultySettingsResponse) {
-        super(data);
-    }
+  constructor(data?: IGetManufactureDifficultySettingsResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.productCode = _data["productCode"];
-            if (Array.isArray(_data["settings"])) {
-                this.settings = [] as any;
-                for (let item of _data["settings"])
-                    this.settings!.push(ManufactureDifficultySettingDto.fromJS(item));
-            }
-            this.currentSetting = _data["currentSetting"] ? ManufactureDifficultySettingDto.fromJS(_data["currentSetting"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.productCode = _data["productCode"];
+      if (Array.isArray(_data["settings"])) {
+        this.settings = [] as any;
+        for (let item of _data["settings"])
+          this.settings!.push(ManufactureDifficultySettingDto.fromJS(item));
+      }
+      this.currentSetting = _data["currentSetting"]
+        ? ManufactureDifficultySettingDto.fromJS(_data["currentSetting"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetManufactureDifficultySettingsResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetManufactureDifficultySettingsResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetManufactureDifficultySettingsResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetManufactureDifficultySettingsResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        if (Array.isArray(this.settings)) {
-            data["settings"] = [];
-            for (let item of this.settings)
-                data["settings"].push(item.toJSON());
-        }
-        data["currentSetting"] = this.currentSetting ? this.currentSetting.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    if (Array.isArray(this.settings)) {
+      data["settings"] = [];
+      for (let item of this.settings) data["settings"].push(item.toJSON());
     }
+    data["currentSetting"] = this.currentSetting
+      ? this.currentSetting.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
-export interface IGetManufactureDifficultySettingsResponse extends IBaseResponse {
-    productCode?: string;
-    settings?: ManufactureDifficultySettingDto[];
-    currentSetting?: ManufactureDifficultySettingDto | undefined;
+export interface IGetManufactureDifficultySettingsResponse
+  extends IBaseResponse {
+  productCode?: string;
+  settings?: ManufactureDifficultySettingDto[];
+  currentSetting?: ManufactureDifficultySettingDto | undefined;
 }
 
-export class ManufactureDifficultySettingDto implements IManufactureDifficultySettingDto {
-    id?: number;
-    productCode?: string;
-    difficultyValue?: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
-    createdAt?: Date;
-    createdBy?: string;
-    isCurrent?: boolean;
+export class ManufactureDifficultySettingDto
+  implements IManufactureDifficultySettingDto
+{
+  id?: number;
+  productCode?: string;
+  difficultyValue?: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
+  createdAt?: Date;
+  createdBy?: string;
+  isCurrent?: boolean;
 
-    constructor(data?: IManufactureDifficultySettingDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufactureDifficultySettingDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.productCode = _data["productCode"];
-            this.difficultyValue = _data["difficultyValue"];
-            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
-            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-            this.isCurrent = _data["isCurrent"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.productCode = _data["productCode"];
+      this.difficultyValue = _data["difficultyValue"];
+      this.validFrom = _data["validFrom"]
+        ? new Date(_data["validFrom"].toString())
+        : <any>undefined;
+      this.validTo = _data["validTo"]
+        ? new Date(_data["validTo"].toString())
+        : <any>undefined;
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.createdBy = _data["createdBy"];
+      this.isCurrent = _data["isCurrent"];
     }
+  }
 
-    static fromJS(data: any): ManufactureDifficultySettingDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufactureDifficultySettingDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufactureDifficultySettingDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufactureDifficultySettingDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["productCode"] = this.productCode;
-        data["difficultyValue"] = this.difficultyValue;
-        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
-        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        data["isCurrent"] = this.isCurrent;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["productCode"] = this.productCode;
+    data["difficultyValue"] = this.difficultyValue;
+    data["validFrom"] = this.validFrom
+      ? this.validFrom.toISOString()
+      : <any>undefined;
+    data["validTo"] = this.validTo
+      ? this.validTo.toISOString()
+      : <any>undefined;
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["createdBy"] = this.createdBy;
+    data["isCurrent"] = this.isCurrent;
+    return data;
+  }
 }
 
 export interface IManufactureDifficultySettingDto {
-    id?: number;
-    productCode?: string;
-    difficultyValue?: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
-    createdAt?: Date;
-    createdBy?: string;
-    isCurrent?: boolean;
+  id?: number;
+  productCode?: string;
+  difficultyValue?: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
+  createdAt?: Date;
+  createdBy?: string;
+  isCurrent?: boolean;
 }
 
-export class CreateManufactureDifficultyResponse extends BaseResponse implements ICreateManufactureDifficultyResponse {
-    difficultyHistory?: ManufactureDifficultySettingDto;
+export class CreateManufactureDifficultyResponse
+  extends BaseResponse
+  implements ICreateManufactureDifficultyResponse
+{
+  difficultyHistory?: ManufactureDifficultySettingDto;
 
-    constructor(data?: ICreateManufactureDifficultyResponse) {
-        super(data);
-    }
+  constructor(data?: ICreateManufactureDifficultyResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.difficultyHistory = _data["difficultyHistory"]
+        ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): CreateManufactureDifficultyResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateManufactureDifficultyResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): CreateManufactureDifficultyResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateManufactureDifficultyResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["difficultyHistory"] = this.difficultyHistory
+      ? this.difficultyHistory.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ICreateManufactureDifficultyResponse extends IBaseResponse {
-    difficultyHistory?: ManufactureDifficultySettingDto;
+  difficultyHistory?: ManufactureDifficultySettingDto;
 }
 
-export class CreateManufactureDifficultyRequest implements ICreateManufactureDifficultyRequest {
-    productCode!: string;
-    difficultyValue!: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
+export class CreateManufactureDifficultyRequest
+  implements ICreateManufactureDifficultyRequest
+{
+  productCode!: string;
+  difficultyValue!: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
 
-    constructor(data?: ICreateManufactureDifficultyRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreateManufactureDifficultyRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.difficultyValue = _data["difficultyValue"];
-            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
-            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.difficultyValue = _data["difficultyValue"];
+      this.validFrom = _data["validFrom"]
+        ? new Date(_data["validFrom"].toString())
+        : <any>undefined;
+      this.validTo = _data["validTo"]
+        ? new Date(_data["validTo"].toString())
+        : <any>undefined;
     }
+  }
 
-    static fromJS(data: any): CreateManufactureDifficultyRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateManufactureDifficultyRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreateManufactureDifficultyRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateManufactureDifficultyRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["difficultyValue"] = this.difficultyValue;
-        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
-        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["difficultyValue"] = this.difficultyValue;
+    data["validFrom"] = this.validFrom
+      ? this.validFrom.toISOString()
+      : <any>undefined;
+    data["validTo"] = this.validTo
+      ? this.validTo.toISOString()
+      : <any>undefined;
+    return data;
+  }
 }
 
 export interface ICreateManufactureDifficultyRequest {
-    productCode: string;
-    difficultyValue: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
+  productCode: string;
+  difficultyValue: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
 }
 
-export class UpdateManufactureDifficultyResponse extends BaseResponse implements IUpdateManufactureDifficultyResponse {
-    difficultyHistory?: ManufactureDifficultySettingDto;
+export class UpdateManufactureDifficultyResponse
+  extends BaseResponse
+  implements IUpdateManufactureDifficultyResponse
+{
+  difficultyHistory?: ManufactureDifficultySettingDto;
 
-    constructor(data?: IUpdateManufactureDifficultyResponse) {
-        super(data);
-    }
+  constructor(data?: IUpdateManufactureDifficultyResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.difficultyHistory = _data["difficultyHistory"] ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.difficultyHistory = _data["difficultyHistory"]
+        ? ManufactureDifficultySettingDto.fromJS(_data["difficultyHistory"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): UpdateManufactureDifficultyResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdateManufactureDifficultyResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): UpdateManufactureDifficultyResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdateManufactureDifficultyResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["difficultyHistory"] = this.difficultyHistory ? this.difficultyHistory.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["difficultyHistory"] = this.difficultyHistory
+      ? this.difficultyHistory.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IUpdateManufactureDifficultyResponse extends IBaseResponse {
-    difficultyHistory?: ManufactureDifficultySettingDto;
+  difficultyHistory?: ManufactureDifficultySettingDto;
 }
 
-export class UpdateManufactureDifficultyRequest implements IUpdateManufactureDifficultyRequest {
-    id!: number;
-    difficultyValue!: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
+export class UpdateManufactureDifficultyRequest
+  implements IUpdateManufactureDifficultyRequest
+{
+  id!: number;
+  difficultyValue!: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
 
-    constructor(data?: IUpdateManufactureDifficultyRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IUpdateManufactureDifficultyRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.difficultyValue = _data["difficultyValue"];
-            this.validFrom = _data["validFrom"] ? new Date(_data["validFrom"].toString()) : <any>undefined;
-            this.validTo = _data["validTo"] ? new Date(_data["validTo"].toString()) : <any>undefined;
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.difficultyValue = _data["difficultyValue"];
+      this.validFrom = _data["validFrom"]
+        ? new Date(_data["validFrom"].toString())
+        : <any>undefined;
+      this.validTo = _data["validTo"]
+        ? new Date(_data["validTo"].toString())
+        : <any>undefined;
     }
+  }
 
-    static fromJS(data: any): UpdateManufactureDifficultyRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdateManufactureDifficultyRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdateManufactureDifficultyRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdateManufactureDifficultyRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["difficultyValue"] = this.difficultyValue;
-        data["validFrom"] = this.validFrom ? this.validFrom.toISOString() : <any>undefined;
-        data["validTo"] = this.validTo ? this.validTo.toISOString() : <any>undefined;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["difficultyValue"] = this.difficultyValue;
+    data["validFrom"] = this.validFrom
+      ? this.validFrom.toISOString()
+      : <any>undefined;
+    data["validTo"] = this.validTo
+      ? this.validTo.toISOString()
+      : <any>undefined;
+    return data;
+  }
 }
 
 export interface IUpdateManufactureDifficultyRequest {
-    id: number;
-    difficultyValue: number;
-    validFrom?: Date | undefined;
-    validTo?: Date | undefined;
+  id: number;
+  difficultyValue: number;
+  validFrom?: Date | undefined;
+  validTo?: Date | undefined;
 }
 
-export class DeleteManufactureDifficultyResponse extends BaseResponse implements IDeleteManufactureDifficultyResponse {
-    message?: string | undefined;
+export class DeleteManufactureDifficultyResponse
+  extends BaseResponse
+  implements IDeleteManufactureDifficultyResponse
+{
+  message?: string | undefined;
 
-    constructor(data?: IDeleteManufactureDifficultyResponse) {
-        super(data);
-    }
+  constructor(data?: IDeleteManufactureDifficultyResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.message = _data["message"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.message = _data["message"];
     }
+  }
 
-    static override fromJS(data: any): DeleteManufactureDifficultyResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new DeleteManufactureDifficultyResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): DeleteManufactureDifficultyResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new DeleteManufactureDifficultyResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["message"] = this.message;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IDeleteManufactureDifficultyResponse extends IBaseResponse {
-    message?: string | undefined;
+  message?: string | undefined;
 }
 
-export class GetProductUsageResponse extends BaseResponse implements IGetProductUsageResponse {
-    manufactureTemplates?: ManufactureTemplate[];
+export class GetProductUsageResponse
+  extends BaseResponse
+  implements IGetProductUsageResponse
+{
+  manufactureTemplates?: ManufactureTemplate[];
 
-    constructor(data?: IGetProductUsageResponse) {
-        super(data);
-    }
+  constructor(data?: IGetProductUsageResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["manufactureTemplates"])) {
-                this.manufactureTemplates = [] as any;
-                for (let item of _data["manufactureTemplates"])
-                    this.manufactureTemplates!.push(ManufactureTemplate.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["manufactureTemplates"])) {
+        this.manufactureTemplates = [] as any;
+        for (let item of _data["manufactureTemplates"])
+          this.manufactureTemplates!.push(ManufactureTemplate.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetProductUsageResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetProductUsageResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetProductUsageResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetProductUsageResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.manufactureTemplates)) {
-            data["manufactureTemplates"] = [];
-            for (let item of this.manufactureTemplates)
-                data["manufactureTemplates"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.manufactureTemplates)) {
+      data["manufactureTemplates"] = [];
+      for (let item of this.manufactureTemplates)
+        data["manufactureTemplates"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetProductUsageResponse extends IBaseResponse {
-    manufactureTemplates?: ManufactureTemplate[];
+  manufactureTemplates?: ManufactureTemplate[];
 }
 
 export class ManufactureTemplate implements IManufactureTemplate {
-    templateId?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    originalAmount?: number;
-    ingredients?: Ingredient[];
-    batchSize?: number;
+  templateId?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  originalAmount?: number;
+  ingredients?: Ingredient[];
+  batchSize?: number;
 
-    constructor(data?: IManufactureTemplate) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufactureTemplate) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.templateId = _data["templateId"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.amount = _data["amount"];
-            this.originalAmount = _data["originalAmount"];
-            if (Array.isArray(_data["ingredients"])) {
-                this.ingredients = [] as any;
-                for (let item of _data["ingredients"])
-                    this.ingredients!.push(Ingredient.fromJS(item));
-            }
-            this.batchSize = _data["batchSize"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.templateId = _data["templateId"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.amount = _data["amount"];
+      this.originalAmount = _data["originalAmount"];
+      if (Array.isArray(_data["ingredients"])) {
+        this.ingredients = [] as any;
+        for (let item of _data["ingredients"])
+          this.ingredients!.push(Ingredient.fromJS(item));
+      }
+      this.batchSize = _data["batchSize"];
     }
+  }
 
-    static fromJS(data: any): ManufactureTemplate {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufactureTemplate();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufactureTemplate {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufactureTemplate();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["templateId"] = this.templateId;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["amount"] = this.amount;
-        data["originalAmount"] = this.originalAmount;
-        if (Array.isArray(this.ingredients)) {
-            data["ingredients"] = [];
-            for (let item of this.ingredients)
-                data["ingredients"].push(item.toJSON());
-        }
-        data["batchSize"] = this.batchSize;
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["templateId"] = this.templateId;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["amount"] = this.amount;
+    data["originalAmount"] = this.originalAmount;
+    if (Array.isArray(this.ingredients)) {
+      data["ingredients"] = [];
+      for (let item of this.ingredients)
+        data["ingredients"].push(item.toJSON());
     }
+    data["batchSize"] = this.batchSize;
+    return data;
+  }
 }
 
 export interface IManufactureTemplate {
-    templateId?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    originalAmount?: number;
-    ingredients?: Ingredient[];
-    batchSize?: number;
+  templateId?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  originalAmount?: number;
+  ingredients?: Ingredient[];
+  batchSize?: number;
 }
 
 export class Ingredient implements IIngredient {
-    templateId?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    originalAmount?: number;
-    price?: number;
+  templateId?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  originalAmount?: number;
+  price?: number;
 
-    constructor(data?: IIngredient) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IIngredient) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.templateId = _data["templateId"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.amount = _data["amount"];
-            this.originalAmount = _data["originalAmount"];
-            this.price = _data["price"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.templateId = _data["templateId"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.amount = _data["amount"];
+      this.originalAmount = _data["originalAmount"];
+      this.price = _data["price"];
     }
+  }
 
-    static fromJS(data: any): Ingredient {
-        data = typeof data === 'object' ? data : {};
-        let result = new Ingredient();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): Ingredient {
+    data = typeof data === "object" ? data : {};
+    let result = new Ingredient();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["templateId"] = this.templateId;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["amount"] = this.amount;
-        data["originalAmount"] = this.originalAmount;
-        data["price"] = this.price;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["templateId"] = this.templateId;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["amount"] = this.amount;
+    data["originalAmount"] = this.originalAmount;
+    data["price"] = this.price;
+    return data;
+  }
 }
 
 export interface IIngredient {
-    templateId?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    originalAmount?: number;
-    price?: number;
+  templateId?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  originalAmount?: number;
+  price?: number;
 }
 
-export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
-    version?: string;
-    environment?: string;
-    useMockAuth?: boolean;
-    timestamp?: Date;
+export class GetConfigurationResponse
+  extends BaseResponse
+  implements IGetConfigurationResponse
+{
+  version?: string;
+  environment?: string;
+  useMockAuth?: boolean;
+  timestamp?: Date;
 
-    constructor(data?: IGetConfigurationResponse) {
-        super(data);
-    }
+  constructor(data?: IGetConfigurationResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.version = _data["version"];
-            this.environment = _data["environment"];
-            this.useMockAuth = _data["useMockAuth"];
-            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.version = _data["version"];
+      this.environment = _data["environment"];
+      this.useMockAuth = _data["useMockAuth"];
+      this.timestamp = _data["timestamp"]
+        ? new Date(_data["timestamp"].toString())
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetConfigurationResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetConfigurationResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetConfigurationResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetConfigurationResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["version"] = this.version;
-        data["environment"] = this.environment;
-        data["useMockAuth"] = this.useMockAuth;
-        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["version"] = this.version;
+    data["environment"] = this.environment;
+    data["useMockAuth"] = this.useMockAuth;
+    data["timestamp"] = this.timestamp
+      ? this.timestamp.toISOString()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetConfigurationResponse extends IBaseResponse {
-    version?: string;
-    environment?: string;
-    useMockAuth?: boolean;
-    timestamp?: Date;
+  version?: string;
+  environment?: string;
+  useMockAuth?: boolean;
+  timestamp?: Date;
 }
 
-export class GetFinancialOverviewResponse extends BaseResponse implements IGetFinancialOverviewResponse {
-    data!: MonthlyFinancialDataDto[];
-    summary!: FinancialSummaryDto;
+export class GetFinancialOverviewResponse
+  extends BaseResponse
+  implements IGetFinancialOverviewResponse
+{
+  data!: MonthlyFinancialDataDto[];
+  summary!: FinancialSummaryDto;
 
-    constructor(data?: IGetFinancialOverviewResponse) {
-        super(data);
-        if (!data) {
-            this.data = [];
-            this.summary = new FinancialSummaryDto();
-        }
+  constructor(data?: IGetFinancialOverviewResponse) {
+    super(data);
+    if (!data) {
+      this.data = [];
+      this.summary = new FinancialSummaryDto();
     }
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["data"])) {
-                this.data = [] as any;
-                for (let item of _data["data"])
-                    this.data!.push(MonthlyFinancialDataDto.fromJS(item));
-            }
-            this.summary = _data["summary"] ? FinancialSummaryDto.fromJS(_data["summary"]) : new FinancialSummaryDto();
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["data"])) {
+        this.data = [] as any;
+        for (let item of _data["data"])
+          this.data!.push(MonthlyFinancialDataDto.fromJS(item));
+      }
+      this.summary = _data["summary"]
+        ? FinancialSummaryDto.fromJS(_data["summary"])
+        : new FinancialSummaryDto();
     }
+  }
 
-    static override fromJS(data: any): GetFinancialOverviewResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetFinancialOverviewResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetFinancialOverviewResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetFinancialOverviewResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.data)) {
-            data["data"] = [];
-            for (let item of this.data)
-                data["data"].push(item.toJSON());
-        }
-        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.data)) {
+      data["data"] = [];
+      for (let item of this.data) data["data"].push(item.toJSON());
     }
+    data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetFinancialOverviewResponse extends IBaseResponse {
-    data: MonthlyFinancialDataDto[];
-    summary: FinancialSummaryDto;
+  data: MonthlyFinancialDataDto[];
+  summary: FinancialSummaryDto;
 }
 
 export class MonthlyFinancialDataDto implements IMonthlyFinancialDataDto {
-    year!: number;
-    month!: number;
-    monthYearDisplay!: string;
-    income!: number;
-    expenses!: number;
-    financialBalance!: number;
-    stockChanges?: StockChangeDto | undefined;
-    totalStockValueChange?: number | undefined;
-    totalBalance?: number | undefined;
+  year!: number;
+  month!: number;
+  monthYearDisplay!: string;
+  income!: number;
+  expenses!: number;
+  financialBalance!: number;
+  stockChanges?: StockChangeDto | undefined;
+  totalStockValueChange?: number | undefined;
+  totalBalance?: number | undefined;
 
-    constructor(data?: IMonthlyFinancialDataDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IMonthlyFinancialDataDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.year = _data["year"];
-            this.month = _data["month"];
-            this.monthYearDisplay = _data["monthYearDisplay"];
-            this.income = _data["income"];
-            this.expenses = _data["expenses"];
-            this.financialBalance = _data["financialBalance"];
-            this.stockChanges = _data["stockChanges"] ? StockChangeDto.fromJS(_data["stockChanges"]) : <any>undefined;
-            this.totalStockValueChange = _data["totalStockValueChange"];
-            this.totalBalance = _data["totalBalance"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.year = _data["year"];
+      this.month = _data["month"];
+      this.monthYearDisplay = _data["monthYearDisplay"];
+      this.income = _data["income"];
+      this.expenses = _data["expenses"];
+      this.financialBalance = _data["financialBalance"];
+      this.stockChanges = _data["stockChanges"]
+        ? StockChangeDto.fromJS(_data["stockChanges"])
+        : <any>undefined;
+      this.totalStockValueChange = _data["totalStockValueChange"];
+      this.totalBalance = _data["totalBalance"];
     }
+  }
 
-    static fromJS(data: any): MonthlyFinancialDataDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new MonthlyFinancialDataDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): MonthlyFinancialDataDto {
+    data = typeof data === "object" ? data : {};
+    let result = new MonthlyFinancialDataDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["year"] = this.year;
-        data["month"] = this.month;
-        data["monthYearDisplay"] = this.monthYearDisplay;
-        data["income"] = this.income;
-        data["expenses"] = this.expenses;
-        data["financialBalance"] = this.financialBalance;
-        data["stockChanges"] = this.stockChanges ? this.stockChanges.toJSON() : <any>undefined;
-        data["totalStockValueChange"] = this.totalStockValueChange;
-        data["totalBalance"] = this.totalBalance;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["year"] = this.year;
+    data["month"] = this.month;
+    data["monthYearDisplay"] = this.monthYearDisplay;
+    data["income"] = this.income;
+    data["expenses"] = this.expenses;
+    data["financialBalance"] = this.financialBalance;
+    data["stockChanges"] = this.stockChanges
+      ? this.stockChanges.toJSON()
+      : <any>undefined;
+    data["totalStockValueChange"] = this.totalStockValueChange;
+    data["totalBalance"] = this.totalBalance;
+    return data;
+  }
 }
 
 export interface IMonthlyFinancialDataDto {
-    year: number;
-    month: number;
-    monthYearDisplay: string;
-    income: number;
-    expenses: number;
-    financialBalance: number;
-    stockChanges?: StockChangeDto | undefined;
-    totalStockValueChange?: number | undefined;
-    totalBalance?: number | undefined;
+  year: number;
+  month: number;
+  monthYearDisplay: string;
+  income: number;
+  expenses: number;
+  financialBalance: number;
+  stockChanges?: StockChangeDto | undefined;
+  totalStockValueChange?: number | undefined;
+  totalBalance?: number | undefined;
 }
 
 export class StockChangeDto implements IStockChangeDto {
-    materials?: number;
-    semiProducts?: number;
-    products?: number;
+  materials?: number;
+  semiProducts?: number;
+  products?: number;
 
-    constructor(data?: IStockChangeDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IStockChangeDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.materials = _data["materials"];
-            this.semiProducts = _data["semiProducts"];
-            this.products = _data["products"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.materials = _data["materials"];
+      this.semiProducts = _data["semiProducts"];
+      this.products = _data["products"];
     }
+  }
 
-    static fromJS(data: any): StockChangeDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockChangeDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): StockChangeDto {
+    data = typeof data === "object" ? data : {};
+    let result = new StockChangeDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["materials"] = this.materials;
-        data["semiProducts"] = this.semiProducts;
-        data["products"] = this.products;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["materials"] = this.materials;
+    data["semiProducts"] = this.semiProducts;
+    data["products"] = this.products;
+    return data;
+  }
 }
 
 export interface IStockChangeDto {
-    materials?: number;
-    semiProducts?: number;
-    products?: number;
+  materials?: number;
+  semiProducts?: number;
+  products?: number;
 }
 
 export class FinancialSummaryDto implements IFinancialSummaryDto {
-    totalIncome!: number;
-    totalExpenses!: number;
-    totalBalance!: number;
-    averageMonthlyIncome!: number;
-    averageMonthlyExpenses!: number;
-    averageMonthlyBalance!: number;
-    stockSummary?: StockSummaryDto | undefined;
+  totalIncome!: number;
+  totalExpenses!: number;
+  totalBalance!: number;
+  averageMonthlyIncome!: number;
+  averageMonthlyExpenses!: number;
+  averageMonthlyBalance!: number;
+  stockSummary?: StockSummaryDto | undefined;
 
-    constructor(data?: IFinancialSummaryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IFinancialSummaryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.totalIncome = _data["totalIncome"];
-            this.totalExpenses = _data["totalExpenses"];
-            this.totalBalance = _data["totalBalance"];
-            this.averageMonthlyIncome = _data["averageMonthlyIncome"];
-            this.averageMonthlyExpenses = _data["averageMonthlyExpenses"];
-            this.averageMonthlyBalance = _data["averageMonthlyBalance"];
-            this.stockSummary = _data["stockSummary"] ? StockSummaryDto.fromJS(_data["stockSummary"]) : <any>undefined;
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.totalIncome = _data["totalIncome"];
+      this.totalExpenses = _data["totalExpenses"];
+      this.totalBalance = _data["totalBalance"];
+      this.averageMonthlyIncome = _data["averageMonthlyIncome"];
+      this.averageMonthlyExpenses = _data["averageMonthlyExpenses"];
+      this.averageMonthlyBalance = _data["averageMonthlyBalance"];
+      this.stockSummary = _data["stockSummary"]
+        ? StockSummaryDto.fromJS(_data["stockSummary"])
+        : <any>undefined;
     }
+  }
 
-    static fromJS(data: any): FinancialSummaryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new FinancialSummaryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): FinancialSummaryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new FinancialSummaryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalIncome"] = this.totalIncome;
-        data["totalExpenses"] = this.totalExpenses;
-        data["totalBalance"] = this.totalBalance;
-        data["averageMonthlyIncome"] = this.averageMonthlyIncome;
-        data["averageMonthlyExpenses"] = this.averageMonthlyExpenses;
-        data["averageMonthlyBalance"] = this.averageMonthlyBalance;
-        data["stockSummary"] = this.stockSummary ? this.stockSummary.toJSON() : <any>undefined;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["totalIncome"] = this.totalIncome;
+    data["totalExpenses"] = this.totalExpenses;
+    data["totalBalance"] = this.totalBalance;
+    data["averageMonthlyIncome"] = this.averageMonthlyIncome;
+    data["averageMonthlyExpenses"] = this.averageMonthlyExpenses;
+    data["averageMonthlyBalance"] = this.averageMonthlyBalance;
+    data["stockSummary"] = this.stockSummary
+      ? this.stockSummary.toJSON()
+      : <any>undefined;
+    return data;
+  }
 }
 
 export interface IFinancialSummaryDto {
-    totalIncome: number;
-    totalExpenses: number;
-    totalBalance: number;
-    averageMonthlyIncome: number;
-    averageMonthlyExpenses: number;
-    averageMonthlyBalance: number;
-    stockSummary?: StockSummaryDto | undefined;
+  totalIncome: number;
+  totalExpenses: number;
+  totalBalance: number;
+  averageMonthlyIncome: number;
+  averageMonthlyExpenses: number;
+  averageMonthlyBalance: number;
+  stockSummary?: StockSummaryDto | undefined;
 }
 
 export class StockSummaryDto implements IStockSummaryDto {
-    totalStockValueChange?: number;
-    averageMonthlyStockChange?: number;
-    totalBalanceWithStock?: number;
-    averageMonthlyTotalBalance?: number;
+  totalStockValueChange?: number;
+  averageMonthlyStockChange?: number;
+  totalBalanceWithStock?: number;
+  averageMonthlyTotalBalance?: number;
 
-    constructor(data?: IStockSummaryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IStockSummaryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.totalStockValueChange = _data["totalStockValueChange"];
-            this.averageMonthlyStockChange = _data["averageMonthlyStockChange"];
-            this.totalBalanceWithStock = _data["totalBalanceWithStock"];
-            this.averageMonthlyTotalBalance = _data["averageMonthlyTotalBalance"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.totalStockValueChange = _data["totalStockValueChange"];
+      this.averageMonthlyStockChange = _data["averageMonthlyStockChange"];
+      this.totalBalanceWithStock = _data["totalBalanceWithStock"];
+      this.averageMonthlyTotalBalance = _data["averageMonthlyTotalBalance"];
     }
+  }
 
-    static fromJS(data: any): StockSummaryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockSummaryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): StockSummaryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new StockSummaryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalStockValueChange"] = this.totalStockValueChange;
-        data["averageMonthlyStockChange"] = this.averageMonthlyStockChange;
-        data["totalBalanceWithStock"] = this.totalBalanceWithStock;
-        data["averageMonthlyTotalBalance"] = this.averageMonthlyTotalBalance;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["totalStockValueChange"] = this.totalStockValueChange;
+    data["averageMonthlyStockChange"] = this.averageMonthlyStockChange;
+    data["totalBalanceWithStock"] = this.totalBalanceWithStock;
+    data["averageMonthlyTotalBalance"] = this.averageMonthlyTotalBalance;
+    return data;
+  }
 }
 
 export interface IStockSummaryDto {
-    totalStockValueChange?: number;
-    averageMonthlyStockChange?: number;
-    totalBalanceWithStock?: number;
-    averageMonthlyTotalBalance?: number;
+  totalStockValueChange?: number;
+  averageMonthlyStockChange?: number;
+  totalBalanceWithStock?: number;
+  averageMonthlyTotalBalance?: number;
 }
 
-export class GetJournalEntriesResponse extends BaseResponse implements IGetJournalEntriesResponse {
-    entries?: JournalEntryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
+export class GetJournalEntriesResponse
+  extends BaseResponse
+  implements IGetJournalEntriesResponse
+{
+  entries?: JournalEntryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 
-    constructor(data?: IGetJournalEntriesResponse) {
-        super(data);
-    }
+  constructor(data?: IGetJournalEntriesResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["entries"])) {
-                this.entries = [] as any;
-                for (let item of _data["entries"])
-                    this.entries!.push(JournalEntryDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-            this.hasNextPage = _data["hasNextPage"];
-            this.hasPreviousPage = _data["hasPreviousPage"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["entries"])) {
+        this.entries = [] as any;
+        for (let item of _data["entries"])
+          this.entries!.push(JournalEntryDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.totalPages = _data["totalPages"];
+      this.hasNextPage = _data["hasNextPage"];
+      this.hasPreviousPage = _data["hasPreviousPage"];
     }
+  }
 
-    static override fromJS(data: any): GetJournalEntriesResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetJournalEntriesResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetJournalEntriesResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetJournalEntriesResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.entries)) {
-            data["entries"] = [];
-            for (let item of this.entries)
-                data["entries"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        data["hasNextPage"] = this.hasNextPage;
-        data["hasPreviousPage"] = this.hasPreviousPage;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.entries)) {
+      data["entries"] = [];
+      for (let item of this.entries) data["entries"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["totalPages"] = this.totalPages;
+    data["hasNextPage"] = this.hasNextPage;
+    data["hasPreviousPage"] = this.hasPreviousPage;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetJournalEntriesResponse extends IBaseResponse {
-    entries?: JournalEntryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
+  entries?: JournalEntryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 }
 
 export class JournalEntryDto implements IJournalEntryDto {
-    id?: number;
-    title?: string | undefined;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    modifiedByUserId?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
+  id?: number;
+  title?: string | undefined;
+  content?: string;
+  entryDate?: Date;
+  createdAt?: Date;
+  modifiedAt?: Date;
+  createdByUserId?: string;
+  modifiedByUserId?: string | undefined;
+  associatedProducts?: string[];
+  tags?: JournalEntryTagDto[];
+  contentPreview?: string | undefined;
+  highlightedTerms?: string[];
 
-    constructor(data?: IJournalEntryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IJournalEntryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.title = _data["title"];
-            this.content = _data["content"];
-            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
-            this.createdByUserId = _data["createdByUserId"];
-            this.modifiedByUserId = _data["modifiedByUserId"];
-            if (Array.isArray(_data["associatedProducts"])) {
-                this.associatedProducts = [] as any;
-                for (let item of _data["associatedProducts"])
-                    this.associatedProducts!.push(item);
-            }
-            if (Array.isArray(_data["tags"])) {
-                this.tags = [] as any;
-                for (let item of _data["tags"])
-                    this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-            this.contentPreview = _data["contentPreview"];
-            if (Array.isArray(_data["highlightedTerms"])) {
-                this.highlightedTerms = [] as any;
-                for (let item of _data["highlightedTerms"])
-                    this.highlightedTerms!.push(item);
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.title = _data["title"];
+      this.content = _data["content"];
+      this.entryDate = _data["entryDate"]
+        ? new Date(_data["entryDate"].toString())
+        : <any>undefined;
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.modifiedAt = _data["modifiedAt"]
+        ? new Date(_data["modifiedAt"].toString())
+        : <any>undefined;
+      this.createdByUserId = _data["createdByUserId"];
+      this.modifiedByUserId = _data["modifiedByUserId"];
+      if (Array.isArray(_data["associatedProducts"])) {
+        this.associatedProducts = [] as any;
+        for (let item of _data["associatedProducts"])
+          this.associatedProducts!.push(item);
+      }
+      if (Array.isArray(_data["tags"])) {
+        this.tags = [] as any;
+        for (let item of _data["tags"])
+          this.tags!.push(JournalEntryTagDto.fromJS(item));
+      }
+      this.contentPreview = _data["contentPreview"];
+      if (Array.isArray(_data["highlightedTerms"])) {
+        this.highlightedTerms = [] as any;
+        for (let item of _data["highlightedTerms"])
+          this.highlightedTerms!.push(item);
+      }
     }
+  }
 
-    static fromJS(data: any): JournalEntryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new JournalEntryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): JournalEntryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new JournalEntryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["title"] = this.title;
-        data["content"] = this.content;
-        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
-        data["createdByUserId"] = this.createdByUserId;
-        data["modifiedByUserId"] = this.modifiedByUserId;
-        if (Array.isArray(this.associatedProducts)) {
-            data["associatedProducts"] = [];
-            for (let item of this.associatedProducts)
-                data["associatedProducts"].push(item);
-        }
-        if (Array.isArray(this.tags)) {
-            data["tags"] = [];
-            for (let item of this.tags)
-                data["tags"].push(item.toJSON());
-        }
-        data["contentPreview"] = this.contentPreview;
-        if (Array.isArray(this.highlightedTerms)) {
-            data["highlightedTerms"] = [];
-            for (let item of this.highlightedTerms)
-                data["highlightedTerms"].push(item);
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["title"] = this.title;
+    data["content"] = this.content;
+    data["entryDate"] = this.entryDate
+      ? this.entryDate.toISOString()
+      : <any>undefined;
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["modifiedAt"] = this.modifiedAt
+      ? this.modifiedAt.toISOString()
+      : <any>undefined;
+    data["createdByUserId"] = this.createdByUserId;
+    data["modifiedByUserId"] = this.modifiedByUserId;
+    if (Array.isArray(this.associatedProducts)) {
+      data["associatedProducts"] = [];
+      for (let item of this.associatedProducts)
+        data["associatedProducts"].push(item);
     }
+    if (Array.isArray(this.tags)) {
+      data["tags"] = [];
+      for (let item of this.tags) data["tags"].push(item.toJSON());
+    }
+    data["contentPreview"] = this.contentPreview;
+    if (Array.isArray(this.highlightedTerms)) {
+      data["highlightedTerms"] = [];
+      for (let item of this.highlightedTerms)
+        data["highlightedTerms"].push(item);
+    }
+    return data;
+  }
 }
 
 export interface IJournalEntryDto {
-    id?: number;
-    title?: string | undefined;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    modifiedByUserId?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
+  id?: number;
+  title?: string | undefined;
+  content?: string;
+  entryDate?: Date;
+  createdAt?: Date;
+  modifiedAt?: Date;
+  createdByUserId?: string;
+  modifiedByUserId?: string | undefined;
+  associatedProducts?: string[];
+  tags?: JournalEntryTagDto[];
+  contentPreview?: string | undefined;
+  highlightedTerms?: string[];
 }
 
 export class JournalEntryTagDto implements IJournalEntryTagDto {
-    id?: number;
-    name?: string;
-    color?: string;
+  id?: number;
+  name?: string;
+  color?: string;
 
-    constructor(data?: IJournalEntryTagDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IJournalEntryTagDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.name = _data["name"];
-            this.color = _data["color"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.name = _data["name"];
+      this.color = _data["color"];
     }
+  }
 
-    static fromJS(data: any): JournalEntryTagDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new JournalEntryTagDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): JournalEntryTagDto {
+    data = typeof data === "object" ? data : {};
+    let result = new JournalEntryTagDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["name"] = this.name;
-        data["color"] = this.color;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["name"] = this.name;
+    data["color"] = this.color;
+    return data;
+  }
 }
 
 export interface IJournalEntryTagDto {
-    id?: number;
-    name?: string;
-    color?: string;
+  id?: number;
+  name?: string;
+  color?: string;
 }
 
-export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
-    entries?: JournalEntryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
+export class SearchJournalEntriesResponse
+  extends BaseResponse
+  implements ISearchJournalEntriesResponse
+{
+  entries?: JournalEntryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 
-    constructor(data?: ISearchJournalEntriesResponse) {
-        super(data);
-    }
+  constructor(data?: ISearchJournalEntriesResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["entries"])) {
-                this.entries = [] as any;
-                for (let item of _data["entries"])
-                    this.entries!.push(JournalEntryDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-            this.hasNextPage = _data["hasNextPage"];
-            this.hasPreviousPage = _data["hasPreviousPage"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["entries"])) {
+        this.entries = [] as any;
+        for (let item of _data["entries"])
+          this.entries!.push(JournalEntryDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.totalPages = _data["totalPages"];
+      this.hasNextPage = _data["hasNextPage"];
+      this.hasPreviousPage = _data["hasPreviousPage"];
     }
+  }
 
-    static override fromJS(data: any): SearchJournalEntriesResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new SearchJournalEntriesResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): SearchJournalEntriesResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new SearchJournalEntriesResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.entries)) {
-            data["entries"] = [];
-            for (let item of this.entries)
-                data["entries"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        data["hasNextPage"] = this.hasNextPage;
-        data["hasPreviousPage"] = this.hasPreviousPage;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.entries)) {
+      data["entries"] = [];
+      for (let item of this.entries) data["entries"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["totalPages"] = this.totalPages;
+    data["hasNextPage"] = this.hasNextPage;
+    data["hasPreviousPage"] = this.hasPreviousPage;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ISearchJournalEntriesResponse extends IBaseResponse {
-    entries?: JournalEntryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
+  entries?: JournalEntryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 }
 
-export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {
-    entry?: JournalEntryDto | undefined;
+export class GetJournalEntryResponse
+  extends BaseResponse
+  implements IGetJournalEntryResponse
+{
+  entry?: JournalEntryDto | undefined;
 
-    constructor(data?: IGetJournalEntryResponse) {
-        super(data);
-    }
+  constructor(data?: IGetJournalEntryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.entry = _data["entry"] ? JournalEntryDto.fromJS(_data["entry"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.entry = _data["entry"]
+        ? JournalEntryDto.fromJS(_data["entry"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetJournalEntryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetJournalEntryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetJournalEntryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetJournalEntryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["entry"] = this.entry ? this.entry.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["entry"] = this.entry ? this.entry.toJSON() : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetJournalEntryResponse extends IBaseResponse {
-    entry?: JournalEntryDto | undefined;
+  entry?: JournalEntryDto | undefined;
 }
 
-export class CreateJournalEntryResponse extends BaseResponse implements ICreateJournalEntryResponse {
-    id?: number;
-    createdAt?: Date;
-    message?: string;
+export class CreateJournalEntryResponse
+  extends BaseResponse
+  implements ICreateJournalEntryResponse
+{
+  id?: number;
+  createdAt?: Date;
+  message?: string;
 
-    constructor(data?: ICreateJournalEntryResponse) {
-        super(data);
-    }
+  constructor(data?: ICreateJournalEntryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.message = _data["message"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.message = _data["message"];
     }
+  }
 
-    static override fromJS(data: any): CreateJournalEntryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateJournalEntryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): CreateJournalEntryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateJournalEntryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["message"] = this.message;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ICreateJournalEntryResponse extends IBaseResponse {
-    id?: number;
-    createdAt?: Date;
-    message?: string;
+  id?: number;
+  createdAt?: Date;
+  message?: string;
 }
 
 export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
-    title?: string | undefined;
-    content!: string;
-    entryDate!: Date;
-    associatedProducts?: string[] | undefined;
-    tagIds?: number[] | undefined;
+  title?: string | undefined;
+  content!: string;
+  entryDate!: Date;
+  associatedProducts?: string[] | undefined;
+  tagIds?: number[] | undefined;
 
-    constructor(data?: ICreateJournalEntryRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreateJournalEntryRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.title = _data["title"];
-            this.content = _data["content"];
-            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
-            if (Array.isArray(_data["associatedProducts"])) {
-                this.associatedProducts = [] as any;
-                for (let item of _data["associatedProducts"])
-                    this.associatedProducts!.push(item);
-            }
-            if (Array.isArray(_data["tagIds"])) {
-                this.tagIds = [] as any;
-                for (let item of _data["tagIds"])
-                    this.tagIds!.push(item);
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.title = _data["title"];
+      this.content = _data["content"];
+      this.entryDate = _data["entryDate"]
+        ? new Date(_data["entryDate"].toString())
+        : <any>undefined;
+      if (Array.isArray(_data["associatedProducts"])) {
+        this.associatedProducts = [] as any;
+        for (let item of _data["associatedProducts"])
+          this.associatedProducts!.push(item);
+      }
+      if (Array.isArray(_data["tagIds"])) {
+        this.tagIds = [] as any;
+        for (let item of _data["tagIds"]) this.tagIds!.push(item);
+      }
     }
+  }
 
-    static fromJS(data: any): CreateJournalEntryRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateJournalEntryRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreateJournalEntryRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateJournalEntryRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["title"] = this.title;
-        data["content"] = this.content;
-        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
-        if (Array.isArray(this.associatedProducts)) {
-            data["associatedProducts"] = [];
-            for (let item of this.associatedProducts)
-                data["associatedProducts"].push(item);
-        }
-        if (Array.isArray(this.tagIds)) {
-            data["tagIds"] = [];
-            for (let item of this.tagIds)
-                data["tagIds"].push(item);
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["title"] = this.title;
+    data["content"] = this.content;
+    data["entryDate"] = this.entryDate
+      ? this.entryDate.toISOString()
+      : <any>undefined;
+    if (Array.isArray(this.associatedProducts)) {
+      data["associatedProducts"] = [];
+      for (let item of this.associatedProducts)
+        data["associatedProducts"].push(item);
     }
+    if (Array.isArray(this.tagIds)) {
+      data["tagIds"] = [];
+      for (let item of this.tagIds) data["tagIds"].push(item);
+    }
+    return data;
+  }
 }
 
 export interface ICreateJournalEntryRequest {
-    title?: string | undefined;
-    content: string;
-    entryDate: Date;
-    associatedProducts?: string[] | undefined;
-    tagIds?: number[] | undefined;
+  title?: string | undefined;
+  content: string;
+  entryDate: Date;
+  associatedProducts?: string[] | undefined;
+  tagIds?: number[] | undefined;
 }
 
-export class UpdateJournalEntryResponse extends BaseResponse implements IUpdateJournalEntryResponse {
-    id?: number;
-    modifiedAt?: Date;
-    message?: string;
+export class UpdateJournalEntryResponse
+  extends BaseResponse
+  implements IUpdateJournalEntryResponse
+{
+  id?: number;
+  modifiedAt?: Date;
+  message?: string;
 
-    constructor(data?: IUpdateJournalEntryResponse) {
-        super(data);
-    }
+  constructor(data?: IUpdateJournalEntryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
-            this.message = _data["message"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.modifiedAt = _data["modifiedAt"]
+        ? new Date(_data["modifiedAt"].toString())
+        : <any>undefined;
+      this.message = _data["message"];
     }
+  }
 
-    static override fromJS(data: any): UpdateJournalEntryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdateJournalEntryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): UpdateJournalEntryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdateJournalEntryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["modifiedAt"] = this.modifiedAt
+      ? this.modifiedAt.toISOString()
+      : <any>undefined;
+    data["message"] = this.message;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IUpdateJournalEntryResponse extends IBaseResponse {
-    id?: number;
-    modifiedAt?: Date;
-    message?: string;
+  id?: number;
+  modifiedAt?: Date;
+  message?: string;
 }
 
 export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
-    id?: number;
-    title?: string | undefined;
-    content!: string;
-    entryDate!: Date;
-    associatedProducts?: string[] | undefined;
-    tagIds?: number[] | undefined;
+  id?: number;
+  title?: string | undefined;
+  content!: string;
+  entryDate!: Date;
+  associatedProducts?: string[] | undefined;
+  tagIds?: number[] | undefined;
 
-    constructor(data?: IUpdateJournalEntryRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IUpdateJournalEntryRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.title = _data["title"];
-            this.content = _data["content"];
-            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
-            if (Array.isArray(_data["associatedProducts"])) {
-                this.associatedProducts = [] as any;
-                for (let item of _data["associatedProducts"])
-                    this.associatedProducts!.push(item);
-            }
-            if (Array.isArray(_data["tagIds"])) {
-                this.tagIds = [] as any;
-                for (let item of _data["tagIds"])
-                    this.tagIds!.push(item);
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.title = _data["title"];
+      this.content = _data["content"];
+      this.entryDate = _data["entryDate"]
+        ? new Date(_data["entryDate"].toString())
+        : <any>undefined;
+      if (Array.isArray(_data["associatedProducts"])) {
+        this.associatedProducts = [] as any;
+        for (let item of _data["associatedProducts"])
+          this.associatedProducts!.push(item);
+      }
+      if (Array.isArray(_data["tagIds"])) {
+        this.tagIds = [] as any;
+        for (let item of _data["tagIds"]) this.tagIds!.push(item);
+      }
     }
+  }
 
-    static fromJS(data: any): UpdateJournalEntryRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdateJournalEntryRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdateJournalEntryRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdateJournalEntryRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["title"] = this.title;
-        data["content"] = this.content;
-        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
-        if (Array.isArray(this.associatedProducts)) {
-            data["associatedProducts"] = [];
-            for (let item of this.associatedProducts)
-                data["associatedProducts"].push(item);
-        }
-        if (Array.isArray(this.tagIds)) {
-            data["tagIds"] = [];
-            for (let item of this.tagIds)
-                data["tagIds"].push(item);
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["title"] = this.title;
+    data["content"] = this.content;
+    data["entryDate"] = this.entryDate
+      ? this.entryDate.toISOString()
+      : <any>undefined;
+    if (Array.isArray(this.associatedProducts)) {
+      data["associatedProducts"] = [];
+      for (let item of this.associatedProducts)
+        data["associatedProducts"].push(item);
     }
+    if (Array.isArray(this.tagIds)) {
+      data["tagIds"] = [];
+      for (let item of this.tagIds) data["tagIds"].push(item);
+    }
+    return data;
+  }
 }
 
 export interface IUpdateJournalEntryRequest {
-    id?: number;
-    title?: string | undefined;
-    content: string;
-    entryDate: Date;
-    associatedProducts?: string[] | undefined;
-    tagIds?: number[] | undefined;
+  id?: number;
+  title?: string | undefined;
+  content: string;
+  entryDate: Date;
+  associatedProducts?: string[] | undefined;
+  tagIds?: number[] | undefined;
 }
 
-export class DeleteJournalEntryResponse extends BaseResponse implements IDeleteJournalEntryResponse {
-    id?: number;
-    message?: string;
+export class DeleteJournalEntryResponse
+  extends BaseResponse
+  implements IDeleteJournalEntryResponse
+{
+  id?: number;
+  message?: string;
 
-    constructor(data?: IDeleteJournalEntryResponse) {
-        super(data);
-    }
+  constructor(data?: IDeleteJournalEntryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.message = _data["message"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.message = _data["message"];
     }
+  }
 
-    static override fromJS(data: any): DeleteJournalEntryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new DeleteJournalEntryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): DeleteJournalEntryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new DeleteJournalEntryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["message"] = this.message;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IDeleteJournalEntryResponse extends IBaseResponse {
-    id?: number;
-    message?: string;
+  id?: number;
+  message?: string;
 }
 
-export class GetJournalTagsResponse extends BaseResponse implements IGetJournalTagsResponse {
-    tags?: JournalEntryTagDto[];
+export class GetJournalTagsResponse
+  extends BaseResponse
+  implements IGetJournalTagsResponse
+{
+  tags?: JournalEntryTagDto[];
 
-    constructor(data?: IGetJournalTagsResponse) {
-        super(data);
-    }
+  constructor(data?: IGetJournalTagsResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["tags"])) {
-                this.tags = [] as any;
-                for (let item of _data["tags"])
-                    this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["tags"])) {
+        this.tags = [] as any;
+        for (let item of _data["tags"])
+          this.tags!.push(JournalEntryTagDto.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetJournalTagsResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetJournalTagsResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetJournalTagsResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetJournalTagsResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.tags)) {
-            data["tags"] = [];
-            for (let item of this.tags)
-                data["tags"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.tags)) {
+      data["tags"] = [];
+      for (let item of this.tags) data["tags"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetJournalTagsResponse extends IBaseResponse {
-    tags?: JournalEntryTagDto[];
+  tags?: JournalEntryTagDto[];
 }
 
-export class CreateJournalTagResponse extends BaseResponse implements ICreateJournalTagResponse {
-    id?: number;
-    name?: string;
-    color?: string;
+export class CreateJournalTagResponse
+  extends BaseResponse
+  implements ICreateJournalTagResponse
+{
+  id?: number;
+  name?: string;
+  color?: string;
 
-    constructor(data?: ICreateJournalTagResponse) {
-        super(data);
-    }
+  constructor(data?: ICreateJournalTagResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.name = _data["name"];
-            this.color = _data["color"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.name = _data["name"];
+      this.color = _data["color"];
     }
+  }
 
-    static override fromJS(data: any): CreateJournalTagResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateJournalTagResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): CreateJournalTagResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateJournalTagResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["name"] = this.name;
-        data["color"] = this.color;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["name"] = this.name;
+    data["color"] = this.color;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ICreateJournalTagResponse extends IBaseResponse {
-    id?: number;
-    name?: string;
-    color?: string;
+  id?: number;
+  name?: string;
+  color?: string;
 }
 
 export class CreateJournalTagRequest implements ICreateJournalTagRequest {
-    name!: string;
-    color?: string;
+  name!: string;
+  color?: string;
 
-    constructor(data?: ICreateJournalTagRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreateJournalTagRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.name = _data["name"];
-            this.color = _data["color"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.name = _data["name"];
+      this.color = _data["color"];
     }
+  }
 
-    static fromJS(data: any): CreateJournalTagRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateJournalTagRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreateJournalTagRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateJournalTagRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        data["color"] = this.color;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["name"] = this.name;
+    data["color"] = this.color;
+    return data;
+  }
 }
 
 export interface ICreateJournalTagRequest {
-    name: string;
-    color?: string;
+  name: string;
+  color?: string;
 }
 
-export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {
-    months?: ManufactureOutputMonth[];
+export class GetManufactureOutputResponse
+  extends BaseResponse
+  implements IGetManufactureOutputResponse
+{
+  months?: ManufactureOutputMonth[];
 
-    constructor(data?: IGetManufactureOutputResponse) {
-        super(data);
-    }
+  constructor(data?: IGetManufactureOutputResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["months"])) {
-                this.months = [] as any;
-                for (let item of _data["months"])
-                    this.months!.push(ManufactureOutputMonth.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["months"])) {
+        this.months = [] as any;
+        for (let item of _data["months"])
+          this.months!.push(ManufactureOutputMonth.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): GetManufactureOutputResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetManufactureOutputResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetManufactureOutputResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetManufactureOutputResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.months)) {
-            data["months"] = [];
-            for (let item of this.months)
-                data["months"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.months)) {
+      data["months"] = [];
+      for (let item of this.months) data["months"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetManufactureOutputResponse extends IBaseResponse {
-    months?: ManufactureOutputMonth[];
+  months?: ManufactureOutputMonth[];
 }
 
 export class ManufactureOutputMonth implements IManufactureOutputMonth {
-    month?: string;
-    totalOutput?: number;
-    products?: ProductContribution[];
-    productionDetails?: ProductionDetail[];
+  month?: string;
+  totalOutput?: number;
+  products?: ProductContribution[];
+  productionDetails?: ProductionDetail[];
 
-    constructor(data?: IManufactureOutputMonth) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufactureOutputMonth) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.month = _data["month"];
-            this.totalOutput = _data["totalOutput"];
-            if (Array.isArray(_data["products"])) {
-                this.products = [] as any;
-                for (let item of _data["products"])
-                    this.products!.push(ProductContribution.fromJS(item));
-            }
-            if (Array.isArray(_data["productionDetails"])) {
-                this.productionDetails = [] as any;
-                for (let item of _data["productionDetails"])
-                    this.productionDetails!.push(ProductionDetail.fromJS(item));
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.month = _data["month"];
+      this.totalOutput = _data["totalOutput"];
+      if (Array.isArray(_data["products"])) {
+        this.products = [] as any;
+        for (let item of _data["products"])
+          this.products!.push(ProductContribution.fromJS(item));
+      }
+      if (Array.isArray(_data["productionDetails"])) {
+        this.productionDetails = [] as any;
+        for (let item of _data["productionDetails"])
+          this.productionDetails!.push(ProductionDetail.fromJS(item));
+      }
     }
+  }
 
-    static fromJS(data: any): ManufactureOutputMonth {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufactureOutputMonth();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufactureOutputMonth {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufactureOutputMonth();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["month"] = this.month;
-        data["totalOutput"] = this.totalOutput;
-        if (Array.isArray(this.products)) {
-            data["products"] = [];
-            for (let item of this.products)
-                data["products"].push(item.toJSON());
-        }
-        if (Array.isArray(this.productionDetails)) {
-            data["productionDetails"] = [];
-            for (let item of this.productionDetails)
-                data["productionDetails"].push(item.toJSON());
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["month"] = this.month;
+    data["totalOutput"] = this.totalOutput;
+    if (Array.isArray(this.products)) {
+      data["products"] = [];
+      for (let item of this.products) data["products"].push(item.toJSON());
     }
+    if (Array.isArray(this.productionDetails)) {
+      data["productionDetails"] = [];
+      for (let item of this.productionDetails)
+        data["productionDetails"].push(item.toJSON());
+    }
+    return data;
+  }
 }
 
 export interface IManufactureOutputMonth {
-    month?: string;
-    totalOutput?: number;
-    products?: ProductContribution[];
-    productionDetails?: ProductionDetail[];
+  month?: string;
+  totalOutput?: number;
+  products?: ProductContribution[];
+  productionDetails?: ProductionDetail[];
 }
 
 export class ProductContribution implements IProductContribution {
-    productCode?: string;
-    productName?: string;
-    quantity?: number;
-    difficulty?: number;
-    weightedValue?: number;
+  productCode?: string;
+  productName?: string;
+  quantity?: number;
+  difficulty?: number;
+  weightedValue?: number;
 
-    constructor(data?: IProductContribution) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProductContribution) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.quantity = _data["quantity"];
-            this.difficulty = _data["difficulty"];
-            this.weightedValue = _data["weightedValue"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.quantity = _data["quantity"];
+      this.difficulty = _data["difficulty"];
+      this.weightedValue = _data["weightedValue"];
     }
+  }
 
-    static fromJS(data: any): ProductContribution {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductContribution();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProductContribution {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductContribution();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["quantity"] = this.quantity;
-        data["difficulty"] = this.difficulty;
-        data["weightedValue"] = this.weightedValue;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["quantity"] = this.quantity;
+    data["difficulty"] = this.difficulty;
+    data["weightedValue"] = this.weightedValue;
+    return data;
+  }
 }
 
 export interface IProductContribution {
-    productCode?: string;
-    productName?: string;
-    quantity?: number;
-    difficulty?: number;
-    weightedValue?: number;
+  productCode?: string;
+  productName?: string;
+  quantity?: number;
+  difficulty?: number;
+  weightedValue?: number;
 }
 
 export class ProductionDetail implements IProductionDetail {
-    productCode?: string;
-    productName?: string;
-    date?: Date;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    documentNumber?: string;
+  productCode?: string;
+  productName?: string;
+  date?: Date;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  documentNumber?: string;
 
-    constructor(data?: IProductionDetail) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProductionDetail) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.amount = _data["amount"];
-            this.pricePerPiece = _data["pricePerPiece"];
-            this.priceTotal = _data["priceTotal"];
-            this.documentNumber = _data["documentNumber"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.amount = _data["amount"];
+      this.pricePerPiece = _data["pricePerPiece"];
+      this.priceTotal = _data["priceTotal"];
+      this.documentNumber = _data["documentNumber"];
     }
+  }
 
-    static fromJS(data: any): ProductionDetail {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductionDetail();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProductionDetail {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductionDetail();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["amount"] = this.amount;
-        data["pricePerPiece"] = this.pricePerPiece;
-        data["priceTotal"] = this.priceTotal;
-        data["documentNumber"] = this.documentNumber;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["amount"] = this.amount;
+    data["pricePerPiece"] = this.pricePerPiece;
+    data["priceTotal"] = this.priceTotal;
+    data["documentNumber"] = this.documentNumber;
+    return data;
+  }
 }
 
 export interface IProductionDetail {
-    productCode?: string;
-    productName?: string;
-    date?: Date;
-    amount?: number;
-    pricePerPiece?: number;
-    priceTotal?: number;
-    documentNumber?: string;
+  productCode?: string;
+  productName?: string;
+  date?: Date;
+  amount?: number;
+  pricePerPiece?: number;
+  priceTotal?: number;
+  documentNumber?: string;
 }
 
-export class GetManufacturingStockAnalysisResponse extends BaseResponse implements IGetManufacturingStockAnalysisResponse {
-    items?: ManufacturingStockItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    summary?: ManufacturingStockSummaryDto;
+export class GetManufacturingStockAnalysisResponse
+  extends BaseResponse
+  implements IGetManufacturingStockAnalysisResponse
+{
+  items?: ManufacturingStockItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  summary?: ManufacturingStockSummaryDto;
 
-    constructor(data?: IGetManufacturingStockAnalysisResponse) {
-        super(data);
-    }
+  constructor(data?: IGetManufacturingStockAnalysisResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(ManufacturingStockItemDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.summary = _data["summary"] ? ManufacturingStockSummaryDto.fromJS(_data["summary"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(ManufacturingStockItemDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.summary = _data["summary"]
+        ? ManufacturingStockSummaryDto.fromJS(_data["summary"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetManufacturingStockAnalysisResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetManufacturingStockAnalysisResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetManufacturingStockAnalysisResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetManufacturingStockAnalysisResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetManufacturingStockAnalysisResponse extends IBaseResponse {
-    items?: ManufacturingStockItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    summary?: ManufacturingStockSummaryDto;
+  items?: ManufacturingStockItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  summary?: ManufacturingStockSummaryDto;
 }
 
 export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
-    code?: string;
-    name?: string;
-    currentStock?: number;
-    reserve?: number;
-    salesInPeriod?: number;
-    dailySalesRate?: number;
-    optimalDaysSetup?: number;
-    stockDaysAvailable?: number;
-    minimumStock?: number;
-    overstockPercentage?: number;
-    batchSize?: string;
-    productFamily?: string | undefined;
-    severity?: ManufacturingStockSeverity;
-    isConfigured?: boolean;
+  code?: string;
+  name?: string;
+  currentStock?: number;
+  reserve?: number;
+  salesInPeriod?: number;
+  dailySalesRate?: number;
+  optimalDaysSetup?: number;
+  stockDaysAvailable?: number;
+  minimumStock?: number;
+  overstockPercentage?: number;
+  batchSize?: string;
+  productFamily?: string | undefined;
+  severity?: ManufacturingStockSeverity;
+  isConfigured?: boolean;
 
-    constructor(data?: IManufacturingStockItemDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufacturingStockItemDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.code = _data["code"];
-            this.name = _data["name"];
-            this.currentStock = _data["currentStock"];
-            this.reserve = _data["reserve"];
-            this.salesInPeriod = _data["salesInPeriod"];
-            this.dailySalesRate = _data["dailySalesRate"];
-            this.optimalDaysSetup = _data["optimalDaysSetup"];
-            this.stockDaysAvailable = _data["stockDaysAvailable"];
-            this.minimumStock = _data["minimumStock"];
-            this.overstockPercentage = _data["overstockPercentage"];
-            this.batchSize = _data["batchSize"];
-            this.productFamily = _data["productFamily"];
-            this.severity = _data["severity"];
-            this.isConfigured = _data["isConfigured"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.code = _data["code"];
+      this.name = _data["name"];
+      this.currentStock = _data["currentStock"];
+      this.reserve = _data["reserve"];
+      this.salesInPeriod = _data["salesInPeriod"];
+      this.dailySalesRate = _data["dailySalesRate"];
+      this.optimalDaysSetup = _data["optimalDaysSetup"];
+      this.stockDaysAvailable = _data["stockDaysAvailable"];
+      this.minimumStock = _data["minimumStock"];
+      this.overstockPercentage = _data["overstockPercentage"];
+      this.batchSize = _data["batchSize"];
+      this.productFamily = _data["productFamily"];
+      this.severity = _data["severity"];
+      this.isConfigured = _data["isConfigured"];
     }
+  }
 
-    static fromJS(data: any): ManufacturingStockItemDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufacturingStockItemDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufacturingStockItemDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufacturingStockItemDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["code"] = this.code;
-        data["name"] = this.name;
-        data["currentStock"] = this.currentStock;
-        data["reserve"] = this.reserve;
-        data["salesInPeriod"] = this.salesInPeriod;
-        data["dailySalesRate"] = this.dailySalesRate;
-        data["optimalDaysSetup"] = this.optimalDaysSetup;
-        data["stockDaysAvailable"] = this.stockDaysAvailable;
-        data["minimumStock"] = this.minimumStock;
-        data["overstockPercentage"] = this.overstockPercentage;
-        data["batchSize"] = this.batchSize;
-        data["productFamily"] = this.productFamily;
-        data["severity"] = this.severity;
-        data["isConfigured"] = this.isConfigured;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["code"] = this.code;
+    data["name"] = this.name;
+    data["currentStock"] = this.currentStock;
+    data["reserve"] = this.reserve;
+    data["salesInPeriod"] = this.salesInPeriod;
+    data["dailySalesRate"] = this.dailySalesRate;
+    data["optimalDaysSetup"] = this.optimalDaysSetup;
+    data["stockDaysAvailable"] = this.stockDaysAvailable;
+    data["minimumStock"] = this.minimumStock;
+    data["overstockPercentage"] = this.overstockPercentage;
+    data["batchSize"] = this.batchSize;
+    data["productFamily"] = this.productFamily;
+    data["severity"] = this.severity;
+    data["isConfigured"] = this.isConfigured;
+    return data;
+  }
 }
 
 export interface IManufacturingStockItemDto {
-    code?: string;
-    name?: string;
-    currentStock?: number;
-    reserve?: number;
-    salesInPeriod?: number;
-    dailySalesRate?: number;
-    optimalDaysSetup?: number;
-    stockDaysAvailable?: number;
-    minimumStock?: number;
-    overstockPercentage?: number;
-    batchSize?: string;
-    productFamily?: string | undefined;
-    severity?: ManufacturingStockSeverity;
-    isConfigured?: boolean;
+  code?: string;
+  name?: string;
+  currentStock?: number;
+  reserve?: number;
+  salesInPeriod?: number;
+  dailySalesRate?: number;
+  optimalDaysSetup?: number;
+  stockDaysAvailable?: number;
+  minimumStock?: number;
+  overstockPercentage?: number;
+  batchSize?: string;
+  productFamily?: string | undefined;
+  severity?: ManufacturingStockSeverity;
+  isConfigured?: boolean;
 }
 
 export enum ManufacturingStockSeverity {
-    Critical = "Critical",
-    Major = "Major",
-    Minor = "Minor",
-    Adequate = "Adequate",
-    Unconfigured = "Unconfigured",
+  Critical = "Critical",
+  Major = "Major",
+  Minor = "Minor",
+  Adequate = "Adequate",
+  Unconfigured = "Unconfigured",
 }
 
-export class ManufacturingStockSummaryDto implements IManufacturingStockSummaryDto {
-    totalProducts?: number;
-    criticalCount?: number;
-    majorCount?: number;
-    minorCount?: number;
-    adequateCount?: number;
-    unconfiguredCount?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
-    productFamilies?: string[];
+export class ManufacturingStockSummaryDto
+  implements IManufacturingStockSummaryDto
+{
+  totalProducts?: number;
+  criticalCount?: number;
+  majorCount?: number;
+  minorCount?: number;
+  adequateCount?: number;
+  unconfiguredCount?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
+  productFamilies?: string[];
 
-    constructor(data?: IManufacturingStockSummaryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IManufacturingStockSummaryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.totalProducts = _data["totalProducts"];
-            this.criticalCount = _data["criticalCount"];
-            this.majorCount = _data["majorCount"];
-            this.minorCount = _data["minorCount"];
-            this.adequateCount = _data["adequateCount"];
-            this.unconfiguredCount = _data["unconfiguredCount"];
-            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
-            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
-            if (Array.isArray(_data["productFamilies"])) {
-                this.productFamilies = [] as any;
-                for (let item of _data["productFamilies"])
-                    this.productFamilies!.push(item);
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.totalProducts = _data["totalProducts"];
+      this.criticalCount = _data["criticalCount"];
+      this.majorCount = _data["majorCount"];
+      this.minorCount = _data["minorCount"];
+      this.adequateCount = _data["adequateCount"];
+      this.unconfiguredCount = _data["unconfiguredCount"];
+      this.analysisPeriodStart = _data["analysisPeriodStart"]
+        ? new Date(_data["analysisPeriodStart"].toString())
+        : <any>undefined;
+      this.analysisPeriodEnd = _data["analysisPeriodEnd"]
+        ? new Date(_data["analysisPeriodEnd"].toString())
+        : <any>undefined;
+      if (Array.isArray(_data["productFamilies"])) {
+        this.productFamilies = [] as any;
+        for (let item of _data["productFamilies"])
+          this.productFamilies!.push(item);
+      }
     }
+  }
 
-    static fromJS(data: any): ManufacturingStockSummaryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufacturingStockSummaryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ManufacturingStockSummaryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ManufacturingStockSummaryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalProducts"] = this.totalProducts;
-        data["criticalCount"] = this.criticalCount;
-        data["majorCount"] = this.majorCount;
-        data["minorCount"] = this.minorCount;
-        data["adequateCount"] = this.adequateCount;
-        data["unconfiguredCount"] = this.unconfiguredCount;
-        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
-        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
-        if (Array.isArray(this.productFamilies)) {
-            data["productFamilies"] = [];
-            for (let item of this.productFamilies)
-                data["productFamilies"].push(item);
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["totalProducts"] = this.totalProducts;
+    data["criticalCount"] = this.criticalCount;
+    data["majorCount"] = this.majorCount;
+    data["minorCount"] = this.minorCount;
+    data["adequateCount"] = this.adequateCount;
+    data["unconfiguredCount"] = this.unconfiguredCount;
+    data["analysisPeriodStart"] = this.analysisPeriodStart
+      ? this.analysisPeriodStart.toISOString()
+      : <any>undefined;
+    data["analysisPeriodEnd"] = this.analysisPeriodEnd
+      ? this.analysisPeriodEnd.toISOString()
+      : <any>undefined;
+    if (Array.isArray(this.productFamilies)) {
+      data["productFamilies"] = [];
+      for (let item of this.productFamilies) data["productFamilies"].push(item);
     }
+    return data;
+  }
 }
 
 export interface IManufacturingStockSummaryDto {
-    totalProducts?: number;
-    criticalCount?: number;
-    majorCount?: number;
-    minorCount?: number;
-    adequateCount?: number;
-    unconfiguredCount?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
-    productFamilies?: string[];
+  totalProducts?: number;
+  criticalCount?: number;
+  majorCount?: number;
+  minorCount?: number;
+  adequateCount?: number;
+  unconfiguredCount?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
+  productFamilies?: string[];
 }
 
 export enum TimePeriodFilter {
-    PreviousQuarter = "PreviousQuarter",
-    FutureQuarter = "FutureQuarter",
-    Y2Y = "Y2Y",
-    PreviousSeason = "PreviousSeason",
-    CustomPeriod = "CustomPeriod",
+  PreviousQuarter = "PreviousQuarter",
+  FutureQuarter = "FutureQuarter",
+  Y2Y = "Y2Y",
+  PreviousSeason = "PreviousSeason",
+  CustomPeriod = "CustomPeriod",
 }
 
 export enum ManufacturingStockSortBy {
-    ProductCode = "ProductCode",
-    ProductName = "ProductName",
-    CurrentStock = "CurrentStock",
-    Reserve = "Reserve",
-    SalesInPeriod = "SalesInPeriod",
-    DailySales = "DailySales",
-    OptimalDaysSetup = "OptimalDaysSetup",
-    StockDaysAvailable = "StockDaysAvailable",
-    MinimumStock = "MinimumStock",
-    OverstockPercentage = "OverstockPercentage",
-    BatchSize = "BatchSize",
+  ProductCode = "ProductCode",
+  ProductName = "ProductName",
+  CurrentStock = "CurrentStock",
+  Reserve = "Reserve",
+  SalesInPeriod = "SalesInPeriod",
+  DailySales = "DailySales",
+  OptimalDaysSetup = "OptimalDaysSetup",
+  StockDaysAvailable = "StockDaysAvailable",
+  MinimumStock = "MinimumStock",
+  OverstockPercentage = "OverstockPercentage",
+  BatchSize = "BatchSize",
 }
 
-export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
-    items?: ProductMarginDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+export class GetProductMarginsResponse
+  extends BaseResponse
+  implements IGetProductMarginsResponse
+{
+  items?: ProductMarginDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 
-    constructor(data?: IGetProductMarginsResponse) {
-        super(data);
-    }
+  constructor(data?: IGetProductMarginsResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(ProductMarginDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(ProductMarginDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.totalPages = _data["totalPages"];
     }
+  }
 
-    static override fromJS(data: any): GetProductMarginsResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetProductMarginsResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetProductMarginsResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetProductMarginsResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["totalPages"] = this.totalPages;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetProductMarginsResponse extends IBaseResponse {
-    items?: ProductMarginDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+  items?: ProductMarginDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 export class ProductMarginDto implements IProductMarginDto {
-    productCode?: string;
-    productName?: string;
-    priceWithoutVat?: number | undefined;
-    purchasePrice?: number | undefined;
-    averageMaterialCost?: number | undefined;
-    averageHandlingCost?: number | undefined;
-    manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
+  productCode?: string;
+  productName?: string;
+  priceWithoutVat?: number | undefined;
+  purchasePrice?: number | undefined;
+  averageMaterialCost?: number | undefined;
+  averageHandlingCost?: number | undefined;
+  manufactureDifficulty?: number;
+  marginPercentage?: number;
+  marginAmount?: number;
 
-    constructor(data?: IProductMarginDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IProductMarginDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.priceWithoutVat = _data["priceWithoutVat"];
-            this.purchasePrice = _data["purchasePrice"];
-            this.averageMaterialCost = _data["averageMaterialCost"];
-            this.averageHandlingCost = _data["averageHandlingCost"];
-            this.manufactureDifficulty = _data["manufactureDifficulty"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.marginAmount = _data["marginAmount"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.priceWithoutVat = _data["priceWithoutVat"];
+      this.purchasePrice = _data["purchasePrice"];
+      this.averageMaterialCost = _data["averageMaterialCost"];
+      this.averageHandlingCost = _data["averageHandlingCost"];
+      this.manufactureDifficulty = _data["manufactureDifficulty"];
+      this.marginPercentage = _data["marginPercentage"];
+      this.marginAmount = _data["marginAmount"];
     }
+  }
 
-    static fromJS(data: any): ProductMarginDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductMarginDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ProductMarginDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductMarginDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["priceWithoutVat"] = this.priceWithoutVat;
-        data["purchasePrice"] = this.purchasePrice;
-        data["averageMaterialCost"] = this.averageMaterialCost;
-        data["averageHandlingCost"] = this.averageHandlingCost;
-        data["manufactureDifficulty"] = this.manufactureDifficulty;
-        data["marginPercentage"] = this.marginPercentage;
-        data["marginAmount"] = this.marginAmount;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["priceWithoutVat"] = this.priceWithoutVat;
+    data["purchasePrice"] = this.purchasePrice;
+    data["averageMaterialCost"] = this.averageMaterialCost;
+    data["averageHandlingCost"] = this.averageHandlingCost;
+    data["manufactureDifficulty"] = this.manufactureDifficulty;
+    data["marginPercentage"] = this.marginPercentage;
+    data["marginAmount"] = this.marginAmount;
+    return data;
+  }
 }
 
 export interface IProductMarginDto {
-    productCode?: string;
-    productName?: string;
-    priceWithoutVat?: number | undefined;
-    purchasePrice?: number | undefined;
-    averageMaterialCost?: number | undefined;
-    averageHandlingCost?: number | undefined;
-    manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
+  productCode?: string;
+  productName?: string;
+  priceWithoutVat?: number | undefined;
+  purchasePrice?: number | undefined;
+  averageMaterialCost?: number | undefined;
+  averageHandlingCost?: number | undefined;
+  manufactureDifficulty?: number;
+  marginPercentage?: number;
+  marginAmount?: number;
 }
 
-export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {
-    orders?: PurchaseOrderSummaryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+export class GetPurchaseOrdersResponse
+  extends BaseResponse
+  implements IGetPurchaseOrdersResponse
+{
+  orders?: PurchaseOrderSummaryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 
-    constructor(data?: IGetPurchaseOrdersResponse) {
-        super(data);
-    }
+  constructor(data?: IGetPurchaseOrdersResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["orders"])) {
-                this.orders = [] as any;
-                for (let item of _data["orders"])
-                    this.orders!.push(PurchaseOrderSummaryDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["orders"])) {
+        this.orders = [] as any;
+        for (let item of _data["orders"])
+          this.orders!.push(PurchaseOrderSummaryDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.totalPages = _data["totalPages"];
     }
+  }
 
-    static override fromJS(data: any): GetPurchaseOrdersResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetPurchaseOrdersResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetPurchaseOrdersResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetPurchaseOrdersResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.orders)) {
-            data["orders"] = [];
-            for (let item of this.orders)
-                data["orders"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.orders)) {
+      data["orders"] = [];
+      for (let item of this.orders) data["orders"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["totalPages"] = this.totalPages;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetPurchaseOrdersResponse extends IBaseResponse {
-    orders?: PurchaseOrderSummaryDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
+  orders?: PurchaseOrderSummaryDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    invoiceAcquired?: boolean;
-    totalAmount?: number;
-    lineCount?: number;
-    isEditable?: boolean;
-    createdAt?: Date;
-    createdBy?: string;
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  invoiceAcquired?: boolean;
+  totalAmount?: number;
+  lineCount?: number;
+  isEditable?: boolean;
+  createdAt?: Date;
+  createdBy?: string;
 
-    constructor(data?: IPurchaseOrderSummaryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IPurchaseOrderSummaryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.orderNumber = _data["orderNumber"];
-            this.supplierId = _data["supplierId"];
-            this.supplierName = _data["supplierName"];
-            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
-            this.contactVia = _data["contactVia"];
-            this.status = _data["status"];
-            this.invoiceAcquired = _data["invoiceAcquired"];
-            this.totalAmount = _data["totalAmount"];
-            this.lineCount = _data["lineCount"];
-            this.isEditable = _data["isEditable"];
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.orderNumber = _data["orderNumber"];
+      this.supplierId = _data["supplierId"];
+      this.supplierName = _data["supplierName"];
+      this.orderDate = _data["orderDate"]
+        ? new Date(_data["orderDate"].toString())
+        : <any>undefined;
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"]
+        ? new Date(_data["expectedDeliveryDate"].toString())
+        : <any>undefined;
+      this.contactVia = _data["contactVia"];
+      this.status = _data["status"];
+      this.invoiceAcquired = _data["invoiceAcquired"];
+      this.totalAmount = _data["totalAmount"];
+      this.lineCount = _data["lineCount"];
+      this.isEditable = _data["isEditable"];
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.createdBy = _data["createdBy"];
     }
+  }
 
-    static fromJS(data: any): PurchaseOrderSummaryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PurchaseOrderSummaryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): PurchaseOrderSummaryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new PurchaseOrderSummaryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["orderNumber"] = this.orderNumber;
-        data["supplierId"] = this.supplierId;
-        data["supplierName"] = this.supplierName;
-        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
-        data["contactVia"] = this.contactVia;
-        data["status"] = this.status;
-        data["invoiceAcquired"] = this.invoiceAcquired;
-        data["totalAmount"] = this.totalAmount;
-        data["lineCount"] = this.lineCount;
-        data["isEditable"] = this.isEditable;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["orderNumber"] = this.orderNumber;
+    data["supplierId"] = this.supplierId;
+    data["supplierName"] = this.supplierName;
+    data["orderDate"] = this.orderDate
+      ? this.orderDate.toISOString()
+      : <any>undefined;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate
+      ? this.expectedDeliveryDate.toISOString()
+      : <any>undefined;
+    data["contactVia"] = this.contactVia;
+    data["status"] = this.status;
+    data["invoiceAcquired"] = this.invoiceAcquired;
+    data["totalAmount"] = this.totalAmount;
+    data["lineCount"] = this.lineCount;
+    data["isEditable"] = this.isEditable;
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["createdBy"] = this.createdBy;
+    return data;
+  }
 }
 
 export interface IPurchaseOrderSummaryDto {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    invoiceAcquired?: boolean;
-    totalAmount?: number;
-    lineCount?: number;
-    isEditable?: boolean;
-    createdAt?: Date;
-    createdBy?: string;
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  invoiceAcquired?: boolean;
+  totalAmount?: number;
+  lineCount?: number;
+  isEditable?: boolean;
+  createdAt?: Date;
+  createdBy?: string;
 }
 
 export enum ContactVia {
-    Email = "Email",
-    Phone = "Phone",
-    WhatsApp = "WhatsApp",
-    F2F = "F2F",
-    Eshop = "Eshop",
-    Other = "Other",
+  Email = "Email",
+  Phone = "Phone",
+  WhatsApp = "WhatsApp",
+  F2F = "F2F",
+  Eshop = "Eshop",
+  Other = "Other",
 }
 
-export class CreatePurchaseOrderResponse extends BaseResponse implements ICreatePurchaseOrderResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    notes?: string | undefined;
-    totalAmount?: number;
-    lines?: PurchaseOrderLineDto[];
-    history?: PurchaseOrderHistoryDto[];
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+export class CreatePurchaseOrderResponse
+  extends BaseResponse
+  implements ICreatePurchaseOrderResponse
+{
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  notes?: string | undefined;
+  totalAmount?: number;
+  lines?: PurchaseOrderLineDto[];
+  history?: PurchaseOrderHistoryDto[];
+  createdAt?: Date;
+  createdBy?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 
-    constructor(data?: ICreatePurchaseOrderResponse) {
-        super(data);
-    }
+  constructor(data?: ICreatePurchaseOrderResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.orderNumber = _data["orderNumber"];
-            this.supplierId = _data["supplierId"];
-            this.supplierName = _data["supplierName"];
-            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
-            this.contactVia = _data["contactVia"];
-            this.status = _data["status"];
-            this.notes = _data["notes"];
-            this.totalAmount = _data["totalAmount"];
-            if (Array.isArray(_data["lines"])) {
-                this.lines = [] as any;
-                for (let item of _data["lines"])
-                    this.lines!.push(PurchaseOrderLineDto.fromJS(item));
-            }
-            if (Array.isArray(_data["history"])) {
-                this.history = [] as any;
-                for (let item of _data["history"])
-                    this.history!.push(PurchaseOrderHistoryDto.fromJS(item));
-            }
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
-            this.updatedBy = _data["updatedBy"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.orderNumber = _data["orderNumber"];
+      this.supplierId = _data["supplierId"];
+      this.supplierName = _data["supplierName"];
+      this.orderDate = _data["orderDate"]
+        ? new Date(_data["orderDate"].toString())
+        : <any>undefined;
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"]
+        ? new Date(_data["expectedDeliveryDate"].toString())
+        : <any>undefined;
+      this.contactVia = _data["contactVia"];
+      this.status = _data["status"];
+      this.notes = _data["notes"];
+      this.totalAmount = _data["totalAmount"];
+      if (Array.isArray(_data["lines"])) {
+        this.lines = [] as any;
+        for (let item of _data["lines"])
+          this.lines!.push(PurchaseOrderLineDto.fromJS(item));
+      }
+      if (Array.isArray(_data["history"])) {
+        this.history = [] as any;
+        for (let item of _data["history"])
+          this.history!.push(PurchaseOrderHistoryDto.fromJS(item));
+      }
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.createdBy = _data["createdBy"];
+      this.updatedAt = _data["updatedAt"]
+        ? new Date(_data["updatedAt"].toString())
+        : <any>undefined;
+      this.updatedBy = _data["updatedBy"];
     }
+  }
 
-    static override fromJS(data: any): CreatePurchaseOrderResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreatePurchaseOrderResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): CreatePurchaseOrderResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new CreatePurchaseOrderResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["orderNumber"] = this.orderNumber;
-        data["supplierId"] = this.supplierId;
-        data["supplierName"] = this.supplierName;
-        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
-        data["contactVia"] = this.contactVia;
-        data["status"] = this.status;
-        data["notes"] = this.notes;
-        data["totalAmount"] = this.totalAmount;
-        if (Array.isArray(this.lines)) {
-            data["lines"] = [];
-            for (let item of this.lines)
-                data["lines"].push(item.toJSON());
-        }
-        if (Array.isArray(this.history)) {
-            data["history"] = [];
-            for (let item of this.history)
-                data["history"].push(item.toJSON());
-        }
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
-        data["updatedBy"] = this.updatedBy;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["orderNumber"] = this.orderNumber;
+    data["supplierId"] = this.supplierId;
+    data["supplierName"] = this.supplierName;
+    data["orderDate"] = this.orderDate
+      ? this.orderDate.toISOString()
+      : <any>undefined;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate
+      ? this.expectedDeliveryDate.toISOString()
+      : <any>undefined;
+    data["contactVia"] = this.contactVia;
+    data["status"] = this.status;
+    data["notes"] = this.notes;
+    data["totalAmount"] = this.totalAmount;
+    if (Array.isArray(this.lines)) {
+      data["lines"] = [];
+      for (let item of this.lines) data["lines"].push(item.toJSON());
     }
+    if (Array.isArray(this.history)) {
+      data["history"] = [];
+      for (let item of this.history) data["history"].push(item.toJSON());
+    }
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["createdBy"] = this.createdBy;
+    data["updatedAt"] = this.updatedAt
+      ? this.updatedAt.toISOString()
+      : <any>undefined;
+    data["updatedBy"] = this.updatedBy;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ICreatePurchaseOrderResponse extends IBaseResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    notes?: string | undefined;
-    totalAmount?: number;
-    lines?: PurchaseOrderLineDto[];
-    history?: PurchaseOrderHistoryDto[];
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  notes?: string | undefined;
+  totalAmount?: number;
+  lines?: PurchaseOrderLineDto[];
+  history?: PurchaseOrderHistoryDto[];
+  createdAt?: Date;
+  createdBy?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 }
 
 export class PurchaseOrderLineDto implements IPurchaseOrderLineDto {
-    id?: number;
-    materialId?: string;
-    code?: string;
-    materialName?: string;
-    quantity?: number;
-    unitPrice?: number;
-    lineTotal?: number;
-    notes?: string | undefined;
-    catalogNote?: string | undefined;
+  id?: number;
+  materialId?: string;
+  code?: string;
+  materialName?: string;
+  quantity?: number;
+  unitPrice?: number;
+  lineTotal?: number;
+  notes?: string | undefined;
+  catalogNote?: string | undefined;
 
-    constructor(data?: IPurchaseOrderLineDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IPurchaseOrderLineDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.materialId = _data["materialId"];
-            this.code = _data["code"];
-            this.materialName = _data["materialName"];
-            this.quantity = _data["quantity"];
-            this.unitPrice = _data["unitPrice"];
-            this.lineTotal = _data["lineTotal"];
-            this.notes = _data["notes"];
-            this.catalogNote = _data["catalogNote"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.materialId = _data["materialId"];
+      this.code = _data["code"];
+      this.materialName = _data["materialName"];
+      this.quantity = _data["quantity"];
+      this.unitPrice = _data["unitPrice"];
+      this.lineTotal = _data["lineTotal"];
+      this.notes = _data["notes"];
+      this.catalogNote = _data["catalogNote"];
     }
+  }
 
-    static fromJS(data: any): PurchaseOrderLineDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PurchaseOrderLineDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): PurchaseOrderLineDto {
+    data = typeof data === "object" ? data : {};
+    let result = new PurchaseOrderLineDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["materialId"] = this.materialId;
-        data["code"] = this.code;
-        data["materialName"] = this.materialName;
-        data["quantity"] = this.quantity;
-        data["unitPrice"] = this.unitPrice;
-        data["lineTotal"] = this.lineTotal;
-        data["notes"] = this.notes;
-        data["catalogNote"] = this.catalogNote;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["materialId"] = this.materialId;
+    data["code"] = this.code;
+    data["materialName"] = this.materialName;
+    data["quantity"] = this.quantity;
+    data["unitPrice"] = this.unitPrice;
+    data["lineTotal"] = this.lineTotal;
+    data["notes"] = this.notes;
+    data["catalogNote"] = this.catalogNote;
+    return data;
+  }
 }
 
 export interface IPurchaseOrderLineDto {
-    id?: number;
-    materialId?: string;
-    code?: string;
-    materialName?: string;
-    quantity?: number;
-    unitPrice?: number;
-    lineTotal?: number;
-    notes?: string | undefined;
-    catalogNote?: string | undefined;
+  id?: number;
+  materialId?: string;
+  code?: string;
+  materialName?: string;
+  quantity?: number;
+  unitPrice?: number;
+  lineTotal?: number;
+  notes?: string | undefined;
+  catalogNote?: string | undefined;
 }
 
 export class PurchaseOrderHistoryDto implements IPurchaseOrderHistoryDto {
-    id?: number;
-    action?: string;
-    oldValue?: string | undefined;
-    newValue?: string | undefined;
-    changedAt?: Date;
-    changedBy?: string;
+  id?: number;
+  action?: string;
+  oldValue?: string | undefined;
+  newValue?: string | undefined;
+  changedAt?: Date;
+  changedBy?: string;
 
-    constructor(data?: IPurchaseOrderHistoryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IPurchaseOrderHistoryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.action = _data["action"];
-            this.oldValue = _data["oldValue"];
-            this.newValue = _data["newValue"];
-            this.changedAt = _data["changedAt"] ? new Date(_data["changedAt"].toString()) : <any>undefined;
-            this.changedBy = _data["changedBy"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.action = _data["action"];
+      this.oldValue = _data["oldValue"];
+      this.newValue = _data["newValue"];
+      this.changedAt = _data["changedAt"]
+        ? new Date(_data["changedAt"].toString())
+        : <any>undefined;
+      this.changedBy = _data["changedBy"];
     }
+  }
 
-    static fromJS(data: any): PurchaseOrderHistoryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PurchaseOrderHistoryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): PurchaseOrderHistoryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new PurchaseOrderHistoryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["action"] = this.action;
-        data["oldValue"] = this.oldValue;
-        data["newValue"] = this.newValue;
-        data["changedAt"] = this.changedAt ? this.changedAt.toISOString() : <any>undefined;
-        data["changedBy"] = this.changedBy;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["action"] = this.action;
+    data["oldValue"] = this.oldValue;
+    data["newValue"] = this.newValue;
+    data["changedAt"] = this.changedAt
+      ? this.changedAt.toISOString()
+      : <any>undefined;
+    data["changedBy"] = this.changedBy;
+    return data;
+  }
 }
 
 export interface IPurchaseOrderHistoryDto {
-    id?: number;
-    action?: string;
-    oldValue?: string | undefined;
-    newValue?: string | undefined;
-    changedAt?: Date;
-    changedBy?: string;
+  id?: number;
+  action?: string;
+  oldValue?: string | undefined;
+  newValue?: string | undefined;
+  changedAt?: Date;
+  changedBy?: string;
 }
 
 export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
-    supplierId!: number;
-    orderDate!: string;
-    expectedDeliveryDate?: string | undefined;
-    contactVia?: ContactVia | undefined;
-    notes?: string | undefined;
-    orderNumber?: string | undefined;
-    lines?: CreatePurchaseOrderLineRequest[] | undefined;
+  supplierId!: number;
+  orderDate!: string;
+  expectedDeliveryDate?: string | undefined;
+  contactVia?: ContactVia | undefined;
+  notes?: string | undefined;
+  orderNumber?: string | undefined;
+  lines?: CreatePurchaseOrderLineRequest[] | undefined;
 
-    constructor(data?: ICreatePurchaseOrderRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreatePurchaseOrderRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.supplierId = _data["supplierId"];
-            this.orderDate = _data["orderDate"];
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"];
-            this.contactVia = _data["contactVia"];
-            this.notes = _data["notes"];
-            this.orderNumber = _data["orderNumber"];
-            if (Array.isArray(_data["lines"])) {
-                this.lines = [] as any;
-                for (let item of _data["lines"])
-                    this.lines!.push(CreatePurchaseOrderLineRequest.fromJS(item));
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.supplierId = _data["supplierId"];
+      this.orderDate = _data["orderDate"];
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"];
+      this.contactVia = _data["contactVia"];
+      this.notes = _data["notes"];
+      this.orderNumber = _data["orderNumber"];
+      if (Array.isArray(_data["lines"])) {
+        this.lines = [] as any;
+        for (let item of _data["lines"])
+          this.lines!.push(CreatePurchaseOrderLineRequest.fromJS(item));
+      }
     }
+  }
 
-    static fromJS(data: any): CreatePurchaseOrderRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreatePurchaseOrderRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreatePurchaseOrderRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreatePurchaseOrderRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["supplierId"] = this.supplierId;
-        data["orderDate"] = this.orderDate;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate;
-        data["contactVia"] = this.contactVia;
-        data["notes"] = this.notes;
-        data["orderNumber"] = this.orderNumber;
-        if (Array.isArray(this.lines)) {
-            data["lines"] = [];
-            for (let item of this.lines)
-                data["lines"].push(item.toJSON());
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["supplierId"] = this.supplierId;
+    data["orderDate"] = this.orderDate;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate;
+    data["contactVia"] = this.contactVia;
+    data["notes"] = this.notes;
+    data["orderNumber"] = this.orderNumber;
+    if (Array.isArray(this.lines)) {
+      data["lines"] = [];
+      for (let item of this.lines) data["lines"].push(item.toJSON());
     }
+    return data;
+  }
 }
 
 export interface ICreatePurchaseOrderRequest {
-    supplierId: number;
-    orderDate: string;
-    expectedDeliveryDate?: string | undefined;
-    contactVia?: ContactVia | undefined;
-    notes?: string | undefined;
-    orderNumber?: string | undefined;
-    lines?: CreatePurchaseOrderLineRequest[] | undefined;
+  supplierId: number;
+  orderDate: string;
+  expectedDeliveryDate?: string | undefined;
+  contactVia?: ContactVia | undefined;
+  notes?: string | undefined;
+  orderNumber?: string | undefined;
+  lines?: CreatePurchaseOrderLineRequest[] | undefined;
 }
 
-export class CreatePurchaseOrderLineRequest implements ICreatePurchaseOrderLineRequest {
-    materialId!: string;
-    name?: string | undefined;
-    quantity!: number;
-    unitPrice!: number;
-    notes?: string | undefined;
+export class CreatePurchaseOrderLineRequest
+  implements ICreatePurchaseOrderLineRequest
+{
+  materialId!: string;
+  name?: string | undefined;
+  quantity!: number;
+  unitPrice!: number;
+  notes?: string | undefined;
 
-    constructor(data?: ICreatePurchaseOrderLineRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreatePurchaseOrderLineRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.materialId = _data["materialId"];
-            this.name = _data["name"];
-            this.quantity = _data["quantity"];
-            this.unitPrice = _data["unitPrice"];
-            this.notes = _data["notes"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.materialId = _data["materialId"];
+      this.name = _data["name"];
+      this.quantity = _data["quantity"];
+      this.unitPrice = _data["unitPrice"];
+      this.notes = _data["notes"];
     }
+  }
 
-    static fromJS(data: any): CreatePurchaseOrderLineRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreatePurchaseOrderLineRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreatePurchaseOrderLineRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreatePurchaseOrderLineRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["materialId"] = this.materialId;
-        data["name"] = this.name;
-        data["quantity"] = this.quantity;
-        data["unitPrice"] = this.unitPrice;
-        data["notes"] = this.notes;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["materialId"] = this.materialId;
+    data["name"] = this.name;
+    data["quantity"] = this.quantity;
+    data["unitPrice"] = this.unitPrice;
+    data["notes"] = this.notes;
+    return data;
+  }
 }
 
 export interface ICreatePurchaseOrderLineRequest {
-    materialId: string;
-    name?: string | undefined;
-    quantity: number;
-    unitPrice: number;
-    notes?: string | undefined;
+  materialId: string;
+  name?: string | undefined;
+  quantity: number;
+  unitPrice: number;
+  notes?: string | undefined;
 }
 
-export class GetPurchaseOrderByIdResponse extends BaseResponse implements IGetPurchaseOrderByIdResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    invoiceAcquired?: boolean;
-    notes?: string | undefined;
-    totalAmount?: number;
-    isEditable?: boolean;
-    lines?: PurchaseOrderLineDto[];
-    history?: PurchaseOrderHistoryDto[];
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
-    supplierNote?: string | undefined;
+export class GetPurchaseOrderByIdResponse
+  extends BaseResponse
+  implements IGetPurchaseOrderByIdResponse
+{
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  invoiceAcquired?: boolean;
+  notes?: string | undefined;
+  totalAmount?: number;
+  isEditable?: boolean;
+  lines?: PurchaseOrderLineDto[];
+  history?: PurchaseOrderHistoryDto[];
+  createdAt?: Date;
+  createdBy?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
+  supplierNote?: string | undefined;
 
-    constructor(data?: IGetPurchaseOrderByIdResponse) {
-        super(data);
-    }
+  constructor(data?: IGetPurchaseOrderByIdResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.orderNumber = _data["orderNumber"];
-            this.supplierId = _data["supplierId"];
-            this.supplierName = _data["supplierName"];
-            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
-            this.contactVia = _data["contactVia"];
-            this.status = _data["status"];
-            this.invoiceAcquired = _data["invoiceAcquired"];
-            this.notes = _data["notes"];
-            this.totalAmount = _data["totalAmount"];
-            this.isEditable = _data["isEditable"];
-            if (Array.isArray(_data["lines"])) {
-                this.lines = [] as any;
-                for (let item of _data["lines"])
-                    this.lines!.push(PurchaseOrderLineDto.fromJS(item));
-            }
-            if (Array.isArray(_data["history"])) {
-                this.history = [] as any;
-                for (let item of _data["history"])
-                    this.history!.push(PurchaseOrderHistoryDto.fromJS(item));
-            }
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
-            this.updatedBy = _data["updatedBy"];
-            this.supplierNote = _data["supplierNote"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.orderNumber = _data["orderNumber"];
+      this.supplierId = _data["supplierId"];
+      this.supplierName = _data["supplierName"];
+      this.orderDate = _data["orderDate"]
+        ? new Date(_data["orderDate"].toString())
+        : <any>undefined;
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"]
+        ? new Date(_data["expectedDeliveryDate"].toString())
+        : <any>undefined;
+      this.contactVia = _data["contactVia"];
+      this.status = _data["status"];
+      this.invoiceAcquired = _data["invoiceAcquired"];
+      this.notes = _data["notes"];
+      this.totalAmount = _data["totalAmount"];
+      this.isEditable = _data["isEditable"];
+      if (Array.isArray(_data["lines"])) {
+        this.lines = [] as any;
+        for (let item of _data["lines"])
+          this.lines!.push(PurchaseOrderLineDto.fromJS(item));
+      }
+      if (Array.isArray(_data["history"])) {
+        this.history = [] as any;
+        for (let item of _data["history"])
+          this.history!.push(PurchaseOrderHistoryDto.fromJS(item));
+      }
+      this.createdAt = _data["createdAt"]
+        ? new Date(_data["createdAt"].toString())
+        : <any>undefined;
+      this.createdBy = _data["createdBy"];
+      this.updatedAt = _data["updatedAt"]
+        ? new Date(_data["updatedAt"].toString())
+        : <any>undefined;
+      this.updatedBy = _data["updatedBy"];
+      this.supplierNote = _data["supplierNote"];
     }
+  }
 
-    static override fromJS(data: any): GetPurchaseOrderByIdResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetPurchaseOrderByIdResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetPurchaseOrderByIdResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetPurchaseOrderByIdResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["orderNumber"] = this.orderNumber;
-        data["supplierId"] = this.supplierId;
-        data["supplierName"] = this.supplierName;
-        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
-        data["contactVia"] = this.contactVia;
-        data["status"] = this.status;
-        data["invoiceAcquired"] = this.invoiceAcquired;
-        data["notes"] = this.notes;
-        data["totalAmount"] = this.totalAmount;
-        data["isEditable"] = this.isEditable;
-        if (Array.isArray(this.lines)) {
-            data["lines"] = [];
-            for (let item of this.lines)
-                data["lines"].push(item.toJSON());
-        }
-        if (Array.isArray(this.history)) {
-            data["history"] = [];
-            for (let item of this.history)
-                data["history"].push(item.toJSON());
-        }
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
-        data["updatedBy"] = this.updatedBy;
-        data["supplierNote"] = this.supplierNote;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["orderNumber"] = this.orderNumber;
+    data["supplierId"] = this.supplierId;
+    data["supplierName"] = this.supplierName;
+    data["orderDate"] = this.orderDate
+      ? this.orderDate.toISOString()
+      : <any>undefined;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate
+      ? this.expectedDeliveryDate.toISOString()
+      : <any>undefined;
+    data["contactVia"] = this.contactVia;
+    data["status"] = this.status;
+    data["invoiceAcquired"] = this.invoiceAcquired;
+    data["notes"] = this.notes;
+    data["totalAmount"] = this.totalAmount;
+    data["isEditable"] = this.isEditable;
+    if (Array.isArray(this.lines)) {
+      data["lines"] = [];
+      for (let item of this.lines) data["lines"].push(item.toJSON());
     }
+    if (Array.isArray(this.history)) {
+      data["history"] = [];
+      for (let item of this.history) data["history"].push(item.toJSON());
+    }
+    data["createdAt"] = this.createdAt
+      ? this.createdAt.toISOString()
+      : <any>undefined;
+    data["createdBy"] = this.createdBy;
+    data["updatedAt"] = this.updatedAt
+      ? this.updatedAt.toISOString()
+      : <any>undefined;
+    data["updatedBy"] = this.updatedBy;
+    data["supplierNote"] = this.supplierNote;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetPurchaseOrderByIdResponse extends IBaseResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    invoiceAcquired?: boolean;
-    notes?: string | undefined;
-    totalAmount?: number;
-    isEditable?: boolean;
-    lines?: PurchaseOrderLineDto[];
-    history?: PurchaseOrderHistoryDto[];
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
-    supplierNote?: string | undefined;
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  invoiceAcquired?: boolean;
+  notes?: string | undefined;
+  totalAmount?: number;
+  isEditable?: boolean;
+  lines?: PurchaseOrderLineDto[];
+  history?: PurchaseOrderHistoryDto[];
+  createdAt?: Date;
+  createdBy?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
+  supplierNote?: string | undefined;
 }
 
-export class UpdatePurchaseOrderResponse extends BaseResponse implements IUpdatePurchaseOrderResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    notes?: string | undefined;
-    totalAmount?: number;
-    lines?: PurchaseOrderLineDto[];
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+export class UpdatePurchaseOrderResponse
+  extends BaseResponse
+  implements IUpdatePurchaseOrderResponse
+{
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  notes?: string | undefined;
+  totalAmount?: number;
+  lines?: PurchaseOrderLineDto[];
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 
-    constructor(data?: IUpdatePurchaseOrderResponse) {
-        super(data);
-    }
+  constructor(data?: IUpdatePurchaseOrderResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.orderNumber = _data["orderNumber"];
-            this.supplierId = _data["supplierId"];
-            this.supplierName = _data["supplierName"];
-            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
-            this.contactVia = _data["contactVia"];
-            this.status = _data["status"];
-            this.notes = _data["notes"];
-            this.totalAmount = _data["totalAmount"];
-            if (Array.isArray(_data["lines"])) {
-                this.lines = [] as any;
-                for (let item of _data["lines"])
-                    this.lines!.push(PurchaseOrderLineDto.fromJS(item));
-            }
-            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
-            this.updatedBy = _data["updatedBy"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.orderNumber = _data["orderNumber"];
+      this.supplierId = _data["supplierId"];
+      this.supplierName = _data["supplierName"];
+      this.orderDate = _data["orderDate"]
+        ? new Date(_data["orderDate"].toString())
+        : <any>undefined;
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"]
+        ? new Date(_data["expectedDeliveryDate"].toString())
+        : <any>undefined;
+      this.contactVia = _data["contactVia"];
+      this.status = _data["status"];
+      this.notes = _data["notes"];
+      this.totalAmount = _data["totalAmount"];
+      if (Array.isArray(_data["lines"])) {
+        this.lines = [] as any;
+        for (let item of _data["lines"])
+          this.lines!.push(PurchaseOrderLineDto.fromJS(item));
+      }
+      this.updatedAt = _data["updatedAt"]
+        ? new Date(_data["updatedAt"].toString())
+        : <any>undefined;
+      this.updatedBy = _data["updatedBy"];
     }
+  }
 
-    static override fromJS(data: any): UpdatePurchaseOrderResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): UpdatePurchaseOrderResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["orderNumber"] = this.orderNumber;
-        data["supplierId"] = this.supplierId;
-        data["supplierName"] = this.supplierName;
-        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
-        data["contactVia"] = this.contactVia;
-        data["status"] = this.status;
-        data["notes"] = this.notes;
-        data["totalAmount"] = this.totalAmount;
-        if (Array.isArray(this.lines)) {
-            data["lines"] = [];
-            for (let item of this.lines)
-                data["lines"].push(item.toJSON());
-        }
-        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
-        data["updatedBy"] = this.updatedBy;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["orderNumber"] = this.orderNumber;
+    data["supplierId"] = this.supplierId;
+    data["supplierName"] = this.supplierName;
+    data["orderDate"] = this.orderDate
+      ? this.orderDate.toISOString()
+      : <any>undefined;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate
+      ? this.expectedDeliveryDate.toISOString()
+      : <any>undefined;
+    data["contactVia"] = this.contactVia;
+    data["status"] = this.status;
+    data["notes"] = this.notes;
+    data["totalAmount"] = this.totalAmount;
+    if (Array.isArray(this.lines)) {
+      data["lines"] = [];
+      for (let item of this.lines) data["lines"].push(item.toJSON());
     }
+    data["updatedAt"] = this.updatedAt
+      ? this.updatedAt.toISOString()
+      : <any>undefined;
+    data["updatedBy"] = this.updatedBy;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderResponse extends IBaseResponse {
-    id?: number;
-    orderNumber?: string;
-    supplierId?: number;
-    supplierName?: string;
-    orderDate?: Date;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    status?: string;
-    notes?: string | undefined;
-    totalAmount?: number;
-    lines?: PurchaseOrderLineDto[];
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+  id?: number;
+  orderNumber?: string;
+  supplierId?: number;
+  supplierName?: string;
+  orderDate?: Date;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  status?: string;
+  notes?: string | undefined;
+  totalAmount?: number;
+  lines?: PurchaseOrderLineDto[];
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 }
 
 export class UpdatePurchaseOrderRequest implements IUpdatePurchaseOrderRequest {
-    id!: number;
-    supplierId!: number;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    notes?: string | undefined;
-    lines!: UpdatePurchaseOrderLineRequest[];
-    orderNumber?: string | undefined;
+  id!: number;
+  supplierId!: number;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  notes?: string | undefined;
+  lines!: UpdatePurchaseOrderLineRequest[];
+  orderNumber?: string | undefined;
 
-    constructor(data?: IUpdatePurchaseOrderRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-        if (!data) {
-            this.lines = [];
-        }
+  constructor(data?: IUpdatePurchaseOrderRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+    if (!data) {
+      this.lines = [];
+    }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.supplierId = _data["supplierId"];
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
-            this.contactVia = _data["contactVia"];
-            this.notes = _data["notes"];
-            if (Array.isArray(_data["lines"])) {
-                this.lines = [] as any;
-                for (let item of _data["lines"])
-                    this.lines!.push(UpdatePurchaseOrderLineRequest.fromJS(item));
-            }
-            this.orderNumber = _data["orderNumber"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.supplierId = _data["supplierId"];
+      this.expectedDeliveryDate = _data["expectedDeliveryDate"]
+        ? new Date(_data["expectedDeliveryDate"].toString())
+        : <any>undefined;
+      this.contactVia = _data["contactVia"];
+      this.notes = _data["notes"];
+      if (Array.isArray(_data["lines"])) {
+        this.lines = [] as any;
+        for (let item of _data["lines"])
+          this.lines!.push(UpdatePurchaseOrderLineRequest.fromJS(item));
+      }
+      this.orderNumber = _data["orderNumber"];
     }
+  }
 
-    static fromJS(data: any): UpdatePurchaseOrderRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdatePurchaseOrderRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["supplierId"] = this.supplierId;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
-        data["contactVia"] = this.contactVia;
-        data["notes"] = this.notes;
-        if (Array.isArray(this.lines)) {
-            data["lines"] = [];
-            for (let item of this.lines)
-                data["lines"].push(item.toJSON());
-        }
-        data["orderNumber"] = this.orderNumber;
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["supplierId"] = this.supplierId;
+    data["expectedDeliveryDate"] = this.expectedDeliveryDate
+      ? this.expectedDeliveryDate.toISOString()
+      : <any>undefined;
+    data["contactVia"] = this.contactVia;
+    data["notes"] = this.notes;
+    if (Array.isArray(this.lines)) {
+      data["lines"] = [];
+      for (let item of this.lines) data["lines"].push(item.toJSON());
     }
+    data["orderNumber"] = this.orderNumber;
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderRequest {
-    id: number;
-    supplierId: number;
-    expectedDeliveryDate?: Date | undefined;
-    contactVia?: ContactVia | undefined;
-    notes?: string | undefined;
-    lines: UpdatePurchaseOrderLineRequest[];
-    orderNumber?: string | undefined;
+  id: number;
+  supplierId: number;
+  expectedDeliveryDate?: Date | undefined;
+  contactVia?: ContactVia | undefined;
+  notes?: string | undefined;
+  lines: UpdatePurchaseOrderLineRequest[];
+  orderNumber?: string | undefined;
 }
 
-export class UpdatePurchaseOrderLineRequest implements IUpdatePurchaseOrderLineRequest {
-    id?: number | undefined;
-    materialId!: string;
-    name?: string | undefined;
-    quantity!: number;
-    unitPrice!: number;
-    notes?: string | undefined;
+export class UpdatePurchaseOrderLineRequest
+  implements IUpdatePurchaseOrderLineRequest
+{
+  id?: number | undefined;
+  materialId!: string;
+  name?: string | undefined;
+  quantity!: number;
+  unitPrice!: number;
+  notes?: string | undefined;
 
-    constructor(data?: IUpdatePurchaseOrderLineRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IUpdatePurchaseOrderLineRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.materialId = _data["materialId"];
-            this.name = _data["name"];
-            this.quantity = _data["quantity"];
-            this.unitPrice = _data["unitPrice"];
-            this.notes = _data["notes"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.materialId = _data["materialId"];
+      this.name = _data["name"];
+      this.quantity = _data["quantity"];
+      this.unitPrice = _data["unitPrice"];
+      this.notes = _data["notes"];
     }
+  }
 
-    static fromJS(data: any): UpdatePurchaseOrderLineRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderLineRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdatePurchaseOrderLineRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderLineRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["materialId"] = this.materialId;
-        data["name"] = this.name;
-        data["quantity"] = this.quantity;
-        data["unitPrice"] = this.unitPrice;
-        data["notes"] = this.notes;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["materialId"] = this.materialId;
+    data["name"] = this.name;
+    data["quantity"] = this.quantity;
+    data["unitPrice"] = this.unitPrice;
+    data["notes"] = this.notes;
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderLineRequest {
-    id?: number | undefined;
-    materialId: string;
-    name?: string | undefined;
-    quantity: number;
-    unitPrice: number;
-    notes?: string | undefined;
+  id?: number | undefined;
+  materialId: string;
+  name?: string | undefined;
+  quantity: number;
+  unitPrice: number;
+  notes?: string | undefined;
 }
 
-export class UpdatePurchaseOrderStatusResponse extends BaseResponse implements IUpdatePurchaseOrderStatusResponse {
-    id?: number;
-    orderNumber?: string;
-    status?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+export class UpdatePurchaseOrderStatusResponse
+  extends BaseResponse
+  implements IUpdatePurchaseOrderStatusResponse
+{
+  id?: number;
+  orderNumber?: string;
+  status?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 
-    constructor(data?: IUpdatePurchaseOrderStatusResponse) {
-        super(data);
-    }
+  constructor(data?: IUpdatePurchaseOrderStatusResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.orderNumber = _data["orderNumber"];
-            this.status = _data["status"];
-            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
-            this.updatedBy = _data["updatedBy"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.orderNumber = _data["orderNumber"];
+      this.status = _data["status"];
+      this.updatedAt = _data["updatedAt"]
+        ? new Date(_data["updatedAt"].toString())
+        : <any>undefined;
+      this.updatedBy = _data["updatedBy"];
     }
+  }
 
-    static override fromJS(data: any): UpdatePurchaseOrderStatusResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderStatusResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): UpdatePurchaseOrderStatusResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderStatusResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["orderNumber"] = this.orderNumber;
-        data["status"] = this.status;
-        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
-        data["updatedBy"] = this.updatedBy;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["orderNumber"] = this.orderNumber;
+    data["status"] = this.status;
+    data["updatedAt"] = this.updatedAt
+      ? this.updatedAt.toISOString()
+      : <any>undefined;
+    data["updatedBy"] = this.updatedBy;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderStatusResponse extends IBaseResponse {
-    id?: number;
-    orderNumber?: string;
-    status?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
+  id?: number;
+  orderNumber?: string;
+  status?: string;
+  updatedAt?: Date | undefined;
+  updatedBy?: string | undefined;
 }
 
-export class UpdatePurchaseOrderStatusRequest implements IUpdatePurchaseOrderStatusRequest {
-    id?: number;
-    status?: string;
+export class UpdatePurchaseOrderStatusRequest
+  implements IUpdatePurchaseOrderStatusRequest
+{
+  id?: number;
+  status?: string;
 
-    constructor(data?: IUpdatePurchaseOrderStatusRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IUpdatePurchaseOrderStatusRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.status = _data["status"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.status = _data["status"];
     }
+  }
 
-    static fromJS(data: any): UpdatePurchaseOrderStatusRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderStatusRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdatePurchaseOrderStatusRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderStatusRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["status"] = this.status;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["status"] = this.status;
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderStatusRequest {
-    id?: number;
-    status?: string;
+  id?: number;
+  status?: string;
 }
 
-export class UpdatePurchaseOrderInvoiceAcquiredResponse extends BaseResponse implements IUpdatePurchaseOrderInvoiceAcquiredResponse {
-    id?: number;
-    invoiceAcquired?: boolean;
+export class UpdatePurchaseOrderInvoiceAcquiredResponse
+  extends BaseResponse
+  implements IUpdatePurchaseOrderInvoiceAcquiredResponse
+{
+  id?: number;
+  invoiceAcquired?: boolean;
 
-    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredResponse) {
-        super(data);
-    }
+  constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.id = _data["id"];
-            this.invoiceAcquired = _data["invoiceAcquired"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.id = _data["id"];
+      this.invoiceAcquired = _data["invoiceAcquired"];
     }
+  }
 
-    static override fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderInvoiceAcquiredResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(
+    data: any,
+  ): UpdatePurchaseOrderInvoiceAcquiredResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderInvoiceAcquiredResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["invoiceAcquired"] = this.invoiceAcquired;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["invoiceAcquired"] = this.invoiceAcquired;
+    super.toJSON(data);
+    return data;
+  }
 }
 
-export interface IUpdatePurchaseOrderInvoiceAcquiredResponse extends IBaseResponse {
-    id?: number;
-    invoiceAcquired?: boolean;
+export interface IUpdatePurchaseOrderInvoiceAcquiredResponse
+  extends IBaseResponse {
+  id?: number;
+  invoiceAcquired?: boolean;
 }
 
-export class UpdatePurchaseOrderInvoiceAcquiredRequest implements IUpdatePurchaseOrderInvoiceAcquiredRequest {
-    id?: number;
-    invoiceAcquired?: boolean;
+export class UpdatePurchaseOrderInvoiceAcquiredRequest
+  implements IUpdatePurchaseOrderInvoiceAcquiredRequest
+{
+  id?: number;
+  invoiceAcquired?: boolean;
 
-    constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IUpdatePurchaseOrderInvoiceAcquiredRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.invoiceAcquired = _data["invoiceAcquired"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.invoiceAcquired = _data["invoiceAcquired"];
     }
+  }
 
-    static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdatePurchaseOrderInvoiceAcquiredRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): UpdatePurchaseOrderInvoiceAcquiredRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new UpdatePurchaseOrderInvoiceAcquiredRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["invoiceAcquired"] = this.invoiceAcquired;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["invoiceAcquired"] = this.invoiceAcquired;
+    return data;
+  }
 }
 
 export interface IUpdatePurchaseOrderInvoiceAcquiredRequest {
-    id?: number;
-    invoiceAcquired?: boolean;
+  id?: number;
+  invoiceAcquired?: boolean;
 }
 
-export class ListResponseOfPurchaseOrderHistoryDto extends BaseResponse implements IListResponseOfPurchaseOrderHistoryDto {
-    items?: PurchaseOrderHistoryDto[];
-    totalCount?: number;
+export class ListResponseOfPurchaseOrderHistoryDto
+  extends BaseResponse
+  implements IListResponseOfPurchaseOrderHistoryDto
+{
+  items?: PurchaseOrderHistoryDto[];
+  totalCount?: number;
 
-    constructor(data?: IListResponseOfPurchaseOrderHistoryDto) {
-        super(data);
-    }
+  constructor(data?: IListResponseOfPurchaseOrderHistoryDto) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(PurchaseOrderHistoryDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(PurchaseOrderHistoryDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
     }
+  }
 
-    static override fromJS(data: any): ListResponseOfPurchaseOrderHistoryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ListResponseOfPurchaseOrderHistoryDto();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): ListResponseOfPurchaseOrderHistoryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new ListResponseOfPurchaseOrderHistoryDto();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IListResponseOfPurchaseOrderHistoryDto extends IBaseResponse {
-    items?: PurchaseOrderHistoryDto[];
-    totalCount?: number;
+  items?: PurchaseOrderHistoryDto[];
+  totalCount?: number;
 }
 
-export class RecalculatePurchasePriceResponse extends BaseResponse implements IRecalculatePurchasePriceResponse {
-    successCount?: number;
-    failedCount?: number;
-    totalCount?: number;
-    processedProducts?: ProductRecalculationResult[];
-    isSuccess?: boolean;
-    message?: string;
+export class RecalculatePurchasePriceResponse
+  extends BaseResponse
+  implements IRecalculatePurchasePriceResponse
+{
+  successCount?: number;
+  failedCount?: number;
+  totalCount?: number;
+  processedProducts?: ProductRecalculationResult[];
+  isSuccess?: boolean;
+  message?: string;
 
-    constructor(data?: IRecalculatePurchasePriceResponse) {
-        super(data);
-    }
+  constructor(data?: IRecalculatePurchasePriceResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.successCount = _data["successCount"];
-            this.failedCount = _data["failedCount"];
-            this.totalCount = _data["totalCount"];
-            if (Array.isArray(_data["processedProducts"])) {
-                this.processedProducts = [] as any;
-                for (let item of _data["processedProducts"])
-                    this.processedProducts!.push(ProductRecalculationResult.fromJS(item));
-            }
-            this.isSuccess = _data["isSuccess"];
-            this.message = _data["message"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.successCount = _data["successCount"];
+      this.failedCount = _data["failedCount"];
+      this.totalCount = _data["totalCount"];
+      if (Array.isArray(_data["processedProducts"])) {
+        this.processedProducts = [] as any;
+        for (let item of _data["processedProducts"])
+          this.processedProducts!.push(ProductRecalculationResult.fromJS(item));
+      }
+      this.isSuccess = _data["isSuccess"];
+      this.message = _data["message"];
     }
+  }
 
-    static override fromJS(data: any): RecalculatePurchasePriceResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new RecalculatePurchasePriceResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): RecalculatePurchasePriceResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new RecalculatePurchasePriceResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["successCount"] = this.successCount;
-        data["failedCount"] = this.failedCount;
-        data["totalCount"] = this.totalCount;
-        if (Array.isArray(this.processedProducts)) {
-            data["processedProducts"] = [];
-            for (let item of this.processedProducts)
-                data["processedProducts"].push(item.toJSON());
-        }
-        data["isSuccess"] = this.isSuccess;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["successCount"] = this.successCount;
+    data["failedCount"] = this.failedCount;
+    data["totalCount"] = this.totalCount;
+    if (Array.isArray(this.processedProducts)) {
+      data["processedProducts"] = [];
+      for (let item of this.processedProducts)
+        data["processedProducts"].push(item.toJSON());
     }
+    data["isSuccess"] = this.isSuccess;
+    data["message"] = this.message;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IRecalculatePurchasePriceResponse extends IBaseResponse {
-    successCount?: number;
-    failedCount?: number;
-    totalCount?: number;
-    processedProducts?: ProductRecalculationResult[];
-    isSuccess?: boolean;
-    message?: string;
+  successCount?: number;
+  failedCount?: number;
+  totalCount?: number;
+  processedProducts?: ProductRecalculationResult[];
+  isSuccess?: boolean;
+  message?: string;
 }
 
-export class ProductRecalculationResult extends BaseResponse implements IProductRecalculationResult {
-    productCode?: string;
+export class ProductRecalculationResult
+  extends BaseResponse
+  implements IProductRecalculationResult
+{
+  productCode?: string;
 
-    constructor(data?: IProductRecalculationResult) {
-        super(data);
-    }
+  constructor(data?: IProductRecalculationResult) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.productCode = _data["productCode"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.productCode = _data["productCode"];
     }
+  }
 
-    static override fromJS(data: any): ProductRecalculationResult {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductRecalculationResult();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): ProductRecalculationResult {
+    data = typeof data === "object" ? data : {};
+    let result = new ProductRecalculationResult();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IProductRecalculationResult extends IBaseResponse {
-    productCode?: string;
+  productCode?: string;
 }
 
-export class RecalculatePurchasePriceRequest implements IRecalculatePurchasePriceRequest {
-    productCode?: string | undefined;
-    recalculateAll?: boolean;
-    forceReload?: boolean;
+export class RecalculatePurchasePriceRequest
+  implements IRecalculatePurchasePriceRequest
+{
+  productCode?: string | undefined;
+  recalculateAll?: boolean;
+  forceReload?: boolean;
 
-    constructor(data?: IRecalculatePurchasePriceRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IRecalculatePurchasePriceRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.recalculateAll = _data["recalculateAll"];
-            this.forceReload = _data["forceReload"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.recalculateAll = _data["recalculateAll"];
+      this.forceReload = _data["forceReload"];
     }
+  }
 
-    static fromJS(data: any): RecalculatePurchasePriceRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new RecalculatePurchasePriceRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): RecalculatePurchasePriceRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new RecalculatePurchasePriceRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["recalculateAll"] = this.recalculateAll;
-        data["forceReload"] = this.forceReload;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["recalculateAll"] = this.recalculateAll;
+    data["forceReload"] = this.forceReload;
+    return data;
+  }
 }
 
 export interface IRecalculatePurchasePriceRequest {
-    productCode?: string | undefined;
-    recalculateAll?: boolean;
-    forceReload?: boolean;
+  productCode?: string | undefined;
+  recalculateAll?: boolean;
+  forceReload?: boolean;
 }
 
-export class GetPurchaseStockAnalysisResponse extends BaseResponse implements IGetPurchaseStockAnalysisResponse {
-    items?: StockAnalysisItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    summary?: StockAnalysisSummaryDto;
+export class GetPurchaseStockAnalysisResponse
+  extends BaseResponse
+  implements IGetPurchaseStockAnalysisResponse
+{
+  items?: StockAnalysisItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  summary?: StockAnalysisSummaryDto;
 
-    constructor(data?: IGetPurchaseStockAnalysisResponse) {
-        super(data);
-    }
+  constructor(data?: IGetPurchaseStockAnalysisResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(StockAnalysisItemDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.summary = _data["summary"] ? StockAnalysisSummaryDto.fromJS(_data["summary"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(StockAnalysisItemDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.pageNumber = _data["pageNumber"];
+      this.pageSize = _data["pageSize"];
+      this.summary = _data["summary"]
+        ? StockAnalysisSummaryDto.fromJS(_data["summary"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetPurchaseStockAnalysisResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetPurchaseStockAnalysisResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetPurchaseStockAnalysisResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetPurchaseStockAnalysisResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["pageNumber"] = this.pageNumber;
+    data["pageSize"] = this.pageSize;
+    data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetPurchaseStockAnalysisResponse extends IBaseResponse {
-    items?: StockAnalysisItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    summary?: StockAnalysisSummaryDto;
+  items?: StockAnalysisItemDto[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  summary?: StockAnalysisSummaryDto;
 }
 
 export class StockAnalysisItemDto implements IStockAnalysisItemDto {
-    productCode?: string;
-    productName?: string;
-    productType?: string;
-    availableStock?: number;
-    minStockLevel?: number;
-    optimalStockLevel?: number;
-    consumptionInPeriod?: number;
-    dailyConsumption?: number;
-    daysUntilStockout?: number | undefined;
-    stockEfficiencyPercentage?: number;
-    severity?: StockSeverity;
-    minimalOrderQuantity?: string;
-    lastPurchase?: LastPurchaseInfoDto | undefined;
-    supplier?: string | undefined;
-    recommendedOrderQuantity?: number | undefined;
-    isConfigured?: boolean;
+  productCode?: string;
+  productName?: string;
+  productType?: string;
+  availableStock?: number;
+  minStockLevel?: number;
+  optimalStockLevel?: number;
+  consumptionInPeriod?: number;
+  dailyConsumption?: number;
+  daysUntilStockout?: number | undefined;
+  stockEfficiencyPercentage?: number;
+  severity?: StockSeverity;
+  minimalOrderQuantity?: string;
+  lastPurchase?: LastPurchaseInfoDto | undefined;
+  supplier?: string | undefined;
+  recommendedOrderQuantity?: number | undefined;
+  isConfigured?: boolean;
 
-    constructor(data?: IStockAnalysisItemDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IStockAnalysisItemDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.productType = _data["productType"];
-            this.availableStock = _data["availableStock"];
-            this.minStockLevel = _data["minStockLevel"];
-            this.optimalStockLevel = _data["optimalStockLevel"];
-            this.consumptionInPeriod = _data["consumptionInPeriod"];
-            this.dailyConsumption = _data["dailyConsumption"];
-            this.daysUntilStockout = _data["daysUntilStockout"];
-            this.stockEfficiencyPercentage = _data["stockEfficiencyPercentage"];
-            this.severity = _data["severity"];
-            this.minimalOrderQuantity = _data["minimalOrderQuantity"];
-            this.lastPurchase = _data["lastPurchase"] ? LastPurchaseInfoDto.fromJS(_data["lastPurchase"]) : <any>undefined;
-            this.supplier = _data["supplier"];
-            this.recommendedOrderQuantity = _data["recommendedOrderQuantity"];
-            this.isConfigured = _data["isConfigured"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.productType = _data["productType"];
+      this.availableStock = _data["availableStock"];
+      this.minStockLevel = _data["minStockLevel"];
+      this.optimalStockLevel = _data["optimalStockLevel"];
+      this.consumptionInPeriod = _data["consumptionInPeriod"];
+      this.dailyConsumption = _data["dailyConsumption"];
+      this.daysUntilStockout = _data["daysUntilStockout"];
+      this.stockEfficiencyPercentage = _data["stockEfficiencyPercentage"];
+      this.severity = _data["severity"];
+      this.minimalOrderQuantity = _data["minimalOrderQuantity"];
+      this.lastPurchase = _data["lastPurchase"]
+        ? LastPurchaseInfoDto.fromJS(_data["lastPurchase"])
+        : <any>undefined;
+      this.supplier = _data["supplier"];
+      this.recommendedOrderQuantity = _data["recommendedOrderQuantity"];
+      this.isConfigured = _data["isConfigured"];
     }
+  }
 
-    static fromJS(data: any): StockAnalysisItemDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockAnalysisItemDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): StockAnalysisItemDto {
+    data = typeof data === "object" ? data : {};
+    let result = new StockAnalysisItemDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["productType"] = this.productType;
-        data["availableStock"] = this.availableStock;
-        data["minStockLevel"] = this.minStockLevel;
-        data["optimalStockLevel"] = this.optimalStockLevel;
-        data["consumptionInPeriod"] = this.consumptionInPeriod;
-        data["dailyConsumption"] = this.dailyConsumption;
-        data["daysUntilStockout"] = this.daysUntilStockout;
-        data["stockEfficiencyPercentage"] = this.stockEfficiencyPercentage;
-        data["severity"] = this.severity;
-        data["minimalOrderQuantity"] = this.minimalOrderQuantity;
-        data["lastPurchase"] = this.lastPurchase ? this.lastPurchase.toJSON() : <any>undefined;
-        data["supplier"] = this.supplier;
-        data["recommendedOrderQuantity"] = this.recommendedOrderQuantity;
-        data["isConfigured"] = this.isConfigured;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["productType"] = this.productType;
+    data["availableStock"] = this.availableStock;
+    data["minStockLevel"] = this.minStockLevel;
+    data["optimalStockLevel"] = this.optimalStockLevel;
+    data["consumptionInPeriod"] = this.consumptionInPeriod;
+    data["dailyConsumption"] = this.dailyConsumption;
+    data["daysUntilStockout"] = this.daysUntilStockout;
+    data["stockEfficiencyPercentage"] = this.stockEfficiencyPercentage;
+    data["severity"] = this.severity;
+    data["minimalOrderQuantity"] = this.minimalOrderQuantity;
+    data["lastPurchase"] = this.lastPurchase
+      ? this.lastPurchase.toJSON()
+      : <any>undefined;
+    data["supplier"] = this.supplier;
+    data["recommendedOrderQuantity"] = this.recommendedOrderQuantity;
+    data["isConfigured"] = this.isConfigured;
+    return data;
+  }
 }
 
 export interface IStockAnalysisItemDto {
-    productCode?: string;
-    productName?: string;
-    productType?: string;
-    availableStock?: number;
-    minStockLevel?: number;
-    optimalStockLevel?: number;
-    consumptionInPeriod?: number;
-    dailyConsumption?: number;
-    daysUntilStockout?: number | undefined;
-    stockEfficiencyPercentage?: number;
-    severity?: StockSeverity;
-    minimalOrderQuantity?: string;
-    lastPurchase?: LastPurchaseInfoDto | undefined;
-    supplier?: string | undefined;
-    recommendedOrderQuantity?: number | undefined;
-    isConfigured?: boolean;
+  productCode?: string;
+  productName?: string;
+  productType?: string;
+  availableStock?: number;
+  minStockLevel?: number;
+  optimalStockLevel?: number;
+  consumptionInPeriod?: number;
+  dailyConsumption?: number;
+  daysUntilStockout?: number | undefined;
+  stockEfficiencyPercentage?: number;
+  severity?: StockSeverity;
+  minimalOrderQuantity?: string;
+  lastPurchase?: LastPurchaseInfoDto | undefined;
+  supplier?: string | undefined;
+  recommendedOrderQuantity?: number | undefined;
+  isConfigured?: boolean;
 }
 
 export enum StockSeverity {
-    Critical = "Critical",
-    Low = "Low",
-    Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
+  Critical = "Critical",
+  Low = "Low",
+  Optimal = "Optimal",
+  Overstocked = "Overstocked",
+  NotConfigured = "NotConfigured",
 }
 
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {
-    date?: Date;
-    supplierName?: string;
-    amount?: number;
-    unitPrice?: number;
-    totalPrice?: number;
+  date?: Date;
+  supplierName?: string;
+  amount?: number;
+  unitPrice?: number;
+  totalPrice?: number;
 
-    constructor(data?: ILastPurchaseInfoDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ILastPurchaseInfoDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.supplierName = _data["supplierName"];
-            this.amount = _data["amount"];
-            this.unitPrice = _data["unitPrice"];
-            this.totalPrice = _data["totalPrice"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.date = _data["date"]
+        ? new Date(_data["date"].toString())
+        : <any>undefined;
+      this.supplierName = _data["supplierName"];
+      this.amount = _data["amount"];
+      this.unitPrice = _data["unitPrice"];
+      this.totalPrice = _data["totalPrice"];
     }
+  }
 
-    static fromJS(data: any): LastPurchaseInfoDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new LastPurchaseInfoDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): LastPurchaseInfoDto {
+    data = typeof data === "object" ? data : {};
+    let result = new LastPurchaseInfoDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["supplierName"] = this.supplierName;
-        data["amount"] = this.amount;
-        data["unitPrice"] = this.unitPrice;
-        data["totalPrice"] = this.totalPrice;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+    data["supplierName"] = this.supplierName;
+    data["amount"] = this.amount;
+    data["unitPrice"] = this.unitPrice;
+    data["totalPrice"] = this.totalPrice;
+    return data;
+  }
 }
 
 export interface ILastPurchaseInfoDto {
-    date?: Date;
-    supplierName?: string;
-    amount?: number;
-    unitPrice?: number;
-    totalPrice?: number;
+  date?: Date;
+  supplierName?: string;
+  amount?: number;
+  unitPrice?: number;
+  totalPrice?: number;
 }
 
 export class StockAnalysisSummaryDto implements IStockAnalysisSummaryDto {
-    totalProducts?: number;
-    criticalCount?: number;
-    lowStockCount?: number;
-    optimalCount?: number;
-    overstockedCount?: number;
-    notConfiguredCount?: number;
-    totalInventoryValue?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
+  totalProducts?: number;
+  criticalCount?: number;
+  lowStockCount?: number;
+  optimalCount?: number;
+  overstockedCount?: number;
+  notConfiguredCount?: number;
+  totalInventoryValue?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
 
-    constructor(data?: IStockAnalysisSummaryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IStockAnalysisSummaryDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.totalProducts = _data["totalProducts"];
-            this.criticalCount = _data["criticalCount"];
-            this.lowStockCount = _data["lowStockCount"];
-            this.optimalCount = _data["optimalCount"];
-            this.overstockedCount = _data["overstockedCount"];
-            this.notConfiguredCount = _data["notConfiguredCount"];
-            this.totalInventoryValue = _data["totalInventoryValue"];
-            this.analysisPeriodStart = _data["analysisPeriodStart"] ? new Date(_data["analysisPeriodStart"].toString()) : <any>undefined;
-            this.analysisPeriodEnd = _data["analysisPeriodEnd"] ? new Date(_data["analysisPeriodEnd"].toString()) : <any>undefined;
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.totalProducts = _data["totalProducts"];
+      this.criticalCount = _data["criticalCount"];
+      this.lowStockCount = _data["lowStockCount"];
+      this.optimalCount = _data["optimalCount"];
+      this.overstockedCount = _data["overstockedCount"];
+      this.notConfiguredCount = _data["notConfiguredCount"];
+      this.totalInventoryValue = _data["totalInventoryValue"];
+      this.analysisPeriodStart = _data["analysisPeriodStart"]
+        ? new Date(_data["analysisPeriodStart"].toString())
+        : <any>undefined;
+      this.analysisPeriodEnd = _data["analysisPeriodEnd"]
+        ? new Date(_data["analysisPeriodEnd"].toString())
+        : <any>undefined;
     }
+  }
 
-    static fromJS(data: any): StockAnalysisSummaryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockAnalysisSummaryDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): StockAnalysisSummaryDto {
+    data = typeof data === "object" ? data : {};
+    let result = new StockAnalysisSummaryDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalProducts"] = this.totalProducts;
-        data["criticalCount"] = this.criticalCount;
-        data["lowStockCount"] = this.lowStockCount;
-        data["optimalCount"] = this.optimalCount;
-        data["overstockedCount"] = this.overstockedCount;
-        data["notConfiguredCount"] = this.notConfiguredCount;
-        data["totalInventoryValue"] = this.totalInventoryValue;
-        data["analysisPeriodStart"] = this.analysisPeriodStart ? this.analysisPeriodStart.toISOString() : <any>undefined;
-        data["analysisPeriodEnd"] = this.analysisPeriodEnd ? this.analysisPeriodEnd.toISOString() : <any>undefined;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["totalProducts"] = this.totalProducts;
+    data["criticalCount"] = this.criticalCount;
+    data["lowStockCount"] = this.lowStockCount;
+    data["optimalCount"] = this.optimalCount;
+    data["overstockedCount"] = this.overstockedCount;
+    data["notConfiguredCount"] = this.notConfiguredCount;
+    data["totalInventoryValue"] = this.totalInventoryValue;
+    data["analysisPeriodStart"] = this.analysisPeriodStart
+      ? this.analysisPeriodStart.toISOString()
+      : <any>undefined;
+    data["analysisPeriodEnd"] = this.analysisPeriodEnd
+      ? this.analysisPeriodEnd.toISOString()
+      : <any>undefined;
+    return data;
+  }
 }
 
 export interface IStockAnalysisSummaryDto {
-    totalProducts?: number;
-    criticalCount?: number;
-    lowStockCount?: number;
-    optimalCount?: number;
-    overstockedCount?: number;
-    notConfiguredCount?: number;
-    totalInventoryValue?: number;
-    analysisPeriodStart?: Date;
-    analysisPeriodEnd?: Date;
+  totalProducts?: number;
+  criticalCount?: number;
+  lowStockCount?: number;
+  optimalCount?: number;
+  overstockedCount?: number;
+  notConfiguredCount?: number;
+  totalInventoryValue?: number;
+  analysisPeriodStart?: Date;
+  analysisPeriodEnd?: Date;
 }
 
 export enum StockStatusFilter {
-    All = "All",
-    Critical = "Critical",
-    Low = "Low",
-    Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
+  All = "All",
+  Critical = "Critical",
+  Low = "Low",
+  Optimal = "Optimal",
+  Overstocked = "Overstocked",
+  NotConfigured = "NotConfigured",
 }
 
 export enum StockAnalysisSortBy {
-    ProductCode = "ProductCode",
-    ProductName = "ProductName",
-    AvailableStock = "AvailableStock",
-    Consumption = "Consumption",
-    StockEfficiency = "StockEfficiency",
-    LastPurchaseDate = "LastPurchaseDate",
+  ProductCode = "ProductCode",
+  ProductName = "ProductName",
+  AvailableStock = "AvailableStock",
+  Consumption = "Consumption",
+  StockEfficiency = "StockEfficiency",
+  LastPurchaseDate = "LastPurchaseDate",
 }
 
-export class SearchSuppliersResponse extends BaseResponse implements ISearchSuppliersResponse {
-    suppliers?: SupplierDto[];
+export class SearchSuppliersResponse
+  extends BaseResponse
+  implements ISearchSuppliersResponse
+{
+  suppliers?: SupplierDto[];
 
-    constructor(data?: ISearchSuppliersResponse) {
-        super(data);
-    }
+  constructor(data?: ISearchSuppliersResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["suppliers"])) {
-                this.suppliers = [] as any;
-                for (let item of _data["suppliers"])
-                    this.suppliers!.push(SupplierDto.fromJS(item));
-            }
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["suppliers"])) {
+        this.suppliers = [] as any;
+        for (let item of _data["suppliers"])
+          this.suppliers!.push(SupplierDto.fromJS(item));
+      }
     }
+  }
 
-    static override fromJS(data: any): SearchSuppliersResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new SearchSuppliersResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): SearchSuppliersResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new SearchSuppliersResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.suppliers)) {
-            data["suppliers"] = [];
-            for (let item of this.suppliers)
-                data["suppliers"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.suppliers)) {
+      data["suppliers"] = [];
+      for (let item of this.suppliers) data["suppliers"].push(item.toJSON());
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ISearchSuppliersResponse extends IBaseResponse {
-    suppliers?: SupplierDto[];
+  suppliers?: SupplierDto[];
 }
 
 export class SupplierDto implements ISupplierDto {
-    id?: number;
-    name?: string;
-    code?: string;
-    note?: string | undefined;
-    email?: string | undefined;
-    phone?: string | undefined;
-    url?: string | undefined;
+  id?: number;
+  name?: string;
+  code?: string;
+  note?: string | undefined;
+  email?: string | undefined;
+  phone?: string | undefined;
+  url?: string | undefined;
 
-    constructor(data?: ISupplierDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ISupplierDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.name = _data["name"];
-            this.code = _data["code"];
-            this.note = _data["note"];
-            this.email = _data["email"];
-            this.phone = _data["phone"];
-            this.url = _data["url"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.name = _data["name"];
+      this.code = _data["code"];
+      this.note = _data["note"];
+      this.email = _data["email"];
+      this.phone = _data["phone"];
+      this.url = _data["url"];
     }
+  }
 
-    static fromJS(data: any): SupplierDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new SupplierDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): SupplierDto {
+    data = typeof data === "object" ? data : {};
+    let result = new SupplierDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["name"] = this.name;
-        data["code"] = this.code;
-        data["note"] = this.note;
-        data["email"] = this.email;
-        data["phone"] = this.phone;
-        data["url"] = this.url;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["name"] = this.name;
+    data["code"] = this.code;
+    data["note"] = this.note;
+    data["email"] = this.email;
+    data["phone"] = this.phone;
+    data["url"] = this.url;
+    return data;
+  }
 }
 
 export interface ISupplierDto {
-    id?: number;
-    name?: string;
-    code?: string;
-    note?: string | undefined;
-    email?: string | undefined;
-    phone?: string | undefined;
-    url?: string | undefined;
+  id?: number;
+  name?: string;
+  code?: string;
+  note?: string | undefined;
+  email?: string | undefined;
+  phone?: string | undefined;
+  url?: string | undefined;
 }
 
-export class GetTransportBoxesResponse extends BaseResponse implements IGetTransportBoxesResponse {
-    items?: TransportBoxDto[];
-    totalCount?: number;
-    skip?: number;
-    take?: number;
+export class GetTransportBoxesResponse
+  extends BaseResponse
+  implements IGetTransportBoxesResponse
+{
+  items?: TransportBoxDto[];
+  totalCount?: number;
+  skip?: number;
+  take?: number;
 
-    constructor(data?: IGetTransportBoxesResponse) {
-        super(data);
-    }
+  constructor(data?: IGetTransportBoxesResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(TransportBoxDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.skip = _data["skip"];
-            this.take = _data["take"];
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(TransportBoxDto.fromJS(item));
+      }
+      this.totalCount = _data["totalCount"];
+      this.skip = _data["skip"];
+      this.take = _data["take"];
     }
+  }
 
-    static override fromJS(data: any): GetTransportBoxesResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetTransportBoxesResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetTransportBoxesResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetTransportBoxesResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["skip"] = this.skip;
-        data["take"] = this.take;
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    data["totalCount"] = this.totalCount;
+    data["skip"] = this.skip;
+    data["take"] = this.take;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetTransportBoxesResponse extends IBaseResponse {
-    items?: TransportBoxDto[];
-    totalCount?: number;
-    skip?: number;
-    take?: number;
+  items?: TransportBoxDto[];
+  totalCount?: number;
+  skip?: number;
+  take?: number;
 }
 
 export class TransportBoxDto implements ITransportBoxDto {
-    id?: number;
-    code?: string | undefined;
-    state?: string;
-    defaultReceiveState?: string;
-    description?: string | undefined;
-    lastStateChanged?: Date | undefined;
-    location?: string | undefined;
-    isInTransit?: boolean;
-    isInReserve?: boolean;
-    itemCount?: number;
-    creationTime?: Date;
-    creatorId?: string | undefined;
-    lastModificationTime?: Date | undefined;
-    lastModifierId?: string | undefined;
-    items?: TransportBoxItemDto[];
-    stateLog?: TransportBoxStateLogDto[];
-    allowedTransitions?: TransportBoxTransitionDto[];
+  id?: number;
+  code?: string | undefined;
+  state?: string;
+  defaultReceiveState?: string;
+  description?: string | undefined;
+  lastStateChanged?: Date | undefined;
+  location?: string | undefined;
+  isInTransit?: boolean;
+  isInReserve?: boolean;
+  itemCount?: number;
+  creationTime?: Date;
+  creatorId?: string | undefined;
+  lastModificationTime?: Date | undefined;
+  lastModifierId?: string | undefined;
+  items?: TransportBoxItemDto[];
+  stateLog?: TransportBoxStateLogDto[];
+  allowedTransitions?: TransportBoxTransitionDto[];
 
-    constructor(data?: ITransportBoxDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ITransportBoxDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.code = _data["code"];
-            this.state = _data["state"];
-            this.defaultReceiveState = _data["defaultReceiveState"];
-            this.description = _data["description"];
-            this.lastStateChanged = _data["lastStateChanged"] ? new Date(_data["lastStateChanged"].toString()) : <any>undefined;
-            this.location = _data["location"];
-            this.isInTransit = _data["isInTransit"];
-            this.isInReserve = _data["isInReserve"];
-            this.itemCount = _data["itemCount"];
-            this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
-            this.creatorId = _data["creatorId"];
-            this.lastModificationTime = _data["lastModificationTime"] ? new Date(_data["lastModificationTime"].toString()) : <any>undefined;
-            this.lastModifierId = _data["lastModifierId"];
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(TransportBoxItemDto.fromJS(item));
-            }
-            if (Array.isArray(_data["stateLog"])) {
-                this.stateLog = [] as any;
-                for (let item of _data["stateLog"])
-                    this.stateLog!.push(TransportBoxStateLogDto.fromJS(item));
-            }
-            if (Array.isArray(_data["allowedTransitions"])) {
-                this.allowedTransitions = [] as any;
-                for (let item of _data["allowedTransitions"])
-                    this.allowedTransitions!.push(TransportBoxTransitionDto.fromJS(item));
-            }
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.code = _data["code"];
+      this.state = _data["state"];
+      this.defaultReceiveState = _data["defaultReceiveState"];
+      this.description = _data["description"];
+      this.lastStateChanged = _data["lastStateChanged"]
+        ? new Date(_data["lastStateChanged"].toString())
+        : <any>undefined;
+      this.location = _data["location"];
+      this.isInTransit = _data["isInTransit"];
+      this.isInReserve = _data["isInReserve"];
+      this.itemCount = _data["itemCount"];
+      this.creationTime = _data["creationTime"]
+        ? new Date(_data["creationTime"].toString())
+        : <any>undefined;
+      this.creatorId = _data["creatorId"];
+      this.lastModificationTime = _data["lastModificationTime"]
+        ? new Date(_data["lastModificationTime"].toString())
+        : <any>undefined;
+      this.lastModifierId = _data["lastModifierId"];
+      if (Array.isArray(_data["items"])) {
+        this.items = [] as any;
+        for (let item of _data["items"])
+          this.items!.push(TransportBoxItemDto.fromJS(item));
+      }
+      if (Array.isArray(_data["stateLog"])) {
+        this.stateLog = [] as any;
+        for (let item of _data["stateLog"])
+          this.stateLog!.push(TransportBoxStateLogDto.fromJS(item));
+      }
+      if (Array.isArray(_data["allowedTransitions"])) {
+        this.allowedTransitions = [] as any;
+        for (let item of _data["allowedTransitions"])
+          this.allowedTransitions!.push(TransportBoxTransitionDto.fromJS(item));
+      }
     }
+  }
 
-    static fromJS(data: any): TransportBoxDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TransportBoxDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): TransportBoxDto {
+    data = typeof data === "object" ? data : {};
+    let result = new TransportBoxDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["code"] = this.code;
-        data["state"] = this.state;
-        data["defaultReceiveState"] = this.defaultReceiveState;
-        data["description"] = this.description;
-        data["lastStateChanged"] = this.lastStateChanged ? this.lastStateChanged.toISOString() : <any>undefined;
-        data["location"] = this.location;
-        data["isInTransit"] = this.isInTransit;
-        data["isInReserve"] = this.isInReserve;
-        data["itemCount"] = this.itemCount;
-        data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
-        data["creatorId"] = this.creatorId;
-        data["lastModificationTime"] = this.lastModificationTime ? this.lastModificationTime.toISOString() : <any>undefined;
-        data["lastModifierId"] = this.lastModifierId;
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        if (Array.isArray(this.stateLog)) {
-            data["stateLog"] = [];
-            for (let item of this.stateLog)
-                data["stateLog"].push(item.toJSON());
-        }
-        if (Array.isArray(this.allowedTransitions)) {
-            data["allowedTransitions"] = [];
-            for (let item of this.allowedTransitions)
-                data["allowedTransitions"].push(item.toJSON());
-        }
-        return data;
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["code"] = this.code;
+    data["state"] = this.state;
+    data["defaultReceiveState"] = this.defaultReceiveState;
+    data["description"] = this.description;
+    data["lastStateChanged"] = this.lastStateChanged
+      ? this.lastStateChanged.toISOString()
+      : <any>undefined;
+    data["location"] = this.location;
+    data["isInTransit"] = this.isInTransit;
+    data["isInReserve"] = this.isInReserve;
+    data["itemCount"] = this.itemCount;
+    data["creationTime"] = this.creationTime
+      ? this.creationTime.toISOString()
+      : <any>undefined;
+    data["creatorId"] = this.creatorId;
+    data["lastModificationTime"] = this.lastModificationTime
+      ? this.lastModificationTime.toISOString()
+      : <any>undefined;
+    data["lastModifierId"] = this.lastModifierId;
+    if (Array.isArray(this.items)) {
+      data["items"] = [];
+      for (let item of this.items) data["items"].push(item.toJSON());
     }
+    if (Array.isArray(this.stateLog)) {
+      data["stateLog"] = [];
+      for (let item of this.stateLog) data["stateLog"].push(item.toJSON());
+    }
+    if (Array.isArray(this.allowedTransitions)) {
+      data["allowedTransitions"] = [];
+      for (let item of this.allowedTransitions)
+        data["allowedTransitions"].push(item.toJSON());
+    }
+    return data;
+  }
 }
 
 export interface ITransportBoxDto {
-    id?: number;
-    code?: string | undefined;
-    state?: string;
-    defaultReceiveState?: string;
-    description?: string | undefined;
-    lastStateChanged?: Date | undefined;
-    location?: string | undefined;
-    isInTransit?: boolean;
-    isInReserve?: boolean;
-    itemCount?: number;
-    creationTime?: Date;
-    creatorId?: string | undefined;
-    lastModificationTime?: Date | undefined;
-    lastModifierId?: string | undefined;
-    items?: TransportBoxItemDto[];
-    stateLog?: TransportBoxStateLogDto[];
-    allowedTransitions?: TransportBoxTransitionDto[];
+  id?: number;
+  code?: string | undefined;
+  state?: string;
+  defaultReceiveState?: string;
+  description?: string | undefined;
+  lastStateChanged?: Date | undefined;
+  location?: string | undefined;
+  isInTransit?: boolean;
+  isInReserve?: boolean;
+  itemCount?: number;
+  creationTime?: Date;
+  creatorId?: string | undefined;
+  lastModificationTime?: Date | undefined;
+  lastModifierId?: string | undefined;
+  items?: TransportBoxItemDto[];
+  stateLog?: TransportBoxStateLogDto[];
+  allowedTransitions?: TransportBoxTransitionDto[];
 }
 
 export class TransportBoxItemDto implements ITransportBoxItemDto {
-    id?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    dateAdded?: Date;
-    userAdded?: string;
+  id?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  dateAdded?: Date;
+  userAdded?: string;
 
-    constructor(data?: ITransportBoxItemDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ITransportBoxItemDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.amount = _data["amount"];
-            this.dateAdded = _data["dateAdded"] ? new Date(_data["dateAdded"].toString()) : <any>undefined;
-            this.userAdded = _data["userAdded"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.amount = _data["amount"];
+      this.dateAdded = _data["dateAdded"]
+        ? new Date(_data["dateAdded"].toString())
+        : <any>undefined;
+      this.userAdded = _data["userAdded"];
     }
+  }
 
-    static fromJS(data: any): TransportBoxItemDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TransportBoxItemDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): TransportBoxItemDto {
+    data = typeof data === "object" ? data : {};
+    let result = new TransportBoxItemDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["amount"] = this.amount;
-        data["dateAdded"] = this.dateAdded ? this.dateAdded.toISOString() : <any>undefined;
-        data["userAdded"] = this.userAdded;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["amount"] = this.amount;
+    data["dateAdded"] = this.dateAdded
+      ? this.dateAdded.toISOString()
+      : <any>undefined;
+    data["userAdded"] = this.userAdded;
+    return data;
+  }
 }
 
 export interface ITransportBoxItemDto {
-    id?: number;
-    productCode?: string;
-    productName?: string;
-    amount?: number;
-    dateAdded?: Date;
-    userAdded?: string;
+  id?: number;
+  productCode?: string;
+  productName?: string;
+  amount?: number;
+  dateAdded?: Date;
+  userAdded?: string;
 }
 
 export class TransportBoxStateLogDto implements ITransportBoxStateLogDto {
-    id?: number;
-    state?: string;
-    stateDate?: Date;
-    user?: string | undefined;
-    description?: string | undefined;
+  id?: number;
+  state?: string;
+  stateDate?: Date;
+  user?: string | undefined;
+  description?: string | undefined;
 
-    constructor(data?: ITransportBoxStateLogDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ITransportBoxStateLogDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.state = _data["state"];
-            this.stateDate = _data["stateDate"] ? new Date(_data["stateDate"].toString()) : <any>undefined;
-            this.user = _data["user"];
-            this.description = _data["description"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.id = _data["id"];
+      this.state = _data["state"];
+      this.stateDate = _data["stateDate"]
+        ? new Date(_data["stateDate"].toString())
+        : <any>undefined;
+      this.user = _data["user"];
+      this.description = _data["description"];
     }
+  }
 
-    static fromJS(data: any): TransportBoxStateLogDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TransportBoxStateLogDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): TransportBoxStateLogDto {
+    data = typeof data === "object" ? data : {};
+    let result = new TransportBoxStateLogDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["state"] = this.state;
-        data["stateDate"] = this.stateDate ? this.stateDate.toISOString() : <any>undefined;
-        data["user"] = this.user;
-        data["description"] = this.description;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["id"] = this.id;
+    data["state"] = this.state;
+    data["stateDate"] = this.stateDate
+      ? this.stateDate.toISOString()
+      : <any>undefined;
+    data["user"] = this.user;
+    data["description"] = this.description;
+    return data;
+  }
 }
 
 export interface ITransportBoxStateLogDto {
-    id?: number;
-    state?: string;
-    stateDate?: Date;
-    user?: string | undefined;
-    description?: string | undefined;
+  id?: number;
+  state?: string;
+  stateDate?: Date;
+  user?: string | undefined;
+  description?: string | undefined;
 }
 
 export class TransportBoxTransitionDto implements ITransportBoxTransitionDto {
-    newState?: string;
-    transitionType?: string;
-    systemOnly?: boolean;
-    label?: string;
+  newState?: string;
+  transitionType?: string;
+  systemOnly?: boolean;
+  label?: string;
 
-    constructor(data?: ITransportBoxTransitionDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ITransportBoxTransitionDto) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.newState = _data["newState"];
-            this.transitionType = _data["transitionType"];
-            this.systemOnly = _data["systemOnly"];
-            this.label = _data["label"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.newState = _data["newState"];
+      this.transitionType = _data["transitionType"];
+      this.systemOnly = _data["systemOnly"];
+      this.label = _data["label"];
     }
+  }
 
-    static fromJS(data: any): TransportBoxTransitionDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TransportBoxTransitionDto();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): TransportBoxTransitionDto {
+    data = typeof data === "object" ? data : {};
+    let result = new TransportBoxTransitionDto();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["newState"] = this.newState;
-        data["transitionType"] = this.transitionType;
-        data["systemOnly"] = this.systemOnly;
-        data["label"] = this.label;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["newState"] = this.newState;
+    data["transitionType"] = this.transitionType;
+    data["systemOnly"] = this.systemOnly;
+    data["label"] = this.label;
+    return data;
+  }
 }
 
 export interface ITransportBoxTransitionDto {
-    newState?: string;
-    transitionType?: string;
-    systemOnly?: boolean;
-    label?: string;
+  newState?: string;
+  transitionType?: string;
+  systemOnly?: boolean;
+  label?: string;
 }
 
-export class GetTransportBoxSummaryResponse extends BaseResponse implements IGetTransportBoxSummaryResponse {
-    totalBoxes?: number;
-    activeBoxes?: number;
-    statesCounts?: { [key: string]: number; };
+export class GetTransportBoxSummaryResponse
+  extends BaseResponse
+  implements IGetTransportBoxSummaryResponse
+{
+  totalBoxes?: number;
+  activeBoxes?: number;
+  statesCounts?: { [key: string]: number };
 
-    constructor(data?: IGetTransportBoxSummaryResponse) {
-        super(data);
-    }
+  constructor(data?: IGetTransportBoxSummaryResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.totalBoxes = _data["totalBoxes"];
-            this.activeBoxes = _data["activeBoxes"];
-            if (_data["statesCounts"]) {
-                this.statesCounts = {} as any;
-                for (let key in _data["statesCounts"]) {
-                    if (_data["statesCounts"].hasOwnProperty(key))
-                        (<any>this.statesCounts)![key] = _data["statesCounts"][key];
-                }
-            }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.totalBoxes = _data["totalBoxes"];
+      this.activeBoxes = _data["activeBoxes"];
+      if (_data["statesCounts"]) {
+        this.statesCounts = {} as any;
+        for (let key in _data["statesCounts"]) {
+          if (_data["statesCounts"].hasOwnProperty(key))
+            (<any>this.statesCounts)![key] = _data["statesCounts"][key];
         }
+      }
     }
+  }
 
-    static override fromJS(data: any): GetTransportBoxSummaryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetTransportBoxSummaryResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetTransportBoxSummaryResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetTransportBoxSummaryResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalBoxes"] = this.totalBoxes;
-        data["activeBoxes"] = this.activeBoxes;
-        if (this.statesCounts) {
-            data["statesCounts"] = {};
-            for (let key in this.statesCounts) {
-                if (this.statesCounts.hasOwnProperty(key))
-                    (<any>data["statesCounts"])[key] = (<any>this.statesCounts)[key];
-            }
-        }
-        super.toJSON(data);
-        return data;
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["totalBoxes"] = this.totalBoxes;
+    data["activeBoxes"] = this.activeBoxes;
+    if (this.statesCounts) {
+      data["statesCounts"] = {};
+      for (let key in this.statesCounts) {
+        if (this.statesCounts.hasOwnProperty(key))
+          (<any>data["statesCounts"])[key] = (<any>this.statesCounts)[key];
+      }
     }
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetTransportBoxSummaryResponse extends IBaseResponse {
-    totalBoxes?: number;
-    activeBoxes?: number;
-    statesCounts?: { [key: string]: number; };
+  totalBoxes?: number;
+  activeBoxes?: number;
+  statesCounts?: { [key: string]: number };
 }
 
-export class GetTransportBoxByIdResponse extends BaseResponse implements IGetTransportBoxByIdResponse {
-    transportBox?: TransportBoxDto | undefined;
+export class GetTransportBoxByIdResponse
+  extends BaseResponse
+  implements IGetTransportBoxByIdResponse
+{
+  transportBox?: TransportBoxDto | undefined;
 
-    constructor(data?: IGetTransportBoxByIdResponse) {
-        super(data);
-    }
+  constructor(data?: IGetTransportBoxByIdResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.transportBox = _data["transportBox"]
+        ? TransportBoxDto.fromJS(_data["transportBox"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): GetTransportBoxByIdResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetTransportBoxByIdResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): GetTransportBoxByIdResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new GetTransportBoxByIdResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["transportBox"] = this.transportBox
+      ? this.transportBox.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IGetTransportBoxByIdResponse extends IBaseResponse {
-    transportBox?: TransportBoxDto | undefined;
+  transportBox?: TransportBoxDto | undefined;
 }
 
-export class ChangeTransportBoxStateResponse extends BaseResponse implements IChangeTransportBoxStateResponse {
-    updatedBox?: GetTransportBoxByIdResponse | undefined;
+export class ChangeTransportBoxStateResponse
+  extends BaseResponse
+  implements IChangeTransportBoxStateResponse
+{
+  updatedBox?: GetTransportBoxByIdResponse | undefined;
 
-    constructor(data?: IChangeTransportBoxStateResponse) {
-        super(data);
-    }
+  constructor(data?: IChangeTransportBoxStateResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.updatedBox = _data["updatedBox"] ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.updatedBox = _data["updatedBox"]
+        ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): ChangeTransportBoxStateResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ChangeTransportBoxStateResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): ChangeTransportBoxStateResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new ChangeTransportBoxStateResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["updatedBox"] = this.updatedBox ? this.updatedBox.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["updatedBox"] = this.updatedBox
+      ? this.updatedBox.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IChangeTransportBoxStateResponse extends IBaseResponse {
-    updatedBox?: GetTransportBoxByIdResponse | undefined;
+  updatedBox?: GetTransportBoxByIdResponse | undefined;
 }
 
-export class ChangeTransportBoxStateRequest implements IChangeTransportBoxStateRequest {
-    boxId?: number;
-    newState?: TransportBoxState;
-    description?: string | undefined;
-    boxCode?: string | undefined;
-    location?: string | undefined;
+export class ChangeTransportBoxStateRequest
+  implements IChangeTransportBoxStateRequest
+{
+  boxId?: number;
+  newState?: TransportBoxState;
+  description?: string | undefined;
+  boxCode?: string | undefined;
+  location?: string | undefined;
 
-    constructor(data?: IChangeTransportBoxStateRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IChangeTransportBoxStateRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.boxId = _data["boxId"];
-            this.newState = _data["newState"];
-            this.description = _data["description"];
-            this.boxCode = _data["boxCode"];
-            this.location = _data["location"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.boxId = _data["boxId"];
+      this.newState = _data["newState"];
+      this.description = _data["description"];
+      this.boxCode = _data["boxCode"];
+      this.location = _data["location"];
     }
+  }
 
-    static fromJS(data: any): ChangeTransportBoxStateRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new ChangeTransportBoxStateRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): ChangeTransportBoxStateRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new ChangeTransportBoxStateRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["boxId"] = this.boxId;
-        data["newState"] = this.newState;
-        data["description"] = this.description;
-        data["boxCode"] = this.boxCode;
-        data["location"] = this.location;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["boxId"] = this.boxId;
+    data["newState"] = this.newState;
+    data["description"] = this.description;
+    data["boxCode"] = this.boxCode;
+    data["location"] = this.location;
+    return data;
+  }
 }
 
 export interface IChangeTransportBoxStateRequest {
-    boxId?: number;
-    newState?: TransportBoxState;
-    description?: string | undefined;
-    boxCode?: string | undefined;
-    location?: string | undefined;
+  boxId?: number;
+  newState?: TransportBoxState;
+  description?: string | undefined;
+  boxCode?: string | undefined;
+  location?: string | undefined;
 }
 
 export enum TransportBoxState {
-    New = "New",
-    Opened = "Opened",
-    InTransit = "InTransit",
-    Received = "Received",
-    InSwap = "InSwap",
-    Stocked = "Stocked",
-    Closed = "Closed",
-    Error = "Error",
-    Reserve = "Reserve",
+  New = "New",
+  Opened = "Opened",
+  InTransit = "InTransit",
+  Received = "Received",
+  InSwap = "InSwap",
+  Stocked = "Stocked",
+  Closed = "Closed",
+  Error = "Error",
+  Reserve = "Reserve",
 }
 
-export class CreateNewTransportBoxResponse extends BaseResponse implements ICreateNewTransportBoxResponse {
-    transportBox?: TransportBoxDto | undefined;
+export class CreateNewTransportBoxResponse
+  extends BaseResponse
+  implements ICreateNewTransportBoxResponse
+{
+  transportBox?: TransportBoxDto | undefined;
 
-    constructor(data?: ICreateNewTransportBoxResponse) {
-        super(data);
-    }
+  constructor(data?: ICreateNewTransportBoxResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.transportBox = _data["transportBox"]
+        ? TransportBoxDto.fromJS(_data["transportBox"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): CreateNewTransportBoxResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateNewTransportBoxResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): CreateNewTransportBoxResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateNewTransportBoxResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["transportBox"] = this.transportBox
+      ? this.transportBox.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface ICreateNewTransportBoxResponse extends IBaseResponse {
-    transportBox?: TransportBoxDto | undefined;
+  transportBox?: TransportBoxDto | undefined;
 }
 
-export class CreateNewTransportBoxRequest implements ICreateNewTransportBoxRequest {
-    description?: string | undefined;
+export class CreateNewTransportBoxRequest
+  implements ICreateNewTransportBoxRequest
+{
+  description?: string | undefined;
 
-    constructor(data?: ICreateNewTransportBoxRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: ICreateNewTransportBoxRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.description = _data["description"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.description = _data["description"];
     }
+  }
 
-    static fromJS(data: any): CreateNewTransportBoxRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateNewTransportBoxRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): CreateNewTransportBoxRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new CreateNewTransportBoxRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["description"] = this.description;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["description"] = this.description;
+    return data;
+  }
 }
 
 export interface ICreateNewTransportBoxRequest {
-    description?: string | undefined;
+  description?: string | undefined;
 }
 
-export class AddItemToBoxResponse extends BaseResponse implements IAddItemToBoxResponse {
-    item?: TransportBoxItemDto | undefined;
-    transportBox?: TransportBoxDto | undefined;
+export class AddItemToBoxResponse
+  extends BaseResponse
+  implements IAddItemToBoxResponse
+{
+  item?: TransportBoxItemDto | undefined;
+  transportBox?: TransportBoxDto | undefined;
 
-    constructor(data?: IAddItemToBoxResponse) {
-        super(data);
-    }
+  constructor(data?: IAddItemToBoxResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.item = _data["item"] ? TransportBoxItemDto.fromJS(_data["item"]) : <any>undefined;
-            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.item = _data["item"]
+        ? TransportBoxItemDto.fromJS(_data["item"])
+        : <any>undefined;
+      this.transportBox = _data["transportBox"]
+        ? TransportBoxDto.fromJS(_data["transportBox"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): AddItemToBoxResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new AddItemToBoxResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): AddItemToBoxResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new AddItemToBoxResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
-        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+    data["transportBox"] = this.transportBox
+      ? this.transportBox.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IAddItemToBoxResponse extends IBaseResponse {
-    item?: TransportBoxItemDto | undefined;
-    transportBox?: TransportBoxDto | undefined;
+  item?: TransportBoxItemDto | undefined;
+  transportBox?: TransportBoxDto | undefined;
 }
 
 export class AddItemToBoxRequest implements IAddItemToBoxRequest {
-    boxId?: number;
-    productCode!: string;
-    productName!: string;
-    amount!: number;
+  boxId?: number;
+  productCode!: string;
+  productName!: string;
+  amount!: number;
 
-    constructor(data?: IAddItemToBoxRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+  constructor(data?: IAddItemToBoxRequest) {
+    if (data) {
+      for (var property in data) {
+        if (data.hasOwnProperty(property))
+          (<any>this)[property] = (<any>data)[property];
+      }
     }
+  }
 
-    init(_data?: any) {
-        if (_data) {
-            this.boxId = _data["boxId"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.amount = _data["amount"];
-        }
+  init(_data?: any) {
+    if (_data) {
+      this.boxId = _data["boxId"];
+      this.productCode = _data["productCode"];
+      this.productName = _data["productName"];
+      this.amount = _data["amount"];
     }
+  }
 
-    static fromJS(data: any): AddItemToBoxRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new AddItemToBoxRequest();
-        result.init(data);
-        return result;
-    }
+  static fromJS(data: any): AddItemToBoxRequest {
+    data = typeof data === "object" ? data : {};
+    let result = new AddItemToBoxRequest();
+    result.init(data);
+    return result;
+  }
 
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["boxId"] = this.boxId;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["amount"] = this.amount;
-        return data;
-    }
+  toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["boxId"] = this.boxId;
+    data["productCode"] = this.productCode;
+    data["productName"] = this.productName;
+    data["amount"] = this.amount;
+    return data;
+  }
 }
 
 export interface IAddItemToBoxRequest {
-    boxId?: number;
-    productCode: string;
-    productName: string;
-    amount: number;
+  boxId?: number;
+  productCode: string;
+  productName: string;
+  amount: number;
 }
 
-export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveItemFromBoxResponse {
-    transportBox?: TransportBoxDto | undefined;
+export class RemoveItemFromBoxResponse
+  extends BaseResponse
+  implements IRemoveItemFromBoxResponse
+{
+  transportBox?: TransportBoxDto | undefined;
 
-    constructor(data?: IRemoveItemFromBoxResponse) {
-        super(data);
-    }
+  constructor(data?: IRemoveItemFromBoxResponse) {
+    super(data);
+  }
 
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
-        }
+  override init(_data?: any) {
+    super.init(_data);
+    if (_data) {
+      this.transportBox = _data["transportBox"]
+        ? TransportBoxDto.fromJS(_data["transportBox"])
+        : <any>undefined;
     }
+  }
 
-    static override fromJS(data: any): RemoveItemFromBoxResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new RemoveItemFromBoxResponse();
-        result.init(data);
-        return result;
-    }
+  static override fromJS(data: any): RemoveItemFromBoxResponse {
+    data = typeof data === "object" ? data : {};
+    let result = new RemoveItemFromBoxResponse();
+    result.init(data);
+    return result;
+  }
 
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
+  override toJSON(data?: any) {
+    data = typeof data === "object" ? data : {};
+    data["transportBox"] = this.transportBox
+      ? this.transportBox.toJSON()
+      : <any>undefined;
+    super.toJSON(data);
+    return data;
+  }
 }
 
 export interface IRemoveItemFromBoxResponse extends IBaseResponse {
-    transportBox?: TransportBoxDto | undefined;
+  transportBox?: TransportBoxDto | undefined;
 }
 
 export interface FileResponse {
-    data: Blob;
-    status: number;
-    fileName?: string;
-    headers?: { [name: string]: any };
+  data: Blob;
+  status: number;
+  fileName?: string;
+  headers?: { [name: string]: any };
 }
 
 export class SwaggerException extends Error {
-    override message: string;
-    status: number;
-    response: string;
-    headers: { [key: string]: any; };
-    result: any;
+  override message: string;
+  status: number;
+  response: string;
+  headers: { [key: string]: any };
+  result: any;
 
-    constructor(message: string, status: number, response: string, headers: { [key: string]: any; }, result: any) {
-        super();
+  constructor(
+    message: string,
+    status: number,
+    response: string,
+    headers: { [key: string]: any },
+    result: any,
+  ) {
+    super();
 
-        this.message = message;
-        this.status = status;
-        this.response = response;
-        this.headers = headers;
-        this.result = result;
-    }
+    this.message = message;
+    this.status = status;
+    this.response = response;
+    this.headers = headers;
+    this.result = result;
+  }
 
-    protected isSwaggerException = true;
+  protected isSwaggerException = true;
 
-    static isSwaggerException(obj: any): obj is SwaggerException {
-        return obj.isSwaggerException === true;
-    }
+  static isSwaggerException(obj: any): obj is SwaggerException {
+    return obj.isSwaggerException === true;
+  }
 }
 
-function throwException(message: string, status: number, response: string, headers: { [key: string]: any; }, result?: any): any {
-    if (result !== null && result !== undefined)
-        throw result;
-    else
-        throw new SwaggerException(message, status, response, headers, null);
+function throwException(
+  message: string,
+  status: number,
+  response: string,
+  headers: { [key: string]: any },
+  result?: any,
+): any {
+  if (result !== null && result !== undefined) throw result;
+  else throw new SwaggerException(message, status, response, headers, null);
 }

@@ -1,43 +1,53 @@
-import { Configuration, PopupRequest, RedirectRequest } from '@azure/msal-browser';
+import {
+  Configuration,
+  PopupRequest,
+  RedirectRequest,
+} from "@azure/msal-browser";
 
 // MSAL configuration
 export const msalConfig: Configuration = {
   auth: {
     clientId: process.env.REACT_APP_AZURE_CLIENT_ID!,
     authority: process.env.REACT_APP_AZURE_AUTHORITY!,
-    redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-    postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-    clientCapabilities: ['CP1'] // This lets the resource owner know that this client is capable of handling claims challenges.
+    redirectUri:
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "http://localhost:3000",
+    postLogoutRedirectUri:
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "http://localhost:3000",
+    clientCapabilities: ["CP1"], // This lets the resource owner know that this client is capable of handling claims challenges.
   },
   cache: {
-    cacheLocation: 'sessionStorage', // This configures where your cache will be stored
+    cacheLocation: "sessionStorage", // This configures where your cache will be stored
     storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
   },
   system: {
-    allowNativeBroker: false // Disables WAM Broker
-  }
+    allowNativeBroker: false, // Disables WAM Broker
+  },
 };
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
 export const loginRequest: PopupRequest = {
-  scopes: ['User.Read', 'openid', 'profile'],
-  prompt: 'select_account',
+  scopes: ["User.Read", "openid", "profile"],
+  prompt: "select_account",
 };
 
 // Redirect request configuration
 export const loginRedirectRequest: RedirectRequest = {
-  scopes: ['User.Read', 'openid', 'profile'],
-  prompt: 'select_account',
+  scopes: ["User.Read", "openid", "profile"],
+  prompt: "select_account",
 };
 
 // Add the endpoints here for Microsoft Graph API services you'd like to use.
 export const graphConfig = {
-  graphMeEndpoint: 'https://graph.microsoft.com/v1.0/me',
+  graphMeEndpoint: "https://graph.microsoft.com/v1.0/me",
 };
 
 // API scopes for backend
 // Request token specifically for our backend API
 export const apiRequest: PopupRequest = {
   scopes: [`api://${process.env.REACT_APP_AZURE_BACKEND_CLIENT_ID}/.default`], // Backend API scope
-  prompt: 'consent', // Force consent flow to ensure user grants permission
+  prompt: "consent", // Force consent flow to ensure user grants permission
 };

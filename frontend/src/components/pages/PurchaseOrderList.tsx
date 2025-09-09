@@ -1,45 +1,56 @@
-import React, { useState } from 'react';
-import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Plus, Calendar, Check } from 'lucide-react';
-import { 
+import React, { useState } from "react";
+import {
+  Search,
+  Filter,
+  AlertCircle,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Calendar,
+  Check,
+} from "lucide-react";
+import {
   usePurchaseOrdersQuery,
-  GetPurchaseOrdersRequest
-} from '../../api/hooks/usePurchaseOrders';
-import PurchaseOrderDetail from './PurchaseOrderDetail';
-import PurchaseOrderForm from './PurchaseOrderForm';
-import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
+  GetPurchaseOrdersRequest,
+} from "../../api/hooks/usePurchaseOrders";
+import PurchaseOrderDetail from "./PurchaseOrderDetail";
+import PurchaseOrderForm from "./PurchaseOrderForm";
+import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 // Status labels mapping
 const statusLabels: Record<string, string> = {
-  'Draft': 'Návrh',
-  'InTransit': 'V přepravě',
-  'Completed': 'Dokončeno',
+  Draft: "Návrh",
+  InTransit: "V přepravě",
+  Completed: "Dokončeno",
 };
 
 const statusColors: Record<string, string> = {
-  'Draft': 'bg-gray-100 text-gray-800',
-  'InTransit': 'bg-blue-100 text-blue-800',
-  'Completed': 'bg-green-100 text-green-800',
+  Draft: "bg-gray-100 text-gray-800",
+  InTransit: "bg-blue-100 text-blue-800",
+  Completed: "bg-green-100 text-green-800",
 };
 
 const PurchaseOrderList: React.FC = () => {
-  
   // Filter states - separate input values from applied filters
-  const [searchTermInput, setSearchTermInput] = useState('');
-  const [statusInput, setStatusInput] = useState('ActiveOnly'); // Default to 'ActiveOnly'
-  const [fromDateInput, setFromDateInput] = useState('');
-  const [toDateInput, setToDateInput] = useState('');
-  
-  const [searchTermFilter, setSearchTermFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ActiveOnly'); // Default to 'ActiveOnly'
-  const [fromDateFilter, setFromDateFilter] = useState('');
-  const [toDateFilter, setToDateFilter] = useState('');
-  
+  const [searchTermInput, setSearchTermInput] = useState("");
+  const [statusInput, setStatusInput] = useState("ActiveOnly"); // Default to 'ActiveOnly'
+  const [fromDateInput, setFromDateInput] = useState("");
+  const [toDateInput, setToDateInput] = useState("");
+
+  const [searchTermFilter, setSearchTermFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ActiveOnly"); // Default to 'ActiveOnly'
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
+
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  
+
   // Sorting states
-  const [sortBy, setSortBy] = useState('OrderDate');
+  const [sortBy, setSortBy] = useState("OrderDate");
   const [sortDescending, setSortDescending] = useState(true);
 
   // Modal states
@@ -52,18 +63,24 @@ const PurchaseOrderList: React.FC = () => {
   // Build request object
   const request: GetPurchaseOrdersRequest = {
     searchTerm: searchTermFilter || undefined,
-    status: statusFilter === 'ActiveOnly' ? undefined : (statusFilter || undefined),
+    status:
+      statusFilter === "ActiveOnly" ? undefined : statusFilter || undefined,
     fromDate: fromDateFilter ? new Date(fromDateFilter) : undefined,
     toDate: toDateFilter ? new Date(toDateFilter) : undefined,
-    activeOrdersOnly: statusFilter === 'ActiveOnly' ? true : false,
+    activeOrdersOnly: statusFilter === "ActiveOnly" ? true : false,
     pageNumber,
     pageSize,
     sortBy,
-    sortDescending
+    sortDescending,
   };
 
   // Use the API query
-  const { data, isLoading: loading, error, refetch } = usePurchaseOrdersQuery(request);
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+  } = usePurchaseOrdersQuery(request);
 
   const orders = data?.orders || [];
   const totalCount = data?.totalCount || 0;
@@ -76,30 +93,30 @@ const PurchaseOrderList: React.FC = () => {
     setFromDateFilter(fromDateInput);
     setToDateFilter(toDateInput);
     setPageNumber(1); // Reset to first page when applying filters
-    
+
     // Force data reload by refetching
     await refetch();
   };
 
   // Handler for Enter key press
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       handleApplyFilters();
     }
   };
 
   // Handler for clearing all filters
   const handleClearFilters = async () => {
-    setSearchTermInput('');
-    setStatusInput('ActiveOnly'); // Reset to default (ActiveOnly)
-    setFromDateInput('');
-    setToDateInput('');
-    setSearchTermFilter('');
-    setStatusFilter('ActiveOnly'); // Reset to default (ActiveOnly)
-    setFromDateFilter('');
-    setToDateFilter('');
+    setSearchTermInput("");
+    setStatusInput("ActiveOnly"); // Reset to default (ActiveOnly)
+    setFromDateInput("");
+    setToDateInput("");
+    setSearchTermFilter("");
+    setStatusFilter("ActiveOnly"); // Reset to default (ActiveOnly)
+    setFromDateFilter("");
+    setToDateFilter("");
     setPageNumber(1);
-    
+
     // Force data reload by refetching
     await refetch();
   };
@@ -171,18 +188,21 @@ const PurchaseOrderList: React.FC = () => {
     if (selectedOrderId) {
       setIsDetailModalOpen(true);
     }
-    console.log('Order updated successfully:', orderId);
+    console.log("Order updated successfully:", orderId);
   };
 
   const handleCreateSuccess = (orderId: number) => {
     // Refresh the list
     refetch();
     // Optionally open the detail of the newly created order
-    console.log('Order created successfully:', orderId);
+    console.log("Order created successfully:", orderId);
   };
 
   // Sortable header component
-  const SortableHeader: React.FC<{ column: string; children: React.ReactNode }> = ({ column, children }) => {
+  const SortableHeader: React.FC<{
+    column: string;
+    children: React.ReactNode;
+  }> = ({ column, children }) => {
     const isActive = sortBy === column;
     const isAscending = isActive && !sortDescending;
     const isDescending = isActive && sortDescending;
@@ -197,10 +217,10 @@ const PurchaseOrderList: React.FC = () => {
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`}
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
             />
           </div>
         </div>
@@ -210,14 +230,14 @@ const PurchaseOrderList: React.FC = () => {
 
   // Format date for display
   const formatDate = (date: Date | string | undefined) => {
-    if (!date) return '-';
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('cs-CZ');
+    if (!date) return "-";
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    return dateObj.toLocaleDateString("cs-CZ");
   };
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
+    return `${amount.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
   };
 
   if (loading) {
@@ -243,10 +263,15 @@ const PurchaseOrderList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
+    <div
+      className="flex flex-col w-full"
+      style={{ height: PAGE_CONTAINER_HEIGHT }}
+    >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Nákupní objednávky</h1>
+        <h1 className="text-lg font-semibold text-gray-900">
+          Nákupní objednávky
+        </h1>
         <button
           onClick={handleCreateOrder}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2"
@@ -264,7 +289,7 @@ const PurchaseOrderList: React.FC = () => {
               <Filter className="h-4 w-4 text-gray-400 mr-2" />
               <span className="text-sm font-medium text-gray-900">Filtry:</span>
             </div>
-            
+
             {/* Search term */}
             <div className="flex-1 max-w-xs">
               <div className="relative">
@@ -346,26 +371,43 @@ const PurchaseOrderList: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <SortableHeader column="OrderNumber">Číslo objednávky</SortableHeader>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <SortableHeader column="OrderNumber">
+                  Číslo objednávky
+                </SortableHeader>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Dodavatel
                 </th>
-                <SortableHeader column="OrderDate">Datum objednávky</SortableHeader>
-                <SortableHeader column="ExpectedDeliveryDate">Plánované dodání</SortableHeader>
+                <SortableHeader column="OrderDate">
+                  Datum objednávky
+                </SortableHeader>
+                <SortableHeader column="ExpectedDeliveryDate">
+                  Plánované dodání
+                </SortableHeader>
                 <SortableHeader column="Status">Stav</SortableHeader>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Faktura
                 </th>
-                <SortableHeader column="TotalAmount">Celková částka</SortableHeader>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <SortableHeader column="TotalAmount">
+                  Celková částka
+                </SortableHeader>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Položky
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {orders.map((order) => (
-                <tr 
-                  key={order.id} 
+                <tr
+                  key={order.id}
                   className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                   onClick={() => order.id && handleOrderClick(order.id)}
                   title="Klikněte pro zobrazení detailu"
@@ -380,11 +422,16 @@ const PurchaseOrderList: React.FC = () => {
                     {formatDate(order.orderDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '-'}
+                    {order.expectedDeliveryDate
+                      ? formatDate(order.expectedDeliveryDate)
+                      : "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || 'bg-gray-100 text-gray-800'}`}>
-                      {(order.status && statusLabels[order.status]) || order.status}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || "bg-gray-100 text-gray-800"}`}
+                    >
+                      {(order.status && statusLabels[order.status]) ||
+                        order.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -409,7 +456,7 @@ const PurchaseOrderList: React.FC = () => {
               ))}
             </tbody>
           </table>
-          
+
           {orders.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500">Žádné objednávky nebyly nalezeny.</p>
@@ -417,7 +464,7 @@ const PurchaseOrderList: React.FC = () => {
           )}
         </div>
       </div>
-      
+
       {/* Pagination - Compact */}
       {totalCount > 0 && (
         <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
@@ -440,10 +487,16 @@ const PurchaseOrderList: React.FC = () => {
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
               <p className="text-xs text-gray-600">
-                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                {searchTermFilter || (statusFilter && statusFilter !== 'ActiveOnly') || fromDateFilter || toDateFilter ? (
+                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
+                {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
+                {searchTermFilter ||
+                (statusFilter && statusFilter !== "ActiveOnly") ||
+                fromDateFilter ||
+                toDateFilter ? (
                   <span className="text-gray-500"> (filtrováno)</span>
-                ) : ''}
+                ) : (
+                  ""
+                )}
               </p>
               <div className="flex items-center space-x-1">
                 <span className="text-xs text-gray-600">Zobrazit:</span>
@@ -460,7 +513,10 @@ const PurchaseOrderList: React.FC = () => {
               </div>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
+              <nav
+                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
@@ -468,7 +524,7 @@ const PurchaseOrderList: React.FC = () => {
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
-                
+
                 {/* Page numbers */}
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum: number;
@@ -481,22 +537,22 @@ const PurchaseOrderList: React.FC = () => {
                   } else {
                     pageNum = pageNumber - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNum === pageNumber
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
+                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                       }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-                
+
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
@@ -512,7 +568,7 @@ const PurchaseOrderList: React.FC = () => {
 
       {/* Detail Modal */}
       {selectedOrderId && (
-        <PurchaseOrderDetail 
+        <PurchaseOrderDetail
           orderId={selectedOrderId}
           isOpen={isDetailModalOpen}
           onClose={handleCloseDetail}
@@ -521,7 +577,7 @@ const PurchaseOrderList: React.FC = () => {
       )}
 
       {/* Create Modal */}
-      <PurchaseOrderForm 
+      <PurchaseOrderForm
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreate}
         onSuccess={handleCreateSuccess}
@@ -529,7 +585,7 @@ const PurchaseOrderList: React.FC = () => {
 
       {/* Edit Modal */}
       {editOrderId && (
-        <PurchaseOrderForm 
+        <PurchaseOrderForm
           isOpen={isEditModalOpen}
           onClose={handleCloseEdit}
           onSuccess={handleEditSuccess}

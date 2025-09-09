@@ -1,12 +1,34 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Tag, Save, X, Plus, Trash2, Type, Search } from 'lucide-react';
-import { format } from 'date-fns';
-import { useCreateJournalEntry, useUpdateJournalEntry, useJournalTags, useCreateJournalTag } from '../api/hooks/useJournal';
-import { CatalogAutocomplete } from './common/CatalogAutocomplete';
-import { catalogItemToProductCode, PRODUCT_TYPE_FILTERS } from './common/CatalogAutocompleteAdapters';
-import type { JournalEntryDto } from '../api/generated/api-client';
-import { CreateJournalEntryRequest, UpdateJournalEntryRequest, CreateJournalTagRequest } from '../api/generated/api-client';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  FileText,
+  Tag,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  Type,
+  Search,
+} from "lucide-react";
+import { format } from "date-fns";
+import {
+  useCreateJournalEntry,
+  useUpdateJournalEntry,
+  useJournalTags,
+  useCreateJournalTag,
+} from "../api/hooks/useJournal";
+import { CatalogAutocomplete } from "./common/CatalogAutocomplete";
+import {
+  catalogItemToProductCode,
+  PRODUCT_TYPE_FILTERS,
+} from "./common/CatalogAutocompleteAdapters";
+import type { JournalEntryDto } from "../api/generated/api-client";
+import {
+  CreateJournalEntryRequest,
+  UpdateJournalEntryRequest,
+  CreateJournalTagRequest,
+} from "../api/generated/api-client";
 
 interface JournalEntryFormProps {
   entry?: JournalEntryDto;
@@ -16,7 +38,13 @@ interface JournalEntryFormProps {
   isEdit?: boolean;
 }
 
-export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, isEdit = false }: JournalEntryFormProps) {
+export default function JournalEntryForm({
+  entry,
+  onSave,
+  onCancel,
+  onDelete,
+  isEdit = false,
+}: JournalEntryFormProps) {
   const navigate = useNavigate();
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
@@ -24,48 +52,55 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
   const { data: tagsData } = useJournalTags();
 
   // Form state
-  const [title, setTitle] = useState(entry?.title || '');
-  const [content, setContent] = useState(entry?.content || '');
+  const [title, setTitle] = useState(entry?.title || "");
+  const [content, setContent] = useState(entry?.content || "");
   const [entryDate, setEntryDate] = useState(
-    entry?.entryDate ? format(new Date(entry.entryDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+    entry?.entryDate
+      ? format(new Date(entry.entryDate), "yyyy-MM-dd")
+      : format(new Date(), "yyyy-MM-dd"),
   );
   const [selectedTags, setSelectedTags] = useState<number[]>(
-    entry?.tags?.map(tag => tag.id!).filter(id => id !== undefined) || []
+    entry?.tags?.map((tag) => tag.id!).filter((id) => id !== undefined) || [],
   );
-  const [associatedProducts, setAssociatedProducts] = useState<string[]>(entry?.associatedProducts || []);
+  const [associatedProducts, setAssociatedProducts] = useState<string[]>(
+    entry?.associatedProducts || [],
+  );
   const [currentProduct, setCurrentProduct] = useState<string | null>(null);
-  const [newTagName, setNewTagName] = useState('');
+  const [newTagName, setNewTagName] = useState("");
   const [showNewTagInput, setShowNewTagInput] = useState(false);
   const [useTextInput, setUseTextInput] = useState(false);
-  
+
   // Validation state
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  
+
   // Loading state
-  const isLoading = createMutation.isPending || updateMutation.isPending || createTagMutation.isPending;
+  const isLoading =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    createTagMutation.isPending;
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
-    
+
     if (!title.trim()) {
-      newErrors.title = 'Název je povinný';
+      newErrors.title = "Název je povinný";
     }
-    
+
     if (!content.trim()) {
-      newErrors.content = 'Obsah je povinný';
+      newErrors.content = "Obsah je povinný";
     }
-    
+
     if (!entryDate) {
-      newErrors.entryDate = 'Datum je povinné';
+      newErrors.entryDate = "Datum je povinné";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
+
     try {
       if (isEdit && entry) {
         const updateRequest = new UpdateJournalEntryRequest({
@@ -74,15 +109,18 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
           content: content.trim(),
           entryDate: new Date(entryDate),
           tagIds: selectedTags,
-          associatedProducts: associatedProducts
+          associatedProducts: associatedProducts,
         });
-        
-        const result = await updateMutation.mutateAsync({ id: entry.id!, request: updateRequest });
-        
+
+        const result = await updateMutation.mutateAsync({
+          id: entry.id!,
+          request: updateRequest,
+        });
+
         if (onSave && result) {
           onSave(result);
         } else {
-          navigate('/journal');
+          navigate("/journal");
         }
       } else {
         const createRequest = new CreateJournalEntryRequest({
@@ -90,19 +128,19 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
           content: content.trim(),
           entryDate: new Date(entryDate),
           tagIds: selectedTags,
-          associatedProducts: associatedProducts
+          associatedProducts: associatedProducts,
         });
-        
+
         const result = await createMutation.mutateAsync(createRequest);
-        
+
         if (onSave && result) {
           onSave(result);
         } else {
-          navigate('/journal');
+          navigate("/journal");
         }
       }
     } catch (error) {
-      console.error('Error saving journal entry:', error);
+      console.error("Error saving journal entry:", error);
     }
   };
 
@@ -110,48 +148,51 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
     if (onCancel) {
       onCancel();
     } else {
-      navigate('/journal');
+      navigate("/journal");
     }
   };
 
   const handleProductSelect = (productCode: string | null) => {
-    if (productCode && productCode.trim() && !associatedProducts.includes(productCode.trim())) {
+    if (
+      productCode &&
+      productCode.trim() &&
+      !associatedProducts.includes(productCode.trim())
+    ) {
       setAssociatedProducts([...associatedProducts, productCode.trim()]);
     }
     setCurrentProduct(null); // Reset for next selection
   };
 
   const handleRemoveProduct = (productCode: string) => {
-    setAssociatedProducts(associatedProducts.filter(p => p !== productCode));
+    setAssociatedProducts(associatedProducts.filter((p) => p !== productCode));
   };
 
   const handleTagToggle = (tagId: number) => {
-    setSelectedTags(prev => 
-      prev.includes(tagId) 
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
+    setSelectedTags((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
     );
   };
 
   const handleCreateNewTag = async () => {
     if (!newTagName.trim()) return;
-    
+
     try {
       const createTagRequest = new CreateJournalTagRequest({
         name: newTagName.trim(),
-        color: '#6366f1' // Default indigo color
+        color: "#6366f1", // Default indigo color
       });
       await createTagMutation.mutateAsync(createTagRequest);
-      setNewTagName('');
+      setNewTagName("");
       setShowNewTagInput(false);
     } catch (error) {
-      console.error('Error creating tag:', error);
+      console.error("Error creating tag:", error);
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto">
-
       {/* Form */}
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg">
         <div className="p-6 space-y-6">
@@ -159,7 +200,10 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Title */}
             <div className="md:col-span-2">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Název záznamu *
               </label>
               <div className="relative">
@@ -170,7 +214,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Zadejte název záznamu"
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.title && (
@@ -180,7 +224,10 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
 
             {/* Entry Date */}
             <div>
-              <label htmlFor="entryDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="entryDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Datum záznamu *
               </label>
               <div className="relative">
@@ -190,7 +237,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                   id="entryDate"
                   value={entryDate}
                   onChange={(e) => setEntryDate(e.target.value)}
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.entryDate && (
@@ -201,7 +248,10 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
 
           {/* Content */}
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="content"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Obsah záznamu *
             </label>
             <textarea
@@ -210,7 +260,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="Zadejte obsah záznamu..."
-              className={`block w-full px-3 py-2 border ${errors.content ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+              className={`block w-full px-3 py-2 border ${errors.content ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
             />
             {errors.content && (
               <p className="mt-1 text-sm text-red-600">{errors.content}</p>
@@ -231,7 +281,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 Nový štítek
               </button>
             </div>
-            
+
             {showNewTagInput && (
               <div className="flex items-center gap-2 mb-3">
                 <input
@@ -251,7 +301,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 <button
                   onClick={() => {
                     setShowNewTagInput(false);
-                    setNewTagName('');
+                    setNewTagName("");
                   }}
                   className="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                 >
@@ -259,7 +309,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 </button>
               </div>
             )}
-            
+
             <div className="flex flex-wrap gap-2">
               {tagsData?.tags?.map((tag) => (
                 <button
@@ -267,8 +317,8 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                   onClick={() => handleTagToggle(tag.id!)}
                   className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                     selectedTags.includes(tag.id!)
-                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                      : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
                   }`}
                 >
                   <Tag className="h-3 w-3 mr-1" />
@@ -289,8 +339,8 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                   onClick={() => setUseTextInput(false)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     !useTextInput
-                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                      : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
                   }`}
                 >
                   <Search className="h-3 w-3 mr-1" />
@@ -300,8 +350,8 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                   onClick={() => setUseTextInput(true)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     useTextInput
-                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                      : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
                   }`}
                 >
                   <Type className="h-3 w-3 mr-1" />
@@ -309,7 +359,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 </button>
               </div>
             </div>
-            
+
             <CatalogAutocomplete<string>
               value={currentProduct}
               onSelect={handleProductSelect}
@@ -324,14 +374,15 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
               allowManualEntry={useTextInput}
               size="md"
             />
-            
+
             {/* Mode-specific help text */}
             {useTextInput && (
               <div className="mt-1 text-xs text-gray-500">
-                Tip: Zadejte produktový prefix a stiskněte Enter nebo klikněte mimo pole pro přidání
+                Tip: Zadejte produktový prefix a stiskněte Enter nebo klikněte
+                mimo pole pro přidání
               </div>
             )}
-            
+
             {/* Selected products */}
             <div className="flex flex-wrap gap-2 mt-3">
               {associatedProducts.map((productCode) => (
@@ -351,7 +402,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
             </div>
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-lg">
           <div className="flex items-center justify-between">
@@ -368,7 +419,7 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
             ) : (
               <div></div>
             )}
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCancel}
@@ -384,7 +435,11 @@ export default function JournalEntryForm({ entry, onSave, onCancel, onDelete, is
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isLoading ? 'Ukládání...' : (isEdit ? 'Uložit změny' : 'Vytvořit záznam')}
+                {isLoading
+                  ? "Ukládání..."
+                  : isEdit
+                    ? "Uložit změny"
+                    : "Vytvořit záznam"}
               </button>
             </div>
           </div>

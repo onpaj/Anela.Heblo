@@ -1,7 +1,7 @@
-import React from 'react';
-import { TransportBoxModalsProps } from './TransportBoxTypes';
-import AddItemToBoxModal from '../../pages/AddItemToBoxModal';
-import LocationSelectionModal from '../../pages/LocationSelectionModal';
+import React from "react";
+import { TransportBoxModalsProps } from "./TransportBoxTypes";
+import AddItemToBoxModal from "../../pages/AddItemToBoxModal";
+import LocationSelectionModal from "../../pages/LocationSelectionModal";
 
 const TransportBoxModals: React.FC<TransportBoxModalsProps> = ({
   transportBox,
@@ -20,7 +20,7 @@ const TransportBoxModals: React.FC<TransportBoxModalsProps> = ({
         boxId={transportBox.id || null}
         onSuccess={handleAddItemSuccess}
       />
-      
+
       <LocationSelectionModal
         isOpen={isLocationSelectionModalOpen}
         onClose={() => setIsLocationSelectionModalOpen(false)}

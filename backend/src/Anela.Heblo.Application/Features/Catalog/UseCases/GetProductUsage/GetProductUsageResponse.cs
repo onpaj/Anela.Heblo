@@ -17,7 +17,7 @@ public class GetProductUsageResponse : BaseResponse
     /// <summary>
     /// Creates an error response
     /// </summary>
-    public GetProductUsageResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public GetProductUsageResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters)
     {
     }
