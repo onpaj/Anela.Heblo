@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/auth-helper';
-import { gotoAndWaitReady } from '../utils/readiness-helper';
+import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Workflow E2E Tests', () => {
   
@@ -9,7 +8,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should test complete box state transitions (Created → Packed → Shipped → Delivered)', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find a box in 'New' or 'Created' state or create one
     let targetBox = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item').filter({ 
@@ -117,7 +116,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should validate state transition rules and permissions', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find boxes in different states to test invalid transitions
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -197,7 +196,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should test box assignment and location tracking', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
     if (await boxes.count() > 0) {
@@ -268,7 +267,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should verify state history and audit trail', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
     if (await boxes.count() > 0) {
@@ -346,7 +345,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should test workflow error handling and recovery', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
     if (await boxes.count() > 0) {
@@ -439,7 +438,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
       
       // Test connection loss recovery (refresh page)
       await page.reload();
-      await gotoAndWaitReady(page, '/transport-boxes');
+      await navigateToTransportBoxes(page);
       
       // Should still work after reload
       await expect(page.locator('h1')).toContainText('Transport Boxes');
@@ -447,7 +446,7 @@ test.describe('Transport Box Workflow E2E Tests', () => {
   });
 
   test('should test workflow with box state dependencies', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find or create a box to test dependencies
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');

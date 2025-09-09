@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/auth-helper';
-import { gotoAndWaitReady } from '../utils/readiness-helper';
+import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Items E2E Tests', () => {
   
@@ -9,7 +8,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should navigate to Transport Box detail page', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find and click on a transport box to open detail view
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -62,7 +61,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should test adding items to transport box', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to first available box detail
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -144,7 +143,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should validate item quantity management', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to box with items
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -222,7 +221,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should test removing items from boxes', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to box with items
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -281,7 +280,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should verify item autocomplete and selection', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to box and open add item form
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -355,7 +354,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should test QuickAdd functionality for recent items', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to box detail
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -418,7 +417,7 @@ test.describe('Transport Box Items E2E Tests', () => {
   });
 
   test('should test item validation and error handling', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Navigate to box and try to add invalid items
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');

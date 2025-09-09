@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/auth-helper';
-import { gotoAndWaitReady } from '../utils/readiness-helper';
+import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport EAN Integration E2E Tests', () => {
   
@@ -9,7 +8,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should test EAN code scanning and validation', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find or create a box to work with
     let targetBox = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)').first();
@@ -140,7 +139,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should validate EAN code uniqueness and formatting', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Create or find boxes to test EAN uniqueness
     const createButton = page.locator('button').filter({ hasText: /(\+|Add|Create|Nový|Přidat)/ });
@@ -252,7 +251,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should test EAN-based box lookup and identification', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Look for search functionality that supports EAN lookup
     const searchBox = page.locator('input[type="search"], input[placeholder*="search"], input[placeholder*="hledat"], input[placeholder*="EAN"]');
@@ -357,7 +356,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should verify integration with Shoptet stock updates', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Find a box with items to test stock integration
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -426,7 +425,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should test EAN code confirmation workflows', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test EAN confirmation during state transitions
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -511,7 +510,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should test EAN code printing and labeling', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     const boxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
     
@@ -614,7 +613,7 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   });
 
   test('should test bulk EAN operations', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test bulk EAN generation
     const selectAllCheckbox = page.locator('input[type="checkbox"]').first();

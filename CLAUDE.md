@@ -81,8 +81,6 @@ This is an implementation repository for "Anela Heblo" - a cosmetics company wor
 │   │   ├── api/           # API client and services with co-located __tests__/
 │   │   └── [other areas]  # Other frontend areas with co-located __tests__/
 │   ├── test/       # UI automation tests (Playwright)
-│   │   ├── ui/          # UI/Layout tests
-│   │   ├── integration/ # Integration tests
 │   │   └── e2e/         # End-to-end tests
 │   └── package.json # Node.js dependencies and scripts
 │
@@ -368,12 +366,11 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 
 ## Port Configuration
 
-| Environment | Frontend Port | Backend Port | Container Port | Azure URL | Deployment Type |
-|-------------|---------------|--------------|----------------|-----------|-----------------|
-| **Local Development** | 3000 | 5000 | - | - | Separate servers (hot reload) |
-| **Local Automation/Playwright** | 3001 | 5001 | - | - | Separate servers (testing) |
-| **Test Environment** | 8080 | 5000 | 8080 | https://heblo-test.azurewebsites.net | Single container |
-| **Production** | 8080 | 5000 | 8080 | https://heblo.anela.cz | Single container |
+| Environment                  | Frontend Port | Backend Port | Container Port | Azure URL                      | Deployment Type |
+|------------------------------|---------------|--------------|----------------|--------------------------------|-----------------|
+| **Local Development**        | 3000 | 5000 | - | -                              | Separate servers (hot reload) |
+| **Staging/Test Environment** | 8080 | 5000 | 8080 | https://heblo.stg.anela.cz | Single container |
+| **Production**               | 8080 | 5000 | 8080 | https://heblo.anela.cz         | Single container |
 
 ## Deployment Strategy
 
@@ -445,128 +442,93 @@ This ensures documentation stays synchronized with actual implementation and arc
 
 ## Frontend Development & Testing Rules
 
-### Playwright Integration with Automation Environment
+### Playwright Integration with Staging Environment
 
-**MANDATORY**: When running Playwright tests, Claude Code MUST ALWAYS use the "automation" environment:
+**MANDATORY**: Playwright tests MUST run against the deployed staging environment at https://heblo.stg.anela.cz
 
-**CI/CD Integration**: Playwright tests are automatically executed in the GitHub Actions CI pipeline for all pull requests, ensuring UI functionality is validated before merge.
+1. **Test Environment**:
+   - **Target URL**: https://heblo.stg.anela.cz (deployed staging environment)
+   - **Test Location**: `/frontend/test/e2e/` directory and subfolders
+   - **Authentication**: Real Microsoft Entra ID authentication (not mock)
+   - **Data**: Test staging data with real application state
 
-1. **Automation Environment Configuration**:
-   - **Backend**: Port 5001 with `ASPNETCORE_ENVIRONMENT=Automation`
-   - **Frontend**: Port 3001 with automation-specific configuration
-   - **Mock Authentication**: ALWAYS enabled in automation environment (never validate real Azure AD)
-   - **Configuration Files**: Use `appsettings.Automation.json` for backend settings
-   - **CRITICAL**: Backend Program.cs must recognize "Automation" environment and use mock auth handlers
-
-2. **Required Startup Process**:
-   - **Backend**: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation`
-   - **Frontend**: `cd frontend && npm run start:automation`
-   - **Test URL**: Always use `http://localhost:3001` for Playwright tests
-   - **API URL**: Automation frontend connects to `http://localhost:5001`
-
-3. **Automation Scripts Available**:
-   - `./scripts/start-automation-backend.sh` - Start backend on port 5001
-   - `./scripts/start-automation-frontend.sh` - Start frontend on port 3001  
-   - `./scripts/run-playwright-tests.sh` - Complete test runner with environment setup
-
-4. **Port Isolation**:
-   - **Development**: Frontend 3000 → Backend 5000
-   - **Automation/Testing**: Frontend 3001 → Backend 5001
-   - **Test Environment**: Single container on port 8080
-   - **Production**: Single container on port 8080
-
-5. **Visual Testing & Validation**:
-   - Use `npx playwright codegen localhost:3001` to record user interactions
-   - Port 3001 is reserved for Playwright testing in automation environment
+2. **Visual Testing & Validation**:
+   - Use `npx playwright codegen https://heblo.stg.anela.cz` to record user interactions
+   - Test against deployed staging environment for realistic behavior
    - Verify UI changes work correctly across different screen sizes
    - Test responsive behavior (mobile, tablet, desktop breakpoints)
    - Validate component states (hover, active, disabled, etc.)
 
-6. **Interactive Development**:
+3. **Interactive Development**:
    - Test complex user flows (sidebar collapse/expand, form submissions, navigation)
-   - Verify accessibility features (keyboard navigation, screen reader compatibility)
    - Validate cross-browser compatibility when needed
+   - Test real API integrations and data flows
 
-7. **Regression Testing**:
+4. **Regression Testing**:
    - After significant UI changes, run tests to ensure existing functionality still works
-   - Test component interactions and state management
-   - Verify responsive design adaptations
+   - Test component interactions and state management against real backend
+   - Verify responsive design adaptations with actual deployed styles
 
-8. **When to Use Playwright**:
+5. **When to Use Playwright**:
    - **Required**: Major layout changes, new component implementations
    - **Required**: Responsive design updates or sidebar behavior changes  
    - **Required**: Form interactions, navigation flows, or state-dependent UI
+   - **Required**: Authentication flow changes or user management features
    - **Optional**: Minor styling tweaks or text changes
 
-9. **Playwright Commands (Automation Environment)**:
+6. **Playwright Commands (Staging Environment)**:
    - `npx playwright install` - Install browsers (run once)
-   - `npx playwright codegen localhost:3001` - Record interactions for testing
-   - `./scripts/run-playwright-tests.sh` - Run complete test suite with environment setup
-   - `npx playwright test --headed` - Run tests with visible browser
+   - `npx playwright codegen https://heblo.stg.anela.cz` - Record interactions against staging
+   - `./scripts/run-playwright-tests.sh` - Run complete E2E test suite against staging
+   - `./scripts/run-playwright-tests.sh [test-name]` - Run specific test against staging
+   - `npx playwright test --headed` - Run tests with visible browser against staging
    - `npx playwright show-report` - View test results
 
-10. **VS Code Launch Configurations**:
-    - **"Launch Automation Environment"** - Starts both backend (port 5001) and frontend (port 3001) for testing
-    - **"Run All UI Tests (Playwright)"** - Executes all Playwright tests (requires automation environment)
-    - **"Run UI Tests (Headed)"** - Runs tests with visible browser for debugging
-    - **"Run UI Tests (Debug)"** - Runs tests in debug mode with Playwright inspector
-    
-    **Usage**: First run "Launch Automation Environment", then run any of the test configurations.
-
-11. **Test Organization Structure**:
+7. **Test Organization Structure**:
     
     ### **Unit & Integration Tests (Jest + React Testing Library)**
     **Tests are located in `__tests__/` folders next to the components they test:**
-    - **`src/api/__tests__/`** - API client unit tests
-    - **`src/components/__tests__/`** - React component tests
-    - **`src/pages/__tests__/`** - Page component tests
-    - **`src/auth/__tests__/`** - Authentication logic tests
+    - **`src/api/__tests__/`** - API client unit tests (mocked)
+    - **`src/components/__tests__/`** - React component tests (isolated)
+    - **`src/pages/__tests__/`** - Page component tests (mocked dependencies)
+    - **`src/auth/__tests__/`** - Authentication logic tests (mocked)
     - **`src/config/__tests__/`** - Configuration management tests
-    
-    ### **UI Automation Tests (Playwright)**
-    **UI tests are in separate `/frontend/test/` directory:**
-    - **`test/ui/layout/{component}/`** - Visual and interaction tests
-      - `sidebar/` - Sidebar collapse/expand, navigation, responsive behavior
-      - `statusbar/` - Status bar positioning, content, responsiveness
-      - `auth/` - Authentication flows, login/logout UI behavior
-      - `topbar/` - Top navigation, menu interactions
-      - `general/` - Overall layout, responsive design, page structure
-    - **`test/integration/`** - Component interaction testing
-    - **`test/e2e/`** - Full user journey testing
+
+    ### **E2E Tests (Playwright)**
+    **E2E tests are in `/frontend/test/e2e/` directory and subfolders:**
+    - **`test/e2e/auth/`** - Authentication flows with real Microsoft Entra ID
+    - **`test/e2e/navigation/`** - Navigation flows and routing
+    - **`test/e2e/layout/`** - Layout behavior (sidebar, responsive design)
+    - **`test/e2e/features/`** - Feature-specific user journeys
+    - **`test/e2e/integration/`** - Cross-component integration testing
     
     **CRITICAL Test Environment Rules:**
-    - **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components
-    - **UI/Playwright Tests**: MUST use automation environment (ports 3001/5001), located in `/frontend/test/`
+    - **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components  
+    - **E2E Tests**: MUST run against staging environment (https://heblo.stg.anela.cz), located in `/frontend/test/e2e/`
 
-12. **CRITICAL: Background Process Management**:
-    - **ALWAYS run servers in background**: Use `&` at end of commands
-    - **Backend**: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation &`
-    - **Frontend**: `cd frontend && npm run start:automation &`
-    - **Store PIDs**: Capture process IDs for cleanup: `BACKEND_PID=$!` and `FRONTEND_PID=$!`
-    - **MANDATORY Cleanup**: After tests, kill background processes: `kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true`
-    - **Port cleanup**: Also kill by port: `lsof -ti:3001 | xargs kill -9 2>/dev/null || true`
-    - **Never wait for servers to finish**: They run indefinitely, use background execution
-    - **CRITICAL: Never wait after cleanup**: Command must end immediately after killing processes, no waiting!
-    - **PROBLEM**: If tests hang or wait after completion, interrupt immediately
-    - **SOLUTION**: Use `timeout` or ensure command structure ends properly: `command && cleanup || true`
+8. **Authentication Testing**:
+   - Tests run against real Microsoft Entra ID on staging environment
+   - No mock authentication - tests use actual login flows
+   - Requires valid staging environment credentials
+   - Tests verify complete authentication integration
 
 ### Development Workflow
 
 1. **Make UI changes** to React components
-2. **Start dev server** with `npm start` (development - port 3000)
-3. **For Playwright testing**: Always use automation environment:
-   - Start backend: `cd backend/src/Anela.Heblo.API && ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation`
-   - Start frontend: `cd frontend && npm run start:automation`
+2. **Start dev server** with `npm start` (development - port 3000) for local development
+3. **For Playwright testing**: Always use deployed staging environment:
+   - Target: https://heblo.stg.anela.cz
    - Run tests: `./scripts/run-playwright-tests.sh` or `npx playwright test`
-4. **Use Playwright** to record and validate interactions on `localhost:3001`
-5. **Test responsive behavior** across breakpoints
-6. **Verify accessibility** and keyboard navigation
+   - No local server setup required for E2E testing
+4. **Use Playwright** to record and validate interactions on staging environment
+5. **Test responsive behavior** across breakpoints on staging
+6. **Verify accessibility** and keyboard navigation on staging
 7. **Run build** to ensure no compilation errors
 8. **Stick with dev best practices (YAGNI, SOLID, KISS, DRY)**
-9. **Keep code clean and readable - follow established patterns
+9. **Keep code clean and readable** - follow established patterns
 10. **Do not hesitate to ask for clarification** if unsure about implementation details or design decisions
 11. **Do not hesitate to propose refactoring** if you see opportunities for improvement
-12. Before finishing TODO items and stating, that all tasks are completed, claude should validate both FE and BE builds for no compile errors, in case there were some changes (BE build for BE changes, FE build for FE changes)
+12. Before finishing TODO items and stating that all tasks are completed, claude should validate both FE and BE builds for no compile errors, in case there were some changes (BE build for BE changes, FE build for FE changes)
 
 ## Security Rules for Credentials & Secrets
 

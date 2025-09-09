@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/auth-helper';
-import { gotoAndWaitReady } from '../utils/readiness-helper';
+import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Management E2E Tests', () => {
   
@@ -9,10 +8,10 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should navigate to Transport Box list page', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Verify page title and main elements
-    await expect(page.locator('h1')).toContainText('Transport Boxes');
+    await expect(page.locator('h1')).toContainText('Transportní boxy');
     
     // Verify essential UI elements are present
     const searchBox = page.locator('input[type="search"], input[placeholder*="search"], input[placeholder*="hledat"]');
@@ -28,7 +27,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should test transport box filtering and search functionality', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test search functionality
     const searchBox = page.locator('input[type="search"], input[placeholder*="search"], input[placeholder*="hledat"]').first();
@@ -58,7 +57,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should validate box status indicators and state display', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Look for transport boxes in the list
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');
@@ -93,7 +92,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should test box sorting and pagination', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test sorting functionality
     const sortButtons = page.locator('button').filter({ hasText: /Sort|Seřadit|Date|Created|State|Status/ });
@@ -135,7 +134,7 @@ test.describe('Transport Box Management E2E Tests', () => {
         await page.waitForTimeout(1000);
         
         // Should navigate to next page
-        await expect(page.locator('h1')).toContainText('Transport Boxes');
+        await expect(page.locator('h1')).toContainText('Transportní boxy');
         
         // Previous button should now be available
         if (await prevButton.count() > 0) {
@@ -146,7 +145,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should verify bulk operations on multiple boxes', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Look for checkboxes to select multiple items
     const checkboxes = page.locator('input[type="checkbox"]');
@@ -225,7 +224,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should test filtering by status and date range', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test status filtering
     const statusFilter = page.locator('select[name*="status"], select[name*="state"], select').filter({ hasText: /Status|State|Stav/ });
@@ -275,7 +274,7 @@ test.describe('Transport Box Management E2E Tests', () => {
   });
 
   test('should test responsive behavior on different screen sizes', async ({ page }) => {
-    await gotoAndWaitReady(page, '/transport-boxes');
+    await navigateToTransportBoxes(page);
     
     // Test desktop view (default)
     await page.setViewportSize({ width: 1200, height: 800 });
