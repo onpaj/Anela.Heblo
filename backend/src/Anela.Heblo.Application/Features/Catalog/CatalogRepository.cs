@@ -415,7 +415,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
             }
-            
+
             if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
             {
                 product.ManufactureCostHistory = costHistory.ToList();
@@ -426,7 +426,7 @@ public class CatalogRepository : ICatalogRepository
             // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
             product.UpdateMarginCalculation();
         }
-        
+
         return products.ToList();
     }
 
