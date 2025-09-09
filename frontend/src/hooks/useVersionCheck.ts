@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
-import { versionService } from '../services/versionService';
-import { useToast } from '../contexts/ToastContext';
+import { useEffect, useCallback } from "react";
+import { versionService } from "../services/versionService";
+import { useToast } from "../contexts/ToastContext";
 
 export interface UseVersionCheckProps {
   /** Whether to enable automatic version checking (default: true) */
@@ -25,11 +25,13 @@ export interface UseVersionCheckReturn {
 /**
  * Hook to manage application version checking and updates
  */
-export const useVersionCheck = (props: UseVersionCheckProps = {}): UseVersionCheckReturn => {
+export const useVersionCheck = (
+  props: UseVersionCheckProps = {},
+): UseVersionCheckReturn => {
   const {
     enabled = true,
     showNotifications = true,
-    onNewVersionDetected
+    onNewVersionDetected,
   } = props;
 
   const { showInfo } = useToast();
@@ -37,44 +39,49 @@ export const useVersionCheck = (props: UseVersionCheckProps = {}): UseVersionChe
   /**
    * Handle new version detection
    */
-  const handleNewVersionDetected = useCallback((newVersion: string, currentVersion: string) => {
-    console.log(`New version available: ${newVersion} (current: ${currentVersion})`);
-    
-    // Call custom callback if provided
-    if (onNewVersionDetected) {
-      onNewVersionDetected(newVersion, currentVersion);
-    }
-    
-    // Show notification if enabled
-    if (showNotifications) {
-      showInfo(
-        'New Version Available',
-        `Version ${newVersion} is available. Click to update and refresh the application.`,
-        {
-          duration: 0, // Don't auto-hide
-          action: {
-            label: 'Update Now',
-            onClick: () => versionService.updateToNewVersion(newVersion)
-          }
-        }
+  const handleNewVersionDetected = useCallback(
+    (newVersion: string, currentVersion: string) => {
+      console.log(
+        `New version available: ${newVersion} (current: ${currentVersion})`,
       );
-    }
-  }, [onNewVersionDetected, showNotifications, showInfo]);
+
+      // Call custom callback if provided
+      if (onNewVersionDetected) {
+        onNewVersionDetected(newVersion, currentVersion);
+      }
+
+      // Show notification if enabled
+      if (showNotifications) {
+        showInfo(
+          "New Version Available",
+          `Version ${newVersion} is available. Click to update and refresh the application.`,
+          {
+            duration: 0, // Don't auto-hide
+            action: {
+              label: "Update Now",
+              onClick: () => versionService.updateToNewVersion(newVersion),
+            },
+          },
+        );
+      }
+    },
+    [onNewVersionDetected, showNotifications, showInfo],
+  );
 
   /**
    * Check for new version manually
    */
   const checkVersion = useCallback(async () => {
     if (!enabled) return;
-    
+
     try {
       const result = await versionService.hasNewVersion();
-      
+
       if (result.hasUpdate && result.newVersion && result.currentVersion) {
         handleNewVersionDetected(result.newVersion, result.currentVersion);
       }
     } catch (error) {
-      console.error('Manual version check failed:', error);
+      console.error("Manual version check failed:", error);
     }
   }, [enabled, handleNewVersionDetected]);
 
@@ -83,11 +90,11 @@ export const useVersionCheck = (props: UseVersionCheckProps = {}): UseVersionChe
    */
   const initializeVersion = useCallback(async () => {
     if (!enabled) return;
-    
+
     try {
       await versionService.initializeVersion();
     } catch (error) {
-      console.error('Version initialization failed:', error);
+      console.error("Version initialization failed:", error);
     }
   }, [enabled]);
 
@@ -124,6 +131,6 @@ export const useVersionCheck = (props: UseVersionCheckProps = {}): UseVersionChe
     checkVersion,
     initializeVersion,
     updateToNewVersion,
-    getCurrentVersion
+    getCurrentVersion,
   };
 };

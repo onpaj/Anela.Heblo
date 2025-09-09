@@ -1,8 +1,16 @@
-import React from 'react';
-import { BookOpen, Plus, Calendar, Edit2, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
-import { JournalEntryDto } from '../../../../api/generated/api-client';
-import { useJournalEntriesByProduct } from '../../../../api/hooks/useJournal';
-import { format } from 'date-fns';
+import React from "react";
+import {
+  BookOpen,
+  Plus,
+  Calendar,
+  Edit2,
+  ExternalLink,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { JournalEntryDto } from "../../../../api/generated/api-client";
+import { useJournalEntriesByProduct } from "../../../../api/hooks/useJournal";
+import { format } from "date-fns";
 
 interface JournalTabProps {
   productCode: string;
@@ -11,7 +19,12 @@ interface JournalTabProps {
   onViewAllEntries: () => void;
 }
 
-const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEditEntry, onViewAllEntries }) => {
+const JournalTab: React.FC<JournalTabProps> = ({
+  productCode,
+  onAddEntry,
+  onEditEntry,
+  onViewAllEntries,
+}) => {
   const { data, isLoading, error } = useJournalEntriesByProduct(productCode);
   const entries = data?.entries || [];
 
@@ -58,7 +71,9 @@ const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEdit
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-          <p className="text-gray-500 mb-4">Žádné záznamy deníku pro tento produkt</p>
+          <p className="text-gray-500 mb-4">
+            Žádné záznamy deníku pro tento produkt
+          </p>
           <button
             onClick={onAddEntry}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -79,11 +94,13 @@ const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEdit
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h4 className="text-sm font-semibold text-gray-900">
-                      {entry.title || 'Bez názvu'}
+                      {entry.title || "Bez názvu"}
                     </h4>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
-                      {entry.entryDate ? format(new Date(entry.entryDate), 'dd.MM.yyyy') : ''}
+                      {entry.entryDate
+                        ? format(new Date(entry.entryDate), "dd.MM.yyyy")
+                        : ""}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">
@@ -115,7 +132,7 @@ const JournalTab: React.FC<JournalTabProps> = ({ productCode, onAddEntry, onEdit
               </div>
             </div>
           ))}
-          
+
           {/* Show more button if there are many entries */}
           {entries.length >= 10 && (
             <div className="text-center pt-2">

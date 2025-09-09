@@ -1,8 +1,8 @@
-import React from 'react';
-import { CatalogItemDto } from '../../../api/hooks/useCatalog';
-import { JournalEntryDto } from '../../../api/generated/api-client';
-import JournalEntryModal from '../../JournalEntryModal';
-import ManufactureDifficultyModal from '../../ManufactureDifficultyModal';
+import React from "react";
+import { CatalogItemDto } from "../../../api/hooks/useCatalog";
+import { JournalEntryDto } from "../../../api/generated/api-client";
+import JournalEntryModal from "../../JournalEntryModal";
+import ManufactureDifficultyModal from "../../ManufactureDifficultyModal";
 
 interface CatalogDetailModalsProps {
   item: CatalogItemDto;
@@ -21,20 +21,23 @@ const CatalogDetailModals: React.FC<CatalogDetailModalsProps> = ({
   selectedJournalEntry,
   showManufactureDifficultyModal,
   onCloseManufactureDifficultyModal,
-  refetchCatalogDetail
+  refetchCatalogDetail,
 }) => {
   return (
     <>
       {/* Journal Entry Modal */}
-      <JournalEntryModal 
+      <JournalEntryModal
         isOpen={showJournalModal}
         onClose={onCloseJournalModal}
-        entry={selectedJournalEntry || {
-          associatedProducts: [item.productCode]
-        } as any}
+        entry={
+          selectedJournalEntry ||
+          ({
+            associatedProducts: [item.productCode],
+          } as any)
+        }
         isEdit={!!selectedJournalEntry}
       />
-      
+
       {/* Manufacture Difficulty Modal */}
       <ManufactureDifficultyModal
         isOpen={showManufactureDifficultyModal}
@@ -42,8 +45,8 @@ const CatalogDetailModals: React.FC<CatalogDetailModalsProps> = ({
           onCloseManufactureDifficultyModal();
           refetchCatalogDetail();
         }}
-        productCode={item.productCode || ''}
-        productName={item.productName || ''}
+        productCode={item.productCode || ""}
+        productName={item.productName || ""}
         currentDifficulty={item.manufactureDifficulty}
       />
     </>

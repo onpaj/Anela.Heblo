@@ -1,7 +1,11 @@
-import React from 'react';
-import { CatalogAutocomplete } from './CatalogAutocomplete';
-import { catalogItemToMaterial, materialDisplayValue, PRODUCT_TYPE_FILTERS } from './CatalogAutocompleteAdapters';
-import { MaterialForPurchaseDto } from '../../api/hooks/useMaterials';
+import React from "react";
+import { CatalogAutocomplete } from "./CatalogAutocomplete";
+import {
+  catalogItemToMaterial,
+  materialDisplayValue,
+  PRODUCT_TYPE_FILTERS,
+} from "./CatalogAutocompleteAdapters";
+import { MaterialForPurchaseDto } from "../../api/hooks/useMaterials";
 
 interface MaterialAutocompleteProps {
   value?: MaterialForPurchaseDto | null;
@@ -18,7 +22,7 @@ export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
   placeholder = "Vyberte položku z katalogu...",
   disabled = false,
   error,
-  className = ""
+  className = "",
 }) => {
   return (
     <CatalogAutocomplete<MaterialForPurchaseDto>

@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { useQuery } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 // Types matching backend DTOs
 export interface AuditLogDto {
@@ -49,64 +49,72 @@ export interface GetAuditSummaryResponse {
 }
 
 // API function to fetch audit logs
-const fetchAuditLogs = async (params: GetAuditLogsRequest = {}): Promise<GetAuditLogsResponse> => {
+const fetchAuditLogs = async (
+  params: GetAuditLogsRequest = {},
+): Promise<GetAuditLogsResponse> => {
   const apiClient = getAuthenticatedApiClient();
   const searchParams = new URLSearchParams();
-  
+
   if (params.limit !== undefined) {
-    searchParams.append('limit', params.limit.toString());
+    searchParams.append("limit", params.limit.toString());
   }
   if (params.fromDate) {
-    searchParams.append('fromDate', params.fromDate);
+    searchParams.append("fromDate", params.fromDate);
   }
   if (params.toDate) {
-    searchParams.append('toDate', params.toDate);
+    searchParams.append("toDate", params.toDate);
   }
 
-  const relativeUrl = `/api/audit/data-loads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const relativeUrl = `/api/audit/data-loads${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-  
+
   const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: 'GET',
+    method: "GET",
   });
-  
+
   if (!response.ok) {
-    throw new Error(`Failed to fetch audit logs: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch audit logs: ${response.status} ${response.statusText}`,
+    );
   }
-  
+
   return response.json();
 };
 
 // API function to fetch audit summary
-const fetchAuditSummary = async (params: GetAuditSummaryRequest = {}): Promise<GetAuditSummaryResponse> => {
+const fetchAuditSummary = async (
+  params: GetAuditSummaryRequest = {},
+): Promise<GetAuditSummaryResponse> => {
   const apiClient = getAuthenticatedApiClient();
   const searchParams = new URLSearchParams();
-  
+
   if (params.fromDate) {
-    searchParams.append('fromDate', params.fromDate);
+    searchParams.append("fromDate", params.fromDate);
   }
   if (params.toDate) {
-    searchParams.append('toDate', params.toDate);
+    searchParams.append("toDate", params.toDate);
   }
 
-  const relativeUrl = `/api/audit/summary${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const relativeUrl = `/api/audit/summary${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-  
+
   const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: 'GET',
+    method: "GET",
   });
-  
+
   if (!response.ok) {
-    throw new Error(`Failed to fetch audit summary: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch audit summary: ${response.status} ${response.statusText}`,
+    );
   }
-  
+
   return response.json();
 };
 
 // React Query hook for audit logs
 export const useAuditLogs = (params: GetAuditLogsRequest = {}) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.audit, 'logs', params],
+    queryKey: [...QUERY_KEYS.audit, "logs", params],
     queryFn: () => fetchAuditLogs(params),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -116,7 +124,7 @@ export const useAuditLogs = (params: GetAuditLogsRequest = {}) => {
 // React Query hook for audit summary
 export const useAuditSummary = (params: GetAuditSummaryRequest = {}) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.audit, 'summary', params],
+    queryKey: [...QUERY_KEYS.audit, "summary", params],
     queryFn: () => fetchAuditSummary(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -127,14 +135,14 @@ export const useAuditSummary = (params: GetAuditSummaryRequest = {}) => {
 export const useRecentAuditLogs = (limit: number = 50) => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   const params: GetAuditLogsRequest = {
     limit,
     fromDate: yesterday.toISOString(),
   };
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.audit, 'recent', limit],
+    queryKey: [...QUERY_KEYS.audit, "recent", limit],
     queryFn: () => fetchAuditLogs(params),
     staleTime: 1 * 60 * 1000, // 1 minute for recent data
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -146,13 +154,13 @@ export const useRecentAuditLogs = (limit: number = 50) => {
 export const useRecentAuditSummary = () => {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  
+
   const params: GetAuditSummaryRequest = {
     fromDate: weekAgo.toISOString(),
   };
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.audit, 'recent-summary'],
+    queryKey: [...QUERY_KEYS.audit, "recent-summary"],
     queryFn: () => fetchAuditSummary(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

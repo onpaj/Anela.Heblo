@@ -1,5 +1,5 @@
-import React from 'react';
-import JournalEntryForm from '../JournalEntryForm';
+import React from "react";
+import JournalEntryForm from "../JournalEntryForm";
 
 export default function JournalEntryNew() {
   return (

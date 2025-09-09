@@ -1,13 +1,24 @@
-import React from 'react';
-import { BarChart3 } from 'lucide-react';
-import { Line } from 'react-chartjs-2';
-import { ProductType, CatalogSalesRecordDto, CatalogConsumedRecordDto, CatalogPurchaseRecordDto, CatalogManufactureRecordDto } from '../../../../api/hooks/useCatalog';
-import { JournalEntryDto } from '../../../../api/generated/api-client';
-import { generateMonthLabels, mapDataToMonthlyArray, generatePointStyling, generateTooltipCallback } from './ChartHelpers';
+import React from "react";
+import { BarChart3 } from "lucide-react";
+import { Line } from "react-chartjs-2";
+import {
+  ProductType,
+  CatalogSalesRecordDto,
+  CatalogConsumedRecordDto,
+  CatalogPurchaseRecordDto,
+  CatalogManufactureRecordDto,
+} from "../../../../api/hooks/useCatalog";
+import { JournalEntryDto } from "../../../../api/generated/api-client";
+import {
+  generateMonthLabels,
+  mapDataToMonthlyArray,
+  generatePointStyling,
+  generateTooltipCallback,
+} from "./ChartHelpers";
 
 interface ProductChartProps {
   productType: ProductType;
-  activeTab: 'input' | 'output';
+  activeTab: "input" | "output";
   salesData: CatalogSalesRecordDto[];
   consumedData: CatalogConsumedRecordDto[];
   purchaseData: CatalogPurchaseRecordDto[];
@@ -15,80 +26,96 @@ interface ProductChartProps {
   journalEntries: JournalEntryDto[];
 }
 
-const ProductChart: React.FC<ProductChartProps> = ({ 
-  productType, 
-  activeTab, 
-  salesData, 
-  consumedData, 
+const ProductChart: React.FC<ProductChartProps> = ({
+  productType,
+  activeTab,
+  salesData,
+  consumedData,
   purchaseData,
   manufactureData,
-  journalEntries 
+  journalEntries,
 }) => {
   const monthLabels = generateMonthLabels();
-  
+
   // Determine which data to use based on product type and active tab
   const getChartData = () => {
-    if (activeTab === 'input') {
+    if (activeTab === "input") {
       // Input tab - Purchase for Material/Goods, Manufacture for Product/SemiProduct
-      if (productType === ProductType.Material || productType === ProductType.Goods) {
+      if (
+        productType === ProductType.Material ||
+        productType === ProductType.Goods
+      ) {
         return {
           labels: monthLabels,
-          data: mapDataToMonthlyArray(purchaseData, 'amount'),
-          label: 'Nákup',
-          backgroundColor: 'rgba(34, 197, 94, 0.2)', // Green for purchases
-          borderColor: 'rgba(34, 197, 94, 1)',
-          yAxisLabel: 'Kusů nakoupeno'
+          data: mapDataToMonthlyArray(purchaseData, "amount"),
+          label: "Nákup",
+          backgroundColor: "rgba(34, 197, 94, 0.2)", // Green for purchases
+          borderColor: "rgba(34, 197, 94, 1)",
+          yAxisLabel: "Kusů nakoupeno",
         };
-      } else if (productType === ProductType.Product || productType === ProductType.SemiProduct) {
+      } else if (
+        productType === ProductType.Product ||
+        productType === ProductType.SemiProduct
+      ) {
         // Use actual manufacture data for Product and SemiProduct
         return {
           labels: monthLabels,
-          data: mapDataToMonthlyArray(manufactureData, 'amount'),
-          label: 'Výroba',
-          backgroundColor: 'rgba(168, 85, 247, 0.2)', // Purple for manufacture
-          borderColor: 'rgba(168, 85, 247, 1)',
-          yAxisLabel: 'Kusů vyrobeno'
+          data: mapDataToMonthlyArray(manufactureData, "amount"),
+          label: "Výroba",
+          backgroundColor: "rgba(168, 85, 247, 0.2)", // Purple for manufacture
+          borderColor: "rgba(168, 85, 247, 1)",
+          yAxisLabel: "Kusů vyrobeno",
         };
       }
     } else {
       // Output tab
-      if (productType === ProductType.Material || productType === ProductType.SemiProduct) {
+      if (
+        productType === ProductType.Material ||
+        productType === ProductType.SemiProduct
+      ) {
         return {
           labels: monthLabels,
-          data: mapDataToMonthlyArray(consumedData, 'amount'),
-          label: 'Spotřeba',
-          backgroundColor: 'rgba(251, 146, 60, 0.2)', // Orange for consumption
-          borderColor: 'rgba(251, 146, 60, 1)',
-          yAxisLabel: 'Množství spotřebováno'
+          data: mapDataToMonthlyArray(consumedData, "amount"),
+          label: "Spotřeba",
+          backgroundColor: "rgba(251, 146, 60, 0.2)", // Orange for consumption
+          borderColor: "rgba(251, 146, 60, 1)",
+          yAxisLabel: "Množství spotřebováno",
         };
-      } else if (productType === ProductType.Product || productType === ProductType.Goods) {
+      } else if (
+        productType === ProductType.Product ||
+        productType === ProductType.Goods
+      ) {
         return {
           labels: monthLabels,
-          data: mapDataToMonthlyArray(salesData, 'amountTotal'),
-          label: 'Prodeje',
-          backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue for sales
-          borderColor: 'rgba(59, 130, 246, 1)',
-          yAxisLabel: 'Kusů prodáno'
+          data: mapDataToMonthlyArray(salesData, "amountTotal"),
+          label: "Prodeje",
+          backgroundColor: "rgba(59, 130, 246, 0.2)", // Blue for sales
+          borderColor: "rgba(59, 130, 246, 1)",
+          yAxisLabel: "Kusů prodáno",
         };
       }
     }
-    
+
     // Default empty data
     return {
       labels: monthLabels,
       data: new Array(13).fill(0),
-      label: 'Data',
-      backgroundColor: 'rgba(156, 163, 175, 0.2)',
-      borderColor: 'rgba(156, 163, 175, 1)',
-      yAxisLabel: 'Množství'
+      label: "Data",
+      backgroundColor: "rgba(156, 163, 175, 0.2)",
+      borderColor: "rgba(156, 163, 175, 1)",
+      yAxisLabel: "Množství",
     };
   };
 
   const chartConfig = getChartData();
-  
+
   // Generate point styling based on journal entries
-  const pointStyling = generatePointStyling(13, journalEntries, chartConfig.borderColor);
-  
+  const pointStyling = generatePointStyling(
+    13,
+    journalEntries,
+    chartConfig.borderColor,
+  );
+
   const chartData = {
     labels: chartConfig.labels,
     datasets: [
@@ -112,16 +139,16 @@ const ProductChart: React.FC<ProductChartProps> = ({
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: "top" as const,
       },
       title: {
         display: false,
       },
       tooltip: {
-        mode: 'index' as const,
+        mode: "index" as const,
         intersect: false,
-        callbacks: generateTooltipCallback(journalEntries)
-      }
+        callbacks: generateTooltipCallback(journalEntries),
+      },
     },
     scales: {
       y: {
@@ -134,14 +161,14 @@ const ProductChart: React.FC<ProductChartProps> = ({
       x: {
         title: {
           display: true,
-          text: 'Měsíc',
+          text: "Měsíc",
         },
       },
     },
   };
 
   // Check if we have any data
-  const hasData = chartConfig.data.some(value => value > 0);
+  const hasData = chartConfig.data.some((value) => value > 0);
 
   if (!hasData) {
     return (

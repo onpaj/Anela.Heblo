@@ -1,40 +1,55 @@
-import React, { useState } from 'react';
-import { Search, Filter, AlertCircle, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useProductMarginsQuery } from '../../api/hooks/useProductMargins';
-import CatalogDetail from './CatalogDetail';
-import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
+import React, { useState } from "react";
+import {
+  Search,
+  Filter,
+  AlertCircle,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useProductMarginsQuery } from "../../api/hooks/useProductMargins";
+import CatalogDetail from "./CatalogDetail";
+import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 const ProductMarginsList: React.FC = () => {
-  
   // Filter states - separate input values from applied filters
-  const [productNameInput, setProductNameInput] = useState('');
-  const [productCodeInput, setProductCodeInput] = useState('');
-  const [productTypeInput, setProductTypeInput] = useState<string>('Product'); // Default to Product
-  const [productNameFilter, setProductNameFilter] = useState('');
-  const [productCodeFilter, setProductCodeFilter] = useState('');
-  const [productTypeFilter, setProductTypeFilter] = useState<string>('Product');
-  
+  const [productNameInput, setProductNameInput] = useState("");
+  const [productCodeInput, setProductCodeInput] = useState("");
+  const [productTypeInput, setProductTypeInput] = useState<string>("Product"); // Default to Product
+  const [productNameFilter, setProductNameFilter] = useState("");
+  const [productCodeFilter, setProductCodeFilter] = useState("");
+  const [productTypeFilter, setProductTypeFilter] = useState<string>("Product");
+
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  
+
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>('marginPercentage');
+  const [sortBy, setSortBy] = useState<string>("marginPercentage");
   const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
 
   // Modal states
-  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
+  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(
+    null,
+  );
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use the API call
-  const { data, isLoading: loading, error, refetch } = useProductMarginsQuery(
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+  } = useProductMarginsQuery(
     productCodeFilter,
     productNameFilter,
     productTypeFilter,
     pageNumber,
     pageSize,
     sortBy,
-    sortDescending
+    sortDescending,
   );
 
   const filteredItems = data?.items || [];
@@ -47,28 +62,28 @@ const ProductMarginsList: React.FC = () => {
     setProductCodeFilter(productCodeInput);
     setProductTypeFilter(productTypeInput);
     setPageNumber(1); // Reset to first page when applying filters
-    
+
     // Force data reload by refetching
     await refetch();
   };
 
   // Handler for Enter key press
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       handleApplyFilters();
     }
   };
 
   // Handler for clearing all filters
   const handleClearFilters = async () => {
-    setProductNameInput('');
-    setProductCodeInput('');
-    setProductTypeInput('Product'); // Reset to default
-    setProductNameFilter('');
-    setProductCodeFilter('');
-    setProductTypeFilter('Product');
+    setProductNameInput("");
+    setProductCodeInput("");
+    setProductTypeInput("Product"); // Reset to default
+    setProductNameFilter("");
+    setProductCodeFilter("");
+    setProductTypeFilter("Product");
     setPageNumber(1); // Reset to first page when clearing filters
-    
+
     // Force data reload by refetching
     await refetch();
   };
@@ -84,7 +99,7 @@ const ProductMarginsList: React.FC = () => {
     setPageSize(newPageSize);
     setPageNumber(1); // Reset to first page when changing page size
   };
-  
+
   // Sorting handler
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -106,9 +121,13 @@ const ProductMarginsList: React.FC = () => {
     setIsDetailModalOpen(false);
     setSelectedProductCode(null);
   };
-  
+
   // Sortable header component
-  const SortableHeader: React.FC<{ column: string; children: React.ReactNode; align?: 'left' | 'right' }> = ({ column, children, align = 'left' }) => {
+  const SortableHeader: React.FC<{
+    column: string;
+    children: React.ReactNode;
+    align?: "left" | "right";
+  }> = ({ column, children, align = "left" }) => {
     const isActive = sortBy === column;
     const isAscending = isActive && !sortDescending;
     const isDescending = isActive && sortDescending;
@@ -119,25 +138,27 @@ const ProductMarginsList: React.FC = () => {
         className={`px-6 py-3 text-${align} text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none`}
         onClick={() => handleSort(column)}
       >
-        <div className={`flex items-center ${align === 'right' ? 'justify-end' : ''} space-x-1`}>
-          {align === 'right' && (
+        <div
+          className={`flex items-center ${align === "right" ? "justify-end" : ""} space-x-1`}
+        >
+          {align === "right" && (
             <div className="flex flex-col">
               <ChevronUp
-                className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`}
+                className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
               />
               <ChevronDown
-                className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
               />
             </div>
           )}
           <span>{children}</span>
-          {align === 'left' && (
+          {align === "left" && (
             <div className="flex flex-col">
               <ChevronUp
-                className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`}
+                className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
               />
               <ChevronDown
-                className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
               />
             </div>
           )}
@@ -148,11 +169,11 @@ const ProductMarginsList: React.FC = () => {
 
   // Format currency
   const formatCurrency = (value?: number | null) => {
-    if (value === null || value === undefined) return '-';
-    if (!isFinite(value)) return '-'; // Handle Infinity, -Infinity, NaN
-    return new Intl.NumberFormat('cs-CZ', {
-      style: 'currency',
-      currency: 'CZK',
+    if (value === null || value === undefined) return "-";
+    if (!isFinite(value)) return "-"; // Handle Infinity, -Infinity, NaN
+    return new Intl.NumberFormat("cs-CZ", {
+      style: "currency",
+      currency: "CZK",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -160,19 +181,19 @@ const ProductMarginsList: React.FC = () => {
 
   // Format percentage
   const formatPercentage = (value?: number | null) => {
-    if (value === null || value === undefined) return '-';
-    if (!isFinite(value)) return '-'; // Handle Infinity, -Infinity, NaN
+    if (value === null || value === undefined) return "-";
+    if (!isFinite(value)) return "-"; // Handle Infinity, -Infinity, NaN
     return `${value.toFixed(2)}%`;
   };
 
   // Get margin color
   const getMarginColor = (margin?: number | null) => {
-    if (margin === null || margin === undefined) return 'text-gray-500';
-    if (!isFinite(margin)) return 'text-gray-500'; // Handle Infinity, -Infinity, NaN
-    if (margin < 30) return 'text-red-600';
-    if (margin < 50) return 'text-orange-600';
-    if (margin < 80) return 'text-yellow-600';
-    return 'text-green-600';
+    if (margin === null || margin === undefined) return "text-gray-500";
+    if (!isFinite(margin)) return "text-gray-500"; // Handle Infinity, -Infinity, NaN
+    if (margin < 30) return "text-red-600";
+    if (margin < 50) return "text-orange-600";
+    if (margin < 80) return "text-yellow-600";
+    return "text-green-600";
   };
 
   if (loading) {
@@ -198,7 +219,10 @@ const ProductMarginsList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
+    <div
+      className="flex flex-col w-full"
+      style={{ height: PAGE_CONTAINER_HEIGHT }}
+    >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">Marže produktů</h1>
@@ -212,7 +236,7 @@ const ProductMarginsList: React.FC = () => {
               <Filter className="h-4 w-4 text-gray-400 mr-2" />
               <span className="text-sm font-medium text-gray-900">Filtry:</span>
             </div>
-            
+
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -287,20 +311,36 @@ const ProductMarginsList: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <SortableHeader column="productCode">Kód produktu</SortableHeader>
-                <SortableHeader column="productName">Název produktu</SortableHeader>
-                <SortableHeader column="priceWithoutVat" align="right">Cena bez DPH</SortableHeader>
-                <SortableHeader column="purchasePrice" align="right">Nákupní cena</SortableHeader>
-                <SortableHeader column="averageMaterialCost" align="right">Materiál</SortableHeader>
-                <SortableHeader column="averageHandlingCost" align="right">Výroba průměr</SortableHeader>
-                <SortableHeader column="manufactureDifficulty" align="right">Složitost výroby</SortableHeader>
-                <SortableHeader column="marginPercentage" align="right">Marže %</SortableHeader>
+                <SortableHeader column="productCode">
+                  Kód produktu
+                </SortableHeader>
+                <SortableHeader column="productName">
+                  Název produktu
+                </SortableHeader>
+                <SortableHeader column="priceWithoutVat" align="right">
+                  Cena bez DPH
+                </SortableHeader>
+                <SortableHeader column="purchasePrice" align="right">
+                  Nákupní cena
+                </SortableHeader>
+                <SortableHeader column="averageMaterialCost" align="right">
+                  Materiál
+                </SortableHeader>
+                <SortableHeader column="averageHandlingCost" align="right">
+                  Výroba průměr
+                </SortableHeader>
+                <SortableHeader column="manufactureDifficulty" align="right">
+                  Složitost výroby
+                </SortableHeader>
+                <SortableHeader column="marginPercentage" align="right">
+                  Marže %
+                </SortableHeader>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => (
-                <tr 
-                  key={item.productCode} 
+                <tr
+                  key={item.productCode}
                   className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                   onClick={() => handleItemClick(item.productCode!)}
                   title="Klikněte pro zobrazení detailu"
@@ -324,9 +364,14 @@ const ProductMarginsList: React.FC = () => {
                     {formatCurrency(item.averageHandlingCost)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {item.manufactureDifficulty || item.manufactureDifficulty === 0 ? item.manufactureDifficulty.toFixed(1) : '-'}
+                    {item.manufactureDifficulty ||
+                    item.manufactureDifficulty === 0
+                      ? item.manufactureDifficulty.toFixed(1)
+                      : "-"}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}
+                  >
                     {formatPercentage(item.marginPercentage)}
                   </td>
                 </tr>
@@ -334,9 +379,8 @@ const ProductMarginsList: React.FC = () => {
             </tbody>
           </table>
         </div>
-
       </div>
-      
+
       {/* Pagination - Compact */}
       {totalCount > 0 && (
         <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
@@ -359,10 +403,15 @@ const ProductMarginsList: React.FC = () => {
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
               <p className="text-xs text-gray-600">
-                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-{Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                {productNameFilter || productCodeFilter || productTypeFilter !== 'Product' ? (
+                {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
+                {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
+                {productNameFilter ||
+                productCodeFilter ||
+                productTypeFilter !== "Product" ? (
                   <span className="text-gray-500"> (filtrováno)</span>
-                ) : ''}
+                ) : (
+                  ""
+                )}
               </p>
               <div className="flex items-center space-x-1">
                 <span className="text-xs text-gray-600">Zobrazit:</span>
@@ -379,7 +428,10 @@ const ProductMarginsList: React.FC = () => {
               </div>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
+              <nav
+                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
@@ -387,7 +439,7 @@ const ProductMarginsList: React.FC = () => {
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
-                
+
                 {/* Page numbers */}
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum: number;
@@ -400,22 +452,22 @@ const ProductMarginsList: React.FC = () => {
                   } else {
                     pageNum = pageNumber - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNumber === pageNum
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
+                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                       }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-                
+
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
@@ -430,7 +482,7 @@ const ProductMarginsList: React.FC = () => {
       )}
 
       {/* Modal for Product Detail */}
-      <CatalogDetail 
+      <CatalogDetail
         productCode={selectedProductCode}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}

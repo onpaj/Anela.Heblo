@@ -1,16 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { useQuery } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 interface HealthStatus {
-  status: 'Healthy' | 'Unhealthy' | 'Degraded';
+  status: "Healthy" | "Unhealthy" | "Degraded";
   totalDuration: string;
-  entries: Record<string, {
-    status: 'Healthy' | 'Unhealthy' | 'Degraded';
-    duration: string;
-    description?: string;
-    exception?: string;
-    data?: Record<string, any>;
-  }>;
+  entries: Record<
+    string,
+    {
+      status: "Healthy" | "Unhealthy" | "Degraded";
+      duration: string;
+      description?: string;
+      exception?: string;
+      data?: Record<string, any>;
+    }
+  >;
 }
 
 const fetchHealthStatus = async (endpoint: string): Promise<HealthStatus> => {
@@ -18,12 +21,12 @@ const fetchHealthStatus = async (endpoint: string): Promise<HealthStatus> => {
   const apiClient = await getAuthenticatedApiClient(false);
   const relativeUrl = `/health/${endpoint}`;
   const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-  
+
   const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Accept': 'application/json',
-    }
+      Accept: "application/json",
+    },
   });
 
   if (!response.ok) {
@@ -35,8 +38,8 @@ const fetchHealthStatus = async (endpoint: string): Promise<HealthStatus> => {
 
 export const useLiveHealthCheck = () => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.health, 'live'],
-    queryFn: () => fetchHealthStatus('live'),
+    queryKey: [...QUERY_KEYS.health, "live"],
+    queryFn: () => fetchHealthStatus("live"),
     refetchInterval: 15000, // 15 seconds
     refetchOnWindowFocus: true,
     retry: 1,
@@ -46,8 +49,8 @@ export const useLiveHealthCheck = () => {
 
 export const useReadyHealthCheck = () => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.health, 'ready'],
-    queryFn: () => fetchHealthStatus('ready'),
+    queryKey: [...QUERY_KEYS.health, "ready"],
+    queryFn: () => fetchHealthStatus("ready"),
     refetchInterval: 15000, // 15 seconds
     refetchOnWindowFocus: true,
     retry: 1,
