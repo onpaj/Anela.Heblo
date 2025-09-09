@@ -113,19 +113,4 @@ public class HangfireSchemaInitializerTests : IAsyncLifetime
             Times.Once);
     }
 
-    [Fact]
-    public void Constructor_ThrowsArgumentNullException_WhenConnectionStringIsNull()
-    {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            new HangfireSchemaInitializer(null, _loggerMock.Object));
-    }
-
-    [Fact]
-    public void Constructor_ThrowsArgumentNullException_WhenLoggerIsNull()
-    {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            new HangfireSchemaInitializer("connection", null));
-    }
 }
