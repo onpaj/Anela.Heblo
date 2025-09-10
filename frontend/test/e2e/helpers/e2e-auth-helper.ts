@@ -117,16 +117,19 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
       if (await transportBoxy.isVisible({ timeout: 2000 })) {
         await transportBoxy.click();
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
+        return;
       }
     }
   } catch (e) {
-    // If UI navigation fails, go directly to the path
-    const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
-    await page.goto(`${frontendUrl}/logistics/transport-boxes?e2e=true`);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    console.log('UI navigation failed, trying direct navigation');
   }
+  
+  // If UI navigation fails, go directly to the path
+  const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
+  await page.goto(`${frontendUrl}/logistics/transport-boxes?e2e=true`);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3000);
 }
 
 export async function navigateToCatalog(page: any): Promise<void> {
