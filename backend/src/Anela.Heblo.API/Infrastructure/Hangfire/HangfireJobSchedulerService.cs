@@ -39,11 +39,11 @@ public class HangfireJobSchedulerService : IHostedService
                 queue: QueueName
             );
 
-            // Product export download every Sunday at 2:00 AM UTC
+            // Product export download daily at 2:00 AM UTC
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "product-export-download",
                 service => service.DownloadProductExportAsync(),
-                "0 2 * * 0", // Every Sunday at 2:00 AM UTC
+                "0 2 * * *", // Daily at 2:00 AM UTC
                 timeZone: TimeZoneInfo.Utc,
                 queue: QueueName
             );
