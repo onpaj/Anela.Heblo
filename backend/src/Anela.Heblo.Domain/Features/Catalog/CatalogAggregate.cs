@@ -122,6 +122,8 @@ public class CatalogAggregate : Entity<string>
     public decimal? PurchasePriceWithVat => ErpPrice?.PurchasePriceWithVat;
     public string? SupplierCode { get; set; }
     public string? SupplierName { get; set; }
+    public string? DefaultImage { get; set; }
+    public string? Image { get; set; }
 
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)

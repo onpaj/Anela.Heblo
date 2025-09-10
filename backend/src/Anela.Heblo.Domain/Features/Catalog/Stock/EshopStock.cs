@@ -9,4 +9,6 @@ public class EshopStock
     public decimal Stock { get; set; }
     public string NameSuffix { get; set; }
     public string Location { get; set; }
+    public string? DefaultImage { get; set; }
+    public string? Image { get; set; }
 }

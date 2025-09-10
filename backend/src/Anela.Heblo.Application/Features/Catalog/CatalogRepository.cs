@@ -371,6 +371,8 @@ public class CatalogRepository : ICatalogRepository
                 product.Stock.Eshop = eshopProduct.Stock;
                 product.Stock.PrimaryStockSource = StockSource.Eshop;
                 product.Location = eshopProduct.Location;
+                product.Image = eshopProduct.Image;
+                product.DefaultImage = eshopProduct.DefaultImage;
             }
 
             if (consumedMap.TryGetValue(product.ProductCode, out var consumed))
