@@ -55,6 +55,7 @@ jest.mock("../../../api/generated/api-client", () => ({
     Product: "Product",
     SemiProduct: "SemiProduct",
     Goods: "Goods",
+    Set: "Set",
     UNDEFINED: "UNDEFINED",
   },
 }));

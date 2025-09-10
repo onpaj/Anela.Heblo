@@ -22,6 +22,7 @@ const productTypeLabels: Record<ProductType, string> = {
   [ProductType.Goods]: "Zboží",
   [ProductType.Material]: "Materiál",
   [ProductType.SemiProduct]: "Polotovar",
+  [ProductType.Set]: "Dárkový balíček",
   [ProductType.UNDEFINED]: "Nedefinováno",
 };
 

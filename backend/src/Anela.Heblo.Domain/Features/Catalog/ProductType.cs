@@ -6,6 +6,7 @@ public enum ProductType
     Goods = 1,
     Material = 3,
     SemiProduct = 7,
+    Set = 99,
 
     UNDEFINED = 0,
 }

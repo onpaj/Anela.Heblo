@@ -3,6 +3,7 @@ using Anela.Heblo.Adapters.Flexi.Manufacture;
 using FluentAssertions;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Model;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
@@ -15,7 +16,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var productId = "test-product-id";
         var productCode = "TEST_PRODUCT";
@@ -58,7 +60,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var productId = "test-product-id";
 
@@ -83,7 +86,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var productId = "test-product-id";
 
@@ -102,7 +106,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var ingredientCode = "TESTINGREDIENT";
         var cancellationToken = CancellationToken.None;
@@ -141,7 +146,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var ingredientCode = "TESTINGREDIENT";
         var cancellationToken = CancellationToken.None;
@@ -161,7 +167,8 @@ public class FlexiManufactureRepositoryTests
     {
         // Arrange
         var mockBoMClient = new Mock<IBoMClient>();
-        var repository = new FlexiManufactureRepository(mockBoMClient.Object);
+        var mockProductSetsClient = new Mock<IProductSetsClient>();
+        var repository = new FlexiManufactureRepository(mockBoMClient.Object, mockProductSetsClient.Object);
 
         var headerBoM = CreateBoMItem(1, 1, 10.0, "code:  PRODUCT_WITH_SPACES  ", "Product With Spaces");
         var ingredient = CreateBoMItem(2, 2, 5.0, "code:INGREDIENT_NO_SPACES", "Ingredient No Spaces");

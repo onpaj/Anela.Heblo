@@ -22,11 +22,15 @@ public class StockUpScenario
     {
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
+        // Pro debugging na macOS může Firefox fungovat lépe než Chromium
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
         });
+
+        _logger.LogDebug("Browser launched successfully, creating new page...");
         var page = await browser.NewPageAsync();
+        _logger.LogDebug("Page created successfully");
 
         await page.GotoAsync(_options.ShopEntryUrl);
         await page.WaitForLoadStateAsync();
@@ -36,22 +40,29 @@ public class StockUpScenario
         await page.PressAsync("[placeholder='E-mail']", "Tab");
         await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
         await page.ClickAsync("role=button >> text=Přihlášení");
+        await page.WaitForLoadStateAsync();
 
         _logger.LogDebug("Login successful");
 
         await page.GotoAsync($"{_options.ShopEntryUrl}/sklad");
         await page.WaitForLoadStateAsync();
         await page.ClickAsync("text=Naskladnění");
+        await page.WaitForLoadStateAsync();
         await page.FillAsync("input[name='documentNumber']", request.StockUpId);
-        await page.FillAsync("input[name='stockingSearch']", request.Product);
-        await page.PressAsync("input[name='stockingSearch']", "Enter");
-        await page.WaitForSelectorAsync(".cashdesk-search-result");
-        await page.ClickAsync(".cashdesk-products-listing > .product");
-        await page.FillAsync("text=Množství", request.Amount.ToString());
+
+        foreach (var product in request.Products)
+        {
+            await page.FillAsync("input[name='stockingSearch']", product.ProductCode);
+            await page.PressAsync("input[name='stockingSearch']", "Enter");
+            await page.WaitForSelectorAsync(".cashdesk-search-result",
+                new PageWaitForSelectorOptions { Timeout = 10000 });
+            await page.ClickAsync(".cashdesk-products-listing > .product");
+            await page.FillAsync("text=Množství",
+                product.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
 
-        return new StockUpRecord()
-        {
-        };
+        return new StockUpRecord();
     }
 }
