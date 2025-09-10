@@ -1618,8 +1618,8 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    fileStorage_DownloadAndUploadFromUrl(request: DownloadAndUploadFromUrlRequest): Promise<DownloadAndUploadFromUrlResponse> {
-        let url_ = this.baseUrl + "/api/FileStorage/download-and-upload";
+    fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
+        let url_ = this.baseUrl + "/api/FileStorage/download";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -1634,18 +1634,18 @@ export class ApiClient {
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processFileStorage_DownloadAndUploadFromUrl(_response);
+            return this.processFileStorage_DownloadFromUrl(_response);
         });
     }
 
-    protected processFileStorage_DownloadAndUploadFromUrl(response: Response): Promise<DownloadAndUploadFromUrlResponse> {
+    protected processFileStorage_DownloadFromUrl(response: Response): Promise<DownloadFromUrlResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = DownloadAndUploadFromUrlResponse.fromJS(resultData200);
+            result200 = DownloadFromUrlResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -1653,7 +1653,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<DownloadAndUploadFromUrlResponse>(null as any);
+        return Promise.resolve<DownloadFromUrlResponse>(null as any);
     }
 
     financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
@@ -5660,13 +5660,13 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     timestamp?: Date;
 }
 
-export class DownloadAndUploadFromUrlResponse extends BaseResponse implements IDownloadAndUploadFromUrlResponse {
+export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
     blobUrl?: string;
     blobName?: string;
     containerName?: string;
     fileSizeBytes?: number;
 
-    constructor(data?: IDownloadAndUploadFromUrlResponse) {
+    constructor(data?: IDownloadFromUrlResponse) {
         super(data);
     }
 
@@ -5680,9 +5680,9 @@ export class DownloadAndUploadFromUrlResponse extends BaseResponse implements ID
         }
     }
 
-    static override fromJS(data: any): DownloadAndUploadFromUrlResponse {
+    static override fromJS(data: any): DownloadFromUrlResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new DownloadAndUploadFromUrlResponse();
+        let result = new DownloadFromUrlResponse();
         result.init(data);
         return result;
     }
@@ -5698,19 +5698,19 @@ export class DownloadAndUploadFromUrlResponse extends BaseResponse implements ID
     }
 }
 
-export interface IDownloadAndUploadFromUrlResponse extends IBaseResponse {
+export interface IDownloadFromUrlResponse extends IBaseResponse {
     blobUrl?: string;
     blobName?: string;
     containerName?: string;
     fileSizeBytes?: number;
 }
 
-export class DownloadAndUploadFromUrlRequest implements IDownloadAndUploadFromUrlRequest {
+export class DownloadFromUrlRequest implements IDownloadFromUrlRequest {
     fileUrl!: string;
     containerName!: string;
     blobName?: string | undefined;
 
-    constructor(data?: IDownloadAndUploadFromUrlRequest) {
+    constructor(data?: IDownloadFromUrlRequest) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -5727,9 +5727,9 @@ export class DownloadAndUploadFromUrlRequest implements IDownloadAndUploadFromUr
         }
     }
 
-    static fromJS(data: any): DownloadAndUploadFromUrlRequest {
+    static fromJS(data: any): DownloadFromUrlRequest {
         data = typeof data === 'object' ? data : {};
-        let result = new DownloadAndUploadFromUrlRequest();
+        let result = new DownloadFromUrlRequest();
         result.init(data);
         return result;
     }
@@ -5743,7 +5743,7 @@ export class DownloadAndUploadFromUrlRequest implements IDownloadAndUploadFromUr
     }
 }
 
-export interface IDownloadAndUploadFromUrlRequest {
+export interface IDownloadFromUrlRequest {
     fileUrl: string;
     containerName: string;
     blobName?: string | undefined;
