@@ -23,7 +23,7 @@ public class AzureBlobStorageServiceTests
         _mockBlobServiceClient = new Mock<BlobServiceClient>();
         _mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
         _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
-        
+
         var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
         _mockHttpClient = new Mock<HttpClient>();
 
@@ -42,7 +42,7 @@ public class AzureBlobStorageServiceTests
     [InlineData(".txt", "text/plain")]
     [InlineData(".json", "application/json")]
     [InlineData(".unknown", "application/octet-stream")]
-    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension, string expectedContentType)
+    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension)
     {
         // This test would require making the private method internal or using reflection
         // For now, we'll test it indirectly through other methods
@@ -57,11 +57,11 @@ public class AzureBlobStorageServiceTests
         // Arrange
         var containerName = "documents";
         var blobName = "test.pdf";
-        
+
         var mockBlobContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
         var expectedUrl = new Uri($"https://testaccount.blob.core.windows.net/{containerName}/{blobName}");
-        
+
         mockBlobClient.Setup(x => x.Uri).Returns(expectedUrl);
         mockBlobContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockBlobContainerClient.Object);
@@ -85,7 +85,7 @@ public class AzureBlobStorageServiceTests
         // Arrange
         var fileUrl = "https://example.com/file";
         var containerName = "documents";
-        
+
         var responseContent = new StringContent("test content");
         responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
 
@@ -106,18 +106,18 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
         var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/downloaded-file-guid{expectedExtension}";
-        
+
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
         mockBlobClient.Setup(x => x.UploadAsync(
-            It.IsAny<Stream>(), 
-            It.IsAny<BlobUploadOptions>(), 
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
 
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(), 
-            It.IsAny<IDictionary<string, string>>(), 
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -144,18 +144,18 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
         var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/{blobName}";
-        
+
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
         mockBlobClient.Setup(x => x.UploadAsync(
-            It.IsAny<Stream>(), 
-            It.IsAny<BlobUploadOptions>(), 
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
 
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(), 
-            It.IsAny<IDictionary<string, string>>(), 
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -167,8 +167,8 @@ public class AzureBlobStorageServiceTests
         // Assert
         Assert.Equal(expectedBlobUrl, result);
         mockBlobClient.Verify(x => x.UploadAsync(
-            It.IsAny<Stream>(), 
-            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == contentType), 
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == contentType),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -181,11 +181,11 @@ public class AzureBlobStorageServiceTests
 
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockResponse = Mock.Of<Azure.Response<bool>>(r => r.Value == true);
-        
+
         mockContainerClient.Setup(x => x.DeleteBlobIfExistsAsync(
-            blobName, 
-            It.IsAny<DeleteSnapshotsOption>(), 
-            It.IsAny<BlobRequestConditions>(), 
+            blobName,
+            It.IsAny<DeleteSnapshotsOption>(),
+            It.IsAny<BlobRequestConditions>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockResponse);
 
@@ -207,11 +207,11 @@ public class AzureBlobStorageServiceTests
 
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockResponse = Mock.Of<Azure.Response<bool>>(r => r.Value == false);
-        
+
         mockContainerClient.Setup(x => x.DeleteBlobIfExistsAsync(
-            blobName, 
-            It.IsAny<DeleteSnapshotsOption>(), 
-            It.IsAny<BlobRequestConditions>(), 
+            blobName,
+            It.IsAny<DeleteSnapshotsOption>(),
+            It.IsAny<BlobRequestConditions>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockResponse);
 
@@ -234,7 +234,7 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
         var mockResponse = Mock.Of<Azure.Response<bool>>(r => r.Value == true);
-        
+
         mockBlobClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockResponse);
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
@@ -257,7 +257,7 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
         var mockResponse = Mock.Of<Azure.Response<bool>>(r => r.Value == false);
-        
+
         mockBlobClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockResponse);
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
@@ -288,7 +288,7 @@ public class AzureBlobStorageServiceTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
             _service.DownloadFromUrlAsync(fileUrl, containerName));
-        
+
         Assert.Equal("File not found", exception.Message);
     }
 
@@ -304,16 +304,16 @@ public class AzureBlobStorageServiceTests
 
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
-        
+
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(), 
-            It.IsAny<IDictionary<string, string>>(), 
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
         mockBlobClient.Setup(x => x.UploadAsync(
-            It.IsAny<Stream>(), 
-            It.IsAny<BlobUploadOptions>(), 
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Storage error"));
 
@@ -323,7 +323,7 @@ public class AzureBlobStorageServiceTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.UploadAsync(stream, containerName, blobName, contentType));
-        
+
         Assert.Equal("Storage error", exception.Message);
     }
 }

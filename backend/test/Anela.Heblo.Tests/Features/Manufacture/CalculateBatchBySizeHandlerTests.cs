@@ -132,7 +132,7 @@ public class CalculateBatchBySizeHandlerTests
 
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-        
+
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((CatalogAggregate?)null);
 

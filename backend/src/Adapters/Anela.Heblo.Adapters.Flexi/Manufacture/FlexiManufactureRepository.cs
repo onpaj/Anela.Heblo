@@ -67,7 +67,7 @@ public class FlexiManufactureRepository : IManufactureRepository
     public async Task<List<ProductPart>> GetSetParts(string setProductCode, CancellationToken cancellationToken = default)
     {
         var setParts = await _productSetsClient.GetAsync(setProductCode, cancellationToken: cancellationToken);
-        
+
         return setParts
             .Select(s => new ProductPart()
             {

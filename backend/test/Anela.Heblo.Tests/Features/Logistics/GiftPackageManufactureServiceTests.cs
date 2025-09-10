@@ -100,7 +100,7 @@ public class GiftPackageManufactureServiceTests
             CreateCatalogItem("MAT001", "Material 1", ProductType.Material, 100, 30),
             CreateCatalogItem("GOODS001", "Goods 1", ProductType.Goods, 80, 25)
         };
-        
+
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogData);
 
@@ -123,7 +123,7 @@ public class GiftPackageManufactureServiceTests
             .ReturnsAsync(product);
         _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
-        
+
         // Setup catalog repository to return ingredient products
         foreach (var ingredient in ingredients)
         {
@@ -142,7 +142,7 @@ public class GiftPackageManufactureServiceTests
         result.AvailableStock.Should().Be(50);
         result.DailySales.Should().BeApproximately(0.274m, 0.001m); // 100 sales / 365 days
         result.OverstockLimit.Should().Be(20);
-        
+
         result.Ingredients.Should().NotBeNull();
         result.Ingredients.Should().HaveCount(2);
         result.Ingredients.Should().Contain(x => x.ProductCode == "ING001" && x.RequiredQuantity == 2.0);
@@ -169,7 +169,7 @@ public class GiftPackageManufactureServiceTests
         // Arrange
         var productCode = "MAT001";
         var product = CreateCatalogItem(productCode, "Material 1", ProductType.Material, 100, 50);
-        
+
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
 
@@ -187,7 +187,7 @@ public class GiftPackageManufactureServiceTests
         var quantity = 5;
         var userId = "testUser";
         var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
-        
+
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
         _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
@@ -216,7 +216,7 @@ public class GiftPackageManufactureServiceTests
         // Setup current user service to return test user
         _currentUserServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
-        
+
         // Act
         var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);
 
@@ -231,7 +231,7 @@ public class GiftPackageManufactureServiceTests
             log.QuantityCreated == quantity &&
             log.CreatedBy == userId &&
             log.ConsumedItems.Count == 2), It.IsAny<CancellationToken>()), Times.Once);
-        
+
         _giftPackageRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -246,7 +246,7 @@ public class GiftPackageManufactureServiceTests
         {
             CreateCatalogItem("SET001", "Test Gift Set 1", ProductType.Set, 100, 50)
         };
-        
+
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogData);
 
@@ -285,7 +285,7 @@ public class GiftPackageManufactureServiceTests
         // Create sales history for the last year to simulate GetTotalSold result
         var salesHistory = new List<CatalogSaleRecord>();
         var fromDate = _testDateTime.AddYears(-1);
-        
+
         // Distribute sales across the year to simulate realistic data
         for (int i = 0; i < 12; i++)
         {

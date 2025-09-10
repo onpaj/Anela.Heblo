@@ -37,13 +37,13 @@ public class AzureBlobStorageService : IBlobStorageService
             response.EnsureSuccessStatusCode();
 
             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            
+
             // Generate blob name if not provided
             if (string.IsNullOrEmpty(blobName))
             {
                 var uri = new Uri(fileUrl);
                 blobName = Path.GetFileName(uri.LocalPath);
-                
+
                 // If no filename in URL, generate one
                 if (string.IsNullOrEmpty(blobName))
                 {
@@ -90,7 +90,7 @@ public class AzureBlobStorageService : IBlobStorageService
 
             var blobUrl = blobClient.Uri.ToString();
             _logger.LogInformation("Successfully uploaded blob: {BlobUrl}", blobUrl);
-            
+
             return blobUrl;
         }
         catch (Exception ex)

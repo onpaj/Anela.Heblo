@@ -97,7 +97,7 @@ public class ErrorHandlingTests
         // Ensure all error codes fall into defined module ranges
         var categorizedCount = generalErrors.Count + auditErrors.Count + purchaseErrors.Count +
                               manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
-                              configErrors.Count + journalErrors.Count + analyticsErrors.Count + 
+                              configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);

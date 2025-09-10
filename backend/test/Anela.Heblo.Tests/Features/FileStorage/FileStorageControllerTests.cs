@@ -20,12 +20,12 @@ public class FileStorageControllerTests
     {
         _mockMediator = new Mock<IMediator>();
         _controller = new FileStorageController(_mockMediator.Object);
-        
+
         // Setup HttpContext with services for BaseApiController Logger
         var services = new ServiceCollection();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -64,7 +64,7 @@ public class FileStorageControllerTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<DownloadFromUrlResponse>(okResult.Value);
-        
+
         Assert.True(response.Success);
         Assert.Equal(expectedResponse.BlobUrl, response.BlobUrl);
         Assert.Equal(expectedResponse.BlobName, response.BlobName);
@@ -97,7 +97,7 @@ public class FileStorageControllerTests
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
         var response = Assert.IsType<DownloadFromUrlResponse>(badRequestResult.Value);
-        
+
         Assert.False(response.Success);
         Assert.Equal(ErrorCodes.InvalidUrlFormat, response.ErrorCode);
     }
@@ -128,7 +128,7 @@ public class FileStorageControllerTests
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
         var response = Assert.IsType<DownloadFromUrlResponse>(badRequestResult.Value);
-        
+
         Assert.False(response.Success);
         Assert.Equal(ErrorCodes.InvalidContainerName, response.ErrorCode);
     }
@@ -147,8 +147,8 @@ public class FileStorageControllerTests
         {
             Success = false,
             ErrorCode = ErrorCodes.FileDownloadFailed,
-            Params = new Dictionary<string, string> 
-            { 
+            Params = new Dictionary<string, string>
+            {
                 { "fileUrl", "https://example.com/nonexistent.pdf" },
                 { "error", "File not found" }
             }
@@ -163,7 +163,7 @@ public class FileStorageControllerTests
         // Assert
         var serviceUnavailableResult = Assert.IsType<ObjectResult>(result.Result);
         Assert.Equal(503, serviceUnavailableResult.StatusCode); // ServiceUnavailable
-        
+
         var response = Assert.IsType<DownloadFromUrlResponse>(serviceUnavailableResult.Value);
         Assert.False(response.Success);
         Assert.Equal(ErrorCodes.FileDownloadFailed, response.ErrorCode);
@@ -183,8 +183,8 @@ public class FileStorageControllerTests
         {
             Success = false,
             ErrorCode = ErrorCodes.InternalServerError,
-            Params = new Dictionary<string, string> 
-            { 
+            Params = new Dictionary<string, string>
+            {
                 { "fileUrl", "https://example.com/document.pdf" },
                 { "error", "Unexpected error occurred" }
             }
@@ -199,7 +199,7 @@ public class FileStorageControllerTests
         // Assert
         var internalServerErrorResult = Assert.IsType<ObjectResult>(result.Result);
         Assert.Equal(500, internalServerErrorResult.StatusCode); // InternalServerError
-        
+
         var response = Assert.IsType<DownloadFromUrlResponse>(internalServerErrorResult.Value);
         Assert.False(response.Success);
         Assert.Equal(ErrorCodes.InternalServerError, response.ErrorCode);
@@ -235,9 +235,9 @@ public class FileStorageControllerTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<DownloadFromUrlResponse>(okResult.Value);
-        
+
         Assert.True(response.Success);
-        
+
         _mockMediator.Verify(x => x.Send(request, cancellationTokenSource.Token), Times.Once);
     }
 
@@ -275,17 +275,17 @@ public class FileStorageControllerTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<DownloadFromUrlResponse>(okResult.Value);
-        
+
         Assert.True(response.Success);
         Assert.Equal(expectedResponse.BlobUrl, response.BlobUrl);
         Assert.Equal(expectedResponse.BlobName, response.BlobName);
         Assert.Equal(expectedResponse.ContainerName, response.ContainerName);
-        
+
         _mockMediator.Verify(x => x.Send(
-            It.Is<DownloadFromUrlRequest>(r => 
-                r.FileUrl == fileUrl && 
-                r.ContainerName == containerName && 
-                r.BlobName == blobName), 
+            It.Is<DownloadFromUrlRequest>(r =>
+                r.FileUrl == fileUrl &&
+                r.ContainerName == containerName &&
+                r.BlobName == blobName),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

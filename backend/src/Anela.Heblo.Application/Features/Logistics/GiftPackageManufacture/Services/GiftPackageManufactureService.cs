@@ -103,14 +103,14 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         // Load BOM (Bill of Materials) from manufacture repository
         var productParts = await _manufactureRepository.GetSetParts(giftPackageCode, cancellationToken);
-        
+
         // Map ProductPart objects to GiftPackageIngredientDto with stock data
         var ingredients = new List<GiftPackageIngredientDto>();
         foreach (var part in productParts)
         {
             // Load product from catalog to get available stock
             var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode, cancellationToken);
-            
+
             var ingredient = new GiftPackageIngredientDto
             {
                 ProductCode = part.ProductCode,
@@ -119,19 +119,19 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 AvailableStock = (double)(ingredientProduct?.Stock.Available ?? 0),
                 Image = ingredientProduct?.Image
             };
-            
+
             ingredients.Add(ingredient);
         }
-        
+
         giftPackage.Ingredients = ingredients;
 
         return giftPackage;
     }
 
     public async Task<GiftPackageManufactureDto> CreateManufactureAsync(
-        string giftPackageCode, 
-        int quantity, 
-        bool allowStockOverride, 
+        string giftPackageCode,
+        int quantity,
+        bool allowStockOverride,
         CancellationToken cancellationToken = default)
     {
         // Create the manufacture log
@@ -156,7 +156,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 Amount = consumedQuantity * -1,
             });
         }
-        
+
         stockUpRequest.Products.Add(new StockUpProductRequest()
         {
             ProductCode = giftPackageCode,

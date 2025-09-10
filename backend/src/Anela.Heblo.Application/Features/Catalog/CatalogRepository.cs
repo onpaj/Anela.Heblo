@@ -440,8 +440,8 @@ public class CatalogRepository : ICatalogRepository
     private static ProductType GetProductType(ErpStock s)
     {
         var type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED;
-        
-        if(type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
+
+        if (type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
             return ProductType.Set;
 
         return type;

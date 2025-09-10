@@ -25,11 +25,11 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
     {
         try
         {
-            _logger.LogInformation("Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}", 
+            _logger.LogInformation("Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}",
                 request.FileUrl, request.ContainerName);
 
             // Validate URL format and scheme
-            if (!Uri.TryCreate(request.FileUrl, UriKind.Absolute, out var uri) || 
+            if (!Uri.TryCreate(request.FileUrl, UriKind.Absolute, out var uri) ||
                 (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             {
                 _logger.LogWarning("Invalid URL format or unsupported scheme: {FileUrl}", request.FileUrl);
@@ -58,9 +58,9 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
 
             // Download and upload the file
             var blobUrl = await _blobStorageService.DownloadFromUrlAsync(
-                request.FileUrl, 
-                request.ContainerName, 
-                request.BlobName, 
+                request.FileUrl,
+                request.ContainerName,
+                request.BlobName,
                 cancellationToken);
 
             // Extract blob name from URL if not provided in request
@@ -89,8 +89,8 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
             {
                 Success = false,
                 ErrorCode = ErrorCodes.FileDownloadFailed,
-                Params = new Dictionary<string, string> 
-                { 
+                Params = new Dictionary<string, string>
+                {
                     { "fileUrl", request.FileUrl },
                     { "error", ex.Message }
                 }
@@ -103,8 +103,8 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
             {
                 Success = false,
                 ErrorCode = ErrorCodes.InternalServerError,
-                Params = new Dictionary<string, string> 
-                { 
+                Params = new Dictionary<string, string>
+                {
                     { "fileUrl", request.FileUrl },
                     { "error", ex.Message }
                 }
@@ -120,7 +120,7 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
         // - Must be between 3 and 63 characters
         // - Must start with letter or number
         // - Cannot have consecutive hyphens
-        
+
         if (string.IsNullOrEmpty(containerName) || containerName.Length < 3 || containerName.Length > 63)
             return false;
 
@@ -149,7 +149,7 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
         {
             using var request = new HttpRequestMessage(HttpMethod.Head, fileUrl);
             using var response = await _httpClient.SendAsync(request, cancellationToken);
-            
+
             if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength.HasValue)
             {
                 return response.Content.Headers.ContentLength.Value;

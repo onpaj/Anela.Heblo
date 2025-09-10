@@ -27,7 +27,7 @@ public class MockBlobStorageService : IBlobStorageService
         {
             var uri = new Uri(fileUrl);
             blobName = Path.GetFileName(uri.LocalPath);
-            
+
             if (string.IsNullOrEmpty(blobName))
             {
                 blobName = $"downloaded-file-{Guid.NewGuid()}.bin";

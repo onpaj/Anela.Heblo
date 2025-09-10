@@ -53,7 +53,7 @@ public class CalculateBatchByIngredientHandlerTests
                 }
             }
         };
-        
+
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
@@ -63,7 +63,7 @@ public class CalculateBatchByIngredientHandlerTests
 
         _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-        
+
         // Setup catalog items with stock information
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("ING001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CatalogAggregate { Stock = new StockData { Erp = 100m } });

@@ -4,7 +4,7 @@ public class StockUpRequest
 {
     public StockUpRequest()
     {
-        
+
     }
     public StockUpRequest(string productCode, double amount, string? stockUpId = null)
     {
@@ -15,7 +15,7 @@ public class StockUpRequest
         });
         StockUpId = stockUpId;
     }
-    
+
     public string StockUpId { get; set; }
     public List<StockUpProductRequest> Products { get; set; } = new List<StockUpProductRequest>();
 }

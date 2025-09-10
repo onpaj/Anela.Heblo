@@ -80,13 +80,21 @@ public static class ApplicationBuilderExtensions
         app.UseAuthorization();
 
         var hangFireOptions = new DashboardOptions();
-        // Hangfire dashboard (development, staging, and production)
+
+        // Configure Hangfire dashboard authorization based on environment
         if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         {
+            // Development and staging: No authentication required
             hangFireOptions.Authorization = new[] { new HangfireDashboardNoAuthFilter() };
         }
-        app.UseHangfireDashboard("/hangfire", hangFireOptions); 
-        
+        else
+        {
+            // Production: Require Microsoft Entra ID authentication
+            hangFireOptions.Authorization = new[] { new HangfireDashboardAuthorizationFilter() };
+        }
+
+        app.UseHangfireDashboard("/hangfire", hangFireOptions);
+
 
         // Serve static files from wwwroot
         app.UseStaticFiles();

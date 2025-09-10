@@ -13,6 +13,6 @@ public class GetWarehouseStatisticsResponse : BaseResponse
 
     public GetWarehouseStatisticsResponse() : base() { }
 
-    public GetWarehouseStatisticsResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public GetWarehouseStatisticsResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }

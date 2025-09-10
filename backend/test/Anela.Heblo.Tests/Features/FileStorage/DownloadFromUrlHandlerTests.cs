@@ -20,7 +20,7 @@ public class DownloadFromUrlHandlerTests
         _mockHttpClient = new Mock<HttpClient>();
         _mockLogger = new Mock<ILogger<DownloadFromUrlHandler>>();
         _mockBlobStorageService = new MockBlobStorageService();
-        
+
         _handler = new DownloadFromUrlHandler(
             _mockBlobStorageService,
             _mockHttpClient.Object,
@@ -47,7 +47,7 @@ public class DownloadFromUrlHandlerTests
         Assert.Equal("https://mockstorageaccount.blob.core.windows.net/documents/test-document.pdf", result.BlobUrl);
         Assert.Equal("test-document.pdf", result.BlobName);
         Assert.Equal("documents", result.ContainerName);
-        
+
         // Verify blob was created in mock service
         var blob = _mockBlobStorageService.GetBlob("documents", "test-document.pdf");
         Assert.NotNull(blob);
@@ -203,7 +203,7 @@ public class DownloadFromUrlHandlerTests
         // Arrange
         var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
         var mockBlobStorage = new Mock<IBlobStorageService>();
-        
+
         // Mock HttpClient to throw OperationCanceledException on cancellation
         mockHttpMessageHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -230,7 +230,7 @@ public class DownloadFromUrlHandlerTests
         cancellationTokenSource.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(() => 
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
             handler.Handle(request, cancellationTokenSource.Token));
     }
 
