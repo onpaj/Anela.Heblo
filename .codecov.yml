@@ -1,0 +1,52 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+  
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: false
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+        informational: false
+
+flags:
+  backend:
+    paths:
+      - backend/src/
+    carryforward: false
+  frontend:
+    paths:
+      - frontend/src/
+    carryforward: false
+
+ignore:
+  - "backend/test/**/*"
+  - "frontend/test/**/*"
+  - "backend/src/**/Program.cs"
+  - "backend/src/**/Startup.cs"
+  - "frontend/src/setupTests.ts"
+  - "frontend/src/reportWebVitals.ts"
+  - "frontend/src/index.tsx"
+  - "**/*.d.ts"
+  - "**/node_modules/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/coverage/**"
+
+comment:
+  layout: "reach,diff,flags,tree,reach"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+  branches:
+    - main

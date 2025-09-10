@@ -1,5 +1,14 @@
 # Anela Heblo
 
+[![CI Status](https://github.com/onpaj/Anela.Heblo/workflows/🔄%20CI%20with%20Manual%20Staging%20Deployment/badge.svg)](https://github.com/onpaj/Anela.Heblo/actions)
+[![CodeCov Coverage](https://codecov.io/gh/onpaj/Anela.Heblo/branch/main/graph/badge.svg)](https://codecov.io/gh/onpaj/Anela.Heblo)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![.NET Version](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![React Version](https://img.shields.io/badge/React-18.0-blue.svg)](https://reactjs.org/)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-onpaj/heblo-blue.svg)](https://hub.docker.com/r/onpaj/heblo)
+[![Environment - Production](https://img.shields.io/badge/Production-Live-green.svg)](https://heblo.anela.cz)
+[![Environment - Test](https://img.shields.io/badge/Test-Active-orange.svg)](https://heblo-test.azurewebsites.net)
+
 Workspace application for cosmetics company operations - a full-stack web application for managing catalog, manufacturing, purchasing, transport, and invoice automation.
 
 ## Architecture
