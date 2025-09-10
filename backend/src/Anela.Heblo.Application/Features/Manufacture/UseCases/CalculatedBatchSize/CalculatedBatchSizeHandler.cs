@@ -22,13 +22,13 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
         {
             var template = await _manufactureRepository.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
             var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
-            
+
             if (template == null)
             {
                 return new CalculatedBatchSizeResponse(ErrorCodes.ManufactureTemplateNotFound,
                     new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
             }
-            
+
             if (product == null)
             {
                 return new CalculatedBatchSizeResponse(ErrorCodes.ProductNotFound,
@@ -43,9 +43,9 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
                     new Dictionary<string, string> { { "BatchSize", template.BatchSize.ToString() } });
             }
 
-            if(request.DesiredBatchSize == null) // Use MMQ instead
+            if (request.DesiredBatchSize == null) // Use MMQ instead
                 request.DesiredBatchSize = product.MinimalManufactureQuantity;
-            
+
             double scaleFactor = (request.DesiredBatchSize / template.OriginalAmount).Value;
 
             // Create ingredients list with stock information
@@ -53,7 +53,7 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
             foreach (var ingredient in template.Ingredients)
             {
                 var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
-                
+
                 ingredientsWithStock.Add(new CalculatedIngredientDto
                 {
                     ProductCode = ingredient.ProductCode,

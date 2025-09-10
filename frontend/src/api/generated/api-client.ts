@@ -1246,6 +1246,40 @@ export class ApiClient {
         return Promise.resolve<GetProductUsageResponse>(null as any);
     }
 
+    catalog_GetWarehouseStatistics(): Promise<GetWarehouseStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/warehouse-statistics";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetWarehouseStatistics(_response);
+        });
+    }
+
+    protected processCatalog_GetWarehouseStatistics(response: Response): Promise<GetWarehouseStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetWarehouseStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetWarehouseStatisticsResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -1582,6 +1616,44 @@ export class ApiClient {
             });
         }
         return Promise.resolve<FileResponse>(null as any);
+    }
+
+    fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
+        let url_ = this.baseUrl + "/api/FileStorage/download";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFileStorage_DownloadFromUrl(_response);
+        });
+    }
+
+    protected processFileStorage_DownloadFromUrl(response: Response): Promise<DownloadFromUrlResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DownloadFromUrlResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DownloadFromUrlResponse>(null as any);
     }
 
     financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
@@ -2022,6 +2094,153 @@ export class ApiClient {
             });
         }
         return Promise.resolve<CreateJournalTagResponse>(null as any);
+    }
+
+    logistics_GetAvailableGiftPackages(): Promise<GetAvailableGiftPackagesResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/available";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_GetAvailableGiftPackages(_response);
+        });
+    }
+
+    protected processLogistics_GetAvailableGiftPackages(response: Response): Promise<GetAvailableGiftPackagesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAvailableGiftPackagesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAvailableGiftPackagesResponse>(null as any);
+    }
+
+    logistics_GetGiftPackageDetail(giftPackageCode: string): Promise<GetGiftPackageDetailResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail";
+        if (giftPackageCode === undefined || giftPackageCode === null)
+            throw new Error("The parameter 'giftPackageCode' must be defined.");
+        url_ = url_.replace("{giftPackageCode}", encodeURIComponent("" + giftPackageCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_GetGiftPackageDetail(_response);
+        });
+    }
+
+    protected processLogistics_GetGiftPackageDetail(response: Response): Promise<GetGiftPackageDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGiftPackageDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGiftPackageDetailResponse>(null as any);
+    }
+
+    logistics_CreateGiftPackageManufacture(request: CreateGiftPackageManufactureRequest): Promise<CreateGiftPackageManufactureResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_CreateGiftPackageManufacture(_response);
+        });
+    }
+
+    protected processLogistics_CreateGiftPackageManufacture(response: Response): Promise<CreateGiftPackageManufactureResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateGiftPackageManufactureResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateGiftPackageManufactureResponse>(null as any);
+    }
+
+    logistics_GetManufactureLog(count: number | undefined): Promise<GetManufactureLogResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture-log?";
+        if (count === null)
+            throw new Error("The parameter 'count' cannot be null.");
+        else if (count !== undefined)
+            url_ += "count=" + encodeURIComponent("" + count) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_GetManufactureLog(_response);
+        });
+    }
+
+    protected processLogistics_GetManufactureLog(response: Response): Promise<GetManufactureLogResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufactureLogResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufactureLogResponse>(null as any);
     }
 
     manufactureBatch_GetBatchTemplate(productCode: string): Promise<CalculatedBatchSizeResponse> {
@@ -3467,6 +3686,13 @@ export enum ErrorCodes {
     InsufficientData = "InsufficientData",
     ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
     InvalidReportPeriod = "InvalidReportPeriod",
+    InvalidUrlFormat = "InvalidUrlFormat",
+    InvalidContainerName = "InvalidContainerName",
+    FileDownloadFailed = "FileDownloadFailed",
+    BlobUploadFailed = "BlobUploadFailed",
+    BlobNotFound = "BlobNotFound",
+    FileTooLarge = "FileTooLarge",
+    UnsupportedFileType = "UnsupportedFileType",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -4022,6 +4248,7 @@ export enum ProductType {
     Material = "Material",
     SemiProduct = "SemiProduct",
     Product = "Product",
+    Set = "Set",
 }
 
 export class StockDto implements IStockDto {
@@ -5335,6 +5562,59 @@ export interface IIngredient {
     price?: number;
 }
 
+export class GetWarehouseStatisticsResponse extends BaseResponse implements IGetWarehouseStatisticsResponse {
+    totalQuantity?: number;
+    totalWeight?: number;
+    warehouseCapacityKg?: number;
+    warehouseUtilizationPercentage?: number;
+    totalProductCount?: number;
+    lastUpdated?: Date;
+
+    constructor(data?: IGetWarehouseStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.totalQuantity = _data["totalQuantity"];
+            this.totalWeight = _data["totalWeight"];
+            this.warehouseCapacityKg = _data["warehouseCapacityKg"];
+            this.warehouseUtilizationPercentage = _data["warehouseUtilizationPercentage"];
+            this.totalProductCount = _data["totalProductCount"];
+            this.lastUpdated = _data["lastUpdated"] ? new Date(_data["lastUpdated"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetWarehouseStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetWarehouseStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalQuantity"] = this.totalQuantity;
+        data["totalWeight"] = this.totalWeight;
+        data["warehouseCapacityKg"] = this.warehouseCapacityKg;
+        data["warehouseUtilizationPercentage"] = this.warehouseUtilizationPercentage;
+        data["totalProductCount"] = this.totalProductCount;
+        data["lastUpdated"] = this.lastUpdated ? this.lastUpdated.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetWarehouseStatisticsResponse extends IBaseResponse {
+    totalQuantity?: number;
+    totalWeight?: number;
+    warehouseCapacityKg?: number;
+    warehouseUtilizationPercentage?: number;
+    totalProductCount?: number;
+    lastUpdated?: Date;
+}
+
 export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
@@ -5378,6 +5658,95 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+}
+
+export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
+    blobUrl?: string;
+    blobName?: string;
+    containerName?: string;
+    fileSizeBytes?: number;
+
+    constructor(data?: IDownloadFromUrlResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.blobUrl = _data["blobUrl"];
+            this.blobName = _data["blobName"];
+            this.containerName = _data["containerName"];
+            this.fileSizeBytes = _data["fileSizeBytes"];
+        }
+    }
+
+    static override fromJS(data: any): DownloadFromUrlResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DownloadFromUrlResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["blobUrl"] = this.blobUrl;
+        data["blobName"] = this.blobName;
+        data["containerName"] = this.containerName;
+        data["fileSizeBytes"] = this.fileSizeBytes;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDownloadFromUrlResponse extends IBaseResponse {
+    blobUrl?: string;
+    blobName?: string;
+    containerName?: string;
+    fileSizeBytes?: number;
+}
+
+export class DownloadFromUrlRequest implements IDownloadFromUrlRequest {
+    fileUrl!: string;
+    containerName!: string;
+    blobName?: string | undefined;
+
+    constructor(data?: IDownloadFromUrlRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fileUrl = _data["fileUrl"];
+            this.containerName = _data["containerName"];
+            this.blobName = _data["blobName"];
+        }
+    }
+
+    static fromJS(data: any): DownloadFromUrlRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new DownloadFromUrlRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fileUrl"] = this.fileUrl;
+        data["containerName"] = this.containerName;
+        data["blobName"] = this.blobName;
+        return data;
+    }
+}
+
+export interface IDownloadFromUrlRequest {
+    fileUrl: string;
+    containerName: string;
+    blobName?: string | undefined;
 }
 
 export class GetFinancialOverviewResponse extends BaseResponse implements IGetFinancialOverviewResponse {
@@ -6339,6 +6708,430 @@ export class CreateJournalTagRequest implements ICreateJournalTagRequest {
 export interface ICreateJournalTagRequest {
     name: string;
     color?: string;
+}
+
+export class GetAvailableGiftPackagesResponse extends BaseResponse implements IGetAvailableGiftPackagesResponse {
+    giftPackages?: GiftPackageDto[];
+
+    constructor(data?: IGetAvailableGiftPackagesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["giftPackages"])) {
+                this.giftPackages = [] as any;
+                for (let item of _data["giftPackages"])
+                    this.giftPackages!.push(GiftPackageDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAvailableGiftPackagesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAvailableGiftPackagesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.giftPackages)) {
+            data["giftPackages"] = [];
+            for (let item of this.giftPackages)
+                data["giftPackages"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAvailableGiftPackagesResponse extends IBaseResponse {
+    giftPackages?: GiftPackageDto[];
+}
+
+export class GiftPackageDto implements IGiftPackageDto {
+    code?: string;
+    name?: string;
+    availableStock?: number;
+    dailySales?: number;
+    overstockLimit?: number;
+    ingredients?: GiftPackageIngredientDto[] | undefined;
+
+    constructor(data?: IGiftPackageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.name = _data["name"];
+            this.availableStock = _data["availableStock"];
+            this.dailySales = _data["dailySales"];
+            this.overstockLimit = _data["overstockLimit"];
+            if (Array.isArray(_data["ingredients"])) {
+                this.ingredients = [] as any;
+                for (let item of _data["ingredients"])
+                    this.ingredients!.push(GiftPackageIngredientDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GiftPackageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["name"] = this.name;
+        data["availableStock"] = this.availableStock;
+        data["dailySales"] = this.dailySales;
+        data["overstockLimit"] = this.overstockLimit;
+        if (Array.isArray(this.ingredients)) {
+            data["ingredients"] = [];
+            for (let item of this.ingredients)
+                data["ingredients"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGiftPackageDto {
+    code?: string;
+    name?: string;
+    availableStock?: number;
+    dailySales?: number;
+    overstockLimit?: number;
+    ingredients?: GiftPackageIngredientDto[] | undefined;
+}
+
+export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
+    productCode?: string;
+    productName?: string;
+    requiredQuantity?: number;
+    availableStock?: number;
+    image?: string | undefined;
+    hasSufficientStock?: boolean;
+
+    constructor(data?: IGiftPackageIngredientDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.requiredQuantity = _data["requiredQuantity"];
+            this.availableStock = _data["availableStock"];
+            this.image = _data["image"];
+            this.hasSufficientStock = _data["hasSufficientStock"];
+        }
+    }
+
+    static fromJS(data: any): GiftPackageIngredientDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageIngredientDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["requiredQuantity"] = this.requiredQuantity;
+        data["availableStock"] = this.availableStock;
+        data["image"] = this.image;
+        data["hasSufficientStock"] = this.hasSufficientStock;
+        return data;
+    }
+}
+
+export interface IGiftPackageIngredientDto {
+    productCode?: string;
+    productName?: string;
+    requiredQuantity?: number;
+    availableStock?: number;
+    image?: string | undefined;
+    hasSufficientStock?: boolean;
+}
+
+export class GetGiftPackageDetailResponse extends BaseResponse implements IGetGiftPackageDetailResponse {
+    giftPackage?: GiftPackageDto | undefined;
+
+    constructor(data?: IGetGiftPackageDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.giftPackage = _data["giftPackage"] ? GiftPackageDto.fromJS(_data["giftPackage"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetGiftPackageDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGiftPackageDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["giftPackage"] = this.giftPackage ? this.giftPackage.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGiftPackageDetailResponse extends IBaseResponse {
+    giftPackage?: GiftPackageDto | undefined;
+}
+
+export class CreateGiftPackageManufactureResponse extends BaseResponse implements ICreateGiftPackageManufactureResponse {
+    manufacture?: GiftPackageManufactureDto;
+
+    constructor(data?: ICreateGiftPackageManufactureResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.manufacture = _data["manufacture"] ? GiftPackageManufactureDto.fromJS(_data["manufacture"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateGiftPackageManufactureResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateGiftPackageManufactureResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["manufacture"] = this.manufacture ? this.manufacture.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateGiftPackageManufactureResponse extends IBaseResponse {
+    manufacture?: GiftPackageManufactureDto;
+}
+
+export class GiftPackageManufactureDto implements IGiftPackageManufactureDto {
+    id?: number;
+    giftPackageCode?: string;
+    quantityCreated?: number;
+    stockOverrideApplied?: boolean;
+    createdAt?: Date;
+    createdBy?: string;
+    consumedItems?: GiftPackageManufactureItemDto[];
+
+    constructor(data?: IGiftPackageManufactureDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.giftPackageCode = _data["giftPackageCode"];
+            this.quantityCreated = _data["quantityCreated"];
+            this.stockOverrideApplied = _data["stockOverrideApplied"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            if (Array.isArray(_data["consumedItems"])) {
+                this.consumedItems = [] as any;
+                for (let item of _data["consumedItems"])
+                    this.consumedItems!.push(GiftPackageManufactureItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GiftPackageManufactureDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageManufactureDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["giftPackageCode"] = this.giftPackageCode;
+        data["quantityCreated"] = this.quantityCreated;
+        data["stockOverrideApplied"] = this.stockOverrideApplied;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        if (Array.isArray(this.consumedItems)) {
+            data["consumedItems"] = [];
+            for (let item of this.consumedItems)
+                data["consumedItems"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGiftPackageManufactureDto {
+    id?: number;
+    giftPackageCode?: string;
+    quantityCreated?: number;
+    stockOverrideApplied?: boolean;
+    createdAt?: Date;
+    createdBy?: string;
+    consumedItems?: GiftPackageManufactureItemDto[];
+}
+
+export class GiftPackageManufactureItemDto implements IGiftPackageManufactureItemDto {
+    productCode?: string;
+    quantityConsumed?: number;
+
+    constructor(data?: IGiftPackageManufactureItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.quantityConsumed = _data["quantityConsumed"];
+        }
+    }
+
+    static fromJS(data: any): GiftPackageManufactureItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageManufactureItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["quantityConsumed"] = this.quantityConsumed;
+        return data;
+    }
+}
+
+export interface IGiftPackageManufactureItemDto {
+    productCode?: string;
+    quantityConsumed?: number;
+}
+
+export class CreateGiftPackageManufactureRequest implements ICreateGiftPackageManufactureRequest {
+    giftPackageCode?: string;
+    quantity?: number;
+    allowStockOverride?: boolean;
+    userId?: string;
+
+    constructor(data?: ICreateGiftPackageManufactureRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.giftPackageCode = _data["giftPackageCode"];
+            this.quantity = _data["quantity"];
+            this.allowStockOverride = _data["allowStockOverride"];
+            this.userId = _data["userId"];
+        }
+    }
+
+    static fromJS(data: any): CreateGiftPackageManufactureRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateGiftPackageManufactureRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["giftPackageCode"] = this.giftPackageCode;
+        data["quantity"] = this.quantity;
+        data["allowStockOverride"] = this.allowStockOverride;
+        data["userId"] = this.userId;
+        return data;
+    }
+}
+
+export interface ICreateGiftPackageManufactureRequest {
+    giftPackageCode?: string;
+    quantity?: number;
+    allowStockOverride?: boolean;
+    userId?: string;
+}
+
+export class GetManufactureLogResponse extends BaseResponse implements IGetManufactureLogResponse {
+    manufactureLogs?: GiftPackageManufactureDto[];
+
+    constructor(data?: IGetManufactureLogResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["manufactureLogs"])) {
+                this.manufactureLogs = [] as any;
+                for (let item of _data["manufactureLogs"])
+                    this.manufactureLogs!.push(GiftPackageManufactureDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetManufactureLogResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufactureLogResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.manufactureLogs)) {
+            data["manufactureLogs"] = [];
+            for (let item of this.manufactureLogs)
+                data["manufactureLogs"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetManufactureLogResponse extends IBaseResponse {
+    manufactureLogs?: GiftPackageManufactureDto[];
 }
 
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {

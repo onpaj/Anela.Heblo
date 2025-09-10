@@ -336,6 +336,8 @@ export const QUERY_KEYS = {
   manufactureDifficulty: ["manufacture-difficulty-settings"] as const,
   productUsage: ["product-usage"] as const,
   health: ["health"] as const,
+  giftPackages: ["gift-packages"] as const,
+  warehouseStatistics: ["warehouse-statistics"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

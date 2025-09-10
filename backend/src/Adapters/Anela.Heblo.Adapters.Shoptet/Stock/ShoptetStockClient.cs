@@ -88,6 +88,11 @@ public class ShoptetStockClient : IEshopStockClient
             Map(m => m.Location).Index(26);
             Map(m => m.DefaultImage).Index(3);
             Map(m => m.Image).Index(4);
+            Map(m => m.Weight).Index(27);
+            Map(m => m.Height).Index(28);
+            Map(m => m.Depth).Index(29);
+            Map(m => m.Width).Index(30);
+            Map(m => m.AtypicalShipping).Index(31);
         }
     }
 }

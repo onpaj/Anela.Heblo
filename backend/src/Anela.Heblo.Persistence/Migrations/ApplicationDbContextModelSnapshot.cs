@@ -198,6 +198,83 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("JournalEntryTagAssignments", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ManufactureLogId")
+                        .HasColumnType("integer")
+                        .HasColumnName("manufacture_log_id");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("product_code");
+
+                    b.Property<int>("QuantityConsumed")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_consumed");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManufactureLogId")
+                        .HasDatabaseName("ix_gift_package_manufacture_items_manufacture_log_id");
+
+                    b.HasIndex("ProductCode")
+                        .HasDatabaseName("ix_gift_package_manufacture_items_product_code");
+
+                    b.ToTable("gift_package_manufacture_items", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("GiftPackageCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("gift_package_code");
+
+                    b.Property<int>("QuantityCreated")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_created");
+
+                    b.Property<bool>("StockOverrideApplied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("stock_override_applied");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_gift_package_manufacture_logs_created_at");
+
+                    b.HasIndex("GiftPackageCode")
+                        .HasDatabaseName("ix_gift_package_manufacture_logs_gift_package_code");
+
+                    b.ToTable("gift_package_manufacture_logs", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
                 {
                     b.Property<int>("Id")
@@ -508,6 +585,17 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureLog", "ManufactureLog")
+                        .WithMany("ConsumedItems")
+                        .HasForeignKey("ManufactureLogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManufactureLog");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", null)
@@ -552,6 +640,11 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryTag", b =>
                 {
                     b.Navigation("TagAssignments");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureLog", b =>
+                {
+                    b.Navigation("ConsumedItems");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>

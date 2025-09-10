@@ -164,6 +164,22 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidReportPeriod = 1705,
 
+    // FileStorage module errors (18XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidUrlFormat = 1801,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidContainerName = 1802,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    FileDownloadFailed = 1803,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    BlobUploadFailed = 1804,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    BlobNotFound = 1805,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    FileTooLarge = 1806,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    UnsupportedFileType = 1807,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

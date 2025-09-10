@@ -284,6 +284,9 @@ const ProductMarginsList: React.FC = () => {
               >
                 <option value="Product">Výrobky</option>
                 <option value="Goods">Zboží</option>
+                <option value="Material">Materiál</option>
+                <option value="SemiProduct">Polotovar</option>
+                <option value="Set">Dárkový balíček</option>
               </select>
             </div>
           </div>

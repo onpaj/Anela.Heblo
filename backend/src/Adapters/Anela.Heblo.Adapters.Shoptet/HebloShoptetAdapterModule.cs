@@ -58,6 +58,11 @@ public static class ShoptetAdapterServiceCollectionExtensions
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 
+        services.TryAddSingleton(TimeProvider.System);
+
+        // TODO: Replace with real implementations when features are ready
+        services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
+
         return services;
     }
 }

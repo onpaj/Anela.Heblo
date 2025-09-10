@@ -311,12 +311,12 @@ public class CatalogRepository : ICatalogRepository
             {
                 Erp = s.Stock
             },
-            Type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED,
+            Type = GetProductType(s),
             MinimalOrderQuantity = s.MOQ,
             HasLots = s.HasLots,
             HasExpiration = s.HasExpiration,
             Volume = s.Volume,
-            Weight = s.Weight,
+            NetWeight = s.Weight,
             Note = s.Note,
             SupplierCode = s.SupplierCode,
             SupplierName = s.SupplierName,
@@ -373,6 +373,11 @@ public class CatalogRepository : ICatalogRepository
                 product.Location = eshopProduct.Location;
                 product.Image = eshopProduct.Image;
                 product.DefaultImage = eshopProduct.DefaultImage;
+                product.GrossWeight = eshopProduct.Weight;
+                product.Height = eshopProduct.Height;
+                product.Width = eshopProduct.Width;
+                product.Depth = eshopProduct.Depth;
+                product.AtypicalShipping = eshopProduct.AtypicalShipping;
             }
 
             if (consumedMap.TryGetValue(product.ProductCode, out var consumed))
@@ -430,6 +435,16 @@ public class CatalogRepository : ICatalogRepository
         }
 
         return products.ToList();
+    }
+
+    private static ProductType GetProductType(ErpStock s)
+    {
+        var type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED;
+
+        if (type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
+            return ProductType.Set;
+
+        return type;
     }
 
     public async Task ExecuteBackgroundMergeAsync(CancellationToken cancellationToken = default)

@@ -40,7 +40,7 @@ public class ShoptetStockClientIntegrationTests
         if (result.Any())
         {
             result.Where(w => w.Stock > 0).Should().HaveCountGreaterThan(0);
-            
+
             // Test CSV column mapping is working correctly
             foreach (var stock in result.Take(5)) // Check first 5 items
             {

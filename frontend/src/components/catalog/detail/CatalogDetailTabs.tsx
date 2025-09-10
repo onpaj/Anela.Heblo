@@ -75,7 +75,8 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
 
         {(item?.type === ProductType.Product ||
           item?.type === ProductType.SemiProduct ||
-          item?.type === ProductType.Goods) && (
+          item?.type === ProductType.Goods ||
+          item?.type === ProductType.Set) && (
           <button
             onClick={() => onTabChange("margins")}
             className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${

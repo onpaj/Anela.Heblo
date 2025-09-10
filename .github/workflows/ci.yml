@@ -108,9 +108,11 @@ jobs:
         uses: codecov/codecov-action@v3
         continue-on-error: true
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
+          fail_ci_if_error: false
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -148,7 +150,16 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Automation
 
       - name: 🧪 Run tests with coverage
-        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        
+      - name: 📊 Process coverage files for CodeCov
+        run: |
+          # Find all coverage.cobertura.xml files and fix paths for CodeCov
+          find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
+            echo "Processing coverage file: $file"
+            # Replace relative paths with absolute paths for CodeCov (Linux sed syntax)
+            sed -i 's|filename="|filename="backend/src/|g' "$file"
+          done
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -168,9 +179,11 @@ jobs:
         uses: codecov/codecov-action@v3
         continue-on-error: true
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/*/coverage.cobertura.xml
           flags: backend
           name: backend-coverage
+          fail_ci_if_error: false
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore

@@ -6,6 +6,7 @@ export const productTypeLabels: Record<ProductType, string> = {
   [ProductType.Goods]: "Zboží",
   [ProductType.Material]: "Materiál",
   [ProductType.SemiProduct]: "Polotovar",
+  [ProductType.Set]: "Dárkový balíček",
   [ProductType.UNDEFINED]: "Nedefinováno",
 };
 
@@ -15,6 +16,7 @@ export const productTypeColors: Record<ProductType, string> = {
   [ProductType.Goods]: "bg-green-100 text-green-800",
   [ProductType.Material]: "bg-orange-100 text-orange-800",
   [ProductType.SemiProduct]: "bg-purple-100 text-purple-800",
+  [ProductType.Set]: "bg-pink-100 text-pink-800",
   [ProductType.UNDEFINED]: "bg-gray-100 text-gray-800",
 };
 
@@ -27,6 +29,8 @@ export const getInputTabName = (productType: ProductType): string => {
     case ProductType.Product:
       return "Výroba";
     case ProductType.SemiProduct:
+      return "Výroba";
+    case ProductType.Set:
       return "Výroba";
     default:
       return "";
@@ -42,6 +46,8 @@ export const getOutputTabName = (productType: ProductType): string => {
       return "Prodeje";
     case ProductType.SemiProduct:
       return "Spotřeba";
+    case ProductType.Set:
+      return "Prodeje";
     default:
       return "";
   }

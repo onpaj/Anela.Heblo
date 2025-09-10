@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Microsoft.AspNetCore.Mvc;
@@ -238,6 +239,14 @@ public class CatalogController : BaseApiController
     public async Task<ActionResult<GetProductUsageResponse>> GetProductUsage(string productCode)
     {
         var request = new GetProductUsageRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+        return Ok(response);
+    }
+
+    [HttpGet("warehouse-statistics")]
+    public async Task<ActionResult<GetWarehouseStatisticsResponse>> GetWarehouseStatistics()
+    {
+        var request = new GetWarehouseStatisticsRequest();
         var response = await _mediator.Send(request);
         return Ok(response);
     }

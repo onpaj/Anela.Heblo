@@ -118,6 +118,15 @@ const resources = {
         DuplicateJournalTag: "Značka s názvem {{tagName}} již existuje",
         InvalidJournalEntryData: "Neplatná data záznamu deníku: {{field}}",
 
+        // FileStorage module errors
+        InvalidUrlFormat: "Neplatný formát URL",
+        InvalidContainerName: "Neplatný název kontejneru",
+        FileDownloadFailed: "Stahování souboru selhalo",
+        BlobUploadFailed: "Nahrávání souboru selhalo",
+        BlobNotFound: "Soubor nenalezen",
+        FileTooLarge: "Soubor je příliš velký",
+        UnsupportedFileType: "Nepodporovaný typ souboru",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

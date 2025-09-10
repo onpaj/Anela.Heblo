@@ -50,7 +50,7 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
             foreach (var ingredient in template.Ingredients)
             {
                 var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
-                
+
                 ingredientsWithStock.Add(new CalculatedIngredientDto
                 {
                     ProductCode = ingredient.ProductCode,

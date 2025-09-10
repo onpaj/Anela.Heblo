@@ -11,4 +11,9 @@ public class EshopStock
     public string Location { get; set; }
     public string? DefaultImage { get; set; }
     public string? Image { get; set; }
+    public double? Weight { get; set; }
+    public double? Height { get; set; }
+    public double? Depth { get; set; }
+    public double? Width { get; set; }
+    public bool AtypicalShipping { get; set; } = false;
 }
