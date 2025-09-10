@@ -28,6 +28,7 @@ flags:
       - frontend/src/
     carryforward: false
 
+
 ignore:
   - "backend/test/**/*"
   - "frontend/test/**/*"
