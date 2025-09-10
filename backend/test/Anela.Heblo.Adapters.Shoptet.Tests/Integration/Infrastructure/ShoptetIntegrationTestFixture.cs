@@ -1,3 +1,6 @@
+using Anela.Heblo.API.Extensions;
+using Anela.Heblo.Application.Features.Users;
+using Anela.Heblo.Domain.Features.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -24,6 +27,10 @@ public class ShoptetIntegrationTestFixture
         services.AddLogging(builder => builder.AddConsole());
 
         services.AddShoptetAdapter(Configuration);
+        services.AddCrossCuttingServices();
+        // Register HttpClient for E2E testing middleware
+        services.AddHttpClient();
+
 
         ServiceProvider = services.BuildServiceProvider();
     }

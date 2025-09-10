@@ -2095,44 +2095,6 @@ export class ApiClient {
         return Promise.resolve<GetGiftPackageDetailResponse>(null as any);
     }
 
-    logistics_ValidateGiftPackageStock(request: ValidateGiftPackageStockRequest): Promise<ValidateGiftPackageStockResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/validate-stock";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processLogistics_ValidateGiftPackageStock(_response);
-        });
-    }
-
-    protected processLogistics_ValidateGiftPackageStock(response: Response): Promise<ValidateGiftPackageStockResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ValidateGiftPackageStockResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ValidateGiftPackageStockResponse>(null as any);
-    }
-
     logistics_CreateGiftPackageManufacture(request: CreateGiftPackageManufactureRequest): Promise<CreateGiftPackageManufactureResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture";
         url_ = url_.replace(/[?&]$/, "");
@@ -6637,6 +6599,7 @@ export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
     productName?: string;
     requiredQuantity?: number;
     availableStock?: number;
+    image?: string | undefined;
     hasSufficientStock?: boolean;
 
     constructor(data?: IGiftPackageIngredientDto) {
@@ -6654,6 +6617,7 @@ export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
             this.productName = _data["productName"];
             this.requiredQuantity = _data["requiredQuantity"];
             this.availableStock = _data["availableStock"];
+            this.image = _data["image"];
             this.hasSufficientStock = _data["hasSufficientStock"];
         }
     }
@@ -6671,6 +6635,7 @@ export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
         data["productName"] = this.productName;
         data["requiredQuantity"] = this.requiredQuantity;
         data["availableStock"] = this.availableStock;
+        data["image"] = this.image;
         data["hasSufficientStock"] = this.hasSufficientStock;
         return data;
     }
@@ -6681,6 +6646,7 @@ export interface IGiftPackageIngredientDto {
     productName?: string;
     requiredQuantity?: number;
     availableStock?: number;
+    image?: string | undefined;
     hasSufficientStock?: boolean;
 }
 
@@ -6715,187 +6681,6 @@ export class GetGiftPackageDetailResponse extends BaseResponse implements IGetGi
 
 export interface IGetGiftPackageDetailResponse extends IBaseResponse {
     giftPackage?: GiftPackageDto | undefined;
-}
-
-export class ValidateGiftPackageStockResponse extends BaseResponse implements IValidateGiftPackageStockResponse {
-    validation?: GiftPackageStockValidationDto;
-
-    constructor(data?: IValidateGiftPackageStockResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.validation = _data["validation"] ? GiftPackageStockValidationDto.fromJS(_data["validation"]) : <any>undefined;
-        }
-    }
-
-    static override fromJS(data: any): ValidateGiftPackageStockResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ValidateGiftPackageStockResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["validation"] = this.validation ? this.validation.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IValidateGiftPackageStockResponse extends IBaseResponse {
-    validation?: GiftPackageStockValidationDto;
-}
-
-export class GiftPackageStockValidationDto implements IGiftPackageStockValidationDto {
-    giftPackageCode?: string;
-    requestedQuantity?: number;
-    hasSufficientStock?: boolean;
-    shortages?: StockShortageDto[];
-
-    constructor(data?: IGiftPackageStockValidationDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.giftPackageCode = _data["giftPackageCode"];
-            this.requestedQuantity = _data["requestedQuantity"];
-            this.hasSufficientStock = _data["hasSufficientStock"];
-            if (Array.isArray(_data["shortages"])) {
-                this.shortages = [] as any;
-                for (let item of _data["shortages"])
-                    this.shortages!.push(StockShortageDto.fromJS(item));
-            }
-        }
-    }
-
-    static fromJS(data: any): GiftPackageStockValidationDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new GiftPackageStockValidationDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["giftPackageCode"] = this.giftPackageCode;
-        data["requestedQuantity"] = this.requestedQuantity;
-        data["hasSufficientStock"] = this.hasSufficientStock;
-        if (Array.isArray(this.shortages)) {
-            data["shortages"] = [];
-            for (let item of this.shortages)
-                data["shortages"].push(item.toJSON());
-        }
-        return data;
-    }
-}
-
-export interface IGiftPackageStockValidationDto {
-    giftPackageCode?: string;
-    requestedQuantity?: number;
-    hasSufficientStock?: boolean;
-    shortages?: StockShortageDto[];
-}
-
-export class StockShortageDto implements IStockShortageDto {
-    productCode?: string;
-    productName?: string;
-    requiredQuantity?: number;
-    availableStock?: number;
-    shortageAmount?: number;
-
-    constructor(data?: IStockShortageDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.requiredQuantity = _data["requiredQuantity"];
-            this.availableStock = _data["availableStock"];
-            this.shortageAmount = _data["shortageAmount"];
-        }
-    }
-
-    static fromJS(data: any): StockShortageDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockShortageDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["requiredQuantity"] = this.requiredQuantity;
-        data["availableStock"] = this.availableStock;
-        data["shortageAmount"] = this.shortageAmount;
-        return data;
-    }
-}
-
-export interface IStockShortageDto {
-    productCode?: string;
-    productName?: string;
-    requiredQuantity?: number;
-    availableStock?: number;
-    shortageAmount?: number;
-}
-
-export class ValidateGiftPackageStockRequest implements IValidateGiftPackageStockRequest {
-    giftPackageCode?: string;
-    quantity?: number;
-
-    constructor(data?: IValidateGiftPackageStockRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.giftPackageCode = _data["giftPackageCode"];
-            this.quantity = _data["quantity"];
-        }
-    }
-
-    static fromJS(data: any): ValidateGiftPackageStockRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new ValidateGiftPackageStockRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["giftPackageCode"] = this.giftPackageCode;
-        data["quantity"] = this.quantity;
-        return data;
-    }
-}
-
-export interface IValidateGiftPackageStockRequest {
-    giftPackageCode?: string;
-    quantity?: number;
 }
 
 export class CreateGiftPackageManufactureResponse extends BaseResponse implements ICreateGiftPackageManufactureResponse {

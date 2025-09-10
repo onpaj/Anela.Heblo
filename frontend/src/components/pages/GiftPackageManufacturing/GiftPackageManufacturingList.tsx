@@ -4,22 +4,19 @@ import {
   RefreshCw,
   Download,
   AlertTriangle,
-  TrendingDown,
-  CheckCircle,
   Package,
-  Settings,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronDown,
   HelpCircle,
-  Plus,
   Info,
 } from "lucide-react";
-import { useGiftPackageDetail, useAvailableGiftPackages } from "../../api/hooks/useGiftPackageManufacturing";
-import { StockSeverity } from "../../api/generated/api-client";
-import CatalogDetail from "./CatalogDetail";
-import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useAvailableGiftPackages } from "../../../api/hooks/useGiftPackageManufacturing";
+import { StockSeverity } from "../../../api/generated/api-client";
+import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
+import GiftPackageManufacturingFilters from "./GiftPackageManufacturingFilters";
+import GiftPackageManufacturingSummary from "./GiftPackageManufacturingSummary";
 
 // Filter types
 interface GiftPackageFilters {
@@ -59,7 +56,15 @@ interface GiftPackageSummary {
   notConfiguredCount: number;
 }
 
-const GiftPackageManufacturing: React.FC = () => {
+interface GiftPackageManufacturingListProps {
+  onPackageClick: (pkg: GiftPackage) => void;
+  onCatalogDetailClick: (productCode: string) => void;
+}
+
+const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> = ({
+  onPackageClick,
+  onCatalogDetailClick,
+}) => {
   // State for filters
   const [filters, setFilters] = useState<GiftPackageFilters>({
     fromDate: new Date(
@@ -76,14 +81,6 @@ const GiftPackageManufacturing: React.FC = () => {
     sortDescending: true,
   });
 
-  // State for manufacturing modal 
-  const [selectedPackage, setSelectedPackage] = useState<GiftPackage | null>(null);
-  const [isManufactureModalOpen, setIsManufactureModalOpen] = useState(false);
-  
-  // State for catalog detail modal
-  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
-  const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
-
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   
@@ -92,11 +89,6 @@ const GiftPackageManufacturing: React.FC = () => {
     fromDate: filters.fromDate,
     toDate: filters.toDate
   });
-  
-  // Load gift package detail with components when modal is open
-  const { data: giftPackageDetail, isLoading: detailLoading } = useGiftPackageDetail(
-    selectedPackage?.code
-  );
 
   // Process gift package data with date-range-based calculation
   const { giftPackages, summary } = useMemo(() => {
@@ -107,7 +99,7 @@ const GiftPackageManufacturing: React.FC = () => {
         const dailySales = pkg.dailySales ?? 0;
         
         // Calculate period for reference (currently unused but may be useful for future features)
-        const daysDiff = Math.ceil((filters.toDate.getTime() - filters.fromDate.getTime()) / (1000 * 60 * 60 * 24));
+        // const daysDiff = Math.ceil((filters.toDate.getTime() - filters.fromDate.getTime()) / (1000 * 60 * 60 * 24));
         
         // Calculate suggested quantity for weekly production
         const suggestedQuantity = Math.max(0, Math.ceil(dailySales * 7) - availableStock);
@@ -147,10 +139,7 @@ const GiftPackageManufacturing: React.FC = () => {
     };
     
     return { giftPackages: packages, summary: summaryData };
-  }, [giftPackageData?.giftPackages, filters.fromDate, filters.toDate]);
-  
-  // Data automatically refetches when query key changes (filters.fromDate, filters.toDate are in queryKey)
-  // No need for manual useEffect since React Query handles this automatically
+  }, [giftPackageData?.giftPackages]);
   
   // Apply filters, sorting, and pagination
   const { filteredPackages, totalCount, totalPages } = useMemo(() => {
@@ -255,116 +244,9 @@ const GiftPackageManufacturing: React.FC = () => {
     console.log("Export to CSV");
   };
 
-  // Quick date range selectors
-  const handleQuickDateRange = (
-    type: "last12months" | "previousQuarter" | "nextQuarter",
-  ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-
-      case "nextQuarter":
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-
-      default:
-        return;
-    }
-
-    handleFilterChange({ fromDate, toDate });
-  };
-
-  // Get tooltip text for date range buttons
-  const getDateRangeTooltip = (
-    type: "last12months" | "previousQuarter" | "nextQuarter",
-  ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-
-      case "nextQuarter":
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-
-      default:
-        return "";
-    }
-
-    return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
-  };
-
   // Handle severity filter click from summary cards
   const handleSeverityFilterClick = (severity: StockSeverity | "All") => {
     handleFilterChange({ severity });
-  };
-
-  // Manufacturing modal handlers
-  const handleRowClick = (pkg: GiftPackage) => {
-    setSelectedPackage(pkg);
-    setIsManufactureModalOpen(true);
-  };
-  
-  // Catalog detail handlers
-  const handleCatalogDetailClick = (productCode: string) => {
-    setSelectedProductCode(productCode);
-    setIsCatalogDetailOpen(true);
-  };
-  
-  const handleCloseCatalogDetail = () => {
-    setIsCatalogDetailOpen(false);
-    setSelectedProductCode(null);
-  };
-  
-  const handleCloseManufactureModal = () => {
-    setIsManufactureModalOpen(false);
-    setSelectedPackage(null);
-  };
-  
-  const handleManufacture = async (quantity: number) => {
-    if (!selectedPackage) return;
-    
-    try {
-      console.log(`Výroba ${quantity}x ${selectedPackage.name}`);
-      // TODO: Call actual manufacturing API
-      handleCloseManufactureModal();
-      refetch(); // Refresh data after manufacturing
-    } catch (error) {
-      console.error('Manufacturing error:', error);
-    }
   };
 
   // Sortable header component
@@ -506,61 +388,12 @@ const GiftPackageManufacturing: React.FC = () => {
                 <>
                   {/* Quick summary when collapsed - clickable */}
                   {summary && (
-                    <div className="flex items-center space-x-2 text-xs">
-                      <button
-                        onClick={() => handleSeverityFilterClick("All")}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-gray-100 ${
-                          filters.severity === "All"
-                            ? "bg-gray-100 ring-1 ring-gray-300"
-                            : ""
-                        }`}
-                        title="Všechny balíčky"
-                      >
-                        <span className="text-gray-700 font-medium">
-                          {summary.totalPackages}
-                        </span>
-                      </button>
-                      <span className="text-gray-400">|</span>
-                      <button
-                        onClick={() => handleSeverityFilterClick(StockSeverity.Critical)}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-red-50 ${
-                          filters.severity === StockSeverity.Critical
-                            ? "bg-red-50 ring-1 ring-red-300"
-                            : ""
-                        }`}
-                        title="Kritické zásoby"
-                      >
-                        <span className="text-red-600 font-medium">
-                          {summary.criticalCount}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleSeverityFilterClick(StockSeverity.Low)}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-amber-50 ${
-                          filters.severity === StockSeverity.Low
-                            ? "bg-amber-50 ring-1 ring-amber-300"
-                            : ""
-                        }`}
-                        title="Nízké zásoby"
-                      >
-                        <span className="text-orange-600 font-medium">
-                          {summary.lowStockCount}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleSeverityFilterClick(StockSeverity.Optimal)}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-emerald-50 ${
-                          filters.severity === StockSeverity.Optimal
-                            ? "bg-emerald-50 ring-1 ring-emerald-300"
-                            : ""
-                        }`}
-                        title="Optimální zásoby"
-                      >
-                        <span className="text-green-600 font-medium">
-                          {summary.optimalCount}
-                        </span>
-                      </button>
-                    </div>
+                    <GiftPackageManufacturingSummary
+                      summary={summary}
+                      filters={filters}
+                      onSeverityFilterClick={handleSeverityFilterClick}
+                      compact={true}
+                    />
                   )}
                   {/* Search field when collapsed */}
                   <div className="flex-1 max-w-xs">
@@ -660,190 +493,19 @@ const GiftPackageManufacturing: React.FC = () => {
           <div className="p-3 space-y-4">
             {/* Summary Cards */}
             {summary && (
-              <div>
-                <h3 className="text-xs font-medium text-gray-700 mb-2">
-                  Přehled stavů zásob
-                </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <button
-                    onClick={() => handleSeverityFilterClick("All")}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-100 ${
-                      filters.severity === "All"
-                        ? "bg-gray-100 ring-1 ring-gray-300"
-                        : ""
-                    }`}
-                  >
-                    <Package className="h-3 w-3 text-blue-500 mr-1" />
-                    <span className="text-gray-600">Celkem:</span>
-                    <span className="font-semibold text-gray-900 ml-1">
-                      {summary.totalPackages}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSeverityFilterClick(StockSeverity.Critical)}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-red-50 ${
-                      filters.severity === StockSeverity.Critical
-                        ? "bg-red-50 ring-1 ring-red-300"
-                        : ""
-                    }`}
-                  >
-                    <AlertTriangle className="h-3 w-3 text-red-500 mr-1" />
-                    <span className="text-gray-600">Kritické:</span>
-                    <span className="font-semibold text-red-600 ml-1">
-                      {summary.criticalCount}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSeverityFilterClick(StockSeverity.Low)}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-amber-50 ${
-                      filters.severity === StockSeverity.Low
-                        ? "bg-amber-50 ring-1 ring-amber-300"
-                        : ""
-                    }`}
-                  >
-                    <TrendingDown className="h-3 w-3 text-orange-500 mr-1" />
-                    <span className="text-gray-600">Nízké:</span>
-                    <span className="font-semibold text-orange-600 ml-1">
-                      {summary.lowStockCount}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSeverityFilterClick(StockSeverity.Optimal)}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-emerald-50 ${
-                      filters.severity === StockSeverity.Optimal
-                        ? "bg-emerald-50 ring-1 ring-emerald-300"
-                        : ""
-                    }`}
-                  >
-                    <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-gray-600">Optimální:</span>
-                    <span className="font-semibold text-green-600 ml-1">
-                      {summary.optimalCount}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSeverityFilterClick(StockSeverity.Overstocked)}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-blue-50 ${
-                      filters.severity === StockSeverity.Overstocked
-                        ? "bg-blue-50 ring-1 ring-blue-300"
-                        : ""
-                    }`}
-                  >
-                    <Package className="h-3 w-3 text-blue-500 mr-1" />
-                    <span className="text-gray-600">Přeskladněno:</span>
-                    <span className="font-semibold text-blue-600 ml-1">
-                      {summary.overstockedCount}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSeverityFilterClick(StockSeverity.NotConfigured)}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-50 ${
-                      filters.severity === StockSeverity.NotConfigured
-                        ? "bg-gray-50 ring-1 ring-gray-300"
-                        : ""
-                    }`}
-                  >
-                    <Settings className="h-3 w-3 text-gray-500 mr-1" />
-                    <span className="text-gray-600">Nezkonfigurováno:</span>
-                    <span className="font-semibold text-gray-600 ml-1">
-                      {summary.notConfiguredCount}
-                    </span>
-                  </button>
-                </div>
-              </div>
+              <GiftPackageManufacturingSummary
+                summary={summary}
+                filters={filters}
+                onSeverityFilterClick={handleSeverityFilterClick}
+                compact={false}
+              />
             )}
 
             {/* Filters */}
-            <div>
-              <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Search */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Vyhledat
-                  </label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                    <input
-                      type="text"
-                      value={filters.searchTerm || ""}
-                      onChange={(e) =>
-                        handleFilterChange({ searchTerm: e.target.value })
-                      }
-                      placeholder="Kód, název balíčku..."
-                      className="pl-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Date From */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Od data
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.fromDate?.toISOString().split("T")[0] || ""}
-                    onChange={(e) =>
-                      handleFilterChange({ fromDate: new Date(e.target.value) })
-                    }
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Date To */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Do data
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.toDate?.toISOString().split("T")[0] || ""}
-                    onChange={(e) =>
-                      handleFilterChange({ toDate: new Date(e.target.value) })
-                    }
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Quick Date Range Selectors */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Rychlé volby
-                  </label>
-                  <div className="space-y-1.5">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleQuickDateRange("last12months")}
-                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
-                        title={getDateRangeTooltip("last12months")}
-                      >
-                        Y2Y
-                      </button>
-                      <button
-                        onClick={() => handleQuickDateRange("previousQuarter")}
-                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
-                        title={getDateRangeTooltip("previousQuarter")}
-                      >
-                        PrevQ
-                      </button>
-                      <button
-                        onClick={() => handleQuickDateRange("nextQuarter")}
-                        className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors whitespace-nowrap"
-                        title={getDateRangeTooltip("nextQuarter")}
-                      >
-                        NextQ
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <GiftPackageManufacturingFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
           </div>
         )}
       </div>
@@ -903,7 +565,7 @@ const GiftPackageManufacturing: React.FC = () => {
                   <tr
                     key={pkg.code}
                     className={`${getRowColorClass(pkg.severity)} hover:bg-gray-50 cursor-pointer transition-colors duration-150`}
-                    onClick={() => handleRowClick(pkg)}
+                    onClick={() => onPackageClick(pkg)}
                     title="Klikněte pro zobrazení komponent balíčku a výrobu"
                   >
                     {/* Package Info */}
@@ -923,7 +585,7 @@ const GiftPackageManufacturing: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleCatalogDetailClick(pkg.code);
+                                onCatalogDetailClick(pkg.code);
                               }}
                               className="flex-shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
                               title="Zobrazit detail produktu"
@@ -1070,189 +732,9 @@ const GiftPackageManufacturing: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Manufacturing Modal with Gift Package Components */}
-      {isManufactureModalOpen && selectedPackage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Balíček: {selectedPackage.name}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Kód: {selectedPackage.code}
-                </p>
-              </div>
-              <button
-                onClick={handleCloseManufactureModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <Plus className="h-6 w-6 rotate-45" />
-              </button>
-            </div>
-
-            {/* Content - scrollable */}
-            <div className="flex-1 overflow-auto p-6 space-y-6">
-              {/* Package Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Informace o balíčku
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Aktuální sklad:</span>
-                    <div className="font-semibold text-gray-900">{selectedPackage.availableStock.toFixed(0)} ks</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Prodeje/den:</span>
-                    <div className="font-semibold text-gray-900">{selectedPackage.dailySales.toFixed(1)} ks</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Doporučeno:</span>
-                    <div className="font-semibold text-orange-600">{selectedPackage.suggestedQuantity} ks</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Týdenní spotřeba:</span>
-                    <div className="font-semibold text-gray-900">{(selectedPackage.dailySales * 7).toFixed(1)} ks</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gift Package Components */}
-              <div className="bg-white border rounded-lg">
-                <div className="px-4 py-3 bg-gray-50 border-b rounded-t-lg">
-                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                    <Package className="h-5 w-5 mr-2" />
-                    Komponenty balíčku
-                    {giftPackageDetail?.giftPackage?.ingredients && (
-                      <span className="ml-2 text-sm font-normal text-gray-600">
-                        ({giftPackageDetail.giftPackage.ingredients.length})
-                      </span>
-                    )}
-                  </h3>
-                </div>
-                
-                <div className="max-h-80 overflow-y-auto">
-                  {detailLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="h-6 w-6 animate-spin text-gray-400 mr-2" />
-                      <span className="text-gray-600">Načítání komponent...</span>
-                    </div>
-                  ) : giftPackageDetail?.giftPackage?.ingredients && giftPackageDetail.giftPackage.ingredients.length > 0 ? (
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Komponenta
-                          </th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Potřeba/ks
-                          </th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Skladem
-                          </th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Stav
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {giftPackageDetail.giftPackage.ingredients.map((ingredient, index) => {
-                          const requiredQuantity = ingredient.requiredQuantity || 0;
-                          const availableStock = ingredient.availableStock || 0;
-                          const isInStock = ingredient.hasSufficientStock || false;
-                          
-                          return (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-4 py-3">
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {ingredient.productName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {ingredient.productCode}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                {requiredQuantity.toFixed(1)}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                {availableStock.toFixed(1)}
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    isInStock
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}
-                                >
-                                  {isInStock ? "✓ Skladem" : "⚠ Chybí"}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="flex items-center justify-center py-8 text-gray-500">
-                      <Package className="h-8 w-8 mr-3" />
-                      <span>Komponenty nejsou k dispozici</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Manufacturing Form */}
-              <div className="bg-indigo-50 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Výrobní příkaz
-                </h3>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Množství k výrobě
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      defaultValue={Math.max(1, selectedPackage.suggestedQuantity)}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="Zadejte množství"
-                    />
-                  </div>
-                  <div className="flex-shrink-0 pt-7">
-                    <button
-                      onClick={() => {
-                        // TODO: Get quantity from input
-                        handleManufacture(selectedPackage.suggestedQuantity);
-                      }}
-                      className="flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Zahájit výrobu
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Catalog Detail Modal */}
-      <CatalogDetail
-        productCode={selectedProductCode}
-        isOpen={isCatalogDetailOpen}
-        onClose={handleCloseCatalogDetail}
-        defaultTab="basic"
-      />
     </div>
   );
 };
 
-export default GiftPackageManufacturing;
+export { GiftPackageSortBy, type GiftPackage, type GiftPackageFilters, type GiftPackageSummary };
+export default GiftPackageManufacturingList;

@@ -4,8 +4,6 @@ import { ApiClient as GeneratedApiClient } from "../generated/api-client";
 import {
   GetAvailableGiftPackagesResponse,
   GetGiftPackageDetailResponse,
-  ValidateGiftPackageStockRequest,
-  ValidateGiftPackageStockResponse,
   CreateGiftPackageManufactureRequest,
   CreateGiftPackageManufactureResponse,
   GetManufactureLogResponse,
@@ -62,45 +60,7 @@ export const useGiftPackageDetail = (giftPackageCode?: string) => {
   });
 };
 
-/**
- * Hook to validate stock for gift package manufacturing
- */
-export const useValidateGiftPackageStock = (
-  giftPackageCode?: string,
-  quantity?: number
-) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.giftPackages, "validation", giftPackageCode || "", quantity || 0],
-    queryFn: async (): Promise<ValidateGiftPackageStockResponse> => {
-      if (!giftPackageCode || !quantity) {
-        throw new Error("Gift package code and quantity are required");
-      }
-      
-      const client = getGiftPackageClient();
-      const request = new ValidateGiftPackageStockRequest({
-        giftPackageCode,
-        quantity,
-      });
-      
-      return await client.logistics_ValidateGiftPackageStock(request);
-    },
-    enabled: !!giftPackageCode && !!quantity && quantity > 0,
-    staleTime: 30 * 1000, // 30 seconds - stock changes frequently
-    gcTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
-
-/**
- * Hook to manually validate stock (for on-demand validation)
- */
-export const useValidateStockMutation = () => {
-  return useMutation({
-    mutationFn: async (request: ValidateGiftPackageStockRequest): Promise<ValidateGiftPackageStockResponse> => {
-      const client = getGiftPackageClient();
-      return await client.logistics_ValidateGiftPackageStock(request);
-    },
-  });
-};
+// TODO: Implement stock validation hooks when backend endpoint is available
 
 /**
  * Hook to create gift package manufacture
@@ -117,7 +77,6 @@ export const useCreateGiftPackageManufacture = () => {
       // Invalidate and refetch related queries after successful manufacturing
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "available"] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "validation"] });
     },
   });
 };

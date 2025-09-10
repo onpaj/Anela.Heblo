@@ -7,7 +7,7 @@ public class GiftPackageManufactureDto
     public int QuantityCreated { get; set; }
     public bool StockOverrideApplied { get; set; }
     public DateTime CreatedAt { get; set; }
-    public Guid CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
     public List<GiftPackageManufactureItemDto> ConsumedItems { get; set; } = new();
 }
 

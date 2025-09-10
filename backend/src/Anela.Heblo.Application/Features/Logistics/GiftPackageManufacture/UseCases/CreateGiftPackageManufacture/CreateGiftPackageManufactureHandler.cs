@@ -18,7 +18,6 @@ public class CreateGiftPackageManufactureHandler : IRequestHandler<CreateGiftPac
             request.GiftPackageCode,
             request.Quantity,
             request.AllowStockOverride,
-            request.UserId,
             cancellationToken);
 
         return new CreateGiftPackageManufactureResponse

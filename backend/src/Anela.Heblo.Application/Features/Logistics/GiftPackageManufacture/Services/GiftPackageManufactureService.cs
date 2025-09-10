@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
@@ -13,6 +14,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IEshopStockDomainService _eshopStockDomainService;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
 
@@ -21,6 +23,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         IGiftPackageManufactureRepository giftPackageRepository,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService,
+        IEshopStockDomainService eshopStockDomainService,
         IMapper mapper,
         TimeProvider timeProvider)
     {
@@ -28,6 +31,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         _giftPackageRepository = giftPackageRepository;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
+        _eshopStockDomainService = eshopStockDomainService;
         _mapper = mapper;
         _timeProvider = timeProvider;
     }
@@ -112,7 +116,8 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 ProductCode = part.ProductCode,
                 ProductName = part.ProductName,
                 RequiredQuantity = part.Amount,
-                AvailableStock = (double)(ingredientProduct?.Stock.Available ?? 0)
+                AvailableStock = (double)(ingredientProduct?.Stock.Available ?? 0),
+                Image = ingredientProduct?.Image
             };
             
             ingredients.Add(ingredient);
@@ -127,33 +132,41 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         string giftPackageCode, 
         int quantity, 
         bool allowStockOverride, 
-        Guid userId, 
         CancellationToken cancellationToken = default)
     {
         // Create the manufacture log
         var manufactureLog = new GiftPackageManufactureLog(
             giftPackageCode,
             quantity,
-            false,
+            allowStockOverride,
             _timeProvider.GetUtcNow().DateTime,
-            userId);
+            _currentUserService.GetCurrentUser().Name ?? "System");
 
         // Add consumed items - get detailed info with ingredients
         var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
-        
+
+        var stockUpRequest = new StockUpRequest() { StockUpId = Guid.NewGuid().ToString() };
         foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
         {
             var consumedQuantity = (int)(ingredient.RequiredQuantity * quantity);
             manufactureLog.AddConsumedItem(ingredient.ProductCode, consumedQuantity);
+            stockUpRequest.Products.Add(new StockUpProductRequest()
+            {
+                ProductCode = ingredient.ProductCode,
+                Amount = consumedQuantity * -1,
+            });
         }
+        
+        stockUpRequest.Products.Add(new StockUpProductRequest()
+        {
+            ProductCode = giftPackageCode,
+            Amount = quantity,
+        });
 
+        await _eshopStockDomainService.StockUpAsync(stockUpRequest);
         // Save to database
         await _giftPackageRepository.AddAsync(manufactureLog);
         await _giftPackageRepository.SaveChangesAsync(cancellationToken);
-
-        // TODO: Integrate with catalog module to update stock levels
-        // This would involve calling stock correction APIs to subtract consumed products
-        // and add created gift packages to inventory
 
         return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
     }

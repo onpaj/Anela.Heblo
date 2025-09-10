@@ -8,7 +8,7 @@ public class GiftPackageManufactureLog : Entity<int>
     public int QuantityCreated { get; private set; }
     public bool StockOverrideApplied { get; private set; }
     public DateTime CreatedAt { get; private set; }
-    public Guid CreatedBy { get; private set; }
+    public string CreatedBy { get; private set; }
 
     public List<GiftPackageManufactureItem> ConsumedItems { get; private set; } = new();
 
@@ -17,7 +17,7 @@ public class GiftPackageManufactureLog : Entity<int>
         int quantityCreated,
         bool stockOverrideApplied,
         DateTime createdAt,
-        Guid createdBy)
+        string createdBy)
     {
         GiftPackageCode = giftPackageCode;
         QuantityCreated = quantityCreated;

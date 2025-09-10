@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Contract
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
@@ -17,6 +18,7 @@ public class GiftPackageManufactureServiceTests
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<IEshopStockDomainService> _eshopStockServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GiftPackageManufactureService _service;
@@ -28,6 +30,7 @@ public class GiftPackageManufactureServiceTests
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _eshopStockServiceMock = new Mock<IEshopStockDomainService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
 
@@ -39,6 +42,7 @@ public class GiftPackageManufactureServiceTests
             _giftPackageRepositoryMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object,
+            _eshopStockServiceMock.Object,
             _mapperMock.Object,
             _timeProviderMock.Object);
     }
@@ -181,7 +185,7 @@ public class GiftPackageManufactureServiceTests
         // Arrange
         var giftPackageCode = "SET001";
         var quantity = 5;
-        var userId = Guid.NewGuid();
+        var userId = "testUser";
         var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
         
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
@@ -209,8 +213,12 @@ public class GiftPackageManufactureServiceTests
         _mapperMock.Setup(x => x.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns(expectedManufactureDto);
 
+        // Setup current user service to return test user
+        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
+        
         // Act
-        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, userId);
+        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();

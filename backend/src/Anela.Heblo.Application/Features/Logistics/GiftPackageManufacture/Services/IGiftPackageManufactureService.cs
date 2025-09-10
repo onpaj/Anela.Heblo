@@ -12,6 +12,5 @@ public interface IGiftPackageManufactureService
         string giftPackageCode, 
         int quantity, 
         bool allowStockOverride, 
-        Guid userId, 
         CancellationToken cancellationToken = default);
 }

@@ -44,9 +44,6 @@ public static class CatalogModule
             options.IsBackgroundRefreshEnabled = true;
         });
 
-        // TODO: Replace with real implementations when features are ready
-        services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
-
         // Register background service for periodic refresh operations
         // Tests can configure hosted services separately
         services.AddHostedService<CatalogRefreshBackgroundService>();

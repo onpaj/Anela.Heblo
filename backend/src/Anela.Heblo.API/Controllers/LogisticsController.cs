@@ -59,7 +59,16 @@ public class LogisticsController : BaseApiController
     {
         // Set the current user ID
         var currentUser = _currentUserService.GetCurrentUser();
-        request.UserId = Guid.Parse(currentUser.Id);
+        
+        // Try to parse the user ID as GUID, fallback to a default GUID if parsing fails
+        if (!Guid.TryParse(currentUser.Id, out var userId))
+        {
+            // If ID is not a valid GUID (e.g., in mock auth scenarios), generate a consistent one
+            // or use a default system user GUID
+            userId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // System/Mock user GUID
+        }
+        
+        request.UserId = userId;
 
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);

@@ -9,12 +9,3 @@ public class GiftPackageDto
     public int OverstockLimit { get; set; }
     public List<GiftPackageIngredientDto>? Ingredients { get; set; }
 }
-
-public class GiftPackageIngredientDto
-{
-    public string ProductCode { get; set; } = null!;
-    public string ProductName { get; set; } = null!;
-    public double RequiredQuantity { get; set; }
-    public double AvailableStock { get; set; }
-    public bool HasSufficientStock => AvailableStock >= RequiredQuantity;
-}
