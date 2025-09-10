@@ -414,9 +414,9 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
-        objectResult.Subject.StatusCode.Should().Be(400); // BadRequest
-        objectResult.Subject.Value.Should().Be(errorResponse);
+        var badRequestResult = result.Result.Should().BeOfType<BadRequestObjectResult>();
+        badRequestResult.Subject.StatusCode.Should().Be(400); // BadRequest
+        badRequestResult.Subject.Value.Should().Be(errorResponse);
     }
 
     [Fact]
@@ -437,8 +437,8 @@ public class ManufacturingStockAnalysisControllerTests
         var result = await _controller.GetStockAnalysis(new GetManufacturingStockAnalysisRequest());
 
         // Assert
-        var objectResult = result.Result.Should().BeOfType<ObjectResult>();
-        objectResult.Subject.StatusCode.Should().Be(404); // NotFound
-        objectResult.Subject.Value.Should().Be(errorResponse);
+        var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>();
+        notFoundResult.Subject.StatusCode.Should().Be(404); // NotFound
+        notFoundResult.Subject.Value.Should().Be(errorResponse);
     }
 }

@@ -80,6 +80,7 @@ public class ErrorHandlingTests
         var configErrors = errorCodes.Where(code => code >= 1500 && code < 1600).ToList(); // 15XX range
         var journalErrors = errorCodes.Where(code => code >= 1600 && code < 1700).ToList(); // 16XX range
         var analyticsErrors = errorCodes.Where(code => code >= 1700 && code < 1800).ToList(); // 17XX range
+        var fileStorageErrors = errorCodes.Where(code => code >= 1800 && code < 1900).ToList(); // 18XX range
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -90,12 +91,14 @@ public class ErrorHandlingTests
         Assert.True(configErrors.Count > 0, "Should have config errors in 15XX range");
         Assert.True(journalErrors.Count > 0, "Should have journal errors in 16XX range");
         Assert.True(analyticsErrors.Count > 0, "Should have analytics errors in 17XX range");
+        Assert.True(fileStorageErrors.Count > 0, "Should have file storage errors in 18XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
         var categorizedCount = generalErrors.Count + auditErrors.Count + purchaseErrors.Count +
                               manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
-                              configErrors.Count + journalErrors.Count + analyticsErrors.Count + externalServiceErrors.Count;
+                              configErrors.Count + journalErrors.Count + analyticsErrors.Count + 
+                              fileStorageErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }
