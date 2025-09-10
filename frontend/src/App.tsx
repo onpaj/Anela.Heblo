@@ -19,6 +19,7 @@ import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
+import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -286,6 +287,10 @@ function App() {
                         <Route
                           path="/logistics/gift-package-manufacturing"
                           element={<GiftPackageManufacturing />}
+                        />
+                        <Route
+                          path="/logistics/warehouse-statistics"
+                          element={<WarehouseStatistics />}
                         />
                       </Routes>
                     </Layout>
