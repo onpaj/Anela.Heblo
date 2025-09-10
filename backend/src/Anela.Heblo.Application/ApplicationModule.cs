@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
@@ -36,6 +37,7 @@ public static class ApplicationModule
         services.AddAuditModule();
         services.AddAnalyticsModule();
         services.AddCatalogModule(configuration);
+        services.AddFileStorageModule(configuration);
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();

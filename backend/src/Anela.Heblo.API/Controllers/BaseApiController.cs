@@ -40,7 +40,18 @@ public abstract class BaseApiController : ControllerBase
                 response.Params != null ? string.Join(", ", response.Params.Select(p => $"{p.Key}={p.Value}")) : "no params");
 
             var statusCode = GetStatusCodeForError(response.ErrorCode.Value);
-            return StatusCode((int)statusCode, response);
+
+            // Return specific ActionResult types for common status codes to match test expectations
+            return statusCode switch
+            {
+                HttpStatusCode.BadRequest => BadRequest(response),
+                HttpStatusCode.NotFound => NotFound(response),
+                HttpStatusCode.Unauthorized => Unauthorized(response),
+                HttpStatusCode.Forbidden => Forbid(),
+                HttpStatusCode.ServiceUnavailable => StatusCode((int)statusCode, response),
+                HttpStatusCode.InternalServerError => StatusCode((int)statusCode, response),
+                _ => StatusCode((int)statusCode, response)
+            };
         }
 
         Logger.LogWarning("Request failed without error code");

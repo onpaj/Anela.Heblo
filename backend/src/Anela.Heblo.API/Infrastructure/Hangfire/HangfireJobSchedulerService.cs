@@ -39,6 +39,15 @@ public class HangfireJobSchedulerService : IHostedService
                 queue: QueueName
             );
 
+            // Product export download daily at 2:00 AM UTC
+            RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
+                "product-export-download",
+                service => service.DownloadProductExportAsync(),
+                "0 2 * * *", // Daily at 2:00 AM UTC
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
         catch (Exception ex)

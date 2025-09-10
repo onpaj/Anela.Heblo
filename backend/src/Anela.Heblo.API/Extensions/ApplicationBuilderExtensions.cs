@@ -79,14 +79,14 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Hangfire dashboard (only in development and staging)
+        var hangFireOptions = new DashboardOptions();
+        // Hangfire dashboard (development, staging, and production)
         if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         {
-            app.UseHangfireDashboard("/hangfire", new DashboardOptions
-            {
-                Authorization = new[] { new HangfireDashboardNoAuthFilter() }
-            });
+            hangFireOptions.Authorization = new[] { new HangfireDashboardNoAuthFilter() };
         }
+        app.UseHangfireDashboard("/hangfire", hangFireOptions); 
+        
 
         // Serve static files from wwwroot
         app.UseStaticFiles();

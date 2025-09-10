@@ -1618,6 +1618,44 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
+        let url_ = this.baseUrl + "/api/FileStorage/download";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFileStorage_DownloadFromUrl(_response);
+        });
+    }
+
+    protected processFileStorage_DownloadFromUrl(response: Response): Promise<DownloadFromUrlResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DownloadFromUrlResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DownloadFromUrlResponse>(null as any);
+    }
+
     financialOverview_GetFinancialOverview(months: number | null | undefined, includeStockData: boolean | undefined): Promise<GetFinancialOverviewResponse> {
         let url_ = this.baseUrl + "/api/FinancialOverview?";
         if (months !== undefined && months !== null)
@@ -3648,6 +3686,13 @@ export enum ErrorCodes {
     InsufficientData = "InsufficientData",
     ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
     InvalidReportPeriod = "InvalidReportPeriod",
+    InvalidUrlFormat = "InvalidUrlFormat",
+    InvalidContainerName = "InvalidContainerName",
+    FileDownloadFailed = "FileDownloadFailed",
+    BlobUploadFailed = "BlobUploadFailed",
+    BlobNotFound = "BlobNotFound",
+    FileTooLarge = "FileTooLarge",
+    UnsupportedFileType = "UnsupportedFileType",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -5517,7 +5562,7 @@ export interface IIngredient {
     price?: number;
 }
 
-export class GetWarehouseStatisticsResponse implements IGetWarehouseStatisticsResponse {
+export class GetWarehouseStatisticsResponse extends BaseResponse implements IGetWarehouseStatisticsResponse {
     totalQuantity?: number;
     totalWeight?: number;
     warehouseCapacityKg?: number;
@@ -5526,15 +5571,11 @@ export class GetWarehouseStatisticsResponse implements IGetWarehouseStatisticsRe
     lastUpdated?: Date;
 
     constructor(data?: IGetWarehouseStatisticsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.totalQuantity = _data["totalQuantity"];
             this.totalWeight = _data["totalWeight"];
@@ -5545,14 +5586,14 @@ export class GetWarehouseStatisticsResponse implements IGetWarehouseStatisticsRe
         }
     }
 
-    static fromJS(data: any): GetWarehouseStatisticsResponse {
+    static override fromJS(data: any): GetWarehouseStatisticsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetWarehouseStatisticsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalQuantity"] = this.totalQuantity;
         data["totalWeight"] = this.totalWeight;
@@ -5560,11 +5601,12 @@ export class GetWarehouseStatisticsResponse implements IGetWarehouseStatisticsRe
         data["warehouseUtilizationPercentage"] = this.warehouseUtilizationPercentage;
         data["totalProductCount"] = this.totalProductCount;
         data["lastUpdated"] = this.lastUpdated ? this.lastUpdated.toISOString() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetWarehouseStatisticsResponse {
+export interface IGetWarehouseStatisticsResponse extends IBaseResponse {
     totalQuantity?: number;
     totalWeight?: number;
     warehouseCapacityKg?: number;
@@ -5616,6 +5658,95 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+}
+
+export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
+    blobUrl?: string;
+    blobName?: string;
+    containerName?: string;
+    fileSizeBytes?: number;
+
+    constructor(data?: IDownloadFromUrlResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.blobUrl = _data["blobUrl"];
+            this.blobName = _data["blobName"];
+            this.containerName = _data["containerName"];
+            this.fileSizeBytes = _data["fileSizeBytes"];
+        }
+    }
+
+    static override fromJS(data: any): DownloadFromUrlResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DownloadFromUrlResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["blobUrl"] = this.blobUrl;
+        data["blobName"] = this.blobName;
+        data["containerName"] = this.containerName;
+        data["fileSizeBytes"] = this.fileSizeBytes;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDownloadFromUrlResponse extends IBaseResponse {
+    blobUrl?: string;
+    blobName?: string;
+    containerName?: string;
+    fileSizeBytes?: number;
+}
+
+export class DownloadFromUrlRequest implements IDownloadFromUrlRequest {
+    fileUrl!: string;
+    containerName!: string;
+    blobName?: string | undefined;
+
+    constructor(data?: IDownloadFromUrlRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fileUrl = _data["fileUrl"];
+            this.containerName = _data["containerName"];
+            this.blobName = _data["blobName"];
+        }
+    }
+
+    static fromJS(data: any): DownloadFromUrlRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new DownloadFromUrlRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fileUrl"] = this.fileUrl;
+        data["containerName"] = this.containerName;
+        data["blobName"] = this.blobName;
+        return data;
+    }
+}
+
+export interface IDownloadFromUrlRequest {
+    fileUrl: string;
+    containerName: string;
+    blobName?: string | undefined;
 }
 
 export class GetFinancialOverviewResponse extends BaseResponse implements IGetFinancialOverviewResponse {
