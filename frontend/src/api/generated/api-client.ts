@@ -1246,6 +1246,40 @@ export class ApiClient {
         return Promise.resolve<GetProductUsageResponse>(null as any);
     }
 
+    catalog_GetWarehouseStatistics(): Promise<GetWarehouseStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/warehouse-statistics";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetWarehouseStatistics(_response);
+        });
+    }
+
+    protected processCatalog_GetWarehouseStatistics(response: Response): Promise<GetWarehouseStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetWarehouseStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetWarehouseStatisticsResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -5333,6 +5367,62 @@ export interface IIngredient {
     amount?: number;
     originalAmount?: number;
     price?: number;
+}
+
+export class GetWarehouseStatisticsResponse implements IGetWarehouseStatisticsResponse {
+    totalQuantity?: number;
+    totalWeight?: number;
+    warehouseCapacityKg?: number;
+    warehouseUtilizationPercentage?: number;
+    totalProductCount?: number;
+    lastUpdated?: Date;
+
+    constructor(data?: IGetWarehouseStatisticsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalQuantity = _data["totalQuantity"];
+            this.totalWeight = _data["totalWeight"];
+            this.warehouseCapacityKg = _data["warehouseCapacityKg"];
+            this.warehouseUtilizationPercentage = _data["warehouseUtilizationPercentage"];
+            this.totalProductCount = _data["totalProductCount"];
+            this.lastUpdated = _data["lastUpdated"] ? new Date(_data["lastUpdated"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GetWarehouseStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetWarehouseStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalQuantity"] = this.totalQuantity;
+        data["totalWeight"] = this.totalWeight;
+        data["warehouseCapacityKg"] = this.warehouseCapacityKg;
+        data["warehouseUtilizationPercentage"] = this.warehouseUtilizationPercentage;
+        data["totalProductCount"] = this.totalProductCount;
+        data["lastUpdated"] = this.lastUpdated ? this.lastUpdated.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGetWarehouseStatisticsResponse {
+    totalQuantity?: number;
+    totalWeight?: number;
+    warehouseCapacityKg?: number;
+    warehouseUtilizationPercentage?: number;
+    totalProductCount?: number;
+    lastUpdated?: Date;
 }
 
 export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {

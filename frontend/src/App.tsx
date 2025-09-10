@@ -18,6 +18,7 @@ import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
+import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -281,6 +282,10 @@ function App() {
                         <Route
                           path="/logistics/transport-boxes"
                           element={<TransportBoxList />}
+                        />
+                        <Route
+                          path="/logistics/warehouse-statistics"
+                          element={<WarehouseStatistics />}
                         />
                       </Routes>
                     </Layout>

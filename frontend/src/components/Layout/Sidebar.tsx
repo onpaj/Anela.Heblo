@@ -151,6 +151,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Transportní boxy",
           href: "/logistics/transport-boxes",
         },
+        {
+          id: "statistiky-skladu",
+          name: "Statistiky skladu",
+          href: "/logistics/warehouse-statistics",
+        },
       ],
     },
     {

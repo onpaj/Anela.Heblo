@@ -111,7 +111,8 @@ public class CatalogAggregate : Entity<string>
     public bool HasExpiration { get; set; }
     public bool HasLots { get; set; }
     public double Volume { get; set; }
-    public double Weight { get; set; }
+    public double? NetWeight { get; set; }
+    public double? GrossWeight { get; set; }
 
     public string? Note { get; set; }
 
@@ -124,6 +125,10 @@ public class CatalogAggregate : Entity<string>
     public string? SupplierName { get; set; }
     public string? DefaultImage { get; set; }
     public string? Image { get; set; }
+    public double? Height { get; set; }
+    public double? Width { get; set; }
+    public double? Depth { get; set; }
+    public bool AtypicalShipping { get; set; }
 
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
