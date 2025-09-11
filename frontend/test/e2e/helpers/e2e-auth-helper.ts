@@ -1,17 +1,19 @@
 import { config } from 'dotenv';
 import path from 'path';
 
-// Load test environment variables
+// Load test environment variables from .env.test if it exists (local development)
+// In CI, environment variables are provided directly
 const envPath = path.resolve(__dirname, '../../../.env.test');
 config({ path: envPath });
 
 export async function getServicePrincipalToken(): Promise<string> {
-  const clientId = process.env.AZURE_CLIENT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
-  const tenantId = process.env.AZURE_TENANT_ID;
+  // For E2E tests, use E2E_* prefixed environment variables
+  const clientId = process.env.E2E_CLIENT_ID || process.env.AZURE_CLIENT_ID;
+  const clientSecret = process.env.E2E_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET;
+  const tenantId = process.env.E2E_TENANT_ID || process.env.AZURE_TENANT_ID;
 
   if (!clientId || !clientSecret || !tenantId) {
-    throw new Error('Missing Azure credentials in .env.test file');
+    throw new Error('Missing Azure service principal credentials. Set E2E_CLIENT_ID, E2E_CLIENT_SECRET, and E2E_TENANT_ID environment variables (or AZURE_* equivalents).');
   }
 
   const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
@@ -37,6 +39,7 @@ export async function getServicePrincipalToken(): Promise<string> {
   return tokenData.access_token;
 }
 
+
 export async function createE2EAuthSession(page: any): Promise<void> {
   try {
     const token = await getServicePrincipalToken();
@@ -61,6 +64,15 @@ export async function createE2EAuthSession(page: any): Promise<void> {
 }
 
 export async function navigateToApp(page: any): Promise<void> {
+  // Use service principal authentication for E2E tests
+  await createE2EAuthSession(page);
+  await navigateToAppWithServicePrincipal(page);
+  
+  // Wait for the application to load
+  await page.waitForTimeout(3000);
+}
+
+async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
   // First, establish E2E session with backend
   const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
   const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
@@ -96,9 +108,6 @@ export async function navigateToApp(page: any): Promise<void> {
   await page.evaluate((token) => {
     sessionStorage.setItem('e2e-test-token', token);
   }, token);
-  
-  // Wait for the application to load
-  await page.waitForTimeout(3000);
 }
 
 export async function navigateToTransportBoxes(page: any): Promise<void> {
@@ -126,8 +135,8 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
   }
   
   // If UI navigation fails, go directly to the path
-  const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
-  await page.goto(`${frontendUrl}/logistics/transport-boxes?e2e=true`);
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/logistics/transport-boxes`);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(3000);
 }
@@ -153,8 +162,8 @@ export async function navigateToCatalog(page: any): Promise<void> {
     }
   } catch (e) {
     // If UI navigation fails, go directly to the path
-    const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
-    await page.goto(`${frontendUrl}/catalog?e2e=true`);
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+    await page.goto(`${baseUrl}/catalog`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
   }

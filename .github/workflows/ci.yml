@@ -585,11 +585,11 @@ jobs:
           echo "## 🧪 Optional E2E Testing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Staging URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Environment**: Real staging with MS Entra ID auth" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment**: Staging with Azure service principal auth" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Suite**: Complete Playwright E2E tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**📝 Note**: This step is optional and requires manual approval." >> $GITHUB_STEP_SUMMARY
-          echo "**⚠️ Warning**: Tests run against live staging environment with real authentication." >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ Warning**: Tests run against live staging environment using service principal authentication." >> $GITHUB_STEP_SUMMARY
 
   e2e-tests:
     name: 🎭 Run E2E Tests Against Staging
@@ -620,9 +620,10 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
           CI: true
-          # Real authentication credentials for staging
-          PLAYWRIGHT_AUTH_EMAIL: ${{ secrets.E2E_AUTH_EMAIL }}
-          PLAYWRIGHT_AUTH_PASSWORD: ${{ secrets.E2E_AUTH_PASSWORD }}
+          # Azure service principal credentials for E2E authentication
+          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
+          E2E_TENANT_ID: ${{ secrets.E2E_TENANT_ID }}
 
       - name: 📊 Upload E2E test results
         uses: actions/upload-artifact@v4
@@ -661,7 +662,7 @@ jobs:
           **$STATUS_COLOR $STATUS_TEXT** against staging environment:
           
           - **🌐 Test Environment**: https://heblo.stg.anela.cz
-          - **🔐 Authentication**: Real MS Entra ID
+          - **🔐 Authentication**: Azure Service Principal
           - **📊 Test Results**: ${{ job.status }}
           - **🕐 Completed**: $(date)
           
@@ -685,7 +686,7 @@ jobs:
           **$STATUS_COLOR $STATUS_TEXT** against staging environment:
           
           - **🌐 Test Environment**: https://heblo.stg.anela.cz
-          - **🔐 Authentication**: Real MS Entra ID
+          - **🔐 Authentication**: Azure Service Principal
           - **📊 Test Results**: ${{ job.status }}
           - **🕐 Completed**: $(date)
           
