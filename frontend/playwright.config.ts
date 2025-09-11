@@ -3,6 +3,21 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
+
+// Validate environment variables for E2E tests
+if (process.env.CI) {
+  const requiredVars = ['E2E_CLIENT_ID', 'E2E_CLIENT_SECRET', 'E2E_TENANT_ID'];
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    console.error(`❌ Missing required E2E environment variables: ${missing.join(', ')}`);
+    console.error('Please set these variables in your GitHub repository secrets.');
+    process.exit(1);
+  }
+  
+  console.log('✅ E2E environment variables validated successfully');
+}
+
 export default defineConfig({
   testDir: './test/e2e',
   /* Run tests in files in parallel */
@@ -15,6 +30,7 @@ export default defineConfig({
   workers: 1, // E2E tests run one at a time
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
