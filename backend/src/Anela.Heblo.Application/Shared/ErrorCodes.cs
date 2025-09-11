@@ -113,6 +113,8 @@ public enum ErrorCodes
     AbraIntegrationFailed = 1314,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ShoptetSyncFailed = 1315,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    StockTakingFailed = 1316,
 
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

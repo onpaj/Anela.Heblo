@@ -68,6 +68,7 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             "reserve" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Reserve) : query.OrderBy(x => x.Stock.Reserve),
             "erp" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Erp) : query.OrderBy(x => x.Stock.Erp),
             "eshop" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Eshop) : query.OrderBy(x => x.Stock.Eshop),
+            "lastinventorydays" => ApplyLastInventoryDaysSorting(query, request.SortDescending),
             _ => query.OrderBy(x => x.ProductCode) // Default sort by ProductCode
         };
 
@@ -90,5 +91,29 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             PageNumber = request.PageNumber,
             PageSize = request.PageSize
         };
+    }
+
+    private static IQueryable<CatalogAggregate> ApplyLastInventoryDaysSorting(IQueryable<CatalogAggregate> query, bool sortDescending)
+    {
+        // Sort by last inventory days with items WITHOUT inventory first
+        // Items with no last stock taking should be first (sorted by location ascending)
+        // Items with last stock taking should be sorted by days since last inventory
+        
+        if (sortDescending)
+        {
+            // Descending: Items WITHOUT inventory first, then items with inventory by oldest first (ascending = biggest days)
+            return query
+                .OrderBy(x => x.LastStockTaking.HasValue)         // Items WITHOUT inventory first (null values first)
+                .ThenBy(x => x.Location)                          // Items without inventory sorted by location ascending
+                .ThenBy(x => x.LastStockTaking);                  // Items with inventory: oldest first (ascending = biggest days)
+        }
+        else
+        {
+            // Ascending: Items with inventory by newest first (descending = smallest days), then items WITHOUT inventory
+            return query
+                .OrderBy(x => !x.LastStockTaking.HasValue)        // Items WITH inventory first
+                .ThenByDescending(x => x.LastStockTaking)         // Items with inventory: newest first (descending = smallest days)
+                .ThenBy(x => x.Location);                         // Items without inventory sorted by location ascending
+        }
     }
 }

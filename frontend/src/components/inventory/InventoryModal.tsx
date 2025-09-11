@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Package, Minus, Plus, Loader2 } from "lucide-react";
+import { X, Package, Minus, Plus, Loader2, AlertCircle, CheckCircle, History } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
+import { useSubmitStockTaking, useStockTakingHistory } from "../../api/hooks/useStockTaking";
+import { useToast } from "../../contexts/ToastContext";
 
 interface InventoryModalProps {
   item: CatalogItemDto | null;
@@ -14,6 +16,11 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
   onClose,
 }) => {
   const [newQuantity, setNewQuantity] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'history'>('inventory');
+  
+  // Stock taking mutation hook
+  const submitStockTaking = useSubmitStockTaking();
+  const { showSuccess } = useToast();
 
   // Fetch detailed data when modal is open and item is selected
   const {
@@ -28,6 +35,17 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
   // Use detailed item data if available, fallback to prop item
   const effectiveItem = detailData?.item || item;
 
+  // Stock taking history hook - enabled only when item is available
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useStockTakingHistory({
+    productCode: effectiveItem?.productCode,
+    pageNumber: 1,
+    pageSize: 20,
+  });
+
   // Reset quantity when effective item changes (either from prop or API)
   useEffect(() => {
     if (effectiveItem) {
@@ -35,6 +53,13 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
       setNewQuantity(currentStock);
     }
   }, [effectiveItem]);
+
+  // Reset mutation state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      submitStockTaking.reset();
+    }
+  }, [isOpen, submitStockTaking]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -57,10 +82,39 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
   const currentStock = Math.round((effectiveItem?.stock?.available || 0) * 100) / 100;
 
-  const handleInventorize = () => {
-    // TODO: Implement inventory update API call
-    console.log(`Inventorizing ${item.productCode} to quantity: ${newQuantity}`);
-    onClose();
+  const handleInventorize = async () => {
+    if (!effectiveItem?.productCode) return;
+
+    const currentStock = Math.round((effectiveItem?.stock?.available || 0) * 100) / 100;
+    
+    // Determine if this is a soft stock taking (no change in quantity)
+    const isSoftStockTaking = newQuantity === currentStock;
+    
+    try {
+      await submitStockTaking.mutateAsync({
+        productCode: effectiveItem.productCode,
+        targetAmount: newQuantity,
+        softStockTaking: isSoftStockTaking,
+      });
+      
+      // Show success toaster only if stock actually changed
+      if (!isSoftStockTaking) {
+        const difference = newQuantity - currentStock;
+        const differenceText = difference > 0 ? `+${difference.toFixed(2)}` : difference.toFixed(2);
+        
+        showSuccess(
+          "Inventarizace dokončena",
+          `Množství produktu ${effectiveItem.productCode} bylo aktualizováno (${differenceText})`,
+          { duration: 5000 }
+        );
+      }
+      
+      // Close modal on success
+      onClose();
+    } catch (error) {
+      console.error("Stock taking failed:", error);
+      // Error is handled by the mutation hook
+    }
   };
 
   return (
@@ -88,6 +142,32 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
             </button>
           </div>
 
+          {/* Tab Navigation */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'inventory'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Package className="h-4 w-4 inline mr-2" />
+              Inventura
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'history'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <History className="h-4 w-4 inline mr-2" />
+              Log
+            </button>
+          </div>
+
           {/* Product Name - Full Width */}
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <h4 className="text-2xl font-bold text-gray-900 text-center">
@@ -95,29 +175,30 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
             </h4>
           </div>
 
-          {/* Content */}
-          <div className="flex flex-col lg:flex-row min-h-[500px]">
-            {/* Loading State */}
-            {detailLoading && (
-              <div className="w-full flex items-center justify-center">
-                <div className="flex items-center space-x-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                  <div className="text-gray-500">Načítání detailních údajů...</div>
+          {/* Tab Content */}
+          {activeTab === 'inventory' ? (
+            <div className="flex flex-col lg:flex-row min-h-[500px]">
+              {/* Loading State */}
+              {detailLoading && (
+                <div className="w-full flex items-center justify-center">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+                    <div className="text-gray-500">Načítání detailních údajů...</div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Error State */}
-            {detailError && (
-              <div className="w-full flex items-center justify-center">
-                <div className="text-red-600">
-                  Chyba při načítání detailů: {detailError.message}
+              {/* Error State */}
+              {detailError && (
+                <div className="w-full flex items-center justify-center">
+                  <div className="text-red-600">
+                    Chyba při načítání detailů: {detailError.message}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Content - Show when not loading */}
-            {!detailLoading && !detailError && (
+              {/* Content - Show when not loading */}
+              {!detailLoading && !detailError && (
               <>
                 {/* Left Section - Product Image (50%) */}
                 <div className="w-full lg:w-1/2 p-6 bg-gray-50">
@@ -228,11 +309,44 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                     <div className="pt-6">
                       <button
                         onClick={handleInventorize}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        disabled={submitStockTaking.isPending || !effectiveItem?.productCode}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
                       >
-                        Zinventarizovat
+                        {submitStockTaking.isPending ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span>Inventarizuji...</span>
+                          </>
+                        ) : (
+                          <span>Zinventarizovat</span>
+                        )}
                       </button>
                     </div>
+
+                    {/* Error Message */}
+                    {submitStockTaking.error && (
+                      <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-sm font-medium text-red-800">
+                            Chyba při inventarizaci
+                          </div>
+                          <div className="text-sm text-red-700 mt-1">
+                            {submitStockTaking.error?.message || "Došlo k neočekávané chybě"}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Success Message */}
+                    {submitStockTaking.isSuccess && (
+                      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm font-medium text-green-800">
+                          Inventarizace byla úspěšně dokončena
+                        </div>
+                      </div>
+                    )}
 
                     {/* Difference Display */}
                     {newQuantity !== currentStock && (
@@ -247,8 +361,104 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                   </div>
                 </div>
               </>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            /* History Tab Content */
+            <div className="min-h-[500px] p-6">
+              {/* History Loading State */}
+              {historyLoading && (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+                    <div className="text-gray-500">Načítání historie inventur...</div>
+                  </div>
+                </div>
+              )}
+
+              {/* History Error State */}
+              {historyError && (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-red-600">
+                    Chyba při načítání historie: {historyError.message}
+                  </div>
+                </div>
+              )}
+
+              {/* History Content */}
+              {!historyLoading && !historyError && historyData && (
+                <div>
+                  <div className="mb-4">
+                    <h5 className="text-lg font-semibold text-gray-900">
+                      Historie inventur ({historyData.totalCount || 0})
+                    </h5>
+                  </div>
+
+                  {historyData.items && historyData.items.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Datum
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Staré množství
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Nové množství
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Rozdíl
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Uživatel
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {historyData.items?.map((record, index) => (
+                            <tr key={record.id || index} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {record.date ? new Date(record.date).toLocaleString('cs-CZ') : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {record.amountOld !== undefined ? record.amountOld.toFixed(2) : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {record.amountNew !== undefined ? record.amountNew.toFixed(2) : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <span className={`${
+                                  (record.difference || 0) > 0 
+                                    ? 'text-green-600' 
+                                    : (record.difference || 0) < 0 
+                                    ? 'text-red-600' 
+                                    : 'text-gray-600'
+                                }`}>
+                                  {(record.difference || 0) > 0 ? '+' : ''}{record.difference !== undefined ? record.difference.toFixed(2) : '0.00'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {record.user || 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <History className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-500">
+                        Žádné záznamy inventur pro tento produkt
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

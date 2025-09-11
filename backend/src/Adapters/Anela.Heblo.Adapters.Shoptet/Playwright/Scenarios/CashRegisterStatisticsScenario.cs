@@ -11,6 +11,7 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 public class CashRegisterStatisticsScenario
 {
     private readonly PlaywrightSourceOptions _options;
+    private readonly PlaywrightBrowserFactory _browserFactory;
     private readonly ILogger<CashRegisterStatisticsScenario> _logger;
 
     private const string ExportFileNameHeaderName = "x-export-file-name";
@@ -19,10 +20,12 @@ public class CashRegisterStatisticsScenario
 
     public CashRegisterStatisticsScenario(
         PlaywrightSourceOptions options,
+        PlaywrightBrowserFactory browserFactory,
         ILogger<CashRegisterStatisticsScenario> logger
     )
     {
         _options = options;
+        _browserFactory = browserFactory;
         _logger = logger;
     }
 
@@ -33,10 +36,7 @@ public class CashRegisterStatisticsScenario
 
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-        {
-            Headless = _options.Headless,
-        });
+        await using var browser = await _browserFactory.CreateAsync(playwright);
         var page = await browser.NewPageAsync();
         await InitPage(page, browser);
 

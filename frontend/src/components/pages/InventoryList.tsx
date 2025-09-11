@@ -53,9 +53,9 @@ const InventoryList: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Sorting states
-  const [sortBy, setSortBy] = useState<string>("");
-  const [sortDescending, setSortDescending] = useState(false);
+  // Sorting states - default sort by lastInventoryDays descending
+  const [sortBy, setSortBy] = useState<string>("lastInventoryDays");
+  const [sortDescending, setSortDescending] = useState(true);
 
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
@@ -346,6 +346,7 @@ const InventoryList: React.FC = () => {
                 >
                   Pozice
                 </th>
+                <SortableHeader column="lastInventoryDays">Posl. Inventura</SortableHeader>
                 <SortableHeader column="available">Skladem</SortableHeader>
                 <SortableHeader column="transport">Transport</SortableHeader>
                 <SortableHeader column="reserve">Rezerva</SortableHeader>
@@ -380,6 +381,25 @@ const InventoryList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.location || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {item.lastStockTaking ? (
+                        <div 
+                          className="text-sm text-gray-700 cursor-help inline-block"
+                          title={`Poslední inventura: ${new Date(item.lastStockTaking).toLocaleString('cs-CZ', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit' 
+                          })}`}
+                        >
+                          {Math.floor((new Date().getTime() - new Date(item.lastStockTaking).getTime()) / (1000 * 60 * 60 * 24))} d
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       <span 

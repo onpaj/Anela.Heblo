@@ -88,16 +88,53 @@ const fetchInventoryList = async (
     
     // Sort combined results if needed
     if (params.sortBy) {
-      allResults.sort((a, b) => {
-        const aValue = (a as any)[params.sortBy!];
-        const bValue = (b as any)[params.sortBy!];
-        
-        let comparison = 0;
-        if (aValue > bValue) comparison = 1;
-        if (aValue < bValue) comparison = -1;
-        
-        return params.sortDescending ? -comparison : comparison;
-      });
+      if (params.sortBy.toLowerCase() === 'lastinventorydays') {
+        // Special sorting for lastInventoryDays
+        allResults.sort((a, b) => {
+          const aHasDate = !!a.lastStockTaking;
+          const bHasDate = !!b.lastStockTaking;
+          
+          if (params.sortDescending) {
+            // Descending: Items WITHOUT inventory first, then items with inventory by oldest first (biggest days)
+            if (!aHasDate && !bHasDate) {
+              // Both don't have dates, sort by location
+              return (a.location || '').localeCompare(b.location || '');
+            }
+            if (!aHasDate) return -1; // a (no date) comes first
+            if (!bHasDate) return 1;  // b (no date) comes first
+            
+            // Both have dates, sort by oldest first (ascending = biggest days)
+            const aDate = new Date(a.lastStockTaking!).getTime();
+            const bDate = new Date(b.lastStockTaking!).getTime();
+            return aDate - bDate; // ascending = oldest first = biggest days
+          } else {
+            // Ascending: Items WITH inventory first by newest first (smallest days), then items WITHOUT inventory
+            if (!aHasDate && !bHasDate) {
+              // Both don't have dates, sort by location
+              return (a.location || '').localeCompare(b.location || '');
+            }
+            if (!aHasDate) return 1;  // a (no date) comes last
+            if (!bHasDate) return -1; // b (no date) comes last
+            
+            // Both have dates, sort by newest first (descending = smallest days)
+            const aDate = new Date(a.lastStockTaking!).getTime();
+            const bDate = new Date(b.lastStockTaking!).getTime();
+            return bDate - aDate; // descending = newest first = smallest days
+          }
+        });
+      } else {
+        // Standard sorting for other fields
+        allResults.sort((a, b) => {
+          const aValue = (a as any)[params.sortBy!];
+          const bValue = (b as any)[params.sortBy!];
+          
+          let comparison = 0;
+          if (aValue > bValue) comparison = 1;
+          if (aValue < bValue) comparison = -1;
+          
+          return params.sortDescending ? -comparison : comparison;
+        });
+      }
     }
     
     const paginatedItems = allResults.slice(startIndex, endIndex);

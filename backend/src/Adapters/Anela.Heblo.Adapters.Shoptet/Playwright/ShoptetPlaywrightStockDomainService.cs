@@ -53,6 +53,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
             result.User = _currentUser.GetCurrentUser().Name;
             result.Date = _timeProvider.GetUtcNow().DateTime;
             await _stockTakingRepository.AddAsync(result);
+            await  _stockTakingRepository.SaveChangesAsync();
             return result;
         }
         catch (Exception e)

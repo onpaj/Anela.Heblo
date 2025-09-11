@@ -8,16 +8,19 @@ public class StockTakingScenario
 {
     private readonly PlaywrightSourceOptions _options;
     private readonly ILogger<StockTakingScenario> _logger;
+    private readonly PlaywrightBrowserFactory _browserFactory;
     private readonly TimeProvider _timeProvider;
 
     public StockTakingScenario(
         PlaywrightSourceOptions options,
         ILogger<StockTakingScenario> logger,
+        PlaywrightBrowserFactory browserFactory,
         TimeProvider timeProvider
     )
     {
         _options = options;
         _logger = logger;
+        _browserFactory = browserFactory;
         _timeProvider = timeProvider;
     }
 
@@ -29,10 +32,8 @@ public class StockTakingScenario
 
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-        {
-            Headless = _options.Headless,
-        });
+        await using var browser = await _browserFactory.CreateAsync(playwright);
+        
         var page = await browser.NewPageAsync();
 
         await page.GotoAsync(_options.ShopEntryUrl);
@@ -79,4 +80,3 @@ public class StockTakingScenario
         };
     }
 }
-

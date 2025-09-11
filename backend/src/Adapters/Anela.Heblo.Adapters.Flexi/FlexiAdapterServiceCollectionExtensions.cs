@@ -45,7 +45,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         // Add TimeProvider for FlexiStockClient
         services.AddSingleton(TimeProvider.System);
 
-        services.AddSingleton<IErpStockDomainService, FlexiStockTakingDomainService>();
+        services.AddScoped<IErpStockDomainService, FlexiStockTakingDomainService>();
 
         services.AddSingleton<ICatalogAttributesClient, FlexiProductAttributesQueryClient>();
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();

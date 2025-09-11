@@ -338,6 +338,7 @@ export const QUERY_KEYS = {
   health: ["health"] as const,
   giftPackages: ["gift-packages"] as const,
   warehouseStatistics: ["warehouse-statistics"] as const,
+  stockTaking: ["stock-taking"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
