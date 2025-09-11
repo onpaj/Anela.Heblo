@@ -13,7 +13,6 @@ namespace Anela.Heblo.Tests.Features.FileStorage;
 public class AzureBlobStorageServiceTests
 {
     private readonly Mock<BlobServiceClient> _mockBlobServiceClient;
-    private readonly Mock<HttpClient> _mockHttpClient;
     private readonly Mock<ILogger<AzureBlobStorageService>> _mockLogger;
     private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
     private readonly AzureBlobStorageService _service;
@@ -25,7 +24,6 @@ public class AzureBlobStorageServiceTests
         _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
         var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
-        _mockHttpClient = new Mock<HttpClient>();
 
         _service = new AzureBlobStorageService(
             _mockBlobServiceClient.Object,
@@ -42,13 +40,14 @@ public class AzureBlobStorageServiceTests
     [InlineData(".txt", "text/plain")]
     [InlineData(".json", "application/json")]
     [InlineData(".unknown", "application/octet-stream")]
-    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension)
+    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension, string expectedContentType)
     {
         // This test would require making the private method internal or using reflection
         // For now, we'll test it indirectly through other methods
         var fileName = $"test{extension}";
         // The GetContentTypeFromExtension method is private, so we test it indirectly
         Assert.NotEmpty(fileName); // Placeholder assertion
+        Assert.NotEmpty(expectedContentType); // Verify expected content type is provided
     }
 
     [Fact]

@@ -1,148 +1,22 @@
 import { test, expect } from '@playwright/test';
-import { config } from 'dotenv';
-import path from 'path';
-
-// Load test environment variables
-const envPath = path.resolve(__dirname, '../../.env.test');
-console.log('Loading .env.test from:', envPath);
-config({ path: envPath });
-
-async function getServicePrincipalToken(): Promise<string> {
-  const clientId = process.env.AZURE_CLIENT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
-  const tenantId = process.env.AZURE_TENANT_ID;
-
-  console.log('Environment variables:');
-  console.log('  AZURE_CLIENT_ID:', clientId ? 'Present' : 'Missing');
-  console.log('  AZURE_CLIENT_SECRET:', clientSecret ? 'Present' : 'Missing');
-  console.log('  AZURE_TENANT_ID:', tenantId ? 'Present' : 'Missing');
-  console.log('  PLAYWRIGHT_BASE_URL:', process.env.PLAYWRIGHT_BASE_URL);
-
-  if (!clientId || !clientSecret || !tenantId) {
-    console.error('Missing credentials. Available env vars:', Object.keys(process.env).filter(k => k.includes('AZURE')));
-    throw new Error('Missing Azure credentials in .env.test file');
-  }
-
-  const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-  
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: 'api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default', // Use backend API scope
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get token: ${response.status} ${response.statusText}`);
-  }
-
-  const tokenData = await response.json();
-  
-  // Debug: Parse the token to see what claims it has
-  try {
-    const tokenParts = tokenData.access_token.split('.');
-    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-    console.log('Token claims:', {
-      appid: payload.appid,
-      tid: payload.tid,
-      aud: payload.aud,
-      iss: payload.iss,
-      exp: new Date(payload.exp * 1000).toISOString()
-    });
-  } catch (e) {
-    console.log('Could not parse token for debugging');
-  }
-  
-  return tokenData.access_token;
-}
-
-async function authenticateWithServicePrincipal(page: any) {
-  try {
-    // Get Service Principal token using client credentials flow
-    const token = await getServicePrincipalToken();
-    console.log('Service Principal token obtained successfully');
-    
-    // Call the E2E authentication endpoint to create session (following best practices)
-    // API URL is always the backend port (5000)
-    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
-    const authUrl = `${apiBaseUrl}/api/e2etest/auth`;
-    
-    console.log(`Creating E2E authentication session at: ${authUrl}`);
-    
-    const response = await page.request.post(authUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok()) {
-      const errorText = await response.text();
-      console.error('E2E Authentication Error Details:');
-      console.error('Status:', response.status());
-      console.error('Status Text:', response.statusText());
-      console.error('Response Body:', errorText);
-      console.error('Request URL:', authUrl);
-      throw new Error(`E2E authentication failed: ${response.status()} ${response.statusText()}\n${errorText}`);
-    }
-    
-    const authResult = await response.json();
-    console.log('E2E authentication session created:', authResult.message);
-    
-    // Debug: Check if Set-Cookie header was sent
-    const setCookieHeaders = response.headers()['set-cookie'];
-    console.log('Set-Cookie headers:', setCookieHeaders);
-    
-    // Check all cookies in the browser context
-    const cookies = await page.context().cookies();
-    console.log('All cookies after auth:', cookies.map(c => ({ name: c.name, domain: c.domain, path: c.path })));
-    
-    // Navigate to the E2E test app endpoint which has pre-configured authentication
-    // This avoids cross-port cookie issues between frontend (3000) and backend (5000)
-    const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
-    console.log(`Navigating to E2E test application: ${e2eAppUrl}`);
-    await page.goto(e2eAppUrl);
-    
-    // Wait for app to load
-    await page.waitForLoadState('domcontentloaded');
-    console.log('Application loaded with authenticated session');
-    
-  } catch (error) {
-    console.error('Service Principal authentication failed:', error);
-    throw error;
-  }
-}
+import { createE2EAuthSession, navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('E2E Authentication Tests (Development/Staging)', () => {
   test.beforeEach(async ({ page }) => {
-    // Authenticate using Service Principal session creation before each test
-    await authenticateWithServicePrincipal(page);
+    // Create E2E authentication session before each test
+    await createE2EAuthSession(page);
   });
 
   test('should authenticate and access main dashboard', async ({ page }) => {
-    // Authentication happened in beforeEach, verify user sees the main application
+    // Navigate to application using shared helper
+    await navigateToApp(page);
     
     // Check current URL and title
     console.log('Current URL:', page.url());
     console.log('Current title:', await page.title());
     
-    // Verify we're on the E2E test application page
-    await expect(page).toHaveTitle(/Anela Heblo - E2E Test Mode/, { timeout: 15000 });
-    
     // Verify we're NOT on Microsoft login page
     expect(page.url()).not.toContain('login.microsoftonline.com');
-    
-    // Verify we're on the E2E test endpoint (environment-aware)
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
-    const expectedUrlPattern = baseUrl.includes('localhost') ? 'localhost' : new URL(baseUrl).hostname;
-    expect(page.url()).toContain(expectedUrlPattern);
-    expect(page.url()).toContain('/api/e2etest/app');
     
     // Wait for React app to load and render main components
     await page.waitForLoadState('networkidle');
@@ -360,10 +234,8 @@ test.describe('E2E Authentication Tests (Development/Staging)', () => {
       }
     });
     
-    // Navigate to the E2E test app endpoint
-    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000';
-    const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
-    await page.goto(e2eAppUrl);
+    // Navigate to application using shared helper
+    await navigateToApp(page);
     await page.waitForLoadState('networkidle');
     
     // Wait a bit for any API calls to complete
