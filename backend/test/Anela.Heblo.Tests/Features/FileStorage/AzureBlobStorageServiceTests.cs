@@ -13,7 +13,6 @@ namespace Anela.Heblo.Tests.Features.FileStorage;
 public class AzureBlobStorageServiceTests
 {
     private readonly Mock<BlobServiceClient> _mockBlobServiceClient;
-    private readonly Mock<HttpClient> _mockHttpClient;
     private readonly Mock<ILogger<AzureBlobStorageService>> _mockLogger;
     private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
     private readonly AzureBlobStorageService _service;
@@ -25,7 +24,6 @@ public class AzureBlobStorageServiceTests
         _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
         var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
-        _mockHttpClient = new Mock<HttpClient>();
 
         _service = new AzureBlobStorageService(
             _mockBlobServiceClient.Object,

@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# Run Playwright tests with automation environment
-# Usage:
-#   ./run-playwright-tests.sh                    # Run all tests
-#   ./run-playwright-tests.sh test.spec.ts       # Run specific test file
-#   ./run-playwright-tests.sh test/ --grep="pattern"  # Run tests matching pattern
-#   ./run-playwright-tests.sh --headed           # Run tests with visible browser
+# Playwright Test Runner for Staging Environment
+# Usage: ./scripts/run-playwright-tests.sh [test-file-name]
+# Examples:
+#   ./scripts/run-playwright-tests.sh                    # Run all tests
+#   ./scripts/run-playwright-tests.sh auth              # Run tests matching "auth"
+#   ./scripts/run-playwright-tests.sh sidebar.spec.ts  # Run specific test file
+
+set -e
 
 # Colors for output
 RED='\033[0;31m'
@@ -14,95 +16,86 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🎭 Starting Playwright tests with automation environment${NC}"
+# Configuration
+STAGING_URL="https://heblo.stg.anela.cz"
+FRONTEND_DIR="frontend"
+TEST_DIR="$FRONTEND_DIR/test/e2e"
 
-# Kill any existing processes on automation ports
-echo -e "${YELLOW}🧹 Cleaning up existing processes...${NC}"
-lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-lsof -ti:5000 | xargs kill -9 2>/dev/null || true
+echo -e "${BLUE}🎭 Anela Heblo - Playwright E2E Tests${NC}"
+echo -e "${BLUE}Target Environment: ${STAGING_URL}${NC}"
+echo ""
 
-# Wait a moment for ports to be free
-sleep 2
+# Check if we're in the correct directory
+if [ ! -d "$FRONTEND_DIR" ]; then
+    echo -e "${RED}❌ Error: Must be run from project root (frontend/ directory not found)${NC}"
+    exit 1
+fi
 
-# Function to cleanup and exit immediately
-cleanup_and_exit() {
-    local exit_code=$1
-    echo -e "${YELLOW}🧹 Cleaning up...${NC}"
-    [ ! -z "$BACKEND_PID" ] && kill $BACKEND_PID 2>/dev/null || true
-    [ ! -z "$FRONTEND_PID" ] && kill $FRONTEND_PID 2>/dev/null || true
-    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-    lsof -ti:5000 | xargs kill -9 2>/dev/null || true
-    exit $exit_code
-}
-
-# Get absolute paths
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/../backend/src/Anela.Heblo.API"
-FRONTEND_DIR="$SCRIPT_DIR/../frontend"
-
-# Start backend in background (no waiting)
-echo -e "${BLUE}🚀 Starting automation backend on port 5000...${NC}"
-cd "$BACKEND_DIR"
-ASPNETCORE_ENVIRONMENT=Automation dotnet run --launch-profile Automation > /dev/null 2>&1 &
-BACKEND_PID=$!
-
-# Start frontend in background (no waiting)  
-echo -e "${BLUE}🚀 Starting automation frontend on port 3000...${NC}"
+# Change to frontend directory
 cd "$FRONTEND_DIR"
-npm run start:automation > /dev/null 2>&1 &
-FRONTEND_PID=$!
 
-# Wait for both services to be ready
-echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
-
-# Wait for backend with retry logic (up to 30 seconds)
-BACKEND_READY=false
-for i in {1..30}; do
-    if curl -s http://localhost:5000/health/live > /dev/null 2>&1; then
-        BACKEND_READY=true
-        echo -e "${GREEN}✅ Backend is ready${NC}"
-        break
-    fi
-    echo -e "${YELLOW}   Waiting for backend... ($i/30)${NC}"
-    sleep 1
-done
-
-if [ "$BACKEND_READY" = false ]; then
-    echo -e "${RED}❌ Backend failed to start after 30 seconds${NC}"
-    cleanup_and_exit 1
+# Check if Playwright is installed
+if [ ! -d "node_modules/@playwright" ]; then
+    echo -e "${YELLOW}⚠️  Playwright not found. Installing dependencies...${NC}"
+    npm install
 fi
 
-# Wait for frontend with retry logic (up to 20 seconds)
-FRONTEND_READY=false
-for i in {1..20}; do
-    if curl -s http://localhost:3000 > /dev/null 2>&1; then
-        FRONTEND_READY=true
-        echo -e "${GREEN}✅ Frontend is ready${NC}"
-        break
-    fi
-    echo -e "${YELLOW}   Waiting for frontend... ($i/20)${NC}"
-    sleep 1
-done
-
-if [ "$FRONTEND_READY" = false ]; then
-    echo -e "${RED}❌ Frontend failed to start after 20 seconds${NC}"
-    cleanup_and_exit 1
+# Check if browsers are installed
+if [ ! -d "node_modules/@playwright/test" ] || [ ! -f "node_modules/@playwright/test/package.json" ]; then
+    echo -e "${YELLOW}⚠️  Installing Playwright browsers...${NC}"
+    npx playwright install
 fi
 
-echo -e "${GREEN}✅ Services started successfully${NC}"
+# Verify staging environment is accessible
+echo -e "${BLUE}🔍 Checking staging environment availability...${NC}"
+if ! curl -s --head --fail "$STAGING_URL" > /dev/null; then
+    echo -e "${YELLOW}⚠️  Warning: Unable to reach staging environment at $STAGING_URL${NC}"
+    echo -e "${YELLOW}   Tests may fail if the environment is down${NC}"
+    echo ""
+fi
 
-# Run Playwright tests
-echo -e "${BLUE}🎭 Running Playwright tests...${NC}"
+# Set environment variables for Playwright
+export PLAYWRIGHT_BASE_URL="$STAGING_URL"
+export CI=false  # Disable CI mode for better debugging
 
-# Display what tests will run
-if [ $# -eq 0 ]; then
-    echo -e "${BLUE}   Running all tests${NC}"
+# Build test command
+PLAYWRIGHT_CMD="npx playwright test"
+
+# Add test file filter if provided
+if [ -n "$1" ]; then
+    echo -e "${BLUE}🎯 Running tests matching: ${YELLOW}$1${NC}"
+    PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD $1"
 else
-    echo -e "${BLUE}   Running with parameters: $@${NC}"
+    echo -e "${BLUE}🎯 Running all E2E tests${NC}"
 fi
 
-cd "$FRONTEND_DIR"
-npx playwright test --reporter=list "$@"
+# Additional Playwright options
+PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD --config=playwright.config.ts"
 
-# Immediate cleanup and exit
-cleanup_and_exit $?
+echo -e "${BLUE}📂 Test Directory: ${TEST_DIR}${NC}"
+echo -e "${BLUE}🚀 Running Command: ${PLAYWRIGHT_CMD}${NC}"
+echo ""
+
+# Run the tests
+if $PLAYWRIGHT_CMD; then
+    echo ""
+    echo -e "${GREEN}✅ Tests completed successfully!${NC}"
+    
+    # Show report location
+    if [ -d "playwright-report" ]; then
+        echo -e "${BLUE}📊 Test report available at: playwright-report/index.html${NC}"
+        echo -e "${BLUE}   View with: npx playwright show-report${NC}"
+    fi
+else
+    echo ""
+    echo -e "${RED}❌ Tests failed!${NC}"
+    
+    # Show debugging information
+    echo -e "${YELLOW}🔧 Debugging tips:${NC}"
+    echo -e "   • Run with --headed to see browser: npx playwright test --headed"
+    echo -e "   • Run with --debug for step-by-step: npx playwright test --debug"
+    echo -e "   • Check test report: npx playwright show-report"
+    echo -e "   • Verify staging environment: $STAGING_URL"
+    
+    exit 1
+fi

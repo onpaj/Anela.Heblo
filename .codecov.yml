@@ -12,10 +12,34 @@ coverage:
         target: auto
         threshold: 1%
         informational: false
+      backend:
+        target: auto
+        threshold: 1%
+        flags:
+          - backend
+        informational: false
+      frontend:
+        target: auto
+        threshold: 1%
+        flags:
+          - frontend
+        informational: false
     patch:
       default:
         target: auto
         threshold: 1%
+        informational: false
+      backend:
+        target: auto
+        threshold: 1%
+        flags:
+          - backend
+        informational: false
+      frontend:
+        target: auto
+        threshold: 1%
+        flags:
+          - frontend
         informational: false
 
 flags:
@@ -27,6 +51,24 @@ flags:
     paths:
       - frontend/src/
     carryforward: false
+
+# Component-level coverage reporting
+component_management:
+  default_rules:
+    flag_coverage_not_uploaded_behavior: include
+  individual_components:
+    - component_id: backend
+      name: "Backend (.NET)"
+      paths:
+        - backend/src/**
+      flag_regexes:
+        - ^backend$
+    - component_id: frontend  
+      name: "Frontend (React)"
+      paths:
+        - frontend/src/**
+      flag_regexes:
+        - ^frontend$
 
 
 ignore:

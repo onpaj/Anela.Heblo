@@ -113,6 +113,11 @@ jobs:
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -151,15 +156,54 @@ jobs:
 
       - name: 🧪 Run tests with coverage
         run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+          # Shoptet integration test configuration
+          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          Shoptet.Playwright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          Shoptet.Playwright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          Shoptet.Playwright__Headless: true
+          # FlexiBee integration test configuration
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
         
       - name: 📊 Process coverage files for CodeCov
         run: |
           # Find all coverage.cobertura.xml files and fix paths for CodeCov
           find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
             echo "Processing coverage file: $file"
-            # Replace relative paths with absolute paths for CodeCov (Linux sed syntax)
+            
+            # First show original paths for debugging
+            echo "Original paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+            
+            # Replace relative paths with paths relative to repository root for CodeCov
+            # The original paths are like: filename="Anela.Heblo.Application/ApplicationModule.cs"
+            # We need: filename="backend/src/Anela.Heblo.Application/ApplicationModule.cs"
             sed -i 's|filename="|filename="backend/src/|g' "$file"
+            
+            # Show processed paths for debugging
+            echo "Processed paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+            echo "---"
           done
+          
+          # Verify coverage files exist
+          echo "=== Coverage files found ==="
+          find ./coverage -name "coverage.cobertura.xml" -type f -exec echo "Found: {}" \;
+          
+          # Count total coverage files
+          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
+          echo "Total coverage files: $COVERAGE_COUNT"
+          
+          if [ "$COVERAGE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: No coverage files found!"
+            exit 1
+          fi
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -175,15 +219,28 @@ jobs:
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
+      - name: 📊 Prepare coverage file list
+        id: coverage-files
+        run: |
+          # Find all coverage files and create a comma-separated list
+          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
+          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+          echo "Found coverage files: $COVERAGE_FILES"
+
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v3
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/*/coverage.cobertura.xml
+          files: ${{ steps.coverage-files.outputs.files }}
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
@@ -514,11 +571,146 @@ jobs:
           echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
           echo "The test environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY
 
+  # Optional E2E Tests against Staging Environment
+  e2e-tests-approval:
+    name: 🧪 Approve E2E Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-azure]
+    environment: 
+      name: e2e-tests-approval
+      url: https://heblo.stg.anela.cz
+    steps:
+      - name: 📋 E2E Testing Summary
+        run: |
+          echo "## 🧪 Optional E2E Testing" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Staging URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment**: Staging with Azure service principal auth" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suite**: Complete Playwright E2E tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📝 Note**: This step is optional and requires manual approval." >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ Warning**: Tests run against live staging environment using service principal authentication." >> $GITHUB_STEP_SUMMARY
+
+  e2e-tests:
+    name: 🎭 Run E2E Tests Against Staging
+    runs-on: ubuntu-latest
+    needs: [e2e-tests-approval]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install chromium
+
+      - name: 🧪 Run E2E tests against staging
+        working-directory: ./frontend
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
+          CI: true
+          # Azure service principal credentials for E2E authentication
+          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: 📊 Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+
+      - name: 📸 Upload E2E screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: 💬 Comment E2E results on PR
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="E2E Tests Passed"
+            STATUS_COLOR="🟢"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="E2E Tests Failed"
+            STATUS_COLOR="🔴"
+          fi
+          
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🎭 E2E Test Results $STATUS_EMOJI
+          
+          **$STATUS_COLOR $STATUS_TEXT** against staging environment:
+          
+          - **🌐 Test Environment**: https://heblo.stg.anela.cz
+          - **🔐 Authentication**: Azure Service Principal
+          - **📊 Test Results**: ${{ job.status }}
+          - **🕐 Completed**: $(date)
+          
+          ### 📋 Test Coverage
+          - User authentication flows
+          - Navigation and routing
+          - Layout behavior (sidebar, responsive)
+          - Feature-specific user journeys
+          - Cross-component integration
+          
+          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
+          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
+          Your changes work correctly in the staging environment!" )
+          
+          ---
+          _E2E tests executed after manual approval against live staging_" \
+            --edit-last || \
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🎭 E2E Test Results $STATUS_EMOJI
+          
+          **$STATUS_COLOR $STATUS_TEXT** against staging environment:
+          
+          - **🌐 Test Environment**: https://heblo.stg.anela.cz
+          - **🔐 Authentication**: Azure Service Principal
+          - **📊 Test Results**: ${{ job.status }}
+          - **🕐 Completed**: $(date)
+          
+          ### 📋 Test Coverage
+          - User authentication flows
+          - Navigation and routing
+          - Layout behavior (sidebar, responsive)  
+          - Feature-specific user journeys
+          - Cross-component integration
+          
+          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
+          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
+          Your changes work correctly in the staging environment!" )
+          
+          ---
+          _E2E tests executed after manual approval against live staging_"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Notification
   notify:
     name: 📢 CI/CD Notification
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-azure, frontend-tests]
+    needs: [build-and-push, deploy-azure, frontend-tests, e2e-tests]
     if: always()
     steps:
       - name: 📱 Send Teams Notification
@@ -532,11 +724,16 @@ jobs:
           fi
           
           # Determine status color and emoji based on overall workflow status
-          if [ "${{ needs.deploy-azure.result }}" = "success" ] && [ "${{ needs.frontend-tests.result }}" = "success" ]; then
+          if [ "${{ needs.deploy-azure.result }}" = "success" ] && [ "${{ needs.frontend-tests.result }}" = "success" ] && [ "${{ needs.e2e-tests.result }}" != "failure" ]; then
             COLOR="28A745"  # Green for success
             STATUS_EMOJI="✅"
             STATUS_TEXT="CI/CD Pipeline Successful"
-          elif [ "${{ needs.deploy-azure.result }}" = "failure" ] || [ "${{ needs.frontend-tests.result }}" = "failure" ]; then
+            if [ "${{ needs.e2e-tests.result }}" = "success" ]; then
+              STATUS_TEXT="CI/CD Pipeline Successful (E2E Tests Passed)"
+            elif [ "${{ needs.e2e-tests.result }}" = "skipped" ]; then
+              STATUS_TEXT="CI/CD Pipeline Successful (E2E Tests Skipped)"
+            fi
+          elif [ "${{ needs.deploy-azure.result }}" = "failure" ] || [ "${{ needs.frontend-tests.result }}" = "failure" ] || [ "${{ needs.e2e-tests.result }}" = "failure" ]; then
             COLOR="FF0000"  # Red for failure
             STATUS_EMOJI="❌"
             STATUS_TEXT="CI/CD Pipeline Failed"
@@ -589,6 +786,10 @@ jobs:
                 {
                   "name": "Deployment Status", 
                   "value": "${{ needs.deploy-azure.result == 'success' && '✅ Deployed' || '❌ Failed' }}"
+                },
+                {
+                  "name": "E2E Tests Status",
+                  "value": "${{ needs.e2e-tests.result == 'success' && '✅ Passed' || needs.e2e-tests.result == 'failure' && '❌ Failed' || '⏭️ Skipped' }}"
                 }
               ],
               "markdown": true
