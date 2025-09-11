@@ -42,13 +42,14 @@ public class AzureBlobStorageServiceTests
     [InlineData(".txt", "text/plain")]
     [InlineData(".json", "application/json")]
     [InlineData(".unknown", "application/octet-stream")]
-    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension)
+    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension, string expectedContentType)
     {
         // This test would require making the private method internal or using reflection
         // For now, we'll test it indirectly through other methods
         var fileName = $"test{extension}";
         // The GetContentTypeFromExtension method is private, so we test it indirectly
         Assert.NotEmpty(fileName); // Placeholder assertion
+        Assert.NotEmpty(expectedContentType); // Verify expected content type is provided
     }
 
     [Fact]

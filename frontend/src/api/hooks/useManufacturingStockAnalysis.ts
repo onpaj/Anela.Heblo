@@ -52,6 +52,10 @@ export interface ManufacturingStockItemDto {
   code: string;
   name: string;
   currentStock: number;
+  erpStock: number;
+  eshopStock: number;
+  transportStock: number;
+  primaryStockSource: string;
   reserve: number;
   salesInPeriod: number;
   dailySalesRate: number;
@@ -208,6 +212,25 @@ export const formatNumber = (value: number, decimals: number = 2): string => {
 // Helper function to format percentage
 export const formatPercentage = (value: number): string => {
   return `${formatNumber(value, 1)}%`;
+};
+
+// Helper function to format warehouse stock with transport breakdown
+export const formatWarehouseStock = (item: ManufacturingStockItemDto): string => {
+  const totalStock = formatNumber(item.currentStock, 0);
+  
+  // If transport is 0, show just the total
+  if (item.transportStock === 0) {
+    return totalStock;
+  }
+  
+  // If transport > 0, show breakdown: "12 (5+7)"
+  // Use the correct primary stock source (Erp or Eshop) + Transport = Available
+  const primaryStock = item.primaryStockSource === "Erp" 
+    ? formatNumber(item.erpStock, 0)
+    : formatNumber(item.eshopStock, 0);
+  const transportStock = formatNumber(item.transportStock, 0);
+  
+  return `${totalStock} (${primaryStock}+${transportStock})`;
 };
 
 // Helper function to format time period display text

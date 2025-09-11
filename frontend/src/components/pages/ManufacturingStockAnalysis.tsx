@@ -22,6 +22,7 @@ import {
   ManufacturingStockSeverity,
   formatNumber,
   formatPercentage,
+  formatWarehouseStock,
   calculateTimePeriodRange,
   getTimePeriodDisplayText,
 } from "../../api/hooks/useManufacturingStockAnalysis";
@@ -161,35 +162,52 @@ const ManufacturingStockAnalysis: React.FC = () => {
     );
   };
 
-  // Get row background color based on severity (subtle coloring)
+  // Get row background color based on severity (like in PurchaseStockAnalysis)
   const getRowColorClass = (
     severity: ManufacturingStockSeverity,
     isSubgridRow: boolean = false,
   ) => {
+    // Handle both string and numeric enum values
+    const severityStr = String(severity);
+    
     // Subgrid rows have slightly darker background for better visual separation
     if (isSubgridRow) {
-      switch (severity) {
-        case ManufacturingStockSeverity.Critical:
-          return "bg-red-100 hover:bg-red-200";
-        case ManufacturingStockSeverity.Major:
-          return "bg-orange-100 hover:bg-orange-200";
-        case ManufacturingStockSeverity.Adequate:
-          return "bg-emerald-100 hover:bg-emerald-200";
-        case ManufacturingStockSeverity.Unconfigured:
-          return "bg-gray-100 hover:bg-gray-200";
+      switch (severityStr) {
+        case "Critical":
+        case "0":
+          return "bg-red-100/50 hover:bg-red-100/70";
+        case "Major":
+        case "1":
+          return "bg-orange-100/50 hover:bg-orange-100/70";
+        case "Minor":
+        case "2":
+          return "bg-yellow-100/50 hover:bg-yellow-100/70";
+        case "Adequate":
+        case "3":
+          return "bg-green-100/50 hover:bg-green-100/70";
+        case "Unconfigured":
+        case "4":
+          return "bg-gray-100/50 hover:bg-gray-100/70";
         default:
-          return "bg-gray-100 hover:bg-gray-200";
+          return "bg-gray-100/50 hover:bg-gray-100/70";
       }
     } else {
-      switch (severity) {
-        case ManufacturingStockSeverity.Critical:
-          return "bg-red-50 hover:bg-red-100";
-        case ManufacturingStockSeverity.Major:
-          return "bg-orange-50 hover:bg-orange-100";
-        case ManufacturingStockSeverity.Adequate:
-          return "bg-emerald-50 hover:bg-emerald-100";
-        case ManufacturingStockSeverity.Unconfigured:
-          return "bg-gray-50 hover:bg-gray-100";
+      switch (severityStr) {
+        case "Critical":
+        case "0":
+          return "bg-red-50/30 hover:bg-red-50/50";
+        case "Major":
+        case "1":
+          return "bg-orange-50/30 hover:bg-orange-50/50";
+        case "Minor":
+        case "2":
+          return "bg-yellow-50/30 hover:bg-yellow-50/50";
+        case "Adequate":
+        case "3":
+          return "bg-green-50/30 hover:bg-green-50/50";
+        case "Unconfigured":
+        case "4":
+          return "bg-gray-50/30 hover:bg-gray-50/50";
         default:
           return "hover:bg-gray-50";
       }
@@ -341,20 +359,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
         {items.map((subItem) => (
           <tr
             key={`sub-${subItem.code}`}
-            className={`${getRowColorClass(subItem.severity, true)} cursor-pointer transition-colors duration-150 border-l-8 border-indigo-300`}
+            className={`${getRowColorClass(subItem.severity)} cursor-pointer transition-colors duration-150 border-l-8 border-indigo-300`}
             onClick={(e) => handleRowClick(subItem, e)}
             title="Klikněte pro zobrazení detailu produktu"
           >
             {/* Product Info - matching main table column width */}
             <td
               className="px-4 py-3 whitespace-nowrap"
-              style={{ minWidth: "200px", width: "25%" }}
+              style={{ minWidth: "200px", width: "23%" }}
             >
               <div className="flex items-center">
                 <div className="w-10 mr-2"></div>
                 {/* Color strip based on severity */}
                 <div
-                  className={`w-1 h-6 mr-2 rounded-sm ${getSeverityStripColor(subItem.severity)}`}
+                  className={`w-1 h-6 mr-3 rounded-sm ${getSeverityStripColor(subItem.severity)}`}
                 ></div>
                 <div className="flex-1 min-w-0 pl-6">
                   <div className="text-xs text-gray-700 truncate font-medium">
@@ -367,11 +385,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Current Stock */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
-              style={{ minWidth: "90px", width: "10%" }}
+              className="px-3 py-3 whitespace-nowrap text-right text-xs"
+              style={{ minWidth: "120px", width: "12%" }}
             >
-              <div className="font-medium">
-                {formatNumber(subItem.currentStock, 0)}
+              <div className={`font-medium ${getStockValueColorClass(subItem.severity)}`}>
+                {formatWarehouseStock(subItem)}
               </div>
             </td>
 
@@ -456,23 +474,48 @@ const ManufacturingStockAnalysis: React.FC = () => {
     );
   };
 
-  // Get color strip for product based on severity
+  // Get color strip for product based on severity - matching summary cards colors
   const getSeverityStripColor = (severity: ManufacturingStockSeverity) => {
+    // Handle both string and numeric enum values
+    const severityStr = String(severity);
+    
+    switch (severityStr) {
+      case "Critical":
+      case "0":
+        return "bg-red-500";
+      case "Major":
+      case "1":
+        return "bg-orange-500";
+      case "Minor":
+      case "2":
+        return "bg-yellow-500";
+      case "Adequate":
+      case "3":
+        return "bg-green-500";
+      case "Unconfigured":
+      case "4":
+        return "bg-gray-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+
+  // Get color class for stock values based on severity - matching summary cards
+  const getStockValueColorClass = (severity: ManufacturingStockSeverity) => {
     switch (severity) {
       case ManufacturingStockSeverity.Critical:
-        // Red - Overstock < 100%
-        return "bg-red-500";
+        return "text-red-600";    // Matches summary card text
       case ManufacturingStockSeverity.Major:
-        // Orange - Below minimum stock
-        return "bg-orange-500";
+        return "text-orange-600"; // Matches summary card text
+      case ManufacturingStockSeverity.Minor:
+        return "text-yellow-600"; // Minor items
       case ManufacturingStockSeverity.Adequate:
-        // Green - All conditions OK
-        return "bg-emerald-500";
+        return "text-green-600";  // Matches summary card text  
       case ManufacturingStockSeverity.Unconfigured:
-        // Gray - Missing configuration
-        return "bg-gray-400";
+        return "text-gray-600";   // Matches summary card text
       default:
-        return "";
+        return "text-gray-900";
     }
   };
 
@@ -950,14 +993,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   <SortableHeader
                     column={ManufacturingStockSortBy.ProductCode}
                     className="text-left"
-                    style={{ minWidth: "200px", width: "25%" }}
+                    style={{ minWidth: "200px", width: "23%" }}
                   >
                     Produkt
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.CurrentStock}
                     className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
+                    style={{ minWidth: "120px", width: "12%" }}
                   >
                     Skladem
                   </SortableHeader>
@@ -1039,7 +1082,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         {/* Product Info */}
                         <td
                           className="px-4 py-3 whitespace-nowrap"
-                          style={{ minWidth: "200px", width: "25%" }}
+                          style={{ minWidth: "200px", width: "23%" }}
                         >
                           <div className="flex items-center">
                             {/* Expand/Collapse button */}
@@ -1071,7 +1114,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
                             {/* Color strip based on severity */}
                             <div
-                              className={`w-1 h-8 mr-2 rounded-sm ${getSeverityStripColor(item.severity)}`}
+                              className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}
+                              title={`Severity: ${item.severity} (${getSeverityStripColor(item.severity)})`}
                             ></div>
                             <div className="flex-1 min-w-0">
                               {/* Product name first - main info */}
@@ -1093,11 +1137,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
                         {/* Current Stock */}
                         <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
+                          className="px-3 py-3 whitespace-nowrap text-right text-xs"
+                          style={{ minWidth: "120px", width: "12%" }}
                         >
-                          <div className="font-bold">
-                            {formatNumber(item.currentStock, 0)}
+                          <div className={`font-bold ${getStockValueColorClass(item.severity)}`}>
+                            {formatWarehouseStock(item)}
                           </div>
                         </td>
 
