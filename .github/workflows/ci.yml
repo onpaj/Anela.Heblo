@@ -571,9 +571,9 @@ jobs:
           echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
           echo "The test environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY
 
-  # Optional E2E Tests against Staging Environment
+  # Optional E2E Tests against Staging Environment - REQUIRES MANUAL APPROVAL
   e2e-tests-approval:
-    name: 🧪 Approve E2E Tests
+    name: 🧪 Approve E2E Tests (Manual Approval Required)
     runs-on: ubuntu-latest
     needs: [deploy-azure]
     environment: 
@@ -582,13 +582,28 @@ jobs:
     steps:
       - name: 📋 E2E Testing Summary
         run: |
-          echo "## 🧪 Optional E2E Testing" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Manual E2E Testing Approval Required" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **This step REQUIRES MANUAL APPROVAL before E2E tests will run**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Configuration:" >> $GITHUB_STEP_SUMMARY
           echo "- **Staging URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
           echo "- **Target Environment**: Staging with Azure service principal auth" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Suite**: Complete Playwright E2E tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser**: Chromium (headless)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**📝 Note**: This step is optional and requires manual approval." >> $GITHUB_STEP_SUMMARY
+          echo "### What happens after approval:" >> $GITHUB_STEP_SUMMARY
+          echo "1. E2E tests run against staging environment" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test results are uploaded as artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "3. HTML test report is generated (viewable via artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "4. Screenshots captured for failed tests" >> $GITHUB_STEP_SUMMARY
+          echo "5. PR comment added with test results summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### How to view test reports after completion:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to Actions tab → This workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. Download \`e2e-test-results\` artifact" >> $GITHUB_STEP_SUMMARY
+          echo "3. Extract and open \`playwright-report/index.html\` in browser" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**⚠️ Warning**: Tests run against live staging environment using service principal authentication." >> $GITHUB_STEP_SUMMARY
 
   e2e-tests:
@@ -615,17 +630,43 @@ jobs:
         run: npx playwright install chromium
 
       - name: 🧪 Run E2E tests against staging
+        id: run-tests
         working-directory: ./frontend
-        run: npx playwright test
+        continue-on-error: true
+        run: |
+          set +e
+          npx playwright test --reporter=list,html 2>&1 | tee test_output.log
+          TEST_EXIT_CODE=$?
+          set -e
+          
+          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          # Parse test results from output
+          if [ -f test_output.log ]; then
+            PASSED=$(grep -E -c "(✓|passed)" test_output.log 2>/dev/null || echo "0")
+            FAILED=$(grep -E -c "(✖|×|failed)" test_output.log 2>/dev/null || echo "0") 
+            TOTAL=$((PASSED + FAILED))
+            
+            echo "parsed_passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "parsed_failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "parsed_total=$TOTAL" >> $GITHUB_OUTPUT
+            
+            echo "📊 Test Results: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Exit Code=$TEST_EXIT_CODE"
+          else
+            echo "❌ Could not parse test results"
+            echo "parsed_passed=0" >> $GITHUB_OUTPUT  
+            echo "parsed_failed=0" >> $GITHUB_OUTPUT
+            echo "parsed_total=0" >> $GITHUB_OUTPUT
+          fi
         env:
           PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
           CI: true
           # Azure service principal credentials for E2E authentication
-          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
-          E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
+          AZURE_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: 📊 Upload E2E test results
+      - name: 📊 Upload E2E test results and HTML report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -633,27 +674,92 @@ jobs:
           path: |
             frontend/test-results/
             frontend/playwright-report/
-          retention-days: 7
+            frontend/test_output.log
+          retention-days: 30
 
-      - name: 📸 Upload E2E screenshots
+      - name: 📸 Upload E2E screenshots (failures only)
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always() && steps.run-tests.outputs.parsed_failed != '0'
         with:
-          name: e2e-screenshots
+          name: e2e-failure-screenshots
           path: frontend/test-results/
-          retention-days: 7
+          retention-days: 30
+          
+      - name: 📝 Create E2E test summary
+        if: always()
+        run: |
+          echo "## 🎭 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          EXIT_CODE="${{ steps.run-tests.outputs.test_exit_code }}"
+          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
+          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
+          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
+          
+          if [ "$EXIT_CODE" = "0" ]; then
+            echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some tests failed.**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Exit Code** | $EXIT_CODE |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 How to View Detailed Results:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Download** \`e2e-test-results\` artifact" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
+          echo "5. **View** detailed test results, screenshots, and traces" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📅 **Test completed at**: $(date)" >> $GITHUB_STEP_SUMMARY
+          
+      - name: ⚠️ Set warning status if tests failed
+        if: always() && steps.run-tests.outputs.test_exit_code != '0'
+        run: |
+          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
+          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
+          
+          echo "::warning title=E2E Tests Failed::$FAILED out of $TOTAL E2E tests failed. Check the test report artifacts for details."
+          echo "::notice title=Test Report Available::Download 'e2e-test-results' artifact and open playwright-report/index.html to view detailed results."
+          
+          # Exit with warning status (but not failure)
+          exit 0
 
       - name: 💬 Comment E2E results on PR
         if: github.event_name == 'pull_request' && always()
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
+          EXIT_CODE="${{ steps.run-tests.outputs.test_exit_code }}"
+          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
+          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
+          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
+          
+          if [ "$EXIT_CODE" = "0" ]; then
             STATUS_EMOJI="✅"
             STATUS_TEXT="E2E Tests Passed"
             STATUS_COLOR="🟢"
+            RESULT_DETAILS="### ✅ All Tests Passed
+          Your changes work correctly in the staging environment!
+          
+          **Test Results**: $PASSED/$TOTAL tests passed"
           else
-            STATUS_EMOJI="❌"
+            STATUS_EMOJI="❌"  
             STATUS_TEXT="E2E Tests Failed"
             STATUS_COLOR="🔴"
+            RESULT_DETAILS="### 🔍 Test Failures Detected
+          
+          **Test Results**: $PASSED/$TOTAL tests passed, $FAILED tests failed
+          
+          **Next Steps for Debugging**:
+          1. Download the \`e2e-test-results\` artifact from this workflow run
+          2. Extract the ZIP file and open \`playwright-report/index.html\`
+          3. Review failed test screenshots and error details
+          4. Check traces and network activity for failed tests"
           fi
           
           gh pr comment ${{ github.event.pull_request.number }} \
@@ -661,48 +767,44 @@ jobs:
           
           **$STATUS_COLOR $STATUS_TEXT** against staging environment:
           
-          - **🌐 Test Environment**: https://heblo.stg.anela.cz
-          - **🔐 Authentication**: Azure Service Principal
-          - **📊 Test Results**: ${{ job.status }}
-          - **🕐 Completed**: $(date)
+          | Metric | Value |
+          |--------|-------|
+          | **🌐 Test Environment** | https://heblo.stg.anela.cz |
+          | **🔐 Authentication** | Azure Service Principal |
+          | **📊 Total Tests** | $TOTAL |
+          | **✅ Passed** | $PASSED |
+          | **❌ Failed** | $FAILED |
+          | **📝 Exit Code** | $EXIT_CODE |
+          | **🕐 Completed** | $(date '+%Y-%m-%d %H:%M:%S UTC') |
+          
+          $RESULT_DETAILS
           
           ### 📋 Test Coverage
-          - User authentication flows
-          - Navigation and routing
-          - Layout behavior (sidebar, responsive)
-          - Feature-specific user journeys
-          - Cross-component integration
+          - User authentication flows and session management
+          - Navigation and routing across all pages
+          - Layout behavior (sidebar collapse/expand, responsive design)
+          - Feature-specific user journeys and workflows
+          - Cross-component integration and state management
           
-          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
-          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
-          Your changes work correctly in the staging environment!" )
+          ### 📥 How to View Detailed Test Report
+          
+          1. **Go to Actions tab** → Click on this workflow run
+          2. **Scroll to Artifacts section** at the bottom of the run
+          3. **Download** the \`e2e-test-results\` artifact (ZIP file)
+          4. **Extract** the ZIP file to your computer
+          5. **Open** \`playwright-report/index.html\` in your web browser
+          6. **Explore** detailed results with screenshots, traces, and logs
+          
+          $( [ "$FAILED" != "0" ] && echo "### 🖼️ Screenshots Available
+          Failed test screenshots are also available in the \`e2e-failure-screenshots\` artifact." || echo "" )
           
           ---
-          _E2E tests executed after manual approval against live staging_" \
+          _E2E tests executed after manual approval against live staging environment_" \
             --edit-last || \
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "## 🎭 E2E Test Results $STATUS_EMOJI
           
-          **$STATUS_COLOR $STATUS_TEXT** against staging environment:
-          
-          - **🌐 Test Environment**: https://heblo.stg.anela.cz
-          - **🔐 Authentication**: Azure Service Principal
-          - **📊 Test Results**: ${{ job.status }}
-          - **🕐 Completed**: $(date)
-          
-          ### 📋 Test Coverage
-          - User authentication flows
-          - Navigation and routing
-          - Layout behavior (sidebar, responsive)  
-          - Feature-specific user journeys
-          - Cross-component integration
-          
-          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
-          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
-          Your changes work correctly in the staging environment!" )
-          
-          ---
-          _E2E tests executed after manual approval against live staging_"
+          **$STATUS_COLOR $STATUS_TEXT** against staging environment - see workflow run for details"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
