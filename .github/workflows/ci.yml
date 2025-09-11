@@ -113,6 +113,11 @@ jobs:
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -151,15 +156,54 @@ jobs:
 
       - name: 🧪 Run tests with coverage
         run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+          # Shoptet integration test configuration
+          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          Shoptet.Playwright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          Shoptet.Playwright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          Shoptet.Playwright__Headless: true
+          # FlexiBee integration test configuration
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
         
       - name: 📊 Process coverage files for CodeCov
         run: |
           # Find all coverage.cobertura.xml files and fix paths for CodeCov
           find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
             echo "Processing coverage file: $file"
-            # Replace relative paths with absolute paths for CodeCov (Linux sed syntax)
+            
+            # First show original paths for debugging
+            echo "Original paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+            
+            # Replace relative paths with paths relative to repository root for CodeCov
+            # The original paths are like: filename="Anela.Heblo.Application/ApplicationModule.cs"
+            # We need: filename="backend/src/Anela.Heblo.Application/ApplicationModule.cs"
             sed -i 's|filename="|filename="backend/src/|g' "$file"
+            
+            # Show processed paths for debugging
+            echo "Processed paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+            echo "---"
           done
+          
+          # Verify coverage files exist
+          echo "=== Coverage files found ==="
+          find ./coverage -name "coverage.cobertura.xml" -type f -exec echo "Found: {}" \;
+          
+          # Count total coverage files
+          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
+          echo "Total coverage files: $COVERAGE_COUNT"
+          
+          if [ "$COVERAGE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: No coverage files found!"
+            exit 1
+          fi
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -184,6 +228,11 @@ jobs:
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore

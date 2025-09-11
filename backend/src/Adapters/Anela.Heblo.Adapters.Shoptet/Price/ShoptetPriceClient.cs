@@ -64,9 +64,9 @@ public class ShoptetPriceClient : IProductPriceEshopClient
 
     private string CreateCsv(IEnumerable<ProductPriceEshop> destinationData)
     {
-        // Create a temporary file in the system's temporary folder
+        // Create a unique temporary file to avoid conflicts in parallel test execution
         var tempPath = Path.GetTempPath();
-        var tempFile = Path.Combine(tempPath, "products.csv");
+        var tempFile = Path.Combine(tempPath, $"products_{Guid.NewGuid():N}.csv");
         using (var stream = File.Create(tempFile))
         using (var writer = new StreamWriter(stream, Encoding.UTF8))
         using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
