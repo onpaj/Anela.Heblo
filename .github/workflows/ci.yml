@@ -514,11 +514,145 @@ jobs:
           echo "### 🧪 Ready for Testing" >> $GITHUB_STEP_SUMMARY
           echo "The test environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY
 
+  # Optional E2E Tests against Staging Environment
+  e2e-tests-approval:
+    name: 🧪 Approve E2E Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-azure]
+    environment: 
+      name: e2e-tests-approval
+      url: https://heblo.stg.anela.cz
+    steps:
+      - name: 📋 E2E Testing Summary
+        run: |
+          echo "## 🧪 Optional E2E Testing" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Staging URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment**: Real staging with MS Entra ID auth" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suite**: Complete Playwright E2E tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📝 Note**: This step is optional and requires manual approval." >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ Warning**: Tests run against live staging environment with real authentication." >> $GITHUB_STEP_SUMMARY
+
+  e2e-tests:
+    name: 🎭 Run E2E Tests Against Staging
+    runs-on: ubuntu-latest
+    needs: [e2e-tests-approval]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install chromium
+
+      - name: 🧪 Run E2E tests against staging
+        working-directory: ./frontend
+        run: npx playwright test --config=test/e2e/playwright.config.ts
+        env:
+          PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
+          CI: true
+          # Real authentication credentials for staging
+          PLAYWRIGHT_AUTH_EMAIL: ${{ secrets.E2E_AUTH_EMAIL }}
+          PLAYWRIGHT_AUTH_PASSWORD: ${{ secrets.E2E_AUTH_PASSWORD }}
+
+      - name: 📊 Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            frontend/test/e2e/test-results/
+            frontend/test/e2e/playwright-report/
+          retention-days: 7
+
+      - name: 📸 Upload E2E screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots
+          path: frontend/test/e2e/test-results/
+          retention-days: 7
+
+      - name: 💬 Comment E2E results on PR
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="E2E Tests Passed"
+            STATUS_COLOR="🟢"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="E2E Tests Failed"
+            STATUS_COLOR="🔴"
+          fi
+          
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🎭 E2E Test Results $STATUS_EMOJI
+          
+          **$STATUS_COLOR $STATUS_TEXT** against staging environment:
+          
+          - **🌐 Test Environment**: https://heblo.stg.anela.cz
+          - **🔐 Authentication**: Real MS Entra ID
+          - **📊 Test Results**: ${{ job.status }}
+          - **🕐 Completed**: $(date)
+          
+          ### 📋 Test Coverage
+          - User authentication flows
+          - Navigation and routing
+          - Layout behavior (sidebar, responsive)
+          - Feature-specific user journeys
+          - Cross-component integration
+          
+          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
+          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
+          Your changes work correctly in the staging environment!" )
+          
+          ---
+          _E2E tests executed after manual approval against live staging_" \
+            --edit-last || \
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🎭 E2E Test Results $STATUS_EMOJI
+          
+          **$STATUS_COLOR $STATUS_TEXT** against staging environment:
+          
+          - **🌐 Test Environment**: https://heblo.stg.anela.cz
+          - **🔐 Authentication**: Real MS Entra ID
+          - **📊 Test Results**: ${{ job.status }}
+          - **🕐 Completed**: $(date)
+          
+          ### 📋 Test Coverage
+          - User authentication flows
+          - Navigation and routing
+          - Layout behavior (sidebar, responsive)  
+          - Feature-specific user journeys
+          - Cross-component integration
+          
+          $( [ "${{ job.status }}" = "failure" ] && echo "### 🔍 Failure Analysis
+          Check the uploaded artifacts for screenshots and detailed test results." || echo "### ✅ All Tests Passed
+          Your changes work correctly in the staging environment!" )
+          
+          ---
+          _E2E tests executed after manual approval against live staging_"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Notification
   notify:
     name: 📢 CI/CD Notification
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-azure, frontend-tests]
+    needs: [build-and-push, deploy-azure, frontend-tests, e2e-tests]
     if: always()
     steps:
       - name: 📱 Send Teams Notification
@@ -532,11 +666,16 @@ jobs:
           fi
           
           # Determine status color and emoji based on overall workflow status
-          if [ "${{ needs.deploy-azure.result }}" = "success" ] && [ "${{ needs.frontend-tests.result }}" = "success" ]; then
+          if [ "${{ needs.deploy-azure.result }}" = "success" ] && [ "${{ needs.frontend-tests.result }}" = "success" ] && [ "${{ needs.e2e-tests.result }}" != "failure" ]; then
             COLOR="28A745"  # Green for success
             STATUS_EMOJI="✅"
             STATUS_TEXT="CI/CD Pipeline Successful"
-          elif [ "${{ needs.deploy-azure.result }}" = "failure" ] || [ "${{ needs.frontend-tests.result }}" = "failure" ]; then
+            if [ "${{ needs.e2e-tests.result }}" = "success" ]; then
+              STATUS_TEXT="CI/CD Pipeline Successful (E2E Tests Passed)"
+            elif [ "${{ needs.e2e-tests.result }}" = "skipped" ]; then
+              STATUS_TEXT="CI/CD Pipeline Successful (E2E Tests Skipped)"
+            fi
+          elif [ "${{ needs.deploy-azure.result }}" = "failure" ] || [ "${{ needs.frontend-tests.result }}" = "failure" ] || [ "${{ needs.e2e-tests.result }}" = "failure" ]; then
             COLOR="FF0000"  # Red for failure
             STATUS_EMOJI="❌"
             STATUS_TEXT="CI/CD Pipeline Failed"
@@ -589,6 +728,10 @@ jobs:
                 {
                   "name": "Deployment Status", 
                   "value": "${{ needs.deploy-azure.result == 'success' && '✅ Deployed' || '❌ Failed' }}"
+                },
+                {
+                  "name": "E2E Tests Status",
+                  "value": "${{ needs.e2e-tests.result == 'success' && '✅ Passed' || needs.e2e-tests.result == 'failure' && '❌ Failed' || '⏭️ Skipped' }}"
                 }
               ],
               "markdown": true
