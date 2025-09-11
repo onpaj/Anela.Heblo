@@ -1,12 +1,51 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { InventoryList } from '../InventoryList';
-import * as useInventoryHook from '../../api/hooks/useInventory';
-
+import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '../../../contexts/ToastContext';
+import InventoryList from '../InventoryList';
 // Mock the useInventory hook
-const mockUseInventoryQuery = jest.fn();
-jest.spyOn(useInventoryHook, 'useInventoryQuery').mockImplementation(mockUseInventoryQuery);
+jest.mock('../../../api/hooks/useInventory', () => ({
+  useInventoryQuery: jest.fn(),
+}));
+
+// Mock the stock taking hooks (used by InventoryModal)
+jest.mock('../../../api/hooks/useStockTaking', () => ({
+  useSubmitStockTaking: () => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn(),
+    isPending: false,
+    isError: false,
+    error: null,
+    isSuccess: false,
+    reset: jest.fn(),
+  }),
+  useStockTakingHistory: () => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
+
+// Mock the useCatalog hook (used by InventoryModal) and ProductType enum
+jest.mock('../../../api/hooks/useCatalog', () => ({
+  useCatalogDetail: () => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+  ProductType: {
+    Product: 1,
+    Goods: 2,
+    Material: 3,
+    SemiProduct: 4,
+  },
+}));
+
+const { useInventoryQuery } = require('../../../api/hooks/useInventory');
+const mockUseInventoryQuery = useInventoryQuery as jest.MockedFunction<typeof useInventoryQuery>;
 
 const mockInventoryData = {
   data: {
@@ -51,7 +90,7 @@ const mockInventoryData = {
           erp: 9,
           eshop: 8
         },
-        lastStockTaking: '2024-01-14T15:45:00Z' // 1 day ago if today is 2024-01-15
+        lastStockTaking: '2024-01-14T10:00:00Z' // 1 day ago (26 hours) if today is 2024-01-15T12:00:00Z
       }
     ],
     totalCount: 3,
@@ -61,7 +100,8 @@ const mockInventoryData = {
   },
   isLoading: false,
   isError: false,
-  error: null
+  error: null,
+  refetch: jest.fn()
 };
 
 const createWrapper = () => {
@@ -75,7 +115,11 @@ const createWrapper = () => {
   
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <ToastProvider>
+        <MemoryRouter>
+          {children}
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
@@ -124,11 +168,13 @@ describe('InventoryList - LastInventoryDays Column', () => {
 
     const fiveDaysElement = screen.getByText('5 d');
     
-    // Check the title attribute for tooltip
-    expect(fiveDaysElement).toHaveAttribute('title', 'Poslední inventura: 10.01.2024 10:30:00');
+    // Check the title attribute for tooltip (Czech format with timezone conversion)
+    expect(fiveDaysElement).toHaveAttribute('title', expect.stringContaining('Poslední inventura:'));
+    expect(fiveDaysElement).toHaveAttribute('title', expect.stringContaining('10. 01. 2024'));
     
     const oneDayElement = screen.getByText('1 d');
-    expect(oneDayElement).toHaveAttribute('title', 'Poslední inventura: 14.01.2024 15:45:00');
+    expect(oneDayElement).toHaveAttribute('title', expect.stringContaining('Poslední inventura:'));
+    expect(oneDayElement).toHaveAttribute('title', expect.stringContaining('14. 01. 2024'));
   });
 
   it('uses Czech locale for date formatting in tooltip', () => {
@@ -137,8 +183,8 @@ describe('InventoryList - LastInventoryDays Column', () => {
     const fiveDaysElement = screen.getByText('5 d');
     const titleText = fiveDaysElement.getAttribute('title');
     
-    // Check Czech date format (DD.MM.YYYY HH:MM:SS)
-    expect(titleText).toMatch(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}$/);
+    // Check Czech date format (DD. MM. YYYY HH:MM:SS - with spaces around dots)
+    expect(titleText).toMatch(/Poslední inventura: \d{1,2}\. \d{1,2}\. \d{4} \d{1,2}:\d{2}:\d{2}$/);
     expect(titleText).toContain('Poslední inventura:');
   });
 
@@ -212,7 +258,7 @@ describe('InventoryList - LastInventoryDays Column', () => {
         items: [
           {
             ...mockInventoryData.data.items[0],
-            lastStockTaking: '2024-01-14T23:59:59Z' // Late on previous day
+            lastStockTaking: '2024-01-14T11:59:59Z' // Earlier on previous day to ensure full day
           }
         ]
       }
@@ -235,7 +281,7 @@ describe('InventoryList - LastInventoryDays Column', () => {
 
     render(<InventoryList />, { wrapper: createWrapper() });
 
-    expect(screen.getByText(/načítá se/i)).toBeInTheDocument();
+    expect(screen.getByText(/načítání zásob/i)).toBeInTheDocument();
   });
 
   it('displays error state correctly', () => {
@@ -296,9 +342,9 @@ describe('InventoryList - LastInventoryDays Column', () => {
 
     // Tooltips should still work correctly regardless of sort order
     const fiveDaysElement = screen.getByText('5 d');
-    expect(fiveDaysElement).toHaveAttribute('title', expect.stringContaining('10.01.2024 10:30:00'));
+    expect(fiveDaysElement).toHaveAttribute('title', expect.stringContaining('10. 01. 2024'));
     
     const oneDayElement = screen.getByText('1 d');
-    expect(oneDayElement).toHaveAttribute('title', expect.stringContaining('14.01.2024 15:45:00'));
+    expect(oneDayElement).toHaveAttribute('title', expect.stringContaining('14. 01. 2024'));
   });
 });

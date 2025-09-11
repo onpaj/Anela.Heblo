@@ -2,21 +2,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useInventoryQuery } from '../useInventory';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient } from '../../client';
 
 // Mock the API client
-jest.mock('../client', () => ({
-  getAuthenticatedApiClient: jest.fn(),
-}));
-
-const mockApiClient = {
-  baseUrl: 'http://localhost:5001',
-  http: {
-    fetch: jest.fn(),
-  },
-};
-
-(getAuthenticatedApiClient as jest.Mock).mockReturnValue(mockApiClient);
+jest.mock('../../client');
+const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 // Mock current date for consistent testing
 const mockCurrentDate = new Date('2024-01-15T12:00:00Z');
@@ -48,8 +38,73 @@ describe('useInventory - Complex Sorting Logic', () => {
     jest.useRealTimers();
   });
 
+  const mockApiClient = {
+    http: {
+      fetch: jest.fn(),
+    },
+    baseUrl: 'http://localhost:5001',
+  };
+
+  // Simple test to verify basic functionality
+  it('should make API calls and return data', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
+    const mockInventoryItems = [
+      {
+        productCode: 'TEST-1',
+        productName: 'Test Product',
+        location: 'A1',
+        lastStockTaking: '2024-01-10T10:00:00Z'
+      }
+    ];
+
+    // Mock responses for all three inventory types
+    const mockResponse = {
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        items: mockInventoryItems,
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 1000,
+        totalPages: 1
+      })
+    };
+
+    mockApiClient.http.fetch
+      .mockResolvedValueOnce(mockResponse)
+      .mockResolvedValueOnce({ ...mockResponse, json: jest.fn().mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0 }) })
+      .mockResolvedValueOnce({ ...mockResponse, json: jest.fn().mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0 }) });
+
+    const { result } = renderHook(
+      () => useInventoryQuery('', '', '', 1, 20),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Debug logging
+    console.log('Test result:', {
+      data: result.current.data,
+      isLoading: result.current.isLoading,
+      isError: result.current.isError,
+      error: result.current.error
+    });
+
+    expect(result.current.data?.items).toBeDefined();
+    expect(result.current.data?.items).toHaveLength(1);
+    expect(result.current.data?.items[0]?.productCode).toBe('TEST-1');
+  });
+
   describe('LastInventoryDays Sorting - Descending (Default)', () => {
     it('should sort items without inventory first, then items with inventory by oldest first', async () => {
+      // Set up the mock
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      
+      // Mock response for each inventory type - since no specific type is provided,
+      // the hook will make separate calls for Product, Goods, and Set types
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-1',
@@ -83,18 +138,46 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock different responses for different product types
+      // Since all items are in different "types", we'll distribute them
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 5,
+          items: [mockInventoryItems[0], mockInventoryItems[1]], // First two items for Product type
+          totalCount: 2,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[2], mockInventoryItems[3]], // Next two items for Goods type
+          totalCount: 2,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[4]], // Last item for Set type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
           totalPages: 1
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -112,14 +195,16 @@ describe('useInventory - Complex Sorting Logic', () => {
       // Expected order for descending:
       // 1. Items without inventory first (sorted by location: A2, B1)
       // 2. Items with inventory by oldest first (C1: 10 days, A1: 5 days, D1: 1 day)
-      expect(sortedItems[0].productCode).toBe('PRODUCT-4'); // A2, no inventory
-      expect(sortedItems[1].productCode).toBe('PRODUCT-2'); // B1, no inventory
-      expect(sortedItems[2].productCode).toBe('PRODUCT-3'); // C1, 10 days ago (oldest)
-      expect(sortedItems[3].productCode).toBe('PRODUCT-1'); // A1, 5 days ago
-      expect(sortedItems[4].productCode).toBe('PRODUCT-5'); // D1, 1 day ago (newest)
+      expect(sortedItems[0]?.productCode).toBe('PRODUCT-4'); // A2, no inventory
+      expect(sortedItems[1]?.productCode).toBe('PRODUCT-2'); // B1, no inventory
+      expect(sortedItems[2]?.productCode).toBe('PRODUCT-3'); // C1, 10 days ago (oldest)
+      expect(sortedItems[3]?.productCode).toBe('PRODUCT-1'); // A1, 5 days ago
+      expect(sortedItems[4]?.productCode).toBe('PRODUCT-5'); // D1, 1 day ago (newest)
     });
 
     it('should sort items without inventory by location when descending', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-1',
@@ -141,18 +226,45 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock responses for different inventory types
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 3,
+          items: [mockInventoryItems[0]], // Z-Zone item for Product type
+          totalCount: 1,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[1]], // A-Zone item for Goods type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[2]], // M-Zone item for Set type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
           totalPages: 1
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -168,14 +280,16 @@ describe('useInventory - Complex Sorting Logic', () => {
       const sortedItems = result.current.data?.items || [];
       
       // Should be sorted by location alphabetically: A-Zone, M-Zone, Z-Zone
-      expect(sortedItems[0].productCode).toBe('PRODUCT-2'); // A-Zone
-      expect(sortedItems[1].productCode).toBe('PRODUCT-3'); // M-Zone
-      expect(sortedItems[2].productCode).toBe('PRODUCT-1'); // Z-Zone
+      expect(sortedItems[0]?.productCode).toBe('PRODUCT-2'); // A-Zone
+      expect(sortedItems[1]?.productCode).toBe('PRODUCT-3'); // M-Zone
+      expect(sortedItems[2]?.productCode).toBe('PRODUCT-1'); // Z-Zone
     });
   });
 
   describe('LastInventoryDays Sorting - Ascending', () => {
     it('should sort items with inventory first by newest, then items without inventory', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-1',
@@ -209,18 +323,45 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock responses for different inventory types
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 5,
+          items: [mockInventoryItems[0], mockInventoryItems[1]], // First two items for Product type
+          totalCount: 2,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[2], mockInventoryItems[3]], // Next two items for Goods type
+          totalCount: 2,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[4]], // Last item for Set type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
           totalPages: 1
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -238,16 +379,18 @@ describe('useInventory - Complex Sorting Logic', () => {
       // Expected order for ascending:
       // 1. Items with inventory by newest first (D1: 1 day, A1: 5 days, C1: 10 days)
       // 2. Items without inventory (sorted by location: A2, B1)
-      expect(sortedItems[0].productCode).toBe('PRODUCT-5'); // D1, 1 day ago (newest)
-      expect(sortedItems[1].productCode).toBe('PRODUCT-1'); // A1, 5 days ago
-      expect(sortedItems[2].productCode).toBe('PRODUCT-3'); // C1, 10 days ago (oldest)
-      expect(sortedItems[3].productCode).toBe('PRODUCT-4'); // A2, no inventory
-      expect(sortedItems[4].productCode).toBe('PRODUCT-2'); // B1, no inventory
+      expect(sortedItems[0]?.productCode).toBe('PRODUCT-5'); // D1, 1 day ago (newest)
+      expect(sortedItems[1]?.productCode).toBe('PRODUCT-1'); // A1, 5 days ago
+      expect(sortedItems[2]?.productCode).toBe('PRODUCT-3'); // C1, 10 days ago (oldest)
+      expect(sortedItems[3]?.productCode).toBe('PRODUCT-4'); // A2, no inventory
+      expect(sortedItems[4]?.productCode).toBe('PRODUCT-2'); // B1, no inventory
     });
   });
 
   describe('Single Product Type Sorting', () => {
     it('should use API sorting for single product type', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-1',
@@ -278,7 +421,7 @@ describe('useInventory - Complex Sorting Logic', () => {
 
       const { result } = renderHook(
         () => useInventoryQuery(
-          '', '', '1', 1, 20, 'lastInventoryDays', true // specific type
+          '', '', 1, 1, 20, 'lastInventoryDays', true // specific type (ProductType.Product = 1)
         ),
         { wrapper: createWrapper() }
       );
@@ -300,13 +443,14 @@ describe('useInventory - Complex Sorting Logic', () => {
       const items = result.current.data?.items || [];
       expect(items).toHaveLength(2);
       // Items should be in the order returned by the API (server-side sorted)
-      expect(items[0].productCode).toBe('PRODUCT-1');
-      expect(items[1].productCode).toBe('PRODUCT-2');
+      expect(items[0]?.productCode).toBe('PRODUCT-1');
+      expect(items[1]?.productCode).toBe('PRODUCT-2');
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle items with same lastStockTaking dates', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
       const sameDate = '2024-01-10T10:00:00Z';
       const mockInventoryItems = [
         {
@@ -329,18 +473,45 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock responses for different inventory types
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 3,
+          items: [mockInventoryItems[0]], // Product A for Product type
+          totalCount: 1,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[1]], // Product B for Goods type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[2]], // Product C for Set type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
           totalPages: 1
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -358,22 +529,28 @@ describe('useInventory - Complex Sorting Logic', () => {
       // When dates are the same, items should maintain stable sort
       // (implementation-dependent, but should be consistent)
       expect(items).toHaveLength(3);
-      expect(items.every(item => item.lastStockTaking === sameDate)).toBe(true);
+      expect(items.every(item => item?.lastStockTaking === sameDate)).toBe(true);
     });
 
     it('should handle empty inventory list', async () => {
-      const mockResponse = {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      // Mock empty responses for all inventory types
+      const emptyResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue({
           items: [],
           totalCount: 0,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
           totalPages: 0
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock three empty responses for Product, Goods, and Set types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(emptyResponse)
+        .mockResolvedValueOnce(emptyResponse)
+        .mockResolvedValueOnce(emptyResponse);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -391,6 +568,8 @@ describe('useInventory - Complex Sorting Logic', () => {
     });
 
     it('should handle API errors gracefully', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+      // Mock the first API call to throw an error (for Product type)
       mockApiClient.http.fetch.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(
@@ -409,6 +588,7 @@ describe('useInventory - Complex Sorting Logic', () => {
     });
 
     it('should handle invalid date strings', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-1',
@@ -424,18 +604,45 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock responses for different inventory types
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 2,
+          items: [mockInventoryItems[0]], // Invalid date item for Product type
+          totalCount: 1,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
           totalPages: 1
         })
       };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[1]], // Valid date item for Goods type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [], // Empty for Set type
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 0
+        })
+      };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -456,6 +663,7 @@ describe('useInventory - Complex Sorting Logic', () => {
 
   describe('Standard Sorting (Non-LastInventoryDays)', () => {
     it('should apply standard sorting for other columns', async () => {
+      mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
       const mockInventoryItems = [
         {
           productCode: 'PRODUCT-C',
@@ -477,18 +685,45 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
+      // Mock responses for different inventory types
+      const mockResponse1 = {
         ok: true,
         json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 3,
+          items: [mockInventoryItems[0]], // Product C for Product type
+          totalCount: 1,
           pageNumber: 1,
-          pageSize: 20,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse2 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[1]], // Product A for Goods type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
+          totalPages: 1
+        })
+      };
+      
+      const mockResponse3 = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          items: [mockInventoryItems[2]], // Product B for Set type
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 1000,
           totalPages: 1
         })
       };
 
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock consecutive API calls for different inventory types
+      mockApiClient.http.fetch
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2)
+        .mockResolvedValueOnce(mockResponse3);
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -504,9 +739,9 @@ describe('useInventory - Complex Sorting Logic', () => {
       const sortedItems = result.current.data?.items || [];
       
       // Should be sorted by productCode alphabetically: A, B, C
-      expect(sortedItems[0].productCode).toBe('PRODUCT-A');
-      expect(sortedItems[1].productCode).toBe('PRODUCT-B');
-      expect(sortedItems[2].productCode).toBe('PRODUCT-C');
+      expect(sortedItems[0]?.productCode).toBe('PRODUCT-A');
+      expect(sortedItems[1]?.productCode).toBe('PRODUCT-B');
+      expect(sortedItems[2]?.productCode).toBe('PRODUCT-C');
     });
   });
 });

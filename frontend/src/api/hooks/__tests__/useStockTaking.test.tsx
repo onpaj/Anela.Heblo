@@ -2,18 +2,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useStockTakingHistory } from '../useStockTaking';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient } from '../../client';
 
 // Mock the API client
-jest.mock('../client', () => ({
-  getAuthenticatedApiClient: jest.fn(),
-}));
-
-const mockApiClient = {
-  stockTaking_GetStockTakingHistory: jest.fn(),
-};
-
-(getAuthenticatedApiClient as jest.Mock).mockReturnValue(mockApiClient);
+jest.mock('../../client');
+const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -35,6 +28,10 @@ describe('useStockTakingHistory', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
+  const mockApiClient = {
+    stockTaking_GetStockTakingHistory: jest.fn(),
+  };
 
   it('should not execute query when productCode is not provided', async () => {
     const { result } = renderHook(
@@ -59,6 +56,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should execute query when valid productCode is provided', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData = {
       items: [
         {
@@ -112,6 +112,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should use default parameters correctly', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData = {
       items: [],
       totalCount: 0,
@@ -141,6 +144,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should handle API errors correctly', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockError = new Error('Product not found');
     mockApiClient.stockTaking_GetStockTakingHistory.mockRejectedValueOnce(mockError);
 
@@ -158,6 +164,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should handle custom pagination parameters', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData = {
       items: [
         {
@@ -202,6 +211,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should have correct cache configuration', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData = {
       items: [],
       totalCount: 0,
@@ -228,6 +240,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should re-execute query when productCode changes', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData1 = {
       items: [{ date: '2024-01-15T10:30:00Z', previousAmount: 10, newAmount: 15, userId: 'user1', reason: 'Test 1' }],
       totalCount: 1,
@@ -279,6 +294,9 @@ describe('useStockTakingHistory', () => {
   });
 
   it('should not execute query when productCode changes from valid to invalid', async () => {
+    // Set up the mock
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
+    
     const mockHistoryData = {
       items: [],
       totalCount: 0,
