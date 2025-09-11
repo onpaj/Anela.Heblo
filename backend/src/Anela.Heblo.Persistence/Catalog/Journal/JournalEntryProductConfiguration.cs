@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,7 +19,8 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .IsRequired();
 
             builder.Property(x => x.CreatedAt)
-                .IsRequired();
+                .IsRequired()
+                .AsUtcTimestamp();
 
             // Index for product code lookups
             builder.HasIndex(x => x.ProductCodePrefix)

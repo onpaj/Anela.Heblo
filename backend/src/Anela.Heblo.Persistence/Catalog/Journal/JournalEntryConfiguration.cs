@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,13 +22,16 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .IsRequired();
 
             builder.Property(x => x.EntryDate)
-                .IsRequired();
+                .IsRequired()
+                .AsUtcTimestamp();
 
             builder.Property(x => x.CreatedAt)
-                .IsRequired();
+                .IsRequired()
+                .AsUtcTimestamp();
 
             builder.Property(x => x.ModifiedAt)
-                .IsRequired();
+                .IsRequired()
+                .AsUtcTimestamp();
 
             builder.Property(x => x.CreatedByUserId)
                 .HasMaxLength(100)
@@ -36,6 +40,10 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             builder.Property(x => x.ModifiedByUserId)
                 .HasMaxLength(100)
                 .IsRequired(false);
+
+            builder.Property(x => x.DeletedAt)
+                .IsRequired(false)
+                .AsUtcTimestamp();
 
             builder.Property(x => x.DeletedByUserId)
                 .HasMaxLength(100)
