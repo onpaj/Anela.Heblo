@@ -616,7 +616,7 @@ jobs:
 
       - name: 🧪 Run E2E tests against staging
         working-directory: ./frontend
-        run: npx playwright test --config=test/e2e/playwright.config.ts
+        run: npx playwright test
         env:
           PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
           CI: true
@@ -630,8 +630,8 @@ jobs:
         with:
           name: e2e-test-results
           path: |
-            frontend/test/e2e/test-results/
-            frontend/test/e2e/playwright-report/
+            frontend/test-results/
+            frontend/playwright-report/
           retention-days: 7
 
       - name: 📸 Upload E2E screenshots
@@ -639,7 +639,7 @@ jobs:
         if: failure()
         with:
           name: e2e-screenshots
-          path: frontend/test/e2e/test-results/
+          path: frontend/test-results/
           retention-days: 7
 
       - name: 💬 Comment E2E results on PR
