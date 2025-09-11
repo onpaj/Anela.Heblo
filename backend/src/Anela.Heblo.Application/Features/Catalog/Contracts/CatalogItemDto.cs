@@ -18,4 +18,5 @@ public class CatalogItemDto
     public decimal MarginAmount { get; set; }
     public string? SupplierName { get; set; }
     public string? Note { get; set; }
+    public string? Image { get; set; }
 }

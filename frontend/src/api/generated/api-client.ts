@@ -4169,6 +4169,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     marginAmount?: number;
     supplierName?: string | undefined;
     note?: string | undefined;
+    image?: string | undefined;
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -4195,6 +4196,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.marginAmount = _data["marginAmount"];
             this.supplierName = _data["supplierName"];
             this.note = _data["note"];
+            this.image = _data["image"];
         }
     }
 
@@ -4221,6 +4223,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["marginAmount"] = this.marginAmount;
         data["supplierName"] = this.supplierName;
         data["note"] = this.note;
+        data["image"] = this.image;
         return data;
     }
 }
@@ -4240,6 +4243,7 @@ export interface ICatalogItemDto {
     marginAmount?: number;
     supplierName?: string | undefined;
     note?: string | undefined;
+    image?: string | undefined;
 }
 
 export enum ProductType {
@@ -7690,6 +7694,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    erpStock?: number;
+    eshopStock?: number;
+    transportStock?: number;
+    primaryStockSource?: string;
     reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
@@ -7716,6 +7724,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.code = _data["code"];
             this.name = _data["name"];
             this.currentStock = _data["currentStock"];
+            this.erpStock = _data["erpStock"];
+            this.eshopStock = _data["eshopStock"];
+            this.transportStock = _data["transportStock"];
+            this.primaryStockSource = _data["primaryStockSource"];
             this.reserve = _data["reserve"];
             this.salesInPeriod = _data["salesInPeriod"];
             this.dailySalesRate = _data["dailySalesRate"];
@@ -7742,6 +7754,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["code"] = this.code;
         data["name"] = this.name;
         data["currentStock"] = this.currentStock;
+        data["erpStock"] = this.erpStock;
+        data["eshopStock"] = this.eshopStock;
+        data["transportStock"] = this.transportStock;
+        data["primaryStockSource"] = this.primaryStockSource;
         data["reserve"] = this.reserve;
         data["salesInPeriod"] = this.salesInPeriod;
         data["dailySalesRate"] = this.dailySalesRate;
@@ -7761,6 +7777,10 @@ export interface IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    erpStock?: number;
+    eshopStock?: number;
+    transportStock?: number;
+    primaryStockSource?: string;
     reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;

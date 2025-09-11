@@ -17,6 +17,7 @@ import {
 } from "../../api/hooks/useCatalog";
 import { useInventoryQuery } from "../../api/hooks/useInventory";
 import CatalogDetail from "./CatalogDetail";
+import InventoryModal from "../inventory/InventoryModal";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 // Filter for inventory - only show finished goods that can be sold
@@ -59,6 +60,8 @@ const InventoryList: React.FC = () => {
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<CatalogItemDto | null>(null);
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
 
   // Use custom inventory hook that properly handles "all types" filtering
   const {
@@ -146,6 +149,18 @@ const InventoryList: React.FC = () => {
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
     setSelectedItem(null);
+  };
+
+  // Inventory modal handlers
+  const handleInventoryClick = (event: React.MouseEvent, item: CatalogItemDto) => {
+    event.stopPropagation(); // Prevent row click from triggering
+    setSelectedInventoryItem(item);
+    setIsInventoryModalOpen(true);
+  };
+
+  const handleCloseInventory = () => {
+    setIsInventoryModalOpen(false);
+    setSelectedInventoryItem(null);
   };
 
   // Handler for clicking transport quantity badge
@@ -367,7 +382,11 @@ const InventoryList: React.FC = () => {
                       {item.location || "-"}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
-                      <span className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 text-green-800 justify-center inventory-badge">
+                      <span 
+                        className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 text-green-800 justify-center inventory-badge hover:bg-green-200 hover:text-green-900 cursor-pointer"
+                        onClick={(e) => handleInventoryClick(e, item)}
+                        title="Klikněte pro inventarizaci"
+                      >
                         {available}
                       </span>
                     </td>
@@ -522,6 +541,13 @@ const InventoryList: React.FC = () => {
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
         defaultTab="basic"
+      />
+
+      {/* Modal for Inventory Management */}
+      <InventoryModal
+        item={selectedInventoryItem}
+        isOpen={isInventoryModalOpen}
+        onClose={handleCloseInventory}
       />
     </div>
   );
