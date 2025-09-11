@@ -219,12 +219,20 @@ jobs:
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
+      - name: 📊 Prepare coverage file list
+        id: coverage-files
+        run: |
+          # Find all coverage files and create a comma-separated list
+          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
+          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+          echo "Found coverage files: $COVERAGE_FILES"
+
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v3
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/*/coverage.cobertura.xml
+          files: ${{ steps.coverage-files.outputs.files }}
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
