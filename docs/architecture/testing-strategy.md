@@ -351,9 +351,6 @@ Available configurations:
 
 ### Record and Generate Tests
 ```bash
-# Record interactions for new tests
-cd frontend && npx playwright codegen localhost:3001
-
 # Install Playwright browsers (run once)
 npx playwright install
 ```
@@ -500,20 +497,7 @@ npm run lint
 npm run lint:fix
 ```
 
-#### E2E Testing
-```bash
-# Run all Playwright tests
-./scripts/run-playwright-tests.sh
 
-# Run specific test file
-./scripts/run-playwright-tests.sh auth/auth.spec.ts
-
-# Debug mode with visible browser
-./scripts/run-playwright-tests.sh --headed
-
-# Generate new tests by recording
-cd frontend && npx playwright codegen localhost:3001
-```
 
 ### Complete Test Suite Macro
 
