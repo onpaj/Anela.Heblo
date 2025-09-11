@@ -10,10 +10,10 @@ export async function getServicePrincipalToken(): Promise<string> {
   // For E2E tests, use E2E_* prefixed environment variables
   const clientId = process.env.E2E_CLIENT_ID || process.env.AZURE_CLIENT_ID;
   const clientSecret = process.env.E2E_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET;
-  const tenantId = process.env.E2E_TENANT_ID || process.env.AZURE_TENANT_ID;
+  const tenantId = process.env.AZURE_TENANT_ID;
 
   if (!clientId || !clientSecret || !tenantId) {
-    throw new Error('Missing Azure service principal credentials. Set E2E_CLIENT_ID, E2E_CLIENT_SECRET, and E2E_TENANT_ID environment variables (or AZURE_* equivalents).');
+    throw new Error('Missing Azure service principal credentials. Set E2E_CLIENT_ID, E2E_CLIENT_SECRET, and AZURE_TENANT_ID environment variables.');
   }
 
   const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;

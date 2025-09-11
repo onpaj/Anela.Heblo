@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Validate environment variables for E2E tests
 if (process.env.CI) {
-  const requiredVars = ['E2E_CLIENT_ID', 'E2E_CLIENT_SECRET', 'E2E_TENANT_ID'];
+  const requiredVars = ['E2E_CLIENT_ID', 'E2E_CLIENT_SECRET', 'AZURE_TENANT_ID'];
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
