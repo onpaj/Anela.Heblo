@@ -23,6 +23,14 @@ public class ManufacturingStockItemDto
 
     public double CurrentStock { get; set; }
 
+    public double ErpStock { get; set; }
+
+    public double EshopStock { get; set; }
+
+    public double TransportStock { get; set; }
+
+    public string PrimaryStockSource { get; set; } = string.Empty;
+
     public double Reserve { get; set; }
 
     public double SalesInPeriod { get; set; }

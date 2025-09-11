@@ -41,6 +41,22 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
   },
   formatNumber: (value: number) => value.toLocaleString("cs-CZ"),
   formatPercentage: (value: number) => `${value}%`,
+  formatWarehouseStock: (item: any) => {
+    const totalStock = (item.currentStock || 0).toLocaleString("cs-CZ");
+    const transportStock = item.transportStock || 0;
+    
+    if (transportStock === 0) {
+      return totalStock;
+    }
+    
+    const erpStock = item.erpStock || 0;
+    const eshopStock = item.eshopStock || 0;
+    const primaryStock = item.primaryStockSource === "Erp" 
+      ? erpStock.toLocaleString("cs-CZ")
+      : eshopStock.toLocaleString("cs-CZ");
+    const transportStockFormatted = transportStock.toLocaleString("cs-CZ");
+    return `${totalStock} (${primaryStock}+${transportStockFormatted})`;
+  },
   getTimePeriodDisplayText: (timePeriod: any) => "Minulý kvartal",
   calculateTimePeriodRange: jest.fn(),
 }));
@@ -88,6 +104,10 @@ describe("ManufacturingStockAnalysis", () => {
         code: "PROD001",
         name: "Test Product 1",
         currentStock: 100,
+        erpStock: 80,
+        eshopStock: 15,
+        transportStock: 5,
+        primaryStockSource: "Erp",
         reserve: 15,
         salesInPeriod: 50,
         dailySalesRate: 2.5,
@@ -104,6 +124,10 @@ describe("ManufacturingStockAnalysis", () => {
         code: "PROD002",
         name: "Test Product 2",
         currentStock: 5,
+        erpStock: 5,
+        eshopStock: 0,
+        transportStock: 0,
+        primaryStockSource: "Erp",
         reserve: 0,
         salesInPeriod: 30,
         dailySalesRate: 3.0,
