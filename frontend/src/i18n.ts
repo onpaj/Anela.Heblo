@@ -81,6 +81,7 @@ const resources = {
         UnitValidationFailed: "Validace jednotky selhala: {{unit}}",
         AbraIntegrationFailed: "Integrace s ABRA selhala: {{details}}",
         ShoptetSyncFailed: "Synchronizace se Shoptet selhala: {{details}}",
+        StockTakingFailed: "Inventura selhala: {{details}}",
 
         // Transport module errors
         TransportBoxNotFound: "Přepravní box nenalezen (ID: {id})",
