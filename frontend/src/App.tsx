@@ -11,6 +11,7 @@ import PurchaseStockAnalysis from "./components/pages/PurchaseStockAnalysis";
 import ManufacturingStockAnalysis from "./components/pages/ManufacturingStockAnalysis";
 import ManufactureOutput from "./components/pages/ManufactureOutput";
 import ManufactureBatchCalculator from "./components/pages/ManufactureBatchCalculator";
+import BatchPlanningCalculator from "./components/pages/BatchPlanningCalculator";
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
@@ -267,6 +268,10 @@ function App() {
                         <Route
                           path="/manufacturing/batch-calculator"
                           element={<ManufactureBatchCalculator />}
+                        />
+                        <Route
+                          path="/manufacturing/batch-planning"
+                          element={<BatchPlanningCalculator />}
                         />
                         <Route
                           path="/products/margins"
