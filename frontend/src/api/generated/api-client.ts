@@ -2394,6 +2394,96 @@ export class ApiClient {
         return Promise.resolve<GetManufactureOutputResponse>(null as any);
     }
 
+    manufactureStockTaking_SubmitManufactureStockTaking(request: SubmitManufactureStockTakingRequest): Promise<SubmitManufactureStockTakingResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureStockTaking/submit";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureStockTaking_SubmitManufactureStockTaking(_response);
+        });
+    }
+
+    protected processManufactureStockTaking_SubmitManufactureStockTaking(response: Response): Promise<SubmitManufactureStockTakingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitManufactureStockTakingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitManufactureStockTakingResponse>(null as any);
+    }
+
+    manufactureStockTaking_GetManufactureStockTakingHistory(productCode: string | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetStockTakingHistoryResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureStockTaking/history?";
+        if (productCode === null)
+            throw new Error("The parameter 'productCode' cannot be null.");
+        else if (productCode !== undefined)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureStockTaking_GetManufactureStockTakingHistory(_response);
+        });
+    }
+
+    protected processManufactureStockTaking_GetManufactureStockTakingHistory(response: Response): Promise<GetStockTakingHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetStockTakingHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
+    }
+
     manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
         if (timePeriod === null)
@@ -4262,6 +4352,8 @@ export class CatalogItemDto implements ICatalogItemDto {
     note?: string | undefined;
     image?: string | undefined;
     lastStockTaking?: Date | undefined;
+    hasLots?: boolean;
+    lots?: LotDto[];
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -4290,6 +4382,12 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.note = _data["note"];
             this.image = _data["image"];
             this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
+            this.hasLots = _data["hasLots"];
+            if (Array.isArray(_data["lots"])) {
+                this.lots = [] as any;
+                for (let item of _data["lots"])
+                    this.lots!.push(LotDto.fromJS(item));
+            }
         }
     }
 
@@ -4318,6 +4416,12 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["note"] = this.note;
         data["image"] = this.image;
         data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
+        data["hasLots"] = this.hasLots;
+        if (Array.isArray(this.lots)) {
+            data["lots"] = [];
+            for (let item of this.lots)
+                data["lots"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -4339,6 +4443,8 @@ export interface ICatalogItemDto {
     note?: string | undefined;
     image?: string | undefined;
     lastStockTaking?: Date | undefined;
+    hasLots?: boolean;
+    lots?: LotDto[];
 }
 
 export enum ProductType {
@@ -4604,6 +4710,50 @@ export interface IPropertiesDto {
     stockMinSetup?: number;
     batchSize?: number;
     seasonMonths?: number[];
+}
+
+export class LotDto implements ILotDto {
+    lotCode?: string | undefined;
+    amount?: number;
+    expiration?: Date | undefined;
+
+    constructor(data?: ILotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lotCode = _data["lotCode"];
+            this.amount = _data["amount"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): LotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotCode"] = this.lotCode;
+        data["amount"] = this.amount;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        return data;
+    }
+}
+
+export interface ILotDto {
+    lotCode?: string | undefined;
+    amount?: number;
+    expiration?: Date | undefined;
 }
 
 export class GetCatalogDetailResponse extends BaseResponse implements IGetCatalogDetailResponse {
@@ -7728,6 +7878,301 @@ export interface IProductionDetail {
     documentNumber?: string;
 }
 
+export class SubmitManufactureStockTakingResponse extends BaseResponse implements ISubmitManufactureStockTakingResponse {
+    id?: string | undefined;
+    type?: string | undefined;
+    code?: string | undefined;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+
+    constructor(data?: ISubmitManufactureStockTakingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+        }
+    }
+
+    static override fromJS(data: any): SubmitManufactureStockTakingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitManufactureStockTakingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitManufactureStockTakingResponse extends IBaseResponse {
+    id?: string | undefined;
+    type?: string | undefined;
+    code?: string | undefined;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+}
+
+export class SubmitManufactureStockTakingRequest implements ISubmitManufactureStockTakingRequest {
+    productCode!: string;
+    targetAmount?: number | undefined;
+    softStockTaking?: boolean;
+    lots?: ManufactureStockTakingLotDto[] | undefined;
+
+    constructor(data?: ISubmitManufactureStockTakingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.targetAmount = _data["targetAmount"];
+            this.softStockTaking = _data["softStockTaking"];
+            if (Array.isArray(_data["lots"])) {
+                this.lots = [] as any;
+                for (let item of _data["lots"])
+                    this.lots!.push(ManufactureStockTakingLotDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SubmitManufactureStockTakingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitManufactureStockTakingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["targetAmount"] = this.targetAmount;
+        data["softStockTaking"] = this.softStockTaking;
+        if (Array.isArray(this.lots)) {
+            data["lots"] = [];
+            for (let item of this.lots)
+                data["lots"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISubmitManufactureStockTakingRequest {
+    productCode: string;
+    targetAmount?: number | undefined;
+    softStockTaking?: boolean;
+    lots?: ManufactureStockTakingLotDto[] | undefined;
+}
+
+export class ManufactureStockTakingLotDto implements IManufactureStockTakingLotDto {
+    lotCode?: string | undefined;
+    expiration?: Date | undefined;
+    amount!: number;
+    softStockTaking?: boolean;
+
+    constructor(data?: IManufactureStockTakingLotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lotCode = _data["lotCode"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+            this.amount = _data["amount"];
+            this.softStockTaking = _data["softStockTaking"];
+        }
+    }
+
+    static fromJS(data: any): ManufactureStockTakingLotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureStockTakingLotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotCode"] = this.lotCode;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        data["amount"] = this.amount;
+        data["softStockTaking"] = this.softStockTaking;
+        return data;
+    }
+}
+
+export interface IManufactureStockTakingLotDto {
+    lotCode?: string | undefined;
+    expiration?: Date | undefined;
+    amount: number;
+    softStockTaking?: boolean;
+}
+
+export class GetStockTakingHistoryResponse extends BaseResponse implements IGetStockTakingHistoryResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetStockTakingHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(StockTakingHistoryItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetStockTakingHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetStockTakingHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetStockTakingHistoryResponse extends IBaseResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
+
+    constructor(data?: IStockTakingHistoryItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+            this.difference = _data["difference"];
+        }
+    }
+
+    static fromJS(data: any): StockTakingHistoryItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockTakingHistoryItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        data["difference"] = this.difference;
+        return data;
+    }
+}
+
+export interface IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
+}
+
+export enum StockTakingType {
+    Eshop = "Eshop",
+    Erp = "Erp",
+}
+
 export class GetManufacturingStockAnalysisResponse extends BaseResponse implements IGetManufacturingStockAnalysisResponse {
     items?: ManufacturingStockItemDto[];
     totalCount?: number;
@@ -9673,11 +10118,6 @@ export interface ISubmitStockTakingResponse extends IBaseResponse {
     error?: string | undefined;
 }
 
-export enum StockTakingType {
-    Eshop = "Eshop",
-    Erp = "Erp",
-}
-
 export class SubmitStockTakingRequest implements ISubmitStockTakingRequest {
     productCode!: string;
     targetAmount!: number;
@@ -9720,131 +10160,6 @@ export interface ISubmitStockTakingRequest {
     productCode: string;
     targetAmount: number;
     softStockTaking?: boolean;
-}
-
-export class GetStockTakingHistoryResponse extends BaseResponse implements IGetStockTakingHistoryResponse {
-    items?: StockTakingHistoryItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-
-    constructor(data?: IGetStockTakingHistoryResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(StockTakingHistoryItemDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalPages = _data["totalPages"];
-        }
-    }
-
-    static override fromJS(data: any): GetStockTakingHistoryResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetStockTakingHistoryResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalPages"] = this.totalPages;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IGetStockTakingHistoryResponse extends IBaseResponse {
-    items?: StockTakingHistoryItemDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-    totalPages?: number;
-}
-
-export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
-    id?: number;
-    type?: StockTakingType;
-    code?: string;
-    amountNew?: number;
-    amountOld?: number;
-    date?: Date;
-    user?: string | undefined;
-    error?: string | undefined;
-    difference?: number;
-
-    constructor(data?: IStockTakingHistoryItemDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.type = _data["type"];
-            this.code = _data["code"];
-            this.amountNew = _data["amountNew"];
-            this.amountOld = _data["amountOld"];
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.user = _data["user"];
-            this.error = _data["error"];
-            this.difference = _data["difference"];
-        }
-    }
-
-    static fromJS(data: any): StockTakingHistoryItemDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new StockTakingHistoryItemDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["type"] = this.type;
-        data["code"] = this.code;
-        data["amountNew"] = this.amountNew;
-        data["amountOld"] = this.amountOld;
-        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["user"] = this.user;
-        data["error"] = this.error;
-        data["difference"] = this.difference;
-        return data;
-    }
-}
-
-export interface IStockTakingHistoryItemDto {
-    id?: number;
-    type?: StockTakingType;
-    code?: string;
-    amountNew?: number;
-    amountOld?: number;
-    date?: Date;
-    user?: string | undefined;
-    error?: string | undefined;
-    difference?: number;
 }
 
 export class SearchSuppliersResponse extends BaseResponse implements ISearchSuppliersResponse {
@@ -10649,6 +10964,12 @@ export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveIt
 
 export interface IRemoveItemFromBoxResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
+}
+
+function formatDate(d: Date) {
+    return d.getFullYear() + '-' + 
+        (d.getMonth() < 9 ? ('0' + (d.getMonth()+1)) : (d.getMonth()+1)) + '-' +
+        (d.getDate() < 10 ? ('0' + d.getDate()) : d.getDate());
 }
 
 export interface FileResponse {

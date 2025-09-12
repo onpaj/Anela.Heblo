@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using AutoMapper;
 using MediatR;
 
@@ -9,15 +10,18 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, GetCatalogDetailResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly ILotsClient _lotsClient;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
 
     public GetCatalogDetailHandler(
         ICatalogRepository catalogRepository,
+        ILotsClient lotsClient,
         IMapper mapper,
         TimeProvider timeProvider)
     {
         _catalogRepository = catalogRepository;
+        _lotsClient = lotsClient;
         _mapper = mapper;
         _timeProvider = timeProvider;
     }
@@ -47,9 +51,23 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var manufactureCostHistory = GetManufactureCostHistoryFromAggregate(catalogItem, request.MonthsBack);
         var marginHistory = GetMarginHistoryFromAggregate(catalogItem, request.MonthsBack);
 
+        // Get catalog item DTO
+        var catalogItemDto = _mapper.Map<CatalogItemDto>(catalogItem);
+
+        // Fetch lots if the product has lots
+        if (catalogItem.HasLots)
+        {
+            catalogItemDto.Lots = catalogItem.Stock.Lots.Select(lot => new LotDto
+            {
+                LotCode = lot.Lot,
+                Amount = lot.Amount,
+                Expiration = lot.Expiration
+            }).ToList();
+        }
+
         return new GetCatalogDetailResponse
         {
-            Item = _mapper.Map<CatalogItemDto>(catalogItem),
+            Item = catalogItemDto,
             HistoricalData = new CatalogHistoricalDataDto
             {
                 SalesHistory = salesHistory.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList(),

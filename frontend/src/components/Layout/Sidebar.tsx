@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: "analyza-skladu",
-          name: "Analýza skladů",
+          name: "Zásoby materiálu",
           href: "/purchase/stock-analysis",
         },
       ],
@@ -125,12 +125,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: "rizeni-zasob-vyroba",
-          name: "Řízení zásob",
+          name: "Zásoby výrobků",
           href: "/manufacturing/stock-analysis",
         },
         {
+          id: "zasoby-materialu",
+          name: "Inventury materiálu",
+          href: "/manufacturing/inventory",
+        },
+        {
           id: "prehled-vyroby",
-          name: "Přehled výroby",
+          name: "Souhrn výroby",
           href: "/manufacturing/output",
         },
         {
@@ -147,14 +152,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         {
-          id: "zasoby",
-          name: "Zásoby",
-          href: "/logistics/inventory",
-        },
-        {
           id: "transportni-boxy",
           name: "Transportní boxy",
           href: "/logistics/transport-boxes",
+        },
+        {
+          id: "zasoby",
+          name: "Inventura produktů",
+          href: "/logistics/inventory",
         },
         {
           id: "vypackovani-balicku",

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { CatalogItemDto, ProductType } from "./useCatalog";
+import { CatalogItemDto, ProductType, GetCatalogListResponse } from "./useCatalog";
 
 // Inventory only shows these product types
 const INVENTORY_TYPES: ProductType[] = [
@@ -27,11 +27,11 @@ export interface GetInventoryListResponse {
   totalPages: number;
 }
 
-// API function to fetch inventory list - uses same endpoint as catalog but with inventory logic
+// API function to fetch inventory list - uses generated API client
 const fetchInventoryList = async (
   params: GetInventoryListRequest = {},
 ): Promise<GetInventoryListResponse> => {
-  const apiClient = getAuthenticatedApiClient();
+  const apiClient = await getAuthenticatedApiClient();
   
   // If no specific type is selected, we need to fetch all inventory types
   if (!params.type) {
@@ -40,44 +40,20 @@ const fetchInventoryList = async (
     const allResults: CatalogItemDto[] = [];
     
     for (const inventoryType of INVENTORY_TYPES) {
-      const searchParams = new URLSearchParams();
+      const result = await apiClient.catalog_GetCatalogList(
+        inventoryType,
+        1, // pageNumber - get all pages for aggregation
+        1000, // pageSize - large page size to get all items
+        params.sortBy || undefined,
+        params.sortDescending,
+        params.productName || undefined,
+        params.productCode || undefined,
+        undefined // searchTerm
+      );
       
-      searchParams.append("type", inventoryType.toString());
-      
-      if (params.pageNumber !== undefined) {
-        searchParams.append("pageNumber", "1"); // Get all pages for aggregation
+      if (result.items) {
+        allResults.push(...result.items);
       }
-      if (params.pageSize !== undefined) {
-        searchParams.append("pageSize", "1000"); // Large page size to get all items
-      }
-      if (params.sortBy) {
-        searchParams.append("sortBy", params.sortBy);
-      }
-      if (params.sortDescending !== undefined) {
-        searchParams.append("sortDescending", params.sortDescending.toString());
-      }
-      if (params.productName) {
-        searchParams.append("productName", params.productName);
-      }
-      if (params.productCode) {
-        searchParams.append("productCode", params.productCode);
-      }
-
-      const relativeUrl = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch inventory: ${response.status} ${response.statusText}`,
-        );
-      }
-      
-      const result = await response.json();
-      allResults.push(...result.items);
     }
     
     // Apply client-side pagination to combined results
@@ -147,44 +123,25 @@ const fetchInventoryList = async (
       totalPages: Math.ceil(allResults.length / pageSize),
     };
   } else {
-    // Single type - use regular API call
-    const searchParams = new URLSearchParams();
-    
-    searchParams.append("type", params.type.toString());
-    
-    if (params.pageNumber !== undefined) {
-      searchParams.append("pageNumber", params.pageNumber.toString());
-    }
-    if (params.pageSize !== undefined) {
-      searchParams.append("pageSize", params.pageSize.toString());
-    }
-    if (params.sortBy) {
-      searchParams.append("sortBy", params.sortBy);
-    }
-    if (params.sortDescending !== undefined) {
-      searchParams.append("sortDescending", params.sortDescending.toString());
-    }
-    if (params.productName) {
-      searchParams.append("productName", params.productName);
-    }
-    if (params.productCode) {
-      searchParams.append("productCode", params.productCode);
-    }
+    // Single type - use generated API client
+    const result = await apiClient.catalog_GetCatalogList(
+      params.type,
+      params.pageNumber,
+      params.pageSize,
+      params.sortBy || undefined,
+      params.sortDescending,
+      params.productName || undefined,
+      params.productCode || undefined,
+      undefined // searchTerm
+    );
 
-    const relativeUrl = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-    const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-    const response = await (apiClient as any).http.fetch(fullUrl, {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch inventory: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response.json();
+    return {
+      items: result.items || [],
+      totalCount: result.totalCount || 0,
+      pageNumber: result.pageNumber || 1,
+      pageSize: result.pageSize || 20,
+      totalPages: result.totalPages || 1,
+    };
   }
 };
 

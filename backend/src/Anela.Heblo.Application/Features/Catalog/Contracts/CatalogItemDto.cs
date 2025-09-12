@@ -20,4 +20,6 @@ public class CatalogItemDto
     public string? Note { get; set; }
     public string? Image { get; set; }
     public DateTime? LastStockTaking { get; set; }
+    public bool HasLots { get; set; }
+    public List<LotDto> Lots { get; set; } = new();
 }

@@ -57,17 +57,11 @@ public class SubmitStockTakingHandler : IRequestHandler<SubmitStockTakingRequest
             _logger.LogInformation("Stock taking submitted successfully for product code {ProductCode}. Record ID: {RecordId}",
                 request.ProductCode, stockTakingRecord.Id);
 
-            // Update local stock only when it's not a soft stock taking (actual change occurred)
-            if (!request.SoftStockTaking)
+            var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+            if (product != null)
             {
-                _logger.LogInformation("Updating local stock for product {ProductCode} from {OldAmount} to {NewAmount}",
-                    request.ProductCode, stockTakingRecord.AmountOld, stockTakingRecord.AmountNew);
-                
-                var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
-                if (product != null)
-                {
-                    product.Stock.Eshop = (decimal)stockTakingRecord.AmountNew;
-                }
+                // Use the new SyncStockTaking method to update stock and add to history
+                product.SyncStockTaking(stockTakingRecord);
             }
             
             // Map domain result to response

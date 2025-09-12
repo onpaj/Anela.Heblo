@@ -1,26 +1,21 @@
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
-using FluentAssertions;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
-using FluentAssertions;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using AutoMapper;
 using FluentAssertions;
 using Moq;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
 public class GetCatalogDetailHandlerFullHistoryTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetCatalogDetailHandler _handler;
@@ -28,9 +23,10 @@ public class GetCatalogDetailHandlerFullHistoryTests
     public GetCatalogDetailHandlerFullHistoryTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _lotsClientMock = new Mock<ILotsClient>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _mapperMock.Object, _timeProviderMock.Object);
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object);
     }
 
     [Fact]

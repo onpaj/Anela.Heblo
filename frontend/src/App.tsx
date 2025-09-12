@@ -21,6 +21,7 @@ import TransportBoxList from "./components/pages/TransportBoxList";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
+import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -284,6 +285,10 @@ function App() {
                         <Route
                           path="/logistics/inventory"
                           element={<InventoryList />}
+                        />
+                        <Route
+                          path="/manufacturing/inventory"
+                          element={<ManufactureInventoryList />}
                         />
                         <Route
                           path="/logistics/transport-boxes"

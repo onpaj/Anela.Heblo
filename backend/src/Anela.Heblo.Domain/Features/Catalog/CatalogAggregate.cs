@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -107,7 +108,7 @@ public class CatalogAggregate : Entity<string>
     public bool IsUnderStocked => Stock.Available < Properties.StockMinSetup && IsMinStockConfigured;
     public bool IsMinStockConfigured => Properties.StockMinSetup > 0;
     public bool IsOptimalStockConfigured => Properties.OptimalStockDaysSetup > 0;
-    public DateTime? LastStockTaking => StockTakingHistory.LastOrDefault()?.Date;
+    public DateTime? LastStockTaking => StockTakingHistory.OrderByDescending(o => o.Date).FirstOrDefault()?.Date;
     public bool HasExpiration { get; set; }
     public bool HasLots { get; set; }
     public double Volume { get; set; }
@@ -272,6 +273,70 @@ public class CatalogAggregate : Entity<string>
         {
             MarginPercentage = 0;
             MarginAmount = 0;
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes stock taking results with the catalog aggregate.
+    /// Updates stock levels, lots, and adds the record to history.
+    /// </summary>
+    /// <param name="stockTakingRecord">The stock taking record to process</param>
+    public void SyncStockTaking(StockTakingRecord stockTakingRecord)
+    {
+        if (stockTakingRecord == null)
+            throw new ArgumentNullException(nameof(stockTakingRecord));
+
+        if (stockTakingRecord.Code != ProductCode)
+            throw new ArgumentException($"Stock taking record code '{stockTakingRecord.Code}' does not match product code '{ProductCode}'", nameof(stockTakingRecord));
+
+        // Add record to history
+        StockTakingHistory.Add(stockTakingRecord);
+
+        // Update appropriate stock level based on type
+        var newStockLevel = (decimal)stockTakingRecord.AmountNew;
+        
+        switch (stockTakingRecord.Type)
+        {
+            case StockTakingType.Erp:
+                Stock.Erp = newStockLevel;
+                break;
+            case StockTakingType.Eshop:
+                Stock.Eshop = newStockLevel;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(stockTakingRecord.Type), stockTakingRecord.Type, "Unknown stock taking type");
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes stock taking results with lots information.
+    /// Updates stock levels, replaces lots, and adds the record to history.
+    /// </summary>
+    /// <param name="stockTakingRecord">The stock taking record to process</param>
+    /// <param name="updatedLots">The updated lots from stock taking</param>
+    public void SyncStockTaking(StockTakingRecord stockTakingRecord, List<CatalogLot> updatedLots)
+    {
+        if (stockTakingRecord == null)
+            throw new ArgumentNullException(nameof(stockTakingRecord));
+
+        if (updatedLots == null)
+            throw new ArgumentNullException(nameof(updatedLots));
+
+        // First perform basic stock synchronization
+        SyncStockTaking(stockTakingRecord);
+
+        // Update lots information
+        Stock.Lots.Clear();
+        Stock.Lots.AddRange(updatedLots);
+
+        // Verify that the sum of lots matches the new stock amount
+        var totalLotAmount = updatedLots.Sum(lot => lot.Amount);
+        var expectedAmount = (decimal)stockTakingRecord.AmountNew;
+
+        if (Math.Abs(totalLotAmount - expectedAmount) > 0.01m) // Allow for small rounding differences
+        {
+            throw new InvalidOperationException(
+                $"Total lot amount ({totalLotAmount}) does not match expected stock amount ({expectedAmount}) for product {ProductCode}");
         }
     }
 
