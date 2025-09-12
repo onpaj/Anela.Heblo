@@ -242,7 +242,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       border: "1px solid #d1d5db",
       boxShadow:
         "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-      zIndex: 50,
+      zIndex: 9999,
     }),
     menuList: (base) => ({
       ...base,
@@ -345,7 +345,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
               : "Začněte psát pro vyhledávání"
         }
         loadingMessage={() => "Načítám..."}
-        menuPlacement="auto"
+        menuPlacement="bottom"
+        menuPosition="fixed"
+        menuPortalTarget={document.body}
         filterOption={null} // Disable built-in filtering since we handle it via API
       />
 
