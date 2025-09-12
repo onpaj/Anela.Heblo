@@ -1,9 +1,12 @@
+import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useBatchPlanningMutation, BatchPlanControlMode, getControlModeDisplayName, formatVolume, formatDays } from '../useBatchPlanning';
+import { getAuthenticatedApiClient } from '../../client';
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock the API client
+jest.mock('../../client');
+const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -23,13 +26,11 @@ const createWrapper = () => {
 describe('useBatchPlanningMutation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock localStorage.getItem
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: jest.fn(() => 'mock-token'),
-      },
-    });
   });
+
+  const mockApiClient = {
+    manufactureBatch_CalculateBatchPlan: jest.fn(),
+  };
 
   it('should successfully call the batch planning API', async () => {
     const mockResponse = {
@@ -57,10 +58,8 @@ describe('useBatchPlanningMutation', () => {
       totalVolumeAvailable: 1000,
     };
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    mockApiClient.manufactureBatch_CalculateBatchPlan.mockResolvedValue(mockResponse);
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient as any);
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useBatchPlanningMutation(), { wrapper });
@@ -78,25 +77,13 @@ describe('useBatchPlanningMutation', () => {
     });
 
     expect(result.current.data).toEqual(mockResponse);
-    expect(fetch).toHaveBeenCalledWith(
-      'undefined/api/manufacture-batch/calculate-batch-plan',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-token',
-        }),
-        body: JSON.stringify(request),
-      })
-    );
+    expect(mockApiClient.manufactureBatch_CalculateBatchPlan).toHaveBeenCalledWith(request);
   });
 
   it('should handle API errors', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      text: async () => 'Semiproduct not found',
-    });
+    const errorMessage = 'Semiproduct not found';
+    mockApiClient.manufactureBatch_CalculateBatchPlan.mockRejectedValue(new Error(errorMessage));
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient as any);
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useBatchPlanningMutation(), { wrapper });
@@ -114,6 +101,7 @@ describe('useBatchPlanningMutation', () => {
     });
 
     expect(result.current.error).toBeTruthy();
+    expect(mockApiClient.manufactureBatch_CalculateBatchPlan).toHaveBeenCalledWith(request);
   });
 });
 

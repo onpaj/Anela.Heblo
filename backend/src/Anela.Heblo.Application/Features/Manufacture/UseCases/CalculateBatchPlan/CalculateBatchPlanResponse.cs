@@ -21,6 +21,8 @@ public class SemiproductInfoDto
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public double AvailableStock { get; set; }
+    
+    public double MinimalManufactureQuantity { get; set; }
 }
 
 public class BatchPlanItemDto
@@ -36,7 +38,7 @@ public class BatchPlanItemDto
     
     // Planned Production
     public int RecommendedUnitsToProduceHumanReadable { get; set; }
-    public double VolumePerUnit { get; set; }           // From ManufactureTemplate.Ingredients
+    public double WeightPerUnit { get; set; }           // From ManufactureTemplate.Ingredients
     public double TotalVolumeRequired { get; set; }
     
     // Future State
@@ -44,11 +46,12 @@ public class BatchPlanItemDto
     public double FutureDaysCoverage { get; set; }
     
     // Constraints & Control
-    public double MinimalManufactureQuantity { get; set; }
     public bool IsFixed { get; set; }                     // Is this product size fixed by user
     public int? UserFixedQuantity { get; set; }           // User-specified fixed quantity
     public bool WasOptimized { get; set; }                // Was this size optimized by algorithm
     public string OptimizationNote { get; set; } = "";    // Explanation of how this was calculated
+
+    public bool Enabled { get; set; } = true;
 }
 
 public class BatchPlanSummaryDto

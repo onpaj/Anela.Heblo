@@ -61,6 +61,7 @@ const resources = {
         InvalidBatchSize: "Neplatná velikost dávky",
         IngredientNotFoundInTemplate: "Ingredience nebyla nalezena v šabloně",
         InvalidIngredientAmount: "Neplatné množství ingredience",
+        FixedProductsExceedAvailableVolume: "Fixní produkty vyžadují více objemu ({volumeUsedByFixed} g) než je k dispozici ({availableVolume} g). Nedostatek: {deficit} g.",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",

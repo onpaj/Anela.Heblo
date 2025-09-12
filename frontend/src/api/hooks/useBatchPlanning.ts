@@ -1,106 +1,32 @@
 import { useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import { 
+  BatchPlanItemDto, 
+  BatchPlanSummaryDto, 
+  SemiproductInfoDto, 
+  CalculateBatchPlanResponse, 
+  CalculateBatchPlanRequest,
+  BatchPlanControlMode,
+  ProductSizeConstraint
+} from "../generated/api-client";
 
-// Define types for the batch planning API
-export interface CalculateBatchPlanRequest {
-  semiproductCode: string;
-  fromDate?: string;
-  toDate?: string;
-  controlMode: BatchPlanControlMode;
-  mmqMultiplier?: number;
-  totalWeightToUse?: number;
-  targetDaysCoverage?: number;
-  productConstraints?: ProductSizeConstraint[];
-}
-
-export interface ProductSizeConstraint {
-  productCode: string;
-  isFixed: boolean;
-  fixedQuantity?: number;
-}
-
-export enum BatchPlanControlMode {
-  MmqMultiplier = 1,
-  TotalWeight = 2,
-  TargetDaysCoverage = 3,
-}
-
-export interface CalculateBatchPlanResponse {
-  success: boolean;
-  errorCode?: string;
-  params?: { [key: string]: string };
-  semiproduct: SemiproductInfoDto;
-  productSizes: BatchPlanItemDto[];
-  summary: BatchPlanSummaryDto;
-  targetDaysCoverage: number;
-  totalVolumeUsed: number;
-  totalVolumeAvailable: number;
-}
-
-export interface SemiproductInfoDto {
-  productCode: string;
-  productName: string;
-  availableStock: number;
-}
-
-export interface BatchPlanItemDto {
-  productCode: string;
-  productName: string;
-  productSize: string;
-  currentStock: number;
-  dailySalesRate: number;
-  currentDaysCoverage: number;
-  recommendedUnitsToProduceHumanReadable: number;
-  volumePerUnit: number;
-  totalVolumeRequired: number;
-  futureStock: number;
-  futureDaysCoverage: number;
-  minimalManufactureQuantity: number;
-  isFixed: boolean;
-  userFixedQuantity?: number;
-  wasOptimized: boolean;
-  optimizationNote: string;
-}
-
-export interface BatchPlanSummaryDto {
-  totalProductSizes: number;
-  totalVolumeUsed: number;
-  totalVolumeAvailable: number;
-  volumeUtilizationPercentage: number;
-  usedControlMode: BatchPlanControlMode;
-  effectiveMmqMultiplier: number;
-  actualTotalWeight: number;
-  achievedAverageCoverage: number;
-  fixedProductsCount: number;
-  optimizedProductsCount: number;
-}
+// Re-export types from generated API client for convenience
+export { 
+  BatchPlanItemDto, 
+  BatchPlanSummaryDto, 
+  SemiproductInfoDto, 
+  CalculateBatchPlanResponse, 
+  CalculateBatchPlanRequest,
+  BatchPlanControlMode,
+  ProductSizeConstraint
+};
 
 export const useBatchPlanningMutation = () => {
   return useMutation({
     mutationFn: async (request: CalculateBatchPlanRequest): Promise<CalculateBatchPlanResponse> => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = getAuthenticatedApiClient(true); // Enable toasts for error handling
       
-      // Get baseUrl from the apiClient instance  
-      const baseUrl = (apiClient as any).baseUrl;
-      if (!baseUrl) {
-        throw new Error("Base URL not found in API client");
-      }
-      
-      const response = await fetch(`${baseUrl}/api/manufacture-batch/calculate-batch-plan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to calculate batch plan: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
+      return await apiClient.manufactureBatch_CalculateBatchPlan(request);
     },
   });
 };

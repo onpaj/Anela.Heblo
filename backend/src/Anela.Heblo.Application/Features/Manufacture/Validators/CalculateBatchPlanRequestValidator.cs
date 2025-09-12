@@ -16,18 +16,33 @@ public class CalculateBatchPlanRequestValidator : AbstractValidator<CalculateBat
             .WithMessage("Control mode must be a valid value.");
 
         RuleFor(x => x.MmqMultiplier)
-            .GreaterThan(0)
+            .NotNull()
             .When(x => x.ControlMode == BatchPlanControlMode.MmqMultiplier)
+            .WithMessage("MMQ Multiplier is required when using MMQ Multiplier mode.");
+
+        RuleFor(x => x.MmqMultiplier)
+            .GreaterThan(0)
+            .When(x => x.ControlMode == BatchPlanControlMode.MmqMultiplier && x.MmqMultiplier.HasValue)
             .WithMessage("MMQ Multiplier must be greater than 0.");
 
         RuleFor(x => x.TotalWeightToUse)
-            .GreaterThan(0)
+            .NotNull()
             .When(x => x.ControlMode == BatchPlanControlMode.TotalWeight)
+            .WithMessage("Total weight is required when using Total Weight mode.");
+
+        RuleFor(x => x.TotalWeightToUse)
+            .GreaterThan(0)
+            .When(x => x.ControlMode == BatchPlanControlMode.TotalWeight && x.TotalWeightToUse.HasValue)
             .WithMessage("Total weight must be greater than 0.");
 
         RuleFor(x => x.TargetDaysCoverage)
-            .GreaterThan(0)
+            .NotNull()
             .When(x => x.ControlMode == BatchPlanControlMode.TargetDaysCoverage)
+            .WithMessage("Target days coverage is required when using Target Coverage mode.");
+
+        RuleFor(x => x.TargetDaysCoverage)
+            .GreaterThan(0)
+            .When(x => x.ControlMode == BatchPlanControlMode.TargetDaysCoverage && x.TargetDaysCoverage.HasValue)
             .WithMessage("Target days coverage must be greater than 0.");
 
         RuleFor(x => x.FromDate)

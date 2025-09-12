@@ -18,6 +18,7 @@
     "3002": "Změna stavu není povolena",
     "3003": "Nedostatečné množství na skladě",
     "3004": "Duplicitní záznam",
+    "1209": "Fixní produkty vyžadují více objemu ({volumeUsedByFixed} g) než je k dispozici ({availableVolume} g). Nedostatek: {deficit} g.",
     
     "4000": "Chyba externí služby",
     "4001": "Chyba Flexi API",

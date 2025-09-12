@@ -35,6 +35,11 @@ export enum ErrorCodes {
   ManufactureAnalysisCalculationFailed = 1202,
   InvalidAnalysisParameters = 1203,
   InsufficientManufacturingData = 1204,
+  ManufactureTemplateNotFound = 1205,
+  InvalidBatchSize = 1206,
+  IngredientNotFoundInTemplate = 1207,
+  InvalidIngredientAmount = 1208,
+  FixedProductsExceedAvailableVolume = 1209,
 
   // Catalog module errors (13XX)
   CatalogItemNotFound = 1301,

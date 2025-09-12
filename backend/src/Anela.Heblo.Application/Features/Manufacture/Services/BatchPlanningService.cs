@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
@@ -9,15 +10,18 @@ public class BatchPlanningService : IBatchPlanningService
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly IManufactureRepository _manufactureRepository;
+    private readonly IBatchDistributionCalculator _batchDistributionCalculator;
     private readonly ILogger<BatchPlanningService> _logger;
 
     public BatchPlanningService(
         ICatalogRepository catalogRepository,
         IManufactureRepository manufactureRepository,
+        IBatchDistributionCalculator batchDistributionCalculator,
         ILogger<BatchPlanningService> logger)
     {
         _catalogRepository = catalogRepository;
         _manufactureRepository = manufactureRepository;
+        _batchDistributionCalculator = batchDistributionCalculator;
         _logger = logger;
     }
 
@@ -30,7 +34,7 @@ public class BatchPlanningService : IBatchPlanningService
             throw new ArgumentException($"Semiproduct with code '{request.SemiproductCode}' not found.");
         }
 
-        var availableVolume = (double)semiproduct.Stock.Erp;
+        var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
 
         // 2. Find all products that use this semiproduct
         var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.SemiproductCode, cancellationToken);
@@ -50,15 +54,8 @@ public class BatchPlanningService : IBatchPlanningService
                 continue;
             }
 
-            var ingredient = template.Ingredients.FirstOrDefault(i => i.ProductCode == request.SemiproductCode);
-            if (ingredient == null)
-            {
-                _logger.LogWarning("Ingredient {SemiproductCode} not found in template for product {ProductCode}", request.SemiproductCode, template.ProductCode);
-                continue;
-            }
-
             var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate);
-            var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Erp / dailySalesRate : double.MaxValue;
+            var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
 
             var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == template.ProductCode);
             var item = new BatchPlanItemDto
@@ -66,11 +63,10 @@ public class BatchPlanningService : IBatchPlanningService
                 ProductCode = template.ProductCode,
                 ProductName = template.ProductName,
                 ProductSize = product.SizeCode ?? "",
-                CurrentStock = (double)product.Stock.Erp,
+                CurrentStock = (double)product.Stock.Total,
                 DailySalesRate = dailySalesRate,
-                CurrentDaysCoverage = currentDaysCoverage == double.MaxValue ? 0 : currentDaysCoverage,
-                VolumePerUnit = ingredient.Amount, // How much semiproduct this product consumes
-                MinimalManufactureQuantity = product.MinimalManufactureQuantity,
+                CurrentDaysCoverage = currentDaysCoverage,
+                WeightPerUnit = product.NetWeight ?? 0, // How much semiproduct this product consumes
                 IsFixed = constraint?.IsFixed ?? false,
                 UserFixedQuantity = constraint?.FixedQuantity,
                 WasOptimized = false,
@@ -95,7 +91,7 @@ public class BatchPlanningService : IBatchPlanningService
         var totalSales = product.GetTotalSold(startDate, endDate);
         var days = (endDate - startDate).TotalDays;
 
-        return days > 0 ? totalSales / days : 0;
+        return Math.Round(days > 0 ? totalSales / days : 0, 2);
     }
 
     private CalculateBatchPlanResponse ApplyOptimization(
@@ -114,7 +110,7 @@ public class BatchPlanningService : IBatchPlanningService
         {
             var quantity = fixedProduct.UserFixedQuantity ?? 0;
             fixedProduct.RecommendedUnitsToProduceHumanReadable = quantity;
-            fixedProduct.TotalVolumeRequired = quantity * fixedProduct.VolumePerUnit;
+            fixedProduct.TotalVolumeRequired = quantity * fixedProduct.WeightPerUnit;
             fixedProduct.FutureStock = fixedProduct.CurrentStock + quantity;
             fixedProduct.FutureDaysCoverage = fixedProduct.DailySalesRate > 0 
                 ? fixedProduct.FutureStock / fixedProduct.DailySalesRate 
@@ -127,23 +123,44 @@ public class BatchPlanningService : IBatchPlanningService
         // Remaining volume for flexible products
         var remainingVolume = availableVolume - volumeUsedByFixed;
 
+        // Handle case where fixed products exceed available volume
         if (remainingVolume < 0)
         {
-            throw new InvalidOperationException("Fixed products require more volume than available semiproduct.");
+            // Calculate summary even with invalid state
+            var invalidSummary = CalculateSummary(batchPlanItems, request, availableVolume);
+
+            return new CalculateBatchPlanResponse(ErrorCodes.FixedProductsExceedAvailableVolume, new Dictionary<string, string>
+            {
+                { "volumeUsedByFixed", volumeUsedByFixed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) },
+                { "availableVolume", availableVolume.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) },
+                { "deficit", Math.Abs(remainingVolume).ToString("F2", System.Globalization.CultureInfo.InvariantCulture) }
+            })
+            {
+                Semiproduct = new SemiproductInfoDto
+                {
+                    ProductCode = semiproduct.ProductCode,
+                    ProductName = semiproduct.ProductName,
+                    AvailableStock = availableVolume,
+                    MinimalManufactureQuantity = semiproduct.MinimalManufactureQuantity,
+                },
+                ProductSizes = batchPlanItems,
+                Summary = invalidSummary,
+                TargetDaysCoverage = request.TargetDaysCoverage ?? CalculateAverageCoverage(batchPlanItems),
+                TotalVolumeUsed = batchPlanItems.Sum(x => x.TotalVolumeRequired),
+                TotalVolumeAvailable = availableVolume
+            };
         }
 
-        // Apply control mode specific optimization
-        switch (request.ControlMode)
+        // Convert flexible products to ProductBatch format for BatchDistributionCalculator
+        if (flexibleProducts.Count > 0)
         {
-            case BatchPlanControlMode.MmqMultiplier:
-                OptimizeMmqMultiplier(flexibleProducts, remainingVolume, request.MmqMultiplier ?? 1.0);
-                break;
-            case BatchPlanControlMode.TotalWeight:
-                OptimizeTotalWeight(flexibleProducts, request.TotalWeightToUse ?? availableVolume, volumeUsedByFixed);
-                break;
-            case BatchPlanControlMode.TargetDaysCoverage:
-                OptimizeTargetCoverage(flexibleProducts, request.TargetDaysCoverage ?? 30.0, remainingVolume);
-                break;
+            var batch = CreateProductBatch(flexibleProducts, semiproduct, availableVolume, remainingVolume);
+            
+            // Use BatchDistributionCalculator for optimization
+            _batchDistributionCalculator.OptimizeBatch(batch, minimizeResidue: true);
+            
+            // Convert results back to BatchPlanItemDto
+            ApplyOptimizationResults(flexibleProducts, batch);
         }
 
         // Calculate summary
@@ -155,7 +172,8 @@ public class BatchPlanningService : IBatchPlanningService
             {
                 ProductCode = semiproduct.ProductCode,
                 ProductName = semiproduct.ProductName,
-                AvailableStock = availableVolume
+                AvailableStock = availableVolume,
+                MinimalManufactureQuantity = semiproduct.MinimalManufactureQuantity,
             },
             ProductSizes = batchPlanItems,
             Summary = summary,
@@ -165,118 +183,49 @@ public class BatchPlanningService : IBatchPlanningService
         };
     }
 
-    private void OptimizeMmqMultiplier(List<BatchPlanItemDto> flexibleProducts, double remainingVolume, double multiplier)
+    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, CatalogAggregate semiproduct, double availableVolume, double remainingVolume)
+    {
+        var variants = flexibleProducts.Select(product => new ProductVariant
+        {
+            ProductCode = product.ProductCode,
+            ProductName = product.ProductName,
+            Weight = product.WeightPerUnit, // Volume per unit is the weight in the batch context
+            DailySales = product.DailySalesRate,
+            CurrentStock = product.CurrentStock,
+            SuggestedAmount = 0 // Will be set by optimizer
+        }).ToList();
+
+        return new ProductBatch
+        {
+            ProductCode = semiproduct.ProductCode, // Generic batch identifier
+            ProductName = semiproduct.ProductName,
+            TotalWeight = remainingVolume,
+            BatchSize = remainingVolume,
+            BatchCount = 1,
+            Variants = variants
+        };
+    }
+
+    private void ApplyOptimizationResults(List<BatchPlanItemDto> flexibleProducts, ProductBatch batch)
     {
         foreach (var product in flexibleProducts)
         {
-            var targetQuantity = (int)(product.MinimalManufactureQuantity * multiplier);
-            var volumeRequired = targetQuantity * product.VolumePerUnit;
-
-            // Scale down if not enough volume
-            if (volumeRequired > remainingVolume)
+            var variant = batch.Variants.FirstOrDefault(v => v.ProductCode == product.ProductCode);
+            if (variant != null)
             {
-                targetQuantity = (int)(remainingVolume / product.VolumePerUnit);
-                volumeRequired = targetQuantity * product.VolumePerUnit;
-            }
-
-            product.RecommendedUnitsToProduceHumanReadable = targetQuantity;
-            product.TotalVolumeRequired = volumeRequired;
-            product.FutureStock = product.CurrentStock + targetQuantity;
-            product.FutureDaysCoverage = product.DailySalesRate > 0 
-                ? product.FutureStock / product.DailySalesRate 
-                : double.MaxValue;
-            product.WasOptimized = true;
-            product.OptimizationNote = $"Optimized using MMQ × {multiplier:F1}";
-
-            remainingVolume -= volumeRequired;
-        }
-    }
-
-    private void OptimizeTotalWeight(List<BatchPlanItemDto> flexibleProducts, double totalWeight, double volumeUsedByFixed)
-    {
-        var availableForFlexible = totalWeight - volumeUsedByFixed;
-        
-        if (availableForFlexible <= 0)
-        {
-            foreach (var product in flexibleProducts)
-            {
-                product.RecommendedUnitsToProduceHumanReadable = 0;
-                product.TotalVolumeRequired = 0;
-                product.FutureStock = product.CurrentStock;
-                product.FutureDaysCoverage = product.CurrentDaysCoverage;
+                product.RecommendedUnitsToProduceHumanReadable = (int)variant.SuggestedAmount;
+                product.TotalVolumeRequired = variant.SuggestedAmount * product.WeightPerUnit;
+                product.FutureStock = product.CurrentStock + variant.SuggestedAmount;
+                product.FutureDaysCoverage = product.DailySalesRate > 0 
+                    ? product.FutureStock / product.DailySalesRate 
+                    : double.MaxValue;
                 product.WasOptimized = true;
-                product.OptimizationNote = "No volume remaining after fixed products";
+                product.OptimizationNote = $"Optimized by BatchDistributionCalculator (Coverage: {variant.UpstockTotal:F1} days)";
             }
-            return;
-        }
-
-        // Simple proportional distribution based on current coverage need
-        var totalCoverageNeed = flexibleProducts.Sum(p => p.DailySalesRate > 0 ? 1.0 / p.CurrentDaysCoverage : 0);
-        
-        foreach (var product in flexibleProducts)
-        {
-            if (totalCoverageNeed > 0 && product.DailySalesRate > 0)
-            {
-                var proportion = (1.0 / product.CurrentDaysCoverage) / totalCoverageNeed;
-                var volumeForProduct = availableForFlexible * proportion;
-                var quantity = (int)(volumeForProduct / product.VolumePerUnit);
-                
-                product.RecommendedUnitsToProduceHumanReadable = quantity;
-                product.TotalVolumeRequired = quantity * product.VolumePerUnit;
-            }
-            else
-            {
-                product.RecommendedUnitsToProduceHumanReadable = 0;
-                product.TotalVolumeRequired = 0;
-            }
-
-            product.FutureStock = product.CurrentStock + product.RecommendedUnitsToProduceHumanReadable;
-            product.FutureDaysCoverage = product.DailySalesRate > 0 
-                ? product.FutureStock / product.DailySalesRate 
-                : double.MaxValue;
-            product.WasOptimized = true;
-            product.OptimizationNote = $"Optimized for total weight {totalWeight:F0}ml";
         }
     }
 
-    private void OptimizeTargetCoverage(List<BatchPlanItemDto> flexibleProducts, double targetDays, double remainingVolume)
-    {
-        foreach (var product in flexibleProducts)
-        {
-            if (product.DailySalesRate <= 0)
-            {
-                product.RecommendedUnitsToProduceHumanReadable = 0;
-                product.TotalVolumeRequired = 0;
-                product.FutureStock = product.CurrentStock;
-                product.FutureDaysCoverage = product.CurrentDaysCoverage;
-                product.WasOptimized = true;
-                product.OptimizationNote = "No sales data available";
-                continue;
-            }
 
-            var targetStock = product.DailySalesRate * targetDays;
-            var additionalUnitsNeeded = Math.Max(0, (int)(targetStock - product.CurrentStock));
-            var volumeRequired = additionalUnitsNeeded * product.VolumePerUnit;
-
-            // Scale down if not enough volume
-            if (volumeRequired > remainingVolume)
-            {
-                additionalUnitsNeeded = (int)(remainingVolume / product.VolumePerUnit);
-                volumeRequired = additionalUnitsNeeded * product.VolumePerUnit;
-            }
-
-            product.RecommendedUnitsToProduceHumanReadable = additionalUnitsNeeded;
-            product.TotalVolumeRequired = volumeRequired;
-            product.FutureStock = product.CurrentStock + additionalUnitsNeeded;
-            product.FutureDaysCoverage = product.DailySalesRate > 0 
-                ? product.FutureStock / product.DailySalesRate 
-                : double.MaxValue;
-            product.WasOptimized = true;
-            product.OptimizationNote = $"Optimized for {targetDays} days coverage";
-
-            remainingVolume -= volumeRequired;
-        }
-    }
 
     private BatchPlanSummaryDto CalculateSummary(List<BatchPlanItemDto> items, CalculateBatchPlanRequest request, double availableVolume)
     {
