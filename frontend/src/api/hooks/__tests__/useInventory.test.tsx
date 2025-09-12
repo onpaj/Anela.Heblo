@@ -43,6 +43,7 @@ describe('useInventory - Complex Sorting Logic', () => {
       fetch: jest.fn(),
     },
     baseUrl: 'http://localhost:5001',
+    catalog_GetCatalogList: jest.fn(),
   };
 
   // Simple test to verify basic functionality
@@ -59,22 +60,29 @@ describe('useInventory - Complex Sorting Logic', () => {
       }
     ];
 
-    // Mock responses for all three inventory types
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
+    // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+    mockApiClient.catalog_GetCatalogList
+      .mockResolvedValueOnce({
         items: mockInventoryItems,
         totalCount: 1,
         pageNumber: 1,
         pageSize: 1000,
         totalPages: 1
       })
-    };
-
-    mockApiClient.http.fetch
-      .mockResolvedValueOnce(mockResponse)
-      .mockResolvedValueOnce({ ...mockResponse, json: jest.fn().mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0 }) })
-      .mockResolvedValueOnce({ ...mockResponse, json: jest.fn().mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0 }) });
+      .mockResolvedValueOnce({
+        items: [], 
+        totalCount: 0, 
+        pageNumber: 1, 
+        pageSize: 1000, 
+        totalPages: 0 
+      })
+      .mockResolvedValueOnce({
+        items: [], 
+        totalCount: 0, 
+        pageNumber: 1, 
+        pageSize: 1000, 
+        totalPages: 0 
+      });
 
     const { result } = renderHook(
       () => useInventoryQuery('', '', '', 1, 20),
@@ -138,46 +146,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock different responses for different product types
-      // Since all items are in different "types", we'll distribute them
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0], mockInventoryItems[1]], // First two items for Product type
           totalCount: 2,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[2], mockInventoryItems[3]], // Next two items for Goods type
           totalCount: 2,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[4]], // Last item for Set type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -226,45 +217,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock responses for different inventory types
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0]], // Z-Zone item for Product type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[1]], // A-Zone item for Goods type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[2]], // M-Zone item for Set type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -323,45 +298,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock responses for different inventory types
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0], mockInventoryItems[1]], // First two items for Product type
           totalCount: 2,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[2], mockInventoryItems[3]], // Next two items for Goods type
           totalCount: 2,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[4]], // Last item for Set type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -406,18 +365,14 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      const mockResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
-          items: mockInventoryItems,
-          totalCount: 2,
-          pageNumber: 1,
-          pageSize: 20,
-          totalPages: 1
-        })
-      };
-
-      mockApiClient.http.fetch.mockResolvedValue(mockResponse);
+      // Mock single call to catalog_GetCatalogList for specific product type
+      mockApiClient.catalog_GetCatalogList.mockResolvedValue({
+        items: mockInventoryItems,
+        totalCount: 2,
+        pageNumber: 1,
+        pageSize: 20,
+        totalPages: 1
+      });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -431,13 +386,15 @@ describe('useInventory - Complex Sorting Logic', () => {
       });
 
       // Should call API with sorting parameters and return as-is (server-side sorting)
-      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('sortBy=lastInventoryDays'),
-        expect.any(Object)
-      );
-      expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('sortDescending=true'),
-        expect.any(Object)
+      expect(mockApiClient.catalog_GetCatalogList).toHaveBeenCalledWith(
+        1, // ProductType.Product
+        1, // pageNumber
+        20, // pageSize
+        'lastInventoryDays', // sortBy
+        true, // sortDescending
+        undefined, // productName
+        undefined, // productCode
+        undefined // searchTerm
       );
 
       const items = result.current.data?.items || [];
@@ -473,45 +430,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock responses for different inventory types
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0]], // Product A for Product type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[1]], // Product B for Goods type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[2]], // Product C for Set type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -534,23 +475,16 @@ describe('useInventory - Complex Sorting Logic', () => {
 
     it('should handle empty inventory list', async () => {
       mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
-      // Mock empty responses for all inventory types
-      const emptyResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      
+      // Mock three empty responses for Product, Goods, and Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValue({
           items: [],
           totalCount: 0,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 0
-        })
-      };
-
-      // Mock three empty responses for Product, Goods, and Set types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(emptyResponse)
-        .mockResolvedValueOnce(emptyResponse)
-        .mockResolvedValueOnce(emptyResponse);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -570,7 +504,7 @@ describe('useInventory - Complex Sorting Logic', () => {
     it('should handle API errors gracefully', async () => {
       mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient);
       // Mock the first API call to throw an error (for Product type)
-      mockApiClient.http.fetch.mockRejectedValue(new Error('Network error'));
+      mockApiClient.catalog_GetCatalogList.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -604,45 +538,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock responses for different inventory types
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0]], // Invalid date item for Product type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[1]], // Valid date item for Goods type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [], // Empty for Set type
           totalCount: 0,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 0
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(
@@ -685,45 +603,29 @@ describe('useInventory - Complex Sorting Logic', () => {
         }
       ];
 
-      // Mock responses for different inventory types
-      const mockResponse1 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+      // Mock three calls to catalog_GetCatalogList for Product, Goods, Set types
+      mockApiClient.catalog_GetCatalogList
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[0]], // Product C for Product type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse2 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[1]], // Product A for Goods type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
         })
-      };
-      
-      const mockResponse3 = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({
+        .mockResolvedValueOnce({
           items: [mockInventoryItems[2]], // Product B for Set type
           totalCount: 1,
           pageNumber: 1,
           pageSize: 1000,
           totalPages: 1
-        })
-      };
-
-      // Mock consecutive API calls for different inventory types
-      mockApiClient.http.fetch
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2)
-        .mockResolvedValueOnce(mockResponse3);
+        });
 
       const { result } = renderHook(
         () => useInventoryQuery(

@@ -570,7 +570,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <h1 className="text-lg font-semibold text-gray-900">
-          Řízení zásob ve výrobě
+          Řízení zásob výrobků
         </h1>
       </div>
 

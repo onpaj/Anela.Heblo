@@ -18,7 +18,7 @@ public class FlexiLotsClient : ILotsClient
         {
             ProductCode = s.ProductCode,
             Amount = s.Amount,
-            Expiration = s.Expiration,
+            Expiration = s.Expiration.HasValue ? DateOnly.FromDateTime(s.Expiration.Value.Date) : null,
             Lot = s.Lot
         }).ToList();
     }

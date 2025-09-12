@@ -15,7 +15,9 @@ public class CatalogMappingProfile : Profile
     {
         CreateMap<CatalogAggregate, CatalogItemDto>()
             .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src))
-            .ForMember(dest => dest.LastStockTaking, opt => opt.MapFrom(src => src.LastStockTaking));
+            .ForMember(dest => dest.LastStockTaking, opt => opt.MapFrom(src => src.LastStockTaking))
+            .ForMember(dest => dest.HasLots, opt => opt.MapFrom(src => src.HasLots))
+            .ForMember(dest => dest.Lots, opt => opt.Ignore()); // Set manually in handler
 
         CreateMap<StockData, StockDto>();
 

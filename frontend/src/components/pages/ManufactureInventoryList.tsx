@@ -9,22 +9,20 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Package,
+  Wrench,
 } from "lucide-react";
 import {
   ProductType,
   CatalogItemDto,
 } from "../../api/hooks/useCatalog";
-import { useInventoryQuery } from "../../api/hooks/useInventory";
+import { useManufactureInventoryQuery } from "../../api/hooks/useManufactureInventory";
 import CatalogDetail from "./CatalogDetail";
-import InventoryModal from "../inventory/InventoryModal";
+import ManufactureInventoryModal from "../inventory/ManufactureInventoryModal";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
-// Filter for inventory - only show finished goods that can be sold
-const allowedInventoryTypes: ProductType[] = [
-  ProductType.Product,
-  ProductType.Goods,
-  ProductType.Set,
+// Filter for manufacture inventory - only show materials
+const allowedManufactureInventoryTypes: ProductType[] = [
+  ProductType.Material,
 ];
 
 const productTypeLabels: Record<ProductType, string> = {
@@ -36,7 +34,7 @@ const productTypeLabels: Record<ProductType, string> = {
   [ProductType.UNDEFINED]: "Nedefinováno",
 };
 
-const InventoryList: React.FC = () => {
+const ManufactureInventoryList: React.FC = () => {
   const navigate = useNavigate();
   
   // Filter states - separate input values from applied filters
@@ -44,9 +42,9 @@ const InventoryList: React.FC = () => {
   const [productCodeInput, setProductCodeInput] = useState("");
   const [productNameFilter, setProductNameFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
-  // Start with the first allowed type instead of empty string to ensure data loads
+  // Start with Material as the default type for manufacture inventory
   const [productTypeFilter, setProductTypeFilter] = useState<ProductType | "">(
-    "",
+    ProductType.Material,
   );
 
   // Pagination states
@@ -63,13 +61,13 @@ const InventoryList: React.FC = () => {
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<CatalogItemDto | null>(null);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
 
-  // Use custom inventory hook that properly handles "all types" filtering
+  // Use custom manufacture inventory hook that handles materials filtering
   const {
     data,
     isLoading: loading,
     error,
     refetch,
-  } = useInventoryQuery(
+  } = useManufactureInventoryQuery(
     productNameFilter,
     productCodeFilter,
     productTypeFilter,
@@ -79,7 +77,7 @@ const InventoryList: React.FC = () => {
     sortDescending,
   );
 
-  // Items are already filtered by the inventory hook
+  // Items are already filtered by the manufacture inventory hook
   const filteredItems = data?.items || [];
   
   const totalCount = data?.totalCount || 0;
@@ -107,7 +105,7 @@ const InventoryList: React.FC = () => {
     setProductCodeInput("");
     setProductNameFilter("");
     setProductCodeFilter("");
-    setProductTypeFilter("");
+    setProductTypeFilter(ProductType.Material);
     setPageNumber(1);
 
     await refetch();
@@ -163,38 +161,26 @@ const InventoryList: React.FC = () => {
     setSelectedInventoryItem(null);
   };
 
-  // Handler for clicking transport quantity badge
-  const handleTransportClick = (event: React.MouseEvent, productCode: string | undefined) => {
-    event.stopPropagation(); // Prevent row click from triggering
-    if (!productCode) return; // Guard against undefined productCode
-    // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=InTransit`);
-  };
-
-  // Handler for clicking reserve quantity badge
-  const handleReserveClick = (event: React.MouseEvent, productCode: string | undefined) => {
-    event.stopPropagation(); // Prevent row click from triggering
-    if (!productCode) return; // Guard against undefined productCode
-    // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=Reserve`);
-  };
 
   // Sortable header component
   const SortableHeader: React.FC<{
     column: string;
     children: React.ReactNode;
-  }> = ({ column, children }) => {
+    align?: 'left' | 'center';
+  }> = ({ column, children, align = 'left' }) => {
     const isActive = sortBy === column;
     const isAscending = isActive && !sortDescending;
     const isDescending = isActive && sortDescending;
 
+    const alignmentClass = align === 'center' ? 'text-center justify-center' : 'text-left justify-start';
+
     return (
       <th
         scope="col"
-        className="px-6 py-4 text-center text-sm font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+        className={`px-6 py-4 ${alignmentClass} text-sm font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none`}
         onClick={() => handleSort(column)}
       >
-        <div className="flex items-center space-x-1">
+        <div className={`flex items-center space-x-1 ${align === 'center' ? 'justify-center' : 'justify-start'}`}>
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
@@ -215,7 +201,7 @@ const InventoryList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání zásob...</div>
+          <div className="text-gray-500">Načítání zásob materiálů...</div>
         </div>
       </div>
     );
@@ -226,7 +212,7 @@ const InventoryList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2 text-red-600">
           <AlertCircle className="h-5 w-5" />
-          <div>Chyba při načítání zásob: {error.message}</div>
+          <div>Chyba při načítání zásob materiálů: {error.message}</div>
         </div>
       </div>
     );
@@ -240,8 +226,8 @@ const InventoryList: React.FC = () => {
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center space-x-2">
-          <Package className="h-6 w-6 text-indigo-600" />
-          <h1 className="text-lg font-semibold text-gray-900">Zásoby produktů</h1>
+          <Wrench className="h-6 w-6 text-indigo-600" />
+          <h1 className="text-lg font-semibold text-gray-900">Zásoby materiálů</h1>
         </div>
       </div>
 
@@ -266,7 +252,7 @@ const InventoryList: React.FC = () => {
                   onChange={(e) => setProductNameInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Název produktu..."
+                  placeholder="Název materiálu..."
                 />
               </div>
             </div>
@@ -283,7 +269,7 @@ const InventoryList: React.FC = () => {
                   onChange={(e) => setProductCodeInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Kód produktu..."
+                  placeholder="Kód materiálu..."
                 />
               </div>
             </div>
@@ -302,7 +288,7 @@ const InventoryList: React.FC = () => {
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Všechny typy</option>
-                {allowedInventoryTypes.map((productType) => (
+                {allowedManufactureInventoryTypes.map((productType) => (
                   <option key={productType} value={productType}>
                     {productTypeLabels[productType]}
                   </option>
@@ -335,36 +321,19 @@ const InventoryList: React.FC = () => {
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <SortableHeader column="productCode">
-                  Kód produktu
+                  Kód materiálu
                 </SortableHeader>
                 <SortableHeader column="productName">
-                  Název produktu
+                  Název materiálu
                 </SortableHeader>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Pozice
-                </th>
-                <SortableHeader column="lastInventoryDays">Posl. Inventura</SortableHeader>
-                <SortableHeader column="available">Skladem</SortableHeader>
-                <SortableHeader column="transport">Transport</SortableHeader>
-                <SortableHeader column="reserve">Rezerva</SortableHeader>
-                <th
-                  scope="col"
-                  className="px-6 py-4 text-center text-sm font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Celkem
-                </th>
+                <SortableHeader column="lastInventoryDays" align="center">Posl. Inventura</SortableHeader>
+                <SortableHeader column="available" align="center">Skladem</SortableHeader>
 
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => {
                 const available = Math.round((item.stock?.available || 0) * 100) / 100;
-                const transport = Math.round((item.stock?.transport || 0) * 100) / 100;
-                const reserve = Math.round((item.stock?.reserve || 0) * 100) / 100;
-                const total = Math.round((available + transport + reserve) * 100) / 100;
 
                 return (
                   <tr
@@ -374,18 +343,15 @@ const InventoryList: React.FC = () => {
                     title="Klikněte pro zobrazení detailu"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <span 
+                      <span 
                         onClick={(e) => handleItemClick(e, item)}
-                        title="Klikněte pro inventarizaci"
+                        title="Klikněte pro inventarizaci materiálu"
                       >
-                          {item.productCode}
+                        {item.productCode}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.productName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.location || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {item.lastStockTaking ? (
@@ -409,40 +375,8 @@ const InventoryList: React.FC = () => {
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       <span 
                         className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 text-green-800 justify-center inventory-badge hover:bg-green-200 hover:text-green-900 cursor-pointer"
-                        title="Klikněte pro inventarizaci"
                       >
                         {available}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-center">
-                      {transport > 0 ? (
-                        <span 
-                          className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-blue-100 text-blue-800 justify-center inventory-badge hover:bg-blue-200 hover:text-blue-900"
-                          onClick={(e) => handleTransportClick(e, item.productCode)}
-                          title="Klikněte pro zobrazení přepravy"
-                        >
-                          {transport}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-base">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-center">
-                      {reserve > 0 ? (
-                        <span 
-                          className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-amber-100 text-amber-800 justify-center inventory-badge hover:bg-amber-200 hover:text-amber-900"
-                          onClick={(e) => handleReserveClick(e, item.productCode)}
-                          title="Klikněte pro zobrazení rezervy"
-                        >
-                          {reserve}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-base">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-center">
-                      <span className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-purple-100 text-purple-800 justify-center inventory-badge">
-                        {total}
                       </span>
                     </td>
                   </tr>
@@ -453,8 +387,8 @@ const InventoryList: React.FC = () => {
 
           {filteredItems.length === 0 && (
             <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Žádné zásoby nebyly nalezeny.</p>
+              <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Žádné materiály nebyly nalezeny.</p>
             </div>
           )}
         </div>
@@ -568,7 +502,7 @@ const InventoryList: React.FC = () => {
       />
 
       {/* Modal for Inventory Management */}
-      <InventoryModal
+      <ManufactureInventoryModal
         item={selectedInventoryItem}
         isOpen={isInventoryModalOpen}
         onClose={handleCloseInventory}
@@ -577,4 +511,4 @@ const InventoryList: React.FC = () => {
   );
 };
 
-export default InventoryList;
+export default ManufactureInventoryList;

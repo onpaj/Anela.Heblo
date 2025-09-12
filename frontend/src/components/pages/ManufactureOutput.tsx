@@ -263,7 +263,7 @@ const ManufactureOutput: React.FC = () => {
           <div className="flex items-center space-x-3">
             <Factory className="h-6 w-6 text-indigo-600" />
             <h1 className="text-2xl font-semibold text-gray-900">
-              Přehled výroby
+              Souhrn výroby
             </h1>
           </div>
           <button
