@@ -20,6 +20,7 @@ import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
+import InventoryList from "./components/pages/InventoryList";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -279,6 +280,10 @@ function App() {
                         <Route
                           path="/journal/:id/edit"
                           element={<JournalEntryEdit />}
+                        />
+                        <Route
+                          path="/logistics/inventory"
+                          element={<InventoryList />}
                         />
                         <Route
                           path="/logistics/transport-boxes"

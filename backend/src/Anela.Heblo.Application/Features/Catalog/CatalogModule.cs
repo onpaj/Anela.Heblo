@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
+using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -68,12 +69,14 @@ public static class CatalogModule
         services.AddScoped<IValidator<CreateManufactureDifficultyRequest>, CreateManufactureDifficultyRequestValidator>();
         services.AddScoped<IValidator<UpdateManufactureDifficultyRequest>, UpdateManufactureDifficultyRequestValidator>();
         services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
+        services.AddScoped<IValidator<SubmitStockTakingRequest>, SubmitStockTakingRequestValidator>();
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
         services.AddScoped<IPipelineBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>, ValidationBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>, ValidationBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>>();
         services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
+        services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
 
         return services;
     }

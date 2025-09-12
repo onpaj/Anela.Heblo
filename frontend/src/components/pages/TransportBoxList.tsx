@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   AlertCircle,
@@ -52,6 +53,8 @@ const stateColors: Record<string, string> = {
 };
 
 const TransportBoxList: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  
   // Filter states - separate input values from applied filters
   const [codeInput, setCodeInput] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
@@ -74,6 +77,22 @@ const TransportBoxList: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  // Initialize filters from URL parameters
+  useEffect(() => {
+    const productCode = searchParams.get('productCode');
+    const status = searchParams.get('status');
+    
+    if (productCode) {
+      setProductFilter(productCode);
+      // Set the display value for the autocomplete
+      setSelectedProduct(`${productCode} - Loading...`);
+    }
+    
+    if (status) {
+      setStateFilter(status);
+    }
+  }, [searchParams]);
 
   // Prepare query request
   const queryRequest: GetTransportBoxesRequest = {

@@ -11,6 +11,9 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Domain.Features.Logistics.StockTaking;
+using Anela.Heblo.Persistence.Logistics.StockTaking;
+using Anela.Heblo.Persistence.Repositories;
 using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -35,7 +38,7 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IPickingListSource, ShoptetPlaywrightExpeditionListSource>();
         services.AddSingleton<PrintPickingListScenario>();
 
-        services.AddSingleton<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
+        services.AddScoped<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
         services.AddSingleton<StockUpScenario>();
         services.AddSingleton<StockTakingScenario>();
 
@@ -60,8 +63,9 @@ public static class ShoptetAdapterServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
 
-        // TODO: Replace with real implementations when features are ready
-        services.AddTransient<IStockTakingRepository, EmptyStockTakingRepository>();
+        services.AddScoped<IStockTakingRepository, StockTakingRepository>();
+
+        services.AddSingleton<PlaywrightBrowserFactory>();
 
         return services;
     }

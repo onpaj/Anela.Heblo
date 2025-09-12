@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -23,7 +24,7 @@ public class ApplicationDbContext : DbContext
     //public DbSet<BankStatementImport> BankStatements { get; set; }
     //public DbSet<RecurringJob> Jobs { get; set; }
     public DbSet<TransportBox> TransportBoxes { get; set; }
-    //public DbSet<StockTakingResult> StockTakings { get; set; }
+    public DbSet<StockTakingRecord> StockTakings { get; set; }
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;

@@ -9,6 +9,7 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 public class PrintPickingListScenario
 {
     private readonly PlaywrightSourceOptions _options;
+    private readonly PlaywrightBrowserFactory _browserFactory;
     private readonly ILogger<PrintPickingListScenario> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -18,11 +19,13 @@ public class PrintPickingListScenario
 
     public PrintPickingListScenario(
         PlaywrightSourceOptions options,
+        PlaywrightBrowserFactory browserFactory,
         ILogger<PrintPickingListScenario> logger,
         TimeProvider timeProvider
     )
     {
         _options = options;
+        _browserFactory = browserFactory;
         _logger = logger;
         _timeProvider = timeProvider;
     }
@@ -34,10 +37,7 @@ public class PrintPickingListScenario
 
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-        {
-            Headless = _options.Headless,
-        });
+        await using var browser = await _browserFactory.CreateAsync(playwright);
         var page = await browser.NewPageAsync();
         await InitPage(page, browser);
 

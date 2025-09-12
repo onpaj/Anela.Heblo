@@ -2929,6 +2929,96 @@ export class ApiClient {
         return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
     }
 
+    stockTaking_SubmitStockTaking(request: SubmitStockTakingRequest): Promise<SubmitStockTakingResponse> {
+        let url_ = this.baseUrl + "/api/StockTaking/submit";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStockTaking_SubmitStockTaking(_response);
+        });
+    }
+
+    protected processStockTaking_SubmitStockTaking(response: Response): Promise<SubmitStockTakingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitStockTakingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitStockTakingResponse>(null as any);
+    }
+
+    stockTaking_GetStockTakingHistory(productCode: string | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetStockTakingHistoryResponse> {
+        let url_ = this.baseUrl + "/api/StockTaking/history?";
+        if (productCode === null)
+            throw new Error("The parameter 'productCode' cannot be null.");
+        else if (productCode !== undefined)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStockTaking_GetStockTakingHistory(_response);
+        });
+    }
+
+    protected processStockTaking_GetStockTakingHistory(response: Response): Promise<GetStockTakingHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetStockTakingHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
+    }
+
     suppliers_SearchSuppliers(searchTerm: string | undefined, limit: number | undefined): Promise<SearchSuppliersResponse> {
         let url_ = this.baseUrl + "/api/suppliers/search?";
         if (searchTerm === null)
@@ -3665,6 +3755,7 @@ export enum ErrorCodes {
     UnitValidationFailed = "UnitValidationFailed",
     AbraIntegrationFailed = "AbraIntegrationFailed",
     ShoptetSyncFailed = "ShoptetSyncFailed",
+    StockTakingFailed = "StockTakingFailed",
     TransportBoxNotFound = "TransportBoxNotFound",
     TransportBoxStateChangeError = "TransportBoxStateChangeError",
     TransportBoxCreationError = "TransportBoxCreationError",
@@ -4169,6 +4260,8 @@ export class CatalogItemDto implements ICatalogItemDto {
     marginAmount?: number;
     supplierName?: string | undefined;
     note?: string | undefined;
+    image?: string | undefined;
+    lastStockTaking?: Date | undefined;
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -4195,6 +4288,8 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.marginAmount = _data["marginAmount"];
             this.supplierName = _data["supplierName"];
             this.note = _data["note"];
+            this.image = _data["image"];
+            this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
         }
     }
 
@@ -4221,6 +4316,8 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["marginAmount"] = this.marginAmount;
         data["supplierName"] = this.supplierName;
         data["note"] = this.note;
+        data["image"] = this.image;
+        data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
         return data;
     }
 }
@@ -4240,6 +4337,8 @@ export interface ICatalogItemDto {
     marginAmount?: number;
     supplierName?: string | undefined;
     note?: string | undefined;
+    image?: string | undefined;
+    lastStockTaking?: Date | undefined;
 }
 
 export enum ProductType {
@@ -7690,6 +7789,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    erpStock?: number;
+    eshopStock?: number;
+    transportStock?: number;
+    primaryStockSource?: string;
     reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
@@ -7716,6 +7819,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.code = _data["code"];
             this.name = _data["name"];
             this.currentStock = _data["currentStock"];
+            this.erpStock = _data["erpStock"];
+            this.eshopStock = _data["eshopStock"];
+            this.transportStock = _data["transportStock"];
+            this.primaryStockSource = _data["primaryStockSource"];
             this.reserve = _data["reserve"];
             this.salesInPeriod = _data["salesInPeriod"];
             this.dailySalesRate = _data["dailySalesRate"];
@@ -7742,6 +7849,10 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["code"] = this.code;
         data["name"] = this.name;
         data["currentStock"] = this.currentStock;
+        data["erpStock"] = this.erpStock;
+        data["eshopStock"] = this.eshopStock;
+        data["transportStock"] = this.transportStock;
+        data["primaryStockSource"] = this.primaryStockSource;
         data["reserve"] = this.reserve;
         data["salesInPeriod"] = this.salesInPeriod;
         data["dailySalesRate"] = this.dailySalesRate;
@@ -7761,6 +7872,10 @@ export interface IManufacturingStockItemDto {
     code?: string;
     name?: string;
     currentStock?: number;
+    erpStock?: number;
+    eshopStock?: number;
+    transportStock?: number;
+    primaryStockSource?: string;
     reserve?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
@@ -9495,6 +9610,241 @@ export enum StockAnalysisSortBy {
     Consumption = "Consumption",
     StockEfficiency = "StockEfficiency",
     LastPurchaseDate = "LastPurchaseDate",
+}
+
+export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+
+    constructor(data?: ISubmitStockTakingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+        }
+    }
+
+    static override fromJS(data: any): SubmitStockTakingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitStockTakingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitStockTakingResponse extends IBaseResponse {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+}
+
+export enum StockTakingType {
+    Eshop = "Eshop",
+    Erp = "Erp",
+}
+
+export class SubmitStockTakingRequest implements ISubmitStockTakingRequest {
+    productCode!: string;
+    targetAmount!: number;
+    softStockTaking?: boolean;
+
+    constructor(data?: ISubmitStockTakingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.targetAmount = _data["targetAmount"];
+            this.softStockTaking = _data["softStockTaking"];
+        }
+    }
+
+    static fromJS(data: any): SubmitStockTakingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitStockTakingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["targetAmount"] = this.targetAmount;
+        data["softStockTaking"] = this.softStockTaking;
+        return data;
+    }
+}
+
+export interface ISubmitStockTakingRequest {
+    productCode: string;
+    targetAmount: number;
+    softStockTaking?: boolean;
+}
+
+export class GetStockTakingHistoryResponse extends BaseResponse implements IGetStockTakingHistoryResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetStockTakingHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(StockTakingHistoryItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetStockTakingHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetStockTakingHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetStockTakingHistoryResponse extends IBaseResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
+
+    constructor(data?: IStockTakingHistoryItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+            this.difference = _data["difference"];
+        }
+    }
+
+    static fromJS(data: any): StockTakingHistoryItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockTakingHistoryItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        data["difference"] = this.difference;
+        return data;
+    }
+}
+
+export interface IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
 }
 
 export class SearchSuppliersResponse extends BaseResponse implements ISearchSuppliersResponse {

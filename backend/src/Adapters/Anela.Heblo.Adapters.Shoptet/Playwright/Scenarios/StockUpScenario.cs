@@ -7,14 +7,17 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 public class StockUpScenario
 {
     private readonly PlaywrightSourceOptions _options;
+    private readonly PlaywrightBrowserFactory _browserFactory;
     private readonly ILogger<StockUpScenario> _logger;
 
     public StockUpScenario(
         PlaywrightSourceOptions options,
+        PlaywrightBrowserFactory browserFactory,
         ILogger<StockUpScenario> logger
     )
     {
         _options = options;
+        _browserFactory = browserFactory;
         _logger = logger;
     }
 
@@ -22,11 +25,7 @@ public class StockUpScenario
     {
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        // Pro debugging na macOS může Firefox fungovat lépe než Chromium
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-        {
-            Headless = _options.Headless,
-        });
+        await using var browser = await _browserFactory.CreateAsync(playwright);
 
         _logger.LogDebug("Browser launched successfully, creating new page...");
         var page = await browser.NewPageAsync();

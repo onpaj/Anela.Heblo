@@ -84,7 +84,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[95vh] sm:h-[85vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-[98vw] xl:max-w-[1600px] h-[95vh] sm:h-[85vh] flex flex-col">
         {/* Header - Compact */}
         <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg flex-shrink-0">
           <div className="flex-1 min-w-0">
@@ -107,7 +107,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
         {/* Main Content - Horizontal Layout */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0">
           {/* Left Panel - Components List */}
-          <div className="flex-1 lg:flex-none lg:w-3/5 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col min-h-0">
+          <div className="flex-1 lg:flex-none lg:w-3/4 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col min-h-0">
             <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
               <h3 className="text-sm sm:text-base font-medium text-gray-900 flex items-center">
                 <Package className="h-4 w-4 mr-2" />
@@ -129,12 +129,12 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
               ) : validationResults.insufficientIngredients.length > 0 ? (
                 <div className="bg-white">
                   {/* Grid Header */}
-                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="col-span-5">Komponenta</div>
-                    <div className="col-span-2 text-right">Na kus</div>
-                    <div className="col-span-2 text-right">Celkem ({quantity}x)</div>
-                    <div className="col-span-2 text-right">Skladem</div>
-                    <div className="col-span-1 text-center">Stav</div>
+                  <div className="grid gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
+                    <div className="">Komponenta</div>
+                    <div className="text-center">Na kus</div>
+                    <div className="text-center">Celkem ({quantity}x)</div>
+                    <div className="text-center">Skladem</div>
+                    <div className="text-center">Stav</div>
                   </div>
                   
                   {/* Grid Body */}
@@ -142,34 +142,39 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                     {validationResults.insufficientIngredients.map((ingredient, index) => (
                       <div key={index}>
                         {/* Main Row */}
-                        <div className={`grid grid-cols-12 gap-2 px-3 py-3 hover:bg-gray-50 transition-colors ${ingredient.isInsufficient ? 'bg-red-50/30' : ''}`}>
+                        <div className={`grid gap-2 px-3 py-3 hover:bg-gray-50 transition-colors ${ingredient.isInsufficient ? 'bg-red-50/30' : ''}`} style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
                           {/* Product Info */}
-                          <div className="col-span-5 min-w-0">
+                          <div className="min-w-0">
                             <div className="text-sm font-medium text-gray-900 truncate">
                               {ingredient.productName}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               {ingredient.productCode}
+                              {(ingredient as any).location && (
+                                <span className="ml-2 text-gray-400">
+                                  • {(ingredient as any).location}
+                                </span>
+                              )}
                             </div>
                           </div>
                           
                           {/* Quantity per unit */}
-                          <div className="col-span-2 text-right text-sm text-gray-900 flex items-center justify-end">
+                          <div className="text-sm text-gray-900 flex items-center justify-center">
                             {(ingredient.requiredQuantity || 0).toFixed(1)}
                           </div>
                           
                           {/* Total required */}
-                          <div className="col-span-2 text-right text-sm font-medium text-gray-900 flex items-center justify-end">
+                          <div className="text-sm font-medium text-gray-900 flex items-center justify-center">
                             {ingredient.requiredTotal.toFixed(1)}
                           </div>
                           
                           {/* Available stock */}
-                          <div className={`col-span-2 text-right text-sm font-medium flex items-center justify-end ${ingredient.isInsufficient ? 'text-red-600' : 'text-gray-900'}`}>
+                          <div className={`text-sm font-medium flex items-center justify-center ${ingredient.isInsufficient ? 'text-red-600' : 'text-gray-900'}`}>
                             {ingredient.availableStock.toFixed(1)}
                           </div>
                           
                           {/* Status */}
-                          <div className="col-span-1 flex items-center justify-center">
+                          <div className="flex items-center justify-center">
                             {ingredient.isInsufficient ? (
                               <span className="text-red-500 text-lg" title="Nedostatečné zásoby">⚠</span>
                             ) : (
@@ -180,11 +185,11 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                         
                         {/* Sub-row for shortage info */}
                         {ingredient.isInsufficient && (
-                          <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-red-50/50 border-l-4 border-red-200">
-                            <div className="col-span-5 text-xs text-red-600">
+                          <div className="flex px-3 py-2 bg-red-50/50 border-l-4 border-red-200">
+                            <div className="flex-1 text-xs text-red-600">
                               ⚠ Nedostatečné zásoby
                             </div>
-                            <div className="col-span-7 text-xs text-red-600 text-right">
+                            <div className="text-xs text-red-600">
                               Chybí: {ingredient.shortage.toFixed(1)} ks
                             </div>
                           </div>
@@ -203,7 +208,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
           </div>
 
           {/* Right Panel - Statistics & Controls */}
-          <div className="flex-shrink-0 lg:w-2/5 flex flex-col">
+          <div className="flex-shrink-0 lg:w-1/4 flex flex-col">
             {/* Statistics */}
             <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
               <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-3">
@@ -248,7 +253,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 <div className="flex items-center space-x-3 mb-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-12 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                    className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
                     type="button"
                   >
                     -
@@ -262,7 +267,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-12 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                    className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
                     type="button"
                   >
                     +

@@ -7,14 +7,17 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 public class IssuedInvoiceExportScenario
 {
     private readonly PlaywrightSourceOptions _options;
+    private readonly PlaywrightBrowserFactory _browserFactory;
     private readonly ILogger<ShoptetPlaywrightInvoiceSource> _logger;
 
     public IssuedInvoiceExportScenario(
         PlaywrightSourceOptions options,
+        PlaywrightBrowserFactory browserFactory,
         ILogger<ShoptetPlaywrightInvoiceSource> logger
     )
     {
         _options = options;
+        _browserFactory = browserFactory;
         _logger = logger;
     }
 
@@ -30,10 +33,7 @@ public class IssuedInvoiceExportScenario
         {
             _logger.LogInformation("Starting extracting query {RequestId}", query.RequestId);
             playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-            browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-            {
-                Headless = _options.Headless,
-            });
+            browser = await _browserFactory.CreateAsync(playwright);
             page = await browser.NewPageAsync();
 
             // Set more reasonable timeouts
