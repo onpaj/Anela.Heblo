@@ -2356,6 +2356,44 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchByIngredientResponse>(null as any);
     }
 
+    manufactureBatch_CalculateBatchPlan(request: CalculateBatchPlanRequest): Promise<CalculateBatchPlanResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-batch/calculate-batch-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureBatch_CalculateBatchPlan(_response);
+        });
+    }
+
+    protected processManufactureBatch_CalculateBatchPlan(response: Response): Promise<CalculateBatchPlanResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CalculateBatchPlanResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CalculateBatchPlanResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -3830,6 +3868,7 @@ export enum ErrorCodes {
     InvalidBatchSize = "InvalidBatchSize",
     IngredientNotFoundInTemplate = "IngredientNotFoundInTemplate",
     InvalidIngredientAmount = "InvalidIngredientAmount",
+    FixedProductsExceedAvailableVolume = "FixedProductsExceedAvailableVolume",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -7659,6 +7698,405 @@ export interface ICalculateBatchByIngredientRequest {
     productCode?: string;
     ingredientCode?: string;
     desiredIngredientAmount?: number;
+}
+
+export class CalculateBatchPlanResponse extends BaseResponse implements ICalculateBatchPlanResponse {
+    semiproduct?: SemiproductInfoDto;
+    productSizes?: BatchPlanItemDto[];
+    summary?: BatchPlanSummaryDto;
+    targetDaysCoverage?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+
+    constructor(data?: ICalculateBatchPlanResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.semiproduct = _data["semiproduct"] ? SemiproductInfoDto.fromJS(_data["semiproduct"]) : <any>undefined;
+            if (Array.isArray(_data["productSizes"])) {
+                this.productSizes = [] as any;
+                for (let item of _data["productSizes"])
+                    this.productSizes!.push(BatchPlanItemDto.fromJS(item));
+            }
+            this.summary = _data["summary"] ? BatchPlanSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+            this.targetDaysCoverage = _data["targetDaysCoverage"];
+            this.totalVolumeUsed = _data["totalVolumeUsed"];
+            this.totalVolumeAvailable = _data["totalVolumeAvailable"];
+        }
+    }
+
+    static override fromJS(data: any): CalculateBatchPlanResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculateBatchPlanResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["semiproduct"] = this.semiproduct ? this.semiproduct.toJSON() : <any>undefined;
+        if (Array.isArray(this.productSizes)) {
+            data["productSizes"] = [];
+            for (let item of this.productSizes)
+                data["productSizes"].push(item.toJSON());
+        }
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        data["targetDaysCoverage"] = this.targetDaysCoverage;
+        data["totalVolumeUsed"] = this.totalVolumeUsed;
+        data["totalVolumeAvailable"] = this.totalVolumeAvailable;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICalculateBatchPlanResponse extends IBaseResponse {
+    semiproduct?: SemiproductInfoDto;
+    productSizes?: BatchPlanItemDto[];
+    summary?: BatchPlanSummaryDto;
+    targetDaysCoverage?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+}
+
+export class SemiproductInfoDto implements ISemiproductInfoDto {
+    productCode?: string;
+    productName?: string;
+    availableStock?: number;
+    minimalManufactureQuantity?: number;
+
+    constructor(data?: ISemiproductInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.availableStock = _data["availableStock"];
+            this.minimalManufactureQuantity = _data["minimalManufactureQuantity"];
+        }
+    }
+
+    static fromJS(data: any): SemiproductInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SemiproductInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["availableStock"] = this.availableStock;
+        data["minimalManufactureQuantity"] = this.minimalManufactureQuantity;
+        return data;
+    }
+}
+
+export interface ISemiproductInfoDto {
+    productCode?: string;
+    productName?: string;
+    availableStock?: number;
+    minimalManufactureQuantity?: number;
+}
+
+export class BatchPlanItemDto implements IBatchPlanItemDto {
+    productCode?: string;
+    productName?: string;
+    productSize?: string;
+    currentStock?: number;
+    dailySalesRate?: number;
+    currentDaysCoverage?: number;
+    recommendedUnitsToProduceHumanReadable?: number;
+    weightPerUnit?: number;
+    totalVolumeRequired?: number;
+    futureStock?: number;
+    futureDaysCoverage?: number;
+    isFixed?: boolean;
+    userFixedQuantity?: number | undefined;
+    wasOptimized?: boolean;
+    optimizationNote?: string;
+    enabled?: boolean;
+
+    constructor(data?: IBatchPlanItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productSize = _data["productSize"];
+            this.currentStock = _data["currentStock"];
+            this.dailySalesRate = _data["dailySalesRate"];
+            this.currentDaysCoverage = _data["currentDaysCoverage"];
+            this.recommendedUnitsToProduceHumanReadable = _data["recommendedUnitsToProduceHumanReadable"];
+            this.weightPerUnit = _data["weightPerUnit"];
+            this.totalVolumeRequired = _data["totalVolumeRequired"];
+            this.futureStock = _data["futureStock"];
+            this.futureDaysCoverage = _data["futureDaysCoverage"];
+            this.isFixed = _data["isFixed"];
+            this.userFixedQuantity = _data["userFixedQuantity"];
+            this.wasOptimized = _data["wasOptimized"];
+            this.optimizationNote = _data["optimizationNote"];
+            this.enabled = _data["enabled"];
+        }
+    }
+
+    static fromJS(data: any): BatchPlanItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BatchPlanItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productSize"] = this.productSize;
+        data["currentStock"] = this.currentStock;
+        data["dailySalesRate"] = this.dailySalesRate;
+        data["currentDaysCoverage"] = this.currentDaysCoverage;
+        data["recommendedUnitsToProduceHumanReadable"] = this.recommendedUnitsToProduceHumanReadable;
+        data["weightPerUnit"] = this.weightPerUnit;
+        data["totalVolumeRequired"] = this.totalVolumeRequired;
+        data["futureStock"] = this.futureStock;
+        data["futureDaysCoverage"] = this.futureDaysCoverage;
+        data["isFixed"] = this.isFixed;
+        data["userFixedQuantity"] = this.userFixedQuantity;
+        data["wasOptimized"] = this.wasOptimized;
+        data["optimizationNote"] = this.optimizationNote;
+        data["enabled"] = this.enabled;
+        return data;
+    }
+}
+
+export interface IBatchPlanItemDto {
+    productCode?: string;
+    productName?: string;
+    productSize?: string;
+    currentStock?: number;
+    dailySalesRate?: number;
+    currentDaysCoverage?: number;
+    recommendedUnitsToProduceHumanReadable?: number;
+    weightPerUnit?: number;
+    totalVolumeRequired?: number;
+    futureStock?: number;
+    futureDaysCoverage?: number;
+    isFixed?: boolean;
+    userFixedQuantity?: number | undefined;
+    wasOptimized?: boolean;
+    optimizationNote?: string;
+    enabled?: boolean;
+}
+
+export class BatchPlanSummaryDto implements IBatchPlanSummaryDto {
+    totalProductSizes?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+    volumeUtilizationPercentage?: number;
+    usedControlMode?: BatchPlanControlMode;
+    effectiveMmqMultiplier?: number;
+    actualTotalWeight?: number;
+    achievedAverageCoverage?: number;
+    fixedProductsCount?: number;
+    optimizedProductsCount?: number;
+
+    constructor(data?: IBatchPlanSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalProductSizes = _data["totalProductSizes"];
+            this.totalVolumeUsed = _data["totalVolumeUsed"];
+            this.totalVolumeAvailable = _data["totalVolumeAvailable"];
+            this.volumeUtilizationPercentage = _data["volumeUtilizationPercentage"];
+            this.usedControlMode = _data["usedControlMode"];
+            this.effectiveMmqMultiplier = _data["effectiveMmqMultiplier"];
+            this.actualTotalWeight = _data["actualTotalWeight"];
+            this.achievedAverageCoverage = _data["achievedAverageCoverage"];
+            this.fixedProductsCount = _data["fixedProductsCount"];
+            this.optimizedProductsCount = _data["optimizedProductsCount"];
+        }
+    }
+
+    static fromJS(data: any): BatchPlanSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BatchPlanSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalProductSizes"] = this.totalProductSizes;
+        data["totalVolumeUsed"] = this.totalVolumeUsed;
+        data["totalVolumeAvailable"] = this.totalVolumeAvailable;
+        data["volumeUtilizationPercentage"] = this.volumeUtilizationPercentage;
+        data["usedControlMode"] = this.usedControlMode;
+        data["effectiveMmqMultiplier"] = this.effectiveMmqMultiplier;
+        data["actualTotalWeight"] = this.actualTotalWeight;
+        data["achievedAverageCoverage"] = this.achievedAverageCoverage;
+        data["fixedProductsCount"] = this.fixedProductsCount;
+        data["optimizedProductsCount"] = this.optimizedProductsCount;
+        return data;
+    }
+}
+
+export interface IBatchPlanSummaryDto {
+    totalProductSizes?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+    volumeUtilizationPercentage?: number;
+    usedControlMode?: BatchPlanControlMode;
+    effectiveMmqMultiplier?: number;
+    actualTotalWeight?: number;
+    achievedAverageCoverage?: number;
+    fixedProductsCount?: number;
+    optimizedProductsCount?: number;
+}
+
+export enum BatchPlanControlMode {
+    MmqMultiplier = "MmqMultiplier",
+    TotalWeight = "TotalWeight",
+    TargetDaysCoverage = "TargetDaysCoverage",
+}
+
+export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
+    semiproductCode!: string;
+    fromDate?: Date | undefined;
+    toDate?: Date | undefined;
+    controlMode?: BatchPlanControlMode;
+    mmqMultiplier?: number | undefined;
+    totalWeightToUse?: number | undefined;
+    targetDaysCoverage?: number | undefined;
+    productConstraints?: ProductSizeConstraint[];
+
+    constructor(data?: ICalculateBatchPlanRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.semiproductCode = _data["semiproductCode"];
+            this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
+            this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
+            this.controlMode = _data["controlMode"];
+            this.mmqMultiplier = _data["mmqMultiplier"];
+            this.totalWeightToUse = _data["totalWeightToUse"];
+            this.targetDaysCoverage = _data["targetDaysCoverage"];
+            if (Array.isArray(_data["productConstraints"])) {
+                this.productConstraints = [] as any;
+                for (let item of _data["productConstraints"])
+                    this.productConstraints!.push(ProductSizeConstraint.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CalculateBatchPlanRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalculateBatchPlanRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["semiproductCode"] = this.semiproductCode;
+        data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
+        data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+        data["controlMode"] = this.controlMode;
+        data["mmqMultiplier"] = this.mmqMultiplier;
+        data["totalWeightToUse"] = this.totalWeightToUse;
+        data["targetDaysCoverage"] = this.targetDaysCoverage;
+        if (Array.isArray(this.productConstraints)) {
+            data["productConstraints"] = [];
+            for (let item of this.productConstraints)
+                data["productConstraints"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ICalculateBatchPlanRequest {
+    semiproductCode: string;
+    fromDate?: Date | undefined;
+    toDate?: Date | undefined;
+    controlMode?: BatchPlanControlMode;
+    mmqMultiplier?: number | undefined;
+    totalWeightToUse?: number | undefined;
+    targetDaysCoverage?: number | undefined;
+    productConstraints?: ProductSizeConstraint[];
+}
+
+export class ProductSizeConstraint implements IProductSizeConstraint {
+    productCode?: string;
+    isFixed?: boolean;
+    fixedQuantity?: number | undefined;
+
+    constructor(data?: IProductSizeConstraint) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.isFixed = _data["isFixed"];
+            this.fixedQuantity = _data["fixedQuantity"];
+        }
+    }
+
+    static fromJS(data: any): ProductSizeConstraint {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductSizeConstraint();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["isFixed"] = this.isFixed;
+        data["fixedQuantity"] = this.fixedQuantity;
+        return data;
+    }
+}
+
+export interface IProductSizeConstraint {
+    productCode?: string;
+    isFixed?: boolean;
+    fixedQuantity?: number | undefined;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

@@ -233,7 +233,11 @@ export const getAuthenticatedApiClient = (
       });
 
       // Global error handling with toast notifications
-      if (!response.ok && showErrorToasts && globalToastHandler) {
+      // Handle both HTTP errors (!response.ok) and business logic errors (success: false)
+      const shouldCheckForBusinessErrors = response.ok && showErrorToasts && globalToastHandler;
+      const shouldHandleHttpErrors = !response.ok && showErrorToasts && globalToastHandler;
+      
+      if (shouldHandleHttpErrors || shouldCheckForBusinessErrors) {
         // Clone response to preserve it for SwaggerException
         const responseClone = response.clone();
 
@@ -245,15 +249,15 @@ export const getAuthenticatedApiClient = (
             `🔍 Error debug - isStructuredError: ${errorInfo.isStructuredError}, message: "${errorInfo.message}"`,
           );
 
-          if (errorInfo.isStructuredError) {
+          if (errorInfo.isStructuredError && globalToastHandler) {
             // Structured API error - show ErrorMessage
             console.error(
               `🚨 Structured API Error [${response.status}] ${url}:`,
               errorInfo.message,
             );
-            globalToastHandler("Chyba", errorInfo.message);
-          } else {
-            // Unstructured error - show StatusCode + Body
+            globalToastHandler("Upozornění", errorInfo.message);
+          } else if (shouldHandleHttpErrors && globalToastHandler) {
+            // Only show unstructured errors for HTTP errors, not for business logic warnings
             const title = `Chyba API (${response.status})`;
             console.error(
               `🚨 Unstructured API Error [${response.status}] ${url}:`,
@@ -263,11 +267,13 @@ export const getAuthenticatedApiClient = (
           }
         } catch (toastError) {
           console.error("🍞 Failed to show error toast:", toastError);
-          // Fallback toast
-          globalToastHandler(
-            `Chyba API (${response.status})`,
-            "Neočekávaná chyba na serveru",
-          );
+          // Fallback toast only for HTTP errors
+          if (shouldHandleHttpErrors && globalToastHandler) {
+            globalToastHandler(
+              `Chyba API (${response.status})`,
+              "Neočekávaná chyba na serveru",
+            );
+          }
         }
       }
 

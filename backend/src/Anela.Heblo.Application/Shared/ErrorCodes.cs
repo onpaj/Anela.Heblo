@@ -81,6 +81,8 @@ public enum ErrorCodes
     IngredientNotFoundInTemplate = 1207,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidIngredientAmount = 1208,
+    [HttpStatusCode(HttpStatusCode.OK)]
+    FixedProductsExceedAvailableVolume = 1209,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
