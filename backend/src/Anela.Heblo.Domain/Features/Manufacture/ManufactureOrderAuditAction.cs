@@ -3,7 +3,7 @@ namespace Anela.Heblo.Domain.Features.Manufacture;
 public enum ManufactureOrderAuditAction
 {
     StateChanged,
-    QuantityChanged, 
+    QuantityChanged,
     DateChanged,
     ResponsiblePersonAssigned,
     NoteAdded,

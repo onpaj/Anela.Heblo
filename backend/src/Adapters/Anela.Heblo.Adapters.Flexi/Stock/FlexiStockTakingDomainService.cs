@@ -94,7 +94,7 @@ public class FlexiStockTakingDomainService : IErpStockDomainService
                     AmountOld = (double)order.StockTakingItems.Sum(s => s.Amount), // TODO COnvert to decimal
                 };
             }
-                
+
             result.User = _currentUser.GetCurrentUser().Name;
             result.Date = _timeProvider.GetUtcNow().DateTime;
             result.Type = StockTakingType.Erp;

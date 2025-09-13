@@ -9,7 +9,7 @@ public class ManufactureOrderProduct
     public string SemiProductCode { get; set; } = null!; // Odkaz na semi-product
     public decimal PlannedQuantity { get; set; }
     public decimal ActualQuantity { get; set; }
-    
+
     // Navigation property
     public ManufactureOrder ManufactureOrder { get; set; } = null!;
 }

@@ -8,9 +8,9 @@ public class ManufactureOrderSemiProduct
     public string ProductName { get; set; } = null!;
     public decimal PlannedQuantity { get; set; } // Z batch calculatoru
     public decimal ActualQuantity { get; set; } // Upravené množství při výrobě
-    
+
     // Navigation property
     public ManufactureOrder ManufactureOrder { get; set; } = null!;
-    
+
     // Ingredients se načtou dynamicky z ManufactureTemplate při dokončování
 }

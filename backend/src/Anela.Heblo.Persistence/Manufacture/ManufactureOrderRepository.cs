@@ -55,7 +55,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
         if (!string.IsNullOrEmpty(productCode))
         {
-            query = query.Where(x => 
+            query = query.Where(x =>
                 x.SemiProducts.Any(sp => sp.ProductCode.Contains(productCode)) ||
                 x.Products.Any(p => p.ProductCode.Contains(productCode)));
         }

@@ -10,7 +10,7 @@ public class ManufactureOrderAuditLog
     public string Details { get; set; } = null!; // JSON s detaily změny
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
-    
+
     // Navigation property
     public ManufactureOrder ManufactureOrder { get; set; } = null!;
 }

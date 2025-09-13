@@ -105,7 +105,7 @@ public class SubmitManufactureStockTakingHandlerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(request, CancellationToken.None));
-        
+
         // Verify ERP service was never called
         _erpStockDomainServiceMock.Verify(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()), Times.Never);
     }
@@ -129,7 +129,7 @@ public class SubmitManufactureStockTakingHandlerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(request, CancellationToken.None));
-        
+
         // Verify ERP service was never called
         _erpStockDomainServiceMock.Verify(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()), Times.Never);
     }
@@ -198,7 +198,7 @@ public class SubmitManufactureStockTakingHandlerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(request, CancellationToken.None));
-        
+
         // Verify ERP service was never called
         _erpStockDomainServiceMock.Verify(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()), Times.Never);
     }
@@ -274,7 +274,7 @@ public class SubmitManufactureStockTakingHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ProductNotFound);
         response.Params["ProductCode"].Should().Be(productCode);
-        
+
         // Verify ERP service was never called
         _erpStockDomainServiceMock.Verify(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()), Times.Never);
     }
@@ -305,7 +305,7 @@ public class SubmitManufactureStockTakingHandlerTests
         response.Params["ProductCode"].Should().Be(productCode);
         response.Params["ProductType"].Should().Be(ProductType.Product.ToString());
         response.Params["Message"].Should().Be("Manufacture stock taking only supports materials");
-        
+
         // Verify ERP service was never called
         _erpStockDomainServiceMock.Verify(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()), Times.Never);
     }
@@ -356,7 +356,7 @@ public class SubmitManufactureStockTakingHandlerTests
             Location = "A1",
             HasLots = true
         };
-        
+
         return product;
     }
 
@@ -371,7 +371,7 @@ public class SubmitManufactureStockTakingHandlerTests
             Location = "B2",
             HasLots = false
         };
-        
+
         return product;
     }
 

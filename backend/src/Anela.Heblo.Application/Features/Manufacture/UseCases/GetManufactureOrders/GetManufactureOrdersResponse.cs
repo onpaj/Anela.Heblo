@@ -15,15 +15,14 @@ public class ManufactureOrderDto
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
-    
+
     public DateOnly SemiProductPlannedDate { get; set; }
     public DateOnly ProductPlannedDate { get; set; }
-    
+
     public ManufactureOrderState State { get; set; }
-    public string StateDisplayName { get; set; } = null!;
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;
-    
+
     public List<ManufactureOrderSemiProductDto> SemiProducts { get; set; } = new();
     public List<ManufactureOrderProductDto> Products { get; set; } = new();
     public List<ManufactureOrderNoteDto> Notes { get; set; } = new();
@@ -63,7 +62,6 @@ public class ManufactureOrderAuditLogDto
     public DateTime Timestamp { get; set; }
     public string User { get; set; } = null!;
     public ManufactureOrderAuditAction Action { get; set; }
-    public string ActionDisplayName { get; set; } = null!;
     public string Details { get; set; } = null!;
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }

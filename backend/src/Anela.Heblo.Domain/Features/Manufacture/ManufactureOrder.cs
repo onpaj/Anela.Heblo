@@ -7,16 +7,16 @@ public class ManufactureOrder
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!; // User display name
     public string? ResponsiblePerson { get; set; } // User display name
-    
+
     // Planning dates
     public DateOnly SemiProductPlannedDate { get; set; }
     public DateOnly ProductPlannedDate { get; set; }
-    
+
     // State management
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;
-    
+
     // Collections
     public List<ManufactureOrderSemiProduct> SemiProducts { get; set; } = new();
     public List<ManufactureOrderProduct> Products { get; set; } = new();

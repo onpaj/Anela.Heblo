@@ -11,7 +11,7 @@ public class GetManufactureOrderResponse : BaseResponse
     {
     }
 
-    public GetManufactureOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public GetManufactureOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters)
     {
     }

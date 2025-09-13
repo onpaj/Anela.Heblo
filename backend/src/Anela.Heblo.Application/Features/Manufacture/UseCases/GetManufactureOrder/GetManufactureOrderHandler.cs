@@ -19,13 +19,13 @@ public class GetManufactureOrderHandler : IRequestHandler<GetManufactureOrderReq
     public async Task<GetManufactureOrderResponse> Handle(GetManufactureOrderRequest request, CancellationToken cancellationToken)
     {
         var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken);
-        
+
         if (order == null)
         {
-            return new GetManufactureOrderResponse(Application.Shared.ErrorCodes.ResourceNotFound, 
+            return new GetManufactureOrderResponse(Application.Shared.ErrorCodes.ResourceNotFound,
                 new Dictionary<string, string> { { "id", request.Id.ToString() } });
         }
-        
+
         var orderDto = _mapper.Map<ManufactureOrderDto>(order);
 
         return new GetManufactureOrderResponse

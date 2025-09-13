@@ -7,7 +7,7 @@ public class ManufactureOrderNote
     public string Text { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public string CreatedByUser { get; set; } = null!;
-    
+
     // Navigation property
     public ManufactureOrder ManufactureOrder { get; set; } = null!;
 }

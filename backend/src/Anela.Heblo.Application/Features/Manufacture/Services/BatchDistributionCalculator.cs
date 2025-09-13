@@ -48,7 +48,7 @@ public class BatchDistributionCalculator : IBatchDistributionCalculator
             DistributeRemainingWeight(batch.Variants, remaining);
         }
     }
-    
+
     private static void DistributeRemainingWeight(IList<ProductVariant> variants, double remainingWeight)
     {
         if (remainingWeight <= 0)

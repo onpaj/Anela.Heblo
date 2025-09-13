@@ -23,6 +23,7 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import ManufactureOrderList from "./components/pages/ManufactureOrderList";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -273,6 +274,10 @@ function App() {
                         <Route
                           path="/manufacturing/batch-planning"
                           element={<BatchPlanningCalculator />}
+                        />
+                        <Route
+                          path="/manufacturing/orders"
+                          element={<ManufactureOrderList />}
                         />
                         <Route
                           path="/products/margins"

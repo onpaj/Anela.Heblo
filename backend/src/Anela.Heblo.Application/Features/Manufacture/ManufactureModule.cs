@@ -26,11 +26,11 @@ public static class ManufactureModule
         services.AddScoped<IManufactureSeverityCalculator, ManufactureSeverityCalculator>();
         services.AddScoped<IManufactureAnalysisMapper, ManufactureAnalysisMapper>();
         services.AddScoped<IItemFilterService, ItemFilterService>();
-        
+
         // Register batch planning services
         services.AddScoped<IBatchPlanningService, BatchPlanningService>();
         services.AddScoped<IBatchDistributionCalculator, BatchDistributionCalculator>();
-        
+
         // Register repositories
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
 
