@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,6 +42,13 @@ public class ApplicationDbContext : DbContext
     // Gift Package Manufacturing module
     public DbSet<GiftPackageManufactureLog> GiftPackageManufactureLogs { get; set; } = null!;
     public DbSet<GiftPackageManufactureItem> GiftPackageManufactureItems { get; set; } = null!;
+
+    // Manufacture Order Management module
+    public DbSet<ManufactureOrder> ManufactureOrders { get; set; } = null!;
+    public DbSet<ManufactureOrderSemiProduct> ManufactureOrderSemiProducts { get; set; } = null!;
+    public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
+    public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
+    public DbSet<ManufactureOrderAuditLog> ManufactureOrderAuditLogs { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
