@@ -8696,7 +8696,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
     originalBatchSize!: number;
     newBatchSize!: number;
     scaleFactor!: number;
-    ingredients!: CreateManufactureOrderIngredientRequest[];
+    products?: CreateManufactureOrderProductRequest[];
     semiProductPlannedDate!: Date;
     productPlannedDate!: Date;
     responsiblePerson?: string | undefined;
@@ -8708,9 +8708,6 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
                     (<any>this)[property] = (<any>data)[property];
             }
         }
-        if (!data) {
-            this.ingredients = [];
-        }
     }
 
     init(_data?: any) {
@@ -8720,10 +8717,10 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
             this.originalBatchSize = _data["originalBatchSize"];
             this.newBatchSize = _data["newBatchSize"];
             this.scaleFactor = _data["scaleFactor"];
-            if (Array.isArray(_data["ingredients"])) {
-                this.ingredients = [] as any;
-                for (let item of _data["ingredients"])
-                    this.ingredients!.push(CreateManufactureOrderIngredientRequest.fromJS(item));
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(CreateManufactureOrderProductRequest.fromJS(item));
             }
             this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
             this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
@@ -8745,10 +8742,10 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
         data["originalBatchSize"] = this.originalBatchSize;
         data["newBatchSize"] = this.newBatchSize;
         data["scaleFactor"] = this.scaleFactor;
-        if (Array.isArray(this.ingredients)) {
-            data["ingredients"] = [];
-            for (let item of this.ingredients)
-                data["ingredients"].push(item.toJSON());
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
         }
         data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
         data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
@@ -8763,19 +8760,18 @@ export interface ICreateManufactureOrderRequest {
     originalBatchSize: number;
     newBatchSize: number;
     scaleFactor: number;
-    ingredients: CreateManufactureOrderIngredientRequest[];
+    products?: CreateManufactureOrderProductRequest[];
     semiProductPlannedDate: Date;
     productPlannedDate: Date;
     responsiblePerson?: string | undefined;
 }
 
-export class CreateManufactureOrderIngredientRequest implements ICreateManufactureOrderIngredientRequest {
+export class CreateManufactureOrderProductRequest implements ICreateManufactureOrderProductRequest {
     productCode!: string;
     productName!: string;
-    originalAmount!: number;
-    calculatedAmount!: number;
+    plannedQuantity!: number;
 
-    constructor(data?: ICreateManufactureOrderIngredientRequest) {
+    constructor(data?: ICreateManufactureOrderProductRequest) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -8788,14 +8784,13 @@ export class CreateManufactureOrderIngredientRequest implements ICreateManufactu
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
-            this.originalAmount = _data["originalAmount"];
-            this.calculatedAmount = _data["calculatedAmount"];
+            this.plannedQuantity = _data["plannedQuantity"];
         }
     }
 
-    static fromJS(data: any): CreateManufactureOrderIngredientRequest {
+    static fromJS(data: any): CreateManufactureOrderProductRequest {
         data = typeof data === 'object' ? data : {};
-        let result = new CreateManufactureOrderIngredientRequest();
+        let result = new CreateManufactureOrderProductRequest();
         result.init(data);
         return result;
     }
@@ -8804,17 +8799,15 @@ export class CreateManufactureOrderIngredientRequest implements ICreateManufactu
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
-        data["originalAmount"] = this.originalAmount;
-        data["calculatedAmount"] = this.calculatedAmount;
+        data["plannedQuantity"] = this.plannedQuantity;
         return data;
     }
 }
 
-export interface ICreateManufactureOrderIngredientRequest {
+export interface ICreateManufactureOrderProductRequest {
     productCode: string;
     productName: string;
-    originalAmount: number;
-    calculatedAmount: number;
+    plannedQuantity: number;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

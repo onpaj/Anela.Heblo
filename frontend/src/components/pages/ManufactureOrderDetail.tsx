@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import {
   X,
   Calendar,
@@ -15,6 +16,7 @@ import {
   Factory,
   ShoppingCart,
   Settings,
+  ArrowLeft,
 } from "lucide-react";
 import {
   useManufactureOrderDetailQuery,
@@ -22,9 +24,9 @@ import {
 } from "../../api/hooks/useManufactureOrders";
 
 interface ManufactureOrderDetailProps {
-  orderId: number;
-  isOpen: boolean;
-  onClose: () => void;
+  orderId?: number;
+  isOpen?: boolean;
+  onClose?: () => void;
   onEdit?: (orderId: number) => void;
 }
 
@@ -40,12 +42,28 @@ const stateColors: Record<ManufactureOrderState, string> = {
 };
 
 const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
-  orderId,
-  isOpen,
+  orderId: propOrderId,
+  isOpen = true,
   onClose,
   onEdit,
 }) => {
   const { t } = useTranslation();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  // Determine if this is modal mode (has propOrderId) or page mode (uses URL param)
+  const isModalMode = propOrderId !== undefined;
+  const urlOrderId = id ? parseInt(id, 10) : 0;
+  const orderId = isModalMode ? propOrderId : urlOrderId;
+  
+  // For page mode, create a close handler that navigates back
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate("/manufacturing/orders");
+    }
+  }, [onClose, navigate]);
   
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -57,6 +75,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     const actionName = typeof action === 'string' ? action : action?.toString();
     return t(`manufacture.auditActions.${actionName}`) || actionName || '-';
   };
+  
   // Tab state
   const [activeTab, setActiveTab] = useState<"info" | "semiproducts" | "products" | "notes" | "log">("info");
 
@@ -65,13 +84,13 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     data: orderData,
     isLoading: orderLoading,
     error: orderError,
-  } = useManufactureOrderDetailQuery(orderId);
+  } = useManufactureOrderDetailQuery(orderId || 0);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isOpen) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -82,15 +101,20 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
+
+  // For page mode, redirect if invalid ID (after all hooks)
+  if (!isModalMode && (!id || isNaN(urlOrderId) || urlOrderId <= 0)) {
+    return <Navigate to="/manufacturing/orders" replace />;
+  }
 
   if (!isOpen) {
     return null;
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
+    if (e.target === e.currentTarget && isModalMode) {
+      handleClose();
     }
   };
 
@@ -110,12 +134,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   const order = orderData?.order;
 
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+  const content = (
+    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} max-w-7xl w-full ${isModalMode ? 'max-h-[90vh]' : 'min-h-screen'} overflow-hidden flex flex-col`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-3">
@@ -140,10 +160,15 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </button>
             )}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              title={isModalMode ? "Zavřít" : "Zpět na seznam"}
             >
-              <X className="h-6 w-6" />
+              {isModalMode ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <ArrowLeft className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -521,9 +546,28 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
             </>
           ) : null}
         </div>
-      </div>
     </div>
   );
+
+  // Return content wrapped appropriately for modal or page mode
+  if (isModalMode) {
+    return (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        onClick={handleBackdropClick}
+      >
+        {content}
+      </div>
+    );
+  } else {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          {content}
+        </div>
+      </div>
+    );
+  }
 };
 
 export default ManufactureOrderDetail;

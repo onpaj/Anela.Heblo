@@ -51,8 +51,18 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         };
         order.SemiProducts.Add(semiProduct);
 
-        // For now, we don't create final products as they would be created in a later phase
-        // The issue description suggests this comes after semi-product manufacturing
+        // Create final products from the request (only products with quantity > 0)
+        foreach (var productRequest in request.Products.Where(p => p.PlannedQuantity > 0))
+        {
+            var product = new ManufactureOrderProduct
+            {
+                ProductCode = productRequest.ProductCode,
+                ProductName = productRequest.ProductName,
+                PlannedQuantity = (decimal)productRequest.PlannedQuantity,
+                ActualQuantity = 0 // Will be filled during production
+            };
+            order.Products.Add(product);
+        }
 
         // Create initial audit log entry
         var auditLog = new ManufactureOrderAuditLog
@@ -60,7 +70,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             Timestamp = DateTime.UtcNow,
             User = currentUser.Name,
             Action = ManufactureOrderAuditAction.OrderCreated,
-            Details = $"Order created from batch calculation. Target batch size: {request.NewBatchSize}g (scale factor: {request.ScaleFactor:F3})",
+            Details = $"Order created from batch planning. Target batch size: {request.NewBatchSize}g (scale factor: {request.ScaleFactor:F3}). Products planned: {request.Products.Count(p => p.PlannedQuantity > 0)}",
             NewValue = ManufactureOrderState.Draft.ToString()
         };
         order.AuditLog.Add(auditLog);

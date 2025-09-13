@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Calendar, User, Package, AlertCircle } from "lucide-react";
-import { CalculatedBatchSizeResponse, CreateManufactureOrderRequest, CreateManufactureOrderIngredientRequest } from "../../api/generated/api-client";
+import { CalculatedBatchSizeResponse, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 
 interface CreateManufactureOrderModalProps {
   isOpen: boolean;
@@ -45,12 +45,11 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
     }
 
     try {
-      const ingredients: CreateManufactureOrderIngredientRequest[] = 
-        batchResult.ingredients?.map(ingredient => new CreateManufactureOrderIngredientRequest({
+      const products: CreateManufactureOrderProductRequest[] = 
+        batchResult.ingredients?.map(ingredient => new CreateManufactureOrderProductRequest({
           productCode: ingredient.productCode!,
           productName: ingredient.productName!,
-          originalAmount: ingredient.originalAmount!,
-          calculatedAmount: ingredient.calculatedAmount!
+          plannedQuantity: ingredient.calculatedAmount!
         })) || [];
 
       const request = new CreateManufactureOrderRequest({
@@ -59,7 +58,7 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
         originalBatchSize: batchResult.originalBatchSize!,
         newBatchSize: batchResult.newBatchSize!,
         scaleFactor: batchResult.scaleFactor!,
-        ingredients: ingredients,
+        products: products,
         semiProductPlannedDate: semiProductDate as any, // Will be converted to DateOnly on backend
         productPlannedDate: productDate as any, // Will be converted to DateOnly on backend
         responsiblePerson: responsiblePerson || undefined
@@ -193,17 +192,17 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
               </p>
             </div>
 
-            {/* Ingredients Summary */}
+            {/* Products Summary */}
             <div>
               <h4 className="text-sm font-medium text-gray-900 mb-3">
-                Ingredience ({batchResult.ingredients?.length || 0})
+                Finální produkty ({batchResult.ingredients?.length || 0})
               </h4>
               <div className="bg-gray-50 rounded-md p-3 max-h-40 overflow-y-auto">
                 <div className="space-y-2">
                   {batchResult.ingredients?.map((ingredient, index) => (
                     <div key={ingredient.productCode} className="flex justify-between text-sm">
                       <span className="text-gray-700">{ingredient.productName}</span>
-                      <span className="font-medium">{ingredient.calculatedAmount?.toFixed(2)}g</span>
+                      <span className="font-medium">{ingredient.calculatedAmount?.toFixed(2)}ks</span>
                     </div>
                   ))}
                 </div>

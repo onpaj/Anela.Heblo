@@ -20,8 +20,7 @@ public class CreateManufactureOrderRequest : IRequest<CreateManufactureOrderResp
     [Required]
     public double ScaleFactor { get; set; }
 
-    [Required]
-    public List<CreateManufactureOrderIngredientRequest> Ingredients { get; set; } = new();
+    public List<CreateManufactureOrderProductRequest> Products { get; set; } = new();
 
     [Required]
     public DateOnly SemiProductPlannedDate { get; set; }
@@ -32,7 +31,7 @@ public class CreateManufactureOrderRequest : IRequest<CreateManufactureOrderResp
     public string? ResponsiblePerson { get; set; }
 }
 
-public class CreateManufactureOrderIngredientRequest
+public class CreateManufactureOrderProductRequest
 {
     [Required]
     public string ProductCode { get; set; } = null!;
@@ -41,8 +40,5 @@ public class CreateManufactureOrderIngredientRequest
     public string ProductName { get; set; } = null!;
 
     [Required]
-    public double OriginalAmount { get; set; }
-
-    [Required]
-    public double CalculatedAmount { get; set; }
+    public double PlannedQuantity { get; set; }
 }

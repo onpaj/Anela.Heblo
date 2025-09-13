@@ -112,10 +112,10 @@ const ManufactureOrderList: React.FC = () => {
     setIsDetailModalOpen(true);
   };
 
-  // Handle create order
+  // Handle create order - redirect to batch calculator
   const handleCreateOrder = () => {
-    // TODO: Implement create order modal
-    console.log("Create order not implemented yet");
+    // Orders are created only through batch calculation
+    window.location.href = '/manufacture/batch-calculator';
   };
 
   // Handle Enter key for filters
@@ -173,6 +173,7 @@ const ManufactureOrderList: React.FC = () => {
         <button
           onClick={handleCreateOrder}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2"
+          title="Zakázky se vytváří prostřednictvím batch kalkulátoru"
         >
           <Plus className="h-4 w-4" />
           Nová zakázka
