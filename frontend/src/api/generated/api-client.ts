@@ -7987,6 +7987,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     semiproductCode!: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
+    salesMultiplier?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;
@@ -8007,6 +8008,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
             this.semiproductCode = _data["semiproductCode"];
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
+            this.salesMultiplier = _data["salesMultiplier"];
             this.controlMode = _data["controlMode"];
             this.mmqMultiplier = _data["mmqMultiplier"];
             this.totalWeightToUse = _data["totalWeightToUse"];
@@ -8031,6 +8033,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
         data["semiproductCode"] = this.semiproductCode;
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+        data["salesMultiplier"] = this.salesMultiplier;
         data["controlMode"] = this.controlMode;
         data["mmqMultiplier"] = this.mmqMultiplier;
         data["totalWeightToUse"] = this.totalWeightToUse;
@@ -8048,6 +8051,7 @@ export interface ICalculateBatchPlanRequest {
     semiproductCode: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
+    salesMultiplier?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;

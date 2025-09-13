@@ -12,6 +12,9 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     
+    // Sales calculation settings
+    public double? SalesMultiplier { get; set; } = 1.0;
+    
     // Control Mode - exactly one should be set
     public BatchPlanControlMode ControlMode { get; set; }
     public double? MmqMultiplier { get; set; }        // Mode 1: MMQ Multiplier (1.0 = 1x MMQ)

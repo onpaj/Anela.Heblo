@@ -21,7 +21,11 @@ const BatchPlanningCalculator: React.FC = () => {
   // Form state
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
   const [totalBatchSize, setTotalBatchSize] = useState<number>(0);
+  const [targetDaysCoverage, setTargetDaysCoverage] = useState<number>(30);
   const [inputMode, setInputMode] = useState<'multiplier' | 'total'>('multiplier'); // Which field user is editing
+  
+  // Control mode selection
+  const [controlMode, setControlMode] = useState<BatchPlanControlMode>(BatchPlanControlMode.MmqMultiplier);
   
   // Sales settings state
   const [salesMultiplier, setSalesMultiplier] = useState<number>(1.3);
@@ -149,19 +153,33 @@ const BatchPlanningCalculator: React.FC = () => {
     return `${fromDateNew.toLocaleDateString("cs-CZ")} - ${toDateNew.toLocaleDateString("cs-CZ")}`;
   };
 
-  const calculateBatchPlan = (semiproductCode: string, multiplier: number, fromDateParam?: Date, toDateParam?: Date) => {
-    const request = new CalculateBatchPlanRequest({
+  const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
+    const requestData: any = {
       semiproductCode: semiproductCode,
-      controlMode: BatchPlanControlMode.MmqMultiplier,
-      mmqMultiplier: multiplier,
+      controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
-    });
-    
+      salesMultiplier: salesMultiplier,
+    };
+
+    // Add mode-specific parameters
+    switch (controlMode) {
+      case BatchPlanControlMode.MmqMultiplier:
+        requestData.mmqMultiplier = mmqMultiplier;
+        break;
+      case BatchPlanControlMode.TotalWeight:
+        requestData.totalWeightToUse = totalBatchSize;
+        break;
+      case BatchPlanControlMode.TargetDaysCoverage:
+        requestData.targetDaysCoverage = targetDaysCoverage;
+        break;
+    }
+
+    const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
   };
 
-  const calculateBatchPlanWithConstraints = (semiproductCode: string, multiplier: number, fromDateParam?: Date, toDateParam?: Date) => {
+  const calculateBatchPlanWithConstraints = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
     // Convert constraints Map to ProductSizeConstraint array
     const constraints = Array.from(productConstraints.entries()).map(([productCode, constraint]) => 
       new ProductSizeConstraint({
@@ -171,15 +189,29 @@ const BatchPlanningCalculator: React.FC = () => {
       })
     );
 
-    const request = new CalculateBatchPlanRequest({
+    const requestData: any = {
       semiproductCode: semiproductCode,
-      controlMode: BatchPlanControlMode.MmqMultiplier,
-      mmqMultiplier: multiplier,
+      controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
+      salesMultiplier: salesMultiplier,
       productConstraints: constraints
-    });
-    
+    };
+
+    // Add mode-specific parameters
+    switch (controlMode) {
+      case BatchPlanControlMode.MmqMultiplier:
+        requestData.mmqMultiplier = mmqMultiplier;
+        break;
+      case BatchPlanControlMode.TotalWeight:
+        requestData.totalWeightToUse = totalBatchSize;
+        break;
+      case BatchPlanControlMode.TargetDaysCoverage:
+        requestData.targetDaysCoverage = targetDaysCoverage;
+        break;
+    }
+
+    const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
   };
 
@@ -187,10 +219,27 @@ const BatchPlanningCalculator: React.FC = () => {
     setSelectedSemiproduct(product);
     // Reset form when changing product
     setMmqMultiplier(1.0);
-    setTotalBatchSize(0); // Will be updated when API responds
+    setTotalBatchSize(0);
+    setTargetDaysCoverage(30);
     setInputMode('multiplier');
+    setControlMode(BatchPlanControlMode.MmqMultiplier); // Reset to default mode
     // Clear constraints when changing product
     setProductConstraints(new Map());
+    
+    // Auto-trigger calculation immediately after product selection
+    if (product?.productCode) {
+      const requestData: any = {
+        semiproductCode: product.productCode,
+        controlMode: BatchPlanControlMode.MmqMultiplier,
+        fromDate: fromDate,
+        toDate: toDate,
+        salesMultiplier: salesMultiplier,
+        mmqMultiplier: 1.0, // Use reset value
+      };
+
+      const request = new CalculateBatchPlanRequest(requestData);
+      batchPlanMutation.mutate(request);
+    }
   };
 
   const handleProductEnabledChange = (productCode: string, enabled: boolean) => {
@@ -225,9 +274,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const handleManualCalculate = () => {
     if (selectedSemiproduct?.productCode) {
       if (productConstraints.size > 0) {
-        calculateBatchPlanWithConstraints(selectedSemiproduct.productCode, mmqMultiplier, fromDate, toDate);
+        calculateBatchPlanWithConstraints(selectedSemiproduct.productCode, fromDate, toDate);
       } else {
-        calculateBatchPlan(selectedSemiproduct.productCode, mmqMultiplier, fromDate, toDate);
+        calculateBatchPlan(selectedSemiproduct.productCode, fromDate, toDate);
       }
     }
   };
@@ -252,7 +301,7 @@ const BatchPlanningCalculator: React.FC = () => {
         <div className="p-6">
           <div className="space-y-6">
             {/* Semiproduct Selection and Batch Settings */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 relative z-10">
+            <div className="bg-white rounded-lg shadow-sm border p-6 relative z-50">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                 <Package className="w-5 h-5 text-gray-500 mr-2" />
                 Výběr polotovaru a nastavení
@@ -279,15 +328,17 @@ const BatchPlanningCalculator: React.FC = () => {
                   </div>
 
                   {/* Right: Sales Settings */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h4 className="text-xs font-medium text-gray-600 flex items-center">
                       <Settings className="w-3 h-3 text-gray-500 mr-1" />
                       Nastavení prodejů
                     </h4>
                     
-                    <div className="flex gap-2 items-end">
+                    {/* First row: Sales Multiplier + Quick Date Range Buttons */}
+                    <div className="flex items-center gap-3">
                       {/* Sales Multiplier */}
-                      <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
                         <input
                           type="number"
                           step="0.1"
@@ -297,141 +348,198 @@ const BatchPlanningCalculator: React.FC = () => {
                           onChange={(e) => {
                             setSalesMultiplier(Number(e.target.value));
                           }}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           title="Sales Multiplier (1.0-9.9)"
                         />
                       </div>
 
-                      {/* Date Range - compact */}
-                      <div className="flex-1">
-                        <input
-                          type="date"
-                          value={fromDate.toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            const newFromDate = new Date(e.target.value);
-                            setFromDate(newFromDate);
-                          }}
-                          className="w-full px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <input
-                          type="date"
-                          value={toDate.toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            const newToDate = new Date(e.target.value);
-                            setToDate(newToDate);
-                          }}
-                          className="w-full px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                      </div>
+                      {/* Spacer to push buttons to align with date pickers */}
+                      <div className="flex-1"></div>
 
-                      {/* Quick date range buttons - next to date pickers */}
-                      <div className="flex gap-1">
+                      {/* Quick date range buttons - aligned with date pickers */}
+                      <div className="flex gap-2">
                         <button
                           onClick={() => handleQuickDateRange("lastq")}
-                          className="px-1 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
+                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
                           title={getDateRangeTooltip("lastq")}
                         >
                           LastQ
                         </button>
                         <button
                           onClick={() => handleQuickDateRange("y2y")}
-                          className="px-1 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
+                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
                           title={getDateRangeTooltip("y2y")}
                         >
                           Y2Y
                         </button>
                         <button
                           onClick={() => handleQuickDateRange("nextq")}
-                          className="px-1 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
+                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
                           title={getDateRangeTooltip("nextq")}
                         >
                           NextQ
                         </button>
                       </div>
                     </div>
+
+                    {/* Second row: Date Pickers */}
+                    <div className="flex gap-3 items-center">
+                      <label className="text-xs text-gray-600 whitespace-nowrap">Datum od:</label>
+                      <input
+                        type="date"
+                        value={fromDate.toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const newFromDate = new Date(e.target.value);
+                          setFromDate(newFromDate);
+                        }}
+                        className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      
+                      <label className="text-xs text-gray-600 whitespace-nowrap">do:</label>
+                      <input
+                        type="date"
+                        value={toDate.toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const newToDate = new Date(e.target.value);
+                          setToDate(newToDate);
+                        }}
+                        className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Bottom Row: Batch Calculation Settings (only when product is selected) */}
                 {selectedSemiproduct && (
-                  <div className="flex items-center gap-3">
-                    {/* MMQ */}
-                    <div className="flex-none">
-                      <input
-                        type="number"
-                        value={productMMQ || ""}
-                        readOnly
-                        placeholder={batchPlanMutation.isPending ? "MMQ..." : "MMQ"}
-                        className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-center"
-                      />
-                    </div>
-                    
-                    {/* Multiplier with × symbol */}
-                    <div className="flex items-center gap-2 flex-none">
-                      <span className="text-gray-400 text-lg">×</span>
-                      <input
-                        type="radio"
-                        checked={inputMode === 'multiplier'}
-                        onChange={() => setInputMode('multiplier')}
-                        className="sr-only"
-                      />
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={calculatedMultiplier.toFixed(1)}
-                        onChange={(e) => handleMultiplierChange(Number(e.target.value))}
-                        readOnly={inputMode !== 'multiplier'}
-                        placeholder="Multiplikátor"
-                        className={`w-24 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center ${
-                          inputMode !== 'multiplier' 
-                            ? 'border-gray-300 bg-gray-50 text-gray-600' 
-                            : 'border-indigo-300 bg-white text-gray-900'
-                        }`}
-                      />
-                    </div>
-                    
-                    {/* Total Quantity result */}
-                    <div className="flex items-center gap-2 flex-none">
-                      <span className="text-gray-400 text-lg">=</span>
-                      <input
-                        type="radio"
-                        checked={inputMode === 'total'}
-                        onChange={() => setInputMode('total')}
-                        className="sr-only"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={calculatedBatchSize.toFixed(0)}
-                        onChange={(e) => handleTotalBatchSizeChange(Number(e.target.value))}
-                        readOnly={inputMode !== 'total'}
-                        placeholder="Celkové množství"
-                        className={`w-28 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center font-medium ${
-                          inputMode !== 'total' 
-                            ? 'border-indigo-300 bg-indigo-50 text-indigo-800' 
-                            : 'border-indigo-300 bg-white text-gray-900'
-                        }`}
-                      />
+                  <div className="space-y-3">
+                    {/* Control Mode Selection */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700">Režim řízení:</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="controlMode"
+                            checked={controlMode === BatchPlanControlMode.MmqMultiplier}
+                            onChange={() => setControlMode(BatchPlanControlMode.MmqMultiplier)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          />
+                          <span className="text-sm text-gray-700">MMQ Multiplikátor</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="controlMode"
+                            checked={controlMode === BatchPlanControlMode.TotalWeight}
+                            onChange={() => setControlMode(BatchPlanControlMode.TotalWeight)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          />
+                          <span className="text-sm text-gray-700">Celková hmotnost</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="controlMode"
+                            checked={controlMode === BatchPlanControlMode.TargetDaysCoverage}
+                            onChange={() => setControlMode(BatchPlanControlMode.TargetDaysCoverage)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          />
+                          <span className="text-sm text-gray-700">Cílová zásoba (dny)</span>
+                        </label>
+                      </div>
                     </div>
 
-                    {/* Calculate Button */}
-                    <div className="flex-none ml-2">
-                      <button
-                        onClick={handleManualCalculate}
-                        disabled={!selectedSemiproduct || batchPlanMutation.isPending}
-                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {batchPlanMutation.isPending ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ) : (
-                          <Calculator className="w-4 h-4" />
-                        )}
-                        Přepočítat
-                      </button>
+                    {/* Mode-specific inputs */}
+                    <div className="flex items-center gap-3">
+                      {/* MMQ Multiplier Mode */}
+                      {controlMode === BatchPlanControlMode.MmqMultiplier && (
+                        <>
+                          {/* MMQ */}
+                          <div className="flex-none">
+                            <input
+                              type="number"
+                              value={productMMQ || ""}
+                              readOnly
+                              placeholder={batchPlanMutation.isPending ? "MMQ..." : "MMQ"}
+                              className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-center"
+                            />
+                          </div>
+                          
+                          {/* Multiplier with × symbol */}
+                          <div className="flex items-center gap-2 flex-none">
+                            <span className="text-gray-400 text-lg">×</span>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={mmqMultiplier.toFixed(1)}
+                              onChange={(e) => setMmqMultiplier(Number(e.target.value))}
+                              placeholder="Multiplikátor"
+                              className="w-24 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                            />
+                          </div>
+                          
+                          {/* Result */}
+                          <div className="flex items-center gap-2 flex-none">
+                            <span className="text-gray-400 text-lg">=</span>
+                            <input
+                              type="number"
+                              value={productMMQ ? (productMMQ * mmqMultiplier).toFixed(0) : ""}
+                              readOnly
+                              placeholder="Výsledek"
+                              className="w-28 px-3 py-2 text-sm border border-indigo-300 bg-indigo-50 text-indigo-800 rounded-md text-center font-medium"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {/* Total Weight Mode */}
+                      {controlMode === BatchPlanControlMode.TotalWeight && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-gray-700">Celková hmotnost:</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={totalBatchSize}
+                            onChange={(e) => setTotalBatchSize(Number(e.target.value))}
+                            placeholder="Celková hmotnost"
+                            className="w-32 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                          />
+                          <span className="text-sm text-gray-600">ml/g</span>
+                        </div>
+                      )}
+
+                      {/* Target Days Coverage Mode */}
+                      {controlMode === BatchPlanControlMode.TargetDaysCoverage && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-gray-700">Cílová zásoba:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={targetDaysCoverage}
+                            onChange={(e) => setTargetDaysCoverage(Number(e.target.value))}
+                            placeholder="Počet dní"
+                            className="w-20 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                          />
+                          <span className="text-sm text-gray-600">dní</span>
+                        </div>
+                      )}
+
+                      {/* Calculate Button */}
+                      <div className="flex-none ml-2">
+                        <button
+                          onClick={handleManualCalculate}
+                          disabled={!selectedSemiproduct || batchPlanMutation.isPending}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {batchPlanMutation.isPending ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <Calculator className="w-4 h-4" />
+                          )}
+                          Přepočítat
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -442,7 +550,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
             {/* Product Grid - Only show if semiproduct is selected */}
             {selectedSemiproduct && (
-                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                <div className="bg-white rounded-lg shadow-sm border">
                   <div className="px-6 py-4 border-b">
                     <h3 className="text-lg font-medium text-gray-900 flex items-center">
                       <Package className="w-5 h-5 text-green-500 mr-2" />
@@ -503,13 +611,15 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                               <td className="px-4 py-3">
                                 <span className={`text-sm px-2 py-1 rounded-full ${
-                                  product.currentCoverage < 7 
-                                    ? 'bg-red-100 text-red-800' 
-                                    : product.currentCoverage < 14 
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-green-100 text-green-800'
+                                  product.currentCoverage > 2000
+                                    ? 'bg-gray-100 text-gray-600'
+                                    : product.currentCoverage < 7 
+                                      ? 'bg-red-100 text-red-800' 
+                                      : product.currentCoverage < 14 
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
                                 }`}>
-                                  {product.currentCoverage.toFixed(1)}
+                                  {product.currentCoverage > 2000 ? 'NA' : product.currentCoverage.toFixed(1)}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
@@ -540,13 +650,15 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                               <td className="px-4 py-3">
                                 <span className={`text-sm px-2 py-1 rounded-full ${
-                                  product.futureCoverage < 7 
-                                    ? 'bg-red-100 text-red-800' 
-                                    : product.futureCoverage < 14 
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-green-100 text-green-800'
+                                  product.futureCoverage > 2000
+                                    ? 'bg-gray-100 text-gray-600'
+                                    : product.futureCoverage < 7 
+                                      ? 'bg-red-100 text-red-800' 
+                                      : product.futureCoverage < 14 
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
                                 }`}>
-                                  {product.futureCoverage.toFixed(1)}
+                                  {product.futureCoverage > 2000 ? 'NA' : product.futureCoverage.toFixed(1)}
                                 </span>
                               </td>
                             </tr>

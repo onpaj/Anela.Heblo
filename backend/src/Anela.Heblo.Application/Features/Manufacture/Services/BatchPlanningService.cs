@@ -54,7 +54,7 @@ public class BatchPlanningService : IBatchPlanningService
                 continue;
             }
 
-            var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate);
+            var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate, request.SalesMultiplier ?? 1.0);
             var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
 
             var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == template.ProductCode);
@@ -82,7 +82,7 @@ public class BatchPlanningService : IBatchPlanningService
         return response;
     }
 
-    private double CalculateDailySalesRate(CatalogAggregate product, DateTime? fromDate, DateTime? toDate)
+    private double CalculateDailySalesRate(CatalogAggregate product, DateTime? fromDate, DateTime? toDate, double salesMultiplier = 1.0)
     {
         // Set default time period if not provided
         var endDate = toDate ?? DateTime.Now;
@@ -91,7 +91,10 @@ public class BatchPlanningService : IBatchPlanningService
         var totalSales = product.GetTotalSold(startDate, endDate);
         var days = (endDate - startDate).TotalDays;
 
-        return Math.Round(days > 0 ? totalSales / days : 0, 2);
+        var baseDailySalesRate = days > 0 ? totalSales / days : 0;
+        
+        // Apply sales multiplier to affect future production planning
+        return Math.Round(baseDailySalesRate * salesMultiplier, 2);
     }
 
     private CalculateBatchPlanResponse ApplyOptimization(
