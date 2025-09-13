@@ -32,6 +32,13 @@ public class ManufactureOrderProductConfiguration : IEntityTypeConfiguration<Man
             .IsRequired()
             .HasPrecision(18, 4);
 
+        builder.Property(x => x.LotNumber)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(x => x.ExpirationDate)
+            .IsRequired(false);
+
         // Indexes for performance
         builder.HasIndex(x => x.ManufactureOrderId)
             .HasDatabaseName("IX_ManufactureOrderProducts_ManufactureOrderId");

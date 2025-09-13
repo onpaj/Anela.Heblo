@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +36,16 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<GetManufactureOrderResponse>> GetOrder(int id)
     {
         var request = new GetManufactureOrderRequest { Id = id };
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Create manufacture order from batch calculation
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<CreateManufactureOrderResponse>> CreateOrder([FromBody] CreateManufactureOrderRequest request)
+    {
         var response = await _mediator.Send(request);
         return HandleResponse(response);
     }

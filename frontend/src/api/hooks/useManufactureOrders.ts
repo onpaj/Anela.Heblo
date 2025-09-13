@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import { ApiClient as GeneratedApiClient } from "../generated/api-client";
 import {
   ManufactureOrderState,
+  CreateManufactureOrderRequest,
+  CreateManufactureOrderResponse,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -60,6 +62,24 @@ export const useManufactureOrderDetailQuery = (id: number) => {
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+// Mutation for creating manufacture orders
+export const useCreateManufactureOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: CreateManufactureOrderRequest): Promise<CreateManufactureOrderResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_CreateOrder(request);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch manufacture orders list
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.lists(),
+      });
+    },
   });
 };
 
