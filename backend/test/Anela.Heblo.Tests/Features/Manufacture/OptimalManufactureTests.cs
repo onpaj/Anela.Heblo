@@ -7,26 +7,26 @@ public class OptimalManufactureTests
 {
     [Theory]
     [MemberData(nameof(GetTestCases))]
-    public void Optimize_ShouldUseAllTheWeight(string testCaseName, ProductBatch distribution)
+    public void Optimize_ShouldUseAllTheWeight(ProductBatch distribution)
     {
         var calculator = new BatchDistributionCalculator();
         // Act
         calculator.OptimizeBatch(distribution);
 
-        var totalManufacturedWeight = distribution.Variants.Sum(s => s.SuggestedAmount * s.Weight); 
+        var totalManufacturedWeight = distribution.Variants.Sum(s => s.SuggestedAmount * s.Weight);
 
-        if(totalManufacturedWeight > 0)
+        if (totalManufacturedWeight > 0)
             Math.Abs(totalManufacturedWeight - distribution.TotalWeight).Should()
                 .BeLessThan(distribution.Variants.DefaultIfEmpty()?.Min(m => m?.Weight ?? 0) ?? 0);
     }
-    
+
     [Theory]
     [MemberData(nameof(GetTestCases))]
-    public void Optimize_ShouldDistribute(string testCaseName, ProductBatch distribution)
+    public void Optimize_ShouldDistribute(ProductBatch distribution)
     {
         var calculator = new BatchDistributionCalculator();
         var comparedVariant = distribution.Variants.Where(w => w.DailySales > 0.5).ToList();
-        
+
         var deviationBefore = StandardDeviation(comparedVariant.Select(s => s.UpstockTotal));
         // Act
         calculator.OptimizeBatch(distribution, false);
@@ -35,10 +35,10 @@ public class OptimalManufactureTests
 
         deviationAfter.Should().BeLessThanOrEqualTo(deviationBefore);
     }
-    
+
     [Theory]
     [MemberData(nameof(GetTestCases))]
-    public void Optimize_TotalWeightIsTheSameAsInputWeight(string testCaseName, ProductBatch distribution)
+    public void Optimize_TotalWeightIsTheSameAsInputWeight(ProductBatch distribution)
     {
         var calculator = new BatchDistributionCalculator();
         // Act
@@ -50,7 +50,7 @@ public class OptimalManufactureTests
         residue.Should().BeGreaterThanOrEqualTo(0);
         residue.Should().BeLessThan(maxDeviation);
     }
-    
+
     public static IEnumerable<object[]> GetTestCases()
     {
         yield return new object[]
@@ -58,7 +58,7 @@ public class OptimalManufactureTests
             "Standard",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 12 },
@@ -68,13 +68,13 @@ public class OptimalManufactureTests
                 TotalWeight = 5000
             }
         };
-        
+
         yield return new object[]
         {
             "Single product",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 100, DailySales = 20.5, CurrentStock = 12 },
@@ -82,13 +82,13 @@ public class OptimalManufactureTests
                 TotalWeight = 5000
             }
         };
-        
+
         yield return new object[]
         {
             "Current stock = 0",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 0 },
@@ -98,13 +98,13 @@ public class OptimalManufactureTests
                 TotalWeight = 5000
             }
         };
-        
+
         yield return new object[]
         {
             "Daily sales = 0",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 100, DailySales = 0, CurrentStock = 0 },
@@ -114,15 +114,15 @@ public class OptimalManufactureTests
                 TotalWeight = 5000
             }
         };
-        
-        
-        
+
+
+
         yield return new object[]
         {
             "No volume",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 0 },
@@ -132,13 +132,13 @@ public class OptimalManufactureTests
                 TotalWeight = 0
             }
         };
-        
+
         yield return new object[]
         {
             "Very small sales",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 500, DailySales = 0.02, CurrentStock = 0 },
@@ -148,13 +148,13 @@ public class OptimalManufactureTests
                 TotalWeight = 12000
             }
         };
-        
+
         yield return new object[]
         {
             "High stock",
             new ProductBatch()
             {
-                Variants = 
+                Variants =
                     new List<ProductVariant>
                     {
                         new ProductVariant { Weight = 500, DailySales = 12.9, CurrentStock = 869 },
@@ -165,8 +165,8 @@ public class OptimalManufactureTests
             }
         };
     }
-    
-    
+
+
     private static double StandardDeviation(IEnumerable<double> values)
     {
         var avg = values.DefaultIfEmpty().Average();

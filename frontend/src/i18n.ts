@@ -19,6 +19,25 @@ const resources = {
         welcome: "Vítejte v Anela Heblo",
         appLoading: "Aplikace se načítá...",
       },
+      manufacture: {
+        states: {
+          Draft: "Návrh",
+          SemiProductPlanned: "Zaplanováno - polotovar",
+          SemiProductManufacture: "Výroba polotovarů",
+          ProductsPlanned: "Zaplánováno - produkty",
+          ProductsManufacture: "Výroba produktů",
+          Completed: "Dokončeno",
+          Cancelled: "Zrušeno"
+        },
+        auditActions: {
+          StateChanged: "Změna stavu",
+          QuantityChanged: "Změna množství",
+          DateChanged: "Změna data",
+          ResponsiblePersonAssigned: "Přiřazení odpovědné osoby",
+          NoteAdded: "Přidání poznámky",
+          OrderCreated: "Vytvoření zakázky"
+        }
+      },
       errors: {
         // String keys for ErrorCodes enum names (primary approach)
         // General errors
@@ -152,6 +171,25 @@ const resources = {
         loading: "Loading...",
         welcome: "Welcome to Anela Heblo",
         appLoading: "Application is loading...",
+      },
+      manufacture: {
+        states: {
+          Draft: "Draft",
+          SemiProductPlanned: "Semi-product Planned",
+          SemiProductManufacture: "Semi-product Manufacturing",
+          ProductsPlanned: "Products Planned",
+          ProductsManufacture: "Products Manufacturing",
+          Completed: "Completed",
+          Cancelled: "Cancelled"
+        },
+        auditActions: {
+          StateChanged: "State Changed",
+          QuantityChanged: "Quantity Changed",
+          DateChanged: "Date Changed",
+          ResponsiblePersonAssigned: "Responsible Person Assigned",
+          NoteAdded: "Note Added",
+          OrderCreated: "Order Created"
+        }
       },
       errors: {
         // Analytics module errors

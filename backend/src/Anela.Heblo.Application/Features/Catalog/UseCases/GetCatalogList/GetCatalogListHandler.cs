@@ -98,7 +98,7 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         // Sort by last inventory days with items WITHOUT inventory first
         // Items with no last stock taking should be first (sorted by location ascending)
         // Items with last stock taking should be sorted by days since last inventory
-        
+
         if (sortDescending)
         {
             // Descending: Items WITHOUT inventory first, then items with inventory by oldest first (ascending = biggest days)

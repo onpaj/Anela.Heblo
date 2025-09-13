@@ -20,14 +20,14 @@ public class GetStockTakingHistoryHandler : IRequestHandler<GetStockTakingHistor
     {
         // Get product by ProductCode
         var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
-        
+
         // Check if product exists
         if (product == null)
         {
-            return new GetStockTakingHistoryResponse(ErrorCodes.ProductNotFound, 
+            return new GetStockTakingHistoryResponse(ErrorCodes.ProductNotFound,
                 new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
         }
-        
+
         // Get stock taking history for the product
         var query = product.StockTakingHistory.AsQueryable();
 

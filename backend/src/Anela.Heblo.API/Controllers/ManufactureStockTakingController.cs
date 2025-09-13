@@ -46,7 +46,7 @@ public class ManufactureStockTakingController : BaseApiController
         [FromQuery] GetStockTakingHistoryRequest request,
         CancellationToken cancellationToken = default)
     {
-        Logger.LogInformation("Received manufacture stock taking history request for product code {ProductCode}, page {PageNumber}", 
+        Logger.LogInformation("Received manufacture stock taking history request for product code {ProductCode}, page {PageNumber}",
             request?.ProductCode, request?.PageNumber);
 
         var response = await _mediator.Send(request!, cancellationToken);

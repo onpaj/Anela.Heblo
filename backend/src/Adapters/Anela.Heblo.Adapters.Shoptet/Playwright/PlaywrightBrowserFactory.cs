@@ -19,7 +19,7 @@ public class PlaywrightBrowserFactory
                 Headless = _options.Headless,
             });
         }
-        
+
         // Chromium got stuck on IOS is not headless
         return playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions()
         {

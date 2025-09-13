@@ -92,7 +92,7 @@ public class BatchPlanningService : IBatchPlanningService
         var days = (endDate - startDate).TotalDays;
 
         var baseDailySalesRate = days > 0 ? totalSales / days : 0;
-        
+
         // Apply sales multiplier to affect future production planning
         return Math.Round(baseDailySalesRate * salesMultiplier, 2);
     }
@@ -115,11 +115,11 @@ public class BatchPlanningService : IBatchPlanningService
             fixedProduct.RecommendedUnitsToProduceHumanReadable = quantity;
             fixedProduct.TotalVolumeRequired = quantity * fixedProduct.WeightPerUnit;
             fixedProduct.FutureStock = fixedProduct.CurrentStock + quantity;
-            fixedProduct.FutureDaysCoverage = fixedProduct.DailySalesRate > 0 
-                ? fixedProduct.FutureStock / fixedProduct.DailySalesRate 
+            fixedProduct.FutureDaysCoverage = fixedProduct.DailySalesRate > 0
+                ? fixedProduct.FutureStock / fixedProduct.DailySalesRate
                 : double.MaxValue;
             fixedProduct.OptimizationNote = "Fixed by user constraint";
-            
+
             volumeUsedByFixed += fixedProduct.TotalVolumeRequired;
         }
 
@@ -158,10 +158,10 @@ public class BatchPlanningService : IBatchPlanningService
         if (flexibleProducts.Count > 0)
         {
             var batch = CreateProductBatch(flexibleProducts, semiproduct, availableVolume, remainingVolume);
-            
+
             // Use BatchDistributionCalculator for optimization
             _batchDistributionCalculator.OptimizeBatch(batch, minimizeResidue: true);
-            
+
             // Convert results back to BatchPlanItemDto
             ApplyOptimizationResults(flexibleProducts, batch);
         }
@@ -219,8 +219,8 @@ public class BatchPlanningService : IBatchPlanningService
                 product.RecommendedUnitsToProduceHumanReadable = (int)variant.SuggestedAmount;
                 product.TotalVolumeRequired = variant.SuggestedAmount * product.WeightPerUnit;
                 product.FutureStock = product.CurrentStock + variant.SuggestedAmount;
-                product.FutureDaysCoverage = product.DailySalesRate > 0 
-                    ? product.FutureStock / product.DailySalesRate 
+                product.FutureDaysCoverage = product.DailySalesRate > 0
+                    ? product.FutureStock / product.DailySalesRate
                     : double.MaxValue;
                 product.WasOptimized = true;
                 product.OptimizationNote = $"Optimized by BatchDistributionCalculator (Coverage: {variant.UpstockTotal:F1} days)";
