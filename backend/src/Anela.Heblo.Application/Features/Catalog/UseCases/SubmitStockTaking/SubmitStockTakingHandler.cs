@@ -45,10 +45,10 @@ public class SubmitStockTakingHandler : IRequestHandler<SubmitStockTakingRequest
             {
                 _logger.LogWarning("Stock taking failed for product code {ProductCode}. Error: {Error}",
                     request.ProductCode, stockTakingRecord.Error);
-                
+
                 return new SubmitStockTakingResponse(ErrorCodes.StockTakingFailed,
-                    new Dictionary<string, string> 
-                    { 
+                    new Dictionary<string, string>
+                    {
                         { "ProductCode", request.ProductCode },
                         { "Error", stockTakingRecord.Error }
                     });
@@ -63,7 +63,7 @@ public class SubmitStockTakingHandler : IRequestHandler<SubmitStockTakingRequest
                 // Use the new SyncStockTaking method to update stock and add to history
                 product.SyncStockTaking(stockTakingRecord);
             }
-            
+
             // Map domain result to response
             return new SubmitStockTakingResponse
             {

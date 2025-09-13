@@ -41,11 +41,11 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             // Verify this is a material (manufacture inventory only handles materials)
             if (product.Type != ProductType.Material)
             {
-                _logger.LogWarning("Product {ProductCode} is not a material (Type: {ProductType}). Manufacture stock taking only supports materials.", 
+                _logger.LogWarning("Product {ProductCode} is not a material (Type: {ProductType}). Manufacture stock taking only supports materials.",
                     request.ProductCode, product.Type);
                 return new SubmitManufactureStockTakingResponse(ErrorCodes.InvalidOperation,
-                    new Dictionary<string, string> 
-                    { 
+                    new Dictionary<string, string>
+                    {
                         { "ProductCode", request.ProductCode },
                         { "ProductType", product.Type.ToString() },
                         { "Message", "Manufacture stock taking only supports materials" }
@@ -69,10 +69,10 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             {
                 _logger.LogWarning("Manufacture stock taking failed for product code {ProductCode}. Error: {Error}",
                     request.ProductCode, stockTakingRecord.Error);
-                
+
                 return new SubmitManufactureStockTakingResponse(ErrorCodes.StockTakingFailed,
-                    new Dictionary<string, string> 
-                    { 
+                    new Dictionary<string, string>
+                    {
                         { "ProductCode", request.ProductCode },
                         { "Error", stockTakingRecord.Error }
                     });
@@ -82,7 +82,7 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
                 request.ProductCode, stockTakingRecord.Id);
 
             product.SyncStockTaking(stockTakingRecord);
-            
+
             // Map domain result to response
             return new SubmitManufactureStockTakingResponse
             {

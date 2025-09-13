@@ -8,6 +8,6 @@ public class ProductBatch
     public double BatchCount { get; set; }
     public double TotalWeight { get; set; }
     public List<ProductVariant> Variants { get; set; }
-    
+
     public List<ProductVariant> ValidVariants => Variants.Where(w => w.DailySales > 0 && w.Weight > 0).ToList();
 }

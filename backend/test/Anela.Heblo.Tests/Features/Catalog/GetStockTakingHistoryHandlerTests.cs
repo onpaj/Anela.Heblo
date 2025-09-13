@@ -198,7 +198,7 @@ public class GetStockTakingHistoryHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify the sorting order (most recent first when descending)
         Assert.True(result.Items[0].Date > result.Items[1].Date);
         Assert.True(result.Items[1].Date > result.Items[2].Date);
@@ -253,7 +253,7 @@ public class GetStockTakingHistoryHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify ascending sort by AmountNew
         Assert.True(result.Items[0].AmountNew <= result.Items[1].AmountNew);
         Assert.True(result.Items[1].AmountNew <= result.Items[2].AmountNew);
