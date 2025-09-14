@@ -225,6 +225,7 @@ i18n
   .init({
     resources,
     fallbackLng: "cs", // Czech as primary language per design doc
+    lng: "cs", // Force Czech language
     debug: process.env.NODE_ENV === "development",
     interpolation: {
       escapeValue: false,

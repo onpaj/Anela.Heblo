@@ -2515,6 +2515,88 @@ export class ApiClient {
         return Promise.resolve<GetManufactureOrderResponse>(null as any);
     }
 
+    manufactureOrder_UpdateOrder(id: number, request: UpdateManufactureOrderRequest): Promise<UpdateManufactureOrderResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_UpdateOrder(_response);
+        });
+    }
+
+    protected processManufactureOrder_UpdateOrder(response: Response): Promise<UpdateManufactureOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateManufactureOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateManufactureOrderResponse>(null as any);
+    }
+
+    manufactureOrder_UpdateOrderStatus(id: number, request: UpdateManufactureOrderStatusRequest): Promise<UpdateManufactureOrderStatusResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/status";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_UpdateOrderStatus(_response);
+        });
+    }
+
+    protected processManufactureOrder_UpdateOrderStatus(response: Response): Promise<UpdateManufactureOrderStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateManufactureOrderStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateManufactureOrderStatusResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -8276,7 +8358,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProducts?: ManufactureOrderSemiProductDto[];
+    semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
     auditLog?: ManufactureOrderAuditLogDto[];
@@ -8302,11 +8384,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.stateChangedByUser = _data["stateChangedByUser"];
-            if (Array.isArray(_data["semiProducts"])) {
-                this.semiProducts = [] as any;
-                for (let item of _data["semiProducts"])
-                    this.semiProducts!.push(ManufactureOrderSemiProductDto.fromJS(item));
-            }
+            this.semiProduct = _data["semiProduct"] ? ManufactureOrderSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
                 for (let item of _data["products"])
@@ -8344,11 +8422,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["stateChangedByUser"] = this.stateChangedByUser;
-        if (Array.isArray(this.semiProducts)) {
-            data["semiProducts"] = [];
-            for (let item of this.semiProducts)
-                data["semiProducts"].push(item.toJSON());
-        }
+        data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
             for (let item of this.products)
@@ -8379,7 +8453,7 @@ export interface IManufactureOrderDto {
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProducts?: ManufactureOrderSemiProductDto[];
+    semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
     auditLog?: ManufactureOrderAuditLogDto[];
@@ -8401,6 +8475,8 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
     productName?: string;
     plannedQuantity?: number;
     actualQuantity?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 
     constructor(data?: IManufactureOrderSemiProductDto) {
         if (data) {
@@ -8418,6 +8494,8 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
             this.productName = _data["productName"];
             this.plannedQuantity = _data["plannedQuantity"];
             this.actualQuantity = _data["actualQuantity"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
         }
     }
 
@@ -8435,6 +8513,8 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
         data["productName"] = this.productName;
         data["plannedQuantity"] = this.plannedQuantity;
         data["actualQuantity"] = this.actualQuantity;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
         return data;
     }
 }
@@ -8445,6 +8525,8 @@ export interface IManufactureOrderSemiProductDto {
     productName?: string;
     plannedQuantity?: number;
     actualQuantity?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 }
 
 export class ManufactureOrderProductDto implements IManufactureOrderProductDto {
@@ -8808,6 +8890,544 @@ export interface ICreateManufactureOrderProductRequest {
     productCode: string;
     productName: string;
     plannedQuantity: number;
+}
+
+export class UpdateManufactureOrderResponse extends BaseResponse implements IUpdateManufactureOrderResponse {
+    order?: UpdateManufactureOrderDto | undefined;
+
+    constructor(data?: IUpdateManufactureOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.order = _data["order"] ? UpdateManufactureOrderDto.fromJS(_data["order"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdateManufactureOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["order"] = this.order ? this.order.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderResponse extends IBaseResponse {
+    order?: UpdateManufactureOrderDto | undefined;
+}
+
+export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
+    id?: number;
+    orderNumber?: string;
+    createdDate?: Date;
+    createdByUser?: string;
+    responsiblePerson?: string | undefined;
+    semiProductPlannedDate?: Date;
+    productPlannedDate?: Date;
+    state?: string;
+    stateChangedAt?: Date;
+    stateChangedByUser?: string;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
+    products?: UpdateManufactureOrderProductDto[];
+    notes?: UpdateManufactureOrderNoteDto[];
+
+    constructor(data?: IUpdateManufactureOrderDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.orderNumber = _data["orderNumber"];
+            this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
+            this.createdByUser = _data["createdByUser"];
+            this.responsiblePerson = _data["responsiblePerson"];
+            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
+            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.state = _data["state"];
+            this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
+            this.stateChangedByUser = _data["stateChangedByUser"];
+            this.semiProduct = _data["semiProduct"] ? UpdateManufactureOrderSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(UpdateManufactureOrderProductDto.fromJS(item));
+            }
+            if (Array.isArray(_data["notes"])) {
+                this.notes = [] as any;
+                for (let item of _data["notes"])
+                    this.notes!.push(UpdateManufactureOrderNoteDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["orderNumber"] = this.orderNumber;
+        data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
+        data["createdByUser"] = this.createdByUser;
+        data["responsiblePerson"] = this.responsiblePerson;
+        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
+        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["state"] = this.state;
+        data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
+        data["stateChangedByUser"] = this.stateChangedByUser;
+        data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        if (Array.isArray(this.notes)) {
+            data["notes"] = [];
+            for (let item of this.notes)
+                data["notes"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderDto {
+    id?: number;
+    orderNumber?: string;
+    createdDate?: Date;
+    createdByUser?: string;
+    responsiblePerson?: string | undefined;
+    semiProductPlannedDate?: Date;
+    productPlannedDate?: Date;
+    state?: string;
+    stateChangedAt?: Date;
+    stateChangedByUser?: string;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
+    products?: UpdateManufactureOrderProductDto[];
+    notes?: UpdateManufactureOrderNoteDto[];
+}
+
+export class UpdateManufactureOrderSemiProductDto implements IUpdateManufactureOrderSemiProductDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
+    actualQuantity?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+
+    constructor(data?: IUpdateManufactureOrderSemiProductDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.plannedQuantity = _data["plannedQuantity"];
+            this.actualQuantity = _data["actualQuantity"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderSemiProductDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderSemiProductDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["plannedQuantity"] = this.plannedQuantity;
+        data["actualQuantity"] = this.actualQuantity;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderSemiProductDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
+    actualQuantity?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+}
+
+export class UpdateManufactureOrderProductDto implements IUpdateManufactureOrderProductDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    semiProductCode?: string;
+    plannedQuantity?: number;
+    actualQuantity?: number;
+
+    constructor(data?: IUpdateManufactureOrderProductDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.semiProductCode = _data["semiProductCode"];
+            this.plannedQuantity = _data["plannedQuantity"];
+            this.actualQuantity = _data["actualQuantity"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderProductDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderProductDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["semiProductCode"] = this.semiProductCode;
+        data["plannedQuantity"] = this.plannedQuantity;
+        data["actualQuantity"] = this.actualQuantity;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderProductDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    semiProductCode?: string;
+    plannedQuantity?: number;
+    actualQuantity?: number;
+}
+
+export class UpdateManufactureOrderNoteDto implements IUpdateManufactureOrderNoteDto {
+    id?: number;
+    text?: string;
+    createdAt?: Date;
+    createdByUser?: string;
+
+    constructor(data?: IUpdateManufactureOrderNoteDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.text = _data["text"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdByUser = _data["createdByUser"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderNoteDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderNoteDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["text"] = this.text;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdByUser"] = this.createdByUser;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderNoteDto {
+    id?: number;
+    text?: string;
+    createdAt?: Date;
+    createdByUser?: string;
+}
+
+export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderRequest {
+    id!: number;
+    semiProductPlannedDate!: Date;
+    productPlannedDate!: Date;
+    responsiblePerson?: string | undefined;
+    semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
+    products?: UpdateManufactureOrderProductRequest[];
+    newNote?: string | undefined;
+
+    constructor(data?: IUpdateManufactureOrderRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
+            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.responsiblePerson = _data["responsiblePerson"];
+            this.semiProduct = _data["semiProduct"] ? UpdateManufactureOrderSemiProductRequest.fromJS(_data["semiProduct"]) : <any>undefined;
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(UpdateManufactureOrderProductRequest.fromJS(item));
+            }
+            this.newNote = _data["newNote"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
+        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["responsiblePerson"] = this.responsiblePerson;
+        data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        data["newNote"] = this.newNote;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderRequest {
+    id: number;
+    semiProductPlannedDate: Date;
+    productPlannedDate: Date;
+    responsiblePerson?: string | undefined;
+    semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
+    products?: UpdateManufactureOrderProductRequest[];
+    newNote?: string | undefined;
+}
+
+export class UpdateManufactureOrderSemiProductRequest implements IUpdateManufactureOrderSemiProductRequest {
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+
+    constructor(data?: IUpdateManufactureOrderSemiProductRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderSemiProductRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderSemiProductRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderSemiProductRequest {
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+}
+
+export class UpdateManufactureOrderProductRequest implements IUpdateManufactureOrderProductRequest {
+    productCode!: string;
+    productName!: string;
+    plannedQuantity!: number;
+
+    constructor(data?: IUpdateManufactureOrderProductRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.plannedQuantity = _data["plannedQuantity"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderProductRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderProductRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["plannedQuantity"] = this.plannedQuantity;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderProductRequest {
+    productCode: string;
+    productName: string;
+    plannedQuantity: number;
+}
+
+export class UpdateManufactureOrderStatusResponse extends BaseResponse implements IUpdateManufactureOrderStatusResponse {
+    oldState?: string | undefined;
+    newState?: string | undefined;
+    stateChangedAt?: Date;
+    stateChangedByUser?: string | undefined;
+
+    constructor(data?: IUpdateManufactureOrderStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.oldState = _data["oldState"];
+            this.newState = _data["newState"];
+            this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
+            this.stateChangedByUser = _data["stateChangedByUser"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateManufactureOrderStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["oldState"] = this.oldState;
+        data["newState"] = this.newState;
+        data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
+        data["stateChangedByUser"] = this.stateChangedByUser;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderStatusResponse extends IBaseResponse {
+    oldState?: string | undefined;
+    newState?: string | undefined;
+    stateChangedAt?: Date;
+    stateChangedByUser?: string | undefined;
+}
+
+export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOrderStatusRequest {
+    id!: number;
+    newState!: ManufactureOrderState;
+    changeReason?: string | undefined;
+
+    constructor(data?: IUpdateManufactureOrderStatusRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.newState = _data["newState"];
+            this.changeReason = _data["changeReason"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderStatusRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderStatusRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["newState"] = this.newState;
+        data["changeReason"] = this.changeReason;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderStatusRequest {
+    id: number;
+    newState: ManufactureOrderState;
+    changeReason?: string | undefined;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

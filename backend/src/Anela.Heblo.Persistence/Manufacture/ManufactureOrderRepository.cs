@@ -22,7 +22,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.ManufactureOrders
-            .Include(x => x.SemiProducts)
+            .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes)
             .Include(x => x.AuditLog)
@@ -56,7 +56,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         if (!string.IsNullOrEmpty(productCode))
         {
             query = query.Where(x =>
-                x.SemiProducts.Any(sp => sp.ProductCode.Contains(productCode)) ||
+                (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
                 x.Products.Any(p => p.ProductCode.Contains(productCode)));
         }
 
@@ -68,7 +68,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
     public async Task<ManufactureOrder?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.ManufactureOrders
-            .Include(x => x.SemiProducts)
+            .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes.OrderByDescending(n => n.CreatedAt))
             .Include(x => x.AuditLog.OrderByDescending(a => a.Timestamp))

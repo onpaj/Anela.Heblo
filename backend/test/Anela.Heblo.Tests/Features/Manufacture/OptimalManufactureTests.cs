@@ -55,7 +55,6 @@ public class OptimalManufactureTests
     {
         yield return new object[]
         {
-            "Standard",
             new ProductBatch()
             {
                 Variants =
@@ -71,7 +70,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "Single product",
             new ProductBatch()
             {
                 Variants =
@@ -85,7 +83,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "Current stock = 0",
             new ProductBatch()
             {
                 Variants =
@@ -101,7 +98,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "Daily sales = 0",
             new ProductBatch()
             {
                 Variants =
@@ -119,7 +115,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "No volume",
             new ProductBatch()
             {
                 Variants =
@@ -135,7 +130,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "Very small sales",
             new ProductBatch()
             {
                 Variants =
@@ -151,7 +145,6 @@ public class OptimalManufactureTests
 
         yield return new object[]
         {
-            "High stock",
             new ProductBatch()
             {
                 Variants =

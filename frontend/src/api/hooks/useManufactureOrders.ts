@@ -5,6 +5,10 @@ import {
   ManufactureOrderState,
   CreateManufactureOrderRequest,
   CreateManufactureOrderResponse,
+  UpdateManufactureOrderRequest,
+  UpdateManufactureOrderResponse,
+  UpdateManufactureOrderStatusRequest,
+  UpdateManufactureOrderStatusResponse,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -78,6 +82,50 @@ export const useCreateManufactureOrder = () => {
       // Invalidate and refetch manufacture orders list
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.lists(),
+      });
+    },
+  });
+};
+
+// Mutation for updating manufacture orders
+export const useUpdateManufactureOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: UpdateManufactureOrderRequest): Promise<UpdateManufactureOrderResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_UpdateOrder(request.id, request);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders list
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.lists(),
+      });
+      // Invalidate the specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.id),
+      });
+    },
+  });
+};
+
+// Mutation for updating manufacture order status
+export const useUpdateManufactureOrderStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: UpdateManufactureOrderStatusRequest): Promise<UpdateManufactureOrderStatusResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_UpdateOrderStatus(request.id, request);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders list
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.lists(),
+      });
+      // Invalidate the specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.id),
       });
     },
   });

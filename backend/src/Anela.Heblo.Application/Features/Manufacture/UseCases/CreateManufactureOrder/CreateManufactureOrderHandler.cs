@@ -49,7 +49,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             PlannedQuantity = (decimal)request.NewBatchSize,
             ActualQuantity = (decimal)request.NewBatchSize
         };
-        order.SemiProducts.Add(semiProduct);
+        order.SemiProduct = semiProduct;
 
         // Create final products from the request (only products with quantity > 0)
         foreach (var productRequest in request.Products.Where(p => p.PlannedQuantity > 0))
@@ -58,6 +58,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             {
                 ProductCode = productRequest.ProductCode,
                 ProductName = productRequest.ProductName,
+                SemiProductCode = request.ProductCode, // Link to the semiproduct being manufactured
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
                 ActualQuantity = 0 // Will be filled during production
             };

@@ -1,35 +1,34 @@
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Manufacture;
 
-namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
+namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 
-public class GetManufactureOrdersResponse : BaseResponse
+public class UpdateManufactureOrderResponse : BaseResponse
 {
-    public List<ManufactureOrderDto> Orders { get; set; } = new();
+    public UpdateManufactureOrderDto? Order { get; set; }
+
+    public UpdateManufactureOrderResponse() : base() { }
+
+    public UpdateManufactureOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }
 
-public class ManufactureOrderDto
+public class UpdateManufactureOrderDto
 {
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
-
     public DateOnly SemiProductPlannedDate { get; set; }
     public DateOnly ProductPlannedDate { get; set; }
-
-    public ManufactureOrderState State { get; set; }
+    public string State { get; set; } = null!;
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;
-
-    public ManufactureOrderSemiProductDto? SemiProduct { get; set; }
-    public List<ManufactureOrderProductDto> Products { get; set; } = new();
-    public List<ManufactureOrderNoteDto> Notes { get; set; } = new();
-    public List<ManufactureOrderAuditLogDto> AuditLog { get; set; } = new();
+    public UpdateManufactureOrderSemiProductDto? SemiProduct { get; set; }
+    public List<UpdateManufactureOrderProductDto> Products { get; set; } = new();
+    public List<UpdateManufactureOrderNoteDto> Notes { get; set; } = new();
 }
 
-public class ManufactureOrderSemiProductDto
+public class UpdateManufactureOrderSemiProductDto
 {
     public int Id { get; set; }
     public string ProductCode { get; set; } = null!;
@@ -40,7 +39,7 @@ public class ManufactureOrderSemiProductDto
     public DateOnly? ExpirationDate { get; set; } // Expirace
 }
 
-public class ManufactureOrderProductDto
+public class UpdateManufactureOrderProductDto
 {
     public int Id { get; set; }
     public string ProductCode { get; set; } = null!;
@@ -50,21 +49,10 @@ public class ManufactureOrderProductDto
     public decimal ActualQuantity { get; set; }
 }
 
-public class ManufactureOrderNoteDto
+public class UpdateManufactureOrderNoteDto
 {
     public int Id { get; set; }
     public string Text { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public string CreatedByUser { get; set; } = null!;
-}
-
-public class ManufactureOrderAuditLogDto
-{
-    public int Id { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string User { get; set; } = null!;
-    public ManufactureOrderAuditAction Action { get; set; }
-    public string Details { get; set; } = null!;
-    public string? OldValue { get; set; }
-    public string? NewValue { get; set; }
 }

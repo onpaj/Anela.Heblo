@@ -62,9 +62,9 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
 
         // Navigation properties
-        builder.HasMany(x => x.SemiProducts)
+        builder.HasOne(x => x.SemiProduct)
             .WithOne(x => x.ManufactureOrder)
-            .HasForeignKey(x => x.ManufactureOrderId)
+            .HasForeignKey<ManufactureOrderSemiProduct>(x => x.ManufactureOrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.Products)
