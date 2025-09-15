@@ -13,6 +13,7 @@ using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly IManufactureRepository _manufactureRepository;
+    private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
@@ -67,6 +69,7 @@ public class CatalogRepository : ICatalogRepository
         ITransportBoxRepository transportBoxRepository,
         IStockTakingRepository stockTakingRepository,
         IManufactureRepository manufactureRepository,
+        IPurchaseOrderRepository purchaseOrderRepository,
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureCostCalculationService manufactureCostCalculationService,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
@@ -90,6 +93,7 @@ public class CatalogRepository : ICatalogRepository
         _transportBoxRepository = transportBoxRepository;
         _stockTakingRepository = stockTakingRepository;
         _manufactureRepository = manufactureRepository;
+        _purchaseOrderRepository = purchaseOrderRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
         _manufactureCostCalculationService = manufactureCostCalculationService;
         _manufactureDifficultyRepository = manufactureDifficultyRepository;
@@ -115,6 +119,12 @@ public class CatalogRepository : ICatalogRepository
     {
         var reserveData = await GetProductsInReserve(ct);
         CachedInReserveData = reserveData;
+    }
+
+    public async Task RefreshOrderedData(CancellationToken ct)
+    {
+        var orderedData = await GetProductsOrdered(ct);
+        CachedOrderedData = orderedData;
     }
 
     public async Task RefreshSalesData(CancellationToken ct)
@@ -178,15 +188,6 @@ public class CatalogRepository : ICatalogRepository
     public async Task RefreshErpPricesData(CancellationToken ct)
     {
         CachedErpPriceData = (await _productPriceErpClient.GetAllAsync(false, ct)).ToList();
-    }
-
-    public async Task RefreshManufactureDifficultyData(CancellationToken ct)
-    {
-        var difficultyMap = new Dictionary<string, double>();
-
-        // Find all manufacture templates for VYR-NAK ingredient
-        var templates = await _manufactureRepository.FindByIngredientAsync("VYR-NAK", ct);
-        CachedManufactureDifficultyData = templates.ToDictionary(k => k.ProductCode, v => v.Amount);
     }
 
     public async Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct)
@@ -364,6 +365,11 @@ public class CatalogRepository : ICatalogRepository
             if (CachedInReserveData.TryGetValue(product.ProductCode, out var inReserve))
             {
                 product.Stock.Reserve = inReserve;
+            }
+
+            if (CachedOrderedData.TryGetValue(product.ProductCode, out var ordered))
+            {
+                product.Stock.Ordered = ordered;
             }
 
             if (eshopProductsMap.TryGetValue(product.ProductCode, out var eshopProduct))
@@ -567,6 +573,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IDictionary<string, decimal> CachedOrderedData
+    {
+        get => _cache.Get<Dictionary<string, decimal>>(nameof(CachedOrderedData)) ?? new Dictionary<string, decimal>();
+        set
+        {
+            _cache.Set(nameof(CachedOrderedData), value);
+            InvalidateSourceData(nameof(CachedOrderedData));
+            OrderedDataLoaded = true;
+        }
+    }
+
     private IList<ErpStock> CachedErpStockData
     {
         get => _cache.Get<List<ErpStock>>(nameof(CachedErpStockData)) ?? new List<ErpStock>();
@@ -698,6 +715,7 @@ public class CatalogRepository : ICatalogRepository
     // Data loaded flags - set once when cached data is populated
     public bool TransportDataLoaded { get; private set; }
     public bool ReserveDataLoaded { get; private set; }
+    public bool OrderedDataLoaded { get; private set; }
     public bool SalesDataLoaded { get; private set; }
     public bool AttributesDataLoaded { get; private set; }
     public bool ErpStockDataLoaded { get; private set; }
@@ -727,6 +745,11 @@ public class CatalogRepository : ICatalogRepository
         return boxes.SelectMany(s => s.Items)
             .GroupBy(g => g.ProductCode)
             .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
+    }
+
+    private async Task<Dictionary<string, decimal>> GetProductsOrdered(CancellationToken ct)
+    {
+        return await _purchaseOrderRepository.GetOrderedQuantitiesAsync(ct);
     }
 
     public Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.SingleOrDefault(s => s.ProductCode == id));

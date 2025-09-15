@@ -8,6 +8,7 @@ public record StockData
     public decimal Erp { get; set; }
     public decimal Transport { get; set; }
     public decimal Reserve { get; set; }
+    public decimal Ordered { get; set; }
 
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 

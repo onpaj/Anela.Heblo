@@ -6,6 +6,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
 {
     Task RefreshTransportData(CancellationToken ct);
     Task RefreshReserveData(CancellationToken ct);
+    Task RefreshOrderedData(CancellationToken ct);
     Task RefreshSalesData(CancellationToken ct);
     Task RefreshAttributesData(CancellationToken ct);
     Task RefreshErpStockData(CancellationToken ct);
@@ -22,6 +23,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     // Data loaded flags - set once when cached data is populated
     bool TransportDataLoaded { get; }
     bool ReserveDataLoaded { get; }
+    bool OrderedDataLoaded { get; }
     bool SalesDataLoaded { get; }
     bool AttributesDataLoaded { get; }
     bool ErpStockDataLoaded { get; }

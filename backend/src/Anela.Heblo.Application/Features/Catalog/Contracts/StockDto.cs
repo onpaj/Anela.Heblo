@@ -6,5 +6,6 @@ public class StockDto
     public decimal Erp { get; set; }
     public decimal Transport { get; set; }
     public decimal Reserve { get; set; }
+    public decimal Ordered { get; set; }
     public decimal Available { get; set; }
 }

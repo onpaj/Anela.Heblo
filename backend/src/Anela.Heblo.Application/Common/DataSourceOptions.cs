@@ -16,6 +16,7 @@ public class DataSourceOptions
 
     public TimeSpan TransportRefreshInterval { get; set; } = TimeSpan.FromMinutes(5);
     public TimeSpan ReserveRefreshInterval { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan OrderedRefreshInterval { get; set; } = TimeSpan.FromMinutes(5);
     public TimeSpan StockTakingRefreshInterval { get; set; } = TimeSpan.FromMinutes(5);
     public TimeSpan PurchaseHistoryRefreshInterval { get; set; } = TimeSpan.FromMinutes(60);
     public TimeSpan ManufactureHistoryRefreshInterval { get; set; } = TimeSpan.FromMinutes(60);

@@ -244,6 +244,7 @@ public class MockCatalogRepository : ICatalogRepository
     // Data loaded flags - always true for mock since all data is immediately available
     public bool TransportDataLoaded => true;
     public bool ReserveDataLoaded => true;
+    public bool OrderedDataLoaded => true;
     public bool SalesDataLoaded => true;
     public bool AttributesDataLoaded => true;
     public bool ErpStockDataLoaded => true;
@@ -262,6 +263,7 @@ public class MockCatalogRepository : ICatalogRepository
     // Refresh methods - no-op for mock
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshReserveData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshOrderedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshSalesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshAttributesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpStockData(CancellationToken ct) => Task.CompletedTask;

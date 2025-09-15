@@ -104,6 +104,17 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         return await Task.FromResult(exists);
     }
 
+    public async Task<Dictionary<string, decimal>> GetOrderedQuantitiesAsync(CancellationToken cancellationToken = default)
+    {
+        var result = _orders.Values
+            .Where(order => order.Status == PurchaseOrderStatus.Draft || order.Status == PurchaseOrderStatus.InTransit)
+            .SelectMany(order => order.Lines)
+            .GroupBy(line => line.MaterialId)
+            .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
+            
+        return await Task.FromResult(result);
+    }
+
     public new async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var removed = _orders.TryRemove(id, out _);

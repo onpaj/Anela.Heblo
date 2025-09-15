@@ -91,4 +91,14 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
     {
         return await DbSet.AnyAsync(x => x.OrderNumber == orderNumber, cancellationToken);
     }
+
+    public async Task<Dictionary<string, decimal>> GetOrderedQuantitiesAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(order => order.Status == PurchaseOrderStatus.Draft || order.Status == PurchaseOrderStatus.InTransit)
+            .Include(order => order.Lines)
+            .SelectMany(order => order.Lines)
+            .GroupBy(line => line.MaterialId)
+            .ToDictionaryAsync(group => group.Key, group => group.Sum(line => line.Quantity), cancellationToken);
+    }
 }
