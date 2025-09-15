@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Transport.UseCases;
+using Anela.Heblo.Application.Features.Transport.UseCases.UpdateTransportBoxDescription;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -141,6 +142,26 @@ public class TransportBoxController : ControllerBase
         {
             return BadRequest(response);
         }
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Update transport box description/note
+    /// </summary>
+    [HttpPut("{id:int}/description")]
+    public async Task<ActionResult<UpdateTransportBoxDescriptionResponse>> UpdateTransportBoxDescription(
+        int id,
+        [FromBody] UpdateTransportBoxDescriptionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        request.BoxId = id; // Ensure consistency
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
         return Ok(response);
     }
 

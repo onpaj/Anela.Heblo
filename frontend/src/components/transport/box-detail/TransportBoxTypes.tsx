@@ -22,6 +22,7 @@ export interface TransportBoxInfoProps {
   isDescriptionChanged: boolean;
   isFormEditable: (fieldType: "items" | "notes" | "boxNumber") => boolean;
   formatDate: (dateString: string | Date | undefined) => string;
+  handleSaveNote: () => void;
 }
 
 export interface TransportBoxItemsProps {

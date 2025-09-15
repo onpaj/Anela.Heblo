@@ -97,10 +97,16 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   // Check if form fields should be editable
   const isFormEditable = (fieldType: "items" | "notes" | "boxNumber") => {
     const state = boxData?.transportBox?.state;
+    
+    // Notes can always be edited regardless of box state
+    if (fieldType === "notes") {
+      return true;
+    }
+    
     if (state === "New") {
       return fieldType === "boxNumber";
     } else if (state === "Opened") {
-      return fieldType === "items" || fieldType === "notes";
+      return fieldType === "items";
     }
     return false;
   };
@@ -291,6 +297,43 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   const handleQuickAddSuccess = async () => {
     await refetch();
     setIsQuickAddModalOpen(false);
+  };
+
+  // Handle save note/description independently
+  const handleSaveNote = async () => {
+    if (!boxId || !isDescriptionChanged) return;
+
+    try {
+      const { getAuthenticatedApiClient } = await import("../../api/client");
+      const { UpdateTransportBoxDescriptionRequest } = await import(
+        "../../api/generated/api-client"
+      );
+
+      const apiClient = await getAuthenticatedApiClient();
+      const request = new UpdateTransportBoxDescriptionRequest({
+        description: descriptionInput,
+      });
+
+      const response = await apiClient.transportBox_UpdateTransportBoxDescription(
+        boxId,
+        request
+      );
+
+      if (response.success) {
+        // Clear changed flags and refresh data
+        setIsDescriptionChanged(false);
+        await refetch();
+        // Success - no toast needed as per existing pattern
+      }
+      // If response.success is false, the global error handler will show a toast
+    } catch (error) {
+      console.error("Error saving description:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Neočekávaná chyba při ukládání poznámky";
+      showError("Chyba při ukládání poznámky", errorMessage);
+    }
   };
 
   // Handle state change - convert string state to enum
@@ -509,6 +552,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                           isDescriptionChanged={isDescriptionChanged}
                           isFormEditable={isFormEditable}
                           formatDate={formatDate}
+                          handleSaveNote={handleSaveNote}
                         />
 
                         {/* Items directly below - no extra container */}
