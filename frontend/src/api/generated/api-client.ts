@@ -4541,6 +4541,7 @@ export class StockDto implements IStockDto {
     erp?: number;
     transport?: number;
     reserve?: number;
+    ordered?: number;
     available?: number;
 
     constructor(data?: IStockDto) {
@@ -4558,6 +4559,7 @@ export class StockDto implements IStockDto {
             this.erp = _data["erp"];
             this.transport = _data["transport"];
             this.reserve = _data["reserve"];
+            this.ordered = _data["ordered"];
             this.available = _data["available"];
         }
     }
@@ -4575,6 +4577,7 @@ export class StockDto implements IStockDto {
         data["erp"] = this.erp;
         data["transport"] = this.transport;
         data["reserve"] = this.reserve;
+        data["ordered"] = this.ordered;
         data["available"] = this.available;
         return data;
     }
@@ -4585,6 +4588,7 @@ export interface IStockDto {
     erp?: number;
     transport?: number;
     reserve?: number;
+    ordered?: number;
     available?: number;
 }
 

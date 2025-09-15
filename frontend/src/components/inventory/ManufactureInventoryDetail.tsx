@@ -267,6 +267,18 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
             </h4>
           </div>
 
+          {/* Warning for pending orders */}
+          {effectiveItem?.stock?.ordered && effectiveItem.stock.ordered > 0 && (
+            <div className="px-6 py-3 bg-red-600 border-b border-red-700">
+              <div className="flex items-center justify-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-white flex-shrink-0" />
+                <div className="text-white text-center font-medium">
+                  <strong>Upozornění:</strong> Tento produkt je součástí nákupní objednávky (objednané množství: {effectiveItem.stock.ordered.toFixed(2)})
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Tab Content */}
           {activeTab === 'inventory' ? (
             <div className="flex flex-col lg:flex-row min-h-[500px]">

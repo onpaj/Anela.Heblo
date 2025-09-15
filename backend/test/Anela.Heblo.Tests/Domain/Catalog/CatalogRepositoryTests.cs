@@ -12,6 +12,7 @@ using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Purchase;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,7 @@ public class CatalogRepositoryTests
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
@@ -62,6 +64,7 @@ public class CatalogRepositoryTests
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
@@ -116,6 +119,7 @@ public class CatalogRepositoryTests
             _transportBoxRepositoryMock.Object,
             _stockTakingRepositoryMock.Object,
             _manufactureRepositoryMock.Object,
+            _purchaseOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureCostCalculationServiceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
