@@ -361,6 +361,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Previous State Button */}
+            {order && order.state !== ManufactureOrderState.Cancelled && currentStateTransitions.previous !== null && (
+              <button
+                onClick={() => handleStateChange(currentStateTransitions.previous!)}
+                disabled={updateOrderStatusMutation.isPending}
+                className="flex items-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-gray-500 hover:border-gray-600"
+                title={`Zpět na: ${getStateLabel(currentStateTransitions.previous!)}`}
+              >
+                {updateOrderStatusMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                )}
+                {getStateLabel(currentStateTransitions.previous!)}
+              </button>
+            )}
+            
             {/* Current State Display - Always visible */}
             {order && order.state !== undefined && (
               <div className="flex items-center px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
@@ -370,43 +387,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </div>
             )}
             
-            {/* State Change Buttons - Only for non-cancelled orders */}
-            {order && order.state !== ManufactureOrderState.Cancelled && (
-              <>
-                {currentStateTransitions.previous !== null && (
-                  <button
-                    onClick={() => handleStateChange(currentStateTransitions.previous!)}
-                    disabled={updateOrderStatusMutation.isPending}
-                    className="flex items-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-gray-500 hover:border-gray-600"
-                    title={`Zpět na: ${getStateLabel(currentStateTransitions.previous!)}`}
-                  >
-                    {updateOrderStatusMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                    )}
-                    {getStateLabel(currentStateTransitions.previous!)}
-                  </button>
+            {/* Next State Button */}
+            {order && order.state !== ManufactureOrderState.Cancelled && currentStateTransitions.next !== null && (
+              <button
+                onClick={() => handleStateChange(currentStateTransitions.next!)}
+                disabled={updateOrderStatusMutation.isPending}
+                className="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-indigo-600 hover:border-indigo-700"
+                title={`Pokračovat na: ${getStateLabel(currentStateTransitions.next!)}`}
+              >
+                {updateOrderStatusMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <>
+                    {getStateLabel(currentStateTransitions.next!)}
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </>
                 )}
-                
-                {currentStateTransitions.next !== null && (
-                  <button
-                    onClick={() => handleStateChange(currentStateTransitions.next!)}
-                    disabled={updateOrderStatusMutation.isPending}
-                    className="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-indigo-600 hover:border-indigo-700"
-                    title={`Pokračovat na: ${getStateLabel(currentStateTransitions.next!)}`}
-                  >
-                    {updateOrderStatusMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <>
-                        {getStateLabel(currentStateTransitions.next!)}
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </>
-                    )}
-                  </button>
-                )}
-              </>
+              </button>
             )}
             {onEdit && order && (
               <button
@@ -659,7 +656,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                   type="number"
                                   value={editableSemiProductQuantity}
                                   onChange={(e) => setEditableSemiProductQuantity(e.target.value)}
-                                  className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-20 text-center"
+                                  className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-32 text-center"
                                   min="0"
                                   step="1"
                                 />
