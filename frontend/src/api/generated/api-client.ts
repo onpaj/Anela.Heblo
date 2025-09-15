@@ -3722,6 +3722,47 @@ export class ApiClient {
         }
         return Promise.resolve<RemoveItemFromBoxResponse>(null as any);
     }
+
+    transportBox_UpdateTransportBoxDescription(id: number, request: UpdateTransportBoxDescriptionRequest): Promise<UpdateTransportBoxDescriptionResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/description";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_UpdateTransportBoxDescription(_response);
+        });
+    }
+
+    protected processTransportBox_UpdateTransportBoxDescription(response: Response): Promise<UpdateTransportBoxDescriptionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateTransportBoxDescriptionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateTransportBoxDescriptionResponse>(null as any);
+    }
 }
 
 export abstract class BaseResponse implements IBaseResponse {
@@ -12885,6 +12926,110 @@ export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveIt
 
 export interface IRemoveItemFromBoxResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
+}
+
+export class UpdateTransportBoxDescriptionResponse implements IUpdateTransportBoxDescriptionResponse {
+    success?: boolean;
+    errorCode?: string | undefined;
+    errorMessage?: string | undefined;
+    params?: { [key: string]: string; } | undefined;
+    updatedBox?: GetTransportBoxByIdResponse | undefined;
+
+    constructor(data?: IUpdateTransportBoxDescriptionResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.errorCode = _data["errorCode"];
+            this.errorMessage = _data["errorMessage"];
+            if (_data["params"]) {
+                this.params = {} as any;
+                for (let key in _data["params"]) {
+                    if (_data["params"].hasOwnProperty(key))
+                        (<any>this.params)![key] = _data["params"][key];
+                }
+            }
+            this.updatedBox = _data["updatedBox"] ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateTransportBoxDescriptionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTransportBoxDescriptionResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["errorCode"] = this.errorCode;
+        data["errorMessage"] = this.errorMessage;
+        if (this.params) {
+            data["params"] = {};
+            for (let key in this.params) {
+                if (this.params.hasOwnProperty(key))
+                    (<any>data["params"])[key] = (<any>this.params)[key];
+            }
+        }
+        data["updatedBox"] = this.updatedBox ? this.updatedBox.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateTransportBoxDescriptionResponse {
+    success?: boolean;
+    errorCode?: string | undefined;
+    errorMessage?: string | undefined;
+    params?: { [key: string]: string; } | undefined;
+    updatedBox?: GetTransportBoxByIdResponse | undefined;
+}
+
+export class UpdateTransportBoxDescriptionRequest implements IUpdateTransportBoxDescriptionRequest {
+    boxId?: number;
+    description?: string | undefined;
+
+    constructor(data?: IUpdateTransportBoxDescriptionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): UpdateTransportBoxDescriptionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTransportBoxDescriptionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IUpdateTransportBoxDescriptionRequest {
+    boxId?: number;
+    description?: string | undefined;
 }
 
 function formatDate(d: Date) {

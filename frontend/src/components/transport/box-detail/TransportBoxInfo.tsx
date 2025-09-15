@@ -10,6 +10,7 @@ const TransportBoxInfo: React.FC<TransportBoxInfoProps> = ({
   isDescriptionChanged,
   isFormEditable,
   formatDate,
+  handleSaveNote,
 }) => {
   return (
     <div className="bg-gray-50 p-3 rounded-lg">
@@ -76,9 +77,19 @@ const TransportBoxInfo: React.FC<TransportBoxInfoProps> = ({
 
       {/* Notes/Description Section */}
       <div className="mt-3 border-t border-gray-200 pt-3">
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          Poznámka k boxu
-        </label>
+        <div className="flex justify-between items-center mb-1">
+          <label className="block text-xs font-medium text-gray-600">
+            Poznámka k boxu
+          </label>
+          {isDescriptionChanged && (
+            <button
+              onClick={handleSaveNote}
+              className="px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              Uložit poznámku
+            </button>
+          )}
+        </div>
         {isFormEditable("notes") ? (
           <>
             <textarea
