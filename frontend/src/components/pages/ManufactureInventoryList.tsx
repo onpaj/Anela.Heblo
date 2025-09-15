@@ -17,7 +17,7 @@ import {
 } from "../../api/hooks/useCatalog";
 import { useManufactureInventoryQuery } from "../../api/hooks/useManufactureInventory";
 import CatalogDetail from "./CatalogDetail";
-import ManufactureInventoryModal from "../inventory/ManufactureInventoryModal";
+import ManufactureInventoryModal from "../inventory/ManufactureInventoryDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 // Filter for manufacture inventory - only show materials
