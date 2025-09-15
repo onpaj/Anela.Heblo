@@ -122,4 +122,18 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
         return $"{prefix}{nextSequence:D3}"; // Format as 001, 002, etc.
     }
+
+    public async Task<List<ManufactureOrder>> GetOrdersForDateRangeAsync(DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
+    {
+        return await _context.ManufactureOrders
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
+            .Include(x => x.Notes)
+            .Include(x => x.AuditLog)
+            .Where(x => (x.SemiProductPlannedDate >= startDate && x.SemiProductPlannedDate <= endDate) ||
+                       (x.ProductPlannedDate >= startDate && x.ProductPlannedDate <= endDate))
+            .OrderBy(x => x.SemiProductPlannedDate)
+            .ThenBy(x => x.ProductPlannedDate)
+            .ToListAsync(cancellationToken);
+    }
 }

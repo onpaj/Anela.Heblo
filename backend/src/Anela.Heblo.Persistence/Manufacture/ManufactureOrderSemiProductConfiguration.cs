@@ -28,6 +28,10 @@ public class ManufactureOrderSemiProductConfiguration : IEntityTypeConfiguration
             .IsRequired()
             .HasPrecision(18, 4);
 
+        builder.Property(x => x.BatchMultiplier)
+            .IsRequired()
+            .HasPrecision(18, 6);
+
         builder.Property(x => x.LotNumber)
             .HasMaxLength(100)
             .IsRequired(false);

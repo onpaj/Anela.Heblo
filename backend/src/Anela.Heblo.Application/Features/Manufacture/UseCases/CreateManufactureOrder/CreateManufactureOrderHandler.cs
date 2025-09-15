@@ -47,7 +47,8 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             ProductCode = request.ProductCode,
             ProductName = request.ProductName,
             PlannedQuantity = (decimal)request.NewBatchSize,
-            ActualQuantity = (decimal)request.NewBatchSize
+            ActualQuantity = (decimal)request.NewBatchSize,
+            BatchMultiplier = (decimal)request.ScaleFactor
         };
         order.SemiProduct = semiProduct;
 

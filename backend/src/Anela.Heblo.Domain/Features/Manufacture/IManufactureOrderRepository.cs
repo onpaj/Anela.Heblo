@@ -17,4 +17,5 @@ public interface IManufactureOrderRepository
     Task DeleteOrderAsync(int id, CancellationToken cancellationToken = default);
 
     Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken = default);
+    Task<List<ManufactureOrder>> GetOrdersForDateRangeAsync(DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
 }

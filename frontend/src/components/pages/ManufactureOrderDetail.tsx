@@ -20,6 +20,7 @@ import {
   XCircle,
   Hash,
   CalendarClock,
+  Ban,
 } from "lucide-react";
 import {
   useManufactureOrderDetailQuery,
@@ -27,6 +28,7 @@ import {
   useUpdateManufactureOrderStatus,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   UpdateManufactureOrderRequest,
   UpdateManufactureOrderStatusRequest,
@@ -61,6 +63,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   // Determine if this is modal mode (has propOrderId) or page mode (uses URL param)
   const isModalMode = propOrderId !== undefined;
@@ -69,12 +72,20 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   
   // For page mode, create a close handler that navigates back
   const handleClose = useCallback(() => {
+    // Invalidate queries to refresh data in lists and calendar
+    queryClient.invalidateQueries({
+      queryKey: ["manufacture-orders"]
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["manufactureOrders", "calendar"]
+    });
+
     if (onClose) {
       onClose();
     } else {
       navigate("/manufacturing/orders");
     }
-  }, [onClose, navigate]);
+  }, [onClose, navigate, queryClient]);
   
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -116,6 +127,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableProductQuantities, setEditableProductQuantities] = useState<Record<number, string>>({});
   const [editableLotNumber, setEditableLotNumber] = useState("");
   const [editableExpirationDate, setEditableExpirationDate] = useState("");
+  // Confirmation dialog state
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   // Fetch order details
   const {
@@ -310,6 +323,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       if (newNote.trim()) {
         setNewNote("");
       }
+      
+      // Close the card after successful save
+      handleClose();
     } catch (error) {
       console.error("Error updating order:", error);
       // TODO: Show error notification to user
@@ -345,14 +361,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {/* State Change Buttons */}
+            {/* Current State Display - Always visible */}
+            {order && order.state !== undefined && (
+              <div className="flex items-center px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${stateColors[order.state]}`}>
+                  {getStateLabel(order.state)}
+                </span>
+              </div>
+            )}
+            
+            {/* State Change Buttons - Only for non-cancelled orders */}
             {order && order.state !== ManufactureOrderState.Cancelled && (
               <>
                 {currentStateTransitions.previous !== null && (
                   <button
                     onClick={() => handleStateChange(currentStateTransitions.previous!)}
                     disabled={updateOrderStatusMutation.isPending}
-                    className="flex items-center px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-gray-500 hover:border-gray-600"
                     title={`Zpět na: ${getStateLabel(currentStateTransitions.previous!)}`}
                   >
                     {updateOrderStatusMutation.isPending ? (
@@ -364,20 +389,11 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                   </button>
                 )}
                 
-                {/* Current State Display */}
-                {order.state !== undefined && (
-                  <div className="flex items-center px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${stateColors[order.state]}`}>
-                      {getStateLabel(order.state)}
-                    </span>
-                  </div>
-                )}
-                
                 {currentStateTransitions.next !== null && (
                   <button
                     onClick={() => handleStateChange(currentStateTransitions.next!)}
                     disabled={updateOrderStatusMutation.isPending}
-                    className="flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-2 border-indigo-600 hover:border-indigo-700"
                     title={`Pokračovat na: ${getStateLabel(currentStateTransitions.next!)}`}
                   >
                     {updateOrderStatusMutation.isPending ? (
@@ -489,19 +505,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <Factory className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-500">Stav:</span>
-                            </div>
-                            {order.state !== undefined && (
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stateColors[order.state]}`}
-                              >
-                                {getStateLabel(order.state)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
                               <User className="h-4 w-4 text-gray-400 mr-2" />
                               <span className="text-sm text-gray-500">Odpovědná osoba:</span>
                             </div>
@@ -519,6 +522,29 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                               </span>
                             )}
                           </div>
+                          {/* Planned Dates Section */}
+                       
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                                <span className="text-sm text-gray-500">Datum:</span>
+                              </div>
+                              {canEditFields ? (
+                                <input
+                                  type="date"
+                                  value={editableSemiProductDate}
+                                  onChange={(e) => setEditableSemiProductDate(e.target.value)}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1"
+                                />
+                              ) : (
+                                <span className="text-sm text-gray-900">
+                                  {order.semiProductPlannedDate ? formatDate(order.semiProductPlannedDate) : "-"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        <div className="mt-3 pt-3 border-t border-gray-200">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <Hash className="h-4 w-4 text-gray-400 mr-2" />
@@ -557,48 +583,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                             )}
                           </div>
                         </div>
-
-                        {/* Planned Dates Section */}
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-500">Polotovary:</span>
-                              </div>
-                              {canEditFields ? (
-                                <input
-                                  type="date"
-                                  value={editableSemiProductDate}
-                                  onChange={(e) => setEditableSemiProductDate(e.target.value)}
-                                  className="text-sm border border-gray-300 rounded px-2 py-1"
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-900">
-                                  {order.semiProductPlannedDate ? formatDate(order.semiProductPlannedDate) : "-"}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-500">Produkty:</span>
-                              </div>
-                              {canEditFields ? (
-                                <input
-                                  type="date"
-                                  value={editableProductDate}
-                                  onChange={(e) => setEditableProductDate(e.target.value)}
-                                  className="text-sm border border-gray-300 rounded px-2 py-1"
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-900">
-                                  {order.productPlannedDate ? formatDate(order.productPlannedDate) : "-"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
                         </div>
+
+
+                        
 
                         {/* Latest Note */}
                         <div className="mt-3 pt-3 border-t border-gray-200">
@@ -837,7 +825,24 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
         {/* Separator and Action Buttons */}
         <div className="border-t border-gray-200 p-4 flex-shrink-0">
-          <div className="flex items-center justify-end space-x-2">
+          <div className="flex items-center justify-between">
+            {/* Cancel button on the left */}
+            <div>
+              {order && order.state !== ManufactureOrderState.Completed && order.state !== ManufactureOrderState.Cancelled && (
+                <button
+                  onClick={() => setShowCancelConfirmation(true)}
+                  disabled={updateOrderStatusMutation.isPending}
+                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Stornovat zakázku"
+                >
+                  <Ban className="h-4 w-4 mr-1" />
+                  Stornovat
+                </button>
+              )}
+            </div>
+            
+            {/* Close and Save buttons on the right */}
+            <div className="flex items-center space-x-2">
             <button
               onClick={handleClose}
               className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
@@ -857,8 +862,53 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               )}
               Save
             </button>
+            </div>
           </div>
         </div>
+
+        {/* Cancel Confirmation Dialog */}
+        {showCancelConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <AlertCircle className="h-6 w-6 text-red-600 mr-3" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Stornovat zakázku
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  Opravdu chcete stornovat tuto výrobní zakázku? Tato akce je nevratná.
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowCancelConfirmation(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowCancelConfirmation(false);
+                      await handleStateChange(ManufactureOrderState.Cancelled);
+                    }}
+                    disabled={updateOrderStatusMutation.isPending}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updateOrderStatusMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin inline" />
+                        Stornuji...
+                      </>
+                    ) : (
+                      'Stornovat zakázku'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 

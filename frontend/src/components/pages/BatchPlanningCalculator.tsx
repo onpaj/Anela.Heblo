@@ -324,8 +324,8 @@ const BatchPlanningCalculator: React.FC = () => {
           productName: p.productName,
           plannedQuantity: p.plannedQuantity
         })),
-        semiProductPlannedDate: tomorrow as any,
-        productPlannedDate: dayAfterTomorrow as any,
+        semiProductPlannedDate: tomorrow,
+        productPlannedDate: dayAfterTomorrow,
         responsiblePerson: undefined
       });
 

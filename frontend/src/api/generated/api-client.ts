@@ -2463,14 +2463,14 @@ export class ApiClient {
     protected processManufactureOrder_CreateOrder(response: Response): Promise<CreateManufactureOrderResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
+        if (status === 201) {
             return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = CreateManufactureOrderResponse.fromJS(resultData200);
-            return result200;
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateManufactureOrderResponse.fromJS(resultData201);
+            return result201;
             });
-        } else if (status !== 200 && status !== 204) {
+        } else if (status !== 201 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
@@ -2595,6 +2595,48 @@ export class ApiClient {
             });
         }
         return Promise.resolve<UpdateManufactureOrderStatusResponse>(null as any);
+    }
+
+    manufactureOrder_GetCalendarView(startDate: Date | undefined, endDate: Date | undefined): Promise<GetCalendarViewResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/calendar?";
+        if (startDate === null)
+            throw new Error("The parameter 'startDate' cannot be null.");
+        else if (startDate !== undefined)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate === null)
+            throw new Error("The parameter 'endDate' cannot be null.");
+        else if (endDate !== undefined)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_GetCalendarView(_response);
+        });
+    }
+
+    protected processManufactureOrder_GetCalendarView(response: Response): Promise<GetCalendarViewResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCalendarViewResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCalendarViewResponse>(null as any);
     }
 
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
@@ -8475,6 +8517,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
     productName?: string;
     plannedQuantity?: number;
     actualQuantity?: number;
+    batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
 
@@ -8494,6 +8537,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
             this.productName = _data["productName"];
             this.plannedQuantity = _data["plannedQuantity"];
             this.actualQuantity = _data["actualQuantity"];
+            this.batchMultiplier = _data["batchMultiplier"];
             this.lotNumber = _data["lotNumber"];
             this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
         }
@@ -8513,6 +8557,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
         data["productName"] = this.productName;
         data["plannedQuantity"] = this.plannedQuantity;
         data["actualQuantity"] = this.actualQuantity;
+        data["batchMultiplier"] = this.batchMultiplier;
         data["lotNumber"] = this.lotNumber;
         data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
         return data;
@@ -8525,6 +8570,7 @@ export interface IManufactureOrderSemiProductDto {
     productName?: string;
     plannedQuantity?: number;
     actualQuantity?: number;
+    batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
 }
@@ -9428,6 +9474,112 @@ export interface IUpdateManufactureOrderStatusRequest {
     id: number;
     newState: ManufactureOrderState;
     changeReason?: string | undefined;
+}
+
+export class GetCalendarViewResponse extends BaseResponse implements IGetCalendarViewResponse {
+    events?: CalendarEventDto[];
+
+    constructor(data?: IGetCalendarViewResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["events"])) {
+                this.events = [] as any;
+                for (let item of _data["events"])
+                    this.events!.push(CalendarEventDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetCalendarViewResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetCalendarViewResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.events)) {
+            data["events"] = [];
+            for (let item of this.events)
+                data["events"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetCalendarViewResponse extends IBaseResponse {
+    events?: CalendarEventDto[];
+}
+
+export class CalendarEventDto implements ICalendarEventDto {
+    id?: number;
+    orderNumber?: string;
+    title?: string;
+    date?: Date;
+    type?: CalendarEventType;
+    state?: ManufactureOrderState;
+    responsiblePerson?: string | undefined;
+
+    constructor(data?: ICalendarEventDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.orderNumber = _data["orderNumber"];
+            this.title = _data["title"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.type = _data["type"];
+            this.state = _data["state"];
+            this.responsiblePerson = _data["responsiblePerson"];
+        }
+    }
+
+    static fromJS(data: any): CalendarEventDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalendarEventDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["orderNumber"] = this.orderNumber;
+        data["title"] = this.title;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["type"] = this.type;
+        data["state"] = this.state;
+        data["responsiblePerson"] = this.responsiblePerson;
+        return data;
+    }
+}
+
+export interface ICalendarEventDto {
+    id?: number;
+    orderNumber?: string;
+    title?: string;
+    date?: Date;
+    type?: CalendarEventType;
+    state?: ManufactureOrderState;
+    responsiblePerson?: string | undefined;
+}
+
+export enum CalendarEventType {
+    SemiProduct = "SemiProduct",
+    Product = "Product",
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

@@ -9,6 +9,8 @@ import {
   Calendar,
   User,
   Clock,
+  Grid,
+  CalendarDays,
 } from "lucide-react";
 import {
   useManufactureOrdersQuery,
@@ -18,6 +20,7 @@ import {
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
+import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
 
 
 const stateColors: Record<ManufactureOrderState, string> = {
@@ -55,6 +58,9 @@ const ManufactureOrderList: React.FC = () => {
   // Modal states
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
 
   // Build request object
   const request: GetManufactureOrdersRequest = {
@@ -130,6 +136,12 @@ const ManufactureOrderList: React.FC = () => {
     setProductCodeInput(productCode || "");
   };
 
+  // Handle calendar event click (open order detail)
+  const handleCalendarEventClick = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setIsDetailModalOpen(true);
+  };
+
 
   // Format datetime for display
   const formatDateTime = (date: Date | string | undefined) => {
@@ -167,9 +179,40 @@ const ManufactureOrderList: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">
-          Výrobní zakázky
-        </h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-lg font-semibold text-gray-900">
+            Výrobní zakázky
+          </h1>
+          
+          {/* View Toggle */}
+          <div className="flex rounded-lg border border-gray-300 p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Zobrazit jako tabulka"
+            >
+              <Grid className="h-4 w-4 mr-1.5" />
+              Tabulka
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'calendar'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Zobrazit jako kalendář"
+            >
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Kalendář
+            </button>
+          </div>
+        </div>
+        
         <button
           onClick={handleCreateOrder}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2"
@@ -305,10 +348,14 @@ const ManufactureOrderList: React.FC = () => {
         </div>
       </div>
 
-      {/* Table - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+      {/* Content - Grid or Calendar */}
+      <div className="flex-1">
+        {viewMode === 'calendar' ? (
+          <ManufactureOrderCalendar onEventClick={handleCalendarEventClick} />
+        ) : (
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th
@@ -386,13 +433,15 @@ const ManufactureOrderList: React.FC = () => {
             </tbody>
           </table>
 
-          {orders.length === 0 && (
-            <div className="text-center py-8">
-              <Clock className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
+              {orders.length === 0 && (
+                <div className="text-center py-8">
+                  <Clock className="mx-auto h-12 w-12 text-gray-300" />
+                  <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ManufactureOrderDetail Modal */}

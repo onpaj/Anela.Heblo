@@ -118,6 +118,38 @@ public class CreateManufactureOrderHandlerTests
         capturedOrder.SemiProduct.ProductName.Should().Be(ValidProductName);
         capturedOrder.SemiProduct.PlannedQuantity.Should().Be((decimal)ValidNewBatchSize);
         capturedOrder.SemiProduct.ActualQuantity.Should().Be((decimal)ValidNewBatchSize);
+        capturedOrder.SemiProduct.BatchMultiplier.Should().Be((decimal)ValidScaleFactor);
+    }
+
+    [Theory]
+    [InlineData(1.5, 1.5)]
+    [InlineData(2.0, 2.0)]
+    [InlineData(0.75, 0.75)]
+    [InlineData(3.333, 3.333)]
+    public async Task Handle_ShouldSetCorrectBatchMultiplierFromScaleFactor(double scaleFactor, double expectedBatchMultiplier)
+    {
+        var request = CreateValidRequest();
+        request.ScaleFactor = scaleFactor;
+        ManufactureOrder? capturedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            {
+                capturedOrder = order;
+                order.Id = 1;
+                return order;
+            });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        capturedOrder.Should().NotBeNull();
+        capturedOrder!.SemiProduct.Should().NotBeNull();
+        capturedOrder.SemiProduct!.BatchMultiplier.Should().Be((decimal)expectedBatchMultiplier);
     }
 
     [Fact]

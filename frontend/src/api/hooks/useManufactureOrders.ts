@@ -9,6 +9,9 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
+  GetCalendarViewResponse,
+  CalendarEventDto,
+  CalendarEventType,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -147,3 +150,24 @@ export type {
 export {
   ManufactureOrderState,
 } from "../generated/api-client";
+
+// Re-export calendar types from generated client
+export type { CalendarEventDto } from "../generated/api-client";
+export { CalendarEventType } from "../generated/api-client";
+
+// Calendar view query hook using generated API client
+export const useManufactureOrderCalendarQuery = (
+  startDate: Date,
+  endDate: Date,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ["manufactureOrders", "calendar", startDate.toISOString(), endDate.toISOString()],
+    queryFn: async () => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_GetCalendarView(startDate, endDate);
+    },
+    enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};

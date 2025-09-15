@@ -36,6 +36,7 @@ public class ManufactureOrderSemiProductDto
     public string ProductName { get; set; } = null!;
     public decimal PlannedQuantity { get; set; }
     public decimal ActualQuantity { get; set; }
+    public decimal BatchMultiplier { get; set; } // Multiplikátor z batch calculatoru
     public string? LotNumber { get; set; } // Šarže
     public DateOnly? ExpirationDate { get; set; } // Expirace
 }
