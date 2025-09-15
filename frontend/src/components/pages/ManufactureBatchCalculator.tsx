@@ -1,11 +1,9 @@
 import React, { useState } from "react";
-import { Calculator, RotateCcw, Package, Beaker, FileText } from "lucide-react";
+import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
-import CreateManufactureOrderModal from "../modals/CreateManufactureOrderModal";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
-import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
 import { useNavigate } from "react-router-dom";
 
 type CalculationMode = "batch-size" | "ingredient";
@@ -35,9 +33,6 @@ const ManufactureBatchCalculator: React.FC = () => {
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItemDto | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
 
-  // Modal state for create manufacture order
-  const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false);
-
   const {
     getBatchTemplate,
     calculateBySize,
@@ -45,7 +40,6 @@ const ManufactureBatchCalculator: React.FC = () => {
     isLoading,
   } = useManufactureBatch();
 
-  const createOrderMutation = useCreateManufactureOrder();
   const navigate = useNavigate();
 
   const handleProductSelect = async (product: CatalogItemDto | null) => {
@@ -59,6 +53,25 @@ const ManufactureBatchCalculator: React.FC = () => {
         const templateData = await getBatchTemplate(product.productCode || "");
         if (templateData.success) {
           setTemplate(templateData);
+          // Set desired batch size to original batch size when loading recipe
+          const originalBatchSize = templateData.originalBatchSize?.toString() || "";
+          setDesiredBatchSize(originalBatchSize);
+          
+          // Automatically calculate with original batch size
+          if (templateData.originalBatchSize) {
+            try {
+              const result = await calculateBySize(
+                product.productCode || "",
+                templateData.originalBatchSize,
+              );
+
+              if (result.success) {
+                setCalculationResult(result);
+              }
+            } catch (error) {
+              console.error("Error calculating by size:", error);
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading template:", error);
@@ -104,9 +117,10 @@ const ManufactureBatchCalculator: React.FC = () => {
 
   const resetCalculation = () => {
     setCalculationResult(null);
-    setDesiredBatchSize("");
     setDesiredIngredientAmount("");
     setSelectedIngredientCode("");
+    // Reset desired batch size to original batch size from template
+    setDesiredBatchSize(template?.originalBatchSize?.toString() || "");
   };
 
   const handleIngredientClick = (productCode: string, productName: string) => {
@@ -126,23 +140,15 @@ const ManufactureBatchCalculator: React.FC = () => {
     setSelectedCatalogItem(null);
   };
 
-  const handleCreateOrder = () => {
-    if (calculationResult && isCalculatedBatchSizeResponse(calculationResult)) {
-      setIsCreateOrderModalOpen(true);
-    }
-  };
-
-  const handleCreateOrderSubmit = async (request: any) => {
-    try {
-      const response = await createOrderMutation.mutateAsync(request);
-      if (response.success) {
-        setIsCreateOrderModalOpen(false);
-        // Navigate to the created order detail
-        navigate(`/manufacturing/orders/${response.id}`);
-      }
-    } catch (error) {
-      // Error is handled by the modal
-      throw error;
+  const handleGoToBatchPlanning = () => {
+    if (calculationResult && isCalculatedBatchSizeResponse(calculationResult) && selectedProduct && calculationResult.newBatchSize) {
+      // Navigate to batch planning with URL parameters
+      const params = new URLSearchParams({
+        productCode: selectedProduct.productCode || '',
+        productName: selectedProduct.productName || '',
+        batchSize: calculationResult.newBatchSize.toString()
+      });
+      navigate(`/manufacturing/batch-planning?${params.toString()}`);
     }
   };
 
@@ -395,15 +401,14 @@ const ManufactureBatchCalculator: React.FC = () => {
                 Přepočítaný recept
               </h3>
               
-              {/* Create Order Button */}
+              {/* Go to Batch Planning Button */}
               {isCalculatedBatchSizeResponse(calculationResult) && (
                 <button
-                  onClick={handleCreateOrder}
-                  disabled={createOrderMutation.isPending}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 flex items-center gap-2"
+                  onClick={handleGoToBatchPlanning}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
                 >
-                  <FileText className="h-4 w-4" />
-                  Vytvořit zakázku
+                  <ArrowRight className="h-4 w-4" />
+                  Přejít na plánování výroby
                 </button>
               )}
             </div>
@@ -562,16 +567,6 @@ const ManufactureBatchCalculator: React.FC = () => {
         defaultTab="basic"
       />
 
-      {/* Create Manufacture Order Modal */}
-      {calculationResult && isCalculatedBatchSizeResponse(calculationResult) && (
-        <CreateManufactureOrderModal
-          isOpen={isCreateOrderModalOpen}
-          onClose={() => setIsCreateOrderModalOpen(false)}
-          onSubmit={handleCreateOrderSubmit}
-          batchResult={calculationResult}
-          isLoading={createOrderMutation.isPending}
-        />
-      )}
     </div>
   );
 };

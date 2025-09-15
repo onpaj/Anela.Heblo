@@ -11,7 +11,7 @@ import PurchaseStockAnalysis from "./components/pages/PurchaseStockAnalysis";
 import ManufacturingStockAnalysis from "./components/pages/ManufacturingStockAnalysis";
 import ManufactureOutput from "./components/pages/ManufactureOutput";
 import ManufactureBatchCalculator from "./components/pages/ManufactureBatchCalculator";
-import BatchPlanningCalculator from "./components/pages/BatchPlanningCalculator";
+import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning";
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
