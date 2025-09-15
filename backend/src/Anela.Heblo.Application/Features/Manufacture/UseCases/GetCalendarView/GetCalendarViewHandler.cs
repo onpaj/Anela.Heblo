@@ -43,11 +43,24 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                     {
                         Id = order.Id,
                         OrderNumber = order.OrderNumber,
-                        Title = $"{order.SemiProduct.ProductName.Replace(" - meziprodukt", "")}",
+                        Title = $"{order.SemiProduct?.ProductName?.Replace(" - meziprodukt", "") ?? order.OrderNumber}",
                         Date = order.SemiProductPlannedDate.ToDateTime(TimeOnly.MinValue),
                         Type = CalendarEventType.SemiProduct,
                         State = order.State,
-                        ResponsiblePerson = order.ResponsiblePerson
+                        ResponsiblePerson = order.ResponsiblePerson,
+                        SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto
+                        {
+                            ProductCode = order.SemiProduct.ProductCode,
+                            ProductName = order.SemiProduct.ProductName,
+                            PlannedQuantity = order.SemiProduct.PlannedQuantity,
+                            BatchMultiplier = order.SemiProduct.BatchMultiplier
+                        } : null,
+                        Products = order.Products?.Select(p => new CalendarEventProductDto
+                        {
+                            ProductCode = p.ProductCode,
+                            ProductName = p.ProductName,
+                            PlannedQuantity = p.PlannedQuantity
+                        }).ToList() ?? new List<CalendarEventProductDto>()
                     });
                 }
             }

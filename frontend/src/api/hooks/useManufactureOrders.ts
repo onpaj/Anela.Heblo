@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { ApiClient as GeneratedApiClient } from "../generated/api-client";
 import {
   ManufactureOrderState,
@@ -162,7 +162,7 @@ export const useManufactureOrderCalendarQuery = (
   enabled: boolean = true
 ) => {
   return useQuery({
-    queryKey: ["manufactureOrders", "calendar", startDate.toISOString(), endDate.toISOString()],
+    queryKey: [...QUERY_KEYS.manufactureOrders, "calendar", startDate.toISOString(), endDate.toISOString()],
     queryFn: async () => {
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_GetCalendarView(startDate, endDate);

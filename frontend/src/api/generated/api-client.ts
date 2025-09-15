@@ -2463,14 +2463,14 @@ export class ApiClient {
     protected processManufactureOrder_CreateOrder(response: Response): Promise<CreateManufactureOrderResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 201) {
+        if (status === 200) {
             return response.text().then((_responseText) => {
-            let result201: any = null;
-            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = CreateManufactureOrderResponse.fromJS(resultData201);
-            return result201;
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateManufactureOrderResponse.fromJS(resultData200);
+            return result200;
             });
-        } else if (status !== 201 && status !== 204) {
+        } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
@@ -9570,6 +9570,8 @@ export class CalendarEventDto implements ICalendarEventDto {
     type?: CalendarEventType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
+    semiProduct?: CalendarEventSemiProductDto | undefined;
+    products?: CalendarEventProductDto[];
 
     constructor(data?: ICalendarEventDto) {
         if (data) {
@@ -9589,6 +9591,12 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.type = _data["type"];
             this.state = _data["state"];
             this.responsiblePerson = _data["responsiblePerson"];
+            this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(CalendarEventProductDto.fromJS(item));
+            }
         }
     }
 
@@ -9608,6 +9616,12 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["type"] = this.type;
         data["state"] = this.state;
         data["responsiblePerson"] = this.responsiblePerson;
+        data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -9620,11 +9634,105 @@ export interface ICalendarEventDto {
     type?: CalendarEventType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
+    semiProduct?: CalendarEventSemiProductDto | undefined;
+    products?: CalendarEventProductDto[];
 }
 
 export enum CalendarEventType {
     SemiProduct = "SemiProduct",
     Product = "Product",
+}
+
+export class CalendarEventSemiProductDto implements ICalendarEventSemiProductDto {
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
+    batchMultiplier?: number;
+
+    constructor(data?: ICalendarEventSemiProductDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.plannedQuantity = _data["plannedQuantity"];
+            this.batchMultiplier = _data["batchMultiplier"];
+        }
+    }
+
+    static fromJS(data: any): CalendarEventSemiProductDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalendarEventSemiProductDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["plannedQuantity"] = this.plannedQuantity;
+        data["batchMultiplier"] = this.batchMultiplier;
+        return data;
+    }
+}
+
+export interface ICalendarEventSemiProductDto {
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
+    batchMultiplier?: number;
+}
+
+export class CalendarEventProductDto implements ICalendarEventProductDto {
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
+
+    constructor(data?: ICalendarEventProductDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.plannedQuantity = _data["plannedQuantity"];
+        }
+    }
+
+    static fromJS(data: any): CalendarEventProductDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CalendarEventProductDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["plannedQuantity"] = this.plannedQuantity;
+        return data;
+    }
+}
+
+export interface ICalendarEventProductDto {
+    productCode?: string;
+    productName?: string;
+    plannedQuantity?: number;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

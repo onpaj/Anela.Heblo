@@ -29,12 +29,10 @@ public class UpdateTransportBoxDescriptionHandler : IRequestHandler<UpdateTransp
             var box = await _repository.GetByIdWithDetailsAsync(request.BoxId);
             if (box == null)
             {
-                return new UpdateTransportBoxDescriptionResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.TransportBoxNotFound.ToString(),
-                    Params = new Dictionary<string, string>() { { nameof(request.BoxId), request.BoxId.ToString() } },
-                };
+                return new UpdateTransportBoxDescriptionResponse(
+                    ErrorCodes.TransportBoxNotFound,
+                    new Dictionary<string, string>() { { nameof(request.BoxId), request.BoxId.ToString() } }
+                );
             }
 
             // Update the description
@@ -52,19 +50,16 @@ public class UpdateTransportBoxDescriptionHandler : IRequestHandler<UpdateTransp
 
             return new UpdateTransportBoxDescriptionResponse
             {
-                Success = true,
                 UpdatedBox = updatedBox
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating description for transport box {BoxId}", request.BoxId);
-            return new UpdateTransportBoxDescriptionResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.TransportBoxStateChangeError.ToString(),
-                Params = new Dictionary<string, string> { { "boxId", request.BoxId.ToString() } }
-            };
+            return new UpdateTransportBoxDescriptionResponse(
+                ErrorCodes.TransportBoxStateChangeError,
+                new Dictionary<string, string> { { "boxId", request.BoxId.ToString() } }
+            );
         }
     }
 }

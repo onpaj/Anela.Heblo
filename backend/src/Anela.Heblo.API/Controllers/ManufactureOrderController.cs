@@ -53,7 +53,7 @@ public class ManufactureOrderController : BaseApiController
         
         if (response.Success)
         {
-            return StatusCode(201, response); // Return 201 Created instead of using Created() method
+            return Created($"/api/ManufactureOrder/{response.Id}", response);
         }
         
         return HandleResponse(response);

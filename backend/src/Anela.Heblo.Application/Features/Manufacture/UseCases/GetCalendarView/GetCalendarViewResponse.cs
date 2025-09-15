@@ -26,4 +26,23 @@ public class CalendarEventDto
     public CalendarEventType Type { get; set; }
     public ManufactureOrderState State { get; set; }
     public string? ResponsiblePerson { get; set; }
+    
+    // Extended information for detailed views
+    public CalendarEventSemiProductDto? SemiProduct { get; set; }
+    public List<CalendarEventProductDto> Products { get; set; } = new();
+}
+
+public class CalendarEventSemiProductDto
+{
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal PlannedQuantity { get; set; }
+    public decimal BatchMultiplier { get; set; }
+}
+
+public class CalendarEventProductDto
+{
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal PlannedQuantity { get; set; }
 }

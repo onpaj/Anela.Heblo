@@ -21,6 +21,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
+import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
 
 
 const stateColors: Record<ManufactureOrderState, string> = {
@@ -60,7 +61,7 @@ const ManufactureOrderList: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // View mode state
-  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar' | 'weekly'>('weekly');
 
   // Build request object
   const request: GetManufactureOrdersRequest = {
@@ -187,6 +188,30 @@ const ManufactureOrderList: React.FC = () => {
           {/* View Toggle */}
           <div className="flex rounded-lg border border-gray-300 p-1">
             <button
+              onClick={() => setViewMode('weekly')}
+              className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'weekly'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Zobrazit jako týdenní kalendář"
+            >
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Týden
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'calendar'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Zobrazit jako měsíční kalendář"
+            >
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Měsíc
+            </button>
+            <button
               onClick={() => setViewMode('grid')}
               className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 viewMode === 'grid'
@@ -197,18 +222,6 @@ const ManufactureOrderList: React.FC = () => {
             >
               <Grid className="h-4 w-4 mr-1.5" />
               Tabulka
-            </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                viewMode === 'calendar'
-                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              title="Zobrazit jako kalendář"
-            >
-              <CalendarDays className="h-4 w-4 mr-1.5" />
-              Kalendář
             </button>
           </div>
         </div>
@@ -348,10 +361,12 @@ const ManufactureOrderList: React.FC = () => {
         </div>
       </div>
 
-      {/* Content - Grid or Calendar */}
+      {/* Content - Grid, Monthly Calendar, or Weekly Calendar */}
       <div className="flex-1">
         {viewMode === 'calendar' ? (
           <ManufactureOrderCalendar onEventClick={handleCalendarEventClick} />
+        ) : viewMode === 'weekly' ? (
+          <ManufactureOrderWeeklyCalendar onEventClick={handleCalendarEventClick} />
         ) : (
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
