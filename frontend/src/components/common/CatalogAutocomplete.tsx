@@ -242,7 +242,11 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       border: "1px solid #d1d5db",
       boxShadow:
         "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-      zIndex: 999999,
+      zIndex: 9999999, // Extremely high to ensure it appears above sticky table headers
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999999, // Ensure portal also has proper z-index
     }),
     menuList: (base) => ({
       ...base,
@@ -345,9 +349,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
               : "Začněte psát pro vyhledávání"
         }
         loadingMessage={() => "Načítám..."}
-        menuPlacement="bottom"
-        menuPosition="absolute"
-        menuPortalTarget={document.body}
+        menuPlacement="auto"
+        menuPosition="fixed"
+        menuPortalTarget={document.body} // Render dropdown in body to avoid stacking issues
         filterOption={null} // Disable built-in filtering since we handle it via API
       />
 
