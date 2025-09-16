@@ -4,19 +4,34 @@ import { defineConfig, devices } from '@playwright/test';
  * @see https://playwright.dev/docs/test-configuration
  */
 
-// Validate environment variables for E2E tests
-if (process.env.CI) {
-  const requiredVars = ['E2E_CLIENT_ID', 'E2E_CLIENT_SECRET', 'AZURE_TENANT_ID'];
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+// Load environment variables from .env.test for local development
+if (!process.env.CI) {
+  const path = require('path');
+  const fs = require('fs');
   
-  if (missing.length > 0) {
-    console.error(`❌ Missing required E2E environment variables: ${missing.join(', ')}`);
-    console.error('Please set these variables in your GitHub repository secrets.');
-    process.exit(1);
+  const envTestPath = path.resolve(__dirname, '.env.test');
+  if (fs.existsSync(envTestPath)) {
+    console.log('📁 Loading E2E environment variables from .env.test...');
+    require('dotenv').config({ path: envTestPath });
+    console.log('✅ E2E environment variables loaded from .env.test');
   }
-  
-  console.log('✅ E2E environment variables validated successfully');
 }
+
+// Validate environment variables for E2E tests
+const requiredVars = ['E2E_CLIENT_ID', 'E2E_CLIENT_SECRET', 'AZURE_TENANT_ID'];
+const missing = requiredVars.filter(varName => !process.env[varName]);
+
+if (missing.length > 0) {
+  console.error(`❌ Missing required E2E environment variables: ${missing.join(', ')}`);
+  if (process.env.CI) {
+    console.error('Please set these variables in your GitHub repository secrets.');
+  } else {
+    console.error('Please ensure .env.test file exists in frontend/ directory with proper credentials.');
+  }
+  process.exit(1);
+}
+
+console.log('✅ E2E environment variables validated successfully');
 
 export default defineConfig({
   testDir: './test/e2e',
