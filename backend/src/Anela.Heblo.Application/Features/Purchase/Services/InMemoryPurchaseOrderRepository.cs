@@ -111,7 +111,7 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
             .SelectMany(order => order.Lines)
             .GroupBy(line => line.MaterialId)
             .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
-            
+
         return await Task.FromResult(result);
     }
 

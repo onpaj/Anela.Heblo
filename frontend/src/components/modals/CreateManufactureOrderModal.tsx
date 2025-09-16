@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Calendar, User, Package, AlertCircle } from "lucide-react";
 import { CalculatedBatchSizeResponse, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
+import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
 
 interface CreateManufactureOrderModalProps {
   isOpen: boolean;
@@ -179,13 +180,12 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
                 <User className="h-4 w-4 inline mr-1" />
                 Odpovědná osoba
               </label>
-              <input
-                type="text"
+              <ResponsiblePersonCombobox
                 value={responsiblePerson}
-                onChange={(e) => setResponsiblePerson(e.target.value)}
-                placeholder="Jméno odpovědné osoby (volitelné)"
+                onChange={(value) => setResponsiblePerson(value || "")}
+                placeholder="Vyberte nebo zadejte odpovědnou osobu (volitelné)"
                 disabled={isLoading}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                allowManualEntry={true}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Osoba zodpovědná za realizaci zakázky

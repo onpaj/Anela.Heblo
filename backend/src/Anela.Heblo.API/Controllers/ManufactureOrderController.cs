@@ -4,9 +4,11 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -16,10 +18,12 @@ namespace Anela.Heblo.API.Controllers;
 public class ManufactureOrderController : BaseApiController
 {
     private readonly IMediator _mediator;
+    private readonly IConfiguration _configuration;
 
-    public ManufactureOrderController(IMediator mediator)
+    public ManufactureOrderController(IMediator mediator, IConfiguration configuration)
     {
         _mediator = mediator;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -50,12 +54,12 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<CreateManufactureOrderResponse>> CreateOrder([FromBody] CreateManufactureOrderRequest request)
     {
         var response = await _mediator.Send(request);
-        
+
         if (response.Success)
         {
             return Created($"/api/ManufactureOrder/{response.Id}", response);
         }
-        
+
         return HandleResponse(response);
     }
 
@@ -96,6 +100,23 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<GetCalendarViewResponse>> GetCalendarView([FromQuery] GetCalendarViewRequest request)
     {
         var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Get responsible persons from Entra ID group for manufacture orders
+    /// </summary>
+    [HttpGet("responsible-persons")]
+    public async Task<ActionResult<GetGroupMembersResponse>> GetResponsiblePersons(CancellationToken cancellationToken)
+    {
+        var groupId = _configuration["ManufactureGroupId"];
+        if (string.IsNullOrEmpty(groupId))
+        {
+            return BadRequest("Manufacture group ID not configured");
+        }
+
+        var request = new GetGroupMembersRequest { GroupId = groupId };
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 }

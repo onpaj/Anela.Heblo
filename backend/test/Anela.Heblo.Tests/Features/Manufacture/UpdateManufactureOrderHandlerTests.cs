@@ -91,7 +91,7 @@ public class UpdateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 updatedOrder = order;
                 return order;
@@ -124,7 +124,7 @@ public class UpdateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 updatedOrder = order;
                 return order;
@@ -167,7 +167,7 @@ public class UpdateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 updatedOrder = order;
                 return order;
@@ -177,7 +177,7 @@ public class UpdateManufactureOrderHandlerTests
 
         updatedOrder.Should().NotBeNull();
         updatedOrder!.Products.Should().HaveCount(2);
-        
+
         var firstProduct = updatedOrder.Products.First(p => p.ProductCode == "NEW-PROD-001");
         firstProduct.ProductName.Should().Be("New Product 1");
         firstProduct.PlannedQuantity.Should().Be(150.0m);
@@ -204,7 +204,7 @@ public class UpdateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 updatedOrder = order;
                 return order;
@@ -214,7 +214,7 @@ public class UpdateManufactureOrderHandlerTests
 
         updatedOrder.Should().NotBeNull();
         updatedOrder!.Notes.Should().HaveCount(1);
-        
+
         var note = updatedOrder.Notes.First();
         note.Text.Should().Be(ValidNewNote);
         note.CreatedByUser.Should().Be("Test User");
@@ -236,7 +236,7 @@ public class UpdateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 updatedOrder = order;
                 return order;

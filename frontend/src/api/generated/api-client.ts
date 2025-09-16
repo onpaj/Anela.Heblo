@@ -2639,6 +2639,40 @@ export class ApiClient {
         return Promise.resolve<GetCalendarViewResponse>(null as any);
     }
 
+    manufactureOrder_GetResponsiblePersons(): Promise<GetGroupMembersResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/responsible-persons";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_GetResponsiblePersons(_response);
+        });
+    }
+
+    protected processManufactureOrder_GetResponsiblePersons(response: Response): Promise<GetGroupMembersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGroupMembersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGroupMembersResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -9722,6 +9756,91 @@ export interface ICalendarEventProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+}
+
+export class GetGroupMembersResponse extends BaseResponse implements IGetGroupMembersResponse {
+    members?: UserDto[];
+
+    constructor(data?: IGetGroupMembersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["members"])) {
+                this.members = [] as any;
+                for (let item of _data["members"])
+                    this.members!.push(UserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetGroupMembersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGroupMembersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.members)) {
+            data["members"] = [];
+            for (let item of this.members)
+                data["members"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGroupMembersResponse extends IBaseResponse {
+    members?: UserDto[];
+}
+
+export class UserDto implements IUserDto {
+    id?: string;
+    displayName?: string;
+    email?: string;
+
+    constructor(data?: IUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.displayName = _data["displayName"];
+            this.email = _data["email"];
+        }
+    }
+
+    static fromJS(data: any): UserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["displayName"] = this.displayName;
+        data["email"] = this.email;
+        return data;
+    }
+}
+
+export interface IUserDto {
+    id?: string;
+    displayName?: string;
+    email?: string;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

@@ -40,8 +40,9 @@ public static class AuthenticationExtensions
             .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
         services.AddAuthorization();
 
-        // Register a null GraphServiceClient for mock authentication
-        // services.AddSingleton<Microsoft.Graph.GraphServiceClient?>(provider => null);
+        // For mock authentication, provide a dummy GraphServiceClient that won't be used
+        // The GraphService will handle the case where GraphServiceClient might not work properly
+        services.AddSingleton<Microsoft.Graph.GraphServiceClient?>(provider => null);
     }
 
     private static void ConfigureRealAuthentication(IServiceCollection services, WebApplicationBuilder builder)
@@ -51,7 +52,7 @@ public static class AuthenticationExtensions
         // This includes proper JWT validation, signing keys, issuer and audience validation
         services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
             .EnableTokenAcquisitionToCallDownstreamApi()
-            // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
+            // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))  // TODO: Fix Graph configuration
             .AddInMemoryTokenCaches();
 
         // Add cookie authentication for E2E test sessions (staging and development environments)

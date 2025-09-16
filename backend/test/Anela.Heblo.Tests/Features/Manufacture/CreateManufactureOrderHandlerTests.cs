@@ -40,14 +40,14 @@ public class CreateManufactureOrderHandlerTests
     public async Task Handle_WithValidRequest_ShouldCreateManufactureOrderAndReturnResponse()
     {
         var request = CreateValidRequest();
-        
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 order.Id = 1;
                 return order;
@@ -72,7 +72,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;
@@ -103,7 +103,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;
@@ -138,7 +138,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;
@@ -171,7 +171,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;
@@ -213,7 +213,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;
@@ -227,7 +227,7 @@ public class CreateManufactureOrderHandlerTests
         capturedOrder.Products.First().ProductCode.Should().Be("PROD001");
     }
 
-  
+
 
     [Fact]
     public async Task Handle_ShouldCallGenerateOrderNumber()
@@ -240,7 +240,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 order.Id = 1;
                 return order;
@@ -264,7 +264,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 order.Id = 1;
                 return order;
@@ -297,7 +297,7 @@ public class CreateManufactureOrderHandlerTests
 
         _repositoryMock
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => 
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
                 capturedOrder = order;
                 order.Id = 1;

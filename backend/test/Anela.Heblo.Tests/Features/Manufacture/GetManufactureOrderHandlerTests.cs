@@ -22,7 +22,7 @@ public class GetManufactureOrderHandlerTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _mapperMock = new Mock<IMapper>();
-        
+
         _handler = new GetManufactureOrderHandler(
             _repositoryMock.Object,
             _mapperMock.Object);

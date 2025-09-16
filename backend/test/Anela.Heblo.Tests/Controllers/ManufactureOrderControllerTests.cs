@@ -28,7 +28,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         _factory = factory;
         _client = _factory.CreateClient();
         _output = output;
-        
+
         // Configure JSON options to handle string enums (matching API behavior)
         _jsonOptions = new JsonSerializerOptions
         {
@@ -114,7 +114,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         content.Should().NotBeNull();
         content!.Id.Should().NotBe(0);
         content.OrderNumber.Should().NotBeNullOrEmpty();
-        
+
         response.Headers.Location.Should().NotBeNull();
         response.Headers.Location!.ToString().Should().Contain($"/api/ManufactureOrder/{content.Id}");
     }
