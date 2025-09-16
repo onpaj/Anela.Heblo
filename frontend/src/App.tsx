@@ -11,7 +11,7 @@ import PurchaseStockAnalysis from "./components/pages/PurchaseStockAnalysis";
 import ManufacturingStockAnalysis from "./components/pages/ManufacturingStockAnalysis";
 import ManufactureOutput from "./components/pages/ManufactureOutput";
 import ManufactureBatchCalculator from "./components/pages/ManufactureBatchCalculator";
-import BatchPlanningCalculator from "./components/pages/BatchPlanningCalculator";
+import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning";
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
@@ -23,6 +23,8 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import ManufactureOrderList from "./components/pages/ManufactureOrderList";
+import ManufactureOrderDetail from "./components/pages/ManufactureOrderDetail";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -273,6 +275,14 @@ function App() {
                         <Route
                           path="/manufacturing/batch-planning"
                           element={<BatchPlanningCalculator />}
+                        />
+                        <Route
+                          path="/manufacturing/orders"
+                          element={<ManufactureOrderList />}
+                        />
+                        <Route
+                          path="/manufacturing/orders/:id"
+                          element={<ManufactureOrderDetail />}
                         />
                         <Route
                           path="/products/margins"

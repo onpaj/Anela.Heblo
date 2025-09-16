@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Calculator, RotateCcw, Package, Beaker } from "lucide-react";
+import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
+import { useNavigate } from "react-router-dom";
 
 type CalculationMode = "batch-size" | "ingredient";
 
@@ -39,6 +40,8 @@ const ManufactureBatchCalculator: React.FC = () => {
     isLoading,
   } = useManufactureBatch();
 
+  const navigate = useNavigate();
+
   const handleProductSelect = async (product: CatalogItemDto | null) => {
     setSelectedProduct(product);
     setCalculationResult(null);
@@ -50,6 +53,25 @@ const ManufactureBatchCalculator: React.FC = () => {
         const templateData = await getBatchTemplate(product.productCode || "");
         if (templateData.success) {
           setTemplate(templateData);
+          // Set desired batch size to original batch size when loading recipe
+          const originalBatchSize = templateData.originalBatchSize?.toString() || "";
+          setDesiredBatchSize(originalBatchSize);
+          
+          // Automatically calculate with original batch size
+          if (templateData.originalBatchSize) {
+            try {
+              const result = await calculateBySize(
+                product.productCode || "",
+                templateData.originalBatchSize,
+              );
+
+              if (result.success) {
+                setCalculationResult(result);
+              }
+            } catch (error) {
+              console.error("Error calculating by size:", error);
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading template:", error);
@@ -95,9 +117,10 @@ const ManufactureBatchCalculator: React.FC = () => {
 
   const resetCalculation = () => {
     setCalculationResult(null);
-    setDesiredBatchSize("");
     setDesiredIngredientAmount("");
     setSelectedIngredientCode("");
+    // Reset desired batch size to original batch size from template
+    setDesiredBatchSize(template?.originalBatchSize?.toString() || "");
   };
 
   const handleIngredientClick = (productCode: string, productName: string) => {
@@ -115,6 +138,25 @@ const ManufactureBatchCalculator: React.FC = () => {
   const handleCloseCatalogDetail = () => {
     setIsCatalogDetailOpen(false);
     setSelectedCatalogItem(null);
+  };
+
+  const handleGoToBatchPlanning = () => {
+    if (calculationResult && isCalculatedBatchSizeResponse(calculationResult) && selectedProduct && calculationResult.newBatchSize) {
+      // Navigate to batch planning with URL parameters
+      const params = new URLSearchParams({
+        productCode: selectedProduct.productCode || '',
+        productName: selectedProduct.productName || '',
+        batchSize: calculationResult.newBatchSize.toString()
+      });
+      navigate(`/manufacturing/batch-planning?${params.toString()}`);
+    }
+  };
+
+  // Type guard to check if result is CalculatedBatchSizeResponse
+  const isCalculatedBatchSizeResponse = (
+    result: CalculatedBatchSizeResponse | CalculateBatchByIngredientResponse
+  ): result is CalculatedBatchSizeResponse => {
+    return 'originalBatchSize' in result && 'newBatchSize' in result && 'scaleFactor' in result;
   };
 
   return (
@@ -359,8 +401,21 @@ const ManufactureBatchCalculator: React.FC = () => {
                 Přepočítaný recept
               </h3>
               
+              {/* Go to Batch Planning Button */}
+              {isCalculatedBatchSizeResponse(calculationResult) && (
+                <button
+                  onClick={handleGoToBatchPlanning}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Přejít na plánování výroby
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between mt-3">
               {/* Prominent display of key metrics */}
-              <div className="flex gap-4 text-right">
+              <div className="flex gap-4 text-right flex-1">
                 <div>
                   <div className="text-xs text-gray-500 uppercase tracking-wide">Původní dávka</div>
                   <div className="text-xl font-bold text-gray-700">
@@ -511,6 +566,7 @@ const ManufactureBatchCalculator: React.FC = () => {
         onClose={handleCloseCatalogDetail}
         defaultTab="basic"
       />
+
     </div>
   );
 };

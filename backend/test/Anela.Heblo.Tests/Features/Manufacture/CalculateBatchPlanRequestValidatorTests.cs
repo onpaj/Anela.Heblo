@@ -36,7 +36,7 @@ public class CalculateBatchPlanRequestValidatorTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void Validate_InvalidSemiproductCode_FailsValidation(string semiproductCode)
+    public void Validate_InvalidSemiproductCode_FailsValidation(string? semiproductCode)
     {
         // Arrange
         var request = new CalculateBatchPlanRequest

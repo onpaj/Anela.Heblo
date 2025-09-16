@@ -14,7 +14,7 @@ public class SubmitManufactureStockTakingRequest : IRequest<SubmitManufactureSto
     public decimal? TargetAmount { get; set; }
 
     public bool SoftStockTaking { get; set; } = true;
-    
+
     // For lot-based stock taking (materials with lots)
     public List<ManufactureStockTakingLotDto>? Lots { get; set; }
 }

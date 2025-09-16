@@ -294,7 +294,7 @@ public class CatalogAggregate : Entity<string>
 
         // Update appropriate stock level based on type
         var newStockLevel = (decimal)stockTakingRecord.AmountNew;
-        
+
         switch (stockTakingRecord.Type)
         {
             case StockTakingType.Erp:

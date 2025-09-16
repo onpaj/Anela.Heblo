@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Persistence.Manufacture;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,10 +26,13 @@ public static class ManufactureModule
         services.AddScoped<IManufactureSeverityCalculator, ManufactureSeverityCalculator>();
         services.AddScoped<IManufactureAnalysisMapper, ManufactureAnalysisMapper>();
         services.AddScoped<IItemFilterService, ItemFilterService>();
-        
+
         // Register batch planning services
         services.AddScoped<IBatchPlanningService, BatchPlanningService>();
         services.AddScoped<IBatchDistributionCalculator, BatchDistributionCalculator>();
+
+        // Register repositories
+        services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
 
         return services;
     }

@@ -19,6 +19,23 @@ const resources = {
         welcome: "Vítejte v Anela Heblo",
         appLoading: "Aplikace se načítá...",
       },
+      manufacture: {
+        states: {
+          Draft: "Návrh",
+          Planned: "Naplánováno",
+          SemiProductManufactured: "Meziprodukt vyroben",
+          Completed: "Dokončeno",
+          Cancelled: "Zrušeno"
+        },
+        auditActions: {
+          StateChanged: "Změna stavu",
+          QuantityChanged: "Změna množství",
+          DateChanged: "Změna data",
+          ResponsiblePersonAssigned: "Přiřazení odpovědné osoby",
+          NoteAdded: "Přidání poznámky",
+          OrderCreated: "Vytvoření zakázky"
+        }
+      },
       errors: {
         // String keys for ErrorCodes enum names (primary approach)
         // General errors
@@ -153,6 +170,23 @@ const resources = {
         welcome: "Welcome to Anela Heblo",
         appLoading: "Application is loading...",
       },
+      manufacture: {
+        states: {
+          Draft: "Draft",
+          Planned: "Planned",
+          SemiProductManufactured: "Semi-product Manufactured",
+          Completed: "Completed",
+          Cancelled: "Cancelled"
+        },
+        auditActions: {
+          StateChanged: "State Changed",
+          QuantityChanged: "Quantity Changed",
+          DateChanged: "Date Changed",
+          ResponsiblePersonAssigned: "Responsible Person Assigned",
+          NoteAdded: "Note Added",
+          OrderCreated: "Order Created"
+        }
+      },
       errors: {
         // Analytics module errors
         AnalysisDataNotAvailable:
@@ -187,6 +221,7 @@ i18n
   .init({
     resources,
     fallbackLng: "cs", // Czech as primary language per design doc
+    lng: "cs", // Force Czech language
     debug: process.env.NODE_ENV === "development",
     interpolation: {
       escapeValue: false,

@@ -15,6 +15,6 @@ public class SubmitManufactureStockTakingResponse : BaseResponse
 
     public SubmitManufactureStockTakingResponse() : base() { }
 
-    public SubmitManufactureStockTakingResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public SubmitManufactureStockTakingResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }

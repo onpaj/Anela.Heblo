@@ -3,6 +3,7 @@ import {
   Calculator,
   Package,
   Settings,
+  FileText,
 } from "lucide-react";
 import {
   useBatchPlanningMutation,
@@ -12,7 +13,9 @@ import {
 } from "../../api/hooks/useBatchPlanning";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
-import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
+import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
+import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
@@ -37,6 +40,9 @@ const BatchPlanningCalculator: React.FC = () => {
   
   // Mutation
   const batchPlanMutation = useBatchPlanningMutation();
+  const createOrderMutation = useCreateManufactureOrder();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Get API response data
   const response = batchPlanMutation.data;
@@ -46,10 +52,54 @@ const BatchPlanningCalculator: React.FC = () => {
     ? response.semiproduct.minimalManufactureQuantity 
     : 0;
   
-  // Calculate derived values
-  const calculatedBatchSize = inputMode === 'multiplier' && productMMQ && productMMQ > 0 ? productMMQ * mmqMultiplier : totalBatchSize;
-  const calculatedMultiplier = inputMode === 'total' && productMMQ && productMMQ > 0 ? totalBatchSize / productMMQ : mmqMultiplier;
+  // Get API product sizes
   const apiProductSizes = response?.productSizes || [];
+
+  // Handle prefilled data from URL parameters (from ManufactureBatchCalculator)
+  useEffect(() => {
+    const productCode = searchParams.get('productCode');
+    const productName = searchParams.get('productName');
+    const batchSize = searchParams.get('batchSize');
+    
+    if (productCode && productName && batchSize) {
+      console.log('Processing prefilled data from URL:', { 
+        productCode, 
+        productName,
+        batchSize: parseFloat(batchSize)
+      });
+      
+      // Create CatalogItemDto from URL parameters
+      const prefilledProduct = new CatalogItemDto({
+        productCode,
+        productName,
+        type: ProductType.SemiProduct
+      });
+      
+      // Set the prefilled product
+      setSelectedSemiproduct(prefilledProduct);
+      
+      // Set control mode to total weight and set the prefilled batch size
+      setControlMode(BatchPlanControlMode.TotalWeight);
+      setTotalBatchSize(parseFloat(batchSize));
+      
+      // Clear URL parameters to clean up the URL
+      setSearchParams({});
+      
+      // Trigger the API call directly
+      const requestData: any = {
+        semiproductCode: productCode,
+        controlMode: BatchPlanControlMode.TotalWeight,
+        fromDate: fromDate,
+        toDate: toDate,
+        salesMultiplier: salesMultiplier,
+        totalWeightToUse: parseFloat(batchSize),
+      };
+
+      console.log('Triggering batch plan calculation with:', requestData);
+      const request = new CalculateBatchPlanRequest(requestData);
+      batchPlanMutation.mutate(request);
+    }
+  }, [searchParams]); // Only depend on searchParams to avoid infinite loops
 
   // Update local state when API response changes
   useEffect(() => {
@@ -82,20 +132,6 @@ const BatchPlanningCalculator: React.FC = () => {
     ? [] // Empty while loading
     : productGridData;
 
-  const handleMultiplierChange = (value: number) => {
-    setMmqMultiplier(value);
-    if (productMMQ && productMMQ > 0) {
-      setTotalBatchSize(productMMQ * value);
-    }
-    setInputMode('multiplier');
-  };
-
-  const handleTotalBatchSizeChange = (value: number) => {
-    setTotalBatchSize(value);
-    const newMultiplier = productMMQ && productMMQ > 0 ? value / productMMQ : 1.0;
-    setMmqMultiplier(newMultiplier);
-    setInputMode('total');
-  };
 
   // Quick date range selectors
   const handleQuickDateRange = (
@@ -242,10 +278,6 @@ const BatchPlanningCalculator: React.FC = () => {
     }
   };
 
-  const handleProductEnabledChange = (productCode: string, enabled: boolean) => {
-    // TODO: This would need to be sent to backend to update the enabled state
-    // For now, changes will be reflected after manual recalculation
-  };
 
   const handleProductFixedChange = (productCode: string, isFixed: boolean, currentRecommendedQuantity: number) => {
     setProductConstraints(prev => {
@@ -278,6 +310,61 @@ const BatchPlanningCalculator: React.FC = () => {
       } else {
         calculateBatchPlan(selectedSemiproduct.productCode, fromDate, toDate);
       }
+    }
+  };
+
+  // Handle create manufacture order from batch planning
+  const handleCreateOrder = async () => {
+    if (!response?.success || !response.semiproduct || !response.summary || !selectedSemiproduct) {
+      return;
+    }
+
+    // Get products with quantity > 0
+    const productsToManufacture = response.productSizes
+      ?.filter(product => (product.recommendedUnitsToProduceHumanReadable || 0) > 0)
+      ?.map(product => ({
+        productCode: product.productCode || "",
+        productName: product.productName || "",
+        plannedQuantity: product.recommendedUnitsToProduceHumanReadable || 0
+      })) || [];
+
+    if (productsToManufacture.length === 0) {
+      alert("Žádné produkty nemají plánované množství > 0");
+      return;
+    }
+
+    // Default dates (tomorrow and day after tomorrow)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+    try {
+      const orderRequest = new CreateManufactureOrderRequest({
+        productCode: response.semiproduct.productCode || "",
+        productName: response.semiproduct.productName || "",
+        originalBatchSize: response.semiproduct.minimalManufactureQuantity || 0,
+        newBatchSize: response.summary.actualTotalWeight || 0,
+        scaleFactor: response.summary.effectiveMmqMultiplier || 1.0,
+        products: productsToManufacture.map(p => new CreateManufactureOrderProductRequest({
+          productCode: p.productCode,
+          productName: p.productName,
+          plannedQuantity: p.plannedQuantity
+        })),
+        semiProductPlannedDate: tomorrow,
+        productPlannedDate: dayAfterTomorrow,
+        responsiblePerson: undefined
+      });
+
+      const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
+      
+      if (orderResponse.success) {
+        // Navigate to the created order detail
+        navigate(`/manufacturing/orders/${orderResponse.id}`);
+      }
+    } catch (error) {
+      console.error("Error creating manufacture order:", error);
+      alert("Chyba při vytváření zakázky. Zkuste to prosím znovu.");
     }
   };
 
@@ -552,13 +639,38 @@ const BatchPlanningCalculator: React.FC = () => {
             {selectedSemiproduct && (
                 <div className="bg-white rounded-lg shadow-sm border">
                   <div className="px-6 py-4 border-b">
-                    <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                      <Package className="w-5 h-5 text-green-500 mr-2" />
-                      Velikosti produktů
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Produkty vyráběné z polotovaru {selectedSemiproduct.productName}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                          <Package className="w-5 h-5 text-green-500 mr-2" />
+                          Velikosti produktů
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Produkty vyráběné z polotovaru {selectedSemiproduct.productName}
+                        </p>
+                      </div>
+                      
+                      {/* Create Order Button */}
+                      {response?.success && response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0) && (
+                        <button
+                          onClick={handleCreateOrder}
+                          disabled={createOrderMutation.isPending}
+                          className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {createOrderMutation.isPending ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Vytváří se...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4" />
+                              Vytvořit zakázku
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="overflow-x-auto">

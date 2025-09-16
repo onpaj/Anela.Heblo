@@ -58,9 +58,9 @@ public class CalculateBatchPlanHandlerTests
         Assert.NotNull(result);
         Assert.True(result.Success);
         Assert.Equal("SEMI001", result.Semiproduct.ProductCode);
-        
+
         _batchPlanningServiceMock.Verify(
-            x => x.CalculateBatchPlan(request, It.IsAny<CancellationToken>()), 
+            x => x.CalculateBatchPlan(request, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -80,7 +80,7 @@ public class CalculateBatchPlanHandlerTests
             .ThrowsAsync(new ArgumentException("Semiproduct not found"));
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => 
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             _handler.Handle(request, CancellationToken.None));
         Assert.Contains("Semiproduct not found", exception.Message);
     }

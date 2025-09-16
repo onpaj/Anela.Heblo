@@ -42,7 +42,7 @@ public class BatchPlanningServiceTests
             .ReturnsAsync((CatalogAggregate)null);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => 
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             _service.CalculateBatchPlan(request, CancellationToken.None));
         Assert.Contains("not found", exception.Message);
     }
@@ -67,7 +67,7 @@ public class BatchPlanningServiceTests
             .ReturnsAsync(new List<ManufactureTemplate>());
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => 
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             _service.CalculateBatchPlan(request, CancellationToken.None));
         Assert.Contains("No products found", exception.Message);
     }
@@ -101,7 +101,7 @@ public class BatchPlanningServiceTests
         Assert.Equal(BatchPlanControlMode.MmqMultiplier, result.Summary.UsedControlMode);
         Assert.Equal(1.5, result.Summary.EffectiveMmqMultiplier);
         Assert.Equal(2, result.ProductSizes.Count);
-        
+
         // Check that products are optimized (quantities will be determined by BatchDistributionCalculator)
         var product1 = result.ProductSizes.First(p => p.ProductCode == "PROD001");
         Assert.True(product1.WasOptimized);
@@ -192,7 +192,7 @@ public class BatchPlanningServiceTests
         Assert.True(result.Success);
         Assert.Equal(1, result.Summary.FixedProductsCount);
         Assert.Equal(1, result.Summary.OptimizedProductsCount);
-        
+
         var fixedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD001");
         Assert.True(fixedProduct.IsFixed);
         Assert.Equal(100, fixedProduct.RecommendedUnitsToProduceHumanReadable);
@@ -228,7 +228,7 @@ public class BatchPlanningServiceTests
         // Assert
         Assert.False(result.Success); // Should indicate error
         Assert.Equal(ErrorCodes.FixedProductsExceedAvailableVolume, result.ErrorCode);
-        
+
         // Should have error parameters
         Assert.NotNull(result.Params);
         Assert.True(result.Params.ContainsKey("volumeUsedByFixed"));
@@ -243,7 +243,7 @@ public class BatchPlanningServiceTests
         Assert.Equal(2, result.ProductSizes.Count);
         Assert.NotNull(result.Summary);
         Assert.NotNull(result.Semiproduct);
-        
+
         // Fixed products should have their fixed quantities set
         var fixedProduct1 = result.ProductSizes.First(p => p.ProductCode == "PROD001");
         Assert.True(fixedProduct1.IsFixed);
@@ -287,11 +287,11 @@ public class BatchPlanningServiceTests
         // Assert
         Assert.True(result.Success); // Should succeed
         Assert.Null(result.ErrorCode); // No error
-        
+
         // Should have 2 fixed products  
         Assert.Equal(2, result.Summary.FixedProductsCount);
         Assert.Equal(0, result.Summary.OptimizedProductsCount); // No flexible products in this test
-        
+
         var fixedProduct1 = result.ProductSizes.First(p => p.ProductCode == "PROD001");
         Assert.True(fixedProduct1.IsFixed);
         Assert.Equal(10, fixedProduct1.RecommendedUnitsToProduceHumanReadable);
@@ -330,7 +330,7 @@ public class BatchPlanningServiceTests
             },
             new ManufactureTemplate
             {
-                ProductCode = "PROD002", 
+                ProductCode = "PROD002",
                 ProductName = "Product 2",
                 Amount = 50.0,
                 Ingredients = new List<Ingredient>
@@ -357,7 +357,7 @@ public class BatchPlanningServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD002",
-                ProductName = "Product 2", 
+                ProductName = "Product 2",
                 Stock = new StockData { Erp = 25 },
                 NetWeight = 5.0, // Set weight for volume calculations
                 MinimalManufactureQuantity = 20,
@@ -370,7 +370,7 @@ public class BatchPlanningServiceTests
     {
         var sales = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
         var startDate = DateTime.Now.AddDays(-30);
-        
+
         for (int i = 0; i < 30; i++)
         {
             sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
@@ -380,7 +380,7 @@ public class BatchPlanningServiceTests
                 AmountB2C = dailyAmount / 2
             });
         }
-        
+
         return sales;
     }
 
@@ -405,7 +405,7 @@ public class BatchPlanningServiceTests
                 // Distribute all available weight among variants proportionally
                 var totalWeight = batch.TotalWeight;
                 var totalValidVariants = batch.ValidVariants.Count;
-                
+
                 foreach (var variant in batch.Variants)
                 {
                     if (totalValidVariants > 0 && variant.Weight > 0)
@@ -420,7 +420,7 @@ public class BatchPlanningServiceTests
                         variant.SuggestedAmount = 1; // Minimum fallback
                     }
                 }
-                
+
                 // Adjust to use all available weight if needed
                 var actualUsedWeight = batch.Variants.Sum(v => v.SuggestedAmount * v.Weight);
                 if (actualUsedWeight < totalWeight * 0.9) // If using less than 90% of available
@@ -464,7 +464,7 @@ public class BatchPlanningServiceTests
             },
             new ManufactureTemplate
             {
-                ProductCode = "PROD002", 
+                ProductCode = "PROD002",
                 ProductName = "Product 2",
                 Amount = 50.0,
                 Ingredients = new List<Ingredient>
@@ -491,7 +491,7 @@ public class BatchPlanningServiceTests
             new CatalogAggregate
             {
                 ProductCode = "PROD002",
-                ProductName = "Product 2", 
+                ProductName = "Product 2",
                 Stock = new StockData { Erp = 25 },
                 NetWeight = 25.0, // 25g per unit  
                 MinimalManufactureQuantity = 20,

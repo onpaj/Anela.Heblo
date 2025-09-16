@@ -443,6 +443,258 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("TransportBoxStateLog", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedByUser")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateOnly>("ProductPlannedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ResponsiblePerson")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly>("SemiProductPlannedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StateChangedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("StateChangedByUser")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedDate")
+                        .HasDatabaseName("IX_ManufactureOrders_CreatedDate");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ManufactureOrders_OrderNumber");
+
+                    b.HasIndex("ResponsiblePerson")
+                        .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
+
+                    b.HasIndex("State")
+                        .HasDatabaseName("IX_ManufactureOrders_State");
+
+                    b.ToTable("ManufactureOrders", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ManufactureOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("User")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action")
+                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_Action");
+
+                    b.HasIndex("ManufactureOrderId")
+                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_ManufactureOrderId");
+
+                    b.HasIndex("Timestamp")
+                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_Timestamp");
+
+                    b.ToTable("ManufactureOrderAuditLogs", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CreatedByUser")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ManufactureOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_ManufactureOrderNotes_CreatedAt");
+
+                    b.HasIndex("ManufactureOrderId")
+                        .HasDatabaseName("IX_ManufactureOrderNotes_ManufactureOrderId");
+
+                    b.ToTable("ManufactureOrderNotes", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ActualQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateOnly?>("ExpirationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ManufactureOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PlannedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SemiProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManufactureOrderId")
+                        .HasDatabaseName("IX_ManufactureOrderProducts_ManufactureOrderId");
+
+                    b.HasIndex("ProductCode")
+                        .HasDatabaseName("IX_ManufactureOrderProducts_ProductCode");
+
+                    b.HasIndex("SemiProductCode")
+                        .HasDatabaseName("IX_ManufactureOrderProducts_SemiProductCode");
+
+                    b.ToTable("ManufactureOrderProducts", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderSemiProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ActualQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("BatchMultiplier")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<DateOnly?>("ExpirationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ManufactureOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PlannedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManufactureOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ManufactureOrderSemiProducts_ManufactureOrderId");
+
+                    b.HasIndex("ProductCode")
+                        .HasDatabaseName("IX_ManufactureOrderSemiProducts_ProductCode");
+
+                    b.ToTable("ManufactureOrderSemiProducts", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -647,6 +899,50 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderAuditLog", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
+                        .WithMany("AuditLog")
+                        .HasForeignKey("ManufactureOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManufactureOrder");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
+                        .WithMany("Notes")
+                        .HasForeignKey("ManufactureOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManufactureOrder");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderProduct", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
+                        .WithMany("Products")
+                        .HasForeignKey("ManufactureOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManufactureOrder");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderSemiProduct", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
+                        .WithOne("SemiProduct")
+                        .HasForeignKey("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderSemiProduct", "ManufactureOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManufactureOrder");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", null)
@@ -687,6 +983,17 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("StateLog");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
+                {
+                    b.Navigation("AuditLog");
+
+                    b.Navigation("Notes");
+
+                    b.Navigation("Products");
+
+                    b.Navigation("SemiProduct");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

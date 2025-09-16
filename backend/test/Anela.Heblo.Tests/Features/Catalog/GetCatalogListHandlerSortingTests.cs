@@ -74,11 +74,11 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(5, result.Items.Count);
-        
+
         // Verify items without inventory come first (sorted by location)
         Assert.Equal("ITEM2", result.Items[0].ProductCode); // LocationC
         Assert.Equal("ITEM4", result.Items[1].ProductCode); // LocationD
-        
+
         // Verify items with inventory are sorted oldest first (biggest days = descending logic)
         Assert.Equal("ITEM3", result.Items[2].ProductCode); // 10 days ago (oldest)
         Assert.Equal("ITEM1", result.Items[3].ProductCode); // 5 days ago
@@ -129,12 +129,12 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(5, result.Items.Count);
-        
+
         // Verify items with inventory come first (newest first = smallest days = ascending logic)
         Assert.Equal("ITEM5", result.Items[0].ProductCode); // 1 day ago (newest)
         Assert.Equal("ITEM1", result.Items[1].ProductCode); // 5 days ago
         Assert.Equal("ITEM3", result.Items[2].ProductCode); // 10 days ago (oldest)
-        
+
         // Verify items without inventory come last (sorted by location)
         Assert.Equal("ITEM2", result.Items[3].ProductCode); // LocationC
         Assert.Equal("ITEM4", result.Items[4].ProductCode); // LocationD
@@ -178,7 +178,7 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify items are sorted by location alphabetically
         Assert.Equal("ITEM2", result.Items[0].ProductCode); // LocationA
         Assert.Equal("ITEM3", result.Items[1].ProductCode); // LocationM  
@@ -224,7 +224,7 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify descending = oldest first (biggest days first)
         Assert.Equal("ITEM2", result.Items[0].ProductCode); // 15 days ago (oldest)
         Assert.Equal("ITEM1", result.Items[1].ProductCode); // 5 days ago
@@ -270,7 +270,7 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify ascending = newest first (smallest days first)
         Assert.Equal("ITEM3", result.Items[0].ProductCode); // 2 days ago (newest)
         Assert.Equal("ITEM1", result.Items[1].ProductCode); // 5 days ago
@@ -315,7 +315,7 @@ public class GetCatalogListHandlerSortingTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.Items.Count);
-        
+
         // Verify standard ascending sort by ProductCode
         Assert.Equal("ITEM-A", result.Items[0].ProductCode);
         Assert.Equal("ITEM-B", result.Items[1].ProductCode);
@@ -324,10 +324,10 @@ public class GetCatalogListHandlerSortingTests
 
     private static CatalogAggregate CreateCatalogItem(string productCode, string productName, string location, DateTime? lastStockTaking)
     {
-        var item = new CatalogAggregate 
-        { 
+        var item = new CatalogAggregate
+        {
             Id = productCode,
-            ProductName = productName, 
+            ProductName = productName,
             Type = ProductType.Product,
             Location = location
         };
@@ -337,9 +337,9 @@ public class GetCatalogListHandlerSortingTests
             // Add a stock taking record to simulate last stock taking
             item.StockTakingHistory = new List<StockTakingRecord>
             {
-                new StockTakingRecord 
-                { 
-                    Date = lastStockTaking.Value, 
+                new StockTakingRecord
+                {
+                    Date = lastStockTaking.Value,
                     Code = productCode,
                     AmountOld = 0,
                     AmountNew = 10
