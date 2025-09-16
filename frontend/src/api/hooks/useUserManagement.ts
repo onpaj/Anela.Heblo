@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface UserDto {
   id: string;
@@ -16,7 +16,7 @@ export interface GetGroupMembersResponse {
 
 export const useResponsiblePersonsQuery = () => {
   return useQuery({
-    queryKey: ['responsible-persons'],
+    queryKey: [...QUERY_KEYS.userManagement, 'responsible-persons'],
     queryFn: async (): Promise<GetGroupMembersResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = '/api/ManufactureOrder/responsible-persons';

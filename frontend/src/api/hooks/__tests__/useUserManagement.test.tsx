@@ -10,7 +10,10 @@ jest.mock('../../client', () => ({
         http: {
             fetch: jest.fn()
         }
-    }))
+    })),
+    QUERY_KEYS: {
+        userManagement: ['user-management']
+    }
 }));
 
 const createWrapper = () => {
