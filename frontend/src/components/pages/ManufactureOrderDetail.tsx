@@ -501,7 +501,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                 <ResponsiblePersonCombobox
                                   value={editableResponsiblePerson}
                                   onChange={(value) => setEditableResponsiblePerson(value || "")}
-                                  placeholder="Vyberte odpovědnou osobu"
+                                  placeholder="Vyberte..."
                                   allowManualEntry={true}
                                 />
                               </div>

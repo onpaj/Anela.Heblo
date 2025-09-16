@@ -164,7 +164,11 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
     }),
     menu: (provided) => ({
       ...provided,
-      zIndex: 9999,
+      zIndex: 50000,
+    }),
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 50000,
     }),
     noOptionsMessage: (provided) => ({
       ...provided,
@@ -193,6 +197,8 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
         isSearchable
         menuPortalTarget={document.body}
         menuPosition="fixed"
+        menuShouldBlockScroll={false}
+        closeMenuOnScroll={false}
         noOptionsMessage={() => {
           if (isError) {
             return "Failed to load team members";

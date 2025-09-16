@@ -45,7 +45,7 @@ public static class ApplicationModule
         services.AddManufactureModule(configuration);
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
-        services.AddUserManagement();
+        services.AddUserManagement(configuration);
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
 
