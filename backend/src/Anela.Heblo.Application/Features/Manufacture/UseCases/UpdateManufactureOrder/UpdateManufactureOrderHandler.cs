@@ -26,7 +26,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
         try
         {
             var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken);
-            
+
             if (order == null)
             {
                 return new UpdateManufactureOrderResponse(Application.Shared.ErrorCodes.ResourceNotFound,

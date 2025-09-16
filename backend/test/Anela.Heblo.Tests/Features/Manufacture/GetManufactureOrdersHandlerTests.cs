@@ -17,7 +17,7 @@ public class GetManufactureOrdersHandlerTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _mapperMock = new Mock<IMapper>();
-        
+
         _handler = new GetManufactureOrdersHandler(
             _repositoryMock.Object,
             _mapperMock.Object);
@@ -59,7 +59,7 @@ public class GetManufactureOrdersHandlerTests
         {
             State = ManufactureOrderState.SemiProductManufactured
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 
@@ -97,13 +97,13 @@ public class GetManufactureOrdersHandlerTests
     {
         var dateFrom = DateOnly.FromDateTime(DateTime.Today.AddDays(-30));
         var dateTo = DateOnly.FromDateTime(DateTime.Today);
-        
+
         var request = new GetManufactureOrdersRequest
         {
             DateFrom = dateFrom,
             DateTo = dateTo
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 
@@ -144,7 +144,7 @@ public class GetManufactureOrdersHandlerTests
         {
             ResponsiblePerson = responsiblePerson
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 
@@ -185,7 +185,7 @@ public class GetManufactureOrdersHandlerTests
         {
             OrderNumber = orderNumber
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 
@@ -226,7 +226,7 @@ public class GetManufactureOrdersHandlerTests
         {
             ProductCode = productCode
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 
@@ -271,7 +271,7 @@ public class GetManufactureOrdersHandlerTests
             OrderNumber = "MO-2024-002",
             ProductCode = "SEMI002"
         };
-        
+
         var orders = CreateSampleOrders();
         var orderDtos = CreateSampleOrderDtos();
 

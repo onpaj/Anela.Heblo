@@ -25,7 +25,7 @@ public class CalendarEventDto
     public DateTime Date { get; set; }
     public ManufactureOrderState State { get; set; }
     public string? ResponsiblePerson { get; set; }
-    
+
     // Extended information for detailed views
     public CalendarEventSemiProductDto? SemiProduct { get; set; }
     public List<CalendarEventProductDto> Products { get; set; } = new();

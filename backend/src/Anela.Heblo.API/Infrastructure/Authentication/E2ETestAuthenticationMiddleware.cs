@@ -15,18 +15,15 @@ public class E2ETestAuthenticationMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<E2ETestAuthenticationMiddleware> _logger;
     private readonly IWebHostEnvironment _environment;
-    private readonly IServicePrincipalTokenValidator _tokenValidator;
 
     public E2ETestAuthenticationMiddleware(
         RequestDelegate next,
         ILogger<E2ETestAuthenticationMiddleware> logger,
-        IWebHostEnvironment environment,
-        IServicePrincipalTokenValidator tokenValidator)
+        IWebHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
         _environment = environment;
-        _tokenValidator = tokenValidator;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -78,8 +75,11 @@ public class E2ETestAuthenticationMiddleware
 
         try
         {
+            // Get the scoped token validator from request services
+            var tokenValidator = context.RequestServices.GetRequiredService<IServicePrincipalTokenValidator>();
+
             // Validate the Service Principal token using dedicated validator
-            var isValid = await _tokenValidator.ValidateAsync(token);
+            var isValid = await tokenValidator.ValidateAsync(token);
 
             if (!isValid)
             {

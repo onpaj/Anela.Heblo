@@ -27,7 +27,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         try
         {
             var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken);
-            
+
             if (order == null)
             {
                 return new UpdateManufactureOrderStatusResponse(Application.Shared.ErrorCodes.ResourceNotFound,
@@ -35,13 +35,13 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             }
 
             var oldState = order.State;
-            
+
             // Validate state transition (basic validation - can be extended)
             if (!IsValidStateTransition(oldState, request.NewState))
             {
                 return new UpdateManufactureOrderStatusResponse(Application.Shared.ErrorCodes.InvalidOperation,
-                    new Dictionary<string, string> 
-                    { 
+                    new Dictionary<string, string>
+                    {
                         { "oldState", oldState.ToString() },
                         { "newState", request.NewState.ToString() }
                     });

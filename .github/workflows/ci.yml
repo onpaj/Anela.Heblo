@@ -662,9 +662,9 @@ jobs:
           PLAYWRIGHT_BASE_URL: https://heblo.stg.anela.cz
           CI: true
           # Azure service principal credentials for E2E authentication
-          AZURE_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
       - name: 📊 Upload E2E test results and HTML report
         uses: actions/upload-artifact@v4

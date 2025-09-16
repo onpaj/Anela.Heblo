@@ -35,10 +35,10 @@ public class UpdateManufactureOrderStatusHandlerTests
         };
         var identity = new ClaimsIdentity(claims, "test");
         var principal = new ClaimsPrincipal(identity);
-        
+
         var httpContext = new Mock<HttpContext>();
         httpContext.Setup(x => x.User).Returns(principal);
-        
+
         _httpContextAccessorMock
             .Setup(x => x.HttpContext)
             .Returns(httpContext.Object);
@@ -276,7 +276,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.StateChangedByUser.Should().Be("System");
-        
+
         updatedOrder.Should().NotBeNull();
         updatedOrder!.StateChangedByUser.Should().Be("System");
     }

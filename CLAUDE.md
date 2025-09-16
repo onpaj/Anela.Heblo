@@ -102,20 +102,7 @@ This is an implementation repository for "Anela Heblo" - a cosmetics company wor
 
 ## Feature Organization Patterns
 
-### Simple Features (1-3 use cases):
-```
-Features/{Feature}/
-├── Get{Entity}Handler.cs       # MediatR handler
-├── Create{Entity}Handler.cs    # MediatR handler
-├── Model/                      # Request/Response DTOs
-│   ├── Get{Entity}Request.cs
-│   ├── Get{Entity}Response.cs
-│   ├── Create{Entity}Request.cs
-│   └── Create{Entity}Response.cs
-└── {Feature}Module.cs          # DI registration
-```
-
-### Complex Features (4+ use cases):
+### All Features:
 ```
 Features/{Feature}/
 ├── UseCases/                   # Use case handlers organized by functionality
@@ -328,12 +315,6 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 - NIKDY nepoužívat relativní URLs přímo v fetch calls
 - Pro všechny hooks používat generovaný API client prostřednictvím `getAuthenticatedApiClient()`
 
-## Background Jobs (Hangfire)
-
-- **Stock Sync**: Refresh catalog every 10 minutes
-- **Invoice Sync**: Pull Shoptet invoices → push to ABRA
-- **Transport Sync**: Confirm EANs and update Shoptet stock
-- **Batch Planning**: Periodic manufacturing evaluation
 
 ## Testing Strategy
 
@@ -355,44 +336,6 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 - Component testing with React Testing Library
 - To validate some frontend behavior, use playwright MCP server agains port 3000. Both frontend and backend should be running by default, ask user to run then if they are not running
 - To run playwright tests, always user script ./scripts/run-playwright-tests.sh with optional parameter of test name (runs all UI tests when test name is not defined)
-
-## Environment Configuration
-
-- Uses `.env` files for shared configuration
-- Frontend variables prefixed with `REACT_APP_`
-- Backend uses `appsettings.{Environment}.json` + environment variables
-- Database migrations applied manually (not automated in CI/CD)
-- **Mock Authentication**: Set `"UseMockAuth": true` in `appsettings.Development.json` for local development
-
-## Port Configuration
-
-| Environment                  | Frontend Port | Backend Port | Container Port | Azure URL                      | Deployment Type |
-|------------------------------|---------------|--------------|----------------|--------------------------------|-----------------|
-| **Local Development**        | 3000 | 5000 | - | -                              | Separate servers (hot reload) |
-| **Staging/Test Environment** | 8080 | 5000 | 8080 | https://heblo.stg.anela.cz | Single container |
-| **Production**               | 8080 | 5000 | 8080 | https://heblo.anela.cz         | Single container |
-
-## Deployment Strategy
-
-- **Development/Debug**: 
-  - **Frontend**: Standalone React dev server (`npm start`) with **hot reload** (localhost:3000)
-  - **Backend**: ASP.NET Core dev server (`dotnet run`) (localhost:5000)
-  - **Architecture**: **Separate servers** to preserve hot reload functionality for development
-  - **CORS**: Configured to allow frontend-backend communication
-  - **Authentication**: Mock authentication enabled for both frontend and backend
-  - **Why separate**: Hot reload is critical for development - single container would disable this feature
-- **Test Environment**:
-  - **Single Docker container** on Azure Web App for Containers
-  - Container serves both React static files and ASP.NET Core API
-  - Mock authentication enabled
-  - URL: https://heblo-test.azurewebsites.net
-- **Production Environment**:
-  - **Single Docker container** on Azure Web App for Containers
-  - Container serves both React static files and ASP.NET Core API
-  - Real Microsoft Entra ID authentication
-  - URL: https://heblo.anela.cz
-- **Versioning**: Semantic versioning with conventional commits
-- **CI/CD**: Enhanced GitHub Actions pipeline with optional UI tests and auto-merge capabilities
 
 ## Design Document Alignment Rules
 
@@ -545,34 +488,10 @@ This ensures documentation stays synchronized with actual implementation and arc
 - ✅ Provide clear setup instructions for local credential files
 - ✅ Exit with error if credentials file is missing
 
-**Test credentials setup:**
-```bash
-# Create local file (NEVER commit):
-frontend/test/auth/.env.test
-
-# Content:
-TEST_EMAIL=your_email@domain.com
-TEST_PASSWORD=your_password
-```
-
-**Example secure credential loading:**
-```javascript
-const { loadTestCredentials } = require('./test-credentials');
-const credentials = loadTestCredentials(); // Safe local loading
-await emailInput.fill(credentials.email); // Never hardcoded
-```
-
 ### Enforcement
 - All credential files are in `.gitignore`
 - Tests fail if credentials are missing
 - Code review must catch any hardcoded secrets
-
-## Git Workflow Rules
-
-- **NO automatic commits** - Claude Code should never create git commits automatically
-- **Auto-accept file changes** - Claude Code can automatically stage and accept file modifications
-- **Manual commit control** - All commits are made manually by the developer
-- This ensures full control over commit timing, messages, and change grouping
 
 ## Code Quality & Formatting Rules
 
@@ -621,31 +540,6 @@ await emailInput.fill(credentials.email); // Never hardcoded
 - ✅ **ALWAYS use classes with properties for API DTOs** - ensures reliable OpenAPI schema generation
 - ✅ **Add proper validation attributes** - `[Required]`, `[JsonPropertyName]`, etc.
 
-**Correct DTO Pattern:**
-```csharp
-public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
-{
-    [Required]
-    public string SupplierName { get; set; } = null!;
-    
-    [Required] 
-    public string OrderDate { get; set; } = null!;
-    
-    public string? ExpectedDeliveryDate { get; set; }
-    
-    public string? Notes { get; set; }
-    
-    public string? OrderNumber { get; set; } // Optional custom order number
-    
-    public List<CreatePurchaseOrderLineRequest>? Lines { get; set; }
-}
-```
-
-**Why This Matters:**
-- **C# records with constructor parameters**: Parameter order affects OpenAPI generation, properties may be missing or incorrectly ordered
-- **Classes with properties**: Property names and types are correctly detected by OpenAPI generators
-- **Frontend API client generation**: NSwag and other tools work reliably with class-based DTOs
-- **Future maintenance**: Adding/removing properties doesn't break existing API calls due to parameter order changes
 
 **Enforcement:**
 - All MediatR requests/responses for API endpoints must use classes
@@ -659,8 +553,7 @@ public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
 2. **Add Application Logic**: Create handlers in `Application/Features/{Feature}/`
 3. **Configure Persistence**: Create entity configurations in `Persistence/{Feature}/` and repository implementations
 4. **Expose via API**: Create controller in `API/Controllers/{Feature}Controller.cs`
-5. **Choose Pattern**: Simple (flat handlers) vs Complex (UseCases/ structure) based on feature size
-6. **Register Dependencies**: Update `{Feature}Module.cs` and `PersistenceModule.cs` for proper DI registration
+5. **Register Dependencies**: Update `{Feature}Module.cs` and `PersistenceModule.cs` for proper DI registration
 
 ### Naming Conventions:
 - **Controllers**: `{Feature}Controller` (e.g., `CatalogController`)
@@ -672,18 +565,8 @@ public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
 - **Repository Implementations**: `{Entity}Repository` (e.g., `TransportBoxRepository`)
 
 ### Evolution Path:
-- **Simple → Complex**: Start with flat structure, migrate to UseCases/ when feature grows
 - **Shared → Feature-specific**: Move shared concerns into feature-specific implementations as needed
 - **Single → Multiple DbContexts**: Eventually split database contexts per feature for better isolation
-
-## Available Task Definitions
-
-The `/docs/tasks/` directory contains reusable task definitions for common operations:
-
-- **`backend-clean-architecture-refactoring.md`**: Complete systematic approach to transform any .NET backend into Clean Architecture with SOLID principles (4-phase process)
-- **`AUTHENTICATION_TESTING.md`**: Guidelines for testing authentication flows
-
-These tasks can be referenced for future similar work or applied to other projects.
 
 ## Important Notes
 

@@ -19,6 +19,7 @@ import {
 } from "../../api/hooks/useManufactureOrders";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
+import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
 import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
@@ -311,19 +312,13 @@ const ManufactureOrderList: React.FC = () => {
 
           {/* Responsible Person */}
           <div className="flex-1">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Odpovědná osoba"
-                value={responsiblePersonInput}
-                onChange={(e) => setResponsiblePersonInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-              />
-            </div>
+            <ResponsiblePersonCombobox
+              value={responsiblePersonInput}
+              onChange={(value) => setResponsiblePersonInput(value || "")}
+              placeholder="Odpovědná osoba"
+              allowManualEntry={true}
+              className="w-full"
+            />
           </div>
         </div>
 

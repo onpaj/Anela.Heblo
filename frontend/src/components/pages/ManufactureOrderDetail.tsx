@@ -35,6 +35,7 @@ import {
   UpdateManufactureOrderProductRequest,
   UpdateManufactureOrderSemiProductRequest,
 } from "../../api/generated/api-client";
+import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -496,13 +497,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                               <span className="text-sm text-gray-500">Odpovědná osoba:</span>
                             </div>
                             {canEditFields ? (
-                              <input
-                                type="text"
-                                value={editableResponsiblePerson}
-                                onChange={(e) => setEditableResponsiblePerson(e.target.value)}
-                                className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
-                                placeholder="Není přiřazena"
-                              />
+                              <div className="w-48">
+                                <ResponsiblePersonCombobox
+                                  value={editableResponsiblePerson}
+                                  onChange={(value) => setEditableResponsiblePerson(value || "")}
+                                  placeholder="Vyberte..."
+                                  allowManualEntry={true}
+                                />
+                              </div>
                             ) : (
                               <span className="text-sm text-gray-900">
                                 {order.responsiblePerson || "Není přiřazena"}

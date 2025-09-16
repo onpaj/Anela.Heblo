@@ -11,7 +11,7 @@ public class UpdateTransportBoxDescriptionResponse : BaseResponse
     {
     }
 
-    public UpdateTransportBoxDescriptionResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public UpdateTransportBoxDescriptionResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters)
     {
     }
