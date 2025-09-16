@@ -11,7 +11,6 @@ import {
   UpdateManufactureOrderStatusResponse,
   GetCalendarViewResponse,
   CalendarEventDto,
-  CalendarEventType,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -153,7 +152,6 @@ export {
 
 // Re-export calendar types from generated client
 export type { CalendarEventDto } from "../generated/api-client";
-export { CalendarEventType } from "../generated/api-client";
 
 // Calendar view query hook using generated API client
 export const useManufactureOrderCalendarQuery = (

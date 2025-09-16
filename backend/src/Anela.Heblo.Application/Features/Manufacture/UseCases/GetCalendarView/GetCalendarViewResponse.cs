@@ -23,7 +23,6 @@ public class CalendarEventDto
     public string OrderNumber { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public DateTime Date { get; set; }
-    public CalendarEventType Type { get; set; }
     public ManufactureOrderState State { get; set; }
     public string? ResponsiblePerson { get; set; }
     

@@ -86,15 +86,13 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
 
     private bool IsValidStateTransition(ManufactureOrderState fromState, ManufactureOrderState toState)
     {
-        // Allow backward and forward state transitions - extended business rules
+        // Allow backward and forward state transitions - simplified business rules
         return fromState switch
         {
-            ManufactureOrderState.Draft => toState is ManufactureOrderState.SemiProductPlanned or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.SemiProductPlanned => toState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufacture or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.SemiProductManufacture => toState is ManufactureOrderState.SemiProductPlanned or ManufactureOrderState.ProductsPlanned or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.ProductsPlanned => toState is ManufactureOrderState.SemiProductManufacture or ManufactureOrderState.ProductsManufacture or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.ProductsManufacture => toState is ManufactureOrderState.ProductsPlanned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Completed => toState is ManufactureOrderState.ProductsManufacture or ManufactureOrderState.Cancelled, // Allow going back from completed
+            ManufactureOrderState.Draft => toState is ManufactureOrderState.Planned or ManufactureOrderState.Cancelled,
+            ManufactureOrderState.Planned => toState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled,
+            ManufactureOrderState.SemiProductManufactured => toState is ManufactureOrderState.Planned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
+            ManufactureOrderState.Completed => toState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled, // Allow going back from completed
             ManufactureOrderState.Cancelled => false, // Cannot change from cancelled state
             _ => false
         };

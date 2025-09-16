@@ -26,10 +26,8 @@ import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
 
 const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800",
-  [ManufactureOrderState.SemiProductPlanned]: "bg-blue-100 text-blue-800",
-  [ManufactureOrderState.SemiProductManufacture]: "bg-yellow-100 text-yellow-800",
-  [ManufactureOrderState.ProductsPlanned]: "bg-indigo-100 text-indigo-800",
-  [ManufactureOrderState.ProductsManufacture]: "bg-orange-100 text-orange-800",
+  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800",
+  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800",
   [ManufactureOrderState.Completed]: "bg-green-100 text-green-800",
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800",
 };

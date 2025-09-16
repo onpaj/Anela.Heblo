@@ -55,7 +55,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned,
+            NewState = ManufactureOrderState.Planned,
             ChangeReason = ValidChangeReason
         };
 
@@ -79,12 +79,12 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.OldState.Should().Be("Draft");
-        result.NewState.Should().Be("SemiProductPlanned");
+        result.NewState.Should().Be("Planned");
         result.StateChangedByUser.Should().Be(TestUserName);
         result.StateChangedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
 
         updatedOrder.Should().NotBeNull();
-        updatedOrder!.State.Should().Be(ManufactureOrderState.SemiProductPlanned);
+        updatedOrder!.State.Should().Be(ManufactureOrderState.Planned);
         updatedOrder.StateChangedByUser.Should().Be(TestUserName);
     }
 
@@ -94,7 +94,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = NonExistentOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
         };
 
         _repositoryMock
@@ -112,7 +112,7 @@ public class UpdateManufactureOrderStatusHandlerTests
 
     [Theory]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Draft)] // Same state
-    [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.SemiProductPlanned)] // Invalid backwards transition
+    [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.Planned)] // Invalid backwards transition
     [InlineData(ManufactureOrderState.Cancelled, ManufactureOrderState.Draft)] // Cannot change from cancelled
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Completed)] // Skip states
     public async Task Handle_WithInvalidTransition_ShouldReturnInvalidOperationError(
@@ -142,11 +142,9 @@ public class UpdateManufactureOrderStatusHandlerTests
     }
 
     [Theory]
-    [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.SemiProductPlanned)]
-    [InlineData(ManufactureOrderState.SemiProductPlanned, ManufactureOrderState.SemiProductManufacture)]
-    [InlineData(ManufactureOrderState.SemiProductManufacture, ManufactureOrderState.ProductsPlanned)]
-    [InlineData(ManufactureOrderState.ProductsPlanned, ManufactureOrderState.ProductsManufacture)]
-    [InlineData(ManufactureOrderState.ProductsManufacture, ManufactureOrderState.Completed)]
+    [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Planned)]
+    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured)]
+    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed)]
     [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.Cancelled)]
     public async Task Handle_WithValidTransitions_ShouldSucceed(
         ManufactureOrderState fromState, ManufactureOrderState toState)
@@ -181,7 +179,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned,
+            NewState = ManufactureOrderState.Planned,
             ChangeReason = ValidChangeReason
         };
 
@@ -209,7 +207,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         auditEntry.Action.Should().Be(ManufactureOrderAuditAction.StateChanged);
         auditEntry.Details.Should().Be(ValidChangeReason);
         auditEntry.OldValue.Should().Be("Draft");
-        auditEntry.NewValue.Should().Be("SemiProductPlanned");
+        auditEntry.NewValue.Should().Be("Planned");
         auditEntry.User.Should().Be(TestUserName);
         auditEntry.ManufactureOrderId.Should().Be(ValidOrderId);
     }
@@ -220,7 +218,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
             // No ChangeReason provided
         };
 
@@ -255,7 +253,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
         };
 
         var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
@@ -289,7 +287,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
         };
 
         _repositoryMock
@@ -309,7 +307,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
         };
 
         var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
@@ -335,7 +333,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         var request = new UpdateManufactureOrderStatusRequest
         {
             Id = ValidOrderId,
-            NewState = ManufactureOrderState.SemiProductPlanned
+            NewState = ManufactureOrderState.Planned
         };
 
         _repositoryMock

@@ -45,7 +45,6 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                         OrderNumber = order.OrderNumber,
                         Title = $"{order.SemiProduct?.ProductName?.Replace(" - meziprodukt", "") ?? order.OrderNumber}",
                         Date = order.SemiProductPlannedDate.ToDateTime(TimeOnly.MinValue),
-                        Type = CalendarEventType.SemiProduct,
                         State = order.State,
                         ResponsiblePerson = order.ResponsiblePerson,
                         SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto

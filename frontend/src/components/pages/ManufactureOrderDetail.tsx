@@ -46,10 +46,8 @@ interface ManufactureOrderDetailProps {
 
 const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800",
-  [ManufactureOrderState.SemiProductPlanned]: "bg-blue-100 text-blue-800",
-  [ManufactureOrderState.SemiProductManufacture]: "bg-yellow-100 text-yellow-800",
-  [ManufactureOrderState.ProductsPlanned]: "bg-indigo-100 text-indigo-800",
-  [ManufactureOrderState.ProductsManufacture]: "bg-orange-100 text-orange-800",
+  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800",
+  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800",
   [ManufactureOrderState.Completed]: "bg-green-100 text-green-800",
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800",
 };
@@ -244,28 +242,20 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const getStateTransitions = (currentState: ManufactureOrderState) => {
     const transitions = {
       [ManufactureOrderState.Draft]: {
-        next: ManufactureOrderState.SemiProductPlanned,
+        next: ManufactureOrderState.Planned,
         previous: null,
       },
-      [ManufactureOrderState.SemiProductPlanned]: {
-        next: ManufactureOrderState.SemiProductManufacture,
+      [ManufactureOrderState.Planned]: {
+        next: ManufactureOrderState.SemiProductManufactured,
         previous: ManufactureOrderState.Draft,
       },
-      [ManufactureOrderState.SemiProductManufacture]: {
-        next: ManufactureOrderState.ProductsPlanned,
-        previous: ManufactureOrderState.SemiProductPlanned,
-      },
-      [ManufactureOrderState.ProductsPlanned]: {
-        next: ManufactureOrderState.ProductsManufacture,
-        previous: ManufactureOrderState.SemiProductManufacture,
-      },
-      [ManufactureOrderState.ProductsManufacture]: {
+      [ManufactureOrderState.SemiProductManufactured]: {
         next: ManufactureOrderState.Completed,
-        previous: ManufactureOrderState.ProductsPlanned,
+        previous: ManufactureOrderState.Planned,
       },
       [ManufactureOrderState.Completed]: {
         next: null,
-        previous: ManufactureOrderState.ProductsManufacture,
+        previous: ManufactureOrderState.SemiProductManufactured,
       },
       [ManufactureOrderState.Cancelled]: {
         next: null,

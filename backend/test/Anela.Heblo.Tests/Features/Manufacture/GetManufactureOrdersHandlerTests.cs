@@ -57,7 +57,7 @@ public class GetManufactureOrdersHandlerTests
     {
         var request = new GetManufactureOrdersRequest
         {
-            State = ManufactureOrderState.SemiProductManufacture
+            State = ManufactureOrderState.SemiProductManufactured
         };
         
         var orders = CreateSampleOrders();
@@ -65,7 +65,7 @@ public class GetManufactureOrdersHandlerTests
 
         _repositoryMock
             .Setup(x => x.GetOrdersAsync(
-                ManufactureOrderState.SemiProductManufacture,
+                ManufactureOrderState.SemiProductManufactured,
                 It.IsAny<DateOnly?>(),
                 It.IsAny<DateOnly?>(),
                 It.IsAny<string?>(),
@@ -82,7 +82,7 @@ public class GetManufactureOrdersHandlerTests
 
         _repositoryMock.Verify(
             x => x.GetOrdersAsync(
-                ManufactureOrderState.SemiProductManufacture,
+                ManufactureOrderState.SemiProductManufactured,
                 null,
                 null,
                 null,
@@ -403,7 +403,7 @@ public class GetManufactureOrdersHandlerTests
                 CreatedDate = DateTime.UtcNow.AddDays(-3),
                 CreatedByUser = "User2",
                 ResponsiblePerson = "Jane Doe",
-                State = ManufactureOrderState.SemiProductManufacture,
+                State = ManufactureOrderState.SemiProductManufactured,
                 StateChangedAt = DateTime.UtcNow.AddDays(-2),
                 StateChangedByUser = "User2"
             }
@@ -430,7 +430,7 @@ public class GetManufactureOrdersHandlerTests
                 CreatedDate = DateTime.UtcNow.AddDays(-3),
                 CreatedByUser = "User2",
                 ResponsiblePerson = "Jane Doe",
-                State = ManufactureOrderState.SemiProductManufacture
+                State = ManufactureOrderState.SemiProductManufactured
             }
         };
     }

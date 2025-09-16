@@ -12,7 +12,6 @@ import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
   ManufactureOrderState,
-  CalendarEventType,
 } from "../../api/hooks/useManufactureOrders";
 
 interface ManufactureOrderCalendarProps {
@@ -21,18 +20,12 @@ interface ManufactureOrderCalendarProps {
 
 const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800 border-gray-200",
-  [ManufactureOrderState.SemiProductPlanned]: "bg-blue-100 text-blue-800 border-blue-200",
-  [ManufactureOrderState.SemiProductManufacture]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  [ManufactureOrderState.ProductsPlanned]: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  [ManufactureOrderState.ProductsManufacture]: "bg-orange-100 text-orange-800 border-orange-200",
+  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800 border-blue-200",
+  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 border-yellow-200",
   [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 border-green-200",
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200",
 };
 
-const typeColors: Record<CalendarEventType, string> = {
-  [CalendarEventType.SemiProduct]: "border-l-4 border-l-blue-500",
-  [CalendarEventType.Product]: "border-l-4 border-l-green-500",
-};
 
 const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
   onEventClick,
@@ -265,7 +258,6 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
                         className={`
                           text-xs p-1 rounded cursor-pointer transition-all
                           ${event.state ? stateColors[event.state] : ''}
-                          ${event.type ? typeColors[event.type] || '' : ''}
                           hover:shadow-sm hover:scale-105
                         `}
                         title={`${event.title || event.orderNumber}\nZakázka: ${event.orderNumber}\nStav: ${event.state}\n${event.responsiblePerson ? `Odpovědná osoba: ${event.responsiblePerson}` : ''}`}

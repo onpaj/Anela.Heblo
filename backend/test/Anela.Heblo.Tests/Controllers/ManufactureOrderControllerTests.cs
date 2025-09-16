@@ -363,7 +363,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
             Id = orderId,
-            NewState = ManufactureOrderState.SemiProductPlanned,
+            NewState = ManufactureOrderState.Planned,
             ChangeReason = "Moving to next phase of production"
         };
 
@@ -375,7 +375,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         content.Should().NotBeNull();
         content!.Success.Should().BeTrue();
         content.OldState.Should().Be("Draft");
-        content.NewState.Should().Be("SemiProductPlanned");
+        content.NewState.Should().Be("Planned");
         content.StateChangedAt.Should().NotBe(default(DateTime));
         content.StateChangedByUser.Should().NotBeNullOrEmpty();
     }
@@ -421,7 +421,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
             Id = nonExistentId,
-            NewState = ManufactureOrderState.SemiProductPlanned,
+            NewState = ManufactureOrderState.Planned,
             ChangeReason = "Test reason"
         };
 
@@ -438,7 +438,7 @@ public class ManufactureOrderControllerTests : IClassFixture<ManufactureOrderTes
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
             Id = differentId,
-            NewState = ManufactureOrderState.SemiProductPlanned,
+            NewState = ManufactureOrderState.Planned,
             ChangeReason = "Test reason"
         };
 

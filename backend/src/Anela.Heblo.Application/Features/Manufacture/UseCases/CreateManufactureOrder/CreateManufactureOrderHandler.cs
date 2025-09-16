@@ -61,7 +61,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
                 ProductName = productRequest.ProductName,
                 SemiProductCode = request.ProductCode, // Link to the semiproduct being manufactured
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
-                ActualQuantity = 0 // Will be filled during production
+                ActualQuantity = (decimal)productRequest.PlannedQuantity,
             };
             order.Products.Add(product);
         }

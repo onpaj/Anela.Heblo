@@ -22,10 +22,8 @@ const resources = {
       manufacture: {
         states: {
           Draft: "Návrh",
-          SemiProductPlanned: "Zaplanováno - polotovar",
-          SemiProductManufacture: "Výroba polotovarů",
-          ProductsPlanned: "Zaplánováno - produkty",
-          ProductsManufacture: "Výroba produktů",
+          Planned: "Naplánováno",
+          SemiProductManufactured: "Meziprodukt vyroben",
           Completed: "Dokončeno",
           Cancelled: "Zrušeno"
         },
@@ -175,10 +173,8 @@ const resources = {
       manufacture: {
         states: {
           Draft: "Draft",
-          SemiProductPlanned: "Semi-product Planned",
-          SemiProductManufacture: "Semi-product Manufacturing",
-          ProductsPlanned: "Products Planned",
-          ProductsManufacture: "Products Manufacturing",
+          Planned: "Planned",
+          SemiProductManufactured: "Semi-product Manufactured",
           Completed: "Completed",
           Cancelled: "Cancelled"
         },

@@ -8548,10 +8548,8 @@ export interface IManufactureOrderDto {
 
 export enum ManufactureOrderState {
     Draft = "Draft",
-    SemiProductPlanned = "SemiProductPlanned",
-    SemiProductManufacture = "SemiProductManufacture",
-    ProductsPlanned = "ProductsPlanned",
-    ProductsManufacture = "ProductsManufacture",
+    Planned = "Planned",
+    SemiProductManufactured = "SemiProductManufactured",
     Completed = "Completed",
     Cancelled = "Cancelled",
 }
@@ -9567,7 +9565,6 @@ export class CalendarEventDto implements ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
-    type?: CalendarEventType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
@@ -9588,7 +9585,6 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.orderNumber = _data["orderNumber"];
             this.title = _data["title"];
             this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
-            this.type = _data["type"];
             this.state = _data["state"];
             this.responsiblePerson = _data["responsiblePerson"];
             this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
@@ -9613,7 +9609,6 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["orderNumber"] = this.orderNumber;
         data["title"] = this.title;
         data["date"] = this.date ? this.date.toISOString() : <any>undefined;
-        data["type"] = this.type;
         data["state"] = this.state;
         data["responsiblePerson"] = this.responsiblePerson;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
@@ -9631,16 +9626,10 @@ export interface ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
-    type?: CalendarEventType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
-}
-
-export enum CalendarEventType {
-    SemiProduct = "SemiProduct",
-    Product = "Product",
 }
 
 export class CalendarEventSemiProductDto implements ICalendarEventSemiProductDto {
@@ -13040,67 +13029,36 @@ export interface IRemoveItemFromBoxResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
 }
 
-export class UpdateTransportBoxDescriptionResponse implements IUpdateTransportBoxDescriptionResponse {
-    success?: boolean;
-    errorCode?: string | undefined;
-    errorMessage?: string | undefined;
-    params?: { [key: string]: string; } | undefined;
+export class UpdateTransportBoxDescriptionResponse extends BaseResponse implements IUpdateTransportBoxDescriptionResponse {
     updatedBox?: GetTransportBoxByIdResponse | undefined;
 
     constructor(data?: IUpdateTransportBoxDescriptionResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
-            this.errorCode = _data["errorCode"];
-            this.errorMessage = _data["errorMessage"];
-            if (_data["params"]) {
-                this.params = {} as any;
-                for (let key in _data["params"]) {
-                    if (_data["params"].hasOwnProperty(key))
-                        (<any>this.params)![key] = _data["params"][key];
-                }
-            }
             this.updatedBox = _data["updatedBox"] ? GetTransportBoxByIdResponse.fromJS(_data["updatedBox"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): UpdateTransportBoxDescriptionResponse {
+    static override fromJS(data: any): UpdateTransportBoxDescriptionResponse {
         data = typeof data === 'object' ? data : {};
         let result = new UpdateTransportBoxDescriptionResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["errorCode"] = this.errorCode;
-        data["errorMessage"] = this.errorMessage;
-        if (this.params) {
-            data["params"] = {};
-            for (let key in this.params) {
-                if (this.params.hasOwnProperty(key))
-                    (<any>data["params"])[key] = (<any>this.params)[key];
-            }
-        }
         data["updatedBox"] = this.updatedBox ? this.updatedBox.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IUpdateTransportBoxDescriptionResponse {
-    success?: boolean;
-    errorCode?: string | undefined;
-    errorMessage?: string | undefined;
-    params?: { [key: string]: string; } | undefined;
+export interface IUpdateTransportBoxDescriptionResponse extends IBaseResponse {
     updatedBox?: GetTransportBoxByIdResponse | undefined;
 }
 

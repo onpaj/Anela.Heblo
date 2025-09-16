@@ -37,7 +37,7 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
 
         builder.Property(x => x.State)
             .IsRequired()
-            .HasConversion<int>();
+            .HasConversion<string>();
 
         builder.Property(x => x.StateChangedAt)
             .IsRequired()
