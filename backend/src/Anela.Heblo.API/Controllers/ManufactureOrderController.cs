@@ -54,12 +54,6 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<CreateManufactureOrderResponse>> CreateOrder([FromBody] CreateManufactureOrderRequest request)
     {
         var response = await _mediator.Send(request);
-
-        if (response.Success)
-        {
-            return Created($"/api/ManufactureOrder/{response.Id}", response);
-        }
-
         return HandleResponse(response);
     }
 

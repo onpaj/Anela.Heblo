@@ -337,9 +337,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
 
   const content = (
-    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} ${isModalMode ? 'max-w-6xl w-full h-[780px]' : 'h-[780px] max-w-6xl'} overflow-hidden flex flex-col relative`}>
+    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} ${isModalMode ? 'max-w-6xl w-full max-h-[580px]' : 'h-full max-w-6xl'} overflow-hidden flex flex-col relative`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <Factory className="h-6 w-6 text-indigo-600" />
             <div>
@@ -440,7 +440,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
           ) : order ? (
             <>
               {/* Tabs */}
-              <div className="border-b border-gray-200 px-6 pt-6">
+              <div className="border-b border-gray-200 px-4 pt-3">
                 <nav className="-mb-px flex space-x-8">
                   <button
                     onClick={() => setActiveTab("info")}
@@ -479,9 +479,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </div>
 
               {/* Tab Content */}
-              <div className="flex-1 overflow-y-auto p-4 min-h-0">
+              <div className="overflow-y-auto p-3">
                 {activeTab === "info" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Panel - Basic Info, Time Data, and Notes */}
                     <div className="flex flex-col space-y-4">
                       {/* Basic Information */}
@@ -813,7 +813,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         </div>
 
         {/* Separator and Action Buttons */}
-        <div className="border-t border-gray-200 p-4 flex-shrink-0">
+        <div className="border-t border-gray-200 p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* Cancel button on the left */}
             <div>
@@ -913,8 +913,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     );
   } else {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="h-screen bg-gray-50 overflow-hidden">
+        <div className="max-w-6xl mx-auto py-4 px-4 sm:px-6 lg:px-8 h-full">
           {content}
         </div>
       </div>

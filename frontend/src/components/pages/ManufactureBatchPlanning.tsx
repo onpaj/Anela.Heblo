@@ -15,7 +15,8 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import ManufactureOrderDetail from "./ManufactureOrderDetail";
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
@@ -38,10 +39,13 @@ const BatchPlanningCalculator: React.FC = () => {
   // Product constraints state (for fixed quantities)
   const [productConstraints, setProductConstraints] = useState<Map<string, { isFixed: boolean; quantity: number }>>(new Map());
   
+  // Modal state for showing manufacture order detail
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
+  
   // Mutation
   const batchPlanMutation = useBatchPlanningMutation();
   const createOrderMutation = useCreateManufactureOrder();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get API response data
@@ -358,9 +362,10 @@ const BatchPlanningCalculator: React.FC = () => {
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
       
-      if (orderResponse.success) {
-        // Navigate to the created order detail
-        navigate(`/manufacturing/orders/${orderResponse.id}`);
+      if (orderResponse.success && orderResponse.id) {
+        // Open the manufacture order detail modal
+        setCreatedOrderId(orderResponse.id);
+        setShowOrderModal(true);
       }
     } catch (error) {
       console.error("Error creating manufacture order:", error);
@@ -784,6 +789,18 @@ const BatchPlanningCalculator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Manufacture Order Detail Modal */}
+      {showOrderModal && createdOrderId && (
+        <ManufactureOrderDetail
+          orderId={createdOrderId}
+          isOpen={showOrderModal}
+          onClose={() => {
+            setShowOrderModal(false);
+            setCreatedOrderId(null);
+          }}
+        />
+      )}
     </div>
   );
 };
