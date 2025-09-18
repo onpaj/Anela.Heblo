@@ -55,22 +55,22 @@ public class StockUpScenario
         {
             var clearButton = page.GetByText("Smazat všechny položky");
             await clearButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 2000 });
-            
+
             _logger.LogDebug("Clear button found, clicking it");
             await clearButton.ClickAsync();
-            
+
             // Handle confirmation dialog if it appears
             try
             {
-                await page.WaitForSelectorAsync("[role='dialog'], .modal, .confirmation-dialog", 
+                await page.WaitForSelectorAsync("[role='dialog'], .modal, .confirmation-dialog",
                     new PageWaitForSelectorOptions { Timeout = 3000 });
-                
+
                 // Look for confirmation button (OK/Ano/Potvrdit)
                 var confirmButton = page.Locator("button").Filter(new() { HasText = "OK" })
                     .Or(page.Locator("button").Filter(new() { HasText = "Ano" }))
                     .Or(page.Locator("button").Filter(new() { HasText = "Potvrdit" }))
                     .Or(page.Locator("button").Filter(new() { HasText = "Smazat" }));
-                    
+
                 await confirmButton.First.ClickAsync();
                 await page.WaitForTimeoutAsync(1000);
                 _logger.LogDebug("Confirmation dialog handled successfully");
@@ -91,30 +91,59 @@ public class StockUpScenario
             await page.PressAsync("input[name='stockingSearch']", "Enter");
             await page.WaitForSelectorAsync(".cashdesk-search-result",
                 new PageWaitForSelectorOptions { Timeout = 10000 });
-                
+
             // Wait for products to be actually loaded and clickable
-            await page.WaitForSelectorAsync(".cashdesk-products-listing > .product", 
+            await page.WaitForSelectorAsync(".cashdesk-products-listing > .product",
                 new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 5000 });
             await page.WaitForTimeoutAsync(500); // Additional wait for products to stabilize
-            
-            await page.ClickAsync(".cashdesk-products-listing > .product");
-            
-            // Wait for the quantity input field to be available 
-            await page.WaitForSelectorAsync(".stock-amount", new PageWaitForSelectorOptions { Timeout = 5000 });
-            
-            // Find the specific quantity input for positive amounts (not the -1 one)
-            var quantityInput = page.GetByRole(AriaRole.Textbox, new() { Name = "Množství" });
-            
-            // Scroll to the quantity input to make sure it's visible
-            await quantityInput.ScrollIntoViewIfNeededAsync();
-            
-            // Wait a bit for the scroll to complete
-            await page.WaitForTimeoutAsync(300);
-            
-            // Clear any existing value and fill the amount
-            await quantityInput.ClearAsync();
-            await quantityInput.FillAsync(product.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            
+
+            // Use locator for more robust element handling
+            var productLocator = page.Locator(".cashdesk-products-listing > .product").First;
+            await productLocator.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
+            await productLocator.ClickAsync();
+
+            // Wait for the quantity input field to be available and attached
+            await page.WaitForSelectorAsync(".stock-amount", new PageWaitForSelectorOptions { State = WaitForSelectorState.Attached, Timeout = 5000 });
+
+            // Wait for any DOM mutations to settle
+            await page.WaitForTimeoutAsync(500);
+
+            // Find the specific quantity input for positive amounts with retry logic
+            const int maxRetries = 3;
+            for (int retry = 0; retry < maxRetries; retry++)
+            {
+                try
+                {
+                    // Re-query the element each time to ensure it's fresh
+                    var quantityInput = page.GetByRole(AriaRole.Textbox, new() { Name = "Množství" });
+
+                    // Wait for the element to be attached and stable
+                    await quantityInput.WaitForAsync(new LocatorWaitForOptions
+                    {
+                        State = WaitForSelectorState.Attached,
+                        Timeout = 5000
+                    });
+
+                    // Scroll to the quantity input to make sure it's visible
+                    await quantityInput.ScrollIntoViewIfNeededAsync();
+
+                    // Wait a bit for the scroll to complete
+                    await page.WaitForTimeoutAsync(300);
+
+                    // Clear any existing value and fill the amount
+                    await quantityInput.ClearAsync();
+                    await quantityInput.FillAsync(product.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+                    // Success - break out of retry loop
+                    break;
+                }
+                catch (PlaywrightException ex) when (ex.Message.Contains("not attached") && retry < maxRetries - 1)
+                {
+                    _logger.LogWarning($"Element detached on attempt {retry + 1}, retrying...");
+                    await page.WaitForTimeoutAsync(1000); // Wait before retry
+                }
+            }
+
             // Wait a moment for the value to be processed
             await page.WaitForTimeoutAsync(500);
         }
