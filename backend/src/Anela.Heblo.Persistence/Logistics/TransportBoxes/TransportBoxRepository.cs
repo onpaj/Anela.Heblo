@@ -63,12 +63,16 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
         };
 
         // Apply pagination and include related data
-        var items = await query
+        query = query
             .Include(x => x.Items)
             .Include(x => x.StateLog)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
+            .Skip(skip);
+
+        if (take > 0)
+        {
+            query = query.Take(take);
+        }
+        var items = await query.ToListAsync();
 
         _logger.LogDebug("Retrieved {ItemCount} transport boxes out of {TotalCount} with filters - Code: {Code}, State: {State}, ProductCode: {ProductCode}",
             items.Count, totalCount, code, state, productCode);
