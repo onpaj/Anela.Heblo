@@ -79,6 +79,10 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Add Hangfire authentication middleware before Hangfire dashboard
+        // This middleware handles redirects to login when user is not authenticated
+        app.UseMiddleware<HangfireAuthenticationMiddleware>();
+
         // Configure Hangfire dashboard with custom token authorization filter
         // This filter properly handles Bearer tokens and respects UseMockAuth configuration
         var authFilter = app.Services.GetRequiredService<HangfireDashboardTokenAuthorizationFilter>();

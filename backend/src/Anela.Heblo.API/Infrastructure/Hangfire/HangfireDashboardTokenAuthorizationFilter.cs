@@ -62,27 +62,15 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
                 return ValidateAuthenticatedUser(httpContext.User);
             }
 
-            // Try to authenticate using the Authorization header
-            var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
-            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-            {
-                return false;
-            }
-
-            var token = authHeader.Substring("Bearer ".Length).Trim();
-            if (string.IsNullOrEmpty(token))
-            {
-                return false;
-            }
-
-            // For now, if we have a token but user is not authenticated, 
-            // we'll return false and let the client handle proper authentication
-            // This is a more secure approach than trying to validate tokens manually
-            return false;
+            // For real authentication, ALWAYS return true and let the middleware handle authentication/redirects
+            // The HangfireAuthenticationMiddleware will properly redirect unauthenticated users to login
+            // This prevents Hangfire from showing 401 error and allows proper OIDC flow
+            return true;
         }
         catch
         {
-            return false;
+            // Even on errors, let the middleware handle it
+            return true;
         }
     }
 

@@ -44,7 +44,7 @@ public class E2ETestAuthenticationMiddleware
         }
 
         // Method 1: Check for E2E session cookie (from E2ETestController)
-        var cookieAuthResult = await context.AuthenticateAsync("Cookies");
+        var cookieAuthResult = await context.AuthenticateAsync("E2ETestCookies");
         if (cookieAuthResult.Succeeded && cookieAuthResult.Principal != null)
         {
             _logger.LogInformation("E2E Authentication: User authenticated via E2E session cookies: {User}",
