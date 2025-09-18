@@ -60,6 +60,9 @@ public static class ApplicationBuilderExtensions
             app.UseOpenApi();
         }
 
+        // Configure forwarded headers for deployment behind load balancer/proxy (HTTPS handling)
+        app.UseForwardedHeaders();
+        
         app.UseHttpsRedirection();
 
         // Built-in HTTP request logging

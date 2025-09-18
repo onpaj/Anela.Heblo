@@ -1,5 +1,6 @@
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Domain.Features.Configuration;
 
@@ -55,6 +56,14 @@ public static class AuthenticationExtensions
 
         // Also add API authentication for Bearer tokens (for API clients)
         services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+
+        // Configure HTTPS forwarding headers for deployment behind load balancer/proxy
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
 
         // Note: GraphService now uses HttpClient directly with ITokenAcquisition
         // No need for GraphServiceClient registration
