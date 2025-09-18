@@ -50,6 +50,12 @@ RUN dotnet publish backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj \
     -o /app/publish \
     --force
 
+# Install Playwright and browsers in the build stage
+RUN dotnet tool install --global Microsoft.Playwright.CLI \
+    && export PATH="$PATH:/root/.dotnet/tools" \
+    && playwright install chromium \
+    && playwright install-deps
+
 # Stage 3: Runtime - ASP.NET Core serving React + API
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
@@ -79,26 +85,21 @@ COPY --from=backend-build /app/publish ./
 # Copy built React frontend to wwwroot (ASP.NET Core serves static files)
 COPY --from=frontend-build /app/frontend/build ./wwwroot
 
-# Install Playwright browsers (must be done as root before switching to appuser)
-RUN dotnet tool install --global Microsoft.Playwright.CLI \
-    && export PATH="$PATH:/root/.dotnet/tools" \
-    && playwright install chromium \
-    && playwright install-deps chromium
+# Copy Playwright browsers from build stage
+COPY --from=backend-build /root/.cache/ms-playwright /opt/ms-playwright
 
 # Configure ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV TZ=Europe/Prague
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos "" --uid 1001 appuser
 RUN chown -R appuser:appuser /app
 
 # Make Playwright browsers accessible to appuser
-RUN mkdir -p /home/appuser/.cache && \
-    cp -r /root/.cache/ms-playwright /home/appuser/.cache/ 2>/dev/null || true && \
-    chown -R appuser:appuser /home/appuser/.cache
+RUN chown -R appuser:appuser /opt/ms-playwright
 
 USER appuser
 
