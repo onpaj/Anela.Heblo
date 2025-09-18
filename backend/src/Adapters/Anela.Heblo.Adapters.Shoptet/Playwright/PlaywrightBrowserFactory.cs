@@ -14,7 +14,7 @@ public class PlaywrightBrowserFactory
     {
         if (_options.Headless)
         {
-            return playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions()
+            return playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
             {
                 Headless = _options.Headless,
             });
