@@ -287,6 +287,9 @@ public static class ServiceCollectionExtensions
         // Register background job service (always available for manual execution via dashboard)
         services.AddTransient<HangfireBackgroundJobService>();
 
+        // Register Hangfire dashboard authorization filter
+        services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
+
         // Register ProductExportOptions configuration
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
 

@@ -30,6 +30,7 @@ public static class AuthenticationExtensions
             ConfigureRealAuthentication(services, builder);
         }
 
+
         return services;
     }
 
@@ -78,5 +79,6 @@ public static class AuthenticationExtensions
             services.AddScoped<IE2ESessionService, E2ESessionService>();
         }
     }
+
 
 }
