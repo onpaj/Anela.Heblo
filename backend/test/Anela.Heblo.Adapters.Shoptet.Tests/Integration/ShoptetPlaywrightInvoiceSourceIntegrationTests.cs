@@ -201,9 +201,9 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
 
     private bool HasValidConfiguration()
     {
-        var url = _configuration["Shoptet.Playwright:ShopEntryUrl"];
-        var username = _configuration["Shoptet.Playwright:Login"];
-        var password = _configuration["Shoptet.Playwright:Password"];
+        var url = _configuration["ShoptetPlaywright:ShopEntryUrl"];
+        var username = _configuration["ShoptetPlaywright:Login"];
+        var password = _configuration["ShoptetPlaywright:Password"];
 
         return !string.IsNullOrEmpty(url) &&
                !string.IsNullOrEmpty(username) &&

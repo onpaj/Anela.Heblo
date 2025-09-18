@@ -38,7 +38,7 @@ public class ShoptetPriceClient : IProductPriceEshopClient
                 {
                     ProductCode = record.ProductCode,
                     PriceWithVat = record.PriceWithVat,
-                    PriceWithoutVat = record.PriceWithVat.HasValue ? (decimal)((double)record.PriceWithVat / (double)((record?.PercentVat ?? 21) / 100 + 1)) : null,
+                    PriceWithoutVat = (decimal)((double)(record.PriceWithVat ?? 0) / (double)((record?.PercentVat ?? 21) / 100 + 1)),
                     PurchasePrice = record.PurchasePrice
                 };
 
