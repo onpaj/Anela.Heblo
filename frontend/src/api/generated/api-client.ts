@@ -10689,6 +10689,7 @@ export class ProductMarginDto implements IProductMarginDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    priceWithoutVatFromErp?: boolean;
 
     constructor(data?: IProductMarginDto) {
         if (data) {
@@ -10710,6 +10711,7 @@ export class ProductMarginDto implements IProductMarginDto {
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.marginPercentage = _data["marginPercentage"];
             this.marginAmount = _data["marginAmount"];
+            this.priceWithoutVatFromErp = _data["priceWithoutVatFromErp"];
         }
     }
 
@@ -10731,6 +10733,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["marginPercentage"] = this.marginPercentage;
         data["marginAmount"] = this.marginAmount;
+        data["priceWithoutVatFromErp"] = this.priceWithoutVatFromErp;
         return data;
     }
 }
@@ -10745,6 +10748,7 @@ export interface IProductMarginDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    priceWithoutVatFromErp?: boolean;
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {

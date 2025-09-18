@@ -187,14 +187,22 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             };
 
             // Safe price extraction
-            if (product?.EshopPrice?.PriceWithoutVat != null)
+            if (product?.EshopPrice?.PriceWithoutVat is > 0)
             {
                 dto.PriceWithoutVat = product.EshopPrice.PriceWithoutVat;
             }
             else
             {
-                _logger.LogDebug("Product {ProductCode} missing e-shop price", product?.ProductCode);
-                dto.PriceWithoutVat = null;
+                if(product?.ErpPrice?.PriceWithoutVat is > 0)
+                {
+                    dto.PriceWithoutVat = product.ErpPrice.PriceWithoutVat;
+                    dto.PriceWithoutVatFromErp = true;
+                }
+                else
+                {
+                    _logger.LogDebug("Product {ProductCode} missing price", product?.ProductCode);
+                    dto.PriceWithoutVat = null;
+                }
             }
 
             // Safe cost extraction
