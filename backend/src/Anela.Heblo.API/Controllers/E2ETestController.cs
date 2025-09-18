@@ -115,7 +115,7 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
-    [Authorize(AuthenticationSchemes = "Cookies")]
+    [Authorize(AuthenticationSchemes = "E2ETestCookies")]
     public ActionResult<object> GetAuthStatus()
     {
         // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)
@@ -153,7 +153,7 @@ public class E2ETestController : ControllerBase
     /// Serve E2E test version of the app with mock authentication
     /// </summary>
     [HttpGet("app")]
-    [Authorize(AuthenticationSchemes = "Cookies")]
+    [Authorize(AuthenticationSchemes = "E2ETestCookies")]
     public ActionResult GetE2EApp()
     {
         // CRITICAL SECURITY: Only allow in Staging or Development environment (Development temporarily for debugging)

@@ -30,6 +30,7 @@ public static class AuthenticationExtensions
             ConfigureRealAuthentication(services, builder);
         }
 
+
         return services;
     }
 
@@ -47,11 +48,13 @@ public static class AuthenticationExtensions
     private static void ConfigureRealAuthentication(IServiceCollection services, WebApplicationBuilder builder)
     {
         // Real Microsoft Identity authentication
-        // Use standard Microsoft Identity Web API authentication (recommended)
-        // This includes proper JWT validation, signing keys, issuer and audience validation
-        var authBuilder = services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
+        // Add both Web App (for browser redirects) and Web API (for Bearer tokens) authentication
+        var authBuilder = services.AddMicrosoftIdentityWebAppAuthentication(builder.Configuration, "AzureAd")
             .EnableTokenAcquisitionToCallDownstreamApi()
             .AddInMemoryTokenCaches();
+
+        // Also add API authentication for Bearer tokens (for API clients)
+        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
 
         // Note: GraphService now uses HttpClient directly with ITokenAcquisition
         // No need for GraphServiceClient registration
@@ -60,7 +63,7 @@ public static class AuthenticationExtensions
         if (E2ETestAuthenticationMiddleware.ShouldBeRegistered(builder))
         {
             services.AddAuthentication()
-                .AddCookie("Cookies", options =>
+                .AddCookie("E2ETestCookies", options =>
                 {
                     options.Cookie.Name = "E2ETestSession";
                     options.Cookie.HttpOnly = true;
@@ -78,5 +81,6 @@ public static class AuthenticationExtensions
             services.AddScoped<IE2ESessionService, E2ESessionService>();
         }
     }
+
 
 }

@@ -79,21 +79,17 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
-        var hangFireOptions = new DashboardOptions();
+        // Add Hangfire authentication middleware before Hangfire dashboard
+        // This middleware handles redirects to login when user is not authenticated
+        app.UseMiddleware<HangfireAuthenticationMiddleware>();
 
-        // Configure Hangfire dashboard authorization based on environment
-        if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+        // Configure Hangfire dashboard with custom token authorization filter
+        // This filter properly handles Bearer tokens and respects UseMockAuth configuration
+        var authFilter = app.Services.GetRequiredService<HangfireDashboardTokenAuthorizationFilter>();
+        app.MapHangfireDashboard("/hangfire", new DashboardOptions()
         {
-            // Development and staging: No authentication required
-            hangFireOptions.Authorization = new[] { new HangfireDashboardNoAuthFilter() };
-        }
-        else
-        {
-            // Production: Require Microsoft Entra ID authentication
-            hangFireOptions.Authorization = new[] { new HangfireDashboardAuthorizationFilter() };
-        }
-
-        app.UseHangfireDashboard("/hangfire", hangFireOptions);
+            Authorization = new[] { authFilter }
+        });
 
 
         // Serve static files from wwwroot

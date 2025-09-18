@@ -53,7 +53,7 @@ public class E2ESessionService : IE2ESessionService
 
         // Sign in the synthetic user using the cookie authentication scheme
         // This ensures compatibility with the E2E test session management
-        await httpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
+        await httpContext.SignInAsync("E2ETestCookies", principal, new AuthenticationProperties
         {
             IsPersistent = false,
             ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)

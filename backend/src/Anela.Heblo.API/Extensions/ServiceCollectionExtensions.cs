@@ -279,13 +279,16 @@ public static class ServiceCollectionExtensions
         });
 
         // Only register job scheduler service in Production and Staging environments
-        if (environment.IsProduction() || environment.IsStaging())
+        if (environment.IsProduction())
         {
             services.AddHostedService<HangfireJobSchedulerService>();
         }
 
         // Register background job service (always available for manual execution via dashboard)
         services.AddTransient<HangfireBackgroundJobService>();
+
+        // Register Hangfire dashboard authorization filter
+        services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
 
         // Register ProductExportOptions configuration
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
