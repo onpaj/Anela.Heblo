@@ -279,7 +279,7 @@ public static class ServiceCollectionExtensions
         });
 
         // Only register job scheduler service in Production and Staging environments
-        if (environment.IsProduction() || environment.IsStaging())
+        if (environment.IsProduction())
         {
             services.AddHostedService<HangfireJobSchedulerService>();
         }
