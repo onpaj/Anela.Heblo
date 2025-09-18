@@ -49,15 +49,74 @@ public class StockUpScenario
         await page.WaitForLoadStateAsync();
         await page.FillAsync("input[name='documentNumber']", request.StockUpId);
 
+        // Try to clear all existing items first (if button exists and is visible)
+        _logger.LogDebug("Checking if clear items button exists and is visible");
+        try
+        {
+            var clearButton = page.GetByText("Smazat všechny položky");
+            await clearButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 2000 });
+            
+            _logger.LogDebug("Clear button found, clicking it");
+            await clearButton.ClickAsync();
+            
+            // Handle confirmation dialog if it appears
+            try
+            {
+                await page.WaitForSelectorAsync("[role='dialog'], .modal, .confirmation-dialog", 
+                    new PageWaitForSelectorOptions { Timeout = 3000 });
+                
+                // Look for confirmation button (OK/Ano/Potvrdit)
+                var confirmButton = page.Locator("button").Filter(new() { HasText = "OK" })
+                    .Or(page.Locator("button").Filter(new() { HasText = "Ano" }))
+                    .Or(page.Locator("button").Filter(new() { HasText = "Potvrdit" }))
+                    .Or(page.Locator("button").Filter(new() { HasText = "Smazat" }));
+                    
+                await confirmButton.First.ClickAsync();
+                await page.WaitForTimeoutAsync(1000);
+                _logger.LogDebug("Confirmation dialog handled successfully");
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogDebug("No confirmation dialog appeared, continuing");
+            }
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogDebug("Clear button not found or not visible, continuing with product entry");
+        }
+
         foreach (var product in request.Products)
         {
             await page.FillAsync("input[name='stockingSearch']", product.ProductCode);
             await page.PressAsync("input[name='stockingSearch']", "Enter");
             await page.WaitForSelectorAsync(".cashdesk-search-result",
                 new PageWaitForSelectorOptions { Timeout = 10000 });
+                
+            // Wait for products to be actually loaded and clickable
+            await page.WaitForSelectorAsync(".cashdesk-products-listing > .product", 
+                new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 5000 });
+            await page.WaitForTimeoutAsync(500); // Additional wait for products to stabilize
+            
             await page.ClickAsync(".cashdesk-products-listing > .product");
-            await page.FillAsync("text=Množství",
-                product.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            
+            // Wait for the quantity input field to be available 
+            await page.WaitForSelectorAsync(".stock-amount", new PageWaitForSelectorOptions { Timeout = 5000 });
+            
+            // Find the specific quantity input for positive amounts (not the -1 one)
+            var quantityInput = page.GetByRole(AriaRole.Textbox, new() { Name = "Množství" });
+            
+            // Scroll to the quantity input to make sure it's visible
+            await quantityInput.ScrollIntoViewIfNeededAsync();
+            
+            // Wait a bit for the scroll to complete
+            await page.WaitForTimeoutAsync(300);
+            
+            // Clear any existing value and fill the amount
+            await quantityInput.ClearAsync();
+            await quantityInput.FillAsync(product.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            
+            // Wait a moment for the value to be processed
+            await page.WaitForTimeoutAsync(500);
         }
 
         await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
