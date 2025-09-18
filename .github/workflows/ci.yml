@@ -161,10 +161,10 @@ jobs:
           # Shoptet integration test configuration
           StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
-          Shoptet.Playwright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
-          Shoptet.Playwright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
-          Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
-          Shoptet.Playwright__Headless: true
+          ShoptetPlaywright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          ShoptetPlaywright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          ShoptetPlaywright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          ShoptetPlaywright__Headless: true
           # FlexiBee integration test configuration
           FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
           FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
