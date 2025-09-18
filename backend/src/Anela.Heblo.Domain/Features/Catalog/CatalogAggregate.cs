@@ -25,6 +25,43 @@ public class CatalogAggregate : Entity<string>
     public ProductPriceEshop? EshopPrice { get; set; }
     public ProductPriceErp? ErpPrice { get; set; }
 
+    public decimal? PriceWithVat => GetSafeProductPrice();
+    public decimal? PriceWithoutVat => GetSafeProductPrideWithoutVat();
+    
+    public bool PriceIsFromEshop => EshopPrice?.PriceWithVat is not 0;
+
+    private decimal? GetSafeProductPrideWithoutVat()
+    {
+        // Safe price extraction
+        if (EshopPrice?.PriceWithoutVat is > 0)
+        {
+            return EshopPrice.PriceWithoutVat.Value;
+        }
+
+        if (ErpPrice?.PriceWithoutVat is > 0)
+        {
+            return ErpPrice.PriceWithoutVat;
+        }
+
+        return null;
+    }
+    
+    private decimal? GetSafeProductPrice()
+    {
+        // Safe price extraction
+        if (EshopPrice?.PriceWithVat is > 0)
+        {
+            return EshopPrice.PriceWithVat.Value;
+        }
+
+        if (ErpPrice?.PriceWithVat is > 0)
+        {
+            return ErpPrice.PriceWithVat;
+        }
+
+        return null;
+    }
+
     public bool HasBoM => ErpPrice?.HasBoM ?? false;
 
     public int? BoMId => ErpPrice?.BoMId;
@@ -262,7 +299,7 @@ public class CatalogAggregate : Entity<string>
         }
 
         // Get selling price without VAT from eshop
-        var sellingPrice = EshopPrice?.PriceWithoutVat ?? 0;
+        var sellingPrice = PriceWithoutVat ?? 0;
 
         if (sellingPrice > 0)
         {

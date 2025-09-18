@@ -355,9 +355,9 @@ const ProductMarginsList: React.FC = () => {
                     {item.productName}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${
-                    item.priceWithoutVatFromErp 
-                      ? 'text-orange-600 font-semibold' 
-                      : 'text-gray-900'
+                    item.priceWithoutVatIsFromEshop
+                      ? 'text-gray-900'
+                      : 'text-orange-600 font-semibold' 
                   }`}>
                     {formatCurrency(item.priceWithoutVat)}
                   </td>

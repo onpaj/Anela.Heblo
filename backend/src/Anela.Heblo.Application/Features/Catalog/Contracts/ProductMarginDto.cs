@@ -11,5 +11,5 @@ public class ProductMarginDto
     public double ManufactureDifficulty { get; set; }
     public decimal MarginPercentage { get; set; } // Direct from CatalogAggregate.MarginPercentage
     public decimal MarginAmount { get; set; } // Direct from CatalogAggregate.MarginAmount
-    public bool PriceWithoutVatFromErp { get; set; } = false;
+    public bool PriceWithoutVatIsFromEshop { get; set; } = false;
 }
