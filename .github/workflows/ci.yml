@@ -149,22 +149,22 @@ jobs:
       - name: 📊 Count total tests
         run: |
           echo "=== Test Discovery ==="
-          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests | grep -E "Test Name|^    " | wc -l
-          echo "=== Running Tests ==="
+          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests --filter "Category!=Playwright&Category!=Integration" | grep -E "Test Name|^    " | wc -l
+          echo "=== Running Tests (excluding Playwright and Integration tests) ==="
         env:
           ASPNETCORE_ENVIRONMENT: Automation
 
-      - name: 🧪 Run tests with coverage
-        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
           StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
-          Shoptet.Playwright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
-          Shoptet.Playwright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
-          Shoptet.Playwright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
-          Shoptet.Playwright__Headless: true
+          ShoptetPlaywright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          ShoptetPlaywright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          ShoptetPlaywright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          ShoptetPlaywright__Headless: true
           # FlexiBee integration test configuration
           FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
           FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}

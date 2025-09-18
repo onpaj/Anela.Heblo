@@ -205,8 +205,8 @@ public class CatalogRefreshBackgroundService : BackgroundService
             }
 
             // Refresh ManufactureCostData only after all other data sources are loaded
-            // Check that all required boolean flags are true
-            if (AreAllDataSourcesLoaded(catalogRepository))
+            // Check that all required data sources are loaded
+            if (AreAllDataSourcesLoaded(catalogRepository) && !catalogRepository.ChangesPendingForMerge)
             {
                 if ((await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
                     _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
@@ -294,21 +294,20 @@ public class CatalogRefreshBackgroundService : BackgroundService
 
     private bool AreAllDataSourcesLoaded(ICatalogRepository catalogRepository)
     {
-        return catalogRepository.TransportDataLoaded &&
-               catalogRepository.ReserveDataLoaded &&
-               catalogRepository.OrderedDataLoaded &&
-               catalogRepository.SalesDataLoaded &&
-               catalogRepository.AttributesDataLoaded &&
-               catalogRepository.ErpStockDataLoaded &&
-               catalogRepository.EshopStockDataLoaded &&
-               catalogRepository.PurchaseHistoryDataLoaded &&
-               catalogRepository.ManufactureHistoryDataLoaded &&
-               catalogRepository.ConsumedHistoryDataLoaded &&
-               catalogRepository.StockTakingDataLoaded &&
-               catalogRepository.LotsDataLoaded &&
-               catalogRepository.EshopPricesDataLoaded &&
-               catalogRepository.ErpPricesDataLoaded &&
-               catalogRepository.ManufactureDifficultySettingsDataLoaded &&
-               catalogRepository.ManufactureDifficultyDataLoaded;
+        return catalogRepository.TransportLoadDate != null &&
+               catalogRepository.ReserveLoadDate != null &&
+               catalogRepository.OrderedLoadDate != null &&
+               catalogRepository.SalesLoadDate != null &&
+               catalogRepository.AttributesLoadDate != null &&
+               catalogRepository.ErpStockLoadDate != null &&
+               catalogRepository.EshopStockLoadDate != null &&
+               catalogRepository.PurchaseHistoryLoadDate != null &&
+               catalogRepository.ManufactureHistoryLoadDate != null &&
+               catalogRepository.ConsumedHistoryLoadDate != null &&
+               catalogRepository.StockTakingLoadDate != null &&
+               catalogRepository.LotsLoadDate != null &&
+               catalogRepository.EshopPricesLoadDate != null &&
+               catalogRepository.ErpPricesLoadDate != null &&
+               catalogRepository.ManufactureDifficultySettingsLoadDate != null;
     }
 }

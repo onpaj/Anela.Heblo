@@ -20,24 +20,27 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshErpPricesData(CancellationToken ct);
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
 
-    // Data loaded flags - set once when cached data is populated
-    bool TransportDataLoaded { get; }
-    bool ReserveDataLoaded { get; }
-    bool OrderedDataLoaded { get; }
-    bool SalesDataLoaded { get; }
-    bool AttributesDataLoaded { get; }
-    bool ErpStockDataLoaded { get; }
-    bool EshopStockDataLoaded { get; }
-    bool PurchaseHistoryDataLoaded { get; }
-    bool ManufactureHistoryDataLoaded { get; }
-    bool ConsumedHistoryDataLoaded { get; }
-    bool StockTakingDataLoaded { get; }
-    bool LotsDataLoaded { get; }
-    bool EshopPricesDataLoaded { get; }
-    bool ErpPricesDataLoaded { get; }
-    bool ManufactureDifficultySettingsDataLoaded { get; }
-    bool ManufactureDifficultyDataLoaded { get; }
-    bool ManufactureCostDataLoaded { get; }
+    // Data load timestamps - stored in cache with same expiration as data
+    DateTime? TransportLoadDate { get; }
+    DateTime? ReserveLoadDate { get; }
+    DateTime? OrderedLoadDate { get; }
+    DateTime? SalesLoadDate { get; }
+    DateTime? AttributesLoadDate { get; }
+    DateTime? ErpStockLoadDate { get; }
+    DateTime? EshopStockLoadDate { get; }
+    DateTime? PurchaseHistoryLoadDate { get; }
+    DateTime? ManufactureHistoryLoadDate { get; }
+    DateTime? ConsumedHistoryLoadDate { get; }
+    DateTime? StockTakingLoadDate { get; }
+    DateTime? LotsLoadDate { get; }
+    DateTime? EshopPricesLoadDate { get; }
+    DateTime? ErpPricesLoadDate { get; }
+    DateTime? ManufactureDifficultySettingsLoadDate { get; }
+    DateTime? ManufactureCostLoadDate { get; }
+    
+    // Merge operation tracking
+    DateTime? LastMergeDateTime { get; }
+    bool ChangesPendingForMerge { get; }
 
     // Analytics methods
     Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(

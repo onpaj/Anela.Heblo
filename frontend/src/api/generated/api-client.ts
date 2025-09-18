@@ -958,6 +958,44 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    catalog_RefreshManufactureCostData(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-cost";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RefreshManufactureCostData(_response);
+        });
+    }
+
+    protected processCatalog_RefreshManufactureCostData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     catalog_GetMaterialsForPurchase(searchTerm: string | null | undefined, limit: number | undefined): Promise<GetMaterialsForPurchaseResponse> {
         let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
         if (searchTerm !== undefined && searchTerm !== null)
@@ -10689,6 +10727,7 @@ export class ProductMarginDto implements IProductMarginDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    priceWithoutVatIsFromEshop?: boolean;
 
     constructor(data?: IProductMarginDto) {
         if (data) {
@@ -10710,6 +10749,7 @@ export class ProductMarginDto implements IProductMarginDto {
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.marginPercentage = _data["marginPercentage"];
             this.marginAmount = _data["marginAmount"];
+            this.priceWithoutVatIsFromEshop = _data["priceWithoutVatIsFromEshop"];
         }
     }
 
@@ -10731,6 +10771,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["marginPercentage"] = this.marginPercentage;
         data["marginAmount"] = this.marginAmount;
+        data["priceWithoutVatIsFromEshop"] = this.priceWithoutVatIsFromEshop;
         return data;
     }
 }
@@ -10745,6 +10786,7 @@ export interface IProductMarginDto {
     manufactureDifficulty?: number;
     marginPercentage?: number;
     marginAmount?: number;
+    priceWithoutVatIsFromEshop?: boolean;
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {

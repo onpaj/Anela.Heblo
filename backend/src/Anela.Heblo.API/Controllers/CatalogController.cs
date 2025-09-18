@@ -142,6 +142,13 @@ public class CatalogController : BaseApiController
         return NoContent();
     }
 
+    [HttpPost("refresh/manufacture-cost")]
+    public async Task<IActionResult> RefreshManufactureCostData()
+    {
+        await _mediator.Send(new RefreshManufactureCostDataRequest());
+        return NoContent();
+    }
+
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)
     {

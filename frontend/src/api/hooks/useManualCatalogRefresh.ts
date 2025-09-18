@@ -93,6 +93,12 @@ export const refreshOperations: RefreshOperation[] = [
     methodName: "catalog_RefreshManufactureDifficultyData",
     description: "Obnovit náročnost výroby",
   },
+  {
+    key: "manufacture-cost",
+    name: "Manufacture Cost",
+    methodName: "catalog_RefreshManufactureCostData",
+    description: "Obnovit náklady výroby",
+  },
 ];
 
 export const useManualCatalogRefresh = () => {

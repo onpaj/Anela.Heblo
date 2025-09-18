@@ -241,24 +241,28 @@ public class MockCatalogRepository : ICatalogRepository
         return _mockData.Count(compiled);
     }
 
-    // Data loaded flags - always true for mock since all data is immediately available
-    public bool TransportDataLoaded => true;
-    public bool ReserveDataLoaded => true;
-    public bool OrderedDataLoaded => true;
-    public bool SalesDataLoaded => true;
-    public bool AttributesDataLoaded => true;
-    public bool ErpStockDataLoaded => true;
-    public bool EshopStockDataLoaded => true;
-    public bool PurchaseHistoryDataLoaded => true;
-    public bool ManufactureHistoryDataLoaded => true;
-    public bool ConsumedHistoryDataLoaded => true;
-    public bool StockTakingDataLoaded => true;
-    public bool LotsDataLoaded => true;
-    public bool EshopPricesDataLoaded => true;
-    public bool ErpPricesDataLoaded => true;
-    public bool ManufactureDifficultySettingsDataLoaded => true;
-    public bool ManufactureDifficultyDataLoaded => true;
-    public bool ManufactureCostDataLoaded => true;
+    // Data load timestamps - always return current time for mock since all data is immediately available
+    public DateTime? TransportLoadDate => DateTime.UtcNow;
+    public DateTime? ReserveLoadDate => DateTime.UtcNow;
+    public DateTime? OrderedLoadDate => DateTime.UtcNow;
+    public DateTime? SalesLoadDate => DateTime.UtcNow;
+    public DateTime? AttributesLoadDate => DateTime.UtcNow;
+    public DateTime? ErpStockLoadDate => DateTime.UtcNow;
+    public DateTime? EshopStockLoadDate => DateTime.UtcNow;
+    public DateTime? PurchaseHistoryLoadDate => DateTime.UtcNow;
+    public DateTime? ManufactureHistoryLoadDate => DateTime.UtcNow;
+    public DateTime? ConsumedHistoryLoadDate => DateTime.UtcNow;
+    public DateTime? StockTakingLoadDate => DateTime.UtcNow;
+    public DateTime? LotsLoadDate => DateTime.UtcNow;
+    public DateTime? EshopPricesLoadDate => DateTime.UtcNow;
+    public DateTime? ErpPricesLoadDate => DateTime.UtcNow;
+    public DateTime? ManufactureDifficultySettingsLoadDate => DateTime.UtcNow;
+    public DateTime? ManufactureDifficultyLoadDate => DateTime.UtcNow;
+    public DateTime? ManufactureCostLoadDate => DateTime.UtcNow;
+    
+    // Merge operation tracking - always return current time for mock
+    public DateTime? LastMergeDateTime => DateTime.UtcNow;
+    public bool ChangesPendingForMerge => false;
 
     // Refresh methods - no-op for mock
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;

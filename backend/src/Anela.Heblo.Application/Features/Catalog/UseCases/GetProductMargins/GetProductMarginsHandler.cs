@@ -186,16 +186,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 MarginAmount = product?.MarginAmount ?? 0
             };
 
-            // Safe price extraction
-            if (product?.EshopPrice?.PriceWithoutVat != null)
-            {
-                dto.PriceWithoutVat = product.EshopPrice.PriceWithoutVat;
-            }
-            else
-            {
-                _logger.LogDebug("Product {ProductCode} missing e-shop price", product?.ProductCode);
-                dto.PriceWithoutVat = null;
-            }
+            dto.PriceWithoutVat = product?.PriceWithoutVat;
+            dto.PriceWithoutVatIsFromEshop = product?.PriceIsFromEshop ?? false;
 
             // Safe cost extraction
             if (product?.ErpPrice?.PurchasePrice != null)
@@ -313,6 +305,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "averagehandlingcost" => sortDescending
                 ? items.OrderByDescending(x => x.AverageHandlingCost ?? 0).ToList()
                 : items.OrderBy(x => x.AverageHandlingCost ?? 0).ToList(),
+            "manufacturedifficulty" => sortDescending
+                ? items.OrderByDescending(x => x.ManufactureDifficulty).ToList()
+                : items.OrderBy(x => x.ManufactureDifficulty).ToList(),
             "marginpercentage" => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList(),

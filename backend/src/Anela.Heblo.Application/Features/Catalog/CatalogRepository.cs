@@ -440,6 +440,9 @@ public class CatalogRepository : ICatalogRepository
             product.UpdateMarginCalculation();
         }
 
+        // Set last merge timestamp
+        SetLastMergeDateTime();
+        
         return products.ToList();
     }
 
@@ -535,7 +538,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedSalesData), value);
             InvalidateSourceData(nameof(CachedSalesData));
-            SalesDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedSalesData));
         }
     }
 
@@ -548,7 +551,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedCatalogAttributesData), value);
             InvalidateSourceData(nameof(CachedCatalogAttributesData));
-            AttributesDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedCatalogAttributesData));
         }
     }
     private IDictionary<string, int> CachedInTransportData
@@ -558,7 +561,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedInTransportData), value);
             InvalidateSourceData(nameof(CachedInTransportData));
-            TransportDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedInTransportData));
         }
     }
 
@@ -569,7 +572,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedInReserveData), value);
             InvalidateSourceData(nameof(CachedInReserveData));
-            ReserveDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedInReserveData));
         }
     }
 
@@ -580,7 +583,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedOrderedData), value);
             InvalidateSourceData(nameof(CachedOrderedData));
-            OrderedDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedOrderedData));
         }
     }
 
@@ -591,7 +594,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedErpStockData), value);
             InvalidateSourceData(nameof(CachedErpStockData));
-            ErpStockDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedErpStockData));
         }
     }
     private IList<EshopStock> CachedEshopStockData
@@ -601,7 +604,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedEshopStockData), value);
             InvalidateSourceData(nameof(CachedEshopStockData));
-            EshopStockDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedEshopStockData));
         }
     }
     private IList<CatalogPurchaseRecord> CachedPurchaseHistoryData
@@ -611,7 +614,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedPurchaseHistoryData), value);
             InvalidateSourceData(nameof(CachedPurchaseHistoryData));
-            PurchaseHistoryDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedPurchaseHistoryData));
         }
     }
     private IList<ManufactureHistoryRecord> CachedManufactureHistoryData
@@ -621,7 +624,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureHistoryData), value);
             InvalidateSourceData(nameof(CachedManufactureHistoryData));
-            ManufactureHistoryDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedManufactureHistoryData));
         }
     }
     private IList<ConsumedMaterialRecord> CachedConsumedData
@@ -631,7 +634,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedConsumedData), value);
             InvalidateSourceData(nameof(CachedConsumedData));
-            ConsumedHistoryDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedConsumedData));
         }
     }
 
@@ -642,7 +645,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedStockTakingData), value);
             InvalidateSourceData(nameof(CachedStockTakingData));
-            StockTakingDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedStockTakingData));
         }
     }
 
@@ -653,7 +656,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedLotsData), value);
             InvalidateSourceData(nameof(CachedLotsData));
-            LotsDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedLotsData));
         }
     }
 
@@ -664,7 +667,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedEshopPriceData), value);
             InvalidateSourceData(nameof(CachedEshopPriceData));
-            EshopPricesDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedEshopPriceData));
         }
     }
 
@@ -675,18 +678,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedErpPriceData), value);
             InvalidateSourceData(nameof(CachedErpPriceData));
-            ErpPricesDataLoaded = true;
-        }
-    }
-
-    private IDictionary<string, double> CachedManufactureDifficultyData
-    {
-        get => _cache.Get<Dictionary<string, double>>(nameof(CachedManufactureDifficultyData)) ?? new Dictionary<string, double>();
-        set
-        {
-            _cache.Set(nameof(CachedManufactureDifficultyData), value);
-            InvalidateSourceData(nameof(CachedManufactureDifficultyData));
-            ManufactureDifficultyDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedErpPriceData));
         }
     }
 
@@ -697,7 +689,7 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureCostData), value);
             InvalidateSourceData(nameof(CachedManufactureCostData));
-            ManufactureCostDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedManufactureCostData));
         }
     }
 
@@ -708,28 +700,95 @@ public class CatalogRepository : ICatalogRepository
         {
             _cache.Set(nameof(CachedManufactureDifficultySettingsData), value);
             InvalidateSourceData(nameof(CachedManufactureDifficultySettingsData));
-            ManufactureDifficultySettingsDataLoaded = true;
+            SetLoadDateInCache(nameof(CachedManufactureDifficultySettingsData));
         }
     }
 
-    // Data loaded flags - set once when cached data is populated
-    public bool TransportDataLoaded { get; private set; }
-    public bool ReserveDataLoaded { get; private set; }
-    public bool OrderedDataLoaded { get; private set; }
-    public bool SalesDataLoaded { get; private set; }
-    public bool AttributesDataLoaded { get; private set; }
-    public bool ErpStockDataLoaded { get; private set; }
-    public bool EshopStockDataLoaded { get; private set; }
-    public bool PurchaseHistoryDataLoaded { get; private set; }
-    public bool ManufactureHistoryDataLoaded { get; private set; }
-    public bool ConsumedHistoryDataLoaded { get; private set; }
-    public bool StockTakingDataLoaded { get; private set; }
-    public bool LotsDataLoaded { get; private set; }
-    public bool EshopPricesDataLoaded { get; private set; }
-    public bool ErpPricesDataLoaded { get; private set; }
-    public bool ManufactureDifficultySettingsDataLoaded { get; private set; }
-    public bool ManufactureDifficultyDataLoaded { get; private set; }
-    public bool ManufactureCostDataLoaded { get; private set; }
+    // Data load timestamps - stored in cache with same expiration as data
+    public DateTime? TransportLoadDate => GetLoadDateFromCache(nameof(CachedInTransportData));
+    public DateTime? ReserveLoadDate => GetLoadDateFromCache(nameof(CachedInReserveData));
+    public DateTime? OrderedLoadDate => GetLoadDateFromCache(nameof(CachedOrderedData));
+    public DateTime? SalesLoadDate => GetLoadDateFromCache(nameof(CachedSalesData));
+    public DateTime? AttributesLoadDate => GetLoadDateFromCache(nameof(CachedCatalogAttributesData));
+    public DateTime? ErpStockLoadDate => GetLoadDateFromCache(nameof(CachedErpStockData));
+    public DateTime? EshopStockLoadDate => GetLoadDateFromCache(nameof(CachedEshopStockData));
+    public DateTime? PurchaseHistoryLoadDate => GetLoadDateFromCache(nameof(CachedPurchaseHistoryData));
+    public DateTime? ManufactureHistoryLoadDate => GetLoadDateFromCache(nameof(CachedManufactureHistoryData));
+    public DateTime? ConsumedHistoryLoadDate => GetLoadDateFromCache(nameof(CachedConsumedData));
+    public DateTime? StockTakingLoadDate => GetLoadDateFromCache(nameof(CachedStockTakingData));
+    public DateTime? LotsLoadDate => GetLoadDateFromCache(nameof(CachedLotsData));
+    public DateTime? EshopPricesLoadDate => GetLoadDateFromCache(nameof(CachedEshopPriceData));
+    public DateTime? ErpPricesLoadDate => GetLoadDateFromCache(nameof(CachedErpPriceData));
+    public DateTime? ManufactureDifficultySettingsLoadDate => GetLoadDateFromCache(nameof(CachedManufactureDifficultySettingsData));
+    public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(nameof(CachedManufactureCostData));
+    
+    // Merge operation tracking
+    public DateTime? LastMergeDateTime => _cache.Get<DateTime?>("LastMergeDateTime");
+    
+    public bool ChangesPendingForMerge
+    {
+        get
+        {
+            var lastMerge = LastMergeDateTime;
+            
+            // If no merge has been performed yet, changes are pending
+            if (lastMerge == null)
+                return true;
+                
+            // Get all LoadDate properties
+            var loadDates = new DateTime?[]
+            {
+                TransportLoadDate,
+                ReserveLoadDate,
+                OrderedLoadDate,
+                SalesLoadDate,
+                AttributesLoadDate,
+                ErpStockLoadDate,
+                EshopStockLoadDate,
+                PurchaseHistoryLoadDate,
+                ManufactureHistoryLoadDate,
+                ConsumedHistoryLoadDate,
+                StockTakingLoadDate,
+                LotsLoadDate,
+                EshopPricesLoadDate,
+                ErpPricesLoadDate,
+                ManufactureDifficultySettingsLoadDate,
+            };
+            
+            // If any LoadDate is null, changes are pending
+            if (loadDates.Any(date => date == null))
+                return true;
+                
+            // If any LoadDate is greater than LastMergeDateTime, changes are pending
+            var maxLoadDate = loadDates.Where(date => date.HasValue).Max(date => date.Value);
+            return maxLoadDate > lastMerge;
+        }
+    }
+    
+    private DateTime? GetLoadDateFromCache(string dataKey)
+    {
+        return _cache.Get<DateTime?>($"{dataKey}_LoadDate");
+    }
+    
+    private void SetLoadDateInCache(string dataKey)
+    {
+        var loadDate = _timeProvider.GetUtcNow().DateTime;
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = _cacheOptions.Value.CacheValidityPeriod
+        };
+        _cache.Set($"{dataKey}_LoadDate", loadDate, cacheOptions);
+    }
+    
+    private void SetLastMergeDateTime()
+    {
+        var mergeDateTime = _timeProvider.GetUtcNow().DateTime;
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = _cacheOptions.Value.CacheValidityPeriod
+        };
+        _cache.Set("LastMergeDateTime", mergeDateTime, cacheOptions);
+    }
 
     private async Task<Dictionary<string, int>> GetProductsInTransport(CancellationToken ct)
     {
