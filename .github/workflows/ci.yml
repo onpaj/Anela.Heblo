@@ -149,13 +149,13 @@ jobs:
       - name: 📊 Count total tests
         run: |
           echo "=== Test Discovery ==="
-          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests --filter "TestCategory!=ShoptetIntegration" | grep -E "Test Name|^    " | wc -l
-          echo "=== Running Tests (excluding ShoptetIntegration collection) ==="
+          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests --filter "Category!=Playwright&Category!=Integration" | grep -E "Test Name|^    " | wc -l
+          echo "=== Running Tests (excluding Playwright and Integration tests) ==="
         env:
           ASPNETCORE_ENVIRONMENT: Automation
 
-      - name: 🧪 Run tests with coverage
-        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "TestCategory!=ShoptetIntegration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
