@@ -321,6 +321,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "averagehandlingcost" => sortDescending
                 ? items.OrderByDescending(x => x.AverageHandlingCost ?? 0).ToList()
                 : items.OrderBy(x => x.AverageHandlingCost ?? 0).ToList(),
+            "manufacturedifficulty" => sortDescending
+                ? items.OrderByDescending(x => x.ManufactureDifficulty).ToList()
+                : items.OrderBy(x => x.ManufactureDifficulty).ToList(),
             "marginpercentage" => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList(),
