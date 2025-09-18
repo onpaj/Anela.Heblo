@@ -3,16 +3,26 @@ import { createE2EAuthSession, navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session before each test
-    await createE2EAuthSession(page);
+    console.log('🏭 Starting batch planning error handling test setup...');
     
-    // Navigate to application
-    await navigateToApp(page);
-    
-    // Wait for app to load
-    await page.waitForLoadState('networkidle');
-    
-    console.log('🏭 Starting batch planning error handling test...');
+    try {
+      // Create E2E authentication session before each test
+      console.log('🔐 Creating E2E authentication session...');
+      await createE2EAuthSession(page);
+      
+      // Navigate to application
+      console.log('🚀 Navigating to application...');
+      await navigateToApp(page);
+      
+      // Wait for app to load
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(3000); // Give extra time for React components to initialize
+      
+      console.log('✅ Batch planning test setup completed successfully');
+    } catch (error) {
+      console.log(`❌ Setup failed: ${error.message}`);
+      throw error;
+    }
   });
 
   test('should handle fixed products exceed volume with toaster and visual indicators', async ({ page }) => {

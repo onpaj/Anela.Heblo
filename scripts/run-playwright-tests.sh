@@ -31,6 +31,18 @@ if [ ! -d "$FRONTEND_DIR" ]; then
     exit 1
 fi
 
+# Load environment variables from .env.test if it exists (before changing directory)
+ENV_TEST_FILE="$FRONTEND_DIR/.env.test"
+if [ -f "$ENV_TEST_FILE" ]; then
+    echo -e "${BLUE}📁 Loading environment variables from $ENV_TEST_FILE...${NC}"
+    set -a # automatically export all variables
+    source "$ENV_TEST_FILE"
+    set +a # stop automatically exporting
+    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+else
+    echo -e "${YELLOW}⚠️  No .env.test file found at $ENV_TEST_FILE, using system environment variables${NC}"
+fi
+
 # Change to frontend directory
 cd "$FRONTEND_DIR"
 
