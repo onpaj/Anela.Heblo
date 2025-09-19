@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Services;
 using AutoMapper;
 
 namespace Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Services;
@@ -17,6 +18,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     private readonly IEshopStockDomainService _eshopStockDomainService;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
+    private readonly IBackgroundWorker _backgroundWorker;
 
     public GiftPackageManufactureService(
         IManufactureRepository manufactureRepository,
@@ -25,7 +27,8 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         ICurrentUserService currentUserService,
         IEshopStockDomainService eshopStockDomainService,
         IMapper mapper,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IBackgroundWorker backgroundWorker)
     {
         _manufactureRepository = manufactureRepository;
         _giftPackageRepository = giftPackageRepository;
@@ -34,6 +37,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         _eshopStockDomainService = eshopStockDomainService;
         _mapper = mapper;
         _timeProvider = timeProvider;
+        _backgroundWorker = backgroundWorker;
     }
 
     public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(CancellationToken cancellationToken = default)
@@ -169,5 +173,17 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         await _giftPackageRepository.SaveChangesAsync(cancellationToken);
 
         return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
+    }
+
+    public Task<string> EnqueueManufactureAsync(
+        string giftPackageCode,
+        int quantity,
+        bool allowStockOverride = false,
+        CancellationToken cancellationToken = default)
+    {
+        var jobId = _backgroundWorker.Enqueue<IGiftPackageManufactureService>(
+            service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, cancellationToken));
+
+        return Task.FromResult(jobId);
     }
 }

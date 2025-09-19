@@ -1,5 +1,4 @@
 using System.Configuration;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
@@ -11,8 +10,8 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Services;
-using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure.Hangfire;
+using Anela.Heblo.Xcc.Services;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -296,6 +295,9 @@ public static class ServiceCollectionExtensions
 
         // Register Hangfire dashboard authorization filter
         services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
+
+        // Register IBackgroundWorker implementation
+        services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
         // Register ProductExportOptions configuration
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));

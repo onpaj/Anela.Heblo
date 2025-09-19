@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Services;
 using AutoMapper;
 using FluentAssertions;
 using Moq;
@@ -21,6 +22,7 @@ public class GiftPackageManufactureServiceTests
     private readonly Mock<IEshopStockDomainService> _eshopStockServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly Mock<IBackgroundWorker> _backgroundWorkerMock;
     private readonly GiftPackageManufactureService _service;
     private readonly DateTime _testDateTime = new DateTime(2024, 6, 15);
 
@@ -44,7 +46,8 @@ public class GiftPackageManufactureServiceTests
             _currentUserServiceMock.Object,
             _eshopStockServiceMock.Object,
             _mapperMock.Object,
-            _timeProviderMock.Object);
+            _timeProviderMock.Object,
+            _backgroundWorkerMock.Object);
     }
 
     [Fact]

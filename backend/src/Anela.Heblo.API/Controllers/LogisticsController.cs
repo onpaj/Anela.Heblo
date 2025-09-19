@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.CreateGiftPackageManufacture;
+using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.EnqueueGiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseCases.GetManufactureLog;
@@ -70,6 +71,18 @@ public class LogisticsController : BaseApiController
 
         request.UserId = userId;
 
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Queue gift package manufacturing process as background job
+    /// </summary>
+    [HttpPost("gift-packages/manufacture/enqueue")]
+    public async Task<ActionResult<EnqueueGiftPackageManufactureResponse>> EnqueueGiftPackageManufacture(
+        [FromBody] EnqueueGiftPackageManufactureRequest request,
+        CancellationToken cancellationToken)
+    {
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }

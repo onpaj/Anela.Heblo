@@ -13,4 +13,10 @@ public interface IGiftPackageManufactureService
         int quantity,
         bool allowStockOverride,
         CancellationToken cancellationToken = default);
+
+    Task<string> EnqueueManufactureAsync(
+        string giftPackageCode,
+        int quantity,
+        bool allowStockOverride = false,
+        CancellationToken cancellationToken = default);
 }
