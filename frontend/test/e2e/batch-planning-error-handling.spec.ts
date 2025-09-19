@@ -33,10 +33,14 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     
     // Look for batch planning navigation link or direct URL
     try {
+      // Try to navigate through the menu system first
+      await page.getByRole('button', { name: 'Výroba' }).click();
+      await page.waitForTimeout(500); // Wait for submenu to open
+      
       // Try to find navigation link first
-      const batchPlanningLink = page.locator('text=Dávkový plánovač').or(
+      const batchPlanningLink = page.locator('text=Plánování dávek').or(
         page.locator('text=Batch Planning').or(
-          page.locator('text=Výrobní dávky')
+          page.locator('text=Dávkový plánovač')
         )
       );
       
@@ -45,12 +49,12 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
         console.log('✅ Clicked batch planning navigation link');
       } else {
         // Navigate directly to batch planning URL if link not found
-        await page.goto('/batch-planning');
+        await page.goto('/manufacturing/batch-planning');
         console.log('✅ Navigated directly to batch planning URL');
       }
     } catch (error) {
       console.log('⚠️  Navigation link not found, trying direct URL navigation...');
-      await page.goto('/batch-planning');
+      await page.goto('/manufacturing/batch-planning');
     }
     
     // Wait for batch planning page to load
@@ -68,10 +72,12 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     // Step 3: Select a semiproduct (polotovar)
     console.log('🎯 Selecting semiproduct...');
     
-    // Look for semiproduct selector/autocomplete
-    const semiproductSelector = page.locator('[data-testid="catalog-autocomplete"]').or(
-      page.locator('input[placeholder*="polotovar"]').or(
-        page.locator('select').filter({ hasText: /polotovar|semiproduct/i })
+    // Look for semiproduct selector/autocomplete - use the combobox from the page
+    const semiproductSelector = page.locator('role=combobox').or(
+      page.locator('[placeholder*="Vyberte polotovar"]').or(
+        page.locator('[data-testid="catalog-autocomplete"]').or(
+          page.locator('input[placeholder*="polotovar"]')
+        )
       )
     );
     
