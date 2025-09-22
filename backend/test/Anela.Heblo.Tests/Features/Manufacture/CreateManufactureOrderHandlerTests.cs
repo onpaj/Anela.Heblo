@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrd
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -11,6 +12,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CreateManufactureOrderHandlerTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly CreateManufactureOrderHandler _handler;
 
@@ -25,6 +27,7 @@ public class CreateManufactureOrderHandlerTests
     public CreateManufactureOrderHandlerTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
 
         _currentUserServiceMock
@@ -33,6 +36,7 @@ public class CreateManufactureOrderHandlerTests
 
         _handler = new CreateManufactureOrderHandler(
             _repositoryMock.Object,
+            _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object);
     }
 
@@ -40,6 +44,11 @@ public class CreateManufactureOrderHandlerTests
     public async Task Handle_WithValidRequest_ShouldCreateManufactureOrderAndReturnResponse()
     {
         var request = CreateValidRequest();
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -65,6 +74,11 @@ public class CreateManufactureOrderHandlerTests
     {
         var request = CreateValidRequest();
         ManufactureOrder? capturedOrder = null;
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -96,6 +110,11 @@ public class CreateManufactureOrderHandlerTests
     {
         var request = CreateValidRequest();
         ManufactureOrder? capturedOrder = null;
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -132,6 +151,11 @@ public class CreateManufactureOrderHandlerTests
         request.ScaleFactor = scaleFactor;
         ManufactureOrder? capturedOrder = null;
 
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
@@ -164,6 +188,11 @@ public class CreateManufactureOrderHandlerTests
         });
 
         ManufactureOrder? capturedOrder = null;
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -207,6 +236,11 @@ public class CreateManufactureOrderHandlerTests
 
         ManufactureOrder? capturedOrder = null;
 
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
@@ -234,6 +268,11 @@ public class CreateManufactureOrderHandlerTests
     {
         var request = CreateValidRequest();
 
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
@@ -257,6 +296,11 @@ public class CreateManufactureOrderHandlerTests
     public async Task Handle_ShouldAddOrderToRepository()
     {
         var request = CreateValidRequest();
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -291,6 +335,11 @@ public class CreateManufactureOrderHandlerTests
 
         ManufactureOrder? capturedOrder = null;
 
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
@@ -316,6 +365,11 @@ public class CreateManufactureOrderHandlerTests
     {
         var request = CreateValidRequest();
 
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
@@ -334,6 +388,11 @@ public class CreateManufactureOrderHandlerTests
     public async Task Handle_WhenOrderNumberGeneratorThrows_ShouldPropagateException()
     {
         var request = CreateValidRequest();
+
+        // Mock catalog repository to return a valid catalog item
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
             .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
@@ -365,6 +424,19 @@ public class CreateManufactureOrderHandlerTests
                     ProductName = "Final Product 1",
                     PlannedQuantity = 100.0
                 }
+            }
+        };
+    }
+
+    private static CatalogAggregate CreateValidCatalogItem()
+    {
+        return new CatalogAggregate
+        {
+            ProductCode = ValidProductCode,
+            ProductName = ValidProductName,
+            Properties = new CatalogProperties
+            {
+                ExpirationMonths = 12
             }
         };
     }

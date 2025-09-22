@@ -21,11 +21,13 @@ import {
   Hash,
   CalendarClock,
   Ban,
+  Copy,
 } from "lucide-react";
 import {
   useManufactureOrderDetailQuery,
   useUpdateManufactureOrder,
   useUpdateManufactureOrderStatus,
+  useDuplicateManufactureOrder,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
 import { useQueryClient } from "@tanstack/react-query";
@@ -201,6 +203,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   // Mutations
   const updateOrderMutation = useUpdateManufactureOrder();
   const updateOrderStatusMutation = useUpdateManufactureOrderStatus();
+  const duplicateOrderMutation = useDuplicateManufactureOrder();
 
   // Initialize editable fields when order data changes
   React.useEffect(() => {
@@ -238,35 +241,45 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     }
   }, [order]);
 
+  // Helper function to get ISO week number
+  const getWeekNumber = (date: Date): number => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+  };
+
   // Auto-calculate lot number and expiration date when semi-product planned date changes
   React.useEffect(() => {
     if (editableSemiProductDate) {
       const semiProductDate = new Date(editableSemiProductDate);
       
-      // Auto-set lot number as "yyyyMM" format
+      // Auto-set lot number as "wwyyyyMM" format - always recalculate when date changes
       const year = semiProductDate.getFullYear();
       const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
-      const newLotNumber = `${year}${month}`;
+      const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
+      const newLotNumber = `${week}${year}${month}`;
       
-      // Only update if it's empty or was previously auto-calculated
-      if (!editableLotNumber || /^\d{6}$/.test(editableLotNumber)) {
-        setEditableLotNumber(newLotNumber);
-      }
+      // Always update lot number when date changes
+      setEditableLotNumber(newLotNumber);
       
-      // Auto-set expiration date as last day of the month + 1 year
-      const expirationYear = year + 1;
-      const expirationMonth = semiProductDate.getMonth(); // 0-indexed
-      const lastDayOfMonth = new Date(expirationYear, expirationMonth + 1, 0).getDate();
-      const expirationDate = new Date(expirationYear, expirationMonth, lastDayOfMonth);
+      // Auto-set expiration date using ExpirationMonths from semi-product + date from order
+      const expirationMonths = order?.semiProduct?.expirationMonths || 12; // Default to 12 months if not set
+      const expirationDate = new Date(semiProductDate);
+      expirationDate.setMonth(expirationDate.getMonth() + expirationMonths);
+      
+      // Set to last day of the expiration month
+      const lastDayOfExpirationMonth = new Date(expirationDate.getFullYear(), expirationDate.getMonth() + 1, 0).getDate();
+      expirationDate.setDate(lastDayOfExpirationMonth);
+      
       const newExpirationDateString = expirationDate.toISOString().split('T')[0];
       
-      // Only update if it's empty or was previously auto-calculated
-      if (!editableExpirationDate || editableExpirationDate.includes(`${expirationYear}`)) {
-        setEditableExpirationDate(newExpirationDateString);
-      }
+      // Always update expiration date when order date changes
+      setEditableExpirationDate(newExpirationDateString);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editableSemiProductDate]);
+  }, [editableSemiProductDate, order?.semiProduct?.expirationMonths]);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
@@ -442,6 +455,33 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       ...prev,
       [index]: value
     }));
+  };
+
+  // Handle duplicate order
+  const handleDuplicate = async () => {
+    if (!orderId) return;
+
+    try {
+      const result = await duplicateOrderMutation.mutateAsync(orderId);
+      
+      // Navigate to the new duplicated order detail
+      if (result.id) {
+        const newOrderUrl = `/manufacturing/orders/${result.id}`;
+        
+        if (onEdit && onClose) {
+          // Modal mode - tell parent to open the new order detail
+          onEdit(result.id);
+        } else {
+          // Page mode - navigate directly to the new duplicated order
+          navigate(newOrderUrl);
+        }
+      } else {
+        console.error('No ID returned from duplication:', result);
+      }
+    } catch (error) {
+      console.error("Error duplicating order:", error);
+      // TODO: Show error notification to user
+    }
   };
 
   // Check if fields can be edited based on state
@@ -657,8 +697,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                 type="text"
                                 value={editableLotNumber}
                                 onChange={(e) => setEditableLotNumber(e.target.value)}
-                                className="text-sm border border-gray-300 rounded px-2 py-1 w-24"
-                                placeholder="202412"
+                                className="text-sm border border-gray-300 rounded px-2 py-1 w-28"
+                                placeholder="38202412"
                               />
                             ) : (
                               <span className="text-sm text-gray-900">
@@ -669,7 +709,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <CalendarClock className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-500">Expirace:</span>
+                              <span className="text-sm text-gray-500">Expirace ({order.semiProduct?.expirationMonths} měsíců):</span>
                             </div>
                             {canEditFields ? (
                               <input
@@ -940,6 +980,25 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                 >
                   <Ban className="h-4 w-4 mr-1" />
                   Stornovat
+                </button>
+              )}
+            </div>
+
+            {/* Duplicate button in the center */}
+            <div>
+              {order && (
+                <button
+                  onClick={handleDuplicate}
+                  disabled={duplicateOrderMutation.isPending}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Duplikovat zakázku"
+                >
+                  {duplicateOrderMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-1" />
+                  )}
+                  Duplikovat
                 </button>
               )}
             </div>
