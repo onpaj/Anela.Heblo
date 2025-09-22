@@ -190,7 +190,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         setEditableExpirationDate(newExpirationDateString);
       }
     }
-  }, [editableSemiProductDate, editableLotNumber, editableExpirationDate]);
+  }, [editableSemiProductDate]);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
@@ -296,15 +296,26 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         plannedQuantity: parseFloat(editableProductQuantities[index] || "0") || 0,
       })) || [];
 
+      const semiProductRequest = editableLotNumber || editableExpirationDate ? new UpdateManufactureOrderSemiProductRequest({
+        lotNumber: editableLotNumber || undefined,
+        expirationDate: editableExpirationDate ? (() => {
+          const [year, month] = editableExpirationDate.split('-').map(Number);
+          return new Date(year, month, 0); // 0th day of next month = last day of current month
+        })() : undefined,
+      }) : undefined;
+
+      console.log('Saving semi-product data:', {
+        editableLotNumber,
+        editableExpirationDate,
+        semiProductRequest
+      });
+
       const request = new UpdateManufactureOrderRequest({
         id: orderId,
         semiProductPlannedDate: editableSemiProductDate ? new Date(editableSemiProductDate) : (order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate) : new Date()),
         productPlannedDate: editableProductDate ? new Date(editableProductDate) : (order.productPlannedDate ? new Date(order.productPlannedDate) : new Date()),
         responsiblePerson: editableResponsiblePerson || undefined,
-        semiProduct: editableLotNumber || editableExpirationDate ? new UpdateManufactureOrderSemiProductRequest({
-          lotNumber: editableLotNumber || undefined,
-          expirationDate: editableExpirationDate ? new Date(editableExpirationDate) : undefined,
-        }) : undefined,
+        semiProduct: semiProductRequest,
         products,
         newNote: newNote.trim() || undefined,
       });
@@ -560,9 +571,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                             </div>
                             {canEditFields ? (
                               <input
-                                type="date"
-                                value={editableExpirationDate}
-                                onChange={(e) => setEditableExpirationDate(e.target.value)}
+                                type="month"
+                                lang="cs"
+                                value={editableExpirationDate ? editableExpirationDate.substring(0, 7) : ""}
+                                onChange={(e) => setEditableExpirationDate(e.target.value + "-01")}
                                 className="text-sm border border-gray-300 rounded px-2 py-1"
                               />
                             ) : (
