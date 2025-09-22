@@ -54,7 +54,18 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<CreateManufactureOrderResponse>> CreateOrder([FromBody] CreateManufactureOrderRequest request)
     {
         var response = await _mediator.Send(request);
-        return HandleResponse(response);
+        
+        if (!response.Success)
+        {
+            return HandleResponse(response);
+        }
+
+        // Return 201 Created with location header for successful creation
+        return CreatedAtAction(
+            nameof(GetOrder),
+            new { id = response.Id },
+            response
+        );
     }
 
     /// <summary>
