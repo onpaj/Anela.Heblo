@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Microsoft.AspNetCore.Mvc;
@@ -93,6 +94,17 @@ public class ManufactureOrderController : BaseApiController
     [HttpGet("calendar")]
     public async Task<ActionResult<GetCalendarViewResponse>> GetCalendarView([FromQuery] GetCalendarViewRequest request)
     {
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Duplicate existing manufacture order with updated dates
+    /// </summary>
+    [HttpPost("{id}/duplicate")]
+    public async Task<ActionResult<DuplicateManufactureOrderResponse>> DuplicateOrder(int id)
+    {
+        var request = new DuplicateManufactureOrderRequest { SourceOrderId = id };
         var response = await _mediator.Send(request);
         return HandleResponse(response);
     }

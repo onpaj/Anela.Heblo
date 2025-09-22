@@ -340,7 +340,7 @@ export const QUERY_KEYS = {
   transportBoxTransitions: ["transportBoxTransitions"] as const,
   manufactureOutput: ["manufacture-output"] as const,
   manufactureDifficulty: ["manufacture-difficulty-settings"] as const,
-  manufactureOrders: ["manufactureOrders"] as const,
+  manufactureOrders: ["manufacture-orders"] as const,
   productUsage: ["product-usage"] as const,
   health: ["health"] as const,
   giftPackages: ["gift-packages"] as const,

@@ -14,6 +14,7 @@ public class ManufactureOrderSemiProduct
 
     // Navigation property
     public ManufactureOrder ManufactureOrder { get; set; } = null!;
+    public int ExpirationMonths { get; set; }
 
     // Ingredients se načtou dynamicky z ManufactureTemplate při dokončování
 }

@@ -2677,6 +2677,43 @@ export class ApiClient {
         return Promise.resolve<GetCalendarViewResponse>(null as any);
     }
 
+    manufactureOrder_DuplicateOrder(id: number): Promise<DuplicateManufactureOrderResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/duplicate";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_DuplicateOrder(_response);
+        });
+    }
+
+    protected processManufactureOrder_DuplicateOrder(response: Response): Promise<DuplicateManufactureOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DuplicateManufactureOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DuplicateManufactureOrderResponse>(null as any);
+    }
+
     manufactureOrder_GetResponsiblePersons(): Promise<GetGroupMembersResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder/responsible-persons";
         url_ = url_.replace(/[?&]$/, "");
@@ -4227,6 +4264,7 @@ export enum ErrorCodes {
     IngredientNotFoundInTemplate = "IngredientNotFoundInTemplate",
     InvalidIngredientAmount = "InvalidIngredientAmount",
     FixedProductsExceedAvailableVolume = "FixedProductsExceedAvailableVolume",
+    OrderNotFound = "OrderNotFound",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -8635,6 +8673,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
     batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    expirationMonths?: number;
 
     constructor(data?: IManufactureOrderSemiProductDto) {
         if (data) {
@@ -8655,6 +8694,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
             this.batchMultiplier = _data["batchMultiplier"];
             this.lotNumber = _data["lotNumber"];
             this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.expirationMonths = _data["expirationMonths"];
         }
     }
 
@@ -8675,6 +8715,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
         data["batchMultiplier"] = this.batchMultiplier;
         data["lotNumber"] = this.lotNumber;
         data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["expirationMonths"] = this.expirationMonths;
         return data;
     }
 }
@@ -8688,6 +8729,7 @@ export interface IManufactureOrderSemiProductDto {
     batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    expirationMonths?: number;
 }
 
 export class ManufactureOrderProductDto implements IManufactureOrderProductDto {
@@ -9794,6 +9836,43 @@ export interface ICalendarEventProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+}
+
+export class DuplicateManufactureOrderResponse extends BaseResponse implements IDuplicateManufactureOrderResponse {
+    id?: number;
+    orderNumber?: string | undefined;
+
+    constructor(data?: IDuplicateManufactureOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.orderNumber = _data["orderNumber"];
+        }
+    }
+
+    static override fromJS(data: any): DuplicateManufactureOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DuplicateManufactureOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["orderNumber"] = this.orderNumber;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDuplicateManufactureOrderResponse extends IBaseResponse {
+    id?: number;
+    orderNumber?: string | undefined;
 }
 
 export class GetGroupMembersResponse extends BaseResponse implements IGetGroupMembersResponse {

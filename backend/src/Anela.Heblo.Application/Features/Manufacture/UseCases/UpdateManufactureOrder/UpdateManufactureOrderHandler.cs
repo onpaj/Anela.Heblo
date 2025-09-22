@@ -44,6 +44,13 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
                 order.SemiProduct.ExpirationDate = request.SemiProduct.ExpirationDate;
             }
+            else if (request.SemiProduct != null && order.SemiProduct == null)
+            {
+                _logger.LogWarning("Cannot update semi-product data (LotNumber: {LotNumber}, ExpirationDate: {ExpirationDate}) for order {OrderId} because SemiProduct is null", 
+                    request.SemiProduct.LotNumber, 
+                    request.SemiProduct.ExpirationDate, 
+                    request.Id);
+            }
 
             // Update products
             order.Products.Clear();

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { CatalogItemDto, ProductType, GetCatalogListResponse } from "./useCatalog";
+import { CatalogItemDto, ProductType } from "./useCatalog";
 
 // Inventory only shows these product types
 const INVENTORY_TYPES: ProductType[] = [

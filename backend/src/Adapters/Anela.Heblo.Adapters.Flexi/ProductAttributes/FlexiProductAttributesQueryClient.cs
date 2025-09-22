@@ -16,6 +16,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     private const int BatchSizeAttributeId = 82;
     private const int SeasonalAttributeId = 84;
     private const int MmqAttributeId = 85;
+    private const int ExpiraceMonthsId = 86;
 
     public FlexiProductAttributesQueryClient(
         FlexiBeeSettings connection,
@@ -47,6 +48,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
             OptimalStockDays = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == OverstockAttributeId)?.Value, 0),
             StockMin = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == StockMinAttributeId)?.Value, 0),
             BatchSize = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == BatchSizeAttributeId)?.Value, 0),
+            ExpirationMonths = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == ExpiraceMonthsId)?.Value, 0),
             MinimalManufactureQuantity = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == MmqAttributeId)?.Value, 0),
             SeasonMonthsArray = _seasonalDataParser.GetSeasonalMonths(values.FirstOrDefault(w => w.AttributeId == SeasonalAttributeId)?.Value),
         }).ToList();

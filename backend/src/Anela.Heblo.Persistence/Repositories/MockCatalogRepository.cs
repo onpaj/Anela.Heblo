@@ -188,6 +188,139 @@ public class MockCatalogRepository : ICatalogRepository
                 MinimalManufactureQuantity = 0,
                 Location = "Temp Sklad",
                 PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            // Test data for ManufactureOrderControllerTests
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI001",
+                ProductName = "Test Semi-Product 1",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 100,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 50,
+                    OptimalStockDaysSetup = 30,
+                    ExpirationMonths = 12
+                },
+                MinimalOrderQuantity = "10",
+                MinimalManufactureQuantity = 5,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI002",
+                ProductName = "Test Semi-Product 2",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 50,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 25,
+                    OptimalStockDaysSetup = 30,
+                    ExpirationMonths = 6
+                },
+                MinimalOrderQuantity = "10",
+                MinimalManufactureQuantity = 5,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI003",
+                ProductName = "Test Semi-Product 3",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 75,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 30,
+                    OptimalStockDaysSetup = 30,
+                    ExpirationMonths = 24
+                },
+                MinimalOrderQuantity = "5",
+                MinimalManufactureQuantity = 2,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI004",
+                ProductName = "Test Semi-Product 4",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 200,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 100,
+                    OptimalStockDaysSetup = 60,
+                    ExpirationMonths = 18
+                },
+                MinimalOrderQuantity = "20",
+                MinimalManufactureQuantity = 10,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI005",
+                ProductName = "Test Semi-Product 5",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 150,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 75,
+                    OptimalStockDaysSetup = 45,
+                    ExpirationMonths = 12
+                },
+                MinimalOrderQuantity = "15",
+                MinimalManufactureQuantity = 8,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
+            },
+            new CatalogAggregate
+            {
+                ProductCode = "SEMI006",
+                ProductName = "Test Semi-Product 6",
+                Type = ProductType.SemiProduct,
+                Stock = new StockData
+                {
+                    Erp = 300,
+                    Transport = 0,
+                    Reserve = 0,
+                },
+                Properties = new CatalogProperties
+                {
+                    StockMinSetup = 150,
+                    OptimalStockDaysSetup = 90,
+                    ExpirationMonths = 36
+                },
+                MinimalOrderQuantity = "30",
+                MinimalManufactureQuantity = 15,
+                Location = "Test Sklad",
+                PurchaseHistory = new List<CatalogPurchaseRecord>().AsReadOnly()
             }
         };
     }
