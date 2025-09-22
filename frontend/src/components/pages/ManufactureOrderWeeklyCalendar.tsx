@@ -19,6 +19,7 @@ import {
 
 interface ManufactureOrderWeeklyCalendarProps {
   onEventClick?: (orderId: number) => void;
+  initialDate?: Date;
 }
 
 const stateColors: Record<ManufactureOrderState, string> = {
@@ -32,17 +33,30 @@ const stateColors: Record<ManufactureOrderState, string> = {
 
 const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarProps> = ({
   onEventClick,
+  initialDate,
 }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    // Get current week start (Monday)
-    const today = new Date();
-    const dayOfWeek = today.getDay();
+    // Use initialDate if provided, otherwise use today
+    const targetDate = initialDate || new Date();
+    const dayOfWeek = targetDate.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday (0) as 7
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
+    const monday = new Date(targetDate);
+    monday.setDate(targetDate.getDate() + mondayOffset);
     monday.setHours(0, 0, 0, 0);
     return monday;
   });
+
+  // Update currentWeekStart when initialDate changes
+  React.useEffect(() => {
+    if (initialDate) {
+      const dayOfWeek = initialDate.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(initialDate);
+      monday.setDate(initialDate.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      setCurrentWeekStart(monday);
+    }
+  }, [initialDate]);
 
   // Calculate week boundaries
   const { startDate, endDate, weekDays } = useMemo(() => {

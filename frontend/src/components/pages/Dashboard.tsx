@@ -23,8 +23,6 @@ import {
   RefreshCw,
   Settings,
   Calculator,
-  Heart,
-  Shield,
 } from "lucide-react";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
@@ -46,17 +44,9 @@ const Dashboard: React.FC = () => {
     error: summaryError,
   } = useRecentAuditSummary();
 
-  const {
-    data: liveHealthData,
-    isLoading: isLiveHealthLoading,
-    error: liveHealthError,
-  } = useLiveHealthCheck();
+  useLiveHealthCheck();
 
-  const {
-    data: readyHealthData,
-    isLoading: isReadyHealthLoading,
-    error: readyHealthError,
-  } = useReadyHealthCheck();
+  useReadyHealthCheck();
 
   const manualRefreshMutation = useManualCatalogRefresh();
   const recalculatePricesMutation = useRecalculatePurchasePrice();
@@ -164,47 +154,6 @@ const Dashboard: React.FC = () => {
     return { totalRequests, successfulRequests, failedRequests, successRate };
   };
 
-  const getHealthStatusIcon = (
-    status: string,
-    isLoading: boolean,
-    hasError: boolean,
-  ) => {
-    if (isLoading) {
-      return <RefreshCw className="h-6 w-6 text-gray-400 animate-spin" />;
-    }
-    if (hasError) {
-      return <XCircle className="h-6 w-6 text-red-500" />;
-    }
-    switch (status) {
-      case "Healthy":
-        return <CheckCircle className="h-6 w-6 text-emerald-500" />;
-      case "Degraded":
-        return <AlertTriangle className="h-6 w-6 text-yellow-500" />;
-      case "Unhealthy":
-        return <XCircle className="h-6 w-6 text-red-500" />;
-      default:
-        return <AlertTriangle className="h-6 w-6 text-gray-400" />;
-    }
-  };
-
-  const getHealthStatusColor = (
-    status: string,
-    isLoading: boolean,
-    hasError: boolean,
-  ) => {
-    if (isLoading) return "text-gray-900";
-    if (hasError) return "text-red-900";
-    switch (status) {
-      case "Healthy":
-        return "text-emerald-900";
-      case "Degraded":
-        return "text-yellow-900";
-      case "Unhealthy":
-        return "text-red-900";
-      default:
-        return "text-gray-900";
-    }
-  };
 
   const stats = getSummaryStats();
 

@@ -9,8 +9,6 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
-  GetCalendarViewResponse,
-  CalendarEventDto,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters

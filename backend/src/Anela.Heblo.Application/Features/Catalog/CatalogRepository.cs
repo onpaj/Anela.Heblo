@@ -353,6 +353,7 @@ public class CatalogRepository : ICatalogRepository
                 product.Properties.OptimalStockDaysSetup = attributes.OptimalStockDays;
                 product.Properties.StockMinSetup = attributes.StockMin;
                 product.Properties.BatchSize = attributes.BatchSize;
+                product.Properties.ExpirationMonths = attributes.ExpirationMonths;
                 product.Properties.SeasonMonths = attributes.SeasonMonthsArray;
                 product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
             }

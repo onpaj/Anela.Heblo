@@ -85,6 +85,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       navigate("/manufacturing/orders");
     }
   }, [onClose, navigate, queryClient]);
+
+  // We'll define handleCloseWithWeekNavigation after order is loaded
   
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -104,6 +106,22 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     });
     
     return translated || stateKey;
+  };
+
+  // Helper function to get the order's planned date for navigation
+  const getOrderPlannedDate = (order: any): Date => {
+    // Priority: semiProductPlannedDate > productPlannedDate > today
+    if (order.semiProductPlannedDate) {
+      return order.semiProductPlannedDate instanceof Date 
+        ? order.semiProductPlannedDate 
+        : new Date(order.semiProductPlannedDate);
+    }
+    if (order.productPlannedDate) {
+      return order.productPlannedDate instanceof Date 
+        ? order.productPlannedDate 
+        : new Date(order.productPlannedDate);
+    }
+    return new Date();
   };
   
   // Helper function to get translated audit action label
@@ -138,6 +156,48 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   const order = orderData?.order;
 
+  // Handle close with navigation to specific week
+  const handleCloseWithWeekNavigation = useCallback(() => {
+    // Invalidate queries to refresh data in lists and calendar
+    queryClient.invalidateQueries({
+      queryKey: ["manufacture-orders"]
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["manufactureOrders", "calendar"]
+    });
+
+    if (onClose) {
+      onClose();
+    } else {
+      // Navigate to weekly calendar with the order's week
+      if (order) {
+        // Use the updated dates from the form if available
+        const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
+        const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
+        const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+        const dateString = orderDate.toISOString().split('T')[0];
+        
+        console.log('🔍 Navigation debug při Close:', {
+          editableSemiProductDate,
+          editableProductDate,
+          updatedSemiProductDate,
+          updatedProductDate,
+          originalOrderData: {
+            semiProductPlannedDate: order.semiProductPlannedDate,
+            productPlannedDate: order.productPlannedDate
+          },
+          finalOrderDate: orderDate,
+          finalDateString: dateString,
+          navigationUrl: `/manufacturing/orders?view=weekly&date=${dateString}`
+        });
+        
+        navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
+      } else {
+        navigate("/manufacturing/orders");
+      }
+    }
+  }, [onClose, navigate, queryClient, order, editableSemiProductDate, editableProductDate]);
+
   // Mutations
   const updateOrderMutation = useUpdateManufactureOrder();
   const updateOrderStatusMutation = useUpdateManufactureOrderStatus();
@@ -145,9 +205,24 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   // Initialize editable fields when order data changes
   React.useEffect(() => {
     if (order) {
+      console.log('🔧 Inicializace polí z order dat:', {
+        orderSemiProductPlannedDate: order.semiProductPlannedDate,
+        orderProductPlannedDate: order.productPlannedDate,
+        responsiblePerson: order.responsiblePerson
+      });
+      
       setEditableResponsiblePerson(order.responsiblePerson || "");
-      setEditableSemiProductDate(order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "");
-      setEditableProductDate(order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "");
+      
+      const semiDateString = order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "";
+      const productDateString = order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "";
+      
+      console.log('🔧 Nastavované hodnoty datumů:', {
+        semiDateString,
+        productDateString
+      });
+      
+      setEditableSemiProductDate(semiDateString);
+      setEditableProductDate(productDateString);
       setEditableSemiProductQuantity(order.semiProduct?.plannedQuantity?.toString() || "");
       
       // Initialize lot number and expiration date
@@ -190,6 +265,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         setEditableExpirationDate(newExpirationDateString);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editableSemiProductDate]);
 
   // Add keyboard event listener for Esc key
@@ -326,8 +402,34 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         setNewNote("");
       }
       
-      // Close the card after successful save
-      handleClose();
+      // Navigate to weekly calendar with the order's week
+      // Use the updated dates from the form, not the original order data
+      const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
+      const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
+      const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+      const dateString = orderDate.toISOString().split('T')[0];
+      
+      console.log('🔍 Navigation debug při Save:', {
+        editableSemiProductDate,
+        editableProductDate,
+        updatedSemiProductDate,
+        updatedProductDate,
+        originalOrderData: {
+          semiProductPlannedDate: order.semiProductPlannedDate,
+          productPlannedDate: order.productPlannedDate
+        },
+        finalOrderDate: orderDate,
+        finalDateString: dateString,
+        navigationUrl: `/manufacturing/orders?view=weekly&date=${dateString}`
+      });
+      
+      if (onClose) {
+        // Modal mode - close and let parent handle navigation
+        onClose();
+      } else {
+        // Page mode - navigate directly to weekly calendar with the specific week
+        navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
+      }
     } catch (error) {
       console.error("Error updating order:", error);
       // TODO: Show error notification to user
@@ -417,7 +519,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </button>
             )}
             <button
-              onClick={handleClose}
+              onClick={handleCloseWithWeekNavigation}
               className="text-gray-400 hover:text-gray-600 transition-colors"
               title={isModalMode ? "Zavřít" : "Zpět na seznam"}
             >
@@ -845,7 +947,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
             {/* Close and Save buttons on the right */}
             <div className="flex items-center space-x-2">
             <button
-              onClick={handleClose}
+              onClick={handleCloseWithWeekNavigation}
               className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
             >
               <XCircle className="h-4 w-4 mr-1" />

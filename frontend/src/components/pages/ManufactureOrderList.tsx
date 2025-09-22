@@ -5,13 +5,12 @@ import {
   Filter,
   AlertCircle,
   Loader2,
-  Plus,
   Calendar,
-  User,
   Clock,
   Grid,
   CalendarDays,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import {
   useManufactureOrdersQuery,
   GetManufactureOrdersRequest,
@@ -35,6 +34,7 @@ const stateColors: Record<ManufactureOrderState, string> = {
 
 const ManufactureOrderList: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -59,8 +59,17 @@ const ManufactureOrderList: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // View mode state
-  const [viewMode, setViewMode] = useState<'grid' | 'calendar' | 'weekly'>('weekly');
+  // View mode state - initialize from URL params
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar' | 'weekly'>(() => {
+    const view = searchParams.get('view');
+    return (view === 'weekly' || view === 'calendar' || view === 'grid') ? view : 'weekly';
+  });
+
+  // Initial date for weekly calendar from URL params
+  const initialCalendarDate = React.useMemo(() => {
+    const dateParam = searchParams.get('date');
+    return dateParam ? new Date(dateParam) : undefined;
+  }, [searchParams]);
 
   // Build request object
   const request: GetManufactureOrdersRequest = {
@@ -118,11 +127,6 @@ const ManufactureOrderList: React.FC = () => {
     setIsDetailModalOpen(true);
   };
 
-  // Handle create order - redirect to batch calculator
-  const handleCreateOrder = () => {
-    // Orders are created only through batch calculation
-    window.location.href = '/manufacture/batch-calculator';
-  };
 
   // Handle Enter key for filters
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -245,7 +249,7 @@ const ManufactureOrderList: React.FC = () => {
                 placeholder="Číslo zakázky"
                 value={orderNumberInput}
                 onChange={(e) => setOrderNumberInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               />
             </div>
@@ -350,7 +354,10 @@ const ManufactureOrderList: React.FC = () => {
         {viewMode === 'calendar' ? (
           <ManufactureOrderCalendar onEventClick={handleCalendarEventClick} />
         ) : viewMode === 'weekly' ? (
-          <ManufactureOrderWeeklyCalendar onEventClick={handleCalendarEventClick} />
+          <ManufactureOrderWeeklyCalendar 
+            onEventClick={handleCalendarEventClick} 
+            initialDate={initialCalendarDate}
+          />
         ) : (
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="overflow-x-auto">

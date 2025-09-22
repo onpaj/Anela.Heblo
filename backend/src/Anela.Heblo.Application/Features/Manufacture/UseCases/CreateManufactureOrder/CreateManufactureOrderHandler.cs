@@ -45,7 +45,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var semiProduct = new ManufactureOrderSemiProduct
         {
             ProductCode = request.ProductCode,
-            ProductName = request.ProductName,
+            ProductName = request.ProductName.Replace(" - meziprodukt", ""),
             PlannedQuantity = (decimal)request.NewBatchSize,
             ActualQuantity = (decimal)request.NewBatchSize,
             BatchMultiplier = (decimal)request.ScaleFactor
