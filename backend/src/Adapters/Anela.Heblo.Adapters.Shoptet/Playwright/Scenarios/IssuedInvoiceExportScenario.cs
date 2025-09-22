@@ -21,7 +21,7 @@ public class IssuedInvoiceExportScenario
         _logger = logger;
     }
 
-    public async Task<string> RunAsync(IssuedInvoiceSourceQuery query)
+    public async Task<string> RunAsync(IssuedInvoiceRequest query)
     {
         var currency = query.Currency == CurrencyCode.EUR.ToString() ? "3" : "2";
         var outputFile = Path.GetTempFileName();

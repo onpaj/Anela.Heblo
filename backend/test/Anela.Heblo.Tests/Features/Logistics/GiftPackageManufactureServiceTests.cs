@@ -35,6 +35,7 @@ public class GiftPackageManufactureServiceTests
         _eshopStockServiceMock = new Mock<IEshopStockDomainService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
+        _backgroundWorkerMock = new Mock<IBackgroundWorker>();
 
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
@@ -221,7 +222,7 @@ public class GiftPackageManufactureServiceTests
             .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
 
         // Act
-        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);
+        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, userId, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();

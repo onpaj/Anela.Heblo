@@ -7,4 +7,5 @@ public class EnqueueGiftPackageManufactureRequest : IRequest<EnqueueGiftPackageM
     public string GiftPackageCode { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public bool AllowStockOverride { get; set; } = false;
+    public string RequestedByUserName { get; set; } = string.Empty;
 }

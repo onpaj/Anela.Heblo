@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.FileStorage;
+using Anela.Heblo.Application.Features.Invoice;
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
@@ -46,8 +47,8 @@ public static class ApplicationModule
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
         services.AddUserManagement(configuration);
+        services.AddInvoiceModule();
         // services.AddOrdersModule();
-        // services.AddInvoicesModule();
 
         return services;
     }

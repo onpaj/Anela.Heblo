@@ -9,7 +9,6 @@ using Microsoft.OpenApi.Models;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
-using Anela.Heblo.API.Services;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Xcc.Services;
 
@@ -225,7 +224,8 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var hangfireOptions = configuration.GetValue<HangfireOptions>(HangfireOptions.ConfigurationKey);
+        var hangfireOptions = configuration.GetSection(HangfireOptions.ConfigurationKey).Get<HangfireOptions>();
+        services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
         if (hangfireOptions == null)
         {
             throw new ConfigurationErrorsException("Hangfire options not found");
@@ -304,14 +304,4 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-}
-
-public class HangfireOptions
-{
-    public static string ConfigurationKey =>  "Hangfire";
-    public string SchemaName { get; set; } = "hangfire_heblo";
-    public string QueueName { get; set; } = "heblo";
-    public bool SchedulerEnabled { get; set; } = false;
-    public int WorkerCount { get; set; } = 1;
-    public bool UseInMemoryStorage { get; set; } = false;
 }

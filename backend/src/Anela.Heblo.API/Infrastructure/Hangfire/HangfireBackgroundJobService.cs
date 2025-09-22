@@ -1,12 +1,12 @@
-using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Domain.Features.Configuration;
-using Hangfire;
 using Anela.Heblo.Xcc.Telemetry;
+using Hangfire;
 using MediatR;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.API.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 public class HangfireBackgroundJobService
 {

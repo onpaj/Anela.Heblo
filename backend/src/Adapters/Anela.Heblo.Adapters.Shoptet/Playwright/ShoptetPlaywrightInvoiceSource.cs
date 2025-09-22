@@ -21,7 +21,7 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
         _logger = logger;
     }
 
-    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
+    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceRequest query)
     {
         var content = await ScenarioRetryHelper.ExecuteWithRetryAsync(
             async () => await _exportScenario.RunAsync(query),

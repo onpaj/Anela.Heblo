@@ -6,6 +6,8 @@ import {
   GetGiftPackageDetailResponse,
   CreateGiftPackageManufactureRequest,
   CreateGiftPackageManufactureResponse,
+  EnqueueGiftPackageManufactureRequest,
+  EnqueueGiftPackageManufactureResponse,
   GetManufactureLogResponse,
 } from "../generated/api-client";
 
@@ -75,6 +77,25 @@ export const useCreateGiftPackageManufacture = () => {
     },
     onSuccess: () => {
       // Invalidate and refetch related queries after successful manufacturing
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "available"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
+    },
+  });
+};
+
+/**
+ * Hook to enqueue gift package manufacture as background job
+ */
+export const useEnqueueGiftPackageManufacture = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: EnqueueGiftPackageManufactureRequest): Promise<EnqueueGiftPackageManufactureResponse> => {
+      const client = getGiftPackageClient();
+      return await client.logistics_EnqueueGiftPackageManufacture(request);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch related queries after successful enqueue
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "available"] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
     },

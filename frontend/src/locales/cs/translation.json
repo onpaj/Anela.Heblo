@@ -1,0 +1,17 @@
+{
+  "automation": {
+    "title": "Automatizace",
+    "description": "Správa a monitorování background jobů",
+    "queuedJobs": "Fronta",
+    "scheduledJobs": "Naplánované",
+    "queuedJobsTitle": "Joby ve frontě",
+    "scheduledJobsTitle": "Naplánované joby",
+    "noJobs": "Žádné joby k zobrazení",
+    "status": "Stav",
+    "jobId": "ID jobu",
+    "method": "Metoda",
+    "enqueuedAt": "Zařazeno",
+    "scheduledAt": "Naplánováno",
+    "arguments": "Argumenty"
+  }
+}

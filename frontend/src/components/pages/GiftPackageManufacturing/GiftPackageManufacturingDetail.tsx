@@ -327,7 +327,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 }`}
               >
                 <Package className="h-5 w-5 mr-2" />
-                Vyrobit ({quantity} ks)
+                Zařadit do výroby ({quantity} ks)
               </button>
             </div>
           </div>

@@ -190,6 +190,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         {
+          id: "background-jobs",
+          name: "Background Jobs",
+          href: "/automatizace",
+        },
+        {
           id: "hangfire",
           name: "Hangfire",
           href: "#",

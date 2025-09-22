@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.Invoices;
 
-public class IssuedInvoiceSourceQuery
+public class IssuedInvoiceRequest
 {
     public string RequestId { get; set; } = "undefined";
     public string? InvoiceId { get; set; }

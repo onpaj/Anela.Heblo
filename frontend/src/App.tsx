@@ -25,6 +25,7 @@ import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
 import ManufactureOrderList from "./components/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/pages/ManufactureOrderDetail";
+import Automatizace from "./components/pages/Automatizace";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -316,6 +317,10 @@ function App() {
                         <Route
                           path="/logistics/warehouse-statistics"
                           element={<WarehouseStatistics />}
+                        />
+                        <Route
+                          path="/automatizace"
+                          element={<Automatizace />}
                         />
                       </Routes>
                     </Layout>

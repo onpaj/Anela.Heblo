@@ -136,15 +136,21 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         string giftPackageCode,
         int quantity,
         bool allowStockOverride,
+        string requestedByUserName,
         CancellationToken cancellationToken = default)
     {
-        // Create the manufacture log
+        // Use provided user name or fallback to current user or "System"
+        var userName = !string.IsNullOrEmpty(requestedByUserName) 
+            ? requestedByUserName 
+            : _currentUserService.GetCurrentUser().Name ?? "System";
+
+        // Create the manufacture log with user name
         var manufactureLog = new GiftPackageManufactureLog(
             giftPackageCode,
             quantity,
             allowStockOverride,
             _timeProvider.GetUtcNow().DateTime,
-            _currentUserService.GetCurrentUser().Name ?? "System");
+            userName);
 
         // Add consumed items - get detailed info with ingredients
         var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
@@ -178,11 +184,12 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     public Task<string> EnqueueManufactureAsync(
         string giftPackageCode,
         int quantity,
-        bool allowStockOverride = false,
+        bool allowStockOverride,
+        string requestedByUserName,
         CancellationToken cancellationToken = default)
     {
         var jobId = _backgroundWorker.Enqueue<IGiftPackageManufactureService>(
-            service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, cancellationToken));
+            service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, requestedByUserName, cancellationToken));
 
         return Task.FromResult(jobId);
     }

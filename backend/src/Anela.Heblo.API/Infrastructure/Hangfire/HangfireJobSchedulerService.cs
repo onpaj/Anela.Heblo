@@ -1,18 +1,20 @@
 using Hangfire;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.API.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 public class HangfireJobSchedulerService : IHostedService
 {
     private readonly ILogger<HangfireJobSchedulerService> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly IOptions<HangfireOptions> _options;
 
-    private const string QueueName = "heblo";
-
-    public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment)
+    public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment, IOptions<HangfireOptions> options)
     {
         _logger = logger;
         _environment = environment;
+        _options = options;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -20,7 +22,7 @@ public class HangfireJobSchedulerService : IHostedService
         _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment", _environment.EnvironmentName);
 
         // Additional safety check - only register jobs in Production and Staging
-        if (!_environment.IsProduction() && !_environment.IsStaging())
+        if (!_options.Value.SchedulerEnabled)
         {
             _logger.LogWarning("Hangfire job scheduler service is running in {Environment} environment. Jobs will NOT be scheduled. Only Production and Staging environments schedule background jobs.", _environment.EnvironmentName);
             return Task.CompletedTask;
@@ -36,7 +38,7 @@ public class HangfireJobSchedulerService : IHostedService
                 service => service.RecalculatePurchasePricesAsync(),
                 "0 2 * * *", // Daily at 2:00 AM UTC
                 timeZone: TimeZoneInfo.Utc,
-                queue: QueueName
+                queue: _options.Value.QueueName
             );
 
             // Product export download daily at 2:00 AM UTC
@@ -45,7 +47,7 @@ public class HangfireJobSchedulerService : IHostedService
                 service => service.DownloadProductExportAsync(),
                 "0 2 * * *", // Daily at 2:00 AM UTC
                 timeZone: TimeZoneInfo.Utc,
-                queue: QueueName
+                queue: _options.Value.QueueName
             );
 
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);

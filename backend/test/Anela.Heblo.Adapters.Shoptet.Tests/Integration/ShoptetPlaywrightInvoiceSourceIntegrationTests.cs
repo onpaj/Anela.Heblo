@@ -35,7 +35,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
         // Arrange - Skip if configuration is not available or contains test placeholders
         HasValidConfiguration().Should().BeTrue("Shoptet credentials not configured or contain test placeholders");
 
-        var query = new IssuedInvoiceSourceQuery
+        var query = new IssuedInvoiceRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             DateFrom = ReferenceDate,
@@ -82,7 +82,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
         HasValidConfiguration().Should().BeTrue("Shoptet credentials not configured or contain test placeholders");
 
         // First get a list of invoices to find a valid invoice ID
-        var dateQuery = new IssuedInvoiceSourceQuery
+        var dateQuery = new IssuedInvoiceRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             DateFrom = ReferenceDate,
@@ -100,7 +100,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
         var testInvoiceId = allInvoices.First().Invoices.First().Code;
         _output.WriteLine($"Testing with invoice ID: {testInvoiceId}");
 
-        var specificQuery = new IssuedInvoiceSourceQuery
+        var specificQuery = new IssuedInvoiceRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             InvoiceId = testInvoiceId,
@@ -129,7 +129,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
         // Arrange - Skip if configuration is not available
         HasValidConfiguration().Should().BeTrue("Shoptet credentials not configured or contain test placeholders");
 
-        var query = new IssuedInvoiceSourceQuery
+        var query = new IssuedInvoiceRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             DateFrom = ReferenceDate,

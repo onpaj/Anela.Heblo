@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
-import { useCreateGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
-import { CreateGiftPackageManufactureRequest } from "../../../api/generated/api-client";
+import { useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
+import { EnqueueGiftPackageManufactureRequest } from "../../../api/generated/api-client";
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -15,7 +15,7 @@ const GiftPackageManufacturing: React.FC = () => {
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
   
   // Manufacturing API hook
-  const createManufactureMutation = useCreateGiftPackageManufacture();
+  const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
 
   // Manufacturing modal handlers
   const handlePackageClick = (pkg: GiftPackage) => {
@@ -43,17 +43,18 @@ const GiftPackageManufacturing: React.FC = () => {
     if (!selectedPackage) return;
     
     try {
-      const request = new CreateGiftPackageManufactureRequest({
+      const request = new EnqueueGiftPackageManufactureRequest({
         giftPackageCode: selectedPackage.code,
         quantity: quantity,
         allowStockOverride: false, // TODO: This could be made configurable via UI
-        userId: "00000000-0000-0000-0000-000000000000" // This will be overridden by the backend from current user context
+        requestedByUserName: "" // Will be determined by backend from current user context
       });
       
-      await createManufactureMutation.mutateAsync(request);
-      console.log(`Úspěšně vyrobeno ${quantity}x ${selectedPackage.name}`);
+      const response = await enqueueManufactureMutation.mutateAsync(request);
+      console.log(`Výroba zařazena do fronty: ${response.message || `${quantity}x ${selectedPackage.name}`}`);
+      console.log(`Job ID: ${response.jobId}`);
     } catch (error) {
-      console.error('Manufacturing error:', error);
+      console.error('Manufacturing enqueue error:', error);
       throw error;
     }
   };

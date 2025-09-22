@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Invoice;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -49,6 +50,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
     public DbSet<ManufactureOrderAuditLog> ManufactureOrderAuditLogs { get; set; } = null!;
+
+    // Invoice module
+    public DbSet<IssuedInvoice> IssuedInvoices { get; set; } = null!;
+    public DbSet<ImportAttempt> ImportAttempts { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

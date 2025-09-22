@@ -18,6 +18,7 @@ const resources = {
         loading: "Načítá se...",
         welcome: "Vítejte v Anela Heblo",
         appLoading: "Aplikace se načítá...",
+        refresh: "Obnovit",
       },
       manufacture: {
         states: {
@@ -35,6 +36,23 @@ const resources = {
           NoteAdded: "Přidání poznámky",
           OrderCreated: "Vytvoření zakázky"
         }
+      },
+      automation: {
+        title: "Automatizace",
+        description: "Správa a monitorování background jobů",
+        queuedJobs: "Fronta",
+        scheduledJobs: "Naplánované",
+        failedJobs: "Neúspěšné",
+        queuedJobsTitle: "Joby ve frontě",
+        scheduledJobsTitle: "Naplánované joby",
+        failedJobsTitle: "Neúspěšné joby",
+        noJobs: "Žádné joby k zobrazení",
+        status: "Stav",
+        jobId: "ID jobu",
+        method: "Metoda",
+        enqueuedAt: "Zařazeno",
+        scheduledAt: "Naplánováno",
+        arguments: "Argumenty",
       },
       errors: {
         // String keys for ErrorCodes enum names (primary approach)
