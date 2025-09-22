@@ -146,7 +146,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
       {/* Calendar Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -184,7 +184,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       </div>
 
       {/* Calendar Content */}
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex items-center space-x-2">
@@ -212,7 +212,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                 return (
                   <div 
                     key={index}
-                    className={`border border-gray-200 rounded-lg ${
+                    className={`border border-gray-200 rounded-lg h-[900px] flex flex-col ${
                       isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
                     }`}
                   >
@@ -240,13 +240,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                     </div>
 
                     {/* Events */}
-                    <div className="p-2 space-y-2 min-h-[400px]">
+                    <div className="p-2 space-y-2 flex-1 overflow-y-auto">
                       {dayEvents.map((event, eventIndex) => (
                         <div
                           key={eventIndex}
                           onClick={() => handleEventClick(event)}
                           className={`
-                            p-3 rounded-lg cursor-pointer transition-all border
+                            p-3 rounded-lg cursor-pointer transition-all border min-h-[300px] flex flex-col
                             ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
                             hover:shadow-md hover:scale-[1.02] transform
                           `}
@@ -254,38 +254,35 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                         >
                           {/* Order Header */}
                           <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-1">
+                            <div className="flex items-center space-x-1 flex-1 min-w-0">
                               <Factory className="h-4 w-4 flex-shrink-0" />
-                              <span className="text-sm font-bold truncate">
-                                {event.orderNumber}
-                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold truncate">
+                                  {event.semiProduct?.productName || event.orderNumber}
+                                </div>
+                                {event.semiProduct?.productCode && (
+                                  <div className="text-xs text-gray-600 truncate">
+                                    {event.semiProduct.productCode}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          {/* Semi-product Information */}
+                          {/* Semi-product Information - Compact */}
                           {event.semiProduct && (
-                            <div className="mb-2 p-2 bg-white bg-opacity-50 rounded border">
-                              <div className="flex items-center space-x-1 mb-1">
-                                <Package className="h-3 w-3" />
-                                <span className="text-xs font-medium">Meziprodukt:</span>
-                              </div>
-                              <div className="text-xs font-semibold truncate" title={event.semiProduct.productName}>
-                                {event.semiProduct.productName}
-                              </div>
-                              <div className="text-xs text-gray-600 truncate">
-                                {event.semiProduct.productCode}
-                              </div>
-                              <div className="flex items-center space-x-2 mt-1">
+                            <div className="mb-2 p-1.5 bg-white bg-opacity-50 rounded border">
+                              <div className="flex items-center justify-center space-x-2">
                                 <div className="flex items-center space-x-1">
                                   <Hash className="h-3 w-3" />
-                                  <span className="text-xs">
+                                  <span className="text-xs font-medium">
                                     {event.semiProduct.plannedQuantity?.toFixed(2)} ks
                                   </span>
                                 </div>
                                 {event.semiProduct.batchMultiplier && (
                                   <div className="flex items-center space-x-1">
                                     <Layers className="h-3 w-3" />
-                                    <span className="text-xs">
+                                    <span className="text-xs font-medium">
                                       ×{event.semiProduct.batchMultiplier.toFixed(2)}
                                     </span>
                                   </div>
@@ -296,14 +293,14 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
 
                           {/* Products List */}
                           {event.products && event.products.length > 0 && (
-                            <div className="mb-2">
+                            <div className="flex-1 flex flex-col">
                               <div className="text-xs font-medium mb-1 flex items-center space-x-1">
                                 <Package className="h-3 w-3" />
                                 <span>Produkty ({event.products.length}):</span>
                               </div>
-                              <div className="space-y-1 max-h-20 overflow-y-auto">
+                              <div className="space-y-1 flex-1">
                                 {event.products.map((product, idx) => (
-                                  <div key={idx} className="text-xs p-1 bg-white bg-opacity-30 rounded">
+                                  <div key={idx} className="text-xs p-2 bg-white bg-opacity-30 rounded">
                                     <div className="font-medium truncate" title={product.productName}>
                                       {product.productName}
                                     </div>
