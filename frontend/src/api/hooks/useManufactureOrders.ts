@@ -9,8 +9,7 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
-  GetCalendarViewResponse,
-  CalendarEventDto,
+  DuplicateManufactureOrderResponse,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -23,14 +22,15 @@ export interface GetManufactureOrdersRequest {
   productCode?: string | null;
 }
 
-// Query keys
+// Query keys using QUERY_KEYS for consistency
 const manufactureOrderKeys = {
-  all: ["manufacture-orders"] as const,
-  lists: () => [...manufactureOrderKeys.all, "list"] as const,
+  all: QUERY_KEYS.manufactureOrders,
+  lists: () => [...QUERY_KEYS.manufactureOrders, "list"] as const,
   list: (filters: GetManufactureOrdersRequest) =>
-    [...manufactureOrderKeys.lists(), filters] as const,
-  details: () => [...manufactureOrderKeys.all, "detail"] as const,
-  detail: (id: number) => [...manufactureOrderKeys.details(), id] as const,
+    [...QUERY_KEYS.manufactureOrders, "list", filters] as const,
+  details: () => [...QUERY_KEYS.manufactureOrders, "detail"] as const,
+  detail: (id: number) => [...QUERY_KEYS.manufactureOrders, "detail", id] as const,
+  calendar: () => [...QUERY_KEYS.manufactureOrders, "calendar"] as const,
 };
 
 // Helper to get the correct API client instance from generated file
@@ -128,6 +128,28 @@ export const useUpdateManufactureOrderStatus = () => {
       // Invalidate the specific order detail
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.detail(variables.id),
+      });
+    },
+  });
+};
+
+// Mutation for duplicating manufacture orders
+export const useDuplicateManufactureOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sourceOrderId: number): Promise<DuplicateManufactureOrderResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_DuplicateOrder(sourceOrderId);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch manufacture orders list
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.lists(),
+      });
+      // Also invalidate calendar queries
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.calendar(),
       });
     },
   });

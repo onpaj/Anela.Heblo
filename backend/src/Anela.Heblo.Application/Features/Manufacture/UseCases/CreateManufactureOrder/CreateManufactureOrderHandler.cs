@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -8,13 +9,16 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactur
 public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOrderRequest, CreateManufactureOrderResponse>
 {
     private readonly IManufactureOrderRepository _repository;
+    private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
+        ICatalogRepository  catalogRepository,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
+        _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
     }
 
@@ -41,14 +45,21 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             StateChangedByUser = currentUser.Name
         };
 
+        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        if (semiproduct == null)
+        {
+            return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);
+        }
+        
         // Create the semi-product entry (the main product being manufactured)
         var semiProduct = new ManufactureOrderSemiProduct
         {
             ProductCode = request.ProductCode,
-            ProductName = request.ProductName,
+            ProductName = semiproduct.ShortName,
             PlannedQuantity = (decimal)request.NewBatchSize,
             ActualQuantity = (decimal)request.NewBatchSize,
-            BatchMultiplier = (decimal)request.ScaleFactor
+            BatchMultiplier = (decimal)request.ScaleFactor,
+            ExpirationMonths = semiproduct.Properties.ExpirationMonths
         };
         order.SemiProduct = semiProduct;
 

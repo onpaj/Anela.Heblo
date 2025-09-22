@@ -39,6 +39,7 @@ public class ManufactureOrderSemiProductDto
     public decimal BatchMultiplier { get; set; } // Multiplikátor z batch calculatoru
     public string? LotNumber { get; set; } // Šarže
     public DateOnly? ExpirationDate { get; set; } // Expirace
+    public int ExpirationMonths { get; set; } // Počet měsíců pro expirace
 }
 
 public class ManufactureOrderProductDto

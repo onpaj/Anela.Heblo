@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -35,7 +34,6 @@ const productTypeLabels: Record<ProductType, string> = {
 };
 
 const ManufactureInventoryList: React.FC = () => {
-  const navigate = useNavigate();
   
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");

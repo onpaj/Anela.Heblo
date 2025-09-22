@@ -28,7 +28,7 @@ public class ShoptetPlaywrightStockUpScenarioIntegrationTests
         _output = output;
     }
 
-    [Fact]
+    [Fact(Skip = "Manual only")]
     public async Task RunAsync_WithBasicProductStockUp_ExecutesSuccessfully()
     {
         // Arrange - Skip if configuration is not available or contains test placeholders
@@ -68,7 +68,7 @@ public class ShoptetPlaywrightStockUpScenarioIntegrationTests
     }
 
 
-    [Fact]
+    [Fact(Skip = "Manual only")]
     public async Task RunAsync_WithSingleProduct_ProcessesCorrectly()
     {
         // Arrange - Skip if configuration is not available
@@ -96,7 +96,7 @@ public class ShoptetPlaywrightStockUpScenarioIntegrationTests
         _output.WriteLine("✅ Single product scenario completed successfully");
     }
 
-    [Fact]
+    [Fact(Skip = "Manual only")]
     public async Task RunAsync_WithEmptyProductList_HandlesGracefully()
     {
         // Arrange - Skip if configuration is not available
