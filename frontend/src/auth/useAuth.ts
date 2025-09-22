@@ -1,6 +1,6 @@
 import { useMsal } from "@azure/msal-react";
 import { loginRequest, loginRedirectRequest, apiRequest } from "./msalConfig";
-import { AccountInfo } from "@azure/msal-browser";
+import { AccountInfo, InteractionRequiredAuthError } from "@azure/msal-browser";
 import { UserStorage, StoredUserInfo } from "./userStorage";
 import { useEffect, useState } from "react";
 import { clearTokenCache } from "../api/client";
@@ -99,25 +99,67 @@ export const useAuth = () => {
     }
   };
 
-  const getAccessToken = async (): Promise<string | null> => {
-    if (!account) return null;
+  const getAccessToken = async (forceRefresh: boolean = false): Promise<string | null> => {
+    if (!account) {
+      console.log("🔐 No account available for token acquisition");
+      return null;
+    }
 
     try {
+      console.log("🔐 Attempting silent token acquisition...");
       const response = await instance.acquireTokenSilent({
         ...apiRequest,
         account: account,
+        forceRefresh, // Allow forcing refresh of tokens
       });
+      console.log("✅ Silent token acquisition successful");
       return response.accessToken;
     } catch (error) {
-      try {
-        // Fallback to popup (redirect doesn't return a token directly)
-        const response = await instance.acquireTokenPopup({
-          ...apiRequest,
-          account: account,
-        });
-        return response.accessToken;
-      } catch (popupError) {
-        console.error("Token acquisition failed:", popupError);
+      console.log("⚠️ Silent token acquisition failed:", error);
+      
+      if (error instanceof InteractionRequiredAuthError) {
+        console.log("🔐 Interaction required - redirecting to login...");
+        
+        // Clear token cache before redirect
+        clearTokenCache();
+        
+        // Clear stored user info to ensure clean state
+        UserStorage.clearUserInfo();
+        
+        try {
+          // Use redirect for better UX in SPA (no popup blocking issues)
+          await instance.loginRedirect({
+            ...loginRedirectRequest,
+            prompt: "select_account", // Show account picker to handle expired sessions
+          });
+          
+          // This won't be reached due to redirect, but return null for type safety
+          return null;
+        } catch (redirectError) {
+          console.error("❌ Login redirect failed:", redirectError);
+          
+          // Fallback to popup if redirect fails
+          try {
+            console.log("🔐 Fallback to popup login...");
+            const popupResponse = await instance.loginPopup({
+              ...loginRequest,
+              prompt: "select_account",
+            });
+            
+            // After successful popup login, try to get token again
+            const tokenResponse = await instance.acquireTokenSilent({
+              ...apiRequest,
+              account: popupResponse.account,
+            });
+            
+            return tokenResponse.accessToken;
+          } catch (popupError) {
+            console.error("❌ Popup login also failed:", popupError);
+            return null;
+          }
+        }
+      } else {
+        console.error("❌ Non-interaction token error:", error);
         return null;
       }
     }

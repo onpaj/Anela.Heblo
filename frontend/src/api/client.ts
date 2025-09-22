@@ -15,7 +15,13 @@ let globalToastHandler: ((title: string, message?: string) => void) | null =
  * Global token provider for API client
  * This will be set by the App component after MSAL is initialized
  */
-let globalTokenProvider: (() => Promise<string | null>) | null = null;
+let globalTokenProvider: ((forceRefresh?: boolean) => Promise<string | null>) | null = null;
+
+/**
+ * Global authentication redirect handler
+ * This will be set by the App component to handle automatic login redirects
+ */
+let globalAuthRedirectHandler: (() => void) | null = null;
 
 /**
  * Token cache to avoid requesting new tokens for every API call
@@ -42,9 +48,20 @@ const isCachedTokenValid = (): boolean => {
  * This should be called from App component after MSAL initialization
  */
 export const setGlobalTokenProvider = (
-  provider: () => Promise<string | null>,
+  provider: (forceRefresh?: boolean) => Promise<string | null>,
 ) => {
   globalTokenProvider = provider;
+};
+
+/**
+ * Set the global authentication redirect handler
+ * This should be called from App component to handle automatic login redirects on 401 errors
+ */
+export const setGlobalAuthRedirectHandler = (
+  handler: () => void,
+) => {
+  globalAuthRedirectHandler = handler;
+  console.log("🔐 Global auth redirect handler set for 401 errors");
 };
 
 /**
@@ -231,6 +248,24 @@ export const getAuthenticatedApiClient = (
         // Include credentials (cookies) for E2E test mode
         credentials: isE2ETestMode() ? "include" : "same-origin",
       });
+
+      // Handle 401 Unauthorized errors with automatic redirect
+      if (response.status === 401) {
+        console.log("🔐 401 Unauthorized detected - token expired or invalid");
+        
+        // Clear token cache to force fresh authentication
+        clearTokenCache();
+        
+        // Trigger automatic login redirect if handler is available
+        if (globalAuthRedirectHandler) {
+          console.log("🔐 Triggering automatic login redirect...");
+          globalAuthRedirectHandler();
+        } else {
+          console.warn("⚠️ No auth redirect handler available - user needs to refresh page");
+        }
+        
+        // Continue with normal error handling to show toast
+      }
 
       // Global error handling with toast notifications
       // Handle both HTTP errors (!response.ok) and business logic errors (success: false)

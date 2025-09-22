@@ -2,6 +2,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Linq.Expressions;
 
 namespace Anela.Heblo.Tests.Common;
@@ -16,14 +17,21 @@ public class ManufactureOrderTestFactory : HebloWebApplicationFactory
         // Call base first to get all the normal service registrations
         base.ConfigureTestServices(services);
 
-        // Replace the catalog repository with a test-specific mock that includes the data needed for controller tests
-        var catalogDescriptors = services.Where(d => d.ServiceType == typeof(ICatalogRepository)).ToList();
-        foreach (var descriptor in catalogDescriptors)
-        {
-            services.Remove(descriptor);
-        }
+        // IMPORTANT: This runs BEFORE the application modules are registered,
+        // so we need to use Replace to override registrations that happen later
+        services.Replace(ServiceDescriptor.Transient<ICatalogRepository, TestCatalogRepository>());
+    }
 
-        services.AddTransient<ICatalogRepository, TestCatalogRepository>();
+    protected override void ConfigureTestWebHost(IWebHostBuilder builder)
+    {
+        // This runs AFTER all service registrations, so we can do final overrides here
+        builder.ConfigureServices(services =>
+        {
+            // Final override to ensure our test repository is used
+            services.Replace(ServiceDescriptor.Transient<ICatalogRepository, TestCatalogRepository>());
+        });
+        
+        base.ConfigureTestWebHost(builder);
     }
 }
 
@@ -40,7 +48,7 @@ public class TestCatalogRepository : ICatalogRepository
         {
             new()
             {
-                ProductCode = "SEMI001",
+                Id = "SEMI001",
                 ProductName = "Test Semi Product",
                 Type = ProductType.Material,
                 Properties = new CatalogProperties
@@ -50,12 +58,32 @@ public class TestCatalogRepository : ICatalogRepository
             },
             new()
             {
-                ProductCode = "SEMI002", 
+                Id = "SEMI002", 
                 ProductName = "Test Semi Product 2",
                 Type = ProductType.Material,
                 Properties = new CatalogProperties
                 {
                     ExpirationMonths = 24
+                }
+            },
+            new()
+            {
+                Id = "PROD001",
+                ProductName = "Test Final Product",
+                Type = ProductType.Product,
+                Properties = new CatalogProperties
+                {
+                    ExpirationMonths = 36
+                }
+            },
+            new()
+            {
+                Id = "PROD002",
+                ProductName = "Test Final Product 2",
+                Type = ProductType.Product,
+                Properties = new CatalogProperties
+                {
+                    ExpirationMonths = 48
                 }
             }
         };
