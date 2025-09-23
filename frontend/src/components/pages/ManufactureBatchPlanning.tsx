@@ -27,6 +27,9 @@ const BatchPlanningCalculator: React.FC = () => {
   // State for triggering autocomplete search when pre-filling from planning list
   const [triggerSearch, setTriggerSearch] = useState<string>("");
   
+  // Flag to prevent infinite loops when auto-triggering from URL
+  const [hasAutoTriggered, setHasAutoTriggered] = useState<boolean>(false);
+  
   // Form state
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
   const [totalBatchSize, setTotalBatchSize] = useState<number>(0);
@@ -158,8 +161,11 @@ const BatchPlanningCalculator: React.FC = () => {
 
   // Separate useEffect to trigger batch planning calculation when semiproduct is selected from URL
   useEffect(() => {
-    if (selectedSemiproduct && searchParams.get('productCode') && searchParams.get('productName')) {
-      // This means we just pre-filled from URL parameters
+    const productCodeParam = searchParams.get('productCode');
+    const productNameParam = searchParams.get('productName');
+    
+    if (selectedSemiproduct && productCodeParam && productNameParam && !hasAutoTriggered) {
+      // This means we just pre-filled from URL parameters and haven't triggered yet
       console.log('Triggering batch plan calculation for pre-filled product:', selectedSemiproduct);
       
       // Reset form values (same as handleSemiproductSelect does)
@@ -180,8 +186,11 @@ const BatchPlanningCalculator: React.FC = () => {
       console.log('Auto-triggering batch plan calculation with:', requestData);
       const request = new CalculateBatchPlanRequest(requestData);
       batchPlanMutation.mutate(request);
+      
+      // Set flag to prevent re-triggering
+      setHasAutoTriggered(true);
     }
-  }, [selectedSemiproduct, searchParams, fromDate, toDate, salesMultiplier, batchPlanMutation]);
+  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, batchPlanMutation]);
 
   // Update local state when API response changes
   useEffect(() => {
