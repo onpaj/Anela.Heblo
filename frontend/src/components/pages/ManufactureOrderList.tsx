@@ -9,6 +9,7 @@ import {
   Clock,
   Grid,
   CalendarDays,
+  ChevronDown,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -16,6 +17,7 @@ import {
   GetManufactureOrdersRequest,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
+import { ProductType } from "../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
@@ -40,6 +42,9 @@ const ManufactureOrderList: React.FC = () => {
   const getStateLabel = (state: ManufactureOrderState): string => {
     return t(`manufacture.states.${ManufactureOrderState[state]}`);
   };
+  // State for collapsible filter section
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(true);
+
   // Filter states - separate input values from applied filters
   const [orderNumberInput, setOrderNumberInput] = useState("");
   const [stateInput, setStateInput] = useState<ManufactureOrderState | "">("");
@@ -230,123 +235,174 @@ const ManufactureOrderList: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters - Fixed */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          <div className="flex items-center">
-            <Filter className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-sm font-medium text-gray-900">Filtry:</span>
-          </div>
-
-          {/* Order Number */}
-          <div className="flex-1">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Číslo zakázky"
-                value={orderNumberInput}
-                onChange={(e) => setOrderNumberInput(e.target.value)}
-                onKeyDown={handleKeyPress}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* State */}
-          <div className="flex-1">
-            <select
-              value={stateInput}
-              onChange={(e) => setStateInput(e.target.value as ManufactureOrderState | "")}
-              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+      {/* Compact Collapsible Filters */}
+      <div className="flex-shrink-0 bg-white shadow rounded-lg mb-4">
+        <div className="p-3 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
             >
-              <option value="">Všechny stavy</option>
-              {Object.values(ManufactureOrderState)
-                .filter(value => typeof value === 'number')
-                .map((state) => (
-                <option key={state} value={state}>
-                  {getStateLabel(state as ManufactureOrderState)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date From */}
-          <div className="flex-1">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="date"
-                placeholder="Od data"
-                value={fromDateInput}
-                onChange={(e) => setFromDateInput(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isFiltersCollapsed ? "-rotate-90" : ""
+                }`}
               />
+              <Filter className="h-4 w-4" />
+              <span>Filtry</span>
+            </button>
+            
+            {/* Quick summary when collapsed */}
+            {isFiltersCollapsed && (
+              <div className="flex items-center space-x-3 text-xs">
+                {/* Quick filter info */}
+                {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter) ? (
+                  <span className="text-gray-600">Aktivní filtry</span>
+                ) : (
+                  <span className="text-gray-500">Klikněte pro rozbalení filtrů</span>
+                )}
+                
+                {/* Quick apply button when collapsed */}
+                <div className="flex items-center space-x-2">
+                  <CatalogAutocomplete<string>
+                    value={productCodeInput}
+                    onSelect={handleProductCodeSelect}
+                    placeholder="Produkt..."
+                    className="w-48 text-xs"
+                    allowManualEntry={true}
+                    productTypes={[ProductType.Product, ProductType.SemiProduct]}
+                    itemAdapter={(item) => item.productCode || ""}
+                    size="sm"
+                  />
+                  <button
+                    onClick={handleApplyFilters}
+                    className="px-6 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 whitespace-nowrap"
+                  >
+                    Hledat produkt
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {!isFiltersCollapsed && (
+          <div className="p-3 bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 text-xs">
+              {/* Order Number */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Číslo zakázky
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Číslo zakázky"
+                    value={orderNumberInput}
+                    onChange={(e) => setOrderNumberInput(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Stav zakázky
+                </label>
+                <select
+                  value={stateInput}
+                  onChange={(e) => setStateInput(e.target.value as ManufactureOrderState | "")}
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="">Všechny stavy</option>
+                  {Object.values(ManufactureOrderState)
+                    .filter(value => typeof value === 'number')
+                    .map((state) => (
+                    <option key={state} value={state}>
+                      {getStateLabel(state as ManufactureOrderState)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Od data
+                </label>
+                <input
+                  type="date"
+                  value={fromDateInput}
+                  onChange={(e) => setFromDateInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Do data
+                </label>
+                <input
+                  type="date"
+                  value={toDateInput}
+                  onChange={(e) => setToDateInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Responsible Person */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Odpovědná osoba
+                </label>
+                <ResponsiblePersonCombobox
+                  value={responsiblePersonInput}
+                  onChange={(value) => setResponsiblePersonInput(value || "")}
+                  placeholder="Odpovědná osoba"
+                  allowManualEntry={true}
+                  className="w-full text-xs"
+                />
+              </div>
+
+              {/* Product Code */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Kód produktu
+                </label>
+                <CatalogAutocomplete<string>
+                  value={productCodeInput}
+                  onSelect={handleProductCodeSelect}
+                  placeholder="Kód produktu"
+                  className="w-full text-xs"
+                  allowManualEntry={true}
+                  productTypes={[ProductType.Product, ProductType.SemiProduct]}
+                  itemAdapter={(item) => item.productCode || ""}
+                />
+              </div>
+            </div>
+
+            {/* Filter buttons */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={handleApplyFilters}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors duration-200 flex items-center gap-1"
+              >
+                <Filter className="h-3 w-3" />
+                Použít filtry
+              </button>
+              <button
+                onClick={handleResetFilters}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors duration-200"
+              >
+                Vymazat filtry
+              </button>
             </div>
           </div>
-
-          {/* Date To */}
-          <div className="flex-1">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="date"
-                placeholder="Do data"
-                value={toDateInput}
-                onChange={(e) => setToDateInput(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Responsible Person */}
-          <div className="flex-1">
-            <ResponsiblePersonCombobox
-              value={responsiblePersonInput}
-              onChange={(value) => setResponsiblePersonInput(value || "")}
-              placeholder="Odpovědná osoba"
-              allowManualEntry={true}
-              className="w-full"
-            />
-          </div>
-        </div>
-
-        {/* Product Code Filter - Full width on second row */}
-        <div className="mt-3">
-          <div className="flex-1">
-            <CatalogAutocomplete<string>
-              value={productCodeInput}
-              onSelect={handleProductCodeSelect}
-              placeholder="Kód produktu"
-              className="w-full"
-              allowManualEntry={true}
-              itemAdapter={(item) => item.productCode || ""}
-            />
-          </div>
-        </div>
-
-        {/* Filter buttons */}
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            onClick={handleApplyFilters}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            Použít filtry
-          </button>
-          <button
-            onClick={handleResetFilters}
-            className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"
-          >
-            Vymazat filtry
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Content - Grid, Monthly Calendar, or Weekly Calendar */}

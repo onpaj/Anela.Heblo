@@ -46,6 +46,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     return monday;
   });
 
+
   // Update currentWeekStart when initialDate changes
   React.useEffect(() => {
     if (initialDate) {
@@ -139,7 +140,9 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     return {
       dayName: dayName.charAt(0).toUpperCase() + dayName.slice(1),
       dayNumber,
-      month
+      month,
+      // Compact format for single line display
+      compact: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNumber}. ${month}`
     };
   };
 
@@ -160,204 +163,200 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <Calendar className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
-            Týdenní kalendář výrobních zakázek
-          </h2>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => navigateWeek('prev')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Předchozí týden"
-          >
-            <ChevronLeft className="h-4 w-4 text-gray-600" />
-          </button>
-          <button
-            onClick={goToCurrentWeek}
-            className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Přejít na aktuální týden"
-          >
-            Dnes
-          </button>
-          <span className="text-lg font-medium text-gray-900 min-w-[200px] text-center">
-            {formatWeekRange(startDate, endDate)}
-          </span>
-          <button
-            onClick={() => navigateWeek('next')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Následující týden"
-          >
-            <ChevronRight className="h-4 w-4 text-gray-600" />
-          </button>
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Compact Header */}
+      <div className="flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 mb-2">
+        <div className="p-2 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-indigo-600" />
+              <h2 className="text-sm font-semibold text-gray-900">
+                Týdenní kalendář výrobních zakázek
+              </h2>
+            </div>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => navigateWeek('prev')}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                title="Předchozí týden"
+              >
+                <ChevronLeft className="h-3 w-3 text-gray-600" />
+              </button>
+              <button
+                onClick={goToCurrentWeek}
+                className="px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                title="Přejít na aktuální týden"
+              >
+                Dnes
+              </button>
+              <span className="text-sm font-medium text-gray-900 min-w-[160px] text-center">
+                {formatWeekRange(startDate, endDate)}
+              </span>
+              <button
+                onClick={() => navigateWeek('next')}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                title="Následující týden"
+              >
+                <ChevronRight className="h-3 w-3 text-gray-600" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Calendar Content */}
-      <div className="p-4 flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-              <div className="text-gray-500">Načítání týdenního kalendáře...</div>
+      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+                <div className="text-gray-500">Načítání týdenního kalendáře...</div>
+              </div>
             </div>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2 text-red-600">
-              <AlertCircle className="h-5 w-5" />
-              <div>Chyba při načítání kalendáře</div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center space-x-2 text-red-600">
+                <AlertCircle className="h-5 w-5" />
+                <div>Chyba při načítání kalendáře</div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
-            {/* Week Days Header */}
-            <div className="grid grid-cols-5 gap-4 mb-4">
-              {weekDays.map((day, index) => {
-                const dayInfo = formatDayHeader(day);
-                const dateKey = day.toISOString().split('T')[0];
-                const dayEvents = eventsByDate[dateKey] || [];
-                const isToday = day.toDateString() === new Date().toDateString();
-                
-                return (
-                  <div 
-                    key={index}
-                    className={`border border-gray-200 rounded-lg h-[900px] flex flex-col ${
-                      isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
-                    }`}
-                  >
-                    {/* Day Header */}
-                    <div className={`p-3 border-b border-gray-200 ${
-                      isToday ? 'bg-indigo-100' : 'bg-gray-50'
-                    }`}>
-                      <div className="text-center">
-                        <div className={`text-sm font-medium ${
-                          isToday ? 'text-indigo-700' : 'text-gray-600'
-                        }`}>
-                          {dayInfo.dayName}
-                        </div>
-                        <div className={`text-lg font-bold ${
-                          isToday ? 'text-indigo-900' : 'text-gray-900'
-                        }`}>
-                          {dayInfo.dayNumber}
-                        </div>
-                        <div className={`text-xs ${
-                          isToday ? 'text-indigo-600' : 'text-gray-500'
-                        }`}>
-                          {dayInfo.month}
+          ) : (
+            <>
+              {/* Week Days Header */}
+              <div className="grid grid-cols-5 gap-4 mb-4">
+                {weekDays.map((day, index) => {
+                  const dayInfo = formatDayHeader(day);
+                  const dateKey = day.toISOString().split('T')[0];
+                  const dayEvents = eventsByDate[dateKey] || [];
+                  const isToday = day.toDateString() === new Date().toDateString();
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className={`border border-gray-200 rounded-lg h-[600px] flex flex-col ${
+                        isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
+                      }`}
+                    >
+                      {/* Day Header - Keep compact but readable */}
+                      <div className={`p-2 border-b border-gray-200 ${
+                        isToday ? 'bg-indigo-100' : 'bg-gray-50'
+                      }`}>
+                        <div className="text-center">
+                          <div className={`text-sm font-medium ${
+                            isToday ? 'text-indigo-700' : 'text-gray-700'
+                          }`}>
+                            {dayInfo.compact}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Events */}
-                    <div className="p-2 space-y-2 flex-1 overflow-y-auto">
-                      {dayEvents.map((event, eventIndex) => (
-                        <div
-                          key={eventIndex}
-                          onClick={() => handleEventClick(event)}
-                          className={`
-                            p-3 rounded-lg cursor-pointer transition-all border min-h-[300px] flex flex-col
-                            ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
-                            hover:shadow-md hover:scale-[1.02] transform
-                          `}
-                          title={`Klikněte pro detail zakázky ${event.orderNumber}`}
-                        >
-                          {/* Order Header */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-1 flex-1 min-w-0">
-                              <Factory className="h-4 w-4 flex-shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-bold truncate">
-                                  {event.semiProduct?.productName || event.orderNumber}
-                                </div>
-                                {event.semiProduct?.productCode && (
-                                  <div className="text-xs text-gray-600 truncate">
-                                    {event.semiProduct.productCode}
+                      {/* Events - Original style but smaller */}
+                      <div className="p-2 space-y-2 flex-1 overflow-y-auto">
+                        {dayEvents.map((event, eventIndex) => (
+                          <div
+                            key={eventIndex}
+                            onClick={() => handleEventClick(event)}
+                            className={`
+                              p-3 rounded-lg cursor-pointer transition-all border min-h-[200px] flex flex-col
+                              ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
+                              hover:shadow-md hover:scale-[1.02] transform
+                            `}
+                            title={`Klikněte pro detail zakázky ${event.orderNumber}`}
+                          >
+                            {/* Order Header */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-1 flex-1 min-w-0">
+                                <Factory className="h-4 w-4 flex-shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-bold truncate">
+                                    {event.semiProduct?.productName || event.orderNumber}
                                   </div>
-                                )}
+                                  {event.semiProduct?.productCode && (
+                                    <div className="text-xs text-gray-600 truncate">
+                                      {event.semiProduct.productCode}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Semi-product Information - Compact */}
-                          {event.semiProduct && (
-                            <div className="mb-2 p-1.5 bg-white bg-opacity-50 rounded border">
-                              <div className="flex items-center justify-center space-x-2">
-                                <div className="flex items-center space-x-1">
-                                  <Hash className="h-3 w-3" />
-                                  <span className="text-xs font-medium">
-                                    {event.semiProduct.plannedQuantity?.toFixed(2)} ks
-                                  </span>
-                                </div>
-                                {event.semiProduct.batchMultiplier && (
+                            {/* Semi-product Information - Compact */}
+                            {event.semiProduct && (
+                              <div className="mb-2 p-1.5 bg-white bg-opacity-50 rounded border">
+                                <div className="flex items-center justify-center space-x-2">
                                   <div className="flex items-center space-x-1">
-                                    <Layers className="h-3 w-3" />
+                                    <Hash className="h-3 w-3" />
                                     <span className="text-xs font-medium">
-                                      ×{event.semiProduct.batchMultiplier.toFixed(2)}
+                                      {event.semiProduct.plannedQuantity?.toFixed(2)} g
                                     </span>
                                   </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Products List */}
-                          {event.products && event.products.length > 0 && (
-                            <div className="flex-1 flex flex-col">
-                              <div className="text-xs font-medium mb-1 flex items-center space-x-1">
-                                <Package className="h-3 w-3" />
-                                <span>Produkty ({event.products.length}):</span>
-                              </div>
-                              <div className="space-y-1 flex-1">
-                                {event.products.map((product, idx) => (
-                                  <div key={idx} className="text-xs p-2 bg-white bg-opacity-30 rounded">
-                                    <div className="font-medium truncate" title={product.productName}>
-                                      {product.productName}
+                                  {event.semiProduct.batchMultiplier && (
+                                    <div className="flex items-center space-x-1">
+                                      <Layers className="h-3 w-3" />
+                                      <span className="text-xs font-medium">
+                                        ×{event.semiProduct.batchMultiplier.toFixed(2)}
+                                      </span>
                                     </div>
-                                    <div className="text-gray-600 flex items-center justify-between">
-                                      <span className="truncate">{product.productCode}</span>
-                                      <span>{product.plannedQuantity?.toFixed(2)} ks</span>
-                                    </div>
-                                  </div>
-                                ))}
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Responsible Person */}
-                          {event.responsiblePerson && (
-                            <div className="flex items-center space-x-1 text-xs mt-2 pt-2 border-t border-white border-opacity-30">
-                              <User className="h-3 w-3" />
-                              <span className="truncate font-medium">
-                                {event.responsiblePerson}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      
-                      {dayEvents.length === 0 && (
-                        <div className="text-center text-gray-400 text-sm py-8">
-                          Žádné zakázky
-                        </div>
-                      )}
+                            {/* Products List */}
+                            {event.products && event.products.length > 0 && (
+                              <div className="flex-1 flex flex-col">
+                                <div className="text-xs font-medium mb-1 flex items-center space-x-1">
+                                  <Package className="h-3 w-3" />
+                                  <span>Produkty ({event.products.length}):</span>
+                                </div>
+                                <div className="space-y-1 flex-1">
+                                  {event.products.map((product, idx) => (
+                                    <div key={idx} className="text-xs p-2 bg-white bg-opacity-30 rounded">
+                                      <div className="font-medium truncate" title={product.productName}>
+                                        {product.productName}
+                                      </div>
+                                      <div className="text-gray-600 flex items-center justify-between">
+                                        <span className="truncate">{product.productCode}</span>
+                                        <span>{product.plannedQuantity?.toFixed(2)} ks</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Responsible Person */}
+                            {event.responsiblePerson && (
+                              <div className="flex items-center space-x-1 text-xs mt-2 pt-2 border-t border-white border-opacity-30">
+                                <User className="h-3 w-3" />
+                                <span className="truncate font-medium">
+                                  {event.responsiblePerson}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {dayEvents.length === 0 && (
+                          <div className="text-center text-gray-400 text-sm py-8">
+                            Žádné zakázky
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Legend */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex flex-wrap gap-4 text-xs">
-          <div className="flex items-center space-x-4">
+      <div className="flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 mt-2">
+        <div className="p-2">
+          <div className="flex flex-wrap gap-3 text-xs">
             <span className="font-medium text-gray-700">Stavy zakázek:</span>
             {Object.entries(stateColors).slice(0, 4).map(([state, colorClass]) => (
               <div key={state} className="flex items-center space-x-1">

@@ -243,6 +243,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       boxShadow:
         "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       zIndex: 9999999, // Extremely high to ensure it appears above sticky table headers
+      minWidth: "350px", // Reasonable minimum width
+      maxWidth: "90vw", // Use viewport width to prevent overflow
+      width: "max-content", // Size based on content
     }),
     menuPortal: (base) => ({
       ...base,
@@ -350,8 +353,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         }
         loadingMessage={() => "Načítám..."}
         menuPlacement="auto"
-        menuPosition="fixed"
-        menuPortalTarget={document.body} // Render dropdown in body to avoid stacking issues
+        menuPosition="absolute"
+        menuShouldScrollIntoView={false}
         filterOption={null} // Disable built-in filtering since we handle it via API
       />
 
