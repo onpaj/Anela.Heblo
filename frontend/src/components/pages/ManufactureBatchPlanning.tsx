@@ -30,6 +30,9 @@ const BatchPlanningCalculator: React.FC = () => {
   // Flag to prevent infinite loops when auto-triggering from URL
   const [hasAutoTriggered, setHasAutoTriggered] = useState<boolean>(false);
   
+  // State for manufacturing dates when pre-filled from planning list
+  const [prefilledManufacturingDate, setPrefilledManufacturingDate] = useState<Date | null>(null);
+  
   // Form state
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
   const [totalBatchSize, setTotalBatchSize] = useState<number>(0);
@@ -115,15 +118,9 @@ const BatchPlanningCalculator: React.FC = () => {
       if (dateParam) {
         try {
           const planningDate = new Date(dateParam);
-          // For semi-product date, use the selected date
-          const semiProductDate = planningDate.toISOString().split('T')[0];
-          // For product date, add one day
-          const productDate = new Date(planningDate);
-          productDate.setDate(productDate.getDate() + 1);
-          const productDateStr = productDate.toISOString().split('T')[0];
-          
-          console.log('Pre-filling dates:', { semiProductDate, productDateStr });
-          // Note: We would need to expose these as state if we want to pre-fill the form dates
+          console.log('Pre-filling manufacturing date from planning list:', planningDate);
+          // Store the selected date for manufacturing
+          setPrefilledManufacturingDate(planningDate);
         } catch (error) {
           console.error('Error parsing date from planning list:', error);
         }
@@ -430,11 +427,25 @@ const BatchPlanningCalculator: React.FC = () => {
       return;
     }
 
-    // Default dates (tomorrow and day after tomorrow)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfterTomorrow = new Date();
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    // Use prefilled manufacturing date if available, otherwise default to tomorrow
+    let semiProductDate: Date;
+    let productDate: Date;
+    
+    if (prefilledManufacturingDate) {
+      // Use the date selected in the calendar
+      semiProductDate = new Date(prefilledManufacturingDate);
+      // Product date is one day after the selected date
+      productDate = new Date(prefilledManufacturingDate);
+      productDate.setDate(productDate.getDate() + 1);
+      console.log('Using prefilled dates:', { semiProductDate, productDate });
+    } else {
+      // Default dates (tomorrow and day after tomorrow)
+      semiProductDate = new Date();
+      semiProductDate.setDate(semiProductDate.getDate() + 1);
+      productDate = new Date();
+      productDate.setDate(productDate.getDate() + 2);
+      console.log('Using default dates:', { semiProductDate, productDate });
+    }
 
     try {
       const orderRequest = new CreateManufactureOrderRequest({
@@ -448,8 +459,8 @@ const BatchPlanningCalculator: React.FC = () => {
           productName: p.productName,
           plannedQuantity: p.plannedQuantity
         })),
-        semiProductPlannedDate: tomorrow,
-        productPlannedDate: dayAfterTomorrow,
+        semiProductPlannedDate: semiProductDate,
+        productPlannedDate: productDate,
         responsiblePerson: undefined
       });
 
@@ -457,7 +468,7 @@ const BatchPlanningCalculator: React.FC = () => {
       
       if (orderResponse.success && orderResponse.id) {
         // Store the order date for navigation
-        setCreatedOrderDate(tomorrow);
+        setCreatedOrderDate(semiProductDate);
         // Open the manufacture order detail modal
         setCreatedOrderId(orderResponse.id);
         setShowOrderModal(true);
