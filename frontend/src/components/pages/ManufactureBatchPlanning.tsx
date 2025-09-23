@@ -156,6 +156,33 @@ const BatchPlanningCalculator: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to avoid infinite loops
 
+  // Separate useEffect to trigger batch planning calculation when semiproduct is selected from URL
+  useEffect(() => {
+    if (selectedSemiproduct && searchParams.get('productCode') && searchParams.get('productName')) {
+      // This means we just pre-filled from URL parameters
+      console.log('Triggering batch plan calculation for pre-filled product:', selectedSemiproduct);
+      
+      // Reset form values (same as handleSemiproductSelect does)
+      setMmqMultiplier(1.0);
+      setTotalBatchSize(0);
+      setTargetDaysCoverage(30);
+      
+      // Trigger batch planning calculation with default values
+      const requestData: any = {
+        semiproductCode: selectedSemiproduct.productCode,
+        controlMode: BatchPlanControlMode.MmqMultiplier,
+        fromDate: fromDate,
+        toDate: toDate,
+        salesMultiplier: salesMultiplier,
+        mmqMultiplier: 1.0,
+      };
+
+      console.log('Auto-triggering batch plan calculation with:', requestData);
+      const request = new CalculateBatchPlanRequest(requestData);
+      batchPlanMutation.mutate(request);
+    }
+  }, [selectedSemiproduct, searchParams, fromDate, toDate, salesMultiplier, batchPlanMutation]);
+
   // Update local state when API response changes
   useEffect(() => {
     if (response?.summary) {
