@@ -78,6 +78,13 @@ describe("App Component - Authentication Setup", () => {
       REACT_APP_AZURE_BACKEND_CLIENT_ID: "8b34be89-f86f-422f-af40-7dbcd30cb66a",
     };
     
+    // Clear msalConfig module cache to pick up new environment variables
+    delete require.cache[require.resolve("../auth/msalConfig")];
+    
+    // Clear cached config to ensure fresh load in each test
+    const runtimeConfig = require("../config/runtimeConfig");
+    (runtimeConfig as any).cachedConfig = null;
+    
     mockMsalInstance = createMockMsalInstance();
     
     // Mock successful token acquisition by default
@@ -98,6 +105,9 @@ describe("App Component - Authentication Setup", () => {
     // Clear cached config to ensure fresh load in next test
     const runtimeConfig = require("../config/runtimeConfig");
     (runtimeConfig as any).cachedConfig = null;
+    
+    // Clear msalConfig module cache to pick up new environment variables
+    delete require.cache[require.resolve("../auth/msalConfig")];
     
     // Reset all e2eAuth mocks
     const e2eAuth = require("../auth/e2eAuth");
