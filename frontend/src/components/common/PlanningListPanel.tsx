@@ -24,14 +24,14 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-1/2 transform -translate-y-1/2 z-40"
+      className="fixed right-0 top-1/3 transform -translate-y-1/2 z-40"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Panel */}
       <div
         className={`bg-white shadow-xl border-l border-gray-200 transition-transform duration-300 ease-in-out ${
-          showPanel ? "translate-x-0" : "translate-x-full"
+          showPanel ? "translate-x-0" : "translate-x-[calc(100%-10px)]"
         }`}
         style={{ width: "320px", maxHeight: "80vh" }}
       >
@@ -92,10 +92,10 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
         </div>
       </div>
 
-      {/* Hover trigger - thin strip when panel is hidden */}
+      {/* Hover trigger - thin strip when panel is partially visible */}
       {!showPanel && (
         <div
-          className="absolute right-0 top-0 w-1 h-full bg-indigo-500 opacity-50 cursor-pointer"
+          className="absolute right-0 top-0 w-2 h-full bg-indigo-500 opacity-70 cursor-pointer"
           title="Seznam k plánování"
         />
       )}
