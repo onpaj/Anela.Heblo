@@ -18,10 +18,14 @@ import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders"
 import { useSearchParams, useNavigate } from "react-router-dom";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
+import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
   const [selectedSemiproduct, setSelectedSemiproduct] = useState<CatalogItemDto | null>(null);
+  
+  // State for triggering autocomplete search when pre-filling from planning list
+  const [triggerSearch, setTriggerSearch] = useState<string>("");
   
   // Form state
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
@@ -57,6 +61,13 @@ const BatchPlanningCalculator: React.FC = () => {
   // Planning list functionality
   const { removeItem } = usePlanningList();
 
+  // Trigger autocomplete search when pre-filling from planning list
+  const { data: preloadData } = useCatalogAutocomplete(
+    triggerSearch.length >= 2 ? triggerSearch : undefined,
+    50,
+    [ProductType.SemiProduct]
+  );
+
   // Get API response data
   const response = batchPlanMutation.data;
   
@@ -82,6 +93,10 @@ const BatchPlanningCalculator: React.FC = () => {
         batchSize,
         dateParam
       });
+      
+      // Trigger autocomplete search to load data for the combobox
+      // This will pre-load matching products based on the shortened product code
+      setTriggerSearch(productName);
       
       // Create CatalogItemDto from URL parameters
       const prefilledProduct = new CatalogItemDto({
