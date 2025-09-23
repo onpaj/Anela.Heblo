@@ -230,14 +230,15 @@ describe("ManufacturingStockAnalysis", () => {
 
     // Check table headers - match actual component text
     expect(screen.getByText("Produkt")).toBeInTheDocument(); // Combines code and name
-    expect(screen.getByText("Skladem")).toBeInTheDocument();
-    expect(screen.getByText("V rezervě")).toBeInTheDocument(); // New Reserve column
-    expect(screen.getByText("Prodeje období")).toBeInTheDocument();
-    expect(screen.getByText("Prodeje/den")).toBeInTheDocument();
-    expect(screen.getByText("Nadsklad")).toBeInTheDocument(); // No "dní"
-    expect(screen.getByText("Zásoba dni")).toBeInTheDocument(); // "dni" not "dní"
-    expect(screen.getByText("Min zásoba")).toBeInTheDocument(); // No dot
-    expect(screen.getByText("Nadsklad %")).toBeInTheDocument();
+    expect(screen.getByText("Sklad")).toBeInTheDocument();
+    expect(screen.getByText("Rezerv")).toBeInTheDocument();
+    expect(screen.getByText("Plán")).toBeInTheDocument();
+    expect(screen.getByText("Prodeje")).toBeInTheDocument();
+    expect(screen.getByText("Prod/den")).toBeInTheDocument();
+    expect(screen.getByText("NS")).toBeInTheDocument();
+    expect(screen.getByText("NS %")).toBeInTheDocument();
+    expect(screen.getByText("Min")).toBeInTheDocument();
+    expect(screen.getByText("Nastavení")).toBeInTheDocument();
     expect(screen.getByText("ks/šarže")).toBeInTheDocument();
 
     // Check product data
