@@ -18,4 +18,6 @@ public interface IManufactureOrderRepository
 
     Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken = default);
     Task<List<ManufactureOrder>> GetOrdersForDateRangeAsync(DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+
+    Task<Dictionary<string, decimal>> GetPlannedQuantitiesAsync(CancellationToken cancellationToken = default);
 }

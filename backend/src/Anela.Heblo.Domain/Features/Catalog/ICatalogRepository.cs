@@ -7,6 +7,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshTransportData(CancellationToken ct);
     Task RefreshReserveData(CancellationToken ct);
     Task RefreshOrderedData(CancellationToken ct);
+    Task RefreshPlannedData(CancellationToken ct);
     Task RefreshSalesData(CancellationToken ct);
     Task RefreshAttributesData(CancellationToken ct);
     Task RefreshErpStockData(CancellationToken ct);
@@ -24,6 +25,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     DateTime? TransportLoadDate { get; }
     DateTime? ReserveLoadDate { get; }
     DateTime? OrderedLoadDate { get; }
+    DateTime? PlannedLoadDate { get; }
     DateTime? SalesLoadDate { get; }
     DateTime? AttributesLoadDate { get; }
     DateTime? ErpStockLoadDate { get; }

@@ -37,6 +37,7 @@ public class CatalogRepositoryTests
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
     private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
     private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
+    private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
@@ -65,6 +66,7 @@ public class CatalogRepositoryTests
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
         _manufactureRepositoryMock = new Mock<IManufactureRepository>();
         _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
+        _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
@@ -120,6 +122,7 @@ public class CatalogRepositoryTests
             _stockTakingRepositoryMock.Object,
             _manufactureRepositoryMock.Object,
             _purchaseOrderRepositoryMock.Object,
+            _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureCostCalculationServiceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,

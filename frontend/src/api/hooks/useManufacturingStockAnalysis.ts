@@ -31,6 +31,7 @@ export enum ManufacturingStockSortBy {
   ProductName = "ProductName",
   CurrentStock = "CurrentStock",
   Reserve = "Reserve",
+  Planned = "Planned",
   SalesInPeriod = "SalesInPeriod",
   DailySales = "DailySales",
   OptimalDaysSetup = "OptimalDaysSetup",
@@ -57,6 +58,7 @@ export interface ManufacturingStockItemDto {
   transportStock: number;
   primaryStockSource: string;
   reserve: number;
+  planned: number;
   salesInPeriod: number;
   dailySalesRate: number;
   optimalDaysSetup: number;

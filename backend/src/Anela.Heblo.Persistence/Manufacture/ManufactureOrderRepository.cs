@@ -136,4 +136,14 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .ThenBy(x => x.ProductPlannedDate)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Dictionary<string, decimal>> GetPlannedQuantitiesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.ManufactureOrders
+            .Where(order => order.State != ManufactureOrderState.Completed && order.State != ManufactureOrderState.Cancelled)
+            .Include(order => order.Products)
+            .SelectMany(order => order.Products)
+            .GroupBy(product => product.ProductCode)
+            .ToDictionaryAsync(group => group.Key, group => group.Sum(product => product.PlannedQuantity), cancellationToken);
+    }
 }
