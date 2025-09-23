@@ -35,8 +35,10 @@ import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { PlanningListProvider } from "./contexts/PlanningListContext";
+import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
+import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import "./i18n";
 
 // Create a client
@@ -270,7 +272,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
-          <PlanningListProvider>
+          <ChangelogProvider>
+            <PlanningListProvider>
             <AppInitializer>
             <div className="App min-h-screen" data-testid="app">
               <MsalProvider instance={msalInstance}>
@@ -364,9 +367,12 @@ function App() {
                 </Router>
               </MsalProvider>
               <GlobalLoadingIndicator />
+              <ChangelogToaster />
+              <ChangelogModalContainer />
             </div>
           </AppInitializer>
           </PlanningListProvider>
+          </ChangelogProvider>
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>

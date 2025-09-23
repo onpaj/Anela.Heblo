@@ -13,10 +13,12 @@ import {
   Cog,
   Truck,
   Bot,
+  Newspaper,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
 import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
+import { useChangelogContext } from "../../contexts/ChangelogContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -42,6 +44,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const auth = shouldUseMockAuth() ? mockAuth : realAuth;
   const { getUserInfo } = auth;
   const userInfo = getUserInfo();
+
+  // Changelog context
+  const { openModal } = useChangelogContext();
 
   // Helper function to check if user has a specific role
   const hasRole = (role: string): boolean => {
@@ -427,12 +432,39 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </nav>
 
-          {/* User Profile and Toggle button at bottom */}
+          {/* Changelog and User Profile at bottom */}
           <div
             className={`border-t border-gray-200 ${isCollapsed ? "px-2" : "px-3"} flex flex-col`}
           >
+            {/* Changelog button */}
             {!isCollapsed ? (
-              <div className="flex items-center justify-between h-16 py-2">
+              <div className="py-2">
+                <button
+                  type="button"
+                  onClick={openModal}
+                  className="w-full flex items-center px-2 py-2 text-sm font-medium text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale rounded-md transition-colors"
+                  title="Co je nové"
+                >
+                  <Newspaper className="h-4 w-4 mr-3" />
+                  Co je nové
+                </button>
+              </div>
+            ) : (
+              <div className="py-2 flex justify-center">
+                <button
+                  type="button"
+                  onClick={openModal}
+                  className="p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale transition-colors"
+                  title="Co je nové"
+                >
+                  <Newspaper className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* User Profile and Toggle button */}
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between h-16 py-2 border-t border-gray-100">
                 <div className="flex-1 min-w-0">
                   <UserProfile />
                 </div>
@@ -446,7 +478,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center py-2 space-y-2">
+              <div className="flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
                 <div className="w-full flex justify-center">
                   <UserProfile compact />
                 </div>
