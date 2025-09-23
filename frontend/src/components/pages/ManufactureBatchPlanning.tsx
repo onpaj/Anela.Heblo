@@ -16,11 +16,24 @@ import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
+import { usePlanningList } from "../../contexts/PlanningListContext";
+import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
   const [selectedSemiproduct, setSelectedSemiproduct] = useState<CatalogItemDto | null>(null);
+  
+  // State for triggering autocomplete search when pre-filling from planning list
+  const [triggerSearch, setTriggerSearch] = useState<string>("");
+  
+  // Flag to prevent infinite loops when auto-triggering from URL
+  const [hasAutoTriggered, setHasAutoTriggered] = useState<boolean>(false);
+  
+  // State for manufacturing dates when pre-filled from planning list
+  const [prefilledManufacturingDate, setPrefilledManufacturingDate] = useState<Date | null>(null);
   
   // Form state
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
@@ -53,6 +66,19 @@ const BatchPlanningCalculator: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  // Planning list functionality
+  const { removeItem } = usePlanningList();
+  
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
+
+  // Trigger autocomplete search when pre-filling from planning list
+  const { data: preloadData } = useCatalogAutocomplete(
+    triggerSearch.length >= 2 ? triggerSearch : undefined,
+    50,
+    [ProductType.SemiProduct]
+  );
+
   // Get API response data
   const response = batchPlanMutation.data;
   
@@ -64,18 +90,24 @@ const BatchPlanningCalculator: React.FC = () => {
   // Get API product sizes
   const apiProductSizes = response?.productSizes || [];
 
-  // Handle prefilled data from URL parameters (from ManufactureBatchCalculator)
+  // Handle prefilled data from URL parameters (from ManufactureBatchCalculator or planning list)
   useEffect(() => {
     const productCode = searchParams.get('productCode');
     const productName = searchParams.get('productName');
     const batchSize = searchParams.get('batchSize');
+    const dateParam = searchParams.get('date');
     
-    if (productCode && productName && batchSize) {
+    if (productCode && productName) {
       console.log('Processing prefilled data from URL:', { 
         productCode, 
         productName,
-        batchSize: parseFloat(batchSize)
+        batchSize,
+        dateParam
       });
+      
+      // Trigger autocomplete search to load data for the combobox
+      // This will pre-load matching products based on the shortened product code
+      setTriggerSearch(productName);
       
       // Create CatalogItemDto from URL parameters
       const prefilledProduct = new CatalogItemDto({
@@ -86,30 +118,81 @@ const BatchPlanningCalculator: React.FC = () => {
       
       // Set the prefilled product
       setSelectedSemiproduct(prefilledProduct);
+
+      // Handle date pre-filling if coming from planning list
+      if (dateParam) {
+        try {
+          const planningDate = new Date(dateParam);
+          console.log('Pre-filling manufacturing date from planning list:', planningDate);
+          // Store the selected date for manufacturing
+          setPrefilledManufacturingDate(planningDate);
+        } catch (error) {
+          console.error('Error parsing date from planning list:', error);
+        }
+      }
       
-      // Set control mode to total weight and set the prefilled batch size
-      setControlMode(BatchPlanControlMode.TotalWeight);
-      setTotalBatchSize(parseFloat(batchSize));
+      // Handle batch size if provided (from ManufactureBatchCalculator)
+      if (batchSize) {
+        // Set control mode to total weight and set the prefilled batch size
+        setControlMode(BatchPlanControlMode.TotalWeight);
+        setTotalBatchSize(parseFloat(batchSize));
+        
+        // Trigger the API call directly
+        const requestData: any = {
+          semiproductCode: productCode,
+          controlMode: BatchPlanControlMode.TotalWeight,
+          fromDate: fromDate,
+          toDate: toDate,
+          salesMultiplier: salesMultiplier,
+          totalWeightToUse: parseFloat(batchSize),
+        };
+
+        console.log('Triggering batch plan calculation with:', requestData);
+        const request = new CalculateBatchPlanRequest(requestData);
+        batchPlanMutation.mutate(request);
+      }
+
+      // Remove item from planning list when planning process starts
+      removeItem(productCode);
       
       // Clear URL parameters to clean up the URL
       setSearchParams({});
-      
-      // Trigger the API call directly
-      const requestData: any = {
-        semiproductCode: productCode,
-        controlMode: BatchPlanControlMode.TotalWeight,
-        fromDate: fromDate,
-        toDate: toDate,
-        salesMultiplier: salesMultiplier,
-        totalWeightToUse: parseFloat(batchSize),
-      };
-
-      console.log('Triggering batch plan calculation with:', requestData);
-      const request = new CalculateBatchPlanRequest(requestData);
-      batchPlanMutation.mutate(request);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to avoid infinite loops
+
+  // Separate useEffect to trigger batch planning calculation when semiproduct is selected from URL
+  useEffect(() => {
+    const productCodeParam = searchParams.get('productCode');
+    const productNameParam = searchParams.get('productName');
+    
+    if (selectedSemiproduct && productCodeParam && productNameParam && !hasAutoTriggered) {
+      // This means we just pre-filled from URL parameters and haven't triggered yet
+      console.log('Triggering batch plan calculation for pre-filled product:', selectedSemiproduct);
+      
+      // Reset form values (same as handleSemiproductSelect does)
+      setMmqMultiplier(1.0);
+      setTotalBatchSize(0);
+      setTargetDaysCoverage(30);
+      
+      // Trigger batch planning calculation with default values
+      const requestData: any = {
+        semiproductCode: selectedSemiproduct.productCode,
+        controlMode: BatchPlanControlMode.MmqMultiplier,
+        fromDate: fromDate,
+        toDate: toDate,
+        salesMultiplier: salesMultiplier,
+        mmqMultiplier: 1.0,
+      };
+
+      console.log('Auto-triggering batch plan calculation with:', requestData);
+      const request = new CalculateBatchPlanRequest(requestData);
+      batchPlanMutation.mutate(request);
+      
+      // Set flag to prevent re-triggering
+      setHasAutoTriggered(true);
+    }
+  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, batchPlanMutation]);
 
   // Update local state when API response changes
   useEffect(() => {
@@ -349,11 +432,25 @@ const BatchPlanningCalculator: React.FC = () => {
       return;
     }
 
-    // Default dates (tomorrow and day after tomorrow)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfterTomorrow = new Date();
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    // Use prefilled manufacturing date if available, otherwise default to tomorrow
+    let semiProductDate: Date;
+    let productDate: Date;
+    
+    if (prefilledManufacturingDate) {
+      // Use the date selected in the calendar
+      semiProductDate = new Date(prefilledManufacturingDate);
+      // Product date is one day after the selected date
+      productDate = new Date(prefilledManufacturingDate);
+      productDate.setDate(productDate.getDate() + 1);
+      console.log('Using prefilled dates:', { semiProductDate, productDate });
+    } else {
+      // Default dates (tomorrow and day after tomorrow)
+      semiProductDate = new Date();
+      semiProductDate.setDate(semiProductDate.getDate());
+      productDate = new Date();
+      productDate.setDate(productDate.getDate());
+      console.log('Using default dates:', { semiProductDate, productDate });
+    }
 
     try {
       const orderRequest = new CreateManufactureOrderRequest({
@@ -367,8 +464,8 @@ const BatchPlanningCalculator: React.FC = () => {
           productName: p.productName,
           plannedQuantity: p.plannedQuantity
         })),
-        semiProductPlannedDate: tomorrow,
-        productPlannedDate: dayAfterTomorrow,
+        semiProductPlannedDate: semiProductDate,
+        productPlannedDate: productDate,
         responsiblePerson: undefined
       });
 
@@ -376,7 +473,16 @@ const BatchPlanningCalculator: React.FC = () => {
       
       if (orderResponse.success && orderResponse.id) {
         // Store the order date for navigation
-        setCreatedOrderDate(tomorrow);
+        setCreatedOrderDate(semiProductDate);
+        
+        // Invalidate calendar queries to refresh calendar data
+        queryClient.invalidateQueries({ 
+          queryKey: [...QUERY_KEYS.manufactureOrders, "calendar"],
+          refetchType: 'active' // Only refetch queries that are currently active
+        });
+        
+        console.log('Calendar queries invalidated for order created on:', semiProductDate);
+        
         // Open the manufacture order detail modal
         setCreatedOrderId(orderResponse.id);
         setShowOrderModal(true);

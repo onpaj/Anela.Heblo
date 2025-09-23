@@ -13,6 +13,8 @@ import {
   ChevronUp,
   ChevronDown,
   HelpCircle,
+  Plus,
+  Check,
 } from "lucide-react";
 import {
   useManufacturingStockAnalysisQuery,
@@ -29,6 +31,8 @@ import {
 import { getAuthenticatedApiClient } from "../../api/client";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { usePlanningList } from "../../contexts/PlanningListContext";
+import PlanningListPanel from "../common/PlanningListPanel";
 
 const ManufacturingStockAnalysis: React.FC = () => {
   // State for filters
@@ -67,6 +71,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
     useManufacturingStockAnalysisQuery(filters);
+
+  // Planning list functionality
+  const { addItem: addToPlanningList, removeItem: removeFromPlanningList, items: planningListItems } = usePlanningList();
 
   // Memoized data for performance
   const tableData = useMemo(() => data?.items || [], [data?.items]);
@@ -127,6 +134,23 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log("Export to CSV");
+  };
+
+  // Planning list functionality
+  const isInPlanningList = (productCode: string) => {
+    return planningListItems.some(item => item.productCode === productCode);
+  };
+
+  const handleTogglePlanningList = (item: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation(); // Prevent row click
+    }
+    
+    if (isInPlanningList(item.code)) {
+      removeFromPlanningList(item.code);
+    } else {
+      addToPlanningList({ code: item.code, name: item.name });
+    }
   };
 
   // Sortable header component
@@ -330,7 +354,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (isLoading) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={11} className="px-4 py-4">
+          <td colSpan={12} className="px-4 py-4">
             <div className="flex items-center justify-center">
               <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
               <span className="text-sm text-gray-600">
@@ -345,7 +369,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (items.length === 0) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={11} className="px-4 py-3">
+          <td colSpan={12} className="px-4 py-3">
             <div className="text-sm text-gray-500 text-center">
               Žádné další produkty v této řadě
             </div>
@@ -481,6 +505,32 @@ const ManufacturingStockAnalysis: React.FC = () => {
               style={{ minWidth: "80px", width: "8%" }}
             >
               {subItem.batchSize || "—"}
+            </td>
+
+            {/* Planning List Button */}
+            <td
+              className="px-2 py-3 whitespace-nowrap text-center"
+              style={{ minWidth: "60px", width: "5%" }}
+            >
+              <button
+                onClick={(e) => handleTogglePlanningList(subItem, e)}
+                className={`p-1 rounded transition-colors ${
+                  isInPlanningList(subItem.code)
+                    ? "text-green-600 hover:text-red-600 hover:bg-red-50"
+                    : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                }`}
+                title={
+                  isInPlanningList(subItem.code)
+                    ? "Odebrat ze seznamu k plánování"
+                    : "Přidat do seznamu k plánování"
+                }
+              >
+                {isInPlanningList(subItem.code) ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </button>
             </td>
           </tr>
         ))}
@@ -1004,6 +1054,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
             >
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
+                  
                   <SortableHeader
                     column={ManufacturingStockSortBy.ProductCode}
                     className="text-left"
@@ -1011,68 +1062,75 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   >
                     Produkt
                   </SortableHeader>
+                  <th
+                    scope="col"
+                    className="px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
+                    style={{ minWidth: "60px", width: "5%" }}
+                  >
+                  </th>
                   <SortableHeader
                     column={ManufacturingStockSortBy.CurrentStock}
                     className="text-right"
-                    style={{ minWidth: "120px", width: "12%" }}
+                    style={{ minWidth: "60px", width: "12%" }}
                   >
-                    Skladem
+                    Sklad
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.Reserve}
                     className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
+                    style={{ minWidth: "60px", width: "10%" }}
                   >
-                    V rezervě
+                    Rezerv
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.Planned}
                     className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
+                    style={{ minWidth: "60px", width: "10%" }}
                   >
-                    Naplánováno
+                    Plán
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.SalesInPeriod}
                     className="text-right"
-                    style={{ minWidth: "100px", width: "12%" }}
+                    style={{ minWidth: "60px", width: "12%" }}
                   >
-                    Prodeje období
+                    Prodeje
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.DailySales}
                     className="text-right"
                     style={{ minWidth: "100px", width: "12%" }}
                   >
-                    Prodeje/den
+                    Prod/den
                   </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.OptimalDaysSetup}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    Nadsklad
-                  </SortableHeader>
+
                   <SortableHeader
                     column={ManufacturingStockSortBy.StockDaysAvailable}
                     className="text-right"
                     style={{ minWidth: "90px", width: "10%" }}
                   >
-                    Zásoba dni
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.MinimumStock}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    Min zásoba
+                    NS
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.OverstockPercentage}
                     className="text-right"
                     style={{ minWidth: "90px", width: "10%" }}
                   >
-                    Nadsklad %
+                    NS %
+                  </SortableHeader>
+                  <SortableHeader
+                    column={ManufacturingStockSortBy.MinimumStock}
+                    className="text-right"
+                    style={{ minWidth: "90px", width: "10%" }}
+                  >
+                    Min
+                  </SortableHeader>
+                  <SortableHeader
+                    column={ManufacturingStockSortBy.OptimalDaysSetup}
+                    className="text-right"
+                    style={{ minWidth: "90px", width: "10%" }}
+                  >
+                    Nastavení
                   </SortableHeader>
                   <SortableHeader
                     column={ManufacturingStockSortBy.BatchSize}
@@ -1081,6 +1139,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   >
                     ks/šarže
                   </SortableHeader>
+                  
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1100,6 +1159,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         onClick={(e) => handleRowClick(item, e)}
                         title="Klikněte pro zobrazení detailu produktu"
                       >
+                        
                         {/* Product Info */}
                         <td
                           className="px-4 py-3 whitespace-nowrap"
@@ -1156,10 +1216,35 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           </div>
                         </td>
 
+                        {/* Planning List Button */}
+                        <td
+                          className="px-2 py-3 whitespace-nowrap text-center"
+                          style={{ minWidth: "60px", width: "5%" }}
+                        >
+                          <button
+                            onClick={(e) => handleTogglePlanningList(item, e)}
+                            className={`p-1 rounded transition-colors ${
+                              isInPlanningList(item.code)
+                                ? "text-green-600 hover:text-red-600 hover:bg-red-50"
+                                : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            }`}
+                            title={
+                              isInPlanningList(item.code)
+                                ? "Odebrat ze seznamu k plánování"
+                                : "Přidat do seznamu k plánování"
+                            }
+                          >
+                            {isInPlanningList(item.code) ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Plus className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
                         {/* Current Stock */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs"
-                          style={{ minWidth: "120px", width: "12%" }}
+                          style={{ minWidth: "60px", width: "10%" }}
                         >
                           <div className={`font-bold ${getStockValueColorClass(item.severity)}`}>
                             {formatWarehouseStock(item)}
@@ -1169,7 +1254,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         {/* Reserve Stock */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
+                          style={{ minWidth: "60px", width: "10%" }}
                         >
                           {(item.reserve || 0) > 0 ? (
                             <div className="font-bold">
@@ -1183,7 +1268,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         {/* Planned Stock */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
+                          style={{ minWidth: "60px", width: "10%" }}
                         >
                           {(item.planned || 0) > 0 ? (
                             <div className="font-bold">
@@ -1197,7 +1282,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         {/* Sales in Period */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "100px", width: "12%" }}
+                          style={{ minWidth: "80px", width: "12%" }}
                         >
                           {formatNumber(item.salesInPeriod, 0)}
                         </td>
@@ -1205,20 +1290,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         {/* Daily Sales */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "100px", width: "12%" }}
+                          style={{ minWidth: "80px", width: "12%" }}
                         >
                           <div>{formatNumber(item.dailySalesRate, 2)}</div>
                         </td>
 
-                        {/* Optimal Days Setup */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
-                        >
-                          {item.optimalDaysSetup > 0
-                            ? `${item.optimalDaysSetup} dní`
-                            : "—"}
-                        </td>
 
                         {/* Stock Days Available */}
                         <td
@@ -1232,6 +1308,16 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           </div>
                         </td>
 
+                        
+
+                        {/* Overstock Percentage */}
+                        <td
+                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
+                          style={{ minWidth: "90px", width: "10%" }}
+                        >
+                          {formatPercentage(item.overstockPercentage)}
+                        </td>
+
                         {/* Minimum Stock */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
@@ -1240,12 +1326,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           {formatNumber(item.minimumStock, 0)}
                         </td>
 
-                        {/* Overstock Percentage */}
+                        {/* Optimal Days Setup */}
                         <td
                           className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
                           style={{ minWidth: "90px", width: "10%" }}
                         >
-                          {formatPercentage(item.overstockPercentage)}
+                          {item.optimalDaysSetup > 0
+                            ? `${item.optimalDaysSetup} dní`
+                            : "—"}
                         </td>
 
                         {/* Batch Size */}
@@ -1379,6 +1467,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
         onClose={handleCloseDetail}
         defaultTab="history"
       />
+
+      {/* Planning List Panel */}
+      <PlanningListPanel isVisible={false} />
     </div>
   );
 };
