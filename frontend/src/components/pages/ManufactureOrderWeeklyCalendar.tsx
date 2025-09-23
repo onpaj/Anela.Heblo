@@ -179,9 +179,11 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
 
   const handlePlanningItemClick = (item: { productCode: string; productName: string }) => {
     // Navigate to batch planning with pre-filled data
+    // Use first 6 characters of productCode for the combobox search
+    const truncatedProductCode = item.productCode.substring(0, 6);
     const searchParams = new URLSearchParams({
       productCode: item.productCode,
-      productName: item.productName,
+      productName: truncatedProductCode, // Use truncated code instead of full name
     });
 
     if (selectedPlanningDate) {
