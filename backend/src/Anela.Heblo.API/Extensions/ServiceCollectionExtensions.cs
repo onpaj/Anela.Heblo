@@ -225,7 +225,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var hangfireOptions = configuration.GetValue<HangfireOptions>(HangfireOptions.ConfigurationKey);
+        var hangfireOptions = configuration.GetSection(HangfireOptions.ConfigurationKey).Get<HangfireOptions>();
         if (hangfireOptions == null)
         {
             throw new ConfigurationErrorsException("Hangfire options not found");

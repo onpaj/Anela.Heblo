@@ -35,6 +35,7 @@ public class GiftPackageManufactureServiceTests
         _eshopStockServiceMock = new Mock<IEshopStockDomainService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
+        _backgroundWorkerMock = new Mock<IBackgroundWorker>();
 
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
