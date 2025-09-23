@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Moq;
 using Xunit;
 
@@ -9,11 +11,15 @@ public class CalculateBatchPlanHandlerTests
 {
     private readonly Mock<IBatchPlanningService> _batchPlanningServiceMock;
     private readonly CalculateBatchPlanHandler _handler;
+    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
 
     public CalculateBatchPlanHandlerTests()
     {
         _batchPlanningServiceMock = new Mock<IBatchPlanningService>();
-        _handler = new CalculateBatchPlanHandler(_batchPlanningServiceMock.Object);
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _handler = new CalculateBatchPlanHandler(_batchPlanningServiceMock.Object, _catalogRepositoryMock.Object, _manufactureRepositoryMock.Object);
     }
 
     [Fact]
