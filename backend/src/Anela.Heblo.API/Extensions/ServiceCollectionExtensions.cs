@@ -1,4 +1,4 @@
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using System.Configuration;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
@@ -10,8 +10,8 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Services;
-using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure.Hangfire;
+using Anela.Heblo.Xcc.Services;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -225,8 +225,14 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHangfireServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
+        var hangfireOptions = configuration.GetSection(HangfireOptions.ConfigurationKey).Get<HangfireOptions>();
+        if (hangfireOptions == null)
+        {
+            throw new ConfigurationErrorsException("Hangfire options not found");
+        }
+        
         // Configure Hangfire storage based on environment
-        if (environment.IsEnvironment("Test"))
+        if (hangfireOptions.UseInMemoryStorage)
         {
             // Use in-memory storage for Test environment
             services.AddHangfire(config => config
@@ -265,7 +271,7 @@ public static class ServiceCollectionExtensions
                 }, new PostgreSqlStorageOptions
                 {
                     // Use isolated schema to avoid conflicts with other applications
-                    SchemaName = "hangfire_heblo",
+                    SchemaName = hangfireOptions.SchemaName,
                     PrepareSchemaIfNecessary = true // We handle schema creation manually
                 }));
         }
@@ -274,12 +280,12 @@ public static class ServiceCollectionExtensions
         services.AddHangfireServer(options =>
         {
             // Configure server options - ALWAYS only process Heblo queue
-            options.WorkerCount = 1;
-            options.Queues = new[] { "heblo" };
+            options.WorkerCount = hangfireOptions.WorkerCount;
+            options.Queues = new[] { hangfireOptions.QueueName };
         });
 
         // Only register job scheduler service in Production and Staging environments
-        if (environment.IsProduction())
+        if(hangfireOptions.SchedulerEnabled)
         {
             services.AddHostedService<HangfireJobSchedulerService>();
         }
@@ -290,9 +296,22 @@ public static class ServiceCollectionExtensions
         // Register Hangfire dashboard authorization filter
         services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
 
+        // Register IBackgroundWorker implementation
+        services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
+
         // Register ProductExportOptions configuration
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
 
         return services;
     }
+}
+
+public class HangfireOptions
+{
+    public static string ConfigurationKey =>  "Hangfire";
+    public string SchemaName { get; set; } = "hangfire_heblo";
+    public string QueueName { get; set; } = "heblo";
+    public bool SchedulerEnabled { get; set; } = false;
+    public int WorkerCount { get; set; } = 1;
+    public bool UseInMemoryStorage { get; set; } = false;
 }

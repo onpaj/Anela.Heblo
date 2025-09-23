@@ -28,8 +28,9 @@ import ManufactureOrderDetail from "./components/pages/ManufactureOrderDetail";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
-import { setGlobalTokenProvider } from "./api/client";
+import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
+import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
@@ -97,35 +98,73 @@ function App() {
             return getE2EAccessToken();
           });
         } else if (!appConfig.useMockAuth) {
-          console.log("🔐 Setting up real authentication token provider");
-          setGlobalTokenProvider(async () => {
+          console.log("🔐 Setting up enhanced real authentication token provider");
+          setGlobalTokenProvider(async (forceRefresh: boolean = false) => {
             try {
               const accounts = instance.getAllAccounts();
               if (accounts.length === 0) {
-                console.warn("No accounts found in MSAL instance");
+                console.log("🔐 No accounts found in MSAL instance");
                 return null;
               }
 
               const account = accounts[0];
+              console.log("🔐 Attempting silent token acquisition...");
+              
               const response = await instance.acquireTokenSilent({
                 ...apiRequest,
                 account: account,
+                forceRefresh, // Support force refresh
               });
 
-              console.log("✅ Token acquired successfully");
+              console.log("✅ Silent token acquisition successful in global provider");
               return response.accessToken;
             } catch (error) {
-              console.error(
-                "❌ Failed to acquire token in global provider:",
-                error,
-              );
-              return null;
+              console.log("⚠️ Silent token acquisition failed in global provider:", error);
+              
+              if (error instanceof InteractionRequiredAuthError) {
+                console.log("🔐 Interaction required - clearing cache and triggering redirect...");
+                
+                // Clear token cache before redirect
+                clearTokenCache();
+                
+                // Note: We can't perform redirect here as this is called from API client
+                // The 401 interceptor will handle the redirect
+                console.log("🔐 Returning null - 401 interceptor will handle redirect");
+                return null;
+              } else {
+                console.error("❌ Non-interaction token error in global provider:", error);
+                return null;
+              }
             }
           });
         } else {
           console.log(
             "🧪 Using mock authentication - no token provider needed",
           );
+        }
+
+        // Set global authentication redirect handler for 401 errors
+        if (!isE2ETestMode() && !appConfig.useMockAuth) {
+          console.log("🔐 Setting up global authentication redirect handler");
+          setGlobalAuthRedirectHandler(() => {
+            console.log("🔐 Executing automatic login redirect due to token expiration");
+            
+            // Clear any existing session data
+            sessionStorage.clear();
+            
+            // Use the MSAL instance to perform login redirect
+            instance.loginRedirect({
+              ...apiRequest,
+              prompt: "select_account", // Show account picker for expired sessions
+            }).catch((error) => {
+              console.error("❌ Automatic login redirect failed:", error);
+              
+              // Fallback: redirect to root and let normal auth flow handle it
+              window.location.href = "/";
+            });
+          });
+        } else {
+          console.log("🧪 Skipping auth redirect handler setup for mock/E2E mode");
         }
 
         console.log("✅ Application initialized successfully");

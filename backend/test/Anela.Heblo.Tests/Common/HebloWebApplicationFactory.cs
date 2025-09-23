@@ -10,12 +10,14 @@ using Microsoft.AspNetCore.Http;
 using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Tests.Common;
 
 /// <summary>
 /// Base WebApplicationFactory for all integration tests.
 /// Provides consistent configuration for Test environment, InMemory database, and Mock authentication.
+/// Explicitly loads appsettings.json and appsettings.Test.json to ensure proper configuration in tests.
 /// </summary>
 public class HebloWebApplicationFactory : WebApplicationFactory<Program>
 {
