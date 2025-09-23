@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import BatchPlanningCalculator from "../ManufactureBatchPlanning";
 import { BatchPlanControlMode } from "../../../api/hooks/useBatchPlanning";
+import { PlanningListProvider } from "../../../contexts/PlanningListContext";
 
 // Mock the API hook
 const mockUseBatchPlanningMutation = jest.fn();
@@ -53,7 +54,9 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <PlanningListProvider>
+        <BrowserRouter>{children}</BrowserRouter>
+      </PlanningListProvider>
     </QueryClientProvider>
   );
 };

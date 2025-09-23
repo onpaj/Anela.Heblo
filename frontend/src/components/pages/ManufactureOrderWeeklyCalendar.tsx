@@ -10,12 +10,15 @@ import {
   Package,
   Hash,
   Layers,
+  Plus,
 } from "lucide-react";
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
+import { usePlanningList } from "../../contexts/PlanningListContext";
+import { useNavigate } from "react-router-dom";
 
 interface ManufactureOrderWeeklyCalendarProps {
   onEventClick?: (orderId: number) => void;
@@ -35,6 +38,12 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   onEventClick,
   initialDate,
 }) => {
+  // Planning list functionality
+  const { hasItems, items: planningListItems, removeItem } = usePlanningList();
+  const navigate = useNavigate();
+  const [showQuickPlanningModal, setShowQuickPlanningModal] = useState(false);
+  const [selectedPlanningDate, setSelectedPlanningDate] = useState<Date | null>(null);
+
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     // Use initialDate if provided, otherwise use today
     const targetDate = initialDate || new Date();
@@ -162,6 +171,31 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     setCurrentWeekStart(monday);
   };
 
+  // Quick planning functionality
+  const handleQuickPlanClick = (date: Date) => {
+    setSelectedPlanningDate(date);
+    setShowQuickPlanningModal(true);
+  };
+
+  const handlePlanningItemClick = (item: { productCode: string; productName: string }) => {
+    // Navigate to batch planning with pre-filled data
+    const searchParams = new URLSearchParams({
+      productCode: item.productCode,
+      productName: item.productName,
+    });
+
+    if (selectedPlanningDate) {
+      searchParams.set('date', selectedPlanningDate.toISOString());
+    }
+
+    // Remove item from planning list
+    removeItem(item.productCode);
+    
+    // Close modal and navigate
+    setShowQuickPlanningModal(false);
+    navigate(`/manufacturing/batch-planning?${searchParams.toString()}`);
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Compact Header */}
@@ -242,12 +276,24 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                       <div className={`p-2 border-b border-gray-200 ${
                         isToday ? 'bg-indigo-100' : 'bg-gray-50'
                       }`}>
-                        <div className="text-center">
-                          <div className={`text-sm font-medium ${
-                            isToday ? 'text-indigo-700' : 'text-gray-700'
-                          }`}>
-                            {dayInfo.compact}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className={`text-sm font-medium text-center ${
+                              isToday ? 'text-indigo-700' : 'text-gray-700'
+                            }`}>
+                              {dayInfo.compact}
+                            </div>
                           </div>
+                          {/* Quick planning button - only show when there are items */}
+                          {hasItems && (
+                            <button
+                              onClick={() => handleQuickPlanClick(day)}
+                              className="ml-1 p-1 text-indigo-600 hover:text-indigo-800 hover:bg-white rounded transition-colors"
+                              title="Rychlé plánování ze seznamu"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -369,6 +415,56 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
           </div>
         </div>
       </div>
+
+      {/* Quick Planning Modal */}
+      {showQuickPlanningModal && selectedPlanningDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Rychlé plánování
+              </h3>
+              <button
+                onClick={() => setShowQuickPlanningModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Datum: {selectedPlanningDate.toLocaleDateString('cs-CZ')}
+              </p>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {planningListItems.map((item) => (
+                  <button
+                    key={item.productCode}
+                    onClick={() => handlePlanningItemClick(item)}
+                    className="w-full text-left p-3 rounded border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900">{item.productName}</div>
+                    <div className="text-sm text-gray-500">{item.productCode}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 rounded-b-lg">
+              <button
+                onClick={() => setShowQuickPlanningModal(false)}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded transition-colors"
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

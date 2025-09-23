@@ -34,6 +34,7 @@ import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
+import { PlanningListProvider } from "./contexts/PlanningListContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import "./i18n";
@@ -269,7 +270,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
-          <AppInitializer>
+          <PlanningListProvider>
+            <AppInitializer>
             <div className="App min-h-screen" data-testid="app">
               <MsalProvider instance={msalInstance}>
                 <Router
@@ -364,6 +366,7 @@ function App() {
               <GlobalLoadingIndicator />
             </div>
           </AppInitializer>
+          </PlanningListProvider>
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>

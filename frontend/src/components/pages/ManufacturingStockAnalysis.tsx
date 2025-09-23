@@ -13,6 +13,8 @@ import {
   ChevronUp,
   ChevronDown,
   HelpCircle,
+  Plus,
+  Check,
 } from "lucide-react";
 import {
   useManufacturingStockAnalysisQuery,
@@ -29,6 +31,8 @@ import {
 import { getAuthenticatedApiClient } from "../../api/client";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { usePlanningList } from "../../contexts/PlanningListContext";
+import PlanningListPanel from "../common/PlanningListPanel";
 
 const ManufacturingStockAnalysis: React.FC = () => {
   // State for filters
@@ -67,6 +71,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
     useManufacturingStockAnalysisQuery(filters);
+
+  // Planning list functionality
+  const { addItem: addToPlanningList, items: planningListItems } = usePlanningList();
 
   // Memoized data for performance
   const tableData = useMemo(() => data?.items || [], [data?.items]);
@@ -127,6 +134,18 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log("Export to CSV");
+  };
+
+  // Planning list functionality
+  const isInPlanningList = (productCode: string) => {
+    return planningListItems.some(item => item.productCode === productCode);
+  };
+
+  const handleAddToPlanningList = (item: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation(); // Prevent row click
+    }
+    addToPlanningList({ code: item.code, name: item.name });
   };
 
   // Sortable header component
@@ -330,7 +349,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (isLoading) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={11} className="px-4 py-4">
+          <td colSpan={12} className="px-4 py-4">
             <div className="flex items-center justify-center">
               <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
               <span className="text-sm text-gray-600">
@@ -345,7 +364,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (items.length === 0) {
       return (
         <tr className="bg-gray-50">
-          <td colSpan={11} className="px-4 py-3">
+          <td colSpan={12} className="px-4 py-3">
             <div className="text-sm text-gray-500 text-center">
               Žádné další produkty v této řadě
             </div>
@@ -481,6 +500,33 @@ const ManufacturingStockAnalysis: React.FC = () => {
               style={{ minWidth: "80px", width: "8%" }}
             >
               {subItem.batchSize || "—"}
+            </td>
+
+            {/* Planning List Button */}
+            <td
+              className="px-2 py-3 whitespace-nowrap text-center"
+              style={{ minWidth: "60px", width: "5%" }}
+            >
+              <button
+                onClick={(e) => handleAddToPlanningList(subItem, e)}
+                disabled={isInPlanningList(subItem.code)}
+                className={`p-1 rounded transition-colors ${
+                  isInPlanningList(subItem.code)
+                    ? "text-green-600 cursor-default"
+                    : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                }`}
+                title={
+                  isInPlanningList(subItem.code)
+                    ? "Již v seznamu k plánování"
+                    : "Přidat do seznamu k plánování"
+                }
+              >
+                {isInPlanningList(subItem.code) ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </button>
             </td>
           </tr>
         ))}
@@ -1081,6 +1127,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   >
                     ks/šarže
                   </SortableHeader>
+                  <th
+                    scope="col"
+                    className="px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
+                    style={{ minWidth: "60px", width: "5%" }}
+                  >
+                    Plánování
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1255,6 +1308,33 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         >
                           {item.batchSize || "—"}
                         </td>
+
+                        {/* Planning List Button */}
+                        <td
+                          className="px-2 py-3 whitespace-nowrap text-center"
+                          style={{ minWidth: "60px", width: "5%" }}
+                        >
+                          <button
+                            onClick={(e) => handleAddToPlanningList(item, e)}
+                            disabled={isInPlanningList(item.code)}
+                            className={`p-1 rounded transition-colors ${
+                              isInPlanningList(item.code)
+                                ? "text-green-600 cursor-default"
+                                : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            }`}
+                            title={
+                              isInPlanningList(item.code)
+                                ? "Již v seznamu k plánování"
+                                : "Přidat do seznamu k plánování"
+                            }
+                          >
+                            {isInPlanningList(item.code) ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Plus className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
                       </tr>
 
                       {/* Subgrid for ProductFamily - only show if expanded */}
@@ -1379,6 +1459,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
         onClose={handleCloseDetail}
         defaultTab="history"
       />
+
+      {/* Planning List Panel */}
+      <PlanningListPanel isVisible={false} />
     </div>
   );
 };

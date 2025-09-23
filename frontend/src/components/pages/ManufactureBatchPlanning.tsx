@@ -17,6 +17,7 @@ import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManuf
 import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
+import { usePlanningList } from "../../contexts/PlanningListContext";
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
@@ -53,6 +54,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  // Planning list functionality
+  const { removeItem } = usePlanningList();
+
   // Get API response data
   const response = batchPlanMutation.data;
   
@@ -64,17 +68,19 @@ const BatchPlanningCalculator: React.FC = () => {
   // Get API product sizes
   const apiProductSizes = response?.productSizes || [];
 
-  // Handle prefilled data from URL parameters (from ManufactureBatchCalculator)
+  // Handle prefilled data from URL parameters (from ManufactureBatchCalculator or planning list)
   useEffect(() => {
     const productCode = searchParams.get('productCode');
     const productName = searchParams.get('productName');
     const batchSize = searchParams.get('batchSize');
+    const dateParam = searchParams.get('date');
     
-    if (productCode && productName && batchSize) {
+    if (productCode && productName) {
       console.log('Processing prefilled data from URL:', { 
         productCode, 
         productName,
-        batchSize: parseFloat(batchSize)
+        batchSize,
+        dateParam
       });
       
       // Create CatalogItemDto from URL parameters
@@ -86,27 +92,51 @@ const BatchPlanningCalculator: React.FC = () => {
       
       // Set the prefilled product
       setSelectedSemiproduct(prefilledProduct);
+
+      // Handle date pre-filling if coming from planning list
+      if (dateParam) {
+        try {
+          const planningDate = new Date(dateParam);
+          // For semi-product date, use the selected date
+          const semiProductDate = planningDate.toISOString().split('T')[0];
+          // For product date, add one day
+          const productDate = new Date(planningDate);
+          productDate.setDate(productDate.getDate() + 1);
+          const productDateStr = productDate.toISOString().split('T')[0];
+          
+          console.log('Pre-filling dates:', { semiProductDate, productDateStr });
+          // Note: We would need to expose these as state if we want to pre-fill the form dates
+        } catch (error) {
+          console.error('Error parsing date from planning list:', error);
+        }
+      }
       
-      // Set control mode to total weight and set the prefilled batch size
-      setControlMode(BatchPlanControlMode.TotalWeight);
-      setTotalBatchSize(parseFloat(batchSize));
+      // Handle batch size if provided (from ManufactureBatchCalculator)
+      if (batchSize) {
+        // Set control mode to total weight and set the prefilled batch size
+        setControlMode(BatchPlanControlMode.TotalWeight);
+        setTotalBatchSize(parseFloat(batchSize));
+        
+        // Trigger the API call directly
+        const requestData: any = {
+          semiproductCode: productCode,
+          controlMode: BatchPlanControlMode.TotalWeight,
+          fromDate: fromDate,
+          toDate: toDate,
+          salesMultiplier: salesMultiplier,
+          totalWeightToUse: parseFloat(batchSize),
+        };
+
+        console.log('Triggering batch plan calculation with:', requestData);
+        const request = new CalculateBatchPlanRequest(requestData);
+        batchPlanMutation.mutate(request);
+      }
+
+      // Remove item from planning list when planning process starts
+      removeItem(productCode);
       
       // Clear URL parameters to clean up the URL
       setSearchParams({});
-      
-      // Trigger the API call directly
-      const requestData: any = {
-        semiproductCode: productCode,
-        controlMode: BatchPlanControlMode.TotalWeight,
-        fromDate: fromDate,
-        toDate: toDate,
-        salesMultiplier: salesMultiplier,
-        totalWeightToUse: parseFloat(batchSize),
-      };
-
-      console.log('Triggering batch plan calculation with:', requestData);
-      const request = new CalculateBatchPlanRequest(requestData);
-      batchPlanMutation.mutate(request);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to avoid infinite loops
