@@ -24,7 +24,7 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-1/3 transform -translate-y-1/2 z-40"
+      className="fixed right-0 top-20 z-40"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
