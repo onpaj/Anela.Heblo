@@ -35,6 +35,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly IManufactureRepository _manufactureRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+    private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
@@ -70,6 +71,7 @@ public class CatalogRepository : ICatalogRepository
         IStockTakingRepository stockTakingRepository,
         IManufactureRepository manufactureRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
+        IManufactureOrderRepository manufactureOrderRepository,
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureCostCalculationService manufactureCostCalculationService,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
@@ -94,6 +96,7 @@ public class CatalogRepository : ICatalogRepository
         _stockTakingRepository = stockTakingRepository;
         _manufactureRepository = manufactureRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
+        _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
         _manufactureCostCalculationService = manufactureCostCalculationService;
         _manufactureDifficultyRepository = manufactureDifficultyRepository;
@@ -125,6 +128,12 @@ public class CatalogRepository : ICatalogRepository
     {
         var orderedData = await GetProductsOrdered(ct);
         CachedOrderedData = orderedData;
+    }
+
+    public async Task RefreshPlannedData(CancellationToken ct)
+    {
+        var plannedData = await GetProductsPlanned(ct);
+        CachedPlannedData = plannedData;
     }
 
     public async Task RefreshSalesData(CancellationToken ct)
@@ -373,6 +382,11 @@ public class CatalogRepository : ICatalogRepository
                 product.Stock.Ordered = ordered;
             }
 
+            if (CachedPlannedData.TryGetValue(product.ProductCode, out var planned))
+            {
+                product.Stock.Planned = planned;
+            }
+
             if (eshopProductsMap.TryGetValue(product.ProductCode, out var eshopProduct))
             {
                 product.Stock.Eshop = eshopProduct.Stock;
@@ -588,6 +602,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IDictionary<string, decimal> CachedPlannedData
+    {
+        get => _cache.Get<Dictionary<string, decimal>>(nameof(CachedPlannedData)) ?? new Dictionary<string, decimal>();
+        set
+        {
+            _cache.Set(nameof(CachedPlannedData), value);
+            InvalidateSourceData(nameof(CachedPlannedData));
+            SetLoadDateInCache(nameof(CachedPlannedData));
+        }
+    }
+
     private IList<ErpStock> CachedErpStockData
     {
         get => _cache.Get<List<ErpStock>>(nameof(CachedErpStockData)) ?? new List<ErpStock>();
@@ -709,6 +734,7 @@ public class CatalogRepository : ICatalogRepository
     public DateTime? TransportLoadDate => GetLoadDateFromCache(nameof(CachedInTransportData));
     public DateTime? ReserveLoadDate => GetLoadDateFromCache(nameof(CachedInReserveData));
     public DateTime? OrderedLoadDate => GetLoadDateFromCache(nameof(CachedOrderedData));
+    public DateTime? PlannedLoadDate => GetLoadDateFromCache(nameof(CachedPlannedData));
     public DateTime? SalesLoadDate => GetLoadDateFromCache(nameof(CachedSalesData));
     public DateTime? AttributesLoadDate => GetLoadDateFromCache(nameof(CachedCatalogAttributesData));
     public DateTime? ErpStockLoadDate => GetLoadDateFromCache(nameof(CachedErpStockData));
@@ -742,6 +768,7 @@ public class CatalogRepository : ICatalogRepository
                 TransportLoadDate,
                 ReserveLoadDate,
                 OrderedLoadDate,
+                PlannedLoadDate,
                 SalesLoadDate,
                 AttributesLoadDate,
                 ErpStockLoadDate,
@@ -810,6 +837,11 @@ public class CatalogRepository : ICatalogRepository
     private async Task<Dictionary<string, decimal>> GetProductsOrdered(CancellationToken ct)
     {
         return await _purchaseOrderRepository.GetOrderedQuantitiesAsync(ct);
+    }
+
+    private async Task<Dictionary<string, decimal>> GetProductsPlanned(CancellationToken ct)
+    {
+        return await _manufactureOrderRepository.GetPlannedQuantitiesAsync(ct);
     }
 
     public Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.SingleOrDefault(s => s.ProductCode == id));

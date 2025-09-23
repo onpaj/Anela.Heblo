@@ -142,6 +142,7 @@ public class TestCatalogRepository : ICatalogRepository
     public DateTime? TransportLoadDate => DateTime.UtcNow;
     public DateTime? ReserveLoadDate => DateTime.UtcNow;
     public DateTime? OrderedLoadDate => DateTime.UtcNow;
+    public DateTime? PlannedLoadDate => DateTime.UtcNow;
     public DateTime? SalesLoadDate => DateTime.UtcNow;
     public DateTime? AttributesLoadDate => DateTime.UtcNow;
     public DateTime? ErpStockLoadDate => DateTime.UtcNow;
@@ -164,6 +165,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshReserveData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshOrderedData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshPlannedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshSalesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshAttributesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpStockData(CancellationToken ct) => Task.CompletedTask;

@@ -17,6 +17,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private DateTime _lastTransportRefresh = DateTime.MinValue;
     private DateTime _lastReserveRefresh = DateTime.MinValue;
     private DateTime _lastOrderedRefresh = DateTime.MinValue;
+    private DateTime _lastPlannedRefresh = DateTime.MinValue;
     private DateTime _lastSalesRefresh = DateTime.MinValue;
     private DateTime _lastAttributesRefresh = DateTime.MinValue;
     private DateTime _lastErpStockRefresh = DateTime.MinValue;
@@ -106,6 +107,14 @@ public class CatalogRefreshBackgroundService : BackgroundService
                 now, stoppingToken, isInitialLoad))
             {
                 _lastOrderedRefresh = now;
+            }
+
+            if (await RefreshIfNeeded(catalogRepository, "Planned",
+                _lastPlannedRefresh, _options.PlannedRefreshInterval,
+                async ct => await catalogRepository.RefreshPlannedData(ct),
+                now, stoppingToken, isInitialLoad))
+            {
+                _lastPlannedRefresh = now;
             }
 
             if (await RefreshIfNeeded(catalogRepository, "Sales",
@@ -278,6 +287,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
         return _options.TransportRefreshInterval == TimeSpan.Zero &&
                _options.ReserveRefreshInterval == TimeSpan.Zero &&
                _options.OrderedRefreshInterval == TimeSpan.Zero &&
+               _options.PlannedRefreshInterval == TimeSpan.Zero &&
                _options.SalesRefreshInterval == TimeSpan.Zero &&
                _options.AttributesRefreshInterval == TimeSpan.Zero &&
                _options.ErpStockRefreshInterval == TimeSpan.Zero &&
@@ -297,6 +307,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
         return catalogRepository.TransportLoadDate != null &&
                catalogRepository.ReserveLoadDate != null &&
                catalogRepository.OrderedLoadDate != null &&
+               catalogRepository.PlannedLoadDate != null &&
                catalogRepository.SalesLoadDate != null &&
                catalogRepository.AttributesLoadDate != null &&
                catalogRepository.ErpStockLoadDate != null &&

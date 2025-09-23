@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: "logistika",
-      name: "Logistika",
+      name: "Sklad",
       icon: Truck,
       type: "section" as const,
       items: [
@@ -168,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: "zasoby",
-          name: "Inventura produktů",
+          name: "Zásoby produktů",
           href: "/logistics/inventory",
         },
         {
