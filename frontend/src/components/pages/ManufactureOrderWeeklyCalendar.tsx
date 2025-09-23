@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   ChevronLeft, 
   ChevronRight,
@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 interface ManufactureOrderWeeklyCalendarProps {
   onEventClick?: (orderId: number) => void;
   initialDate?: Date;
+  onRefreshAvailable?: (refreshFn: () => void) => void; // Callback to expose refresh function
 }
 
 const stateColors: Record<ManufactureOrderState, string> = {
@@ -37,6 +38,7 @@ const stateColors: Record<ManufactureOrderState, string> = {
 const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarProps> = ({
   onEventClick,
   initialDate,
+  onRefreshAvailable,
 }) => {
   // Planning list functionality
   const { hasItems, items: planningListItems, removeItem } = usePlanningList();
@@ -95,7 +97,15 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     data: calendarData,
     isLoading,
     error,
+    refetch,
   } = useManufactureOrderCalendarQuery(startDate, endDate);
+
+  // Expose refetch function to parent component
+  useEffect(() => {
+    if (onRefreshAvailable) {
+      onRefreshAvailable(refetch);
+    }
+  }, [onRefreshAvailable, refetch]);
 
   // Group events by date
   const eventsByDate = useMemo(() => {
@@ -289,10 +299,10 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                           {hasItems && (
                             <button
                               onClick={() => handleQuickPlanClick(day)}
-                              className="ml-1 p-1 text-indigo-600 hover:text-indigo-800 hover:bg-white rounded transition-colors"
+                              className="ml-1 p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md shadow-sm transition-colors"
                               title="Rychlé plánování ze seznamu"
                             >
-                              <Plus className="h-3 w-3" />
+                              <Plus className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>

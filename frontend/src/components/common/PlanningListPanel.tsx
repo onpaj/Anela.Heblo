@@ -33,7 +33,7 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
         className={`bg-white shadow-xl border-l border-gray-200 transition-transform duration-300 ease-in-out ${
           showPanel ? "translate-x-0" : "translate-x-full"
         }`}
-        style={{ width: "300px", maxHeight: "60vh" }}
+        style={{ width: "320px", maxHeight: "80vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
@@ -49,7 +49,7 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(60vh - 3rem)" }}>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 3rem)" }}>
           {items.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />

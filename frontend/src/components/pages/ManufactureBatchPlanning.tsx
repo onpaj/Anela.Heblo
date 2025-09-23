@@ -16,6 +16,8 @@ import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
@@ -66,6 +68,9 @@ const BatchPlanningCalculator: React.FC = () => {
 
   // Planning list functionality
   const { removeItem } = usePlanningList();
+  
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Trigger autocomplete search when pre-filling from planning list
   const { data: preloadData } = useCatalogAutocomplete(
@@ -441,9 +446,9 @@ const BatchPlanningCalculator: React.FC = () => {
     } else {
       // Default dates (tomorrow and day after tomorrow)
       semiProductDate = new Date();
-      semiProductDate.setDate(semiProductDate.getDate() + 1);
+      semiProductDate.setDate(semiProductDate.getDate());
       productDate = new Date();
-      productDate.setDate(productDate.getDate() + 2);
+      productDate.setDate(productDate.getDate());
       console.log('Using default dates:', { semiProductDate, productDate });
     }
 
@@ -469,6 +474,15 @@ const BatchPlanningCalculator: React.FC = () => {
       if (orderResponse.success && orderResponse.id) {
         // Store the order date for navigation
         setCreatedOrderDate(semiProductDate);
+        
+        // Invalidate calendar queries to refresh calendar data
+        queryClient.invalidateQueries({ 
+          queryKey: [...QUERY_KEYS.manufactureOrders, "calendar"],
+          refetchType: 'active' // Only refetch queries that are currently active
+        });
+        
+        console.log('Calendar queries invalidated for order created on:', semiProductDate);
+        
         // Open the manufacture order detail modal
         setCreatedOrderId(orderResponse.id);
         setShowOrderModal(true);
