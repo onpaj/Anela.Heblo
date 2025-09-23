@@ -15,7 +15,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import { CatalogItemDto, ProductType, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 
 const BatchPlanningCalculator: React.FC = () => {
@@ -26,7 +26,7 @@ const BatchPlanningCalculator: React.FC = () => {
   const [mmqMultiplier, setMmqMultiplier] = useState<number>(1.0);
   const [totalBatchSize, setTotalBatchSize] = useState<number>(0);
   const [targetDaysCoverage, setTargetDaysCoverage] = useState<number>(30);
-  const [inputMode, setInputMode] = useState<'multiplier' | 'total'>('multiplier'); // Which field user is editing
+  const [, setInputMode] = useState<'multiplier' | 'total'>('multiplier'); // Which field user is editing
   
   // Control mode selection
   const [controlMode, setControlMode] = useState<BatchPlanControlMode>(BatchPlanControlMode.MmqMultiplier);
@@ -42,11 +42,16 @@ const BatchPlanningCalculator: React.FC = () => {
   // Modal state for showing manufacture order detail
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
+  const [createdOrderDate, setCreatedOrderDate] = useState<Date | null>(null);
+  
+  // State to track if recalculation is needed
+  const [needsRecalculation, setNeedsRecalculation] = useState(false);
   
   // Mutation
   const batchPlanMutation = useBatchPlanningMutation();
   const createOrderMutation = useCreateManufactureOrder();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Get API response data
   const response = batchPlanMutation.data;
@@ -103,6 +108,7 @@ const BatchPlanningCalculator: React.FC = () => {
       const request = new CalculateBatchPlanRequest(requestData);
       batchPlanMutation.mutate(request);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to avoid infinite loops
 
   // Update local state when API response changes
@@ -166,6 +172,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
     setFromDate(fromDateNew);
     setToDate(toDateNew);
+    setNeedsRecalculation(true);
   };
 
   // Get tooltip text for date range buttons
@@ -217,6 +224,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
     const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
+    setNeedsRecalculation(false); // Clear the flag after calculation
   };
 
   const calculateBatchPlanWithConstraints = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
@@ -253,6 +261,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
     const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
+    setNeedsRecalculation(false); // Clear the flag after calculation
   };
 
   const handleSemiproductSelect = (product: CatalogItemDto | null) => {
@@ -265,6 +274,7 @@ const BatchPlanningCalculator: React.FC = () => {
     setControlMode(BatchPlanControlMode.MmqMultiplier); // Reset to default mode
     // Clear constraints when changing product
     setProductConstraints(new Map());
+    setNeedsRecalculation(false); // Clear recalculation flag when selecting new product
     
     // Auto-trigger calculation immediately after product selection
     if (product?.productCode) {
@@ -293,6 +303,7 @@ const BatchPlanningCalculator: React.FC = () => {
       }
       return newConstraints;
     });
+    setNeedsRecalculation(true);
   };
 
   const handleProductQuantityChange = (productCode: string, quantity: number) => {
@@ -304,6 +315,7 @@ const BatchPlanningCalculator: React.FC = () => {
       }
       return newConstraints;
     });
+    setNeedsRecalculation(true);
   };
 
   // Manual calculation trigger
@@ -363,6 +375,8 @@ const BatchPlanningCalculator: React.FC = () => {
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
       
       if (orderResponse.success && orderResponse.id) {
+        // Store the order date for navigation
+        setCreatedOrderDate(tomorrow);
         // Open the manufacture order detail modal
         setCreatedOrderId(orderResponse.id);
         setShowOrderModal(true);
@@ -439,6 +453,7 @@ const BatchPlanningCalculator: React.FC = () => {
                           value={salesMultiplier.toFixed(1)}
                           onChange={(e) => {
                             setSalesMultiplier(Number(e.target.value));
+                            setNeedsRecalculation(true);
                           }}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           title="Sales Multiplier (1.0-9.9)"
@@ -483,6 +498,7 @@ const BatchPlanningCalculator: React.FC = () => {
                         onChange={(e) => {
                           const newFromDate = new Date(e.target.value);
                           setFromDate(newFromDate);
+                          setNeedsRecalculation(true);
                         }}
                         className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
@@ -494,6 +510,7 @@ const BatchPlanningCalculator: React.FC = () => {
                         onChange={(e) => {
                           const newToDate = new Date(e.target.value);
                           setToDate(newToDate);
+                          setNeedsRecalculation(true);
                         }}
                         className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
@@ -513,7 +530,10 @@ const BatchPlanningCalculator: React.FC = () => {
                             type="radio"
                             name="controlMode"
                             checked={controlMode === BatchPlanControlMode.MmqMultiplier}
-                            onChange={() => setControlMode(BatchPlanControlMode.MmqMultiplier)}
+                            onChange={() => {
+                              setControlMode(BatchPlanControlMode.MmqMultiplier);
+                              setNeedsRecalculation(true);
+                            }}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
                           />
                           <span className="text-sm text-gray-700">MMQ Multiplikátor</span>
@@ -523,7 +543,10 @@ const BatchPlanningCalculator: React.FC = () => {
                             type="radio"
                             name="controlMode"
                             checked={controlMode === BatchPlanControlMode.TotalWeight}
-                            onChange={() => setControlMode(BatchPlanControlMode.TotalWeight)}
+                            onChange={() => {
+                              setControlMode(BatchPlanControlMode.TotalWeight);
+                              setNeedsRecalculation(true);
+                            }}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
                           />
                           <span className="text-sm text-gray-700">Celková hmotnost</span>
@@ -533,7 +556,10 @@ const BatchPlanningCalculator: React.FC = () => {
                             type="radio"
                             name="controlMode"
                             checked={controlMode === BatchPlanControlMode.TargetDaysCoverage}
-                            onChange={() => setControlMode(BatchPlanControlMode.TargetDaysCoverage)}
+                            onChange={() => {
+                              setControlMode(BatchPlanControlMode.TargetDaysCoverage);
+                              setNeedsRecalculation(true);
+                            }}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
                           />
                           <span className="text-sm text-gray-700">Cílová zásoba (dny)</span>
@@ -565,7 +591,10 @@ const BatchPlanningCalculator: React.FC = () => {
                               step="0.5"
                               min="0"
                               value={mmqMultiplier.toFixed(1)}
-                              onChange={(e) => setMmqMultiplier(Number(e.target.value))}
+                              onChange={(e) => {
+                                setMmqMultiplier(Number(e.target.value));
+                                setNeedsRecalculation(true);
+                              }}
                               placeholder="Multiplikátor"
                               className="w-24 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                             />
@@ -593,7 +622,10 @@ const BatchPlanningCalculator: React.FC = () => {
                             type="number"
                             min="0"
                             value={totalBatchSize}
-                            onChange={(e) => setTotalBatchSize(Number(e.target.value))}
+                            onChange={(e) => {
+                              setTotalBatchSize(Number(e.target.value));
+                              setNeedsRecalculation(true);
+                            }}
                             placeholder="Celková hmotnost"
                             className="w-32 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
@@ -609,7 +641,10 @@ const BatchPlanningCalculator: React.FC = () => {
                             type="number"
                             min="1"
                             value={targetDaysCoverage}
-                            onChange={(e) => setTargetDaysCoverage(Number(e.target.value))}
+                            onChange={(e) => {
+                              setTargetDaysCoverage(Number(e.target.value));
+                              setNeedsRecalculation(true);
+                            }}
                             placeholder="Počet dní"
                             className="w-20 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
@@ -659,13 +694,19 @@ const BatchPlanningCalculator: React.FC = () => {
                       {response?.success && response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0) && (
                         <button
                           onClick={handleCreateOrder}
-                          disabled={createOrderMutation.isPending}
-                          className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 flex items-center gap-2"
+                          disabled={createOrderMutation.isPending || needsRecalculation}
+                          className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          title={needsRecalculation ? "Před vytvořením objednávky je nutný přepočet dávek" : ""}
                         >
                           {createOrderMutation.isPending ? (
                             <>
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                               Vytváří se...
+                            </>
+                          ) : needsRecalculation ? (
+                            <>
+                              <FileText className="h-4 w-4" />
+                              Vytvořit zakázku (nutný přepočet)
                             </>
                           ) : (
                             <>
@@ -798,6 +839,11 @@ const BatchPlanningCalculator: React.FC = () => {
           onClose={() => {
             setShowOrderModal(false);
             setCreatedOrderId(null);
+            // Navigate to weekly calendar showing the week of the created order
+            const orderDate = createdOrderDate || new Date();
+            const dateString = orderDate.toISOString().split('T')[0];
+            navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
+            setCreatedOrderDate(null);
           }}
         />
       )}

@@ -28,7 +28,7 @@ import ManufactureOrderDetail from "./components/pages/ManufactureOrderDetail";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
-import { setGlobalTokenProvider, setGlobalToastHandler } from "./api/client";
+import { setGlobalTokenProvider } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";

@@ -39,6 +39,10 @@ public class ManufactureOrderSemiProductConfiguration : IEntityTypeConfiguration
         builder.Property(x => x.ExpirationDate)
             .IsRequired(false);
 
+        builder.Property(x => x.ExpirationMonths)
+            .IsRequired()
+            .HasDefaultValue(12);
+
         // Indexes for performance
         builder.HasIndex(x => x.ManufactureOrderId)
             .HasDatabaseName("IX_ManufactureOrderSemiProducts_ManufactureOrderId");

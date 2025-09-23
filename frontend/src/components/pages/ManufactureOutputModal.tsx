@@ -3,7 +3,6 @@ import { X, Calendar, Package, TrendingUp } from "lucide-react";
 import {
   ManufactureOutputMonth,
   ProductContribution,
-  ProductionDetail,
   formatMonthDisplay,
 } from "../../api/hooks/useManufactureOutput";
 

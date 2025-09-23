@@ -7,11 +7,6 @@ import { StoredUserInfo } from "./userStorage";
  * Detects when running in E2E test mode and uses E2E session cookies
  */
 
-interface E2EAuthResult {
-  success: boolean;
-  user?: UserInfo;
-  error?: string;
-}
 
 // Mock user for E2E tests
 const E2E_USER: UserInfo = {

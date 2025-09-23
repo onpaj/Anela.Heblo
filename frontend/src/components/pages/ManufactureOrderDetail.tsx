@@ -21,11 +21,13 @@ import {
   Hash,
   CalendarClock,
   Ban,
+  Copy,
 } from "lucide-react";
 import {
   useManufactureOrderDetailQuery,
   useUpdateManufactureOrder,
   useUpdateManufactureOrderStatus,
+  useDuplicateManufactureOrder,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,6 +87,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       navigate("/manufacturing/orders");
     }
   }, [onClose, navigate, queryClient]);
+
+  // We'll define handleCloseWithWeekNavigation after order is loaded
   
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -104,6 +108,22 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     });
     
     return translated || stateKey;
+  };
+
+  // Helper function to get the order's planned date for navigation
+  const getOrderPlannedDate = (order: any): Date => {
+    // Priority: semiProductPlannedDate > productPlannedDate > today
+    if (order.semiProductPlannedDate) {
+      return order.semiProductPlannedDate instanceof Date 
+        ? order.semiProductPlannedDate 
+        : new Date(order.semiProductPlannedDate);
+    }
+    if (order.productPlannedDate) {
+      return order.productPlannedDate instanceof Date 
+        ? order.productPlannedDate 
+        : new Date(order.productPlannedDate);
+    }
+    return new Date();
   };
   
   // Helper function to get translated audit action label
@@ -138,16 +158,74 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   const order = orderData?.order;
 
+  // Handle close with navigation to specific week
+  const handleCloseWithWeekNavigation = useCallback(() => {
+    // Invalidate queries to refresh data in lists and calendar
+    queryClient.invalidateQueries({
+      queryKey: ["manufacture-orders"]
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["manufactureOrders", "calendar"]
+    });
+
+    if (onClose) {
+      onClose();
+    } else {
+      // Navigate to weekly calendar with the order's week
+      if (order) {
+        // Use the updated dates from the form if available
+        const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
+        const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
+        const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+        const dateString = orderDate.toISOString().split('T')[0];
+        
+        console.log('🔍 Navigation debug při Close:', {
+          editableSemiProductDate,
+          editableProductDate,
+          updatedSemiProductDate,
+          updatedProductDate,
+          originalOrderData: {
+            semiProductPlannedDate: order.semiProductPlannedDate,
+            productPlannedDate: order.productPlannedDate
+          },
+          finalOrderDate: orderDate,
+          finalDateString: dateString,
+          navigationUrl: `/manufacturing/orders?view=weekly&date=${dateString}`
+        });
+        
+        navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
+      } else {
+        navigate("/manufacturing/orders");
+      }
+    }
+  }, [onClose, navigate, queryClient, order, editableSemiProductDate, editableProductDate]);
+
   // Mutations
   const updateOrderMutation = useUpdateManufactureOrder();
   const updateOrderStatusMutation = useUpdateManufactureOrderStatus();
+  const duplicateOrderMutation = useDuplicateManufactureOrder();
 
   // Initialize editable fields when order data changes
   React.useEffect(() => {
     if (order) {
+      console.log('🔧 Inicializace polí z order dat:', {
+        orderSemiProductPlannedDate: order.semiProductPlannedDate,
+        orderProductPlannedDate: order.productPlannedDate,
+        responsiblePerson: order.responsiblePerson
+      });
+      
       setEditableResponsiblePerson(order.responsiblePerson || "");
-      setEditableSemiProductDate(order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "");
-      setEditableProductDate(order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "");
+      
+      const semiDateString = order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "";
+      const productDateString = order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "";
+      
+      console.log('🔧 Nastavované hodnoty datumů:', {
+        semiDateString,
+        productDateString
+      });
+      
+      setEditableSemiProductDate(semiDateString);
+      setEditableProductDate(productDateString);
       setEditableSemiProductQuantity(order.semiProduct?.plannedQuantity?.toString() || "");
       
       // Initialize lot number and expiration date
@@ -163,34 +241,45 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     }
   }, [order]);
 
+  // Helper function to get ISO week number
+  const getWeekNumber = (date: Date): number => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+  };
+
   // Auto-calculate lot number and expiration date when semi-product planned date changes
   React.useEffect(() => {
     if (editableSemiProductDate) {
       const semiProductDate = new Date(editableSemiProductDate);
       
-      // Auto-set lot number as "yyyyMM" format
+      // Auto-set lot number as "wwyyyyMM" format - always recalculate when date changes
       const year = semiProductDate.getFullYear();
       const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
-      const newLotNumber = `${year}${month}`;
+      const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
+      const newLotNumber = `${week}${year}${month}`;
       
-      // Only update if it's empty or was previously auto-calculated
-      if (!editableLotNumber || /^\d{6}$/.test(editableLotNumber)) {
-        setEditableLotNumber(newLotNumber);
-      }
+      // Always update lot number when date changes
+      setEditableLotNumber(newLotNumber);
       
-      // Auto-set expiration date as last day of the month + 1 year
-      const expirationYear = year + 1;
-      const expirationMonth = semiProductDate.getMonth(); // 0-indexed
-      const lastDayOfMonth = new Date(expirationYear, expirationMonth + 1, 0).getDate();
-      const expirationDate = new Date(expirationYear, expirationMonth, lastDayOfMonth);
+      // Auto-set expiration date using ExpirationMonths from semi-product + date from order
+      const expirationMonths = order?.semiProduct?.expirationMonths || 12; // Default to 12 months if not set
+      const expirationDate = new Date(semiProductDate);
+      expirationDate.setMonth(expirationDate.getMonth() + expirationMonths);
+      
+      // Set to last day of the expiration month
+      const lastDayOfExpirationMonth = new Date(expirationDate.getFullYear(), expirationDate.getMonth() + 1, 0).getDate();
+      expirationDate.setDate(lastDayOfExpirationMonth);
+      
       const newExpirationDateString = expirationDate.toISOString().split('T')[0];
       
-      // Only update if it's empty or was previously auto-calculated
-      if (!editableExpirationDate || editableExpirationDate.includes(`${expirationYear}`)) {
-        setEditableExpirationDate(newExpirationDateString);
-      }
+      // Always update expiration date when order date changes
+      setEditableExpirationDate(newExpirationDateString);
     }
-  }, [editableSemiProductDate, editableLotNumber, editableExpirationDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editableSemiProductDate, order?.semiProduct?.expirationMonths]);
 
   // Add keyboard event listener for Esc key
   React.useEffect(() => {
@@ -296,15 +385,26 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         plannedQuantity: parseFloat(editableProductQuantities[index] || "0") || 0,
       })) || [];
 
+      const semiProductRequest = editableLotNumber || editableExpirationDate ? new UpdateManufactureOrderSemiProductRequest({
+        lotNumber: editableLotNumber || undefined,
+        expirationDate: editableExpirationDate ? (() => {
+          const [year, month] = editableExpirationDate.split('-').map(Number);
+          return new Date(year, month, 0); // 0th day of next month = last day of current month
+        })() : undefined,
+      }) : undefined;
+
+      console.log('Saving semi-product data:', {
+        editableLotNumber,
+        editableExpirationDate,
+        semiProductRequest
+      });
+
       const request = new UpdateManufactureOrderRequest({
         id: orderId,
         semiProductPlannedDate: editableSemiProductDate ? new Date(editableSemiProductDate) : (order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate) : new Date()),
         productPlannedDate: editableProductDate ? new Date(editableProductDate) : (order.productPlannedDate ? new Date(order.productPlannedDate) : new Date()),
         responsiblePerson: editableResponsiblePerson || undefined,
-        semiProduct: editableLotNumber || editableExpirationDate ? new UpdateManufactureOrderSemiProductRequest({
-          lotNumber: editableLotNumber || undefined,
-          expirationDate: editableExpirationDate ? new Date(editableExpirationDate) : undefined,
-        }) : undefined,
+        semiProduct: semiProductRequest,
         products,
         newNote: newNote.trim() || undefined,
       });
@@ -315,8 +415,34 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         setNewNote("");
       }
       
-      // Close the card after successful save
-      handleClose();
+      // Navigate to weekly calendar with the order's week
+      // Use the updated dates from the form, not the original order data
+      const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
+      const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
+      const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+      const dateString = orderDate.toISOString().split('T')[0];
+      
+      console.log('🔍 Navigation debug při Save:', {
+        editableSemiProductDate,
+        editableProductDate,
+        updatedSemiProductDate,
+        updatedProductDate,
+        originalOrderData: {
+          semiProductPlannedDate: order.semiProductPlannedDate,
+          productPlannedDate: order.productPlannedDate
+        },
+        finalOrderDate: orderDate,
+        finalDateString: dateString,
+        navigationUrl: `/manufacturing/orders?view=weekly&date=${dateString}`
+      });
+      
+      if (onClose) {
+        // Modal mode - close and let parent handle navigation
+        onClose();
+      } else {
+        // Page mode - navigate directly to weekly calendar with the specific week
+        navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
+      }
     } catch (error) {
       console.error("Error updating order:", error);
       // TODO: Show error notification to user
@@ -329,6 +455,33 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       ...prev,
       [index]: value
     }));
+  };
+
+  // Handle duplicate order
+  const handleDuplicate = async () => {
+    if (!orderId) return;
+
+    try {
+      const result = await duplicateOrderMutation.mutateAsync(orderId);
+      
+      // Navigate to the new duplicated order detail
+      if (result.id) {
+        const newOrderUrl = `/manufacturing/orders/${result.id}`;
+        
+        if (onEdit && onClose) {
+          // Modal mode - tell parent to open the new order detail
+          onEdit(result.id);
+        } else {
+          // Page mode - navigate directly to the new duplicated order
+          navigate(newOrderUrl);
+        }
+      } else {
+        console.error('No ID returned from duplication:', result);
+      }
+    } catch (error) {
+      console.error("Error duplicating order:", error);
+      // TODO: Show error notification to user
+    }
   };
 
   // Check if fields can be edited based on state
@@ -406,7 +559,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </button>
             )}
             <button
-              onClick={handleClose}
+              onClick={handleCloseWithWeekNavigation}
               className="text-gray-400 hover:text-gray-600 transition-colors"
               title={isModalMode ? "Zavřít" : "Zpět na seznam"}
             >
@@ -544,8 +697,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                 type="text"
                                 value={editableLotNumber}
                                 onChange={(e) => setEditableLotNumber(e.target.value)}
-                                className="text-sm border border-gray-300 rounded px-2 py-1 w-24"
-                                placeholder="202412"
+                                className="text-sm border border-gray-300 rounded px-2 py-1 w-28"
+                                placeholder="38202412"
                               />
                             ) : (
                               <span className="text-sm text-gray-900">
@@ -556,13 +709,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <CalendarClock className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-500">Expirace:</span>
+                              <span className="text-sm text-gray-500">Expirace ({order.semiProduct?.expirationMonths} měsíců):</span>
                             </div>
                             {canEditFields ? (
                               <input
-                                type="date"
-                                value={editableExpirationDate}
-                                onChange={(e) => setEditableExpirationDate(e.target.value)}
+                                type="month"
+                                lang="cs"
+                                value={editableExpirationDate ? editableExpirationDate.substring(0, 7) : ""}
+                                onChange={(e) => setEditableExpirationDate(e.target.value + "-01")}
                                 className="text-sm border border-gray-300 rounded px-2 py-1"
                               />
                             ) : (
@@ -829,11 +983,30 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Duplicate button in the center */}
+            <div>
+              {order && (
+                <button
+                  onClick={handleDuplicate}
+                  disabled={duplicateOrderMutation.isPending}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Duplikovat zakázku"
+                >
+                  {duplicateOrderMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-1" />
+                  )}
+                  Duplikovat
+                </button>
+              )}
+            </div>
             
             {/* Close and Save buttons on the right */}
             <div className="flex items-center space-x-2">
             <button
-              onClick={handleClose}
+              onClick={handleCloseWithWeekNavigation}
               className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
             >
               <XCircle className="h-4 w-4 mr-1" />

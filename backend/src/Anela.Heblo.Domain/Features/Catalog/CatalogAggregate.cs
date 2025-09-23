@@ -167,6 +167,7 @@ public class CatalogAggregate : Entity<string>
     public double? Width { get; set; }
     public double? Depth { get; set; }
     public bool AtypicalShipping { get; set; }
+    public string ShortName => ProductName.Replace(" - meziprodukt", "");
 
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
