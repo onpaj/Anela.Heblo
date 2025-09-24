@@ -22,18 +22,33 @@ import { VersionTracking } from '../../types';
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
 
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
+  const mockStorage = {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+    // Helper to access internal store for debugging
+    _getStore: () => store,
   };
+
+  // Setup implementations
+  mockStorage.getItem.mockImplementation((key: string) => {
+    return store[key] || null;
+  });
+
+  mockStorage.setItem.mockImplementation((key: string, value: string) => {
+    store[key] = value;
+  });
+
+  mockStorage.removeItem.mockImplementation((key: string) => {
+    delete store[key];
+  });
+
+  mockStorage.clear.mockImplementation(() => {
+    store = {};
+  });
+
+  return mockStorage;
 })();
 
 Object.defineProperty(window, 'localStorage', {
@@ -42,8 +57,13 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('version-tracking utility', () => {
   beforeEach(() => {
+    // Clear data but preserve mock implementations
     localStorageMock.clear();
-    jest.clearAllMocks();
+    
+    // Clear mock call history but restore implementations
+    localStorageMock.getItem.mockClear();
+    localStorageMock.setItem.mockClear();
+    localStorageMock.removeItem.mockClear();
   });
 
   describe('compareVersions', () => {
@@ -109,14 +129,14 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0', '1.1.0', '1.2.3'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(mockTracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTracking));
 
       const tracking = getVersionTracking();
       expect(tracking).toEqual(mockTracking);
     });
 
     it('should handle corrupted data gracefully', () => {
-      localStorageMock.setItem('anela-heblo-version-tracking', 'invalid-json');
+      localStorageMock.getItem.mockReturnValue('invalid-json');
 
       const tracking = getVersionTracking();
       expect(tracking.lastShownVersion).toBe('0.0.0');
@@ -128,7 +148,7 @@ describe('version-tracking utility', () => {
         // missing lastShownAt and seenVersions
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(invalidTracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(invalidTracking));
 
       const tracking = getVersionTracking();
       expect(tracking.lastShownVersion).toBe('0.0.0');
@@ -160,7 +180,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(isNewVersion('1.2.1')).toBe(true);
       expect(isNewVersion('1.3.0')).toBe(true);
@@ -174,7 +194,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(isNewVersion('1.2.0')).toBe(false);
       expect(isNewVersion('1.1.0')).toBe(false);
@@ -190,7 +210,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0', '1.1.0', '1.2.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(hasSeenVersion('1.1.0')).toBe(true);
       expect(hasSeenVersion('1.2.0')).toBe(true);
@@ -203,7 +223,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0', '1.1.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(hasSeenVersion('1.3.0')).toBe(false);
       expect(hasSeenVersion('2.0.0')).toBe(false);
@@ -218,11 +238,13 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       markVersionAsSeen('1.3.0');
 
-      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[1][1]);
+      const setItemCalls = localStorageMock.setItem.mock.calls;
+      const lastCall = setItemCalls[setItemCalls.length - 1];
+      const savedData = JSON.parse(lastCall[1]);
       expect(savedData.lastShownVersion).toBe('1.3.0');
       expect(savedData.seenVersions).toContain('1.3.0');
     });
@@ -234,11 +256,13 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       markVersionAsSeen('1.1.0');
 
-      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[1][1]);
+      const setItemCalls = localStorageMock.setItem.mock.calls;
+      const lastCall = setItemCalls[setItemCalls.length - 1];
+      const savedData = JSON.parse(lastCall[1]);
       expect(savedData.lastShownVersion).toBe('1.2.0');
       expect(savedData.seenVersions).toContain('1.1.0');
     });
@@ -250,11 +274,18 @@ describe('version-tracking utility', () => {
         seenVersions: Array.from({ length: 10 }, (_, i) => `1.${i}.0`),
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      const jsonString = JSON.stringify(tracking);
+      
+      // Directly mock getItem to return our test data instead of relying on setItem
+      localStorageMock.getItem.mockReturnValue(jsonString);
 
       markVersionAsSeen('2.0.0');
 
-      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[1][1]);
+      // Get the last setItem call (which should be from markVersionAsSeen)
+      const setItemCalls = localStorageMock.setItem.mock.calls;
+      const lastCall = setItemCalls[setItemCalls.length - 1];
+      const savedData = JSON.parse(lastCall[1]);
+      
       expect(savedData.seenVersions).toHaveLength(10);
       expect(savedData.seenVersions).toContain('2.0.0');
       expect(savedData.seenVersions).not.toContain('1.0.0'); // First one should be removed
@@ -275,7 +306,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(shouldShowToaster('1.1.0')).toBe(true);
     });
@@ -287,7 +318,7 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0', '1.1.0'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(shouldShowToaster('1.1.0')).toBe(false);
     });
@@ -308,13 +339,13 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.3'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(getLastShownVersion()).toBe('1.2.3');
     });
 
     it('should return 0.0.0 on error', () => {
-      localStorageMock.setItem('anela-heblo-version-tracking', 'invalid-json');
+      localStorageMock.getItem.mockReturnValue('invalid-json');
 
       expect(getLastShownVersion()).toBe('0.0.0');
     });
@@ -328,13 +359,13 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.0.0', '1.1.0', '1.2.3'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(tracking));
 
       expect(getSeenVersions()).toEqual(['1.0.0', '1.1.0', '1.2.3']);
     });
 
     it('should return empty array on error', () => {
-      localStorageMock.setItem('anela-heblo-version-tracking', 'invalid-json');
+      localStorageMock.getItem.mockReturnValue('invalid-json');
 
       expect(getSeenVersions()).toEqual([]);
     });
@@ -342,11 +373,12 @@ describe('version-tracking utility', () => {
 
   describe('migrateVersionTracking', () => {
     it('should migrate from old localStorage keys', () => {
-      // Clear any existing data
-      localStorageMock.clear();
-      
-      // Set old data
-      localStorageMock.setItem('changelog-version', '1.0.0');
+      // Setup: no current data, but old data exists
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'anela-heblo-version-tracking') return null;
+        if (key === 'changelog-version') return '1.0.0';
+        return null;
+      });
 
       migrateVersionTracking();
 
@@ -368,8 +400,11 @@ describe('version-tracking utility', () => {
         seenVersions: ['1.2.3'],
       };
 
-      localStorageMock.setItem('anela-heblo-version-tracking', JSON.stringify(tracking));
-      localStorageMock.setItem('changelog-version', '1.0.0');
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'anela-heblo-version-tracking') return JSON.stringify(tracking);
+        if (key === 'changelog-version') return '1.0.0';
+        return null;
+      });
 
       migrateVersionTracking();
 

@@ -32,11 +32,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🌐 Translate Changelog to Czech
+        run: |
+          echo "📋 Translating changelog to Czech..."
+          
+          RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d '{
+              "model": "gpt-4o-mini",
+              "messages": [
+                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
+                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
+                {"role": "user", "content": "'"$(cat frontend/public/changelog.json)"'"}
+              ]
+            }')
+          
+          # Extract the translated content and save it
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > frontend/public/changelog.cs.json
+          
+          # Validate the translated JSON
+          if ! jq empty frontend/public/changelog.cs.json; then
+            echo "❌ Translated changelog.cs.json is not valid JSON!"
+            echo "Response was:"
+            echo "$RESPONSE"
+            exit 1
+          fi
+          
+          echo "✅ Czech translation generated successfully!"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: 📊 Changelog Summary
         run: |
           echo "## 📝 Generated Changelog Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **File Location**: \`frontend/public/changelog.json\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **File Size**: $(ls -lh frontend/public/changelog.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          echo "- **English File**: \`frontend/public/changelog.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Czech File**: \`frontend/public/changelog.cs.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **English File Size**: $(ls -lh frontend/public/changelog.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f frontend/public/changelog.cs.json ]; then
+            echo "- **Czech File Size**: $(ls -lh frontend/public/changelog.cs.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          fi
           
           if command -v jq >/dev/null 2>&1; then
             CURRENT_VERSION=$(jq -r '.currentVersion' frontend/public/changelog.json)
@@ -45,15 +81,23 @@ jobs:
             echo "- **Total Versions**: \`$VERSION_COUNT\`" >> $GITHUB_STEP_SUMMARY
             
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📋 Latest Version Changes:" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Latest Version Changes (English):" >> $GITHUB_STEP_SUMMARY
             jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.json >> $GITHUB_STEP_SUMMARY
+            
+            if [ -f frontend/public/changelog.cs.json ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 📋 Latest Version Changes (Czech):" >> $GITHUB_STEP_SUMMARY
+              jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.cs.json >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
-      - name: 📤 Upload Changelog Artifact
+      - name: 📤 Upload Changelog Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: changelog-preview
-          path: frontend/public/changelog.json
+          path: |
+            frontend/public/changelog.json
+            frontend/public/changelog.cs.json
           retention-days: 7
 
       - name: 📋 Validation Check
@@ -72,5 +116,14 @@ jobs:
               exit 1
             fi
           done
+          
+          # Validate Czech translation if it exists
+          if [ -f frontend/public/changelog.cs.json ]; then
+            if ! jq empty frontend/public/changelog.cs.json; then
+              echo "❌ Czech changelog.cs.json is not valid JSON!"
+              exit 1
+            fi
+            echo "✅ Czech translation validation passed!"
+          fi
           
           echo "✅ Changelog validation passed!"

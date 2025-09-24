@@ -167,9 +167,9 @@ export function markVersionAsSeen(version: string): void {
   try {
     const tracking = getVersionTracking();
     
-    // Update last shown version if this is newer
+    // Update last shown version only if this is newer
     const comparison = compareVersions(version, tracking.lastShownVersion);
-    if (comparison.isNewer || comparison.comparison === 0) {
+    if (comparison.isNewer) {
       tracking.lastShownVersion = version;
       tracking.lastShownAt = new Date().toISOString();
     }
