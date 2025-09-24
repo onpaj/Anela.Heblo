@@ -189,6 +189,7 @@ jobs:
           echo "✅ Czech translation generated successfully!"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITVERSION_SEMVER: ${{ steps.gitversion.outputs.fullSemVer }}
 
       - name: 📋 Validate Generated Changelogs
         run: |
@@ -277,7 +278,7 @@ jobs:
           git push origin ${{ needs.version.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
   # Deploy to Azure Web App
   deploy-azure:
     name: 🚀 Deploy to Azure
