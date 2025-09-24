@@ -98,7 +98,7 @@ jobs:
           echo "📋 Raw translated content size: ${#TRANSLATED_CONTENT} characters"
           
           # Extract JSON from markdown code blocks if present
-          if [[ "$TRANSLATED_CONTENT" =~ .*```json.* ]]; then
+          if echo "$TRANSLATED_CONTENT" | grep -q '```json'; then
             echo "📋 Extracting JSON from markdown code block..."
             TRANSLATED_JSON=$(echo "$TRANSLATED_CONTENT" | sed -n '/```json/,/```/p' | sed '1d;$d')
           else
