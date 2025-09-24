@@ -216,12 +216,13 @@ generate_version_changelog() {
     # Clean version number
     local clean_version=${version#v}
     
-    # Get version date
+    # Get version date - use simpler approach
     local version_date
-    if git rev-parse "$version" >/dev/null 2>&1; then
-        version_date=$(git log -1 --date=format:%Y-%m-%d --format=%ad "$version" 2>/dev/null || date +"%Y-%m-%d")
-    else
-        version_date=$(date +"%Y-%m-%d")
+    version_date=$(date +"%Y-%m-%d")
+    
+    # Try to get actual tag date if possible
+    if git show --format=%cd --date=format:%Y-%m-%d -s "$version" >/dev/null 2>&1; then
+        version_date=$(git show --format=%cd --date=format:%Y-%m-%d -s "$version" 2>/dev/null || date +"%Y-%m-%d")
     fi
     
     # Create simple version object with basic info (no translation - will be done by OpenAI)
@@ -278,14 +279,19 @@ generate_changelog() {
         fi
         
         local version_data
+        # Generate version data
+        set +e  # Temporarily disable exit on error
         version_data=$(generate_version_changelog "$tag" "$prev_tag" "")
-        if [[ -n "$version_data" ]]; then
+        local gen_exit_code=$?
+        set -e  # Re-enable exit on error
+        
+        if [[ $gen_exit_code -eq 0 && -n "$version_data" ]]; then
             # Validate that version_data is valid JSON
             if echo "$version_data" | jq . >/dev/null 2>&1; then
                 versions="$versions$version_data"
                 log_info "Added version data for $tag"
             else
-                log_error "Generated invalid JSON for $tag: $version_data"
+                log_error "Generated invalid JSON for $tag"
                 exit 1
             fi
         else

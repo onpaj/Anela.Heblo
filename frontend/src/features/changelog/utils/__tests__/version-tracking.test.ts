@@ -18,52 +18,27 @@ import {
 } from '../version-tracking';
 import { VersionTracking } from '../../types';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+// Mock localStorage with consistent behavior
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
 
-  const mockStorage = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn(),
-    // Helper to access internal store for debugging
-    _getStore: () => store,
-  };
-
-  // Setup implementations
-  mockStorage.getItem.mockImplementation((key: string) => {
-    return store[key] || null;
-  });
-
-  mockStorage.setItem.mockImplementation((key: string, value: string) => {
-    store[key] = value;
-  });
-
-  mockStorage.removeItem.mockImplementation((key: string) => {
-    delete store[key];
-  });
-
-  mockStorage.clear.mockImplementation(() => {
-    store = {};
-  });
-
-  return mockStorage;
-})();
-
+// Override window.localStorage with our mock
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
+  writable: true,
 });
 
 describe('version-tracking utility', () => {
   beforeEach(() => {
-    // Clear data but preserve mock implementations
-    localStorageMock.clear();
+    // Clear all mocks before each test
+    jest.clearAllMocks();
     
-    // Clear mock call history but restore implementations
-    localStorageMock.getItem.mockClear();
-    localStorageMock.setItem.mockClear();
-    localStorageMock.removeItem.mockClear();
+    // Reset to default behavior (return null for all keys)
+    localStorageMock.getItem.mockReturnValue(null);
   });
 
   describe('compareVersions', () => {
@@ -138,8 +113,13 @@ describe('version-tracking utility', () => {
     it('should handle corrupted data gracefully', () => {
       localStorageMock.getItem.mockReturnValue('invalid-json');
 
+      // Suppress expected console.error output
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
       const tracking = getVersionTracking();
       expect(tracking.lastShownVersion).toBe('0.0.0');
+      
+      consoleSpy.mockRestore();
     });
 
     it('should validate data structure', () => {
@@ -150,8 +130,13 @@ describe('version-tracking utility', () => {
 
       localStorageMock.getItem.mockReturnValue(JSON.stringify(invalidTracking));
 
+      // Suppress expected console.warn output
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
       const tracking = getVersionTracking();
       expect(tracking.lastShownVersion).toBe('0.0.0');
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -347,7 +332,12 @@ describe('version-tracking utility', () => {
     it('should return 0.0.0 on error', () => {
       localStorageMock.getItem.mockReturnValue('invalid-json');
 
+      // Suppress expected console.error output
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
       expect(getLastShownVersion()).toBe('0.0.0');
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -367,12 +357,20 @@ describe('version-tracking utility', () => {
     it('should return empty array on error', () => {
       localStorageMock.getItem.mockReturnValue('invalid-json');
 
+      // Suppress expected console.error output
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
       expect(getSeenVersions()).toEqual([]);
+      
+      consoleSpy.mockRestore();
     });
   });
 
   describe('migrateVersionTracking', () => {
     it('should migrate from old localStorage keys', () => {
+      // Suppress expected console.log output
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
       // Setup: no current data, but old data exists
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'anela-heblo-version-tracking') return null;
@@ -391,6 +389,8 @@ describe('version-tracking utility', () => {
       
       expect(migrationCall).toBeDefined();
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('changelog-version');
+      
+      consoleSpy.mockRestore();
     });
 
     it('should not migrate if current data exists', () => {
