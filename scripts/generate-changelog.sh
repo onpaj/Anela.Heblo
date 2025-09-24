@@ -331,7 +331,7 @@ generate_changelog() {
         fi
         
         prev_tag="$tag"
-        ((processed++))
+        processed=$((processed + 1))
         log_info "Completed processing $tag, moving to next iteration"
     done
     
