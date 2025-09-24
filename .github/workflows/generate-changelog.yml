@@ -1,13 +1,7 @@
 name: 📝 Generate Changelog
 
 on:
-  workflow_dispatch: # Manual trigger
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'scripts/generate-changelog.sh'
-      - 'scripts/translation-mappings.json'
-      - '.github/workflows/generate-changelog.yml'
+  workflow_dispatch: # Manual trigger only - changelog generation is integrated into production deployment
 
 jobs:
   generate-changelog:
