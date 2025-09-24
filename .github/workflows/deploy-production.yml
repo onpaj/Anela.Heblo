@@ -85,7 +85,8 @@ jobs:
           ./scripts/generate-changelog.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          GITVERSION_SEMVER: ${{ steps.gitversion.outputs.fullSemVer }}
+          
       - name: 🌐 Translate Changelog to Czech
         run: |
           echo "📋 Translating changelog to Czech..."
@@ -189,7 +190,7 @@ jobs:
           echo "✅ Czech translation generated successfully!"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITVERSION_SEMVER: ${{ steps.gitversion.outputs.fullSemVer }}
+          
 
       - name: 📋 Validate Generated Changelogs
         run: |
