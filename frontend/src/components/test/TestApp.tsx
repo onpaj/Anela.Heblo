@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Layout from "../Layout/Layout";
 import Dashboard from "../pages/Dashboard";
 import AuthGuard from "../auth/AuthGuard";
+import { ChangelogProvider } from "../../contexts/ChangelogContext";
 import "../../i18n";
 
 // Test version of App component with mocked configuration
@@ -50,15 +51,17 @@ function TestApp() {
   return (
     <div className="App" data-testid="app">
       <QueryClientProvider client={testQueryClient}>
-        <MsalProvider instance={msalInstance}>
-          <Router>
-            <AuthGuard>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </AuthGuard>
-          </Router>
-        </MsalProvider>
+        <ChangelogProvider>
+          <MsalProvider instance={msalInstance}>
+            <Router>
+              <AuthGuard>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </AuthGuard>
+            </Router>
+          </MsalProvider>
+        </ChangelogProvider>
       </QueryClientProvider>
     </div>
   );
