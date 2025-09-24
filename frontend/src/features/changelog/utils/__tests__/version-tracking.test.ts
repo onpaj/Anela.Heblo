@@ -75,11 +75,19 @@ describe('version-tracking utility', () => {
     // Reset the internal store
     (localStorageMock as any)._resetStore();
     
-    // Clear mock call history
-    localStorageMock.getItem.mockClear();
-    localStorageMock.setItem.mockClear();
-    localStorageMock.removeItem.mockClear();
-    localStorageMock.clear.mockClear();
+    // Manually clear call history without touching implementations
+    if (localStorageMock.getItem.mockClear) {
+      localStorageMock.getItem.mockClear();
+    }
+    if (localStorageMock.setItem.mockClear) {
+      localStorageMock.setItem.mockClear();
+    }
+    if (localStorageMock.removeItem.mockClear) {
+      localStorageMock.removeItem.mockClear();
+    }
+    if (localStorageMock.clear.mockClear) {
+      localStorageMock.clear.mockClear();
+    }
   });
 
   describe('compareVersions', () => {

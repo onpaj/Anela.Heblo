@@ -51,6 +51,7 @@ describe('useChangelog hook', () => {
   });
 
   it('fetches changelog data successfully', async () => {
+    // Mock Czech version to be successful
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(mockChangelogData)),
@@ -68,7 +69,7 @@ describe('useChangelog hook', () => {
 
     expect(result.current.data).toEqual(mockChangelogData);
     expect(result.current.error).toBeNull();
-    expect(mockFetch).toHaveBeenCalledWith('/changelog.json', {
+    expect(mockFetch).toHaveBeenCalledWith('/changelog.cs.json', {
       headers: {
         'Accept': 'application/json',
         'Cache-Control': 'no-cache',
@@ -77,6 +78,9 @@ describe('useChangelog hook', () => {
   });
 
   it('handles 404 by creating default structure', async () => {
+    // Mock Czech version to fail with 404
+    mockFetch.mockRejectedValueOnce(new Error('Czech version not found: 404'));
+    // Mock English version to fail with 404
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -97,7 +101,7 @@ describe('useChangelog hook', () => {
           date: expect.any(String),
           changes: [
             {
-              type: 'funkcionalita',
+              type: 'feature',
               title: 'Systém automatického changelogu',
               description: 'Implementace automatického generování a zobrazování changelogu',
               source: 'github-issue',
@@ -108,10 +112,13 @@ describe('useChangelog hook', () => {
       ],
     });
     expect(result.current.error).toBeNull();
-    expect(console.warn).toHaveBeenCalledWith('changelog.json not found, using default structure');
+    expect(console.warn).toHaveBeenCalledWith('Czech changelog not available, falling back to English version');
   });
 
   it('handles fetch errors', async () => {
+    // Mock Czech version to fail with 500
+    mockFetch.mockRejectedValueOnce(new Error('Czech version not found: 500'));
+    // Mock English version to fail with 500
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -129,6 +136,7 @@ describe('useChangelog hook', () => {
   });
 
   it('handles invalid JSON', async () => {
+    // Mock Czech version to return invalid JSON
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve('invalid json'),
@@ -145,6 +153,7 @@ describe('useChangelog hook', () => {
   });
 
   it('handles empty response', async () => {
+    // Mock Czech version to return empty response
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(''),
@@ -166,6 +175,7 @@ describe('useChangelog hook', () => {
       versions: [],
     };
 
+    // Mock Czech version to return invalid structure
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(invalidData)),
@@ -192,6 +202,7 @@ describe('useChangelog hook', () => {
       ],
     };
 
+    // Mock Czech version to return invalid version structure
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(invalidVersionData)),
@@ -208,6 +219,7 @@ describe('useChangelog hook', () => {
   });
 
   it('allows refetching data', async () => {
+    // Mock Czech version for initial fetch
     mockFetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(mockChangelogData)),
@@ -221,7 +233,7 @@ describe('useChangelog hook', () => {
 
     expect(result.current.data).toEqual(mockChangelogData);
 
-    // Mock new data for refetch
+    // Mock new data for refetch (Czech version again)
     const newData = { ...mockChangelogData, currentVersion: '1.3.0' };
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -238,6 +250,9 @@ describe('useChangelog hook', () => {
   });
 
   it('handles network errors', async () => {
+    // Mock Czech version to fail with network error
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+    // Mock English version to also fail with network error
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
     const { result } = renderHook(() => useChangelog());
