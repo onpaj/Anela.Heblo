@@ -42,23 +42,31 @@ jobs:
             exit 1
           fi
           
-          # Read the source file
+          # Read and prepare the source file
+          echo "📋 Preparing source JSON..."
           SOURCE_JSON=$(cat frontend/public/changelog.json)
           echo "📋 Source JSON size: ${#SOURCE_JSON} characters"
+          
+          # Create the request payload using jq to properly escape JSON
+          REQUEST_PAYLOAD=$(jq -n \
+            --arg source_json "$SOURCE_JSON" \
+            '{
+              "model": "gpt-4o-mini",
+              "messages": [
+                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
+                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
+                {"role": "user", "content": $source_json}
+              ]
+            }')
+          
+          echo "📋 Request payload size: ${#REQUEST_PAYLOAD} characters"
           
           # Make the API call
           echo "📋 Calling OpenAI API..."
           RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d '{
-              "model": "gpt-4o-mini",
-              "messages": [
-                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
-                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
-                {"role": "user", "content": "'"$SOURCE_JSON"'"}
-              ]
-            }')
+            -d "$REQUEST_PAYLOAD")
           
           # Extract HTTP status code and response body
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
