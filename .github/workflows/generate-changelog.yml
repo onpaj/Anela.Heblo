@@ -36,7 +36,19 @@ jobs:
         run: |
           echo "📋 Translating changelog to Czech..."
           
-          RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+          # Check if OPENAI_API_KEY is set
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "❌ OPENAI_API_KEY secret is not set!"
+            exit 1
+          fi
+          
+          # Read the source file
+          SOURCE_JSON=$(cat frontend/public/changelog.json)
+          echo "📋 Source JSON size: ${#SOURCE_JSON} characters"
+          
+          # Make the API call
+          echo "📋 Calling OpenAI API..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
             -d '{
@@ -44,18 +56,53 @@ jobs:
               "messages": [
                 {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
                 {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
-                {"role": "user", "content": "'"$(cat frontend/public/changelog.json)"'"}
+                {"role": "user", "content": "'"$SOURCE_JSON"'"}
               ]
             }')
           
-          # Extract the translated content and save it
-          echo "$RESPONSE" | jq -r '.choices[0].message.content' > frontend/public/changelog.cs.json
+          # Extract HTTP status code and response body
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "📋 HTTP Status: $HTTP_CODE"
+          echo "📋 Response size: ${#RESPONSE_BODY} characters"
+          
+          # Check HTTP status
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ OpenAI API call failed with status $HTTP_CODE"
+            echo "Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          # Check if response is valid JSON
+          if ! echo "$RESPONSE_BODY" | jq empty; then
+            echo "❌ OpenAI API returned invalid JSON"
+            echo "Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          # Extract the translated content
+          TRANSLATED_JSON=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content')
+          
+          if [ "$TRANSLATED_JSON" = "null" ] || [ -z "$TRANSLATED_JSON" ]; then
+            echo "❌ No translation content in API response"
+            echo "API Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          echo "📋 Translated JSON size: ${#TRANSLATED_JSON} characters"
+          
+          # Save the translated content
+          echo "$TRANSLATED_JSON" > frontend/public/changelog.cs.json
           
           # Validate the translated JSON
           if ! jq empty frontend/public/changelog.cs.json; then
             echo "❌ Translated changelog.cs.json is not valid JSON!"
-            echo "Response was:"
-            echo "$RESPONSE"
+            echo "Translated content:"
+            cat frontend/public/changelog.cs.json
             exit 1
           fi
           
@@ -69,10 +116,7 @@ jobs:
           echo "- **English File**: \`frontend/public/changelog.json\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Czech File**: \`frontend/public/changelog.cs.json\`" >> $GITHUB_STEP_SUMMARY
           echo "- **English File Size**: $(ls -lh frontend/public/changelog.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
-          
-          if [ -f frontend/public/changelog.cs.json ]; then
-            echo "- **Czech File Size**: $(ls -lh frontend/public/changelog.cs.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "- **Czech File Size**: $(ls -lh frontend/public/changelog.cs.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
           
           if command -v jq >/dev/null 2>&1; then
             CURRENT_VERSION=$(jq -r '.currentVersion' frontend/public/changelog.json)
@@ -84,11 +128,9 @@ jobs:
             echo "### 📋 Latest Version Changes (English):" >> $GITHUB_STEP_SUMMARY
             jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.json >> $GITHUB_STEP_SUMMARY
             
-            if [ -f frontend/public/changelog.cs.json ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "### 📋 Latest Version Changes (Czech):" >> $GITHUB_STEP_SUMMARY
-              jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.cs.json >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Latest Version Changes (Czech):" >> $GITHUB_STEP_SUMMARY
+            jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.cs.json >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 📤 Upload Changelog Artifacts
