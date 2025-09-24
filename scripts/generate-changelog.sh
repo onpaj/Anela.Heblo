@@ -212,18 +212,31 @@ generate_version_changelog() {
     
     # Log to stderr so it doesn't interfere with JSON output
     echo -e "${BLUE}[INFO]${NC} Generating changelog for version $version" >&2
+    echo -e "${BLUE}[DEBUG]${NC} Input parameters: version=$version, prev_version=$prev_version, next_version=$next_version" >&2
     
     # Clean version number
     local clean_version=${version#v}
+    echo -e "${BLUE}[DEBUG]${NC} Clean version: $clean_version" >&2
     
     # Get version date - use simpler approach
     local version_date
     version_date=$(date +"%Y-%m-%d")
+    echo -e "${BLUE}[DEBUG]${NC} Default date: $version_date" >&2
     
     # Try to get actual tag date if possible
+    echo -e "${BLUE}[DEBUG]${NC} Trying to get tag date for $version" >&2
+    set +e
     if git show --format=%cd --date=format:%Y-%m-%d -s "$version" >/dev/null 2>&1; then
+        echo -e "${BLUE}[DEBUG]${NC} Git show successful, getting date" >&2
         version_date=$(git show --format=%cd --date=format:%Y-%m-%d -s "$version" 2>/dev/null || date +"%Y-%m-%d")
+        echo -e "${BLUE}[DEBUG]${NC} Got tag date: $version_date" >&2
+    else
+        echo -e "${BLUE}[DEBUG]${NC} Git show failed, using default date" >&2
     fi
+    set -e
+    
+    echo -e "${BLUE}[DEBUG]${NC} Final date: $version_date" >&2
+    echo -e "${BLUE}[DEBUG]${NC} About to generate JSON object" >&2
     
     # Create simple version object with basic info (no translation - will be done by OpenAI)
     cat <<EOF
@@ -241,6 +254,8 @@ generate_version_changelog() {
   ]
 }
 EOF
+    
+    echo -e "${BLUE}[DEBUG]${NC} JSON object generated successfully" >&2
 }
 
 # Main function to generate complete changelog
@@ -271,12 +286,15 @@ generate_changelog() {
         fi
         
         log_info "Processing tag: $tag (iteration $processed)"
+        log_info "Building JSON array - first=$first, processed=$processed"
         
         if [[ "$first" == true ]]; then
             first=false
         else
             versions="$versions,"
         fi
+        
+        log_info "About to call generate_version_changelog for $tag"
         
         local version_data
         # Generate version data
@@ -285,22 +303,36 @@ generate_changelog() {
         local gen_exit_code=$?
         set -e  # Re-enable exit on error
         
+        log_info "generate_version_changelog returned exit code: $gen_exit_code"
+        log_info "Length of generated data: ${#version_data}"
+        
         if [[ $gen_exit_code -eq 0 && -n "$version_data" ]]; then
+            # Show first 100 chars of generated data
+            log_info "Generated data preview: ${version_data:0:100}..."
+            
             # Validate that version_data is valid JSON
+            log_info "Validating JSON..."
             if echo "$version_data" | jq . >/dev/null 2>&1; then
+                log_info "JSON validation successful"
                 versions="$versions$version_data"
                 log_info "Added version data for $tag"
+                log_info "Current versions string length: ${#versions}"
             else
                 log_error "Generated invalid JSON for $tag"
+                log_error "JSON validation failed. Data: $version_data"
                 exit 1
             fi
         else
-            log_error "Failed to generate data for $tag"
+            log_error "Failed to generate data for $tag (exit code: $gen_exit_code)"
+            if [[ -n "$version_data" ]]; then
+                log_error "Output was: $version_data"
+            fi
             exit 1
         fi
         
         prev_tag="$tag"
         ((processed++))
+        log_info "Completed processing $tag, moving to next iteration"
     done
     
     # If no tags exist, create a default version
