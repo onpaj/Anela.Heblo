@@ -85,7 +85,7 @@ jobs:
           ./scripts/generate-changelog.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITVERSION_SEMVER: ${{ steps.gitversion.outputs.fullSemVer }}
+          GITVERSION_SEMVER: ${{ needs.version.outputs.version }}
           
       - name: 🌐 Translate Changelog to Czech
         run: |
