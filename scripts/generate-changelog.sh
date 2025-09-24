@@ -47,32 +47,17 @@ check_dependencies() {
     fi
 }
 
-# Load translation mappings
+# Load translation mappings (kept for backward compatibility but not used)
 load_translations() {
     if [[ ! -f "$TRANSLATION_FILE" ]]; then
-        log_error "Translation mappings file not found: $TRANSLATION_FILE"
-        exit 1
+        log_warning "Translation mappings file not found: $TRANSLATION_FILE (not needed - translation done by OpenAI)"
+        return 0
     fi
     
     TRANSLATIONS=$(cat "$TRANSLATION_FILE")
-    log_info "Loaded translation mappings"
+    log_info "Translation mappings file found (translation will be done by OpenAI)"
 }
 
-# Translate English text to Czech using mappings
-translate_text() {
-    local text="$1"
-    local translated="$text"
-    
-    # Apply translation mappings
-    while IFS='=' read -r key value; do
-        # Remove quotes from jq output
-        key=$(echo "$key" | sed 's/"//g')
-        value=$(echo "$value" | sed 's/"//g')
-        translated=$(echo "$translated" | sed -i.bak "s/\\b$key\\b/$value/gi" 2>/dev/null && echo "$translated" || echo "$translated")
-    done < <(echo "$TRANSLATIONS" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
-    
-    echo "$translated"
-}
 
 # Get git tags sorted by version (semantic versioning)
 get_git_tags() {
@@ -132,16 +117,12 @@ parse_conventional_commit() {
         # Clean up description
         description=$(echo "$description" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
         
-        # Translate type and description
-        local translated_type=$(translate_text "$type")
-        local translated_desc=$(translate_text "$description")
-        
-        # Create JSON object
+        # Create JSON object (no translation - will be done by OpenAI)
         cat <<EOF
 {
-  "type": "$translated_type",
-  "title": "$translated_desc",
-  "description": "$translated_desc",
+  "type": "$type",
+  "title": "$description",
+  "description": "$description",
   "source": "commit",
   "hash": "$hash"
 }
@@ -210,12 +191,12 @@ fetch_github_issues() {
         return 0
     fi
     
-    # Parse issues and convert to changelog format
+    # Parse issues and convert to changelog format (no translation - will be done by OpenAI)
     echo "$response" | jq -r '.items[]? | select(.labels[]?.name | test("enhancement|bug|feature|improvement")) | 
     {
-        type: (if (.labels[]?.name | test("bug")) then "oprava" 
-               elif (.labels[]?.name | test("enhancement|improvement")) then "vylepšení"
-               else "funkcionalita" end),
+        type: (if (.labels[]?.name | test("bug")) then "fix" 
+               elif (.labels[]?.name | test("enhancement|improvement")) then "improvement"
+               else "feature" end),
         title: .title,
         description: (.body // .title | split("\n")[0] | .[0:100]),
         source: "github-issue",
@@ -243,16 +224,16 @@ generate_version_changelog() {
         version_date=$(date +"%Y-%m-%d")
     fi
     
-    # Create simple version object with basic info
+    # Create simple version object with basic info (no translation - will be done by OpenAI)
     cat <<EOF
 {
   "version": "$clean_version",
   "date": "$version_date",
   "changes": [
     {
-      "type": "funkcionalita",
-      "title": "Verze $clean_version vydána",
-      "description": "Nová verze aplikace. Podrobnosti najdete v GitHub releases.",
+      "type": "feature",
+      "title": "Version $clean_version released",
+      "description": "New version of the application. Details can be found in GitHub releases.",
       "source": "system",
       "id": "$version"
     }
@@ -297,12 +278,19 @@ generate_changelog() {
         fi
         
         local version_data
-        version_data=$(generate_version_changelog "$tag" "$prev_tag" "" 2>/dev/null)
+        version_data=$(generate_version_changelog "$tag" "$prev_tag" "")
         if [[ -n "$version_data" ]]; then
-            versions="$versions$version_data"
-            log_info "Added version data for $tag"
+            # Validate that version_data is valid JSON
+            if echo "$version_data" | jq . >/dev/null 2>&1; then
+                versions="$versions$version_data"
+                log_info "Added version data for $tag"
+            else
+                log_error "Generated invalid JSON for $tag: $version_data"
+                exit 1
+            fi
         else
-            log_warning "Failed to generate data for $tag"
+            log_error "Failed to generate data for $tag"
+            exit 1
         fi
         
         prev_tag="$tag"
@@ -345,8 +333,8 @@ EOF
       "changes": [
         {
           "type": "info",
-          "title": "Changelog generování selhalo",
-          "description": "Pro více informací navštivte GitHub repozitář",
+          "title": "Changelog generation failed",
+          "description": "For more information visit GitHub repository",
           "source": "system",
           "hash": "fallback"
         }
