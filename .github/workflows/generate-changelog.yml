@@ -47,8 +47,8 @@ jobs:
             '{
               "model": "gpt-4o-mini",
               "messages": [
-                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
-                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
+                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure. Return only valid JSON without markdown formatting or code blocks."},
+                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny (fix, feature, commit, docs etc). Návratová hodnota musí být pouze validní JSON bez jakéhokoliv markdown formátování nebo code blocků."},
                 {"role": "user", "content": $source_json}
               ]
             }')
@@ -86,16 +86,34 @@ jobs:
           fi
           
           # Extract the translated content
-          TRANSLATED_JSON=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content')
+          TRANSLATED_CONTENT=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content')
           
-          if [ "$TRANSLATED_JSON" = "null" ] || [ -z "$TRANSLATED_JSON" ]; then
+          if [ "$TRANSLATED_CONTENT" = "null" ] || [ -z "$TRANSLATED_CONTENT" ]; then
             echo "❌ No translation content in API response"
             echo "API Response:"
             echo "$RESPONSE_BODY"
             exit 1
           fi
           
-          echo "📋 Translated JSON size: ${#TRANSLATED_JSON} characters"
+          echo "📋 Raw translated content size: ${#TRANSLATED_CONTENT} characters"
+          
+          # Extract JSON from markdown code blocks if present
+          if [[ "$TRANSLATED_CONTENT" =~ .*```json.* ]]; then
+            echo "📋 Extracting JSON from markdown code block..."
+            TRANSLATED_JSON=$(echo "$TRANSLATED_CONTENT" | sed -n '/```json/,/```/p' | sed '1d;$d')
+          else
+            echo "📋 Using direct content as JSON..."
+            TRANSLATED_JSON="$TRANSLATED_CONTENT"
+          fi
+          
+          if [ -z "$TRANSLATED_JSON" ]; then
+            echo "❌ No JSON content found in translation"
+            echo "Full content:"
+            echo "$TRANSLATED_CONTENT"
+            exit 1
+          fi
+          
+          echo "📋 Extracted JSON size: ${#TRANSLATED_JSON} characters"
           
           # Save the translated content
           echo "$TRANSLATED_JSON" > frontend/public/changelog.cs.json
