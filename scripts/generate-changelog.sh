@@ -114,6 +114,11 @@ parse_conventional_commit() {
         local scope="${BASH_REMATCH[2]}"
         local description="${BASH_REMATCH[3]}"
         
+        # Normalize feat to feature
+        if [[ "$type" == "feat" ]]; then
+            type="feature"
+        fi
+        
         # Clean up description
         description=$(echo "$description" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
         
@@ -204,7 +209,7 @@ fetch_github_issues() {
     }' 2>/dev/null || true
 }
 
-# Generate changelog for a specific version (simplified)
+# Generate changelog for a specific version
 generate_version_changelog() {
     local version="$1"
     local prev_version="$2"
@@ -218,40 +223,85 @@ generate_version_changelog() {
     local clean_version=${version#v}
     echo -e "${BLUE}[DEBUG]${NC} Clean version: $clean_version" >&2
     
-    # Get version date - use simpler approach
+    # Get version date
     local version_date
     version_date=$(date +"%Y-%m-%d")
-    echo -e "${BLUE}[DEBUG]${NC} Default date: $version_date" >&2
     
     # Try to get actual tag date if possible
-    echo -e "${BLUE}[DEBUG]${NC} Trying to get tag date for $version" >&2
     set +e
     if git show --format=%cd --date=format:%Y-%m-%d -s "$version" >/dev/null 2>&1; then
-        echo -e "${BLUE}[DEBUG]${NC} Git show successful, getting date" >&2
         version_date=$(git show --format=%cd --date=format:%Y-%m-%d -s "$version" 2>/dev/null || date +"%Y-%m-%d")
-        echo -e "${BLUE}[DEBUG]${NC} Got tag date: $version_date" >&2
-    else
-        echo -e "${BLUE}[DEBUG]${NC} Git show failed, using default date" >&2
     fi
     set -e
     
     echo -e "${BLUE}[DEBUG]${NC} Final date: $version_date" >&2
-    echo -e "${BLUE}[DEBUG]${NC} About to generate JSON object" >&2
     
-    # Create simple version object with basic info (no translation - will be done by OpenAI)
+    # Get commits between versions
+    local commit_range=""
+    if [[ -n "$prev_version" ]]; then
+        commit_range="$prev_version..$version"
+    else
+        # For the first version, get last 10 commits
+        commit_range="$version~10..$version"
+    fi
+    
+    echo -e "${BLUE}[DEBUG]${NC} Getting commits in range: $commit_range" >&2
+    
+    # Get commits and parse them
+    local changes="["
+    local first_change=true
+    
+    # Get commits from git
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            local hash=$(echo "$line" | cut -d'|' -f1)
+            local message=$(echo "$line" | cut -d'|' -f2-)
+            
+            # Skip if should be excluded
+            if should_exclude_commit "$message"; then
+                continue
+            fi
+            
+            # Parse conventional commit or create generic entry
+            local commit_json=$(parse_conventional_commit "$message" "$hash")
+            
+            if [[ -n "$commit_json" ]]; then
+                if [[ "$first_change" == false ]]; then
+                    changes="$changes,"
+                fi
+                changes="$changes$commit_json"
+                first_change=false
+            fi
+        fi
+    done < <(git log --format="%h|%s" "$commit_range" 2>/dev/null || true)
+    
+    # Get GitHub issues for this version range
+    local issues=$(fetch_github_issues "$prev_version" "$version")
+    if [[ -n "$issues" && "$issues" != "[]" ]]; then
+        echo -e "${BLUE}[DEBUG]${NC} Found GitHub issues for $version" >&2
+        # Add issues to changes
+        while IFS= read -r issue; do
+            if [[ -n "$issue" && "$issue" != "null" ]]; then
+                if [[ "$first_change" == false ]]; then
+                    changes="$changes,"
+                fi
+                changes="$changes$issue"
+                first_change=false
+            fi
+        done < <(echo "$issues" | jq -c '.[]?' 2>/dev/null || true)
+    fi
+    
+    # If no changes found, don't add anything (empty changes array)
+    # System-generated entries are not useful in changelog
+    
+    changes="$changes]"
+    
+    # Create version object
     cat <<EOF
 {
   "version": "$clean_version",
   "date": "$version_date",
-  "changes": [
-    {
-      "type": "feature",
-      "title": "Version $clean_version released",
-      "description": "New version of the application. Details can be found in GitHub releases.",
-      "source": "system",
-      "id": "$version"
-    }
-  ]
+  "changes": $changes
 }
 EOF
     
@@ -279,13 +329,26 @@ generate_changelog() {
     # Process up to 6 versions (current + 5 previous)
     local processed=0
     local prev_tag=""
+    local next_tag=""
     
-    for tag in "${tags[@]}"; do
+    # Create array of tags for easier navigation
+    local tags_array=(${tags[@]})
+    
+    for i in "${!tags_array[@]}"; do
         if [[ $processed -ge 6 ]]; then
             break
         fi
         
-        log_info "Processing tag: $tag (iteration $processed)"
+        local tag="${tags_array[$i]}"
+        
+        # Get previous tag (older version)
+        if [[ $((i + 1)) -lt ${#tags_array[@]} ]]; then
+            prev_tag="${tags_array[$((i + 1))]}"
+        else
+            prev_tag=""
+        fi
+        
+        log_info "Processing tag: $tag (iteration $processed, prev: $prev_tag)"
         log_info "Building JSON array - first=$first, processed=$processed"
         
         if [[ "$first" == true ]]; then
@@ -330,7 +393,6 @@ generate_changelog() {
             exit 1
         fi
         
-        prev_tag="$tag"
         processed=$((processed + 1))
         log_info "Completed processing $tag, moving to next iteration"
     done

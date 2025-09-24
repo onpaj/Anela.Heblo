@@ -18,12 +18,17 @@ import {
   Github,
   ExternalLink
 } from 'lucide-react';
-import { ChangelogEntry as ChangelogEntryType, ChangelogEntryProps } from '../types';
+import { 
+  ChangelogEntry as ChangelogEntryType, 
+  ChangelogEntryProps, 
+  ChangeTypeCz,
+  mapChangeTypeToCzech 
+} from '../types';
 
 /**
  * Get icon component for change type
  */
-function getChangeTypeIcon(type: ChangelogEntryType['type']): React.ElementType {
+function getChangeTypeIcon(type: ChangeTypeCz): React.ElementType {
   switch (type) {
     case 'funkce':
     case 'funkcionalita':
@@ -42,7 +47,11 @@ function getChangeTypeIcon(type: ChangelogEntryType['type']): React.ElementType 
     case 'bezpečnost':
       return Shield;
     case 'údržba':
+    case 'styl':
+    case 'sestavení':
       return Wrench;
+    case 'testy':
+      return AlertCircle;
     default:
       return AlertCircle;
   }
@@ -51,7 +60,7 @@ function getChangeTypeIcon(type: ChangelogEntryType['type']): React.ElementType 
 /**
  * Get color classes for change type
  */
-function getChangeTypeColors(type: ChangelogEntryType['type']): {
+function getChangeTypeColors(type: ChangeTypeCz): {
   icon: string;
   badge: string;
   border: string;
@@ -101,6 +110,20 @@ function getChangeTypeColors(type: ChangelogEntryType['type']): {
         badge: 'bg-gray-100 text-gray-800',
         border: 'border-gray-200',
       };
+    case 'testy':
+      return {
+        icon: 'text-orange-600',
+        badge: 'bg-orange-100 text-orange-800',
+        border: 'border-orange-200',
+      };
+    case 'údržba':
+    case 'styl':
+    case 'sestavení':
+      return {
+        icon: 'text-slate-600',
+        badge: 'bg-slate-100 text-slate-800',
+        border: 'border-slate-200',
+      };
     default:
       return {
         icon: 'text-gray-600',
@@ -133,8 +156,10 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
   showSource = false,
   compact = false,
 }) => {
-  const IconComponent = getChangeTypeIcon(entry.type);
-  const colors = getChangeTypeColors(entry.type);
+  // Map English type from API to Czech for display
+  const czechType = mapChangeTypeToCzech(entry.type);
+  const IconComponent = getChangeTypeIcon(czechType);
+  const colors = getChangeTypeColors(czechType);
 
   if (compact) {
     return (
@@ -185,7 +210,7 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
           {/* Header with type badge */}
           <div className="flex items-center space-x-2 mb-2">
             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${colors.badge}`}>
-              {entry.type}
+              {czechType}
             </span>
             {showSource && (
               <div className="flex items-center space-x-1 text-xs text-gray-500">

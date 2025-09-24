@@ -16,52 +16,78 @@ export function useChangelog(): UseChangelogReturn {
 
   /**
    * Fetch changelog data from the embedded JSON file
+   * First tries Czech version (changelog.cs.json), then falls back to English (changelog.json)
    */
   const fetchChangelog = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Fetch from the public directory (embedded during build)
-      const response = await fetch('/changelog.json', {
-        headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-      });
+      let response: Response;
+      let usedUrl = '';
 
-      if (!response.ok) {
-        // If changelog.json doesn't exist, create a default structure
-        if (response.status === 404) {
-          console.warn('changelog.json not found, using default structure');
-          
-          const defaultData: ChangelogData = {
-            currentVersion: '0.1.0',
-            versions: [
-              {
-                version: '0.1.0',
-                date: new Date().toISOString().split('T')[0], // Today's date
-                changes: [
-                  {
-                    type: 'funkcionalita',
-                    title: 'Systém automatického changelogu',
-                    description: 'Implementace automatického generování a zobrazování changelogu',
-                    source: 'github-issue',
-                    id: '#171'
-                  }
-                ]
-              }
-            ]
-          };
-          
-          setData(defaultData);
-          setIsLoading(false);
-          return;
+      // Try Czech version first
+      try {
+        usedUrl = '/changelog.cs.json';
+        response = await fetch(usedUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Czech version not found: ${response.status}`);
         }
+        
+        console.log('Loading Czech changelog version');
+      } catch (czechError) {
+        // Fallback to English version
+        console.warn('Czech changelog not available, falling back to English version');
+        
+        usedUrl = '/changelog.json';
+        response = await fetch(usedUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
 
-        throw new ChangelogFetchError(
-          `Failed to fetch changelog: ${response.status} ${response.statusText}`
-        );
+        if (!response.ok) {
+          // If both files don't exist, create a default structure
+          if (response.status === 404) {
+            console.warn('No changelog files found, using default structure');
+            
+            const defaultData: ChangelogData = {
+              currentVersion: '0.1.0',
+              versions: [
+                {
+                  version: '0.1.0',
+                  date: new Date().toISOString().split('T')[0], // Today's date
+                  changes: [
+                    {
+                      type: 'feature',
+                      title: 'Systém automatického changelogu',
+                      description: 'Implementace automatického generování a zobrazování changelogu',
+                      source: 'github-issue',
+                      id: '#171'
+                    }
+                  ]
+                }
+              ]
+            };
+            
+            setData(defaultData);
+            setIsLoading(false);
+            return;
+          }
+
+          throw new ChangelogFetchError(
+            `Failed to fetch changelog: ${response.status} ${response.statusText}`
+          );
+        }
+        
+        console.log('Loading English changelog version');
       }
 
       const rawData = await response.text();

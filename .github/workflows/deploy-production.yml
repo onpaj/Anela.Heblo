@@ -86,27 +86,128 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📋 Validate Generated Changelog
+      - name: 🌐 Translate Changelog to Czech
         run: |
-          # Validate JSON format
+          echo "📋 Translating changelog to Czech..."
+          
+          # Check if OPENAI_API_KEY is set
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "❌ OPENAI_API_KEY secret is not set!"
+            exit 1
+          fi
+          
+          # Read and prepare the source file
+          echo "📋 Preparing source JSON..."
+          SOURCE_JSON=$(cat frontend/public/changelog.json)
+          echo "📋 Source JSON size: ${#SOURCE_JSON} characters"
+          
+          # Create the request payload using jq to properly escape JSON
+          REQUEST_PAYLOAD=$(jq -n \
+            --arg source_json "$SOURCE_JSON" \
+            '{
+              "model": "gpt-4o-mini",
+              "messages": [
+                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure."},
+                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny. Návratová hodnota musí být validní JSON."},
+                {"role": "user", "content": $source_json}
+              ]
+            }')
+          
+          echo "📋 Request payload size: ${#REQUEST_PAYLOAD} characters"
+          
+          # Make the API call
+          echo "📋 Calling OpenAI API..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d "$REQUEST_PAYLOAD")
+          
+          # Extract HTTP status code and response body
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "📋 HTTP Status: $HTTP_CODE"
+          echo "📋 Response size: ${#RESPONSE_BODY} characters"
+          
+          # Check HTTP status
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ OpenAI API call failed with status $HTTP_CODE"
+            echo "Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          # Check if response is valid JSON
+          if ! echo "$RESPONSE_BODY" | jq empty; then
+            echo "❌ OpenAI API returned invalid JSON"
+            echo "Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          # Extract the translated content
+          TRANSLATED_JSON=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content')
+          
+          if [ "$TRANSLATED_JSON" = "null" ] || [ -z "$TRANSLATED_JSON" ]; then
+            echo "❌ No translation content in API response"
+            echo "API Response:"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
+          
+          echo "📋 Translated JSON size: ${#TRANSLATED_JSON} characters"
+          
+          # Save the translated content
+          echo "$TRANSLATED_JSON" > frontend/public/changelog.cs.json
+          
+          # Validate the translated JSON
+          if ! jq empty frontend/public/changelog.cs.json; then
+            echo "❌ Translated changelog.cs.json is not valid JSON!"
+            echo "Translated content:"
+            cat frontend/public/changelog.cs.json
+            exit 1
+          fi
+          
+          echo "✅ Czech translation generated successfully!"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: 📋 Validate Generated Changelogs
+        run: |
+          # Validate English JSON format
           if ! jq empty frontend/public/changelog.json; then
             echo "❌ Generated changelog.json is not valid JSON!"
             exit 1
           fi
-          echo "✅ Changelog JSON is valid"
+          echo "✅ English changelog JSON is valid"
           
-          # Check file exists and has content
-          if [ ! -s frontend/public/changelog.json ]; then
-            echo "❌ Changelog file is empty or doesn't exist!"
+          # Validate Czech JSON format
+          if ! jq empty frontend/public/changelog.cs.json; then
+            echo "❌ Generated changelog.cs.json is not valid JSON!"
             exit 1
           fi
-          echo "✅ Changelog file has content ($(wc -c < frontend/public/changelog.json) bytes)"
+          echo "✅ Czech changelog JSON is valid"
+          
+          # Check files exist and have content
+          if [ ! -s frontend/public/changelog.json ]; then
+            echo "❌ English changelog file is empty or doesn't exist!"
+            exit 1
+          fi
+          echo "✅ English changelog file has content ($(wc -c < frontend/public/changelog.json) bytes)"
+          
+          if [ ! -s frontend/public/changelog.cs.json ]; then
+            echo "❌ Czech changelog file is empty or doesn't exist!"
+            exit 1
+          fi
+          echo "✅ Czech changelog file has content ($(wc -c < frontend/public/changelog.cs.json) bytes)"
 
-      - name: 📤 Upload Changelog Artifact
+      - name: 📤 Upload Changelog Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: changelog-production
-          path: frontend/public/changelog.json
+          path: |
+            frontend/public/changelog.json
+            frontend/public/changelog.cs.json
           retention-days: 90
 
       - name: 🐳 Set up Docker Buildx

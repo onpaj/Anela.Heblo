@@ -4,9 +4,26 @@
  */
 
 /**
- * Types of changes that can be tracked in the changelog
+ * English types from changelog generation
  */
-export type ChangeType = 
+export type ChangeTypeEn = 
+  | 'feature'
+  | 'fix'
+  | 'docs'
+  | 'perf'
+  | 'refactor'
+  | 'test'
+  | 'chore'
+  | 'style'
+  | 'ci'
+  | 'build'
+  | 'improvement'
+  | 'security';
+
+/**
+ * Czech types for display (mapped from English)
+ */
+export type ChangeTypeCz = 
   | 'funkce'        // feature
   | 'oprava'        // fix/bug
   | 'dokumentace'   // docs
@@ -17,7 +34,14 @@ export type ChangeType =
   | 'vylepšení'     // enhancement
   | 'funkcionalita' // functionality
   | 'bezpečnost'    // security
-  | 'optimalizace'; // optimization
+  | 'optimalizace'  // optimization
+  | 'styl'          // style
+  | 'sestavení';    // build/ci
+
+/**
+ * Types of changes that can be tracked in the changelog (raw from API)
+ */
+export type ChangeType = ChangeTypeEn;
 
 /**
  * Source of the changelog entry
@@ -264,4 +288,29 @@ export class ChangelogParseError extends ChangelogError {
   constructor(message: string, cause?: Error) {
     super(message, 'CHANGELOG_PARSE_ERROR', cause);
   }
+}
+
+/**
+ * Mapping from English changelog types to Czech display types
+ */
+export const CHANGE_TYPE_MAPPING: Record<ChangeTypeEn, ChangeTypeCz> = {
+  feature: 'funkce',
+  fix: 'oprava',
+  docs: 'dokumentace',
+  perf: 'výkon',
+  refactor: 'refaktoring',
+  test: 'testy',
+  chore: 'údržba',
+  style: 'styl',
+  ci: 'sestavení',
+  build: 'sestavení',
+  improvement: 'vylepšení',
+  security: 'bezpečnost',
+};
+
+/**
+ * Convert English changelog type to Czech display type
+ */
+export function mapChangeTypeToCzech(englishType: ChangeTypeEn): ChangeTypeCz {
+  return CHANGE_TYPE_MAPPING[englishType] || 'funkce';
 }
