@@ -101,21 +101,6 @@ const ChangelogToaster: React.FC<ChangelogToasterProps> = ({
 
         {/* Content */}
         <div className="p-4">
-          {/* Progress bar for auto-hide */}
-          {toaster.isAutoHiding && (
-            <div className="mb-3">
-              <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-indigo-500 rounded-full"
-                  style={{
-                    animation: `progressShrink ${autoHideTimeout}ms linear`,
-                    transformOrigin: 'left',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Changes list */}
           <div className="space-y-2 mb-4">
             {displayChanges.map((change, index) => (
@@ -123,7 +108,7 @@ const ChangelogToaster: React.FC<ChangelogToasterProps> = ({
                 key={`${change.source}-${change.hash || change.id}-${index}`}
                 entry={change}
                 compact={true}
-                showSource={false}
+                showSource={true}
               />
             ))}
           </div>

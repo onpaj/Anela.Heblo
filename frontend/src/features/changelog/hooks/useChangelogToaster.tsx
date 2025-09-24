@@ -77,12 +77,11 @@ export function useChangelogToaster(): UseChangelogToasterReturn {
         isAutoHiding: false,
       });
 
-      // Start auto-hide countdown
-      startAutoHide();
+      // Do not start auto-hide - user must close manually
     } catch (error) {
       console.error('Failed to show changelog toaster:', error);
     }
-  }, [clearAutoHideTimeout, startAutoHide]);
+  }, [clearAutoHideTimeout]);
 
   /**
    * Hide toaster manually
@@ -155,27 +154,24 @@ export function useChangelogToaster(): UseChangelogToasterReturn {
 }
 
 /**
- * Extended return type with additional utility methods
- */
-export interface UseChangelogToasterExtendedReturn extends UseChangelogToasterReturn {
-  checkAndShowNewVersion: (currentVersion: string, changes: ChangelogEntry[]) => void;
-}
-
-/**
  * Hook that automatically checks for new versions and shows toaster
  */
 export function useAutoChangelogToaster(
   currentVersion?: string,
   changes?: ChangelogEntry[]
-): UseChangelogToasterExtendedReturn {
-  const toasterHook = useChangelogToaster() as UseChangelogToasterExtendedReturn;
+): UseChangelogToasterReturn {
+  const toasterHook = useChangelogToaster();
+  const { showToaster, isNewVersion } = toasterHook;
 
   // Auto-check when currentVersion and changes are available
   useEffect(() => {
     if (currentVersion && changes && changes.length > 0) {
-      toasterHook.checkAndShowNewVersion(currentVersion, changes);
+      // Check if this is a new version for the user
+      if (isNewVersion(currentVersion)) {
+        showToaster(currentVersion, changes);
+      }
     }
-  }, [currentVersion, changes, toasterHook]);
+  }, [currentVersion, changes, showToaster, isNewVersion]);
 
   return toasterHook;
 }

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Package, AlertCircle } from 'lucide-react';
+import { X, Calendar, Package, AlertCircle, ExternalLink } from 'lucide-react';
 import { ChangelogModalProps } from '../types';
 import { useChangelog } from '../hooks';
 import ChangelogEntry from './ChangelogEntry';
@@ -44,6 +44,15 @@ function getDaysAgo(dateString: string): string {
   } catch {
     return '';
   }
+}
+
+/**
+ * Generate GitHub release URL
+ */
+function getGitHubReleaseUrl(version: string): string {
+  // Remove 'v' prefix if present
+  const cleanVersion = version.startsWith('v') ? version : `v${version}`;
+  return `https://github.com/onpaj/Anela.Heblo/releases/tag/${cleanVersion}`;
 }
 
 /**
@@ -204,9 +213,15 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
                     {/* Version header */}
                     <div className="mb-6">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h2 className="text-2xl font-bold text-gray-900">
-                          Verze {selectedVersionData.version}
-                        </h2>
+                        <a 
+                          href={getGitHubReleaseUrl(selectedVersionData.version)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 text-2xl font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          <span>Verze {selectedVersionData.version}</span>
+                          <ExternalLink className="h-5 w-5" />
+                        </a>
                         {selectedVersionData.version === data?.currentVersion && (
                           <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
                             Aktuální verze

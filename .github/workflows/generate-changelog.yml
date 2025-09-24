@@ -1,0 +1,76 @@
+name: 📝 Generate Changelog
+
+on:
+  workflow_dispatch: # Manual trigger
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/generate-changelog.sh'
+      - 'scripts/translation-mappings.json'
+      - '.github/workflows/generate-changelog.yml'
+
+jobs:
+  generate-changelog:
+    name: 📝 Generate and Upload Changelog
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for git tags and commits
+
+      - name: 📝 Generate Changelog
+        run: |
+          chmod +x ./scripts/generate-changelog.sh
+          ./scripts/generate-changelog.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Changelog Summary
+        run: |
+          echo "## 📝 Generated Changelog Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **File Location**: \`frontend/public/changelog.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **File Size**: $(ls -lh frontend/public/changelog.json | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          
+          if command -v jq >/dev/null 2>&1; then
+            CURRENT_VERSION=$(jq -r '.currentVersion' frontend/public/changelog.json)
+            VERSION_COUNT=$(jq -r '.versions | length' frontend/public/changelog.json)
+            echo "- **Current Version**: \`$CURRENT_VERSION\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total Versions**: \`$VERSION_COUNT\`" >> $GITHUB_STEP_SUMMARY
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Latest Version Changes:" >> $GITHUB_STEP_SUMMARY
+            jq -r '.versions[0].changes[] | "- **" + .type + "**: " + .title' frontend/public/changelog.json >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 📤 Upload Changelog Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-preview
+          path: frontend/public/changelog.json
+          retention-days: 7
+
+      - name: 📋 Validation Check
+        run: |
+          # Validate JSON format
+          if ! jq empty frontend/public/changelog.json; then
+            echo "❌ Generated changelog.json is not valid JSON!"
+            exit 1
+          fi
+          
+          # Check required fields
+          REQUIRED_FIELDS=("currentVersion" "lastUpdated" "versions")
+          for field in "${REQUIRED_FIELDS[@]}"; do
+            if ! jq -e ".$field" frontend/public/changelog.json >/dev/null; then
+              echo "❌ Missing required field: $field"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Changelog validation passed!"

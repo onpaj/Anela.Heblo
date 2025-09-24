@@ -76,6 +76,38 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📝 Generate Changelog
+        run: |
+          chmod +x ./scripts/generate-changelog.sh
+          ./scripts/generate-changelog.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Validate Generated Changelog
+        run: |
+          # Validate JSON format
+          if ! jq empty frontend/public/changelog.json; then
+            echo "❌ Generated changelog.json is not valid JSON!"
+            exit 1
+          fi
+          echo "✅ Changelog JSON is valid"
+          
+          # Check file exists and has content
+          if [ ! -s frontend/public/changelog.json ]; then
+            echo "❌ Changelog file is empty or doesn't exist!"
+            exit 1
+          fi
+          echo "✅ Changelog file has content ($(wc -c < frontend/public/changelog.json) bytes)"
+
+      - name: 📤 Upload Changelog Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-production
+          path: frontend/public/changelog.json
+          retention-days: 90
 
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

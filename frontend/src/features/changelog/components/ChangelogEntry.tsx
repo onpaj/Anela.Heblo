@@ -15,7 +15,8 @@ import {
   Wrench,
   Sparkles,
   GitCommit,
-  Github
+  Github,
+  ExternalLink
 } from 'lucide-react';
 import { ChangelogEntry as ChangelogEntryType, ChangelogEntryProps } from '../types';
 
@@ -110,6 +111,21 @@ function getChangeTypeColors(type: ChangelogEntryType['type']): {
 }
 
 /**
+ * Generate GitHub issue URL
+ */
+function getGitHubIssueUrl(issueId: string): string {
+  const issueNumber = issueId.replace('#', '');
+  return `https://github.com/onpaj/Anela.Heblo/issues/${issueNumber}`;
+}
+
+/**
+ * Generate GitHub commit URL
+ */
+function getGitHubCommitUrl(commitHash: string): string {
+  return `https://github.com/onpaj/Anela.Heblo/commit/${commitHash}`;
+}
+
+/**
  * Changelog entry component
  */
 const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
@@ -127,7 +143,29 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
         <span className="text-sm text-gray-900 truncate">{entry.title}</span>
         {showSource && (
           <span className="text-xs text-gray-500 flex-shrink-0">
-            {entry.source === 'github-issue' ? entry.id : `${entry.hash?.substring(0, 7)}`}
+            {entry.source === 'github-issue' && entry.id ? (
+              <a 
+                href={getGitHubIssueUrl(entry.id)} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                <Github className="h-3 w-3" />
+                <span>{entry.id}</span>
+                <ExternalLink className="h-2 w-2" />
+              </a>
+            ) : entry.hash ? (
+              <a 
+                href={getGitHubCommitUrl(entry.hash)} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                <GitCommit className="h-3 w-3" />
+                <span>{entry.hash.substring(0, 7)}</span>
+                <ExternalLink className="h-2 w-2" />
+              </a>
+            ) : null}
           </span>
         )}
       </div>
@@ -151,17 +189,29 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
             </span>
             {showSource && (
               <div className="flex items-center space-x-1 text-xs text-gray-500">
-                {entry.source === 'github-issue' ? (
-                  <>
+                {entry.source === 'github-issue' && entry.id ? (
+                  <a 
+                    href={getGitHubIssueUrl(entry.id)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 hover:underline"
+                  >
                     <Github className="h-3 w-3" />
                     <span>{entry.id}</span>
-                  </>
-                ) : (
-                  <>
+                    <ExternalLink className="h-2 w-2" />
+                  </a>
+                ) : entry.hash ? (
+                  <a 
+                    href={getGitHubCommitUrl(entry.hash)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 hover:underline"
+                  >
                     <GitCommit className="h-3 w-3" />
-                    <span>{entry.hash?.substring(0, 7)}</span>
-                  </>
-                )}
+                    <span>{entry.hash.substring(0, 7)}</span>
+                    <ExternalLink className="h-2 w-2" />
+                  </a>
+                ) : null}
               </div>
             )}
           </div>
