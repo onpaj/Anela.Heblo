@@ -59,9 +59,9 @@ load_translations() {
 }
 
 
-# Get git tags sorted by version (semantic versioning)
+# Get git tags sorted by version (semantic versioning) - get last 5 existing tags
 get_git_tags() {
-    git tag --sort=-version:refname | head -6
+    git tag --sort=-version:refname | head -5
 }
 
 # Get current version (latest tag or 0.1.0 if no tags)
@@ -71,6 +71,95 @@ get_current_version() {
         echo "0.1.0"
     else
         echo "$latest_tag"
+    fi
+}
+
+# Generate "current" version changelog from commits since last tag
+generate_current_version_changelog() {
+    local latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    local version_date=$(date +"%Y-%m-%d")
+    
+    # Determine current version from GitVersion environment variables or fallback
+    local current_version="current"
+    
+    # Check for GitVersion environment variables (used in CI/CD)
+    if [[ -n "$GITVERSION_FULLSEMVER" ]]; then
+        current_version="$GITVERSION_FULLSEMVER"
+        log_info "Using GitVersion FULLSEMVER: $current_version" >&2
+    elif [[ -n "$GITVERSION_SEMVER" ]]; then
+        current_version="$GITVERSION_SEMVER"
+        log_info "Using GitVersion SEMVER: $current_version" >&2
+    elif [[ -n "$GITVERSION_MAJORMINORPATCH" ]]; then
+        current_version="$GITVERSION_MAJORMINORPATCH"
+        log_info "Using GitVersion MAJORMINORPATCH: $current_version" >&2
+    else
+        # Try to run dotnet gitversion if available
+        if command -v dotnet >/dev/null 2>&1; then
+            local gitversion_output
+            gitversion_output=$(dotnet gitversion --output json 2>/dev/null || echo "")
+            if [[ -n "$gitversion_output" ]] && echo "$gitversion_output" | jq empty 2>/dev/null; then
+                current_version=$(echo "$gitversion_output" | jq -r '.FullSemVer // .SemVer // .MajorMinorPatch // "current"' 2>/dev/null || echo "current")
+                log_info "Using dotnet gitversion: $current_version" >&2
+            else
+                log_info "GitVersion not available, using fallback version: $current_version" >&2
+            fi
+        else
+            log_info "GitVersion not available, using fallback version: $current_version" >&2
+        fi
+    fi
+    
+    echo -e "${BLUE}[INFO]${NC} Generating current branch changelog since $latest_tag (version: $current_version)" >&2
+    
+    # Get commits since last tag
+    local commit_range=""
+    if [[ -n "$latest_tag" ]]; then
+        commit_range="$latest_tag..HEAD"
+    else
+        # If no tags, get last 10 commits
+        commit_range="HEAD~10..HEAD"
+    fi
+    
+    echo -e "${BLUE}[DEBUG]${NC} Getting commits in range: $commit_range" >&2
+    
+    # Get commits and parse them
+    local changes="["
+    local first_change=true
+    
+    # Get commits from git
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            local hash=$(echo "$line" | cut -d'|' -f1)
+            local message=$(echo "$line" | cut -d'|' -f2-)
+            
+            # Skip if should be excluded
+            if should_exclude_commit "$message"; then
+                continue
+            fi
+            
+            # Parse conventional commit or create generic entry
+            local commit_json=$(parse_conventional_commit "$message" "$hash")
+            
+            if [[ -n "$commit_json" ]]; then
+                if [[ "$first_change" == false ]]; then
+                    changes="$changes,"
+                fi
+                changes="$changes$commit_json"
+                first_change=false
+            fi
+        fi
+    done < <(git log --format="%h|%s" "$commit_range" 2>/dev/null || true)
+    
+    changes="$changes]"
+    
+    # Only return JSON if there are actual changes
+    if [[ "$first_change" == false ]]; then
+        cat <<EOF
+{
+  "version": "$current_version",
+  "date": "$version_date",
+  "changes": $changes
+}
+EOF
     fi
 }
 
@@ -326,16 +415,23 @@ generate_changelog() {
     local versions="["
     local first=true
     
-    # Process up to 6 versions (current + 5 previous)
+    # First, check if there are changes since last tag and add current version
+    local current_changelog=$(generate_current_version_changelog)
+    if [[ -n "$current_changelog" ]]; then
+        log_info "Found changes since last tag, adding current version"
+        versions="$versions$current_changelog"
+        first=false
+    fi
+    
+    # Process the existing tags (up to 5)
     local processed=0
     local prev_tag=""
-    local next_tag=""
     
     # Create array of tags for easier navigation
     local tags_array=(${tags[@]})
     
     for i in "${!tags_array[@]}"; do
-        if [[ $processed -ge 6 ]]; then
+        if [[ $processed -ge 5 ]]; then
             break
         fi
         
@@ -349,7 +445,6 @@ generate_changelog() {
         fi
         
         log_info "Processing tag: $tag (iteration $processed, prev: $prev_tag)"
-        log_info "Building JSON array - first=$first, processed=$processed"
         
         if [[ "$first" == true ]]; then
             first=false
@@ -397,18 +492,47 @@ generate_changelog() {
         log_info "Completed processing $tag, moving to next iteration"
     done
     
-    # If no tags exist, create a default version
-    if [[ $processed -eq 0 ]]; then
+    # If no tags exist and no current changes, create a default version
+    if [[ $processed -eq 0 && "$first" == true ]]; then
         local default_version=$(generate_version_changelog "$current_version" "" "")
         versions="$versions$default_version"
     fi
     
     versions="$versions]"
     
+    # Determine current version for JSON output using GitVersion if available
+    local json_current_version="$clean_current"
+    
+    # Check for GitVersion environment variables for currentVersion field
+    if [[ -n "$GITVERSION_FULLSEMVER" ]]; then
+        json_current_version="$GITVERSION_FULLSEMVER"
+        log_info "Using GitVersion FULLSEMVER for currentVersion: $json_current_version" >&2
+    elif [[ -n "$GITVERSION_SEMVER" ]]; then
+        json_current_version="$GITVERSION_SEMVER"
+        log_info "Using GitVersion SEMVER for currentVersion: $json_current_version" >&2
+    elif [[ -n "$GITVERSION_MAJORMINORPATCH" ]]; then
+        json_current_version="$GITVERSION_MAJORMINORPATCH"
+        log_info "Using GitVersion MAJORMINORPATCH for currentVersion: $json_current_version" >&2
+    else
+        # Try to run dotnet gitversion if available
+        if command -v dotnet >/dev/null 2>&1; then
+            local gitversion_output
+            gitversion_output=$(dotnet gitversion --output json 2>/dev/null || echo "")
+            if [[ -n "$gitversion_output" ]] && echo "$gitversion_output" | jq empty 2>/dev/null; then
+                json_current_version=$(echo "$gitversion_output" | jq -r '.FullSemVer // .SemVer // .MajorMinorPatch // "'"$clean_current"'"' 2>/dev/null || echo "$clean_current")
+                log_info "Using dotnet gitversion for currentVersion: $json_current_version" >&2
+            else
+                log_info "GitVersion not available, using tag-based currentVersion: $json_current_version" >&2
+            fi
+        else
+            log_info "GitVersion not available, using tag-based currentVersion: $json_current_version" >&2
+        fi
+    fi
+    
     # Create final changelog JSON
     local changelog=$(cat <<EOF
 {
-  "currentVersion": "$clean_current",
+  "currentVersion": "$json_current_version",
   "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "versions": $versions
 }
