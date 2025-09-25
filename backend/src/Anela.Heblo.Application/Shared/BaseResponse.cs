@@ -37,4 +37,26 @@ public abstract class BaseResponse
         ErrorCode = errorCode;
         Params = parameters;
     }
+    
+    /// <summary>
+    /// Creates an error response
+    /// </summary>
+    protected BaseResponse(Exception ex)
+    {
+        Success = false;
+        ErrorCode = ErrorCodes.Exception;
+        Params = new Dictionary<string, string>()
+        {
+            { "ErrorMessage", ex.Message },
+            { "ExceptionType", ex.ToString()}
+        };
+    }
+
+    public string FullError()
+    {
+        if (Success)
+            return string.Empty;
+        
+        return $"{ErrorCode}: {string.Join(" | ", Params.Select(s => $"{s.Key}: {s.Value}"))}";
+    }
 }

@@ -12,6 +12,8 @@ public class ManufactureOrderDto
 {
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;
+    public string? ErpOrderNumberSemiproduct { get; set; }
+    public string? ErpOrderNumberProduct { get; set; }
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
@@ -21,6 +23,7 @@ public class ManufactureOrderDto
 
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }
+    public bool ManualActionRequired { get; set; }
     public string StateChangedByUser { get; set; } = null!;
 
     public ManufactureOrderSemiProductDto? SemiProduct { get; set; }

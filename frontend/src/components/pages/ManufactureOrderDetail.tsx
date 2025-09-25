@@ -152,6 +152,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableProductQuantities, setEditableProductQuantities] = useState<Record<number, string>>({});
   const [editableLotNumber, setEditableLotNumber] = useState("");
   const [editableExpirationDate, setEditableExpirationDate] = useState("");
+  const [editableErpOrderNumberSemiproduct, setEditableErpOrderNumberSemiproduct] = useState("");
+  const [editableErpOrderNumberProduct, setEditableErpOrderNumberProduct] = useState("");
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   // Semi-product quantity confirmation modal state
@@ -250,6 +252,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       // Initialize lot number and expiration date
       setEditableLotNumber(order.semiProduct?.lotNumber || "");
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
+      
+      // Initialize ERP order numbers
+      setEditableErpOrderNumberSemiproduct(order.erpOrderNumberSemiproduct || "");
+      setEditableErpOrderNumberProduct(order.erpOrderNumberProduct || "");
       
       // Initialize product quantities - edit planned quantity in edit mode, show actual quantity in read-only mode
       const productQuantities: Record<number, string> = {};
@@ -449,6 +455,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         semiProductPlannedDate: editableSemiProductDate ? new Date(editableSemiProductDate) : (order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate) : new Date()),
         productPlannedDate: editableProductDate ? new Date(editableProductDate) : (order.productPlannedDate ? new Date(order.productPlannedDate) : new Date()),
         responsiblePerson: editableResponsiblePerson || undefined,
+        erpOrderNumberSemiproduct: editableErpOrderNumberSemiproduct || undefined,
+        erpOrderNumberProduct: editableErpOrderNumberProduct || undefined,
         semiProduct: semiProductRequest,
         products,
         newNote: newNote.trim() || undefined,
@@ -736,6 +744,48 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                               </span>
                             )}
                           </div>
+                          
+                          {/* ERP Order Numbers */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Hash className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-500">ERP č. (meziprod.):</span>
+                            </div>
+                            {canEditFields ? (
+                              <input
+                                type="text"
+                                value={editableErpOrderNumberSemiproduct}
+                                onChange={(e) => setEditableErpOrderNumberSemiproduct(e.target.value)}
+                                className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
+                                placeholder="ERP číslo pro meziprodukt"
+                              />
+                            ) : (
+                              <span className="text-sm text-gray-900">
+                                {order.erpOrderNumberSemiproduct || "-"}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Hash className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-500">ERP č. (produkt):</span>
+                            </div>
+                            {canEditFields ? (
+                              <input
+                                type="text"
+                                value={editableErpOrderNumberProduct}
+                                onChange={(e) => setEditableErpOrderNumberProduct(e.target.value)}
+                                className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
+                                placeholder="ERP číslo pro produkt"
+                              />
+                            ) : (
+                              <span className="text-sm text-gray-900">
+                                {order.erpOrderNumberProduct || "-"}
+                              </span>
+                            )}
+                          </div>
+                          
                           {/* Planned Dates Section */}
                        
                           <div className="space-y-2">
@@ -815,14 +865,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-medium text-gray-900">
-                                      {order.notes[order.notes.length - 1].createdByUser || "Neznámý"}
+                                      {order.notes[0].createdByUser || "Neznámý"}
                                     </span>
                                     <span className="text-xs text-gray-500">
-                                      {formatDateTime(order.notes[order.notes.length - 1].createdAt)}
+                                      {formatDateTime(order.notes[0].createdAt)}
                                     </span>
                                   </div>
                                   <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                                    {order.notes[order.notes.length - 1].text}
+                                    {order.notes[0].text}
                                   </p>
                                 </div>
                               </div>

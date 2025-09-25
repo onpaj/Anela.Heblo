@@ -459,6 +459,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp");
 
+                    b.Property<string>("ErpOrderNumberProduct")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ErpOrderNumberSemiproduct")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("ManualActionRequired")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1000,7 +1009,8 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.Navigation("Products");
 
-                    b.Navigation("SemiProduct");
+                    b.Navigation("SemiProduct")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

@@ -442,6 +442,18 @@ const ManufactureOrderList: React.FC = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
+                  ERP č. (meziprod.)
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  ERP č. (produkt)
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Odpovědná osoba
                 </th>
                 <th
@@ -467,7 +479,15 @@ const ManufactureOrderList: React.FC = () => {
                   title="Klikněte pro zobrazení detailu"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {order.orderNumber}
+                    <div className="flex items-center space-x-2">
+                      <span>{order.orderNumber}</span>
+                      {order.manualActionRequired && (
+                        <div 
+                          className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
+                          title="Vyžaduje ruční zásah"
+                        />
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order.state !== undefined && (
@@ -480,6 +500,12 @@ const ManufactureOrderList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDateTime(order.createdDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {order.erpOrderNumberSemiproduct || "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {order.erpOrderNumberProduct || "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order.responsiblePerson || "-"}

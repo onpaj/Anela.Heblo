@@ -10,6 +10,9 @@ public class CalendarEventDto
     public DateTime Date { get; set; }
     public ManufactureOrderState State { get; set; }
     public string? ResponsiblePerson { get; set; }
+    public bool ManualActionRequired { get; set; }
+    public string? ErpOrderNumberSemiproduct { get; set; }
+    public string? ErpOrderNumberProduct { get; set; }
 
     // Extended information for detailed views
     public CalendarEventSemiProductDto? SemiProduct { get; set; }

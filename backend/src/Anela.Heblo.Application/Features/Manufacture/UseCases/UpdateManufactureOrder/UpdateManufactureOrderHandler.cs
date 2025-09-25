@@ -43,6 +43,12 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             if (request.ResponsiblePerson != null)
                 order.ResponsiblePerson = request.ResponsiblePerson;
 
+            if (request.ErpOrderNumberSemiproduct != null)
+                order.ErpOrderNumberSemiproduct = request.ErpOrderNumberSemiproduct;
+                
+            if (request.ErpOrderNumberProduct != null)
+                order.ErpOrderNumberProduct = request.ErpOrderNumberProduct;
+
             // Update semi-product if provided
             if (request.SemiProduct != null)
             {

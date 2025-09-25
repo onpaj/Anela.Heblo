@@ -9,4 +9,8 @@ public class SubmitManufactureResponse : BaseResponse
     public SubmitManufactureResponse() : base() { }
 
     public SubmitManufactureResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
+
+    public SubmitManufactureResponse(Exception exception) : base(exception)
+    {
+    }
 }

@@ -47,6 +47,9 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                         Date = order.SemiProductPlannedDate.ToDateTime(TimeOnly.MinValue),
                         State = order.State,
                         ResponsiblePerson = order.ResponsiblePerson,
+                        ManualActionRequired = order.ManualActionRequired,
+                        ErpOrderNumberSemiproduct = order.ErpOrderNumberSemiproduct,
+                        ErpOrderNumberProduct = order.ErpOrderNumberProduct,
                         SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto
                         {
                             ProductCode = order.SemiProduct.ProductCode,

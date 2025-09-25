@@ -8748,6 +8748,8 @@ export interface IGetManufactureOrdersResponse extends IBaseResponse {
 export class ManufactureOrderDto implements IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -8755,6 +8757,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     productPlannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
+    manualActionRequired?: boolean;
     stateChangedByUser?: string;
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
@@ -8774,6 +8777,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
+            this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
@@ -8781,6 +8786,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
+            this.manualActionRequired = _data["manualActionRequired"];
             this.stateChangedByUser = _data["stateChangedByUser"];
             this.semiProduct = _data["semiProduct"] ? ManufactureOrderSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
@@ -8812,6 +8818,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
+        data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
@@ -8819,6 +8827,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
+        data["manualActionRequired"] = this.manualActionRequired;
         data["stateChangedByUser"] = this.stateChangedByUser;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
@@ -8843,6 +8852,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
 export interface IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -8850,6 +8861,7 @@ export interface IManufactureOrderDto {
     productPlannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
+    manualActionRequired?: boolean;
     stateChangedByUser?: string;
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
@@ -9340,7 +9352,7 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
+    semiProduct?: UpdateManufactureOrderSemiProductDto;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 
@@ -9424,7 +9436,7 @@ export interface IUpdateManufactureOrderDto {
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
+    semiProduct?: UpdateManufactureOrderSemiProductDto;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 }
@@ -9598,6 +9610,8 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     semiProductPlannedDate?: Date | undefined;
     productPlannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -9617,6 +9631,8 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
             this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
             this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
+            this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
             this.semiProduct = _data["semiProduct"] ? UpdateManufactureOrderSemiProductRequest.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -9640,6 +9656,8 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
         data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
         data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
+        data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -9656,6 +9674,8 @@ export interface IUpdateManufactureOrderRequest {
     semiProductPlannedDate?: Date | undefined;
     productPlannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -9810,6 +9830,10 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     id!: number;
     newState!: ManufactureOrderState;
     changeReason?: string | undefined;
+    note?: string | undefined;
+    manualActionRequired?: boolean;
+    semiProductOrderCode?: string | undefined;
+    productOrderCode?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderStatusRequest) {
         if (data) {
@@ -9825,6 +9849,10 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.id = _data["id"];
             this.newState = _data["newState"];
             this.changeReason = _data["changeReason"];
+            this.note = _data["note"];
+            this.manualActionRequired = _data["manualActionRequired"];
+            this.semiProductOrderCode = _data["semiProductOrderCode"];
+            this.productOrderCode = _data["productOrderCode"];
         }
     }
 
@@ -9840,6 +9868,10 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["id"] = this.id;
         data["newState"] = this.newState;
         data["changeReason"] = this.changeReason;
+        data["note"] = this.note;
+        data["manualActionRequired"] = this.manualActionRequired;
+        data["semiProductOrderCode"] = this.semiProductOrderCode;
+        data["productOrderCode"] = this.productOrderCode;
         return data;
     }
 }
@@ -9848,50 +9880,43 @@ export interface IUpdateManufactureOrderStatusRequest {
     id: number;
     newState: ManufactureOrderState;
     changeReason?: string | undefined;
+    note?: string | undefined;
+    manualActionRequired?: boolean;
+    semiProductOrderCode?: string | undefined;
+    productOrderCode?: string | undefined;
 }
 
-export class ConfirmSemiProductManufactureResponse implements IConfirmSemiProductManufactureResponse {
-    success?: boolean;
+export class ConfirmSemiProductManufactureResponse extends BaseResponse implements IConfirmSemiProductManufactureResponse {
     message?: string | undefined;
-    errorCode?: string | undefined;
 
     constructor(data?: IConfirmSemiProductManufactureResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
             this.message = _data["message"];
-            this.errorCode = _data["errorCode"];
         }
     }
 
-    static fromJS(data: any): ConfirmSemiProductManufactureResponse {
+    static override fromJS(data: any): ConfirmSemiProductManufactureResponse {
         data = typeof data === 'object' ? data : {};
         let result = new ConfirmSemiProductManufactureResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
         data["message"] = this.message;
-        data["errorCode"] = this.errorCode;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IConfirmSemiProductManufactureResponse {
-    success?: boolean;
+export interface IConfirmSemiProductManufactureResponse extends IBaseResponse {
     message?: string | undefined;
-    errorCode?: string | undefined;
 }
 
 export class ConfirmSemiProductManufactureRequest implements IConfirmSemiProductManufactureRequest {
@@ -9938,48 +9963,37 @@ export interface IConfirmSemiProductManufactureRequest {
     changeReason?: string | undefined;
 }
 
-export class ConfirmProductCompletionResponse implements IConfirmProductCompletionResponse {
-    success?: boolean;
+export class ConfirmProductCompletionResponse extends BaseResponse implements IConfirmProductCompletionResponse {
     message?: string | undefined;
-    errorCode?: string | undefined;
 
     constructor(data?: IConfirmProductCompletionResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
-            this.success = _data["success"];
             this.message = _data["message"];
-            this.errorCode = _data["errorCode"];
         }
     }
 
-    static fromJS(data: any): ConfirmProductCompletionResponse {
+    static override fromJS(data: any): ConfirmProductCompletionResponse {
         data = typeof data === 'object' ? data : {};
         let result = new ConfirmProductCompletionResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
         data["message"] = this.message;
-        data["errorCode"] = this.errorCode;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IConfirmProductCompletionResponse {
-    success?: boolean;
+export interface IConfirmProductCompletionResponse extends IBaseResponse {
     message?: string | undefined;
-    errorCode?: string | undefined;
 }
 
 export class ConfirmProductCompletionRequest implements IConfirmProductCompletionRequest {
@@ -10125,6 +10139,9 @@ export class CalendarEventDto implements ICalendarEventDto {
     date?: Date;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
+    manualActionRequired?: boolean;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 
@@ -10145,6 +10162,9 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.responsiblePerson = _data["responsiblePerson"];
+            this.manualActionRequired = _data["manualActionRequired"];
+            this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
             this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -10169,6 +10189,9 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["date"] = this.date ? this.date.toISOString() : <any>undefined;
         data["state"] = this.state;
         data["responsiblePerson"] = this.responsiblePerson;
+        data["manualActionRequired"] = this.manualActionRequired;
+        data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -10186,6 +10209,9 @@ export interface ICalendarEventDto {
     date?: Date;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
+    manualActionRequired?: boolean;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 }

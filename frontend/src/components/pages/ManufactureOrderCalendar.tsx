@@ -260,13 +260,19 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
                           ${event.state ? stateColors[event.state] : ''}
                           hover:shadow-sm hover:scale-105
                         `}
-                        title={`${event.title || event.orderNumber}\nZakázka: ${event.orderNumber}\nStav: ${event.state}\n${event.responsiblePerson ? `Odpovědná osoba: ${event.responsiblePerson}` : ''}`}
+                        title={`${event.title || event.orderNumber}\nZakázka: ${event.orderNumber}\nStav: ${event.state}\n${event.responsiblePerson ? `Odpovědná osoba: ${event.responsiblePerson}` : ''}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
                       >
                         <div className="flex items-center space-x-1">
                           <Factory className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate font-medium">
                             {event.title || event.orderNumber}
                           </span>
+                          {event.manualActionRequired && (
+                            <div 
+                              className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
+                              title="Vyžaduje ruční zásah"
+                            />
+                          )}
                         </div>
                         {event.responsiblePerson && (
                           <div className="flex items-center space-x-1 text-xs opacity-75">

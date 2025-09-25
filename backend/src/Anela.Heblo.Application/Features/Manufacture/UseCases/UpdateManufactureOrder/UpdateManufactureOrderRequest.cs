@@ -14,6 +14,10 @@ public class UpdateManufactureOrderRequest : IRequest<UpdateManufactureOrderResp
 
     public string? ResponsiblePerson { get; set; }
 
+    public string? ErpOrderNumberSemiproduct { get; set; }
+    
+    public string? ErpOrderNumberProduct { get; set; }
+
     public UpdateManufactureOrderSemiProductRequest? SemiProduct { get; set; }
 
     public List<UpdateManufactureOrderProductRequest> Products { get; set; } = new();

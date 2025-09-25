@@ -61,7 +61,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var semiProduct = updateResult.Order!.SemiProduct;
             var submitManufactureRequest = new SubmitManufactureRequest
             {
-                ManufactureOrderId = orderId,
+                ManufactureOrderNumber = updateResult.Order.OrderNumber,
                 ManufactureType = ManufactureType.SemiProduct,
                 Date = _timeProvider.GetUtcNow().DateTime,
                 CreatedBy = _currentUserService.GetCurrentUser().Name,
@@ -95,7 +95,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 Id = orderId,
                 NewState = ManufactureOrderState.SemiProductManufactured,
                 ChangeReason = changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
-                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku meziproduktu: {submitManufactureResult.ErrorCode}",
+                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku meziproduktu: {submitManufactureResult.FullError()}",
+                SemiProductOrderCode = submitManufactureResult.ManufactureId,
+                ManualActionRequired = !submitManufactureResult.Success
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
@@ -152,7 +154,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             // Step 2: Create manufacture via external client
             var submitManufactureRequest = new SubmitManufactureRequest
             {
-                ManufactureOrderId = orderId,
+                ManufactureOrderNumber = updateResult.Order!.OrderNumber,
                 ManufactureType = ManufactureType.Product,
                 Date = _timeProvider.GetUtcNow().DateTime,
                 CreatedBy = _currentUserService.GetCurrentUser().Name,
@@ -171,20 +173,23 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}", 
                     orderId, submitManufactureResult.ErrorCode);
-                return new ConfirmProductCompletionResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
+                //return new ConfirmProductCompletionResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
+            }
+            else
+            {
+                _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}",
+                    submitManufactureResult.ManufactureId, orderId);
             }
 
-            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}", 
-                submitManufactureResult.ManufactureId, orderId);
-
-            
             // Step 3: Change state to Completed
             var statusRequest = new UpdateManufactureOrderStatusRequest
             {
                 Id = orderId,
                 NewState = ManufactureOrderState.Completed,
                 ChangeReason = changeReason ?? $"Potvrzeno dokončení výroby produktů",
-                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka produktů {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku produktů {submitManufactureResult.ErrorCode}",
+                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka produktů {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku produktů {submitManufactureResult.FullError()}",
+                ProductOrderCode = submitManufactureResult.ManufactureId,
+                ManualActionRequired = !submitManufactureResult.Success
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);

@@ -23,7 +23,7 @@ public class FlexiManufactureClient : IManufactureClient
     {
 
         _logger.LogDebug("Starting manufacture order submission. ManufactureOrderId: {ManufactureOrderId}, Type: {ManufactureType}, ItemsCount: {ItemsCount}",
-            request.ManufactureOrderId, request.ManufactureType, request.Items.Count);
+            request.ManufactureOrderCode, request.ManufactureType, request.Items.Count);
 
         try
         {
@@ -38,7 +38,7 @@ public class FlexiManufactureClient : IManufactureClient
                 DateVat = request.Date,
                 CreatedBy = request.CreatedBy,
                 User =  request.CreatedBy,
-                Note = "Heblo",
+                Note = request.ManufactureOrderCode,
                 Items = request.Items.Select(s => MapToFlexiItem(s, request)).ToList()
             };
 
@@ -47,29 +47,28 @@ public class FlexiManufactureClient : IManufactureClient
 
             // Create the issued order
             var result = await _ordersClient.SaveAsync(createOrder, cancellationToken);
-
-            if (result?.Result?.Results == null || !result.Result.Results.Any())
+            if (!result.IsSuccess)
             {
-                _logger.LogError("SaveAsync returned no results for manufacture order {ManufactureOrderId}", request.ManufactureOrderId);
+                _logger.LogError("SaveAsync returned no results for manufacture order {ManufactureOrderId}", request.ManufactureOrderCode);
                 throw new InvalidOperationException("Failed to create issued order - no results returned");
             }
 
             var firstResult = result.Result.Results.First();
             if (firstResult?.Id == null)
             {
-                _logger.LogError("SaveAsync returned result with null Id for manufacture order {ManufactureOrderId}", request.ManufactureOrderId);
+                _logger.LogError("SaveAsync returned result with null Id for manufacture order {ManufactureOrderId}", request.ManufactureOrderCode);
                 throw new InvalidOperationException("Failed to create issued order - no ID returned");
             }
 
             if (!int.TryParse(firstResult.Id.ToString(), out var orderId))
             {
                 _logger.LogError("Failed to parse order ID '{OrderId}' for manufacture order {ManufactureOrderId}", 
-                    firstResult.Id, request.ManufactureOrderId);
+                    firstResult.Id, request.ManufactureOrderCode);
                 throw new InvalidOperationException($"Failed to parse order ID: {firstResult.Id}");
             }
 
             _logger.LogDebug("Successfully created issued order with ID {OrderId} for manufacture order {ManufactureOrderId}",
-                orderId, request.ManufactureOrderId);
+                orderId, request.ManufactureOrderCode);
 
             var savedOrder = await _ordersClient.GetAsync(orderId, cancellationToken);
             
@@ -95,10 +94,12 @@ public class FlexiManufactureClient : IManufactureClient
             
             var finalizeResult = await _ordersClient.FinalizeAsync(finalizeOrder, cancellationToken);
 
-            if (finalizeResult?.Result == null)
+            if (!finalizeResult.IsSuccess)
             {
-                _logger.LogError("FinalizeAsync failed for order {OrderId}", orderId);
-                throw new InvalidOperationException($"Failed to finalize issued order {orderId}");
+                var shortenedMessage = finalizeResult.GetErrorMessage()?.Split("Could not execute JDBC batch update")
+                    .First();
+                _logger.LogError("FinalizeAsync failed for order {OrderId}: {ErrorMessage}", orderId,shortenedMessage);
+                throw new InvalidOperationException($"Failed to finalize issued order {orderId}: {shortenedMessage}");
             }
 
             _logger.LogDebug("Successfully finalized issued order {OrderId}", orderId);
@@ -108,7 +109,7 @@ public class FlexiManufactureClient : IManufactureClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to submit manufacture order {ManufactureOrderId}: {ErrorMessage}",
-                request.ManufactureOrderId, ex.Message);
+                request.ManufactureOrderCode, ex.Message);
             throw;
         }
     }
