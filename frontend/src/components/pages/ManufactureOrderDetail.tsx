@@ -175,6 +175,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableErpOrderNumberProduct, setEditableErpOrderNumberProduct] = useState("");
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  // State return confirmation dialog state
+  const [showStateReturnConfirmation, setShowStateReturnConfirmation] = useState(false);
+  const [pendingStateChange, setPendingStateChange] = useState<ManufactureOrderState | null>(null);
   // Semi-product quantity confirmation modal state
   const [showQuantityConfirmModal, setShowQuantityConfirmModal] = useState(false);
   // Product completion confirmation modal state
@@ -410,6 +413,41 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   // Handle state change
   const handleStateChange = async (newState: ManufactureOrderState) => {
+    if (!order || !orderId || order.state === undefined) return;
+
+    // Check if this is a backward transition (excluding return to Draft)
+    const isBackwardTransition = isStateTransitionBackward(order.state, newState);
+    const isReturnToDraft = newState === ManufactureOrderState.Draft;
+
+    if (isBackwardTransition && !isReturnToDraft) {
+      // Show confirmation dialog for backward transitions (except return to Draft)
+      setPendingStateChange(newState);
+      setShowStateReturnConfirmation(true);
+      return;
+    }
+
+    // Execute the state change immediately for forward transitions or return to Draft
+    await executeStateChange(newState);
+  };
+
+  // Helper function to determine if a state change is backward
+  const isStateTransitionBackward = (currentState: ManufactureOrderState, newState: ManufactureOrderState): boolean => {
+    const stateOrder = {
+      [ManufactureOrderState.Draft]: 0,
+      [ManufactureOrderState.Planned]: 1,
+      [ManufactureOrderState.SemiProductManufactured]: 2,
+      [ManufactureOrderState.Completed]: 3,
+      [ManufactureOrderState.Cancelled]: 4,
+    };
+
+    const currentOrder = stateOrder[currentState];
+    const newOrder = stateOrder[newState];
+
+    return newOrder < currentOrder;
+  };
+
+  // Execute the actual state change
+  const executeStateChange = async (newState: ManufactureOrderState) => {
     if (!order || !orderId) return;
 
     // Special handling for transition from Planned to SemiProductManufactured
@@ -1268,6 +1306,57 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       </>
                     ) : (
                       'Stornovat zakázku'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* State Return Confirmation Dialog */}
+        {showStateReturnConfirmation && pendingStateChange && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <AlertCircle className="h-6 w-6 text-amber-600 mr-3" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Potvrdit návrat stavu
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  Opravdu chcete vrátit zakázku zpět ze stavu "{order && order.state !== undefined ? getStateLabel(order.state) : 'Neznámý'}" na "{getStateLabel(pendingStateChange)}"?
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowStateReturnConfirmation(false);
+                      setPendingStateChange(null);
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowStateReturnConfirmation(false);
+                      const stateToChange = pendingStateChange;
+                      setPendingStateChange(null);
+                      if (stateToChange) {
+                        await executeStateChange(stateToChange);
+                      }
+                    }}
+                    disabled={updateOrderStatusMutation.isPending}
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updateOrderStatusMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin inline" />
+                        Vracím...
+                      </>
+                    ) : (
+                      'Potvrdit návrat'
                     )}
                   </button>
                 </div>
