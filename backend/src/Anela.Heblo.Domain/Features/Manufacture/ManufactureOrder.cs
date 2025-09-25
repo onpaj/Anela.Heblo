@@ -18,7 +18,7 @@ public class ManufactureOrder
     public string StateChangedByUser { get; set; } = null!;
 
     // Collections
-    public ManufactureOrderSemiProduct? SemiProduct { get; set; }
+    public ManufactureOrderSemiProduct SemiProduct { get; set; } = null!;
     public List<ManufactureOrderProduct> Products { get; set; } = new();
     public List<ManufactureOrderNote> Notes { get; set; } = new();
     public List<ManufactureOrderAuditLog> AuditLog { get; set; } = new();

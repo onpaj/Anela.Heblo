@@ -45,6 +45,7 @@ public class UpdateManufactureOrderStatusHandlerTests
 
         _handler = new UpdateManufactureOrderStatusHandler(
             _repositoryMock.Object,
+            TimeProvider.System, 
             _loggerMock.Object,
             _httpContextAccessorMock.Object);
     }

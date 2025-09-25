@@ -13,4 +13,5 @@ public class UpdateManufactureOrderStatusRequest : IRequest<UpdateManufactureOrd
     public ManufactureOrderState NewState { get; set; }
 
     public string? ChangeReason { get; set; }
+    public string? Note { get; set; }
 }

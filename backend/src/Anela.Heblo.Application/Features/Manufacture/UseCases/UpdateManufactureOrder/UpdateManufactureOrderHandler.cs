@@ -44,7 +44,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 order.ResponsiblePerson = request.ResponsiblePerson;
 
             // Update semi-product if provided
-            if (request.SemiProduct != null && order.SemiProduct != null)
+            if (request.SemiProduct != null)
             {
                 if (request.SemiProduct.PlannedQuantity != null)
                     order.SemiProduct.PlannedQuantity = request.SemiProduct.PlannedQuantity.Value;
@@ -58,17 +58,9 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 if (request.SemiProduct.ActualQuantity != null)
                     order.SemiProduct.ActualQuantity = request.SemiProduct.ActualQuantity.Value;
             }
-            else if (request.SemiProduct != null && order.SemiProduct == null)
-            {
-                _logger.LogWarning("Cannot update semi-product data (LotNumber: {LotNumber}, ExpirationDate: {ExpirationDate}, ActualQuantity: {ActualQuantity}) for order {OrderId} because SemiProduct is null", 
-                    request.SemiProduct.LotNumber, 
-                    request.SemiProduct.ExpirationDate, 
-                    request.SemiProduct.ActualQuantity,
-                    request.Id);
-            }
 
             // Update products only if provided
-            if (request.Products != null && request.Products.Any())
+            if (request.Products.Any())
             {
                 // Check if this is updating existing products (by Id) or replacing all products
                 bool isUpdatingExistingProducts = request.Products.All(p => p.Id.HasValue);
@@ -158,7 +150,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             State = order.State.ToString(),
             StateChangedAt = order.StateChangedAt,
             StateChangedByUser = order.StateChangedByUser,
-            SemiProduct = order.SemiProduct != null ? new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new UpdateManufactureOrderSemiProductDto
             {
                 Id = order.SemiProduct.Id,
                 ProductCode = order.SemiProduct.ProductCode,
@@ -167,7 +159,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 ActualQuantity = order.SemiProduct.ActualQuantity,
                 LotNumber = order.SemiProduct.LotNumber,
                 ExpirationDate = order.SemiProduct.ExpirationDate
-            } : null,
+            },
             Products = order.Products.Select(p => new UpdateManufactureOrderProductDto
             {
                 Id = p.Id,

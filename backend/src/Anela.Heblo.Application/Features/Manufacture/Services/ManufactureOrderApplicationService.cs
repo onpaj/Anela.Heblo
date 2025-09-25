@@ -1,38 +1,29 @@
+using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
-using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using System.ComponentModel.DataAnnotations;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
-
-public interface IManufactureOrderApplicationService
-{
-    Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
-        int orderId, 
-        decimal actualQuantity, 
-        string? changeReason = null, 
-        CancellationToken cancellationToken = default);
-
-    Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
-        int orderId,
-        Dictionary<int, decimal> productActualQuantities,
-        string? changeReason = null,
-        CancellationToken cancellationToken = default);
-}
 
 public class ManufactureOrderApplicationService : IManufactureOrderApplicationService
 {
     private readonly IMediator _mediator;
+    private readonly TimeProvider _timeProvider;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ManufactureOrderApplicationService> _logger;
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
+        TimeProvider timeProvider,
+        ICurrentUserService currentUserService,
         ILogger<ManufactureOrderApplicationService> logger)
     {
         _mediator = mediator;
+        _timeProvider = timeProvider;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -66,12 +57,45 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 return new ConfirmSemiProductManufactureResult(false, $"Chyba při aktualizaci množství: {updateResult.ErrorCode}");
             }
 
-            // Step 2: Change state to SemiProductManufactured
+            // Step 2: Create manufacture via external client
+            var semiProduct = updateResult.Order!.SemiProduct;
+            var submitManufactureRequest = new SubmitManufactureRequest
+            {
+                ManufactureOrderId = orderId,
+                ManufactureType = ManufactureType.SemiProduct,
+                Date = _timeProvider.GetUtcNow().DateTime,
+                CreatedBy = _currentUserService.GetCurrentUser().Name,
+                Items = new List<SubmitManufactureRequestItem>()
+                {
+                    new ()
+                    {
+                        ProductCode = semiProduct.ProductCode,
+                        Name = semiProduct.ProductName,
+                        Amount = semiProduct.ActualQuantity ?? semiProduct.PlannedQuantity,
+                    }
+                },
+                LotNumber = semiProduct.LotNumber,
+                ExpirationDate = semiProduct.ExpirationDate,
+            };
+
+            var submitManufactureResult = await _mediator.Send(submitManufactureRequest, cancellationToken);
+            if (!submitManufactureResult.Success)
+            {
+                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}", 
+                    orderId, submitManufactureResult.ErrorCode);
+                return new ConfirmSemiProductManufactureResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
+            }
+
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}", 
+                submitManufactureResult.ManufactureId, orderId);
+
+            // Step 3: Change state to SemiProductManufactured
             var statusRequest = new UpdateManufactureOrderStatusRequest
             {
                 Id = orderId,
                 NewState = ManufactureOrderState.SemiProductManufactured,
-                ChangeReason = changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}"
+                ChangeReason = changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
+                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku meziproduktu: {submitManufactureResult.ErrorCode}",
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
@@ -125,12 +149,42 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 return new ConfirmProductCompletionResult(false, $"Chyba při aktualizaci množství produktů: {updateResult.ErrorCode}");
             }
 
-            // Step 2: Change state to Completed
+            // Step 2: Create manufacture via external client
+            var submitManufactureRequest = new SubmitManufactureRequest
+            {
+                ManufactureOrderId = orderId,
+                ManufactureType = ManufactureType.Product,
+                Date = _timeProvider.GetUtcNow().DateTime,
+                CreatedBy = _currentUserService.GetCurrentUser().Name,
+                Items = updateResult.Order!.Products.Select(p => new SubmitManufactureRequestItem()
+                {
+                        ProductCode = p.ProductCode,
+                        Name = p.ProductName,
+                        Amount = p.ActualQuantity ?? p.PlannedQuantity,
+                }).ToList(),
+                LotNumber = updateResult.Order.SemiProduct.LotNumber,
+                ExpirationDate = updateResult.Order.SemiProduct.ExpirationDate,
+            };
+
+            var submitManufactureResult = await _mediator.Send(submitManufactureRequest, cancellationToken);
+            if (!submitManufactureResult.Success)
+            {
+                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}", 
+                    orderId, submitManufactureResult.ErrorCode);
+                return new ConfirmProductCompletionResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
+            }
+
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}", 
+                submitManufactureResult.ManufactureId, orderId);
+
+            
+            // Step 3: Change state to Completed
             var statusRequest = new UpdateManufactureOrderStatusRequest
             {
                 Id = orderId,
                 NewState = ManufactureOrderState.Completed,
-                ChangeReason = changeReason ?? $"Potvrzeno dokončení výroby produktů"
+                ChangeReason = changeReason ?? $"Potvrzeno dokončení výroby produktů",
+                Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka produktů {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku produktů {submitManufactureResult.ErrorCode}",
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
@@ -151,82 +205,4 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             return new ConfirmProductCompletionResult(false, "Došlo k neočekávané chybě při dokončení výroby produktů");
         }
     }
-}
-
-public class ConfirmSemiProductManufactureResult
-{
-    public bool Success { get; }
-    public string Message { get; }
-
-    public ConfirmSemiProductManufactureResult(bool success, string message)
-    {
-        Success = success;
-        Message = message;
-    }
-}
-
-// DTOs for API Controller
-public class ConfirmSemiProductManufactureRequest
-{
-    [Required]
-    public int Id { get; set; }
-
-    [Required]
-    [Range(0.01, double.MaxValue, ErrorMessage = "ActualQuantity must be greater than 0")]
-    public decimal ActualQuantity { get; set; }
-
-    public string? ChangeReason { get; set; }
-}
-
-public class ConfirmSemiProductManufactureResponse : BaseResponse
-{
-    public string? Message { get; set; }
-
-    public ConfirmSemiProductManufactureResponse() : base() { }
-
-    public ConfirmSemiProductManufactureResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
-}
-
-// Result class for product completion
-public class ConfirmProductCompletionResult
-{
-    public bool Success { get; }
-    public string Message { get; }
-
-    public ConfirmProductCompletionResult(bool success, string message)
-    {
-        Success = success;
-        Message = message;
-    }
-}
-
-// DTOs for product completion API Controller
-public class ConfirmProductCompletionRequest
-{
-    [Required]
-    public int Id { get; set; }
-
-    [Required]
-    public List<ProductActualQuantityRequest> Products { get; set; } = new();
-
-    public string? ChangeReason { get; set; }
-}
-
-public class ProductActualQuantityRequest
-{
-    [Required]
-    public int Id { get; set; }
-
-    [Required]
-    [Range(0.01, double.MaxValue, ErrorMessage = "ActualQuantity must be greater than 0")]
-    public decimal ActualQuantity { get; set; }
-}
-
-public class ConfirmProductCompletionResponse : BaseResponse
-{
-    public string? Message { get; set; }
-
-    public ConfirmProductCompletionResponse() : base() { }
-
-    public ConfirmProductCompletionResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }
 }
