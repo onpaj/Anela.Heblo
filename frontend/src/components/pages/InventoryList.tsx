@@ -301,7 +301,7 @@ const InventoryList: React.FC = () => {
                 }
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
-                <option value="">Všechny typy</option>
+                <option key="" value="">Všechny typy</option>
                 {allowedInventoryTypes.map((productType) => (
                   <option key={productType} value={productType}>
                     {productTypeLabels[productType]}
@@ -498,10 +498,10 @@ const InventoryList: React.FC = () => {
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                   className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option key="10" value={10}>10</option>
+                  <option key="20" value={20}>20</option>
+                  <option key="50" value={50}>50</option>
+                  <option key="100" value={100}>100</option>
                 </select>
               </div>
             </div>
