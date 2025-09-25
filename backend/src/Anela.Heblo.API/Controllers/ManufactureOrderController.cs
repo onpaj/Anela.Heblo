@@ -203,15 +203,43 @@ public class ManufactureOrderController : BaseApiController
     [HttpGet("responsible-persons")]
     public async Task<ActionResult<GetGroupMembersResponse>> GetResponsiblePersons(CancellationToken cancellationToken)
     {
+        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ManufactureOrderController>>();
+        logger.LogInformation("GetResponsiblePersons endpoint called for manufacture orders");
+
         var groupId = _configuration["ManufactureGroupId"];
+        logger.LogInformation("Retrieved ManufactureGroupId from configuration: {GroupId}", string.IsNullOrEmpty(groupId) ? "[NULL_OR_EMPTY]" : groupId);
+        
         if (string.IsNullOrEmpty(groupId))
         {
+            logger.LogError("ManufactureGroupId configuration is missing or empty. Cannot fetch responsible persons from MS Entra.");
             return BadRequest("Manufacture group ID not configured");
         }
 
-        var request = new GetGroupMembersRequest { GroupId = groupId };
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
+        try
+        {
+            var request = new GetGroupMembersRequest { GroupId = groupId };
+            logger.LogInformation("Sending GetGroupMembersRequest to mediator for groupId: {GroupId}", groupId);
+            
+            var response = await _mediator.Send(request, cancellationToken);
+            
+            if (response.Success)
+            {
+                logger.LogInformation("Successfully retrieved {Count} responsible persons from MS Entra group {GroupId}", 
+                    response.Members?.Count ?? 0, groupId);
+            }
+            else
+            {
+                logger.LogError("Failed to retrieve responsible persons from MS Entra group {GroupId}. ErrorCode: {ErrorCode}", 
+                    groupId, response.ErrorCode);
+            }
+            
+            return HandleResponse(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error occurred while retrieving responsible persons from MS Entra group {GroupId}", groupId);
+            throw;
+        }
     }
 
     /// <summary>

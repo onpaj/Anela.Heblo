@@ -22,6 +22,7 @@ import {
   CalendarClock,
   Ban,
   Copy,
+  Maximize2,
 } from "lucide-react";
 import {
   useManufactureOrderDetailQuery,
@@ -138,6 +139,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     const actionName = typeof action === 'string' ? action : action?.toString();
     return t(`manufacture.auditActions.${actionName}`) || actionName || '-';
   };
+
+  // Helper function to check if text needs truncation (more than ~100 characters for 2 lines)
+  const shouldTruncateText = (text: string): boolean => {
+    return text.length > 100;
+  };
+
+  // Helper function to truncate text for 2 lines display
+  const truncateText = (text: string): string => {
+    if (text.length <= 100) return text;
+    return text.substring(0, 97) + '...';
+  };
+
+  // Handle expand note
+  const handleExpandNote = (noteText: string) => {
+    setExpandedNoteContent(noteText);
+    setShowExpandedNote(true);
+  };
   
   // Tab state
   const [activeTab, setActiveTab] = useState<"info" | "notes" | "log">("info");
@@ -163,6 +181,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [showProductCompletionModal, setShowProductCompletionModal] = useState(false);
   // Resolve manual action modal state
   const [showResolveModal, setShowResolveModal] = useState(false);
+  // Expanded note modal state
+  const [showExpandedNote, setShowExpandedNote] = useState(false);
+  const [expandedNoteContent, setExpandedNoteContent] = useState("");
 
   // Fetch order details
   const {
@@ -573,7 +594,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
 
   const content = (
-    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} ${isModalMode ? 'max-w-6xl w-full max-h-[580px]' : 'h-full max-w-6xl'} overflow-hidden flex flex-col relative`}>
+    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} ${isModalMode ? 'max-w-7xl w-full max-h-[720px]' : 'h-full max-w-7xl'} overflow-hidden flex flex-col relative`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-3">
@@ -884,7 +905,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <h4 className="text-sm font-medium text-gray-700 mb-2">Poslední poznámka:</h4>
                           {order.notes && order.notes.length > 0 ? (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative">
                               <div className="flex items-start space-x-2">
                                 <div className="p-1 bg-yellow-100 rounded-full mt-1">
                                   <StickyNote className="h-3 w-3 text-yellow-600" />
@@ -898,9 +919,27 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                       {formatDateTime(order.notes[0].createdAt)}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                                    {order.notes[0].text}
-                                  </p>
+                                  <div className="relative">
+                                    <p className="text-sm text-gray-800 whitespace-pre-wrap" style={{ 
+                                      display: '-webkit-box', 
+                                      WebkitLineClamp: 2, 
+                                      WebkitBoxOrient: 'vertical', 
+                                      overflow: 'hidden' 
+                                    }}>
+                                      {order.notes && order.notes[0]?.text && shouldTruncateText(order.notes[0].text) 
+                                        ? truncateText(order.notes[0].text)
+                                        : (order.notes && order.notes[0]?.text) || ''}
+                                    </p>
+                                    {order.notes && order.notes[0]?.text && shouldTruncateText(order.notes[0].text) && (
+                                      <button
+                                        onClick={() => handleExpandNote(order.notes![0].text || '')}
+                                        className="absolute top-0 right-0 p-1 bg-yellow-100 hover:bg-yellow-200 rounded-full transition-colors"
+                                        title="Rozbalit poznámku"
+                                      >
+                                        <Maximize2 className="h-3 w-3 text-yellow-600" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -909,21 +948,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                               Zatím nejsou žádné poznámky
                             </p>
                           )}
-                        </div>
-
-                        {/* Add New Note */}
-                        <div className="mt-3">
-                          <label htmlFor="newNote" className="block text-sm font-medium text-gray-700 mb-2">
-                            Přidat poznámku:
-                          </label>
-                          <textarea
-                            id="newNote"
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Napište poznámku..."
-                            className="w-full h-16 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm"
-                            rows={2}
-                          />
                         </div>
 
                       </div>
@@ -1046,6 +1070,22 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       <StickyNote className="h-5 w-5 mr-2 text-indigo-600" />
                       Poznámky
                     </h3>
+                    
+                    {/* Add New Note */}
+                    <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                      <label htmlFor="newNote" className="block text-sm font-medium text-gray-700 mb-2">
+                        Přidat poznámku:
+                      </label>
+                      <textarea
+                        id="newNote"
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        placeholder="Napište poznámku..."
+                        className="w-full h-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm"
+                        rows={3}
+                      />
+                    </div>
+
                     {order.notes && order.notes.length > 0 ? (
                       <div className="space-y-4">
                         {order.notes.map((note, index) => (
@@ -1288,6 +1328,41 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               });
             }}
           />
+        )}
+
+        {/* Expanded Note Modal */}
+        {showExpandedNote && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <StickyNote className="h-5 w-5 text-yellow-600 mr-2" />
+                    Poznámka
+                  </h3>
+                  <button
+                    onClick={() => setShowExpandedNote(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-h-[60vh] overflow-y-auto">
+                  <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">
+                    {expandedNoteContent}
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => setShowExpandedNote(false)}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Zavřít
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
     </div>
   );
