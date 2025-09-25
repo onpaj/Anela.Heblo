@@ -345,7 +345,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                   <div className="flex items-center space-x-1">
                                     <Hash className="h-3 w-3" />
                                     <span className="text-xs font-medium">
-                                      {event.semiProduct.plannedQuantity?.toFixed(2)} g
+                                      {(event.semiProduct.actualQuantity ?? event.semiProduct.plannedQuantity)?.toFixed(2)} g
                                     </span>
                                   </div>
                                   {event.semiProduct.batchMultiplier && (
@@ -375,7 +375,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                       </div>
                                       <div className="text-gray-600 flex items-center justify-between">
                                         <span className="truncate">{product.productCode}</span>
-                                        <span>{product.plannedQuantity?.toFixed(2)} ks</span>
+                                        <span>{(product.actualQuantity ?? product.plannedQuantity)?.toFixed(2)} ks</span>
                                       </div>
                                     </div>
                                   ))}

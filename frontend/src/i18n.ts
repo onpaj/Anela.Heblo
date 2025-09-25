@@ -23,7 +23,7 @@ const resources = {
         states: {
           Draft: "Návrh",
           Planned: "Naplánováno",
-          SemiProductManufactured: "Meziprodukt vyroben",
+          SemiProductManufactured: "Meziprodukt",
           Completed: "Dokončeno",
           Cancelled: "Zrušeno"
         },

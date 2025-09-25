@@ -5,7 +5,9 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
+using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -20,11 +22,16 @@ public class ManufactureOrderController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly IConfiguration _configuration;
+    private readonly IManufactureOrderApplicationService _manufacturingApplicationService;
 
-    public ManufactureOrderController(IMediator mediator, IConfiguration configuration)
+    public ManufactureOrderController(
+        IMediator mediator, 
+        IConfiguration configuration,
+        IManufactureOrderApplicationService manufacturingApplicationService)
     {
         _mediator = mediator;
         _configuration = configuration;
+        _manufacturingApplicationService = manufacturingApplicationService;
     }
 
     /// <summary>
@@ -86,6 +93,86 @@ public class ManufactureOrderController : BaseApiController
 
         var response = await _mediator.Send(request);
         return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Confirm semi-product manufacture with actual quantity and change state from Planned to SemiProductManufactured
+    /// </summary>
+    [HttpPost("{id}/confirm-semi-product")]
+    public async Task<ActionResult<ConfirmSemiProductManufactureResponse>> ConfirmSemiProductManufacture(int id, [FromBody] ConfirmSemiProductManufactureRequest request)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest("ID in URL does not match ID in request body.");
+        }
+
+        try
+        {
+            var result = await _manufacturingApplicationService.ConfirmSemiProductManufactureAsync(
+                request.Id, 
+                request.ActualQuantity, 
+                request.ChangeReason);
+
+            if (result.Success)
+            {
+                var response = new ConfirmSemiProductManufactureResponse();
+                response.Message = result.Message;
+                return Ok(response);
+            }
+            else
+            {
+                var response = new ConfirmSemiProductManufactureResponse(ErrorCodes.InvalidOperation);
+                response.Message = result.Message;
+                return BadRequest(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            var response = new ConfirmSemiProductManufactureResponse(ErrorCodes.InternalServerError);
+            response.Message = "Došlo k neočekávané chybě při potvrzení výroby polotovaru";
+            return StatusCode(500, response);
+        }
+    }
+
+    /// <summary>
+    /// Confirm product completion with actual quantities and change state from SemiProductManufactured to Completed
+    /// </summary>
+    [HttpPost("{id}/confirm-products")]
+    public async Task<ActionResult<ConfirmProductCompletionResponse>> ConfirmProductCompletion(int id, [FromBody] ConfirmProductCompletionRequest request)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest("ID in URL does not match ID in request body.");
+        }
+
+        try
+        {
+            var productActualQuantities = request.Products.ToDictionary(p => p.Id, p => p.ActualQuantity);
+            
+            var result = await _manufacturingApplicationService.ConfirmProductCompletionAsync(
+                request.Id, 
+                productActualQuantities, 
+                request.ChangeReason);
+
+            if (result.Success)
+            {
+                var response = new ConfirmProductCompletionResponse();
+                response.Message = result.Message;
+                return Ok(response);
+            }
+            else
+            {
+                var response = new ConfirmProductCompletionResponse(ErrorCodes.InvalidOperation);
+                response.Message = result.Message;
+                return BadRequest(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            var response = new ConfirmProductCompletionResponse(ErrorCodes.InternalServerError);
+            response.Message = "Došlo k neočekávané chybě při dokončení výroby produktů";
+            return StatusCode(500, response);
+        }
     }
 
     /// <summary>

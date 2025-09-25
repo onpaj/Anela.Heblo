@@ -9,6 +9,10 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
+  ConfirmSemiProductManufactureRequest,
+  ConfirmSemiProductManufactureResponse,
+  ConfirmProductCompletionRequest,
+  ConfirmProductCompletionResponse,
   DuplicateManufactureOrderResponse,
 } from "../generated/api-client";
 
@@ -107,6 +111,14 @@ export const useUpdateManufactureOrder = () => {
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.detail(variables.id),
       });
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
     },
   });
 };
@@ -129,6 +141,14 @@ export const useUpdateManufactureOrderStatus = () => {
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.detail(variables.id),
       });
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
     },
   });
 };
@@ -147,9 +167,13 @@ export const useDuplicateManufactureOrder = () => {
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.lists(),
       });
-      // Also invalidate calendar queries
+      // Also invalidate all calendar queries (including those with date parameters)
       queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.calendar(),
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
       });
     },
   });
@@ -189,5 +213,69 @@ export const useManufactureOrderCalendarQuery = (
     },
     enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+// Confirm semi-product manufacture mutation hook using generated API client
+export const useConfirmSemiProductManufacture = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: ConfirmSemiProductManufactureRequest): Promise<ConfirmSemiProductManufactureResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_ConfirmSemiProductManufacture(request.id!, request);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.all,
+      });
+      
+      // Also invalidate specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.id!),
+      });
+
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
+    },
+  });
+};
+
+// Confirm product completion mutation hook using generated API client
+export const useConfirmProductCompletion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: ConfirmProductCompletionRequest): Promise<ConfirmProductCompletionResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_ConfirmProductCompletion(request.id!, request);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.all,
+      });
+      
+      // Also invalidate specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.id!),
+      });
+
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
+    },
   });
 };

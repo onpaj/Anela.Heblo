@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Shared;
@@ -30,13 +31,15 @@ public class ManufactureOrderControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IConfiguration> _configurationMock;
+    private readonly Mock<IManufactureOrderApplicationService> _applicationServiceMock;
     private readonly ManufactureOrderController _controller;
 
     public ManufactureOrderControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
         _configurationMock = new Mock<IConfiguration>();
-        _controller = new ManufactureOrderController(_mediatorMock.Object, _configurationMock.Object);
+        _applicationServiceMock = new Mock<IManufactureOrderApplicationService>();
+        _controller = new ManufactureOrderController(_mediatorMock.Object, _configurationMock.Object, _applicationServiceMock.Object);
 
         // Setup HttpContext for BaseApiController.Logger
         var serviceCollection = new ServiceCollection();

@@ -2673,6 +2673,88 @@ export class ApiClient {
         return Promise.resolve<UpdateManufactureOrderStatusResponse>(null as any);
     }
 
+    manufactureOrder_ConfirmSemiProductManufacture(id: number, request: ConfirmSemiProductManufactureRequest): Promise<ConfirmSemiProductManufactureResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/confirm-semi-product";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_ConfirmSemiProductManufacture(_response);
+        });
+    }
+
+    protected processManufactureOrder_ConfirmSemiProductManufacture(response: Response): Promise<ConfirmSemiProductManufactureResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ConfirmSemiProductManufactureResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConfirmSemiProductManufactureResponse>(null as any);
+    }
+
+    manufactureOrder_ConfirmProductCompletion(id: number, request: ConfirmProductCompletionRequest): Promise<ConfirmProductCompletionResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/confirm-products";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_ConfirmProductCompletion(_response);
+        });
+    }
+
+    protected processManufactureOrder_ConfirmProductCompletion(response: Response): Promise<ConfirmProductCompletionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ConfirmProductCompletionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConfirmProductCompletionResponse>(null as any);
+    }
+
     manufactureOrder_GetCalendarView(startDate: Date | undefined, endDate: Date | undefined): Promise<GetCalendarViewResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder/calendar?";
         if (startDate === null)
@@ -8788,7 +8870,7 @@ export class ManufactureOrderSemiProductDto implements IManufactureOrderSemiProd
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
     batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
@@ -8844,7 +8926,7 @@ export interface IManufactureOrderSemiProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
     batchMultiplier?: number;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
@@ -8857,7 +8939,7 @@ export class ManufactureOrderProductDto implements IManufactureOrderProductDto {
     productName?: string;
     semiProductCode?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
 
     constructor(data?: IManufactureOrderProductDto) {
         if (data) {
@@ -8904,7 +8986,7 @@ export interface IManufactureOrderProductDto {
     productName?: string;
     semiProductCode?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
 }
 
 export class ManufactureOrderNoteDto implements IManufactureOrderNoteDto {
@@ -9352,7 +9434,7 @@ export class UpdateManufactureOrderSemiProductDto implements IUpdateManufactureO
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
 
@@ -9402,7 +9484,7 @@ export interface IUpdateManufactureOrderSemiProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
 }
@@ -9413,7 +9495,7 @@ export class UpdateManufactureOrderProductDto implements IUpdateManufactureOrder
     productName?: string;
     semiProductCode?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
 
     constructor(data?: IUpdateManufactureOrderProductDto) {
         if (data) {
@@ -9460,7 +9542,7 @@ export interface IUpdateManufactureOrderProductDto {
     productName?: string;
     semiProductCode?: string;
     plannedQuantity?: number;
-    actualQuantity?: number;
+    actualQuantity?: number | undefined;
 }
 
 export class UpdateManufactureOrderNoteDto implements IUpdateManufactureOrderNoteDto {
@@ -9513,8 +9595,8 @@ export interface IUpdateManufactureOrderNoteDto {
 
 export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderRequest {
     id!: number;
-    semiProductPlannedDate!: Date;
-    productPlannedDate!: Date;
+    semiProductPlannedDate?: Date | undefined;
+    productPlannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
@@ -9571,8 +9653,8 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
 
 export interface IUpdateManufactureOrderRequest {
     id: number;
-    semiProductPlannedDate: Date;
-    productPlannedDate: Date;
+    semiProductPlannedDate?: Date | undefined;
+    productPlannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
@@ -9580,8 +9662,10 @@ export interface IUpdateManufactureOrderRequest {
 }
 
 export class UpdateManufactureOrderSemiProductRequest implements IUpdateManufactureOrderSemiProductRequest {
+    plannedQuantity?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    actualQuantity?: number | undefined;
 
     constructor(data?: IUpdateManufactureOrderSemiProductRequest) {
         if (data) {
@@ -9594,8 +9678,10 @@ export class UpdateManufactureOrderSemiProductRequest implements IUpdateManufact
 
     init(_data?: any) {
         if (_data) {
+            this.plannedQuantity = _data["plannedQuantity"];
             this.lotNumber = _data["lotNumber"];
             this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.actualQuantity = _data["actualQuantity"];
         }
     }
 
@@ -9608,21 +9694,27 @@ export class UpdateManufactureOrderSemiProductRequest implements IUpdateManufact
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["plannedQuantity"] = this.plannedQuantity;
         data["lotNumber"] = this.lotNumber;
         data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["actualQuantity"] = this.actualQuantity;
         return data;
     }
 }
 
 export interface IUpdateManufactureOrderSemiProductRequest {
+    plannedQuantity?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    actualQuantity?: number | undefined;
 }
 
 export class UpdateManufactureOrderProductRequest implements IUpdateManufactureOrderProductRequest {
-    productCode!: string;
-    productName!: string;
-    plannedQuantity!: number;
+    id?: number | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    plannedQuantity?: number | undefined;
+    actualQuantity?: number | undefined;
 
     constructor(data?: IUpdateManufactureOrderProductRequest) {
         if (data) {
@@ -9635,9 +9727,11 @@ export class UpdateManufactureOrderProductRequest implements IUpdateManufactureO
 
     init(_data?: any) {
         if (_data) {
+            this.id = _data["id"];
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.plannedQuantity = _data["plannedQuantity"];
+            this.actualQuantity = _data["actualQuantity"];
         }
     }
 
@@ -9650,17 +9744,21 @@ export class UpdateManufactureOrderProductRequest implements IUpdateManufactureO
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["plannedQuantity"] = this.plannedQuantity;
+        data["actualQuantity"] = this.actualQuantity;
         return data;
     }
 }
 
 export interface IUpdateManufactureOrderProductRequest {
-    productCode: string;
-    productName: string;
-    plannedQuantity: number;
+    id?: number | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    plannedQuantity?: number | undefined;
+    actualQuantity?: number | undefined;
 }
 
 export class UpdateManufactureOrderStatusResponse extends BaseResponse implements IUpdateManufactureOrderStatusResponse {
@@ -9750,6 +9848,233 @@ export interface IUpdateManufactureOrderStatusRequest {
     id: number;
     newState: ManufactureOrderState;
     changeReason?: string | undefined;
+}
+
+export class ConfirmSemiProductManufactureResponse implements IConfirmSemiProductManufactureResponse {
+    success?: boolean;
+    message?: string | undefined;
+    errorCode?: string | undefined;
+
+    constructor(data?: IConfirmSemiProductManufactureResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.message = _data["message"];
+            this.errorCode = _data["errorCode"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmSemiProductManufactureResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmSemiProductManufactureResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["message"] = this.message;
+        data["errorCode"] = this.errorCode;
+        return data;
+    }
+}
+
+export interface IConfirmSemiProductManufactureResponse {
+    success?: boolean;
+    message?: string | undefined;
+    errorCode?: string | undefined;
+}
+
+export class ConfirmSemiProductManufactureRequest implements IConfirmSemiProductManufactureRequest {
+    id!: number;
+    actualQuantity!: number;
+    changeReason?: string | undefined;
+
+    constructor(data?: IConfirmSemiProductManufactureRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.actualQuantity = _data["actualQuantity"];
+            this.changeReason = _data["changeReason"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmSemiProductManufactureRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmSemiProductManufactureRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["actualQuantity"] = this.actualQuantity;
+        data["changeReason"] = this.changeReason;
+        return data;
+    }
+}
+
+export interface IConfirmSemiProductManufactureRequest {
+    id: number;
+    actualQuantity: number;
+    changeReason?: string | undefined;
+}
+
+export class ConfirmProductCompletionResponse implements IConfirmProductCompletionResponse {
+    success?: boolean;
+    message?: string | undefined;
+    errorCode?: string | undefined;
+
+    constructor(data?: IConfirmProductCompletionResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.message = _data["message"];
+            this.errorCode = _data["errorCode"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmProductCompletionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmProductCompletionResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["message"] = this.message;
+        data["errorCode"] = this.errorCode;
+        return data;
+    }
+}
+
+export interface IConfirmProductCompletionResponse {
+    success?: boolean;
+    message?: string | undefined;
+    errorCode?: string | undefined;
+}
+
+export class ConfirmProductCompletionRequest implements IConfirmProductCompletionRequest {
+    id!: number;
+    products!: ProductActualQuantityRequest[];
+    changeReason?: string | undefined;
+
+    constructor(data?: IConfirmProductCompletionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.products = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(ProductActualQuantityRequest.fromJS(item));
+            }
+            this.changeReason = _data["changeReason"];
+        }
+    }
+
+    static fromJS(data: any): ConfirmProductCompletionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConfirmProductCompletionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        data["changeReason"] = this.changeReason;
+        return data;
+    }
+}
+
+export interface IConfirmProductCompletionRequest {
+    id: number;
+    products: ProductActualQuantityRequest[];
+    changeReason?: string | undefined;
+}
+
+export class ProductActualQuantityRequest implements IProductActualQuantityRequest {
+    id!: number;
+    actualQuantity!: number;
+
+    constructor(data?: IProductActualQuantityRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.actualQuantity = _data["actualQuantity"];
+        }
+    }
+
+    static fromJS(data: any): ProductActualQuantityRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductActualQuantityRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["actualQuantity"] = this.actualQuantity;
+        return data;
+    }
+}
+
+export interface IProductActualQuantityRequest {
+    id: number;
+    actualQuantity: number;
 }
 
 export class GetCalendarViewResponse extends BaseResponse implements IGetCalendarViewResponse {
@@ -9869,6 +10194,7 @@ export class CalendarEventSemiProductDto implements ICalendarEventSemiProductDto
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+    actualQuantity?: number | undefined;
     batchMultiplier?: number;
 
     constructor(data?: ICalendarEventSemiProductDto) {
@@ -9885,6 +10211,7 @@ export class CalendarEventSemiProductDto implements ICalendarEventSemiProductDto
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.plannedQuantity = _data["plannedQuantity"];
+            this.actualQuantity = _data["actualQuantity"];
             this.batchMultiplier = _data["batchMultiplier"];
         }
     }
@@ -9901,6 +10228,7 @@ export class CalendarEventSemiProductDto implements ICalendarEventSemiProductDto
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["plannedQuantity"] = this.plannedQuantity;
+        data["actualQuantity"] = this.actualQuantity;
         data["batchMultiplier"] = this.batchMultiplier;
         return data;
     }
@@ -9910,6 +10238,7 @@ export interface ICalendarEventSemiProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+    actualQuantity?: number | undefined;
     batchMultiplier?: number;
 }
 
@@ -9917,6 +10246,7 @@ export class CalendarEventProductDto implements ICalendarEventProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+    actualQuantity?: number | undefined;
 
     constructor(data?: ICalendarEventProductDto) {
         if (data) {
@@ -9932,6 +10262,7 @@ export class CalendarEventProductDto implements ICalendarEventProductDto {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.plannedQuantity = _data["plannedQuantity"];
+            this.actualQuantity = _data["actualQuantity"];
         }
     }
 
@@ -9947,6 +10278,7 @@ export class CalendarEventProductDto implements ICalendarEventProductDto {
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["plannedQuantity"] = this.plannedQuantity;
+        data["actualQuantity"] = this.actualQuantity;
         return data;
     }
 }
@@ -9955,6 +10287,7 @@ export interface ICalendarEventProductDto {
     productCode?: string;
     productName?: string;
     plannedQuantity?: number;
+    actualQuantity?: number | undefined;
 }
 
 export class DuplicateManufactureOrderResponse extends BaseResponse implements IDuplicateManufactureOrderResponse {
@@ -10657,6 +10990,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     transportStock?: number;
     primaryStockSource?: string;
     reserve?: number;
+    planned?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
     optimalDaysSetup?: number;
@@ -10687,6 +11021,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.transportStock = _data["transportStock"];
             this.primaryStockSource = _data["primaryStockSource"];
             this.reserve = _data["reserve"];
+            this.planned = _data["planned"];
             this.salesInPeriod = _data["salesInPeriod"];
             this.dailySalesRate = _data["dailySalesRate"];
             this.optimalDaysSetup = _data["optimalDaysSetup"];
@@ -10717,6 +11052,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["transportStock"] = this.transportStock;
         data["primaryStockSource"] = this.primaryStockSource;
         data["reserve"] = this.reserve;
+        data["planned"] = this.planned;
         data["salesInPeriod"] = this.salesInPeriod;
         data["dailySalesRate"] = this.dailySalesRate;
         data["optimalDaysSetup"] = this.optimalDaysSetup;
@@ -10740,6 +11076,7 @@ export interface IManufacturingStockItemDto {
     transportStock?: number;
     primaryStockSource?: string;
     reserve?: number;
+    planned?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
     optimalDaysSetup?: number;
@@ -10849,6 +11186,7 @@ export enum ManufacturingStockSortBy {
     ProductName = "ProductName",
     CurrentStock = "CurrentStock",
     Reserve = "Reserve",
+    Planned = "Planned",
     SalesInPeriod = "SalesInPeriod",
     DailySales = "DailySales",
     OptimalDaysSetup = "OptimalDaysSetup",

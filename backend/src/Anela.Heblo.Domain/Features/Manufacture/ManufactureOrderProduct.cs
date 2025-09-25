@@ -8,7 +8,7 @@ public class ManufactureOrderProduct
     public string ProductName { get; set; } = null!;
     public string SemiProductCode { get; set; } = null!; // Odkaz na semi-product
     public decimal PlannedQuantity { get; set; }
-    public decimal ActualQuantity { get; set; }
+    public decimal? ActualQuantity { get; set; }
     public string? LotNumber { get; set; } // Šarže pro finální produkty - předvyplní se z meziproduktu, uživatel může upravit
     public DateOnly? ExpirationDate { get; set; } // Expirace pro finální produkty - předvyplní se z meziproduktu, uživatel může upravit
 

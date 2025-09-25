@@ -52,13 +52,15 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                             ProductCode = order.SemiProduct.ProductCode,
                             ProductName = order.SemiProduct.ProductName,
                             PlannedQuantity = order.SemiProduct.PlannedQuantity,
+                            ActualQuantity = order.SemiProduct.ActualQuantity,
                             BatchMultiplier = order.SemiProduct.BatchMultiplier
                         } : null,
                         Products = order.Products?.Select(p => new CalendarEventProductDto
                         {
                             ProductCode = p.ProductCode,
                             ProductName = p.ProductName,
-                            PlannedQuantity = p.PlannedQuantity
+                            PlannedQuantity = p.PlannedQuantity,
+                            ActualQuantity = p.ActualQuantity
                         }).ToList() ?? new List<CalendarEventProductDto>()
                     });
                 }

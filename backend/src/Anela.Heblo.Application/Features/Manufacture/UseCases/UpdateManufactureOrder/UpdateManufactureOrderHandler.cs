@@ -33,36 +33,89 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                     new Dictionary<string, string> { { "id", request.Id.ToString() } });
             }
 
-            // Update basic properties
-            order.SemiProductPlannedDate = request.SemiProductPlannedDate;
-            order.ProductPlannedDate = request.ProductPlannedDate;
-            order.ResponsiblePerson = request.ResponsiblePerson;
+            // Update basic properties only if provided
+            if (request.SemiProductPlannedDate.HasValue)
+                order.SemiProductPlannedDate = request.SemiProductPlannedDate.Value;
+            
+            if (request.ProductPlannedDate.HasValue)
+                order.ProductPlannedDate = request.ProductPlannedDate.Value;
+            
+            if (request.ResponsiblePerson != null)
+                order.ResponsiblePerson = request.ResponsiblePerson;
 
             // Update semi-product if provided
             if (request.SemiProduct != null && order.SemiProduct != null)
             {
-                order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
-                order.SemiProduct.ExpirationDate = request.SemiProduct.ExpirationDate;
+                if (request.SemiProduct.PlannedQuantity != null)
+                    order.SemiProduct.PlannedQuantity = request.SemiProduct.PlannedQuantity.Value;
+                
+                if (request.SemiProduct.LotNumber != null)
+                    order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
+                
+                if (request.SemiProduct.ExpirationDate != null)
+                    order.SemiProduct.ExpirationDate = request.SemiProduct.ExpirationDate;
+                
+                if (request.SemiProduct.ActualQuantity != null)
+                    order.SemiProduct.ActualQuantity = request.SemiProduct.ActualQuantity.Value;
             }
             else if (request.SemiProduct != null && order.SemiProduct == null)
             {
-                _logger.LogWarning("Cannot update semi-product data (LotNumber: {LotNumber}, ExpirationDate: {ExpirationDate}) for order {OrderId} because SemiProduct is null", 
+                _logger.LogWarning("Cannot update semi-product data (LotNumber: {LotNumber}, ExpirationDate: {ExpirationDate}, ActualQuantity: {ActualQuantity}) for order {OrderId} because SemiProduct is null", 
                     request.SemiProduct.LotNumber, 
                     request.SemiProduct.ExpirationDate, 
+                    request.SemiProduct.ActualQuantity,
                     request.Id);
             }
 
-            // Update products
-            order.Products.Clear();
-            foreach (var productRequest in request.Products)
+            // Update products only if provided
+            if (request.Products != null && request.Products.Any())
             {
-                order.Products.Add(new ManufactureOrderProduct
+                // Check if this is updating existing products (by Id) or replacing all products
+                bool isUpdatingExistingProducts = request.Products.All(p => p.Id.HasValue);
+                
+                if (isUpdatingExistingProducts)
                 {
-                    ProductCode = productRequest.ProductCode,
-                    ProductName = productRequest.ProductName,
-                    PlannedQuantity = (decimal)productRequest.PlannedQuantity,
-                    SemiProductCode = order.SemiProduct!.ProductCode
-                });
+                    // Update existing products - only update specified fields
+                    foreach (var productRequest in request.Products)
+                    {
+                        var existingProduct = order.Products.FirstOrDefault(p => p.Id == productRequest.Id.Value);
+                        if (existingProduct != null)
+                        {
+                            if (productRequest.PlannedQuantity.HasValue)
+                                existingProduct.PlannedQuantity = (decimal)productRequest.PlannedQuantity.Value;
+                            
+                            if (productRequest.ActualQuantity.HasValue)
+                                existingProduct.ActualQuantity = productRequest.ActualQuantity.Value;
+                                
+                            if (!string.IsNullOrEmpty(productRequest.ProductCode))
+                                existingProduct.ProductCode = productRequest.ProductCode;
+                                
+                            if (!string.IsNullOrEmpty(productRequest.ProductName))
+                                existingProduct.ProductName = productRequest.ProductName;
+
+                            existingProduct.ExpirationDate = order.SemiProduct!.ExpirationDate;
+                            existingProduct.LotNumber = order.SemiProduct!.LotNumber;
+                        }
+                    }
+                }
+                else
+                {
+                    // Replace all products (original behavior for product creation/full update)
+                    order.Products.Clear();
+                    foreach (var productRequest in request.Products)
+                    {
+                        order.Products.Add(new ManufactureOrderProduct
+                        {
+                            ProductCode = productRequest.ProductCode!,
+                            ProductName = productRequest.ProductName!,
+                            PlannedQuantity = (decimal)productRequest.PlannedQuantity!.Value,
+                            ActualQuantity = productRequest.ActualQuantity ?? (decimal)productRequest.PlannedQuantity!.Value,
+                            SemiProductCode = order.SemiProduct!.ProductCode,
+                            ExpirationDate = order.SemiProduct!.ExpirationDate,
+                            LotNumber = order.SemiProduct!.LotNumber,
+                        });
+                    }
+                }
             }
 
             // Add note if provided

@@ -27,6 +27,8 @@ import {
   useManufactureOrderDetailQuery,
   useUpdateManufactureOrder,
   useUpdateManufactureOrderStatus,
+  useConfirmSemiProductManufacture,
+  useConfirmProductCompletion,
   useDuplicateManufactureOrder,
   ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
@@ -36,8 +38,12 @@ import {
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderProductRequest,
   UpdateManufactureOrderSemiProductRequest,
+  ConfirmSemiProductManufactureRequest,
+  ConfirmProductCompletionRequest,
 } from "../../api/generated/api-client";
 import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
+import ConfirmSemiProductQuantityModal from "../modals/ConfirmSemiProductQuantityModal";
+import ConfirmProductCompletionModal from "../modals/ConfirmProductCompletionModal";
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -148,6 +154,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableExpirationDate, setEditableExpirationDate] = useState("");
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  // Semi-product quantity confirmation modal state
+  const [showQuantityConfirmModal, setShowQuantityConfirmModal] = useState(false);
+  // Product completion confirmation modal state
+  const [showProductCompletionModal, setShowProductCompletionModal] = useState(false);
 
   // Fetch order details
   const {
@@ -203,6 +213,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   // Mutations
   const updateOrderMutation = useUpdateManufactureOrder();
   const updateOrderStatusMutation = useUpdateManufactureOrderStatus();
+  const confirmSemiProductMutation = useConfirmSemiProductManufacture();
+  const confirmProductCompletionMutation = useConfirmProductCompletion();
   const duplicateOrderMutation = useDuplicateManufactureOrder();
 
   // Initialize editable fields when order data changes
@@ -213,6 +225,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         orderProductPlannedDate: order.productPlannedDate,
         responsiblePerson: order.responsiblePerson
       });
+      
+      // Check if fields can be edited based on state
+      const fieldsCanBeEdited = order.state === ManufactureOrderState.Draft || order.state === ManufactureOrderState.Planned;
       
       setEditableResponsiblePerson(order.responsiblePerson || "");
       
@@ -226,16 +241,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       
       setEditableSemiProductDate(semiDateString);
       setEditableProductDate(productDateString);
-      setEditableSemiProductQuantity(order.semiProduct?.plannedQuantity?.toString() || "");
+      // For semi-product: always edit planned quantity in edit mode, show actual quantity in read-only mode
+      const semiProductQuantity = fieldsCanBeEdited 
+        ? order.semiProduct?.plannedQuantity?.toString() || ""
+        : order.semiProduct?.actualQuantity?.toString() || order.semiProduct?.plannedQuantity?.toString() || "";
+      setEditableSemiProductQuantity(semiProductQuantity);
       
       // Initialize lot number and expiration date
       setEditableLotNumber(order.semiProduct?.lotNumber || "");
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
       
-      // Initialize product quantities
+      // Initialize product quantities - edit planned quantity in edit mode, show actual quantity in read-only mode
       const productQuantities: Record<number, string> = {};
       order.products?.forEach((product, index) => {
-        productQuantities[index] = product.plannedQuantity?.toString() || "";
+        const quantity = fieldsCanBeEdited 
+          ? product.plannedQuantity?.toString() || ""
+          : product.actualQuantity?.toString() || product.plannedQuantity?.toString() || "";
+        productQuantities[index] = quantity;
       });
       setEditableProductQuantities(productQuantities);
     }
@@ -360,6 +382,18 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const handleStateChange = async (newState: ManufactureOrderState) => {
     if (!order || !orderId) return;
 
+    // Special handling for transition from Planned to SemiProductManufactured
+    if (order.state === ManufactureOrderState.Planned && newState === ManufactureOrderState.SemiProductManufactured) {
+      setShowQuantityConfirmModal(true);
+      return;
+    }
+
+    // Special handling for transition from SemiProductManufactured to Completed
+    if (order.state === ManufactureOrderState.SemiProductManufactured && newState === ManufactureOrderState.Completed) {
+      setShowProductCompletionModal(true);
+      return;
+    }
+
     try {
       const request = new UpdateManufactureOrderStatusRequest({
         id: orderId,
@@ -378,14 +412,18 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     if (!order || !orderId) return;
 
     try {
-      // Prepare products data
+      // Prepare products data - include IDs to update existing products instead of replacing them
+      // Only send quantity updates if fields are editable, otherwise send null to preserve existing values
       const products = order.products?.map((product, index) => new UpdateManufactureOrderProductRequest({
+        id: product.id, // Include ID to update existing product
         productCode: product.productCode || "",
         productName: product.productName || "",
-        plannedQuantity: parseFloat(editableProductQuantities[index] || "0") || 0,
+        // Only send PlannedQuantity if fields are editable, otherwise undefined to preserve existing values
+        plannedQuantity: canEditFields ? (parseFloat(editableProductQuantities[index] || "0") || 0) : undefined,
       })) || [];
 
-      const semiProductRequest = editableLotNumber || editableExpirationDate ? new UpdateManufactureOrderSemiProductRequest({
+      const semiProductRequest = (editableLotNumber || editableExpirationDate || (canEditFields && editableSemiProductQuantity)) ? new UpdateManufactureOrderSemiProductRequest({
+        plannedQuantity: canEditFields && editableSemiProductQuantity ? parseFloat(editableSemiProductQuantity) || undefined : undefined,
         lotNumber: editableLotNumber || undefined,
         expirationDate: editableExpirationDate ? (() => {
           const [year, month] = editableExpirationDate.split('-').map(Number);
@@ -393,9 +431,16 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         })() : undefined,
       }) : undefined;
 
-      console.log('Saving semi-product data:', {
+      console.log('Saving order data:', {
+        canEditFields,
         editableLotNumber,
         editableExpirationDate,
+        editableProductQuantities,
+        products: products.map(p => ({ 
+          id: p.id, 
+          plannedQuantity: p.plannedQuantity,
+          productCode: p.productCode 
+        })),
         semiProductRequest
       });
 
@@ -484,8 +529,35 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     }
   };
 
-  // Check if fields can be edited based on state
-  const canEditFields = order?.state !== ManufactureOrderState.Completed && order?.state !== ManufactureOrderState.Cancelled;
+  // Handle semi-product quantity confirmation
+  const handleConfirmQuantity = async (request: ConfirmSemiProductManufactureRequest) => {
+    try {
+      await confirmSemiProductMutation.mutateAsync(request);
+      setShowQuantityConfirmModal(false);
+      // Close the entire ManufactureOrderDetail dialog after successful confirmation
+      handleCloseWithWeekNavigation();
+    } catch (error) {
+      console.error("Error confirming semi-product quantity:", error);
+      // Error is handled by the modal component
+      throw error;
+    }
+  };
+
+  const handleConfirmProductCompletion = async (request: ConfirmProductCompletionRequest) => {
+    try {
+      await confirmProductCompletionMutation.mutateAsync(request);
+      setShowProductCompletionModal(false);
+      // Close the entire ManufactureOrderDetail dialog after successful confirmation
+      handleCloseWithWeekNavigation();
+    } catch (error) {
+      console.error("Error confirming product completion:", error);
+      // Error is handled by the modal component
+      throw error;
+    }
+  };
+
+  // Check if fields can be edited based on state - only draft and planned
+  const canEditFields = order?.state === ManufactureOrderState.Draft || order?.state === ManufactureOrderState.Planned;
 
   const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
 
@@ -787,7 +859,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       {/* Semi-product Highlighted Row */}
                       <div className="bg-blue-50 rounded-lg p-3">
                         {order.semiProduct ? (
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center">
                             <div className="flex-1">
                               <div className="text-sm font-medium text-gray-900 mb-1">
                                 {order.semiProduct.productName || "Bez názvu"}
@@ -796,19 +868,27 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                 {order.semiProduct.productCode || "Bez kódu"}
                               </div>
                             </div>
-                            <div className="text-right ml-4">
+                            <div className="ml-2">
                               {canEditFields ? (
-                                <input
-                                  type="number"
-                                  value={editableSemiProductQuantity}
-                                  onChange={(e) => setEditableSemiProductQuantity(e.target.value)}
-                                  className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-32 text-center"
-                                  min="0"
-                                  step="1"
-                                />
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    value={editableSemiProductQuantity}
+                                    onChange={(e) => setEditableSemiProductQuantity(e.target.value)}
+                                    className="text-lg font-bold text-gray-700 bg-white border border-gray-300 rounded px-2 py-1 w-25 text-center"
+                                    min="0"
+                                    step="1"
+                                  />
+                                  <span className="text-lg font-bold text-gray-900 ml-1">g</span>
+                                </div>
                               ) : (
                                 <div className="text-lg font-bold text-gray-900">
-                                  {order.semiProduct.plannedQuantity || "0"}
+                                  {order.semiProduct.actualQuantity || order.semiProduct.plannedQuantity || "0"}g
+                                  {order.semiProduct.actualQuantity && order.semiProduct.plannedQuantity && order.semiProduct.actualQuantity !== order.semiProduct.plannedQuantity && (
+                                    <span className="text-xs text-gray-500 ml-1">
+                                      (plán: {order.semiProduct.plannedQuantity}g)
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -857,7 +937,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                                           step="1"
                                         />
                                       ) : (
-                                        product.plannedQuantity || "-"
+                                        <div>
+                                          {product.actualQuantity || product.plannedQuantity || "-"}
+                                          {product.actualQuantity && product.plannedQuantity && product.actualQuantity !== product.plannedQuantity && (
+                                            <span className="text-xs text-gray-500 ml-1">
+                                              (plán: {product.plannedQuantity})
+                                            </span>
+                                          )}
+                                        </div>
                                       )}
                                     </td>
                                   </tr>
@@ -1070,6 +1157,36 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Confirm Semi-Product Quantity Modal */}
+        {showQuantityConfirmModal && order?.semiProduct && (
+          <ConfirmSemiProductQuantityModal
+            isOpen={showQuantityConfirmModal}
+            onClose={() => setShowQuantityConfirmModal(false)}
+            onSubmit={handleConfirmQuantity}
+            orderId={orderId}
+            plannedQuantity={order.semiProduct.plannedQuantity || 0}
+            productName={order.semiProduct.productName || ""}
+            isLoading={confirmSemiProductMutation.isPending}
+          />
+        )}
+
+        {/* Confirm Product Completion Modal */}
+        {showProductCompletionModal && order?.products && order.products.length > 0 && (
+          <ConfirmProductCompletionModal
+            isOpen={showProductCompletionModal}
+            onClose={() => setShowProductCompletionModal(false)}
+            onSubmit={handleConfirmProductCompletion}
+            orderId={orderId}
+            products={order.products.map(product => ({
+              id: product.id || 0,
+              productCode: product.productCode || "",
+              productName: product.productName || "",
+              plannedQuantity: product.plannedQuantity || 0
+            }))}
+            isLoading={confirmProductCompletionMutation.isPending}
+          />
         )}
     </div>
   );
