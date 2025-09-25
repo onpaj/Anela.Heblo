@@ -7,5 +7,6 @@ public enum ManufactureOrderAuditAction
     DateChanged,
     ResponsiblePersonAssigned,
     NoteAdded,
-    OrderCreated
+    OrderCreated,
+    ManualActionResolved
 }

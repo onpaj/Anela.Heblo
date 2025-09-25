@@ -2868,6 +2868,47 @@ export class ApiClient {
         return Promise.resolve<GetGroupMembersResponse>(null as any);
     }
 
+    manufactureOrder_ResolveManualAction(id: number, request: ResolveManualActionRequest): Promise<ResolveManualActionResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/resolve-manual-action";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_ResolveManualAction(_response);
+        });
+    }
+
+    protected processManufactureOrder_ResolveManualAction(response: Response): Promise<ResolveManualActionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ResolveManualActionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ResolveManualActionResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -9116,6 +9157,7 @@ export enum ManufactureOrderAuditAction {
     ResponsiblePersonAssigned = "ResponsiblePersonAssigned",
     NoteAdded = "NoteAdded",
     OrderCreated = "OrderCreated",
+    ManualActionResolved = "ManualActionResolved",
 }
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
@@ -10436,6 +10478,81 @@ export interface IUserDto {
     id?: string;
     displayName?: string;
     email?: string;
+}
+
+export class ResolveManualActionResponse extends BaseResponse implements IResolveManualActionResponse {
+
+    constructor(data?: IResolveManualActionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ResolveManualActionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ResolveManualActionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IResolveManualActionResponse extends IBaseResponse {
+}
+
+export class ResolveManualActionRequest implements IResolveManualActionRequest {
+    orderId!: number;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
+    note?: string | undefined;
+
+    constructor(data?: IResolveManualActionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.orderId = _data["orderId"];
+            this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.note = _data["note"];
+        }
+    }
+
+    static fromJS(data: any): ResolveManualActionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ResolveManualActionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["orderId"] = this.orderId;
+        data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["note"] = this.note;
+        return data;
+    }
+}
+
+export interface IResolveManualActionRequest {
+    orderId: number;
+    erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberProduct?: string | undefined;
+    note?: string | undefined;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

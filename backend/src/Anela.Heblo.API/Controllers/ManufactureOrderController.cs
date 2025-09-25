@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.ResolveManualAction;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
@@ -210,6 +211,21 @@ public class ManufactureOrderController : BaseApiController
 
         var request = new GetGroupMembersRequest { GroupId = groupId };
         var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Resolve manual action for a manufacture order
+    /// </summary>
+    [HttpPost("{id}/resolve-manual-action")]
+    public async Task<ActionResult<ResolveManualActionResponse>> ResolveManualAction(int id, [FromBody] ResolveManualActionRequest request)
+    {
+        if (id != request.OrderId)
+        {
+            return BadRequest("ID in URL does not match ID in request body.");
+        }
+
+        var response = await _mediator.Send(request);
         return HandleResponse(response);
     }
 }

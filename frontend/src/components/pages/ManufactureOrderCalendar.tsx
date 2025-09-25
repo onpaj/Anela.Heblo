@@ -11,8 +11,8 @@ import {
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
-  ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
+import { ManufactureOrderState } from "../../api/generated/api-client";
 
 interface ManufactureOrderCalendarProps {
   onEventClick?: (orderId: number) => void;

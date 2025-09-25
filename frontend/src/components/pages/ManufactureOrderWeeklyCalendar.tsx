@@ -15,8 +15,8 @@ import {
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
-  ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
+import { ManufactureOrderState } from "../../api/generated/api-client";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useNavigate } from "react-router-dom";
 

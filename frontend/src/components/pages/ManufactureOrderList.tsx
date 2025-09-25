@@ -15,9 +15,8 @@ import { useSearchParams } from "react-router-dom";
 import {
   useManufactureOrdersQuery,
   GetManufactureOrdersRequest,
-  ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
-import { ProductType } from "../../api/generated/api-client";
+import { ProductType, ManufactureOrderState } from "../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";

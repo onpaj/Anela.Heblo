@@ -14,6 +14,8 @@ import {
   ConfirmProductCompletionRequest,
   ConfirmProductCompletionResponse,
   DuplicateManufactureOrderResponse,
+  ResolveManualActionRequest,
+  ResolveManualActionResponse,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -51,32 +53,32 @@ export const useManufactureOrdersQuery = (request: GetManufactureOrdersRequest =
     queryFn: async () => {
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_GetOrders(
-        request.state,
-        request.dateFrom,
-        request.dateTo,
-        request.responsiblePerson,
-        request.orderNumber,
-        request.productCode
+        request.state || undefined,
+        request.dateFrom || undefined,
+        request.dateTo || undefined,
+        request.responsiblePerson || undefined,
+        request.orderNumber || undefined,
+        request.productCode || undefined
       );
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useManufactureOrderDetailQuery = (id: number) => {
+export const useManufactureOrderDetailQuery = (id: number | null, enabled: boolean = true) => {
   return useQuery({
-    queryKey: manufactureOrderKeys.detail(id),
+    queryKey: manufactureOrderKeys.detail(id!),
     queryFn: async () => {
+      if (!id) return null;
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_GetOrder(id);
     },
-    enabled: !!id,
+    enabled: enabled && !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-// Mutation for creating manufacture orders
-export const useCreateManufactureOrder = () => {
+export const useCreateManufactureOrderMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -85,32 +87,29 @@ export const useCreateManufactureOrder = () => {
       return await apiClient.manufactureOrder_CreateOrder(request);
     },
     onSuccess: () => {
-      // Invalidate and refetch manufacture orders list
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.lists(),
-      });
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
     },
   });
 };
 
-// Mutation for updating manufacture orders
-export const useUpdateManufactureOrder = () => {
+export const useUpdateManufactureOrderMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (request: UpdateManufactureOrderRequest): Promise<UpdateManufactureOrderResponse> => {
       const apiClient = getManufactureOrdersClient();
-      return await apiClient.manufactureOrder_UpdateOrder(request.id, request);
+      return await apiClient.manufactureOrder_UpdateOrder(request.id!, request);
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch manufacture orders list
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      
+      // Also invalidate specific order detail
       queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.lists(),
+        queryKey: manufactureOrderKeys.detail(variables.id!),
       });
-      // Invalidate the specific order detail
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.detail(variables.id),
-      });
+
       // Also invalidate all calendar queries (including those with date parameters)
       queryClient.invalidateQueries({
         predicate: (query) => {
@@ -123,24 +122,23 @@ export const useUpdateManufactureOrder = () => {
   });
 };
 
-// Mutation for updating manufacture order status
-export const useUpdateManufactureOrderStatus = () => {
+export const useUpdateManufactureOrderStatusMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (request: UpdateManufactureOrderStatusRequest): Promise<UpdateManufactureOrderStatusResponse> => {
       const apiClient = getManufactureOrdersClient();
-      return await apiClient.manufactureOrder_UpdateOrderStatus(request.id, request);
+      return await apiClient.manufactureOrder_UpdateOrderStatus(request.id!, request);
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch manufacture orders list
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      
+      // Also invalidate specific order detail
       queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.lists(),
+        queryKey: manufactureOrderKeys.detail(variables.id!),
       });
-      // Invalidate the specific order detail
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.detail(variables.id),
-      });
+
       // Also invalidate all calendar queries (including those with date parameters)
       queryClient.invalidateQueries({
         predicate: (query) => {
@@ -153,21 +151,21 @@ export const useUpdateManufactureOrderStatus = () => {
   });
 };
 
-// Mutation for duplicating manufacture orders
 export const useDuplicateManufactureOrder = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: async (sourceOrderId: number): Promise<DuplicateManufactureOrderResponse> => {
+    mutationFn: async (id: number): Promise<DuplicateManufactureOrderResponse> => {
       const apiClient = getManufactureOrdersClient();
-      return await apiClient.manufactureOrder_DuplicateOrder(sourceOrderId);
+      return await apiClient.manufactureOrder_DuplicateOrder(id);
     },
     onSuccess: () => {
-      // Invalidate and refetch manufacture orders list
+      // Invalidate and refetch manufacture orders after duplication
       queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.lists(),
+        queryKey: manufactureOrderKeys.all,
       });
-      // Also invalidate all calendar queries (including those with date parameters)
+
+      // Also invalidate all calendar queries
       queryClient.invalidateQueries({
         predicate: (query) => {
           return query.queryKey.length >= 2 && 
@@ -179,25 +177,27 @@ export const useDuplicateManufactureOrder = () => {
   });
 };
 
-// Re-export types from generated client for backward compatibility
-export type {
-  GetManufactureOrdersResponse,
-  GetManufactureOrderResponse,
-  ManufactureOrderDto,
-  ManufactureOrderSemiProductDto,
-  ManufactureOrderProductDto,
-  ManufactureOrderNoteDto,
-  ManufactureOrderAuditLogDto,
-  ManufactureOrderAuditAction,
-} from "../generated/api-client";
-
-// Re-export enums as values
-export {
+// Type exports
+export type { 
   ManufactureOrderState,
+  CreateManufactureOrderRequest,
+  CreateManufactureOrderResponse,
+  UpdateManufactureOrderRequest,
+  UpdateManufactureOrderResponse,
+  UpdateManufactureOrderStatusRequest,
+  UpdateManufactureOrderStatusResponse,
+  ConfirmSemiProductManufactureRequest,
+  ConfirmSemiProductManufactureResponse,
+  ConfirmProductCompletionRequest,
+  ConfirmProductCompletionResponse,
+  DuplicateManufactureOrderResponse
 } from "../generated/api-client";
 
-// Re-export calendar types from generated client
-export type { CalendarEventDto } from "../generated/api-client";
+// Re-export useful DTOs
+export type { GetManufactureOrdersResponse, GetManufactureOrderResponse, ManufactureOrderDto } from "../generated/api-client";
+
+// Re-export calendar view related types
+export type { GetCalendarViewResponse, CalendarEventDto } from "../generated/api-client";
 
 // Calendar view query hook using generated API client
 export const useManufactureOrderCalendarQuery = (
@@ -279,3 +279,40 @@ export const useConfirmProductCompletion = () => {
     },
   });
 };
+
+// Resolve manual action mutation hook using generated API client
+export const useResolveManualAction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: ResolveManualActionRequest): Promise<ResolveManualActionResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_ResolveManualAction(request.orderId!, request);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.all,
+      });
+      
+      // Also invalidate specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.orderId!),
+      });
+
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
+    },
+  });
+};
+
+// Aliases for backwards compatibility
+export const useCreateManufactureOrder = useCreateManufactureOrderMutation;
+export const useUpdateManufactureOrder = useUpdateManufactureOrderMutation;
+export const useUpdateManufactureOrderStatus = useUpdateManufactureOrderStatusMutation;

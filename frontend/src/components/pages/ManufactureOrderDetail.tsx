@@ -30,7 +30,6 @@ import {
   useConfirmSemiProductManufacture,
   useConfirmProductCompletion,
   useDuplicateManufactureOrder,
-  ManufactureOrderState,
 } from "../../api/hooks/useManufactureOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -40,10 +39,12 @@ import {
   UpdateManufactureOrderSemiProductRequest,
   ConfirmSemiProductManufactureRequest,
   ConfirmProductCompletionRequest,
+  ManufactureOrderState,
 } from "../../api/generated/api-client";
 import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
 import ConfirmSemiProductQuantityModal from "../modals/ConfirmSemiProductQuantityModal";
 import ConfirmProductCompletionModal from "../modals/ConfirmProductCompletionModal";
+import ResolveManualActionModal from "../modals/ResolveManualActionModal";
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -160,6 +161,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [showQuantityConfirmModal, setShowQuantityConfirmModal] = useState(false);
   // Product completion confirmation modal state
   const [showProductCompletionModal, setShowProductCompletionModal] = useState(false);
+  // Resolve manual action modal state
+  const [showResolveModal, setShowResolveModal] = useState(false);
 
   // Fetch order details
   const {
@@ -786,6 +789,30 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                             )}
                           </div>
                           
+                          {/* Manual Action Required Section */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-500">Vyžaduje ruční zásah:</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={order.manualActionRequired || false}
+                                disabled={true}
+                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                              {order.manualActionRequired && (
+                                <button
+                                  onClick={() => setShowResolveModal(true)}
+                                  className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors duration-150"
+                                >
+                                  Vyřešeno
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
                           {/* Planned Dates Section */}
                        
                           <div className="space-y-2">
@@ -1236,6 +1263,30 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
               plannedQuantity: product.plannedQuantity || 0
             }))}
             isLoading={confirmProductCompletionMutation.isPending}
+          />
+        )}
+
+        {/* Resolve Manual Action Modal */}
+        {showResolveModal && order && (
+          <ResolveManualActionModal
+            isOpen={showResolveModal}
+            onClose={() => setShowResolveModal(false)}
+            orderId={orderId!}
+            currentErpSemiproduct={order.erpOrderNumberSemiproduct || ""}
+            currentErpProduct={order.erpOrderNumberProduct || ""}
+            onSuccess={() => {
+              setShowResolveModal(false);
+              // Refresh the order data
+              queryClient.invalidateQueries({
+                queryKey: ["manufacture-order", orderId]
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["manufacture-orders"]
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["manufactureOrders", "calendar"]
+              });
+            }}
           />
         )}
     </div>
