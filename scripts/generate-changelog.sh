@@ -84,13 +84,13 @@ generate_current_version_changelog() {
     
     # Check for GitVersion environment variables (used in CI/CD)
     if [[ -n "$GITVERSION_FULLSEMVER" ]]; then
-        current_version="$GITVERSION_FULLSEMVER"
+        current_version="${GITVERSION_FULLSEMVER#v}"
         log_info "Using GitVersion FULLSEMVER: $current_version" >&2
     elif [[ -n "$GITVERSION_SEMVER" ]]; then
-        current_version="$GITVERSION_SEMVER"
+        current_version="${GITVERSION_SEMVER#v}"
         log_info "Using GitVersion SEMVER: $current_version" >&2
     elif [[ -n "$GITVERSION_MAJORMINORPATCH" ]]; then
-        current_version="$GITVERSION_MAJORMINORPATCH"
+        current_version="${GITVERSION_MAJORMINORPATCH#v}"
         log_info "Using GitVersion MAJORMINORPATCH: $current_version" >&2
     else
         # Try to run dotnet gitversion if available
@@ -505,13 +505,13 @@ generate_changelog() {
     
     # Check for GitVersion environment variables for currentVersion field
     if [[ -n "$GITVERSION_FULLSEMVER" ]]; then
-        json_current_version="$GITVERSION_FULLSEMVER"
+        json_current_version="${GITVERSION_FULLSEMVER#v}"
         log_info "Using GitVersion FULLSEMVER for currentVersion: $json_current_version" >&2
     elif [[ -n "$GITVERSION_SEMVER" ]]; then
-        json_current_version="$GITVERSION_SEMVER"
+        json_current_version="${GITVERSION_SEMVER#v}"
         log_info "Using GitVersion SEMVER for currentVersion: $json_current_version" >&2
     elif [[ -n "$GITVERSION_MAJORMINORPATCH" ]]; then
-        json_current_version="$GITVERSION_MAJORMINORPATCH"
+        json_current_version="${GITVERSION_MAJORMINORPATCH#v}"
         log_info "Using GitVersion MAJORMINORPATCH for currentVersion: $json_current_version" >&2
     else
         # Try to run dotnet gitversion if available
