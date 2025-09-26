@@ -40,6 +40,11 @@ export enum ErrorCodes {
   IngredientNotFoundInTemplate = 1207,
   InvalidIngredientAmount = 1208,
   FixedProductsExceedAvailableVolume = 1209,
+  OrderNotFound = 1210,
+  CannotUpdateCompletedOrder = 1211,
+  CannotUpdateCancelledOrder = 1212,
+  CannotScheduleInPast = 1213,
+  InvalidScheduleDateOrder = 1214,
 
   // Catalog module errors (13XX)
   CatalogItemNotFound = 1301,
