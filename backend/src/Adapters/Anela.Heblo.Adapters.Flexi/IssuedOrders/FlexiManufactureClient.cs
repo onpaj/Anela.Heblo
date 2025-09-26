@@ -8,6 +8,12 @@ namespace Anela.Heblo.Adapters.Flexi.IssuedOrders;
 
 public class FlexiManufactureClient : IManufactureClient
 {
+    private const string DocumentTypeSemiProduct = "VYR-POLOTOVAR";
+    private const string DocumentTypeProduct = "VYR-PRODUKT";
+    private const string WarehouseDocumentTypeSemiProduct = "VYROBA-POLOTOVAR";
+    private const string WarehouseDocumentTypeProduct = "VYROBA-PRODUKT";
+    private const string WarehouseCodeSemiProduct = "POLOTOVARY";
+    private const string WarehouseCodeProduct = "ZBOZI";
     private readonly IIssuedOrdersClient _ordersClient;
     private readonly ILogger<FlexiManufactureClient> _logger;
 
@@ -32,8 +38,8 @@ public class FlexiManufactureClient : IManufactureClient
             {
                 DepartmentCode = "C",
                 OrderInternalNumber = FormatOrderName(request),
-                DocumentType = request.ManufactureType == ManufactureType.SemiProduct ? "VYR-POLOTOVAR" : "VYR-PRODUKT",
-                WarehouseDocumentType = request.ManufactureType == ManufactureType.SemiProduct ? "VYROBA-POLOTOVAR" : "VYROBA-PRODUKT",
+                DocumentType = request.ManufactureType == ManufactureType.SemiProduct ? DocumentTypeSemiProduct : DocumentTypeProduct,
+                WarehouseDocumentType = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
                 DateCreated = request.Date,
                 DateVat = request.Date,
                 CreatedBy = request.CreatedBy,
@@ -85,7 +91,7 @@ public class FlexiManufactureClient : IManufactureClient
                         ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     }).ToList(),
                     WarehouseDocumentType = createOrder.WarehouseDocumentType,
-                    WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? "POLOTOVARY" : "ZBOZI",
+                    WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
                 }
             };
 
@@ -139,7 +145,7 @@ public class FlexiManufactureClient : IManufactureClient
             Amount = (double)item.Amount,
             LotNumber = request.LotNumber,
             ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? "POLOTOVARY" : "ZBOZI",
+            WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
         };
     }
 }
