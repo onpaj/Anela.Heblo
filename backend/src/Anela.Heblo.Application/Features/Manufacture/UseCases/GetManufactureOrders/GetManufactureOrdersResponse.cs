@@ -12,6 +12,8 @@ public class ManufactureOrderDto
 {
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;
+    public string? ErpOrderNumberSemiproduct { get; set; }
+    public string? ErpOrderNumberProduct { get; set; }
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
@@ -21,6 +23,7 @@ public class ManufactureOrderDto
 
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }
+    public bool ManualActionRequired { get; set; }
     public string StateChangedByUser { get; set; } = null!;
 
     public ManufactureOrderSemiProductDto? SemiProduct { get; set; }
@@ -35,7 +38,7 @@ public class ManufactureOrderSemiProductDto
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public decimal PlannedQuantity { get; set; }
-    public decimal ActualQuantity { get; set; }
+    public decimal? ActualQuantity { get; set; }
     public decimal BatchMultiplier { get; set; } // Multiplikátor z batch calculatoru
     public string? LotNumber { get; set; } // Šarže
     public DateOnly? ExpirationDate { get; set; } // Expirace
@@ -49,7 +52,7 @@ public class ManufactureOrderProductDto
     public string ProductName { get; set; } = null!;
     public string SemiProductCode { get; set; } = null!;
     public decimal PlannedQuantity { get; set; }
-    public decimal ActualQuantity { get; set; }
+    public decimal? ActualQuantity { get; set; }
 }
 
 public class ManufactureOrderNoteDto

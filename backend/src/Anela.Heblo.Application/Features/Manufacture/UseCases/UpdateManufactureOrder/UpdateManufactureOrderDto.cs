@@ -12,7 +12,7 @@ public class UpdateManufactureOrderDto
     public string State { get; set; } = null!;
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;
-    public UpdateManufactureOrderSemiProductDto? SemiProduct { get; set; }
+    public UpdateManufactureOrderSemiProductDto SemiProduct { get; set; } = null!;
     public List<UpdateManufactureOrderProductDto> Products { get; set; } = new();
     public List<UpdateManufactureOrderNoteDto> Notes { get; set; } = new();
 }

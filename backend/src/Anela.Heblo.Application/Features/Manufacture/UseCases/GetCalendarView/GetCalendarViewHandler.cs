@@ -47,18 +47,23 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                         Date = order.SemiProductPlannedDate.ToDateTime(TimeOnly.MinValue),
                         State = order.State,
                         ResponsiblePerson = order.ResponsiblePerson,
+                        ManualActionRequired = order.ManualActionRequired,
+                        ErpOrderNumberSemiproduct = order.ErpOrderNumberSemiproduct,
+                        ErpOrderNumberProduct = order.ErpOrderNumberProduct,
                         SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto
                         {
                             ProductCode = order.SemiProduct.ProductCode,
                             ProductName = order.SemiProduct.ProductName,
                             PlannedQuantity = order.SemiProduct.PlannedQuantity,
+                            ActualQuantity = order.SemiProduct.ActualQuantity,
                             BatchMultiplier = order.SemiProduct.BatchMultiplier
                         } : null,
                         Products = order.Products?.Select(p => new CalendarEventProductDto
                         {
                             ProductCode = p.ProductCode,
                             ProductName = p.ProductName,
-                            PlannedQuantity = p.PlannedQuantity
+                            PlannedQuantity = p.PlannedQuantity,
+                            ActualQuantity = p.ActualQuantity
                         }).ToList() ?? new List<CalendarEventProductDto>()
                     });
                 }

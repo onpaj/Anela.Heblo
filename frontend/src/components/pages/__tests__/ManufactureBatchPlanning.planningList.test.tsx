@@ -1,4 +1,11 @@
 // Mock react-router-dom first
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ManufactureBatchPlanning from "../ManufactureBatchPlanning";
+import { PlanningListProvider } from "../../../contexts/PlanningListContext";
+
 const mockUseSearchParams = jest.fn();
 const mockSetSearchParams = jest.fn();
 const mockUseNavigate = jest.fn();
@@ -22,7 +29,7 @@ jest.mock("../../../api/generated/api-client", () => ({
 }));
 
 // Mock ManufactureOrderDetail to prevent enum usage errors
-jest.mock("../ManufactureOrderDetail", () => {
+jest.mock("../../manufacture/pages/ManufactureOrderDetail", () => {
   return function MockManufactureOrderDetail() {
     return <div data-testid="mock-manufacture-order-detail">Mock Detail Component</div>;
   };
@@ -32,13 +39,6 @@ jest.mock("../ManufactureOrderDetail", () => {
 const mockUseBatchPlanningMutation = jest.fn();
 const mockUseCreateManufactureOrder = jest.fn();
 const mockUseCatalogAutocomplete = jest.fn();
-
-import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ManufactureBatchPlanning from "../ManufactureBatchPlanning";
-import { PlanningListProvider } from "../../../contexts/PlanningListContext";
 
 jest.mock("../../../api/hooks/useBatchPlanning", () => ({
   useBatchPlanningMutation: () => mockUseBatchPlanningMutation(),

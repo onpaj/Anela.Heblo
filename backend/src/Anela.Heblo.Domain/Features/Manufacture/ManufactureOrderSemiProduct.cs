@@ -7,7 +7,7 @@ public class ManufactureOrderSemiProduct
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public decimal PlannedQuantity { get; set; } // Z batch calculatoru
-    public decimal ActualQuantity { get; set; } // Upravené množství při výrobě
+    public decimal? ActualQuantity { get; set; } // Upravené množství při výrobě
     public decimal BatchMultiplier { get; set; } // Multiplikátor z batch calculatoru (ScaleFactor)
     public string? LotNumber { get; set; } // Šarže pro meziprodukty - zadává uživatel při úpravě množství
     public DateOnly? ExpirationDate { get; set; } // Expirace pro meziprodukty - zadává uživatel při úpravě množství

@@ -9,15 +9,18 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactur
 public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufactureOrderStatusRequest, UpdateManufactureOrderStatusResponse>
 {
     private readonly IManufactureOrderRepository _repository;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderStatusHandler> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public UpdateManufactureOrderStatusHandler(
         IManufactureOrderRepository repository,
+        TimeProvider timeProvider,
         ILogger<UpdateManufactureOrderStatusHandler> logger,
         IHttpContextAccessor httpContextAccessor)
     {
         _repository = repository;
+        _timeProvider = timeProvider;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
     }
@@ -49,8 +52,25 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
 
             // Update state
             order.State = request.NewState;
-            order.StateChangedAt = DateTime.UtcNow;
+            order.StateChangedAt = _timeProvider.GetUtcNow().DateTime;
             order.StateChangedByUser = GetCurrentUserName();
+            order.ManualActionRequired = request.ManualActionRequired;
+
+            if (request.SemiProductOrderCode != null)
+                order.ErpOrderNumberSemiproduct = request.SemiProductOrderCode;
+            if (request.ProductOrderCode != null)
+                order.ErpOrderNumberProduct = request.ProductOrderCode;
+
+            
+            if(request.Note != null)
+            {
+                order.Notes.Add(new ManufactureOrderNote()
+                {
+                    Text = request.Note,
+                    CreatedAt = order.StateChangedAt,
+                    CreatedByUser = order.StateChangedByUser
+                });
+            }
 
             // Add audit log entry if change reason provided
             if (!string.IsNullOrEmpty(request.ChangeReason))

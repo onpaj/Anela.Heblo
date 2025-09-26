@@ -34,6 +34,9 @@ public static class ManufactureModule
         // Register repositories
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
 
+        // Register application services
+        services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
+
         return services;
     }
 }

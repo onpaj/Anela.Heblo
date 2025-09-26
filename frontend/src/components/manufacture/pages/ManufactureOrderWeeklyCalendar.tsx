@@ -15,9 +15,9 @@ import {
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
-  ManufactureOrderState,
-} from "../../api/hooks/useManufactureOrders";
-import { usePlanningList } from "../../contexts/PlanningListContext";
+} from "../../../api/hooks/useManufactureOrders";
+import { ManufactureOrderState } from "../../../api/generated/api-client";
+import { usePlanningList } from "../../../contexts/PlanningListContext";
 import { useNavigate } from "react-router-dom";
 
 interface ManufactureOrderWeeklyCalendarProps {
@@ -319,15 +319,21 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                               ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
                               hover:shadow-md hover:scale-[1.02] transform
                             `}
-                            title={`Klikněte pro detail zakázky ${event.orderNumber}`}
+                            title={`Klikněte pro detail zakázky ${event.orderNumber}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
                           >
                             {/* Order Header */}
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-1 flex-1 min-w-0">
                                 <Factory className="h-4 w-4 flex-shrink-0" />
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-bold truncate">
-                                    {event.semiProduct?.productName || event.orderNumber}
+                                  <div className="text-sm font-bold truncate flex items-center space-x-2">
+                                    <span>{event.semiProduct?.productName || event.orderNumber}</span>
+                                    {event.manualActionRequired && (
+                                      <div 
+                                        className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
+                                        title="Vyžaduje ruční zásah"
+                                      />
+                                    )}
                                   </div>
                                   {event.semiProduct?.productCode && (
                                     <div className="text-xs text-gray-600 truncate">
@@ -345,7 +351,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                   <div className="flex items-center space-x-1">
                                     <Hash className="h-3 w-3" />
                                     <span className="text-xs font-medium">
-                                      {event.semiProduct.plannedQuantity?.toFixed(2)} g
+                                      {(event.semiProduct.actualQuantity ?? event.semiProduct.plannedQuantity)?.toFixed(2)} g
                                     </span>
                                   </div>
                                   {event.semiProduct.batchMultiplier && (
@@ -375,7 +381,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                       </div>
                                       <div className="text-gray-600 flex items-center justify-between">
                                         <span className="truncate">{product.productCode}</span>
-                                        <span>{product.plannedQuantity?.toFixed(2)} ks</span>
+                                        <span>{(product.actualQuantity ?? product.plannedQuantity)?.toFixed(2)} ks</span>
                                       </div>
                                     </div>
                                   ))}

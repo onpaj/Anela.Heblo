@@ -1,4 +1,5 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.IssuedOrders;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
@@ -21,6 +22,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rem.FlexiBeeSDK.Client.Clients.Contacts;
+using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 using Rem.FlexiBeeSDK.Client.DI;
@@ -65,6 +67,8 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IStockTakingClient, StockTakingClient>();
         services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
         services.AddSingleton<ILedgerService, LedgerService>();
+        services.AddScoped<IIssuedOrdersClient, IssuedOrdersClient>();
+        services.AddScoped<IManufactureClient, FlexiManufactureClient>();
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 

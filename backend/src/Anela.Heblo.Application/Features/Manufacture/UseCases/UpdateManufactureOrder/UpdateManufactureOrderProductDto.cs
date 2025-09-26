@@ -7,5 +7,5 @@ public class UpdateManufactureOrderProductDto
     public string ProductName { get; set; } = null!;
     public string SemiProductCode { get; set; } = null!;
     public decimal PlannedQuantity { get; set; }
-    public decimal ActualQuantity { get; set; }
+    public decimal? ActualQuantity { get; set; }
 }

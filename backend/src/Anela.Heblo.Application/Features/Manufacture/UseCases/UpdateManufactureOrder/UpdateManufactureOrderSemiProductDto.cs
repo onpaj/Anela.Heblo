@@ -6,7 +6,7 @@ public class UpdateManufactureOrderSemiProductDto
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public decimal PlannedQuantity { get; set; }
-    public decimal ActualQuantity { get; set; }
+    public decimal? ActualQuantity { get; set; }
     public string? LotNumber { get; set; } // Šarže
     public DateOnly? ExpirationDate { get; set; } // Expirace
 }

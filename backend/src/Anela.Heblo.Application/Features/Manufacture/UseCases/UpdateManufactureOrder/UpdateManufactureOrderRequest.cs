@@ -8,13 +8,15 @@ public class UpdateManufactureOrderRequest : IRequest<UpdateManufactureOrderResp
     [Required]
     public int Id { get; set; }
 
-    [Required]
-    public DateOnly SemiProductPlannedDate { get; set; }
+    public DateOnly? SemiProductPlannedDate { get; set; }
 
-    [Required]
-    public DateOnly ProductPlannedDate { get; set; }
+    public DateOnly? ProductPlannedDate { get; set; }
 
     public string? ResponsiblePerson { get; set; }
+
+    public string? ErpOrderNumberSemiproduct { get; set; }
+    
+    public string? ErpOrderNumberProduct { get; set; }
 
     public UpdateManufactureOrderSemiProductRequest? SemiProduct { get; set; }
 

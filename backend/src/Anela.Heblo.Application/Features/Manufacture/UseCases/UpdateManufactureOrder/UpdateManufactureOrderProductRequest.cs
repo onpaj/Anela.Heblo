@@ -4,12 +4,13 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactur
 
 public class UpdateManufactureOrderProductRequest
 {
-    [Required]
-    public string ProductCode { get; set; } = null!;
+    public int? Id { get; set; } // For updating existing products
 
-    [Required]
-    public string ProductName { get; set; } = null!;
+    public string? ProductCode { get; set; } // Optional for updates
 
-    [Required]
-    public double PlannedQuantity { get; set; }
+    public string? ProductName { get; set; } // Optional for updates
+
+    public double? PlannedQuantity { get; set; } // Optional for updates
+
+    public decimal? ActualQuantity { get; set; } // For updating actual quantity
 }

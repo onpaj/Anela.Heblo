@@ -140,7 +140,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
     public async Task<Dictionary<string, decimal>> GetPlannedQuantitiesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.ManufactureOrders
-            .Where(order => order.State != ManufactureOrderState.Completed && order.State != ManufactureOrderState.Cancelled)
+            .Where(order => order.State != ManufactureOrderState.Completed && order.State != ManufactureOrderState.Cancelled && order.State != ManufactureOrderState.Draft)
             .Include(order => order.Products)
             .SelectMany(order => order.Products)
             .GroupBy(product => product.ProductCode)

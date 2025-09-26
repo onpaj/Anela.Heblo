@@ -6,5 +6,5 @@ public enum ManufactureOrderState
     Planned = 2,
     SemiProductManufactured = 3,
     Completed = 4,
-    Cancelled = 5
+    Cancelled = 5,
 }
