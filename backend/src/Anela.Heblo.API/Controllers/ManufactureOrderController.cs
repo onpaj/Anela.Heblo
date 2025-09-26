@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderSchedule;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.ResolveManualAction;
@@ -249,6 +250,21 @@ public class ManufactureOrderController : BaseApiController
     public async Task<ActionResult<ResolveManualActionResponse>> ResolveManualAction(int id, [FromBody] ResolveManualActionRequest request)
     {
         if (id != request.OrderId)
+        {
+            return BadRequest("ID in URL does not match ID in request body.");
+        }
+
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Update schedule dates for a manufacture order (used by drag & drop functionality)
+    /// </summary>
+    [HttpPatch("{id}/schedule")]
+    public async Task<ActionResult<UpdateManufactureOrderScheduleResponse>> UpdateOrderSchedule(int id, [FromBody] UpdateManufactureOrderScheduleRequest request)
+    {
+        if (id != request.Id)
         {
             return BadRequest("ID in URL does not match ID in request body.");
         }

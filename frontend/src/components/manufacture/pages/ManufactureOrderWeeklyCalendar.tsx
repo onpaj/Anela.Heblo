@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   useManufactureOrderCalendarQuery,
+  useUpdateManufactureOrderSchedule,
   CalendarEventDto,
 } from "../../../api/hooks/useManufactureOrders";
 import { ManufactureOrderState } from "../../../api/generated/api-client";
@@ -45,6 +46,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   const navigate = useNavigate();
   const [showQuickPlanningModal, setShowQuickPlanningModal] = useState(false);
   const [selectedPlanningDate, setSelectedPlanningDate] = useState<Date | null>(null);
+  
+  // Drag & drop state
+  const [draggedEvent, setDraggedEvent] = useState<CalendarEventDto | null>(null);
+  const [draggedOverDay, setDraggedOverDay] = useState<string | null>(null);
+  
+  // Schedule update mutation
+  const updateScheduleMutation = useUpdateManufactureOrderSchedule();
 
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     // Use initialDate if provided, otherwise use today
@@ -207,6 +215,84 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     navigate(`/manufacturing/batch-planning?${searchParams.toString()}`);
   };
 
+  // Drag & drop handlers
+  const handleDragStart = (event: React.DragEvent, calendarEvent: CalendarEventDto) => {
+    setDraggedEvent(calendarEvent);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify(calendarEvent));
+    
+    // Add visual feedback
+    if (event.currentTarget instanceof HTMLElement) {
+      event.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleDragEnd = (event: React.DragEvent) => {
+    setDraggedEvent(null);
+    setDraggedOverDay(null);
+    
+    // Reset visual feedback
+    if (event.currentTarget instanceof HTMLElement) {
+      event.currentTarget.style.opacity = '1';
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent, dayKey: string) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDraggedOverDay(dayKey);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    // Only clear if we're leaving the container, not just moving between children
+    if (event.currentTarget === event.target) {
+      setDraggedOverDay(null);
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent, targetDate: Date) => {
+    event.preventDefault();
+    setDraggedOverDay(null);
+    
+    if (!draggedEvent || !draggedEvent.id) {
+      console.warn('No dragged event or event ID');
+      return;
+    }
+
+    const originalDate = draggedEvent.date;
+    if (!originalDate) {
+      console.warn('Dragged event has no date');
+      return;
+    }
+
+    // Check if we're dropping on the same date
+    const targetDateString = targetDate.toISOString().split('T')[0];
+    const originalDateString = originalDate.toISOString().split('T')[0];
+    
+    if (targetDateString === originalDateString) {
+      console.log('Dropped on same date, no action needed');
+      return;
+    }
+
+    // Update both semi-product and product planned dates to the new date
+    // This is a simplified approach - in a more complex system you might want to 
+    // let the user choose which date to update or maintain the offset between them
+    updateScheduleMutation.mutate({
+      id: draggedEvent.id,
+      semiProductPlannedDate: targetDate,
+      productPlannedDate: targetDate,
+      changeReason: `Moved from ${originalDate.toLocaleDateString('cs-CZ')} to ${targetDate.toLocaleDateString('cs-CZ')} via drag & drop`
+    }, {
+      onSuccess: () => {
+        console.log('Schedule updated successfully');
+      },
+      onError: (error) => {
+        console.error('Failed to update schedule:', error);
+        // You might want to show a toast notification here
+      }
+    });
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Compact Header */}
@@ -220,6 +306,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
               </h2>
             </div>
             <div className="flex items-center space-x-1">
+              {/* Loading indicator for schedule updates */}
+              {updateScheduleMutation.isPending && (
+                <div className="flex items-center space-x-2 mr-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                  <span className="text-xs text-indigo-600">Aktualizace rozpisu...</span>
+                </div>
+              )}
               <button
                 onClick={() => navigateWeek('prev')}
                 className="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -281,7 +374,12 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                       key={index}
                       className={`border border-gray-200 rounded-lg h-[600px] flex flex-col ${
                         isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
+                      } ${
+                        draggedOverDay === dateKey ? 'border-indigo-500 bg-indigo-100' : ''
                       }`}
+                      onDragOver={(e) => handleDragOver(e, dateKey)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, day)}
                     >
                       {/* Day Header - Keep compact but readable */}
                       <div className={`p-2 border-b border-gray-200 ${
@@ -313,13 +411,17 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                         {dayEvents.map((event, eventIndex) => (
                           <div
                             key={eventIndex}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, event)}
+                            onDragEnd={handleDragEnd}
                             onClick={() => handleEventClick(event)}
                             className={`
-                              p-3 rounded-lg cursor-pointer transition-all border min-h-[200px] flex flex-col
+                              p-3 rounded-lg cursor-move transition-all border min-h-[200px] flex flex-col
                               ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
                               hover:shadow-md hover:scale-[1.02] transform
+                              ${draggedEvent?.id === event.id ? 'opacity-50 scale-95' : ''}
                             `}
-                            title={`Klikněte pro detail zakázky ${event.orderNumber}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
+                            title={`Přetáhněte pro změnu data nebo klikněte pro detail zakázky ${event.orderNumber}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
                           >
                             {/* Order Header */}
                             <div className="flex items-center justify-between mb-2">
@@ -402,8 +504,12 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                         ))}
                         
                         {dayEvents.length === 0 && (
-                          <div className="text-center text-gray-400 text-sm py-8">
-                            Žádné zakázky
+                          <div className={`text-center text-sm py-8 transition-colors ${
+                            draggedOverDay === dateKey 
+                              ? 'text-indigo-600 font-medium' 
+                              : 'text-gray-400'
+                          }`}>
+                            {draggedOverDay === dateKey ? 'Pusťte zde pro změnu data' : 'Žádné zakázky'}
                           </div>
                         )}
                       </div>
