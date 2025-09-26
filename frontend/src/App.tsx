@@ -23,8 +23,8 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
-import ManufactureOrderList from "./components/pages/ManufactureOrderList";
-import ManufactureOrderDetail from "./components/pages/ManufactureOrderDetail";
+import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
+import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";

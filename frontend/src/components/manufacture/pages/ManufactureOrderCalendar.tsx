@@ -1,30 +1,18 @@
 import React, { useState, useMemo } from "react";
-import { 
-  ChevronLeft, 
-  ChevronRight,
-  Calendar,
-  Factory,
-  User,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { Calendar } from "lucide-react";
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
-} from "../../api/hooks/useManufactureOrders";
-import { ManufactureOrderState } from "../../api/generated/api-client";
+} from "../../../api/hooks/useManufactureOrders";
+import { stateColors } from "../../../constants/manufactureOrderStates";
+import LoadingState from "../../common/LoadingState";
+import ErrorState from "../../common/ErrorState";
+import CalendarNavigation from "../calendar/CalendarNavigation";
+import CalendarEventCard from "../calendar/CalendarEventCard";
 
 interface ManufactureOrderCalendarProps {
   onEventClick?: (orderId: number) => void;
 }
-
-const stateColors: Record<ManufactureOrderState, string> = {
-  [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800 border-gray-200",
-  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800 border-blue-200",
-  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 border-green-200",
-  [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200",
-};
 
 
 const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
@@ -180,43 +168,22 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
             Kalendář výrobních zakázek
           </h2>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Předchozí měsíc"
-          >
-            <ChevronLeft className="h-4 w-4 text-gray-600" />
-          </button>
-          <span className="text-lg font-medium text-gray-900 min-w-[120px] text-center">
-            {formatMonthYear(currentDate)}
-          </span>
-          <button
-            onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Následující měsíc"
-          >
-            <ChevronRight className="h-4 w-4 text-gray-600" />
-          </button>
-        </div>
+        <CalendarNavigation
+          onPrevious={() => navigateMonth('prev')}
+          onNext={() => navigateMonth('next')}
+          currentPeriodLabel={formatMonthYear(currentDate)}
+          previousTitle="Předchozí měsíc"
+          nextTitle="Následující měsíc"
+          size="md"
+        />
       </div>
 
       {/* Calendar Content */}
       <div className="p-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-              <div className="text-gray-500">Načítání kalendáře...</div>
-            </div>
-          </div>
+          <LoadingState message="Načítání kalendáře..." />
         ) : error ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2 text-red-600">
-              <AlertCircle className="h-5 w-5" />
-              <div>Chyba při načítání kalendáře</div>
-            </div>
-          </div>
+          <ErrorState message="Chyba při načítání kalendáře" />
         ) : (
           <>
             {/* Week Days Header */}
@@ -252,37 +219,12 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
                   {/* Events */}
                   <div className="space-y-1">
                     {day.events.map((event, eventIndex) => (
-                      <div
+                      <CalendarEventCard
                         key={eventIndex}
+                        event={event}
+                        variant="compact"
                         onClick={() => handleEventClick(event)}
-                        className={`
-                          text-xs p-1 rounded cursor-pointer transition-all
-                          ${event.state ? stateColors[event.state] : ''}
-                          hover:shadow-sm hover:scale-105
-                        `}
-                        title={`${event.title || event.orderNumber}\nZakázka: ${event.orderNumber}\nStav: ${event.state}\n${event.responsiblePerson ? `Odpovědná osoba: ${event.responsiblePerson}` : ''}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <Factory className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate font-medium">
-                            {event.title || event.orderNumber}
-                          </span>
-                          {event.manualActionRequired && (
-                            <div 
-                              className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
-                              title="Vyžaduje ruční zásah"
-                            />
-                          )}
-                        </div>
-                        {event.responsiblePerson && (
-                          <div className="flex items-center space-x-1 text-xs opacity-75">
-                            <User className="h-2 w-2" />
-                            <span className="truncate">
-                              {event.responsiblePerson}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      />
                     ))}
                   </div>
                 </div>

@@ -19,7 +19,7 @@ import {
   useConfirmSemiProductManufacture,
   useConfirmProductCompletion,
   useDuplicateManufactureOrder,
-} from "../../api/hooks/useManufactureOrders";
+} from "../../../api/hooks/useManufactureOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   UpdateManufactureOrderRequest,
@@ -29,17 +29,17 @@ import {
   ConfirmSemiProductManufactureRequest,
   ConfirmProductCompletionRequest,
   ManufactureOrderState,
-} from "../../api/generated/api-client";
+} from "../../../api/generated/api-client";
 
 // Import our extracted components
-import StateTransitionControls from "../manufacture/detail/StateTransitionControls";
-import BasicInfoSection from "../manufacture/detail/BasicInfoSection";
-import SemiProductSection from "../manufacture/detail/SemiProductSection";
-import ProductsDataGrid from "../manufacture/detail/ProductsDataGrid";
-import NotesTabContent from "../manufacture/detail/NotesTabContent";
-import AuditLogTabContent from "../manufacture/detail/AuditLogTabContent";
-import DetailActionButtons from "../manufacture/detail/DetailActionButtons";
-import ConfirmationDialogs from "../manufacture/detail/ConfirmationDialogs";
+import StateTransitionControls from "../detail/StateTransitionControls";
+import BasicInfoSection from "../detail/BasicInfoSection";
+import SemiProductSection from "../detail/SemiProductSection";
+import ProductsDataGrid from "../detail/ProductsDataGrid";
+import NotesTabContent from "../detail/NotesTabContent";
+import AuditLogTabContent from "../detail/AuditLogTabContent";
+import DetailActionButtons from "../detail/DetailActionButtons";
+import ConfirmationDialogs from "../detail/ConfirmationDialogs";
 
 interface ManufactureOrderDetailProps {
   orderId?: number;

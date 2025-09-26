@@ -15,9 +15,9 @@ import {
 import {
   useManufactureOrderCalendarQuery,
   CalendarEventDto,
-} from "../../api/hooks/useManufactureOrders";
-import { ManufactureOrderState } from "../../api/generated/api-client";
-import { usePlanningList } from "../../contexts/PlanningListContext";
+} from "../../../api/hooks/useManufactureOrders";
+import { ManufactureOrderState } from "../../../api/generated/api-client";
+import { usePlanningList } from "../../../contexts/PlanningListContext";
 import { useNavigate } from "react-router-dom";
 
 interface ManufactureOrderWeeklyCalendarProps {

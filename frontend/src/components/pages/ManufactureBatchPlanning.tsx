@@ -18,7 +18,7 @@ import { useCreateManufactureOrder } from "../../api/hooks/useManufactureOrders"
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../api/client";
-import ManufactureOrderDetail from "./ManufactureOrderDetail";
+import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 
@@ -73,7 +73,7 @@ const BatchPlanningCalculator: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Trigger autocomplete search when pre-filling from planning list
-  const { data: preloadData } = useCatalogAutocomplete(
+  useCatalogAutocomplete(
     triggerSearch.length >= 2 ? triggerSearch : undefined,
     50,
     [ProductType.SemiProduct]
@@ -192,7 +192,7 @@ const BatchPlanningCalculator: React.FC = () => {
       // Set flag to prevent re-triggering
       setHasAutoTriggered(true);
     }
-  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, batchPlanMutation]);
+  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, batchPlanMutation, searchParams]);
 
   // Update local state when API response changes
   useEffect(() => {
