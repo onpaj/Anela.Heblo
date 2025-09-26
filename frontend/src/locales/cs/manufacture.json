@@ -16,6 +16,7 @@
       "ResponsiblePersonAssigned": "Přiřazení odpovědné osoby",
       "NoteAdded": "Přidání poznámky",
       "OrderCreated": "Vytvoření zakázky"
-    }
+    },
+    "scheduleUpdatedSuccessfully": "Rozpis výroby byl úspěšně aktualizován"
   }
 }

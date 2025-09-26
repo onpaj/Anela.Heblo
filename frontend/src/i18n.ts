@@ -79,6 +79,11 @@ const resources = {
         IngredientNotFoundInTemplate: "Ingredience nebyla nalezena v šabloně",
         InvalidIngredientAmount: "Neplatné množství ingredience",
         FixedProductsExceedAvailableVolume: "Fixní produkty vyžadují více objemu ({volumeUsedByFixed} g) než je k dispozici ({availableVolume} g). Nedostatek: {deficit} g.",
+        OrderNotFound: "Zakázka nenalezena",
+        CannotUpdateCompletedOrder: "Nelze upravit rozpis dokončených zakázek",
+        CannotUpdateCancelledOrder: "Nelze upravit rozpis zrušených zakázek", 
+        CannotScheduleInPast: "Nelze naplánovat výrobu do minulosti",
+        InvalidScheduleDateOrder: "Datum výroby polotovaru nemůže být po datu dokončení produktu",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",

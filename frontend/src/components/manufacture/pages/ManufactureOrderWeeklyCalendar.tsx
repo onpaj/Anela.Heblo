@@ -20,6 +20,8 @@ import {
 import { ManufactureOrderState } from "../../../api/generated/api-client";
 import { usePlanningList } from "../../../contexts/PlanningListContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 interface ManufactureOrderWeeklyCalendarProps {
   onEventClick?: (orderId: number) => void;
@@ -41,6 +43,9 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   initialDate,
   onRefreshAvailable,
 }) => {
+  // Translations
+  const { t } = useTranslation();
+  
   // Planning list functionality
   const { hasItems, items: planningListItems, removeItem } = usePlanningList();
   const navigate = useNavigate();
@@ -215,8 +220,20 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     navigate(`/manufacturing/batch-planning?${searchParams.toString()}`);
   };
 
+  // Helper function to check if an order can be dragged
+  const canDragOrder = (event: CalendarEventDto): boolean => {
+    return event.state !== ManufactureOrderState.Completed && 
+           event.state !== ManufactureOrderState.Cancelled;
+  };
+
   // Drag & drop handlers
   const handleDragStart = (event: React.DragEvent, calendarEvent: CalendarEventDto) => {
+    // Prevent dragging for completed or cancelled orders
+    if (!canDragOrder(calendarEvent)) {
+      event.preventDefault();
+      return;
+    }
+    
     setDraggedEvent(calendarEvent);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', JSON.stringify(calendarEvent));
@@ -285,10 +302,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
     }, {
       onSuccess: () => {
         console.log('Schedule updated successfully');
+        toast.success(t('manufacturing.scheduleUpdatedSuccessfully'));
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Failed to update schedule:', error);
-        // You might want to show a toast notification here
+        
+        // Let the global error handler show the proper translated error message
+        // Do not show additional toast - global handler already shows the specific error
       }
     });
   };
@@ -408,20 +428,29 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
 
                       {/* Events - Original style but smaller */}
                       <div className="p-2 space-y-2 flex-1 overflow-y-auto">
-                        {dayEvents.map((event, eventIndex) => (
+                        {dayEvents.map((event, eventIndex) => {
+                          const isDraggable = canDragOrder(event);
+                          const isCompletedOrCancelled = event.state === ManufactureOrderState.Completed || 
+                                                        event.state === ManufactureOrderState.Cancelled;
+                          
+                          return (
                           <div
                             key={eventIndex}
-                            draggable={true}
+                            draggable={isDraggable}
                             onDragStart={(e) => handleDragStart(e, event)}
                             onDragEnd={handleDragEnd}
                             onClick={() => handleEventClick(event)}
                             className={`
-                              p-3 rounded-lg cursor-move transition-all border min-h-[200px] flex flex-col
+                              p-3 rounded-lg transition-all border min-h-[200px] flex flex-col
                               ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
-                              hover:shadow-md hover:scale-[1.02] transform
+                              ${isDraggable ? 'cursor-move hover:shadow-md hover:scale-[1.02] transform' : 'cursor-pointer opacity-75'}
                               ${draggedEvent?.id === event.id ? 'opacity-50 scale-95' : ''}
+                              ${isCompletedOrCancelled ? 'border-dashed' : ''}
                             `}
-                            title={`Přetáhněte pro změnu data nebo klikněte pro detail zakázky ${event.orderNumber}${event.manualActionRequired ? `\n⚠️ Vyžaduje ruční zásah` : ''}`}
+                            title={isDraggable 
+                              ? `Přetáhněte pro změnu data nebo klikněte pro detail zakázky ${event.orderNumber}${event.manualActionRequired ? '\n⚠️ Vyžaduje ruční zásah' : ''}`
+                              : `Klikněte pro detail zakázky ${event.orderNumber} (nelze přesouvat - ${event.state === ManufactureOrderState.Completed ? 'dokončeno' : 'zrušeno'})${event.manualActionRequired ? '\n⚠️ Vyžaduje ruční zásah' : ''}`
+                            }
                           >
                             {/* Order Header */}
                             <div className="flex items-center justify-between mb-2">
@@ -501,7 +530,8 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                               </div>
                             )}
                           </div>
-                        ))}
+                          )
+                        })}
                         
                         {dayEvents.length === 0 && (
                           <div className={`text-center text-sm py-8 transition-colors ${

@@ -85,6 +85,14 @@ public enum ErrorCodes
     FixedProductsExceedAvailableVolume = 1209,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     OrderNotFound = 1210,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CannotUpdateCompletedOrder = 1211,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CannotUpdateCancelledOrder = 1212,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CannotScheduleInPast = 1213,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidScheduleDateOrder = 1214,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

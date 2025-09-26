@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderSchedule;
 
@@ -38,10 +39,10 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             var validationResult = ValidateScheduleUpdate(existingOrder, request);
             if (!validationResult.IsValid)
             {
+                var firstError = validationResult.Errors.First();
                 _logger.LogWarning("Schedule update validation failed for order {OrderId}: {ValidationErrors}", 
-                    request.Id, string.Join(", ", validationResult.Errors));
-                return new UpdateManufactureOrderScheduleResponse(ErrorCodes.InvalidOperation, 
-                    string.Join("; ", validationResult.Errors));
+                    request.Id, string.Join(", ", validationResult.Errors.Select(e => e.Message)));
+                return new UpdateManufactureOrderScheduleResponse(firstError.ErrorCode, firstError.Message);
             }
 
             // Update the schedule dates
@@ -86,7 +87,7 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             existingOrder.AuditLog.Add(auditLog);
 
             // Save changes
-            var updatedOrder = await _repository.UpdateOrderAsync(existingOrder, cancellationToken);
+            await _repository.UpdateOrderAsync(existingOrder, cancellationToken);
             
             _logger.LogInformation("Successfully updated schedule for manufacture order {OrderId}", request.Id);
 
@@ -105,18 +106,26 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
 
     private static ValidationResult ValidateScheduleUpdate(ManufactureOrder order, UpdateManufactureOrderScheduleRequest request)
     {
-        var errors = new List<string>();
+        var errorResults = new List<ValidationError>();
 
         // Can't update schedule for cancelled orders
         if (order.State == ManufactureOrderState.Cancelled)
         {
-            errors.Add("Cannot update schedule for cancelled orders");
+            errorResults.Add(new ValidationError
+            {
+                ErrorCode = ErrorCodes.CannotUpdateCancelledOrder,
+                Message = "Cannot update schedule for cancelled orders"
+            });
         }
 
         // Can't update schedule for completed orders
         if (order.State == ManufactureOrderState.Completed)
         {
-            errors.Add("Cannot update schedule for completed orders");
+            errorResults.Add(new ValidationError
+            {
+                ErrorCode = ErrorCodes.CannotUpdateCompletedOrder,
+                Message = "Cannot update schedule for completed orders"
+            });
         }
 
         // Semi-product date should be before or equal to product date
@@ -124,7 +133,11 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
         {
             if (request.SemiProductPlannedDate.Value > request.ProductPlannedDate.Value)
             {
-                errors.Add("Semi-product date cannot be after product date");
+                errorResults.Add(new ValidationError
+                {
+                    ErrorCode = ErrorCodes.InvalidScheduleDateOrder,
+                    Message = "Semi-product date cannot be after product date"
+                });
             }
         }
 
@@ -133,24 +146,38 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
         
         if (request.SemiProductPlannedDate.HasValue && request.SemiProductPlannedDate.Value < today)
         {
-            errors.Add("Cannot schedule semi-product manufacturing in the past");
+            errorResults.Add(new ValidationError
+            {
+                ErrorCode = ErrorCodes.CannotScheduleInPast,
+                Message = "Cannot schedule semi-product manufacturing in the past"
+            });
         }
 
         if (request.ProductPlannedDate.HasValue && request.ProductPlannedDate.Value < today)
         {
-            errors.Add("Cannot schedule product manufacturing in the past");
+            errorResults.Add(new ValidationError
+            {
+                ErrorCode = ErrorCodes.CannotScheduleInPast,
+                Message = "Cannot schedule product manufacturing in the past"
+            });
         }
 
         return new ValidationResult
         {
-            IsValid = errors.Count == 0,
-            Errors = errors
+            IsValid = errorResults.Count == 0,
+            Errors = errorResults
         };
     }
 
     private class ValidationResult
     {
         public bool IsValid { get; set; }
-        public List<string> Errors { get; set; } = new();
+        public List<ValidationError> Errors { get; set; } = new();
+    }
+
+    private class ValidationError
+    {
+        public ErrorCodes ErrorCode { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 }

@@ -9,6 +9,8 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
+  UpdateManufactureOrderScheduleRequest,
+  UpdateManufactureOrderScheduleResponse,
   ConfirmSemiProductManufactureRequest,
   ConfirmSemiProductManufactureResponse,
   ConfirmProductCompletionRequest,
@@ -322,20 +324,18 @@ export const useUpdateManufactureOrderSchedule = () => {
       semiProductPlannedDate?: Date, 
       productPlannedDate?: Date, 
       changeReason?: string 
-    }): Promise<any> => {
+    }): Promise<UpdateManufactureOrderScheduleResponse> => {
       const apiClient = getManufactureOrdersClient();
-      return await (apiClient as any).manufactureOrder_UpdateOrderSchedule(request.id, {
+      
+      // Create proper request instance
+      const scheduleRequest = new UpdateManufactureOrderScheduleRequest({
         id: request.id,
-        semiProductPlannedDate: request.semiProductPlannedDate ? 
-          new Date(request.semiProductPlannedDate.getTime() - request.semiProductPlannedDate.getTimezoneOffset() * 60000)
-            .toISOString()
-            .split('T')[0] : undefined,
-        productPlannedDate: request.productPlannedDate ?
-          new Date(request.productPlannedDate.getTime() - request.productPlannedDate.getTimezoneOffset() * 60000)
-            .toISOString()
-            .split('T')[0] : undefined,
+        semiProductPlannedDate: request.semiProductPlannedDate,
+        productPlannedDate: request.productPlannedDate,
         changeReason: request.changeReason || "Schedule updated via drag & drop"
       });
+      
+      return await apiClient.manufactureOrder_UpdateOrderSchedule(request.id, scheduleRequest);
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch manufacture orders
