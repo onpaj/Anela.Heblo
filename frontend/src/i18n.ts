@@ -34,7 +34,8 @@ const resources = {
           ResponsiblePersonAssigned: "Přiřazení odpovědné osoby",
           NoteAdded: "Přidání poznámky",
           OrderCreated: "Vytvoření zakázky"
-        }
+        },
+        scheduleUpdatedSuccessfully: "Rozpis výroby byl úspěšně aktualizován"
       },
       errors: {
         // String keys for ErrorCodes enum names (primary approach)
