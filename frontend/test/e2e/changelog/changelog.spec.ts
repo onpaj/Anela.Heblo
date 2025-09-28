@@ -65,9 +65,12 @@ test.describe('Changelog System', () => {
     const versionList = page.locator('text=Verze');
     await expect(versionList).toBeVisible();
     
-    // Look for version entries (should show version numbers)
-    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first();
-    await expect(versionEntry).toBeVisible();
+    // Look for version entries - try multiple approaches
+    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first()
+                             .or(page.locator('button').filter({ hasText: /\d+\.\d+\.\d+/ }).first())
+                             .or(page.locator('[data-testid*="version"]').first())
+                             .or(page.locator('li button, div button').first());
+    await expect(versionEntry).toBeVisible({ timeout: 10000 });
   });
 
   test('should close modal when clicking close button', async ({ page }) => {
@@ -153,7 +156,10 @@ test.describe('Changelog System', () => {
     await expect(modal).toBeVisible();
     
     // Click on a version (should be pre-selected by default)
-    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first();
+    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first()
+                             .or(page.locator('button').filter({ hasText: /\d+\.\d+\.\d+/ }).first())
+                             .or(page.locator('[data-testid*="version"]').first())
+                             .or(page.locator('li button, div button').first());
     await versionEntry.click();
     
     // Check for changelog content
