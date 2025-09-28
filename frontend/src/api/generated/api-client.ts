@@ -2909,6 +2909,47 @@ export class ApiClient {
         return Promise.resolve<ResolveManualActionResponse>(null as any);
     }
 
+    manufactureOrder_UpdateOrderSchedule(id: number, request: UpdateManufactureOrderScheduleRequest): Promise<UpdateManufactureOrderScheduleResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/schedule";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_UpdateOrderSchedule(_response);
+        });
+    }
+
+    protected processManufactureOrder_UpdateOrderSchedule(response: Response): Promise<UpdateManufactureOrderScheduleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateManufactureOrderScheduleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateManufactureOrderScheduleResponse>(null as any);
+    }
+
     manufactureOutput_GetManufactureOutput(monthsBack: number | undefined): Promise<GetManufactureOutputResponse> {
         let url_ = this.baseUrl + "/api/manufacture-output?";
         if (monthsBack === null)
@@ -10553,6 +10594,87 @@ export interface IResolveManualActionRequest {
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
     note?: string | undefined;
+}
+
+export class UpdateManufactureOrderScheduleResponse extends BaseResponse implements IUpdateManufactureOrderScheduleResponse {
+    message?: string | undefined;
+
+    constructor(data?: IUpdateManufactureOrderScheduleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateManufactureOrderScheduleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderScheduleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderScheduleResponse extends IBaseResponse {
+    message?: string | undefined;
+}
+
+export class UpdateManufactureOrderScheduleRequest implements IUpdateManufactureOrderScheduleRequest {
+    id!: number;
+    semiProductPlannedDate?: Date | undefined;
+    productPlannedDate?: Date | undefined;
+    changeReason?: string | undefined;
+
+    constructor(data?: IUpdateManufactureOrderScheduleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
+            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.changeReason = _data["changeReason"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufactureOrderScheduleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufactureOrderScheduleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
+        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["changeReason"] = this.changeReason;
+        return data;
+    }
+}
+
+export interface IUpdateManufactureOrderScheduleRequest {
+    id: number;
+    semiProductPlannedDate?: Date | undefined;
+    productPlannedDate?: Date | undefined;
+    changeReason?: string | undefined;
 }
 
 export class GetManufactureOutputResponse extends BaseResponse implements IGetManufactureOutputResponse {

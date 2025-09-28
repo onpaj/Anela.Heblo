@@ -34,25 +34,30 @@ export function getErrorMessage(
     return `Chyba ${params.exceptionType}\n${params.message}`;
   }
 
-  // First try to find translation using ErrorCode enum name (string key)
-  const enumName = ErrorCodes[errorCode];
-  let messageKey = `errors.${enumName}`;
-  let message = i18n.t(messageKey);
-
-  // If not found, try numeric key as fallback
-  if (message === messageKey || !message) {
-    const codeStr = errorCode.toString();
-    messageKey = `errors.${codeStr}`;
-    message = i18n.t(messageKey);
+  // Get ErrorCode enum name for translation key using Object.entries for reverse mapping
+  let enumName: string | undefined;
+  for (const [key, value] of Object.entries(ErrorCodes)) {
+    if (value === errorCode) {
+      enumName = key;
+      break;
+    }
   }
 
-  // If translation still not found, return generic error with numeric code
+  if (!enumName) {
+    return `Nastala chyba (neznámý kód: ${errorCode})`;
+  }
+
+  // Use enum name as translation key
+  const messageKey = `errors.${enumName}`;
+  const message = i18n.t(messageKey);
+
+  // If translation not found, return generic error with enum name
   if (message === messageKey || !message) {
-    return `Nastala chyba (kód: ${errorCode})`;
+    return `Nastala chyba (kód: ${enumName})`;
   }
 
   const formatted = formatMessage(message, params);
-  return formatted || `Nastala chyba (kód: ${errorCode})`;
+  return formatted || `Nastala chyba (kód: ${enumName})`;
 }
 
 /**
