@@ -9,6 +9,8 @@ import {
   UpdateManufactureOrderResponse,
   UpdateManufactureOrderStatusRequest,
   UpdateManufactureOrderStatusResponse,
+  UpdateManufactureOrderScheduleRequest,
+  UpdateManufactureOrderScheduleResponse,
   ConfirmSemiProductManufactureRequest,
   ConfirmSemiProductManufactureResponse,
   ConfirmProductCompletionRequest,
@@ -298,6 +300,50 @@ export const useResolveManualAction = () => {
       // Also invalidate specific order detail
       queryClient.invalidateQueries({
         queryKey: manufactureOrderKeys.detail(variables.orderId!),
+      });
+
+      // Also invalidate all calendar queries (including those with date parameters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return query.queryKey.length >= 2 && 
+                 query.queryKey[0] === "manufacture-orders" &&
+                 query.queryKey[1] === "calendar";
+        },
+      });
+    },
+  });
+};
+
+// Update schedule mutation hook for drag & drop functionality
+export const useUpdateManufactureOrderSchedule = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: { 
+      id: number, 
+      semiProductPlannedDate?: Date, 
+      productPlannedDate?: Date, 
+      changeReason?: string 
+    }): Promise<UpdateManufactureOrderScheduleResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      
+      // Create proper request instance
+      const scheduleRequest = new UpdateManufactureOrderScheduleRequest({
+        id: request.id,
+        semiProductPlannedDate: request.semiProductPlannedDate,
+        productPlannedDate: request.productPlannedDate,
+        changeReason: request.changeReason || "Schedule updated via drag & drop"
+      });
+      
+      return await apiClient.manufactureOrder_UpdateOrderSchedule(request.id, scheduleRequest);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch manufacture orders
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      
+      // Also invalidate specific order detail
+      queryClient.invalidateQueries({
+        queryKey: manufactureOrderKeys.detail(variables.id),
       });
 
       // Also invalidate all calendar queries (including those with date parameters)
