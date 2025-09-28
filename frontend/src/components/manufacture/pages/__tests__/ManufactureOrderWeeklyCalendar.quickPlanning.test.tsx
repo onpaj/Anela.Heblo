@@ -16,10 +16,12 @@ jest.mock("../../../../api/generated/api-client", () => ({
   },
 }));
 
-// Mock the API hook
+// Mock the API hooks
 const mockUseManufactureOrderCalendarQuery = jest.fn();
+const mockUseUpdateManufactureOrderSchedule = jest.fn();
 jest.mock("../../../../api/hooks/useManufactureOrders", () => ({
   useManufactureOrderCalendarQuery: () => mockUseManufactureOrderCalendarQuery(),
+  useUpdateManufactureOrderSchedule: () => mockUseUpdateManufactureOrderSchedule(),
   ManufactureOrderState: {
     Draft: "Draft",
     Planned: "Planned", 
@@ -77,6 +79,13 @@ describe("ManufactureOrderWeeklyCalendar - Quick Planning", () => {
     jest.clearAllMocks();
     mockNavigate.mockClear();
     mockUsePlanningList.mockClear();
+    
+    // Default mock setups
+    mockUseUpdateManufactureOrderSchedule.mockReturnValue({
+      mutate: jest.fn(),
+      isLoading: false,
+      error: null,
+    });
   });
 
   describe("Quick Planning Buttons", () => {
@@ -86,6 +95,12 @@ describe("ManufactureOrderWeeklyCalendar - Quick Planning", () => {
         isLoading: false,
         error: null,
         refetch: jest.fn(),
+      });
+      
+      mockUseUpdateManufactureOrderSchedule.mockReturnValue({
+        mutate: jest.fn(),
+        isLoading: false,
+        error: null,
       });
     });
 
@@ -359,6 +374,12 @@ describe("ManufactureOrderWeeklyCalendar - Quick Planning", () => {
         isLoading: false,
         error: null,
         refetch: mockRefetch,
+      });
+      
+      mockUseUpdateManufactureOrderSchedule.mockReturnValue({
+        mutate: jest.fn(),
+        isLoading: false,
+        error: null,
       });
 
       const Wrapper = createWrapper();

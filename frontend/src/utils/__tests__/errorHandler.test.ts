@@ -24,7 +24,7 @@ describe("errorHandler", () => {
 
     it("should return generic error message for unknown error code", () => {
       const message = getErrorMessage(9999 as ErrorCodes);
-      expect(message).toBe("Nastala chyba (kód: 9999)");
+      expect(message).toBe("Nastala chyba (neznámý kód: 9999)");
     });
 
     it("should handle missing parameters gracefully", () => {

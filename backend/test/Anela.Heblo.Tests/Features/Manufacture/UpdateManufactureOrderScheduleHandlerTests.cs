@@ -94,7 +94,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+        result.ErrorCode.Should().Be(ErrorCodes.CannotUpdateCancelledOrder);
         result.Message.Should().Contain("Cannot update schedule for cancelled orders");
     }
 
@@ -116,7 +116,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+        result.ErrorCode.Should().Be(ErrorCodes.CannotUpdateCompletedOrder);
         result.Message.Should().Contain("Cannot update schedule for completed orders");
     }
 
@@ -140,7 +140,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidScheduleDateOrder);
         result.Message.Should().Contain("Semi-product date cannot be after product date");
     }
 
@@ -164,7 +164,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+        result.ErrorCode.Should().Be(ErrorCodes.CannotScheduleInPast);
         result.Message.Should().Contain("Cannot schedule semi-product manufacturing in the past");
     }
 
@@ -173,7 +173,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
     {
         // Arrange
         var request = CreateValidRequest();
-        request.SemiProductPlannedDate = ValidSemiProductDate;
+        request.SemiProductPlannedDate = null; // Only test product date validation
         request.ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Past date
 
         var existingOrder = CreateExistingOrder();
@@ -188,7 +188,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+        result.ErrorCode.Should().Be(ErrorCodes.CannotScheduleInPast);
         result.Message.Should().Contain("Cannot schedule product manufacturing in the past");
     }
 
