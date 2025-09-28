@@ -16,6 +16,9 @@ test.describe('Transport Boxes - Basic Functionality Tests', () => {
     // Verify essential UI elements are present
     const createButton = page.locator('button').filter({ hasText: /Otevřít nový box/ });
     await expect(createButton).toBeVisible();
+    
+    // Verify we have the status overview section
+    await expect(page.locator('h3').first()).toContainText('Přehled stavů');
   });
 
   test('should complete full transport box creation workflow (New → Opened)', async ({ page }) => {

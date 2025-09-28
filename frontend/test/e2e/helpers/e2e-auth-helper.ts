@@ -41,25 +41,43 @@ export async function getServicePrincipalToken(): Promise<string> {
 
 
 export async function createE2EAuthSession(page: any): Promise<void> {
-  try {
-    const token = await getServicePrincipalToken();
-    const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
-    const authUrl = `${apiBaseUrl}/api/e2etest/auth`;
-    
-    const response = await page.request.post(authUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  const maxRetries = 3;
+  const retryDelay = 5000; // 5 seconds
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔐 E2E authentication attempt ${attempt}/${maxRetries}...`);
+      const token = await getServicePrincipalToken();
+      const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+      const authUrl = `${apiBaseUrl}/api/e2etest/auth`;
+      
+      const response = await page.request.post(authUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 90000 // 90 seconds timeout for auth calls
+      });
+      
+      if (!response.ok()) {
+        const errorText = await response.text();
+        throw new Error(`E2E authentication failed: ${response.status()} ${response.statusText()}\n${errorText}`);
       }
-    });
-    
-    if (!response.ok()) {
-      const errorText = await response.text();
-      throw new Error(`E2E authentication failed: ${response.status()} ${response.statusText()}\n${errorText}`);
+      
+      console.log(`✅ E2E authentication successful on attempt ${attempt}`);
+      return; // Success, exit retry loop
+      
+    } catch (error) {
+      console.error(`❌ E2E authentication attempt ${attempt} failed:`, error);
+      
+      if (attempt === maxRetries) {
+        console.error('🚫 All authentication attempts failed');
+        throw error;
+      }
+      
+      console.log(`⏳ Waiting ${retryDelay/1000}s before retry...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
-  } catch (error) {
-    console.error('Service Principal authentication failed:', error);
-    throw error;
   }
 }
 
@@ -84,61 +102,94 @@ async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
   const cookies = await page.context().cookies();
   const e2eCookie = cookies.find(c => c.name === 'E2ETestSession');
   if (e2eCookie) {
+    // Use the staging domain for the cookie, not localhost
+    const stagingDomain = new URL(apiBaseUrl).hostname;
     await page.context().addCookies([{
       name: e2eCookie.name,
       value: e2eCookie.value,
-      domain: 'localhost',
+      domain: stagingDomain,
       path: '/',
       httpOnly: true,
       sameSite: 'Lax'
     }]);
   }
   
-  // Navigate to root first, then use UI navigation
-  const frontendUrl = process.env.PLAYWRIGHT_FRONTEND_URL;
-  const frontendWithE2E = `${frontendUrl}?e2e=true`;
+  // Navigate to root first with E2E flag
+  const frontendWithE2E = `${apiBaseUrl}?e2e=true`;
   
   // Get token for sessionStorage
   const token = await getServicePrincipalToken();
   
   await page.goto(frontendWithE2E);
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle'); // Wait for all network requests to complete
   
   // Store the E2E token in sessionStorage so frontend can use it
   await page.evaluate((token) => {
     sessionStorage.setItem('e2e-test-token', token);
   }, token);
+  
+  // Wait for React app to initialize
+  await page.waitForFunction(() => {
+    return document.querySelector('.App') !== null || 
+           document.querySelector('#root > div') !== null ||
+           document.querySelector('nav') !== null;
+  }, { timeout: 30000 });
 }
 
 export async function navigateToTransportBoxes(page: any): Promise<void> {
   await navigateToApp(page);
   
+  // Wait for app to be fully loaded
+  await page.waitForTimeout(2000);
+  
   // Navigate to transport boxes via UI
-  // First, try to find and click on "Logistika" section
-  const logistikaSelector = page.locator('text="Logistika"').first();
+  // Based on debug info, try "Sklad" (Storage/Warehouse) instead of "Logistika"
+  const skladSelector = page.locator('button').filter({ hasText: 'Sklad' }).first();
   try {
-    if (await logistikaSelector.isVisible({ timeout: 2000 })) {
-      await logistikaSelector.click();
-      await page.waitForTimeout(1000);
+    console.log('🧭 Attempting UI navigation to transport boxes via Sklad...');
+    if (await skladSelector.isVisible({ timeout: 5000 })) {
+      console.log('✅ Found Sklad menu item, clicking...');
+      await skladSelector.click();
+      await page.waitForTimeout(2000);
       
-      // Then click on "Transportní boxy" sub-item
+      // Look for "Transportní boxy" sub-item after clicking Sklad
       const transportBoxy = page.locator('text="Transportní boxy"').first();
-      if (await transportBoxy.isVisible({ timeout: 2000 })) {
+      if (await transportBoxy.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Transportní boxy submenu, clicking...');
         await transportBoxy.click();
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(3000);
-        return;
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(2000);
+        
+        // Verify we landed on the right page
+        const hasTransportBoxContent = await page.locator('h1, h2, h3, [data-testid*="transport"], .transport').count() > 0;
+        if (hasTransportBoxContent) {
+          console.log('✅ UI navigation successful');
+          return;
+        }
+      } else {
+        console.log('❌ Transportní boxy submenu not found under Sklad');
       }
+    } else {
+      console.log('❌ Sklad menu item not found');
     }
   } catch (e) {
-    console.log('UI navigation failed, trying direct navigation');
+    console.log('❌ UI navigation failed:', e.message);
   }
   
-  // If UI navigation fails, go directly to the path
+  // If UI navigation fails, go directly to the path and handle the page differently
+  console.log('🔄 Trying direct navigation...');
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/logistics/transport-boxes`);
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(5000);
+  
+  // Log what we actually got after direct navigation
+  const currentUrl = page.url();
+  const pageText = await page.textContent('body');
+  console.log('📍 Current URL after direct navigation:', currentUrl);
+  console.log('📝 Page content (first 200 chars):', pageText?.substring(0, 200));
+  
+  console.log('✅ Direct navigation completed');
 }
 
 export async function navigateToCatalog(page: any): Promise<void> {

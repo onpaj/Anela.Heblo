@@ -4,23 +4,13 @@
  */
 
 import { test, expect } from '@playwright/test';
-
-const BASE_URL = 'https://heblo.stg.anela.cz';
+import { createE2EAuthSession, navigateToApp } from '../helpers/e2e-auth-helper';
 
 test.describe('Changelog System', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the staging environment
-    await page.goto(BASE_URL);
-    
-    // Wait for the app to load
-    await page.waitForSelector('[data-testid="app"]', { timeout: 30000 });
-    
-    // Handle authentication if needed
-    const currentUrl = page.url();
-    if (currentUrl.includes('login') || currentUrl.includes('auth')) {
-      // Wait for redirect after authentication
-      await page.waitForURL(url => url.includes(BASE_URL) && !url.includes('login') && !url.includes('auth'), { timeout: 30000 });
-    }
+    // Use proper E2E authentication
+    await createE2EAuthSession(page);
+    await navigateToApp(page);
   });
 
   test('should display changelog button in sidebar', async ({ page }) => {
