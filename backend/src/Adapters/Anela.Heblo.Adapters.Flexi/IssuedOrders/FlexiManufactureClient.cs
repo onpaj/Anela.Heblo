@@ -43,7 +43,7 @@ public class FlexiManufactureClient : IManufactureClient
                 DateCreated = request.Date,
                 DateVat = request.Date,
                 CreatedBy = request.CreatedBy,
-                User =  request.CreatedBy,
+                User = request.CreatedBy,
                 Note = request.ManufactureOrderCode,
                 Items = request.Items.Select(s => MapToFlexiItem(s, request)).ToList()
             };
@@ -68,7 +68,7 @@ public class FlexiManufactureClient : IManufactureClient
 
             if (!int.TryParse(firstResult.Id.ToString(), out var orderId))
             {
-                _logger.LogError("Failed to parse order ID '{OrderId}' for manufacture order {ManufactureOrderId}", 
+                _logger.LogError("Failed to parse order ID '{OrderId}' for manufacture order {ManufactureOrderId}",
                     firstResult.Id, request.ManufactureOrderCode);
                 throw new InvalidOperationException($"Failed to parse order ID: {firstResult.Id}");
             }
@@ -77,7 +77,7 @@ public class FlexiManufactureClient : IManufactureClient
                 orderId, request.ManufactureOrderCode);
 
             var savedOrder = await _ordersClient.GetAsync(orderId, cancellationToken);
-            
+
             // Finalize the order
             var finalizeOrder = new FinalizeIssuedOrderFlexiDto(orderId)
             {
@@ -96,15 +96,15 @@ public class FlexiManufactureClient : IManufactureClient
             };
 
             _logger.LogDebug("Finalizing issued order {OrderId}", orderId);
-            
-            
+
+
             var finalizeResult = await _ordersClient.FinalizeAsync(finalizeOrder, cancellationToken);
 
             if (!finalizeResult.IsSuccess)
             {
                 var shortenedMessage = finalizeResult.GetErrorMessage()?.Split("Could not execute JDBC batch update")
                     .First();
-                _logger.LogError("FinalizeAsync failed for order {OrderId}: {ErrorMessage}", orderId,shortenedMessage);
+                _logger.LogError("FinalizeAsync failed for order {OrderId}: {ErrorMessage}", orderId, shortenedMessage);
                 throw new InvalidOperationException($"Failed to finalize issued order {orderId}: {shortenedMessage}");
             }
 
@@ -126,7 +126,7 @@ public class FlexiManufactureClient : IManufactureClient
         {
             return $"{request.Items.First().ProductCode} - {request.Items.First().ProductName}";
         }
-        
+
         return $"{request.Items.First().ProductCode.Left(6)} - {request.Items.First().ProductName}";
     }
 

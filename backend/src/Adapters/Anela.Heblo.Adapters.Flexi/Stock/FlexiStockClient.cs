@@ -36,7 +36,7 @@ public class FlexiStockClient : IErpStockClient
         return materialStockTask.Result
             .Union(semiProductsStockTask.Result)
             .Union(productsStockTask.Result)
-            .Where(w => !w.ProductName.Contains("archiv",  StringComparison.InvariantCultureIgnoreCase)) // So far just convention in productname
+            .Where(w => !w.ProductName.Contains("archiv", StringComparison.InvariantCultureIgnoreCase)) // So far just convention in productname
             .ToList();
     }
 

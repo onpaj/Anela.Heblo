@@ -38,19 +38,19 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             var validationResponse = ValidateScheduleUpdate(existingOrder, request);
             if (validationResponse != null)
             {
-                _logger.LogWarning("Schedule update validation failed for order {OrderId}: {ValidationError}", 
+                _logger.LogWarning("Schedule update validation failed for order {OrderId}: {ValidationError}",
                     request.Id, validationResponse.Message);
                 return validationResponse;
             }
 
             // Update the schedule dates
             bool hasChanges = false;
-            
+
             if (request.SemiProductPlannedDate.HasValue && request.SemiProductPlannedDate != existingOrder.SemiProductPlannedDate)
             {
                 existingOrder.SemiProductPlannedDate = request.SemiProductPlannedDate.Value;
                 hasChanges = true;
-                _logger.LogInformation("Updated semi-product planned date for order {OrderId} to {NewDate}", 
+                _logger.LogInformation("Updated semi-product planned date for order {OrderId} to {NewDate}",
                     request.Id, request.SemiProductPlannedDate.Value);
             }
 
@@ -58,7 +58,7 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             {
                 existingOrder.ProductPlannedDate = request.ProductPlannedDate.Value;
                 hasChanges = true;
-                _logger.LogInformation("Updated product planned date for order {OrderId} to {NewDate}", 
+                _logger.LogInformation("Updated product planned date for order {OrderId} to {NewDate}",
                     request.Id, request.ProductPlannedDate.Value);
             }
 
@@ -81,12 +81,12 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
                 Details = $"Semi-product: {request.SemiProductPlannedDate?.ToString() ?? "unchanged"}, " +
                          $"Product: {request.ProductPlannedDate?.ToString() ?? "unchanged"}"
             };
-            
+
             existingOrder.AuditLog.Add(auditLog);
 
             // Save changes
             await _repository.UpdateOrderAsync(existingOrder, cancellationToken);
-            
+
             _logger.LogInformation("Successfully updated schedule for manufacture order {OrderId}", request.Id);
 
             return new UpdateManufactureOrderScheduleResponse
@@ -97,7 +97,7 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating schedule for manufacture order {OrderId}", request.Id);
-            return new UpdateManufactureOrderScheduleResponse(ErrorCodes.InternalServerError, 
+            return new UpdateManufactureOrderScheduleResponse(ErrorCodes.InternalServerError,
                 "An error occurred while updating the schedule");
         }
     }
@@ -127,7 +127,7 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
 
         // Don't allow scheduling in the past (with some tolerance for today)
         var today = DateOnly.FromDateTime(DateTime.Today);
-        
+
         if (request.SemiProductPlannedDate.HasValue && request.SemiProductPlannedDate.Value < today)
         {
             return new UpdateManufactureOrderScheduleResponse(ErrorCodes.CannotScheduleInPast, "Cannot schedule semi-product manufacturing in the past");

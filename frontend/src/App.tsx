@@ -25,6 +25,7 @@ import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
+import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -360,6 +361,10 @@ function App() {
                         <Route
                           path="/logistics/warehouse-statistics"
                           element={<WarehouseStatistics />}
+                        />
+                        <Route
+                          path="/automation/invoice-import-statistics"
+                          element={<InvoiceImportStatistics />}
                         />
                       </Routes>
                     </Layout>

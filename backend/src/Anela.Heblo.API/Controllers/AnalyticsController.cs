@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -50,6 +51,17 @@ public class AnalyticsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetMarginReportResponse>> GetMarginReport([FromQuery] GetMarginReportRequest request)
+    {
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("invoice-import-statistics")]
+    [ProducesResponseType(typeof(GetInvoiceImportStatisticsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GetInvoiceImportStatisticsResponse>> GetInvoiceImportStatistics([FromQuery] GetInvoiceImportStatisticsRequest request)
     {
         var response = await _mediator.Send(request);
         return HandleResponse(response);

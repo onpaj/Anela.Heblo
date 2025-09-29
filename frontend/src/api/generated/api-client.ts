@@ -243,6 +243,66 @@ export class ApiClient {
         return Promise.resolve<GetMarginReportResponse>(null as any);
     }
 
+    analytics_GetInvoiceImportStatistics(dateType: ImportDateType | undefined, daysBack: number | undefined): Promise<GetInvoiceImportStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/invoice-import-statistics?";
+        if (dateType === null)
+            throw new Error("The parameter 'dateType' cannot be null.");
+        else if (dateType !== undefined)
+            url_ += "DateType=" + encodeURIComponent("" + dateType) + "&";
+        if (daysBack === null)
+            throw new Error("The parameter 'daysBack' cannot be null.");
+        else if (daysBack !== undefined)
+            url_ += "DaysBack=" + encodeURIComponent("" + daysBack) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetInvoiceImportStatistics(_response);
+        });
+    }
+
+    protected processAnalytics_GetInvoiceImportStatistics(response: Response): Promise<GetInvoiceImportStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetInvoiceImportStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetInvoiceImportStatisticsResponse>(null as any);
+    }
+
     audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Audit/data-loads?";
         if (limit !== undefined && limit !== null)
@@ -4467,6 +4527,10 @@ export enum ErrorCodes {
     InvalidIngredientAmount = "InvalidIngredientAmount",
     FixedProductsExceedAvailableVolume = "FixedProductsExceedAvailableVolume",
     OrderNotFound = "OrderNotFound",
+    CannotUpdateCompletedOrder = "CannotUpdateCompletedOrder",
+    CannotUpdateCancelledOrder = "CannotUpdateCancelledOrder",
+    CannotScheduleInPast = "CannotScheduleInPast",
+    InvalidScheduleDateOrder = "InvalidScheduleDateOrder",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -4913,6 +4977,100 @@ export interface ICategoryMarginSummary {
     averageMarginPercentage?: number;
     productCount?: number;
     totalUnitsSold?: number;
+}
+
+export class GetInvoiceImportStatisticsResponse extends BaseResponse implements IGetInvoiceImportStatisticsResponse {
+    data?: DailyInvoiceCount[];
+    minimumThreshold?: number;
+
+    constructor(data?: IGetInvoiceImportStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["data"])) {
+                this.data = [] as any;
+                for (let item of _data["data"])
+                    this.data!.push(DailyInvoiceCount.fromJS(item));
+            }
+            this.minimumThreshold = _data["minimumThreshold"];
+        }
+    }
+
+    static override fromJS(data: any): GetInvoiceImportStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetInvoiceImportStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.data)) {
+            data["data"] = [];
+            for (let item of this.data)
+                data["data"].push(item.toJSON());
+        }
+        data["minimumThreshold"] = this.minimumThreshold;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetInvoiceImportStatisticsResponse extends IBaseResponse {
+    data?: DailyInvoiceCount[];
+    minimumThreshold?: number;
+}
+
+export class DailyInvoiceCount implements IDailyInvoiceCount {
+    date?: Date;
+    count?: number;
+    isBelowThreshold?: boolean;
+
+    constructor(data?: IDailyInvoiceCount) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.count = _data["count"];
+            this.isBelowThreshold = _data["isBelowThreshold"];
+        }
+    }
+
+    static fromJS(data: any): DailyInvoiceCount {
+        data = typeof data === 'object' ? data : {};
+        let result = new DailyInvoiceCount();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["count"] = this.count;
+        data["isBelowThreshold"] = this.isBelowThreshold;
+        return data;
+    }
+}
+
+export interface IDailyInvoiceCount {
+    date?: Date;
+    count?: number;
+    isBelowThreshold?: boolean;
+}
+
+export enum ImportDateType {
+    InvoiceDate = "InvoiceDate",
+    LastSyncTime = "LastSyncTime",
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {

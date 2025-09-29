@@ -42,10 +42,10 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 LotNumber = request.LotNumber,
                 ExpirationDate = request.ExpirationDate,
             };
-            
+
             var manufactureId = await _manufactureClient.SubmitManufactureAsync(clientRequest, cancellationToken);
 
-            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}", 
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}",
                 manufactureId, request.ManufactureOrderNumber);
 
             return new SubmitManufactureResponse

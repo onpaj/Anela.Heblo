@@ -12,7 +12,7 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
     private readonly ICatalogRepository _catalogRepository;
     private readonly IManufactureRepository _manufactureRepository;
 
-    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureRepository  manufactureRepository)
+    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureRepository manufactureRepository)
     {
         _batchPlanningService = batchPlanningService;
         _catalogRepository = catalogRepository;

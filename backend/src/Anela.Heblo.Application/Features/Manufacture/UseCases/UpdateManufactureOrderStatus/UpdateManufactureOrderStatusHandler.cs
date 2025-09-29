@@ -61,8 +61,8 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             if (request.ProductOrderCode != null)
                 order.ErpOrderNumberProduct = request.ProductOrderCode;
 
-            
-            if(request.Note != null)
+
+            if (request.Note != null)
             {
                 order.Notes.Add(new ManufactureOrderNote()
                 {

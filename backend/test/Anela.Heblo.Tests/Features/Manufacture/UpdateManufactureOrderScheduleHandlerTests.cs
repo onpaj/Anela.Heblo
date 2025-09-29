@@ -247,7 +247,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Assert
         updatedOrder.Should().NotBeNull();
         updatedOrder!.AuditLog.Should().HaveCount(1);
-        
+
         var auditEntry = updatedOrder.AuditLog.First();
         auditEntry.Action.Should().Be(ManufactureOrderAuditAction.DateChanged);
         auditEntry.User.Should().Be("system");

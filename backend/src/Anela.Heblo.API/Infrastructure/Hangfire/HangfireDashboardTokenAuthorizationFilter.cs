@@ -48,7 +48,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
         // This handles cases where Hangfire dashboard is accessed directly
         var mockPrincipal = CreateMockPrincipal();
         httpContext.User = mockPrincipal;
-        
+
         return true;
     }
 

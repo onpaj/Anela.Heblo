@@ -30,7 +30,7 @@ public class ManufactureOrderTestFactory : HebloWebApplicationFactory
             // Final override to ensure our test repository is used
             services.Replace(ServiceDescriptor.Transient<ICatalogRepository, TestCatalogRepository>());
         });
-        
+
         base.ConfigureTestWebHost(builder);
     }
 }
@@ -58,7 +58,7 @@ public class TestCatalogRepository : ICatalogRepository
             },
             new()
             {
-                Id = "SEMI002", 
+                Id = "SEMI002",
                 ProductName = "Test Semi Product 2",
                 Type = ProductType.Material,
                 Properties = new CatalogProperties
@@ -156,7 +156,7 @@ public class TestCatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureDifficultySettingsLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureCostLoadDate => DateTime.UtcNow;
-    
+
     // Merge operation tracking - always return current time for test
     public DateTime? LastMergeDateTime => DateTime.UtcNow;
     public bool ChangesPendingForMerge => false;

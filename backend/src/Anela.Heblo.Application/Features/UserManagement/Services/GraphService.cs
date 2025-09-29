@@ -51,7 +51,7 @@ public class GraphService : IGraphService
             // Acquire Graph API token
             var scopes = new[] { "https://graph.microsoft.com/GroupMember.Read.All" };
             _logger.LogInformation("Attempting to acquire MS Graph token with scopes: {Scopes}", string.Join(", ", scopes));
-            
+
             string graphToken;
             try
             {
@@ -59,13 +59,13 @@ public class GraphService : IGraphService
                 graphToken = await _tokenAcquisition.GetAccessTokenForUserAsync(scopes);
                 var tokenDuration = DateTime.UtcNow - tokenStart;
                 _logger.LogInformation("Successfully acquired MS Graph token in {Duration}ms", tokenDuration.TotalMilliseconds);
-                
+
                 // Log token length for troubleshooting (not the actual token)
                 _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
             }
             catch (MsalException msalEx)
             {
-                _logger.LogError(msalEx, "Failed to acquire Graph API token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scopes: {Scopes}", 
+                _logger.LogError(msalEx, "Failed to acquire Graph API token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scopes: {Scopes}",
                     msalEx.ErrorCode, msalEx.Message, groupId, string.Join(", ", scopes));
                 return new List<UserDto>();
             }
@@ -81,29 +81,29 @@ public class GraphService : IGraphService
 
             var requestUrl = $"https://graph.microsoft.com/v1.0/groups/{groupId}/members?$select=id,displayName,mail,userPrincipalName";
             _logger.LogInformation("Making MS Graph API request to: {RequestUrl}", requestUrl);
-            
+
             var apiCallStart = DateTime.UtcNow;
             var response = await httpClient.GetAsync(requestUrl, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
-            
-            _logger.LogInformation("MS Graph API call completed in {Duration}ms with status: {StatusCode}", 
+
+            _logger.LogInformation("MS Graph API call completed in {Duration}ms with status: {StatusCode}",
                 apiCallDuration.TotalMilliseconds, response.StatusCode);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("Microsoft Graph API call failed for groupId: {GroupId}. Status: {StatusCode}, RequestUrl: {RequestUrl}, ResponseContent: {Content}", 
+                _logger.LogError("Microsoft Graph API call failed for groupId: {GroupId}. Status: {StatusCode}, RequestUrl: {RequestUrl}, ResponseContent: {Content}",
                     groupId, response.StatusCode, requestUrl, errorContent);
-                
+
                 // Log response headers for troubleshooting
                 _logger.LogDebug("Response headers: {@Headers}", response.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value)));
-                
+
                 return new List<UserDto>();
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogDebug("MS Graph API response received. Content length: {ContentLength} characters", responseContent?.Length ?? 0);
-            
+
             using var jsonDocument = System.Text.Json.JsonDocument.Parse(responseContent);
 
             var members = new List<UserDto>();
@@ -113,24 +113,24 @@ public class GraphService : IGraphService
             if (jsonDocument.RootElement.TryGetProperty("value", out var valueElement) && valueElement.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
                 _logger.LogInformation("Processing MS Graph response array with {ArrayLength} total members", valueElement.GetArrayLength());
-                
+
                 foreach (var memberElement in valueElement.EnumerateArray())
                 {
                     totalMembers++;
-                    
+
                     // Check if this is a user object (has userPrincipalName or @odata.type indicates user)
                     if (memberElement.TryGetProperty("@odata.type", out var odataType) &&
                         odataType.GetString()?.Contains("user", StringComparison.OrdinalIgnoreCase) == true ||
                         memberElement.TryGetProperty("userPrincipalName", out _))
                     {
                         userMembers++;
-                        
+
                         var id = memberElement.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
                         var displayName = memberElement.TryGetProperty("displayName", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
                         var mail = memberElement.TryGetProperty("mail", out var mailProp) ? mailProp.GetString() : null;
                         var userPrincipalName = memberElement.TryGetProperty("userPrincipalName", out var upnProp) ? upnProp.GetString() : null;
 
-                        _logger.LogDebug("Processing user member: Id={UserId}, DisplayName={DisplayName}, HasMail={HasMail}, HasUPN={HasUPN}", 
+                        _logger.LogDebug("Processing user member: Id={UserId}, DisplayName={DisplayName}, HasMail={HasMail}, HasUPN={HasUPN}",
                             id, displayName, !string.IsNullOrEmpty(mail), !string.IsNullOrEmpty(userPrincipalName));
 
                         members.Add(new UserDto
@@ -146,8 +146,8 @@ public class GraphService : IGraphService
                         _logger.LogDebug("Skipping non-user member with type: {MemberType}", memberType);
                     }
                 }
-                
-                _logger.LogInformation("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}", 
+
+                _logger.LogInformation("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}",
                     totalMembers, userMembers, groupId);
             }
             else
@@ -157,7 +157,7 @@ public class GraphService : IGraphService
 
             // Cache the results
             _cache.Set(cacheKey, members, _cacheExpiration);
-            _logger.LogInformation("Cached {Count} group members for group {GroupId} with expiration {CacheExpiration}", 
+            _logger.LogInformation("Cached {Count} group members for group {GroupId} with expiration {CacheExpiration}",
                 members.Count, groupId, _cacheExpiration);
 
             _logger.LogInformation("Successfully completed GetGroupMembersAsync for group {GroupId}. Final result count: {Count}", groupId, members.Count);

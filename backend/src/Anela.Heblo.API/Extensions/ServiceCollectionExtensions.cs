@@ -230,7 +230,7 @@ public static class ServiceCollectionExtensions
         {
             throw new ConfigurationErrorsException("Hangfire options not found");
         }
-        
+
         // Configure Hangfire storage based on environment
         if (hangfireOptions.UseInMemoryStorage)
         {
@@ -285,7 +285,7 @@ public static class ServiceCollectionExtensions
         });
 
         // Only register job scheduler service in Production and Staging environments
-        if(hangfireOptions.SchedulerEnabled)
+        if (hangfireOptions.SchedulerEnabled)
         {
             services.AddHostedService<HangfireJobSchedulerService>();
         }
@@ -308,7 +308,7 @@ public static class ServiceCollectionExtensions
 
 public class HangfireOptions
 {
-    public static string ConfigurationKey =>  "Hangfire";
+    public static string ConfigurationKey => "Hangfire";
     public string SchemaName { get; set; } = "hangfire_heblo";
     public string QueueName { get; set; } = "heblo";
     public bool SchedulerEnabled { get; set; } = false;
