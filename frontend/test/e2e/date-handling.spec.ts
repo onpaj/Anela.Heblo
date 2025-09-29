@@ -19,37 +19,33 @@ test.describe('Date Handling Timezone Tests', () => {
     console.log('🔍 Starting date input timezone test...');
     
     try {
-      // Navigate to manufacture inventory page via sidebar navigation
-      console.log('📍 Looking for navigation links...');
+      // Navigate to transport boxes via Sklad navigation (known working path)
+      console.log('📍 Navigating via Sklad menu...');
       
       // Wait for sidebar to be loaded
       await page.waitForSelector('nav', { timeout: 10000 });
       
-      // Look for manufacture or inventory navigation links
-      const navLinks = [
-        'a[href*="manufacture"]',
-        'a[href*="inventory"]', 
-        'text=Výroba',
-        'text=Manufacture',
-        'text=Inventář',
-        'text=Inventory'
-      ];
-      
-      let navigated = false;
-      for (const selector of navLinks) {
-        const link = page.locator(selector).first();
-        if (await link.isVisible({ timeout: 2000 })) {
-          console.log(`✅ Found navigation link: ${selector}`);
-          await link.click();
+      // Click on Sklad menu item (working navigation pattern)
+      const skladSelector = page.locator('button').filter({ hasText: 'Sklad' }).first();
+      if (await skladSelector.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Sklad menu, clicking...');
+        await skladSelector.click();
+        await page.waitForTimeout(1000);
+        
+        // Click on Transportní boxy submenu
+        const transportSelector = page.locator('a').filter({ hasText: 'Transportní boxy' }).first();
+        if (await transportSelector.isVisible({ timeout: 5000 })) {
+          console.log('✅ Found Transportní boxy submenu, clicking...');
+          await transportSelector.click();
           await page.waitForLoadState('networkidle');
-          navigated = true;
-          break;
+        } else {
+          console.log('⚠️ Transportní boxy not found, trying direct navigation...');
+          await page.goto('/transport-boxes');
+          await page.waitForLoadState('networkidle');
         }
-      }
-      
-      if (!navigated) {
-        console.log('📍 Direct navigation to manufacture page...');
-        await page.goto('/manufacture-inventory');
+      } else {
+        console.log('⚠️ Sklad not found, trying direct navigation...');
+        await page.goto('/transport-boxes');
         await page.waitForLoadState('networkidle');
       }
       

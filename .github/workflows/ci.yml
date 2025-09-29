@@ -247,26 +247,25 @@ jobs:
 
   # Manual Approval for Test Deployment
   staging-approval:
-    name: 🤖 Approve Test Deployment
+    name: 🚀 Manual Approval - Deploy to Test Environment
     runs-on: ubuntu-latest
     needs: [frontend-tests, backend-tests]
-    environment: 
-      name: staging-approval
-      url: https://heblo.stg.anela.cz
+    environment: staging-approval
     steps:
-      - name: 📋 Summary of changes
+      - name: 📋 Deployment Approval Completed
         run: |
-          echo "## ✅ Tests Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Manual Approval Granted - Proceeding with Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **Frontend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **Backend Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Manual Approval**: Granted" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 **Ready to deploy to test environment!**" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Deploying to test environment...**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Test URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
+          echo "**Target URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
 
   # Build and Push Docker Image
   build-and-push:
@@ -573,18 +572,17 @@ jobs:
 
   # Optional E2E Tests against Staging Environment - REQUIRES MANUAL APPROVAL
   e2e-tests-approval:
-    name: 🧪 Approve E2E Tests (Manual Approval Required)
+    name: 🧪 Manual Approval - Run E2E Tests Against Staging
     runs-on: ubuntu-latest
     needs: [deploy-azure]
-    environment: 
-      name: e2e-tests-approval
-      url: https://heblo.stg.anela.cz
+    environment: e2e-tests-approval
     steps:
-      - name: 📋 E2E Testing Summary
+      - name: 📋 E2E Testing Approval Completed
         run: |
-          echo "## 🧪 Manual E2E Testing Approval Required" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Manual Approval Granted - Running E2E Tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ **This step REQUIRES MANUAL APPROVAL before E2E tests will run**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Manual Approval**: Granted for E2E testing" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Deployment**: Completed successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Configuration:" >> $GITHUB_STEP_SUMMARY
           echo "- **Staging URL**: https://heblo.stg.anela.cz" >> $GITHUB_STEP_SUMMARY
@@ -592,12 +590,12 @@ jobs:
           echo "- **Test Suite**: Complete Playwright E2E tests" >> $GITHUB_STEP_SUMMARY
           echo "- **Browser**: Chromium (headless)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### What happens after approval:" >> $GITHUB_STEP_SUMMARY
-          echo "1. E2E tests run against staging environment" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test results are uploaded as artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "3. HTML test report is generated (viewable via artifacts)" >> $GITHUB_STEP_SUMMARY
-          echo "4. Screenshots captured for failed tests" >> $GITHUB_STEP_SUMMARY
-          echo "5. PR comment added with test results summary" >> $GITHUB_STEP_SUMMARY
+          echo "### Running E2E Tests:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ E2E tests will run against staging environment" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Test results will be uploaded as artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ HTML test report will be generated (viewable via artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Screenshots will be captured for failed tests" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ PR comment will be added with test results summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### How to view test reports after completion:" >> $GITHUB_STEP_SUMMARY
           echo "1. Go to Actions tab → This workflow run" >> $GITHUB_STEP_SUMMARY

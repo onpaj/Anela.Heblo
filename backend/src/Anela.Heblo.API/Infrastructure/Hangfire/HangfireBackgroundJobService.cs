@@ -1,3 +1,4 @@
+using System.Configuration;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Domain.Features.Configuration;
@@ -79,8 +80,7 @@ public class HangfireBackgroundJobService
             var exportUrl = _productExportOptions.Value.Url;
             if (string.IsNullOrEmpty(exportUrl))
             {
-                _logger.LogWarning("Product export URL is not configured. Skipping product export download job at {Timestamp}", DateTime.UtcNow);
-                return;
+                throw new ConfigurationErrorsException("Export url is empty");
             }
 
             var timestamp = DateTime.UtcNow;
@@ -112,7 +112,7 @@ public class HangfireBackgroundJobService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Product export download failed at {Timestamp}", DateTime.UtcNow);
+            _logger.LogError(ex, "Product export download failed at {Timestamp}: {Reason}", DateTime.UtcNow, ex.Message);
             _telemetryService.TrackException(ex, new Dictionary<string, string>
             {
                 ["Job"] = "ProductExportDownload",
