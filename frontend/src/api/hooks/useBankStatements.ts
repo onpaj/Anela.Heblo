@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../ApiClient';
+import { getAuthenticatedApiClient } from '../client';
 
 export interface BankStatementImportStatisticsDto {
   date: string;
