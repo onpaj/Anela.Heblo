@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface BankStatementImportStatisticsDto {
   date: string;
@@ -21,7 +21,7 @@ export const useBankStatementImportStatistics = (
   request: GetBankStatementImportStatisticsRequest = {}
 ) => {
   return useQuery({
-    queryKey: ['bank-statement-import-statistics', request],
+    queryKey: [...QUERY_KEYS.bankStatements, 'import-statistics', request],
     queryFn: async (): Promise<GetBankStatementImportStatisticsResponse> => {
       const apiClient = getAuthenticatedApiClient();
       
