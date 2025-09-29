@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
   ReferenceArea,
 } from 'recharts';
 import { format, parseISO, isWeekend } from 'date-fns';
@@ -16,6 +17,8 @@ import { BankStatementImportStatisticsDto } from '../../api/hooks/useBankStateme
 interface BankStatementImportChartProps {
   data: BankStatementImportStatisticsDto[];
   viewType?: 'ImportCount' | 'TotalItemCount';
+  dateType?: 'ImportDate' | 'StatementDate';
+  minimumThreshold: number;
 }
 
 interface ChartDataPoint {
@@ -23,6 +26,7 @@ interface ChartDataPoint {
   displayDate: string;
   count: number;
   itemCount: number;
+  isBelowThreshold: boolean;
   isWeekend: boolean;
 }
 
@@ -32,15 +36,31 @@ interface ChartDataPoint {
 export const BankStatementImportChart: React.FC<BankStatementImportChartProps> = ({
   data,
   viewType = 'ImportCount',
+  dateType = 'ImportDate',
+  minimumThreshold,
 }) => {
   // Transform data for chart
-  const chartData: ChartDataPoint[] = data.map((item) => ({
-    date: item.date,
-    displayDate: format(parseISO(item.date), 'dd.MM.', { locale: cs }),
-    count: item.importCount,
-    itemCount: item.totalItemCount,
-    isWeekend: isWeekend(parseISO(item.date)),
-  }));
+  const chartData: ChartDataPoint[] = data.map((item) => {
+    const parsedDate = parseISO(item.date);
+    const isWeekendDay = isWeekend(parsedDate);
+    const currentCount = viewType === 'ImportCount' ? item.importCount : item.totalItemCount;
+    
+    return {
+      date: item.date,
+      displayDate: format(parsedDate, 'dd.MM.', { locale: cs }),
+      count: item.importCount,
+      itemCount: item.totalItemCount,
+      isBelowThreshold: currentCount < minimumThreshold,
+      isWeekend: isWeekendDay,
+    };
+  });
+
+  // Debug: log weekend data
+  console.log('Bank statements chart data:', chartData.map(d => ({ 
+    date: d.displayDate, 
+    isWeekend: d.isWeekend,
+    dayOfWeek: format(parseISO(d.date), 'EEEE', { locale: cs })
+  })));
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -77,7 +97,30 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
               📅 Víkend
             </p>
           )}
+          {data.isBelowThreshold && (
+            <p className="text-sm text-red-600 font-medium">
+              ⚠️ Pod minimálním prahem ({minimumThreshold})
+            </p>
+          )}
         </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom dot component to highlight problematic days
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    if (payload.isBelowThreshold) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={4}
+          fill="#dc2626"
+          stroke="#fff"
+          strokeWidth={2}
+        />
       );
     }
     return null;
@@ -119,10 +162,13 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
           Import banky - přehled posledních dní
         </h3>
         <p className="text-sm text-gray-600">
-          Zobrazení podle: datum importu bankovního výpisu
+          Zobrazení podle: {dateType === 'ImportDate' ? 'datum importu bankovního výpisu' : 'datum bankovního výpisu'}
         </p>
         <p className="text-sm text-gray-600">
           Metrika: {viewType === 'ImportCount' ? 'počet importů' : 'počet položek výpisů'}
+        </p>
+        <p className="text-sm text-gray-600">
+          Minimální prah: <span className="font-medium">{minimumThreshold} {viewType === 'ImportCount' ? 'importů' : 'položek'}/den</span>
         </p>
       </div>
 
@@ -159,13 +205,26 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
               />
             ))}
             
+            {/* Reference line for minimum threshold */}
+            <ReferenceLine
+              y={minimumThreshold}
+              stroke="#dc2626"
+              strokeDasharray="5 5"
+              strokeWidth={2}
+              label={{ 
+                value: `Min. prah (${minimumThreshold})`, 
+                position: 'top',
+                style: { fill: '#dc2626', fontSize: '12px' }
+              }}
+            />
+            
             {/* Main data line */}
             <Line
               type="monotone"
               dataKey={viewType === 'ImportCount' ? 'count' : 'itemCount'}
               stroke="#3b82f6"
               strokeWidth={2}
-              dot={false}
+              dot={<CustomDot />}
               activeDot={{ r: 6, fill: '#3b82f6' }}
             />
           </LineChart>
@@ -179,6 +238,14 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
           <span className="text-gray-600">
             {viewType === 'ImportCount' ? 'Počet importů' : 'Počet položek'}
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-0.5 bg-red-600 border-dashed border-t-2"></div>
+          <span className="text-gray-600">Minimální prah</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-red-600 rounded-full border-2 border-white"></div>
+          <span className="text-gray-600">Problémové dny</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-3 bg-sky-100 border border-sky-200"></div>

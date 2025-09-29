@@ -18,7 +18,7 @@ public class GetBankStatementImportStatisticsHandler : IRequestHandler<GetBankSt
         var endDate = request.EndDate ?? DateTime.UtcNow.Date;
         var startDate = request.StartDate ?? endDate.AddDays(-29); // 30 days including today
 
-        var statistics = await _repository.GetImportStatisticsAsync(startDate, endDate);
+        var statistics = await _repository.GetImportStatisticsAsync(startDate, endDate, request.DateType);
 
         // Create a complete range of dates to include days with zero imports
         var allDates = new List<BankStatementImportStatisticsDto>();

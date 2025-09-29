@@ -14,6 +14,7 @@ export interface GetBankStatementImportStatisticsResponse {
 export interface GetBankStatementImportStatisticsRequest {
   startDate?: string;
   endDate?: string;
+  dateType?: string;
 }
 
 export const useBankStatementImportStatistics = (
@@ -30,6 +31,9 @@ export const useBankStatementImportStatistics = (
       }
       if (request.endDate) {
         params.append('endDate', request.endDate);
+      }
+      if (request.dateType) {
+        params.append('dateType', request.dateType);
       }
 
       const relativeUrl = `/api/analytics/bank-statement-import-statistics`;

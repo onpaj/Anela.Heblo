@@ -301,12 +301,16 @@ export class ApiClient {
         return Promise.resolve<GetInvoiceImportStatisticsResponse>(null as any);
     }
 
-    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined): Promise<GetBankStatementImportStatisticsResponse> {
+    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined, dateType: string | undefined): Promise<GetBankStatementImportStatisticsResponse> {
         let url_ = this.baseUrl + "/api/Analytics/bank-statement-import-statistics?";
         if (startDate !== undefined && startDate !== null)
             url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
         if (endDate !== undefined && endDate !== null)
             url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        if (dateType === null)
+            throw new Error("The parameter 'dateType' cannot be null.");
+        else if (dateType !== undefined)
+            url_ += "DateType=" + encodeURIComponent("" + dateType) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {

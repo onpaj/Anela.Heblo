@@ -23,22 +23,31 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         return await _context.BankStatements.FindAsync(id);
     }
 
-    public async Task<IEnumerable<BankStatementImportStatistics>> GetImportStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null)
+    public async Task<IEnumerable<BankStatementImportStatistics>> GetImportStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null, string dateType = "ImportDate")
     {
         var query = _context.BankStatements.AsQueryable();
 
+        // Choose which date field to filter on
+        var dateField = dateType == "StatementDate" ? "StatementDate" : "ImportDate";
+
         if (startDate.HasValue)
         {
-            query = query.Where(bs => bs.ImportDate >= startDate.Value);
+            if (dateType == "StatementDate")
+                query = query.Where(bs => bs.StatementDate >= startDate.Value);
+            else
+                query = query.Where(bs => bs.ImportDate >= startDate.Value);
         }
 
         if (endDate.HasValue)
         {
-            query = query.Where(bs => bs.ImportDate <= endDate.Value);
+            if (dateType == "StatementDate")
+                query = query.Where(bs => bs.StatementDate <= endDate.Value);
+            else
+                query = query.Where(bs => bs.ImportDate <= endDate.Value);
         }
 
         var statistics = await query
-            .GroupBy(bs => bs.ImportDate.Date)
+            .GroupBy(bs => dateType == "StatementDate" ? bs.StatementDate.Date : bs.ImportDate.Date)
             .Select(g => new BankStatementImportStatistics
             {
                 Date = g.Key,

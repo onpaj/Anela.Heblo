@@ -11,21 +11,29 @@ import {
 import { BankStatementImportChart } from '../charts/BankStatementImportChart';
 
 type ViewOption = 'ImportCount' | 'TotalItemCount';
+type DateTypeOption = 'ImportDate' | 'StatementDate';
 
 const BankStatementImportPage: React.FC = () => {
   const [viewType, setViewType] = useState<ViewOption>('ImportCount');
+  const [dateType, setDateType] = useState<DateTypeOption>('ImportDate');
   
-  // API query - no filters, just get last 30 days
+  // API query - pass dateType parameter
   const { 
     data, 
     isLoading, 
     error, 
     refetch,
     isFetching
-  } = useBankStatementImportStatistics({});
+  } = useBankStatementImportStatistics({
+    dateType: dateType
+  });
 
   const handleViewTypeChange = (newViewType: ViewOption) => {
     setViewType(newViewType);
+  };
+
+  const handleDateTypeChange = (newDateType: DateTypeOption) => {
+    setDateType(newDateType);
   };
 
   // Calculate summary statistics
@@ -97,34 +105,67 @@ const BankStatementImportPage: React.FC = () => {
         </button>
       </div>
 
-      {/* View type selector */}
+      {/* Controls row */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-4">
           <Calendar className="h-5 w-5 text-gray-600" />
-          <h3 className="font-medium text-gray-900">Zobrazení podle</h3>
+          <h3 className="font-medium text-gray-900">Nastavení grafu</h3>
         </div>
         
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleViewTypeChange('ImportCount')}
-            className={`px-4 py-2 rounded-lg border transition-colors ${
-              viewType === 'ImportCount'
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Počet importů
-          </button>
-          <button
-            onClick={() => handleViewTypeChange('TotalItemCount')}
-            className={`px-4 py-2 rounded-lg border transition-colors ${
-              viewType === 'TotalItemCount'
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Počet položek výpisů
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Date type selector */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Datum</h4>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDateTypeChange('ImportDate')}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  dateType === 'ImportDate'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Datum importu
+              </button>
+              <button
+                onClick={() => handleDateTypeChange('StatementDate')}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  dateType === 'StatementDate'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Datum výpisu
+              </button>
+            </div>
+          </div>
+
+          {/* View type selector */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Zobrazení podle</h4>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleViewTypeChange('ImportCount')}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  viewType === 'ImportCount'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Počet importů
+              </button>
+              <button
+                onClick={() => handleViewTypeChange('TotalItemCount')}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  viewType === 'TotalItemCount'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Počet položek výpisů
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -174,6 +215,8 @@ const BankStatementImportPage: React.FC = () => {
           <BankStatementImportChart
             data={data.statistics}
             viewType={viewType}
+            dateType={dateType}
+            minimumThreshold={10}
           />
         ) : (
           <div className="flex items-center justify-center h-80">
