@@ -45,7 +45,7 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = sourceOrder.ResponsiblePerson,
             SemiProductPlannedDate = today,
-            ProductPlannedDate = today, 
+            ProductPlannedDate = today,
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow,
             StateChangedByUser = currentUser.Name

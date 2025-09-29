@@ -36,16 +36,16 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             // Update basic properties only if provided
             if (request.SemiProductPlannedDate.HasValue)
                 order.SemiProductPlannedDate = request.SemiProductPlannedDate.Value;
-            
+
             if (request.ProductPlannedDate.HasValue)
                 order.ProductPlannedDate = request.ProductPlannedDate.Value;
-            
+
             if (request.ResponsiblePerson != null)
                 order.ResponsiblePerson = request.ResponsiblePerson;
 
             if (request.ErpOrderNumberSemiproduct != null)
                 order.ErpOrderNumberSemiproduct = request.ErpOrderNumberSemiproduct;
-                
+
             if (request.ErpOrderNumberProduct != null)
                 order.ErpOrderNumberProduct = request.ErpOrderNumberProduct;
 
@@ -54,13 +54,13 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             {
                 if (request.SemiProduct.PlannedQuantity != null)
                     order.SemiProduct.PlannedQuantity = request.SemiProduct.PlannedQuantity.Value;
-                
+
                 if (request.SemiProduct.LotNumber != null)
                     order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
-                
+
                 if (request.SemiProduct.ExpirationDate != null)
                     order.SemiProduct.ExpirationDate = request.SemiProduct.ExpirationDate;
-                
+
                 if (request.SemiProduct.ActualQuantity != null)
                     order.SemiProduct.ActualQuantity = request.SemiProduct.ActualQuantity.Value;
             }
@@ -70,7 +70,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             {
                 // Check if this is updating existing products (by Id) or replacing all products
                 bool isUpdatingExistingProducts = request.Products.All(p => p.Id.HasValue);
-                
+
                 if (isUpdatingExistingProducts)
                 {
                     // Update existing products - only update specified fields
@@ -81,13 +81,13 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                         {
                             if (productRequest.PlannedQuantity.HasValue)
                                 existingProduct.PlannedQuantity = (decimal)productRequest.PlannedQuantity.Value;
-                            
+
                             if (productRequest.ActualQuantity.HasValue)
                                 existingProduct.ActualQuantity = productRequest.ActualQuantity.Value;
-                                
+
                             if (!string.IsNullOrEmpty(productRequest.ProductCode))
                                 existingProduct.ProductCode = productRequest.ProductCode;
-                                
+
                             if (!string.IsNullOrEmpty(productRequest.ProductName))
                                 existingProduct.ProductName = productRequest.ProductName;
 

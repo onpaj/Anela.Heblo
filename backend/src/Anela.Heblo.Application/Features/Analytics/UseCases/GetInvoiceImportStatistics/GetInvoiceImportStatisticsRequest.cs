@@ -11,11 +11,11 @@ public class GetInvoiceImportStatisticsRequest : IRequest<GetInvoiceImportStatis
     /// Type of date to use for grouping statistics
     /// </summary>
     public ImportDateType DateType { get; set; } = ImportDateType.InvoiceDate;
-    
+
     /// <summary>
     /// Number of days to look back from today
     /// </summary>
-    public int DaysBack { get; set; } = 14;
+    public int? DaysBack { get; set; }
 }
 
 /// <summary>
@@ -27,7 +27,7 @@ public enum ImportDateType
     /// Use InvoiceDate (when invoice was issued)
     /// </summary>
     InvoiceDate,
-    
+
     /// <summary>
     /// Use LastSyncTime (when invoice was imported into our system)
     /// </summary>

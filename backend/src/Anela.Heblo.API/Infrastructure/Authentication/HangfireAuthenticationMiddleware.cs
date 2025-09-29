@@ -63,7 +63,7 @@ public class HangfireAuthenticationMiddleware
     {
         // Check if this request is part of the authentication flow
         var path = context.Request.Path.Value?.ToLowerInvariant();
-        
+
         // Skip middleware for OIDC authentication paths
         if (path != null && (
             path.Contains("/signin-oidc") ||
@@ -76,7 +76,7 @@ public class HangfireAuthenticationMiddleware
         }
 
         // Skip if request has OAuth parameters (callback from authentication provider)
-        if (context.Request.Query.ContainsKey("code") || 
+        if (context.Request.Query.ContainsKey("code") ||
             context.Request.Query.ContainsKey("state") ||
             context.Request.Query.ContainsKey("session_state"))
         {
@@ -90,7 +90,7 @@ public class HangfireAuthenticationMiddleware
         }
 
         // Skip if this looks like a callback with authentication cookies already set
-        var authCookie = context.Request.Cookies.Keys.FirstOrDefault(k => 
+        var authCookie = context.Request.Cookies.Keys.FirstOrDefault(k =>
             k.Contains("AspNetCore") || k.Contains("OpenIdConnect") || k.Contains("Correlation"));
         if (!string.IsNullOrEmpty(authCookie))
         {
@@ -103,7 +103,7 @@ public class HangfireAuthenticationMiddleware
     private async Task HandleUnauthenticatedRequest(HttpContext context)
     {
         // Check if this is an API request
-        var isApiRequest = context.Request.Headers.Accept.Any(h => 
+        var isApiRequest = context.Request.Headers.Accept.Any(h =>
             h != null && h.Contains("application/json", StringComparison.OrdinalIgnoreCase));
 
         if (isApiRequest)
@@ -124,7 +124,7 @@ public class HangfireAuthenticationMiddleware
         {
             // Clear the auth attempt cookie
             context.Response.Cookies.Delete("HangfireAuthAttempt");
-            
+
             // Return error page instead of redirecting
             context.Response.StatusCode = 403;
             await context.Response.WriteAsync(@"

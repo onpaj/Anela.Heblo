@@ -3,9 +3,9 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public interface IManufactureOrderApplicationService
 {
     Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
-        int orderId, 
-        decimal actualQuantity, 
-        string? changeReason = null, 
+        int orderId,
+        decimal actualQuantity,
+        string? changeReason = null,
         CancellationToken cancellationToken = default);
 
     Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(

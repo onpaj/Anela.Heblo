@@ -28,14 +28,14 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     }
 
     public async Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
-        int orderId, 
-        decimal actualQuantity, 
-        string? changeReason = null, 
+        int orderId,
+        decimal actualQuantity,
+        string? changeReason = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Starting semi-product manufacture confirmation for order {OrderId} with quantity {ActualQuantity}", 
+            _logger.LogInformation("Starting semi-product manufacture confirmation for order {OrderId} with quantity {ActualQuantity}",
                 orderId, actualQuantity);
 
             // Step 1: Update the ActualQuantity on the semi-product
@@ -52,7 +52,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var updateResult = await _mediator.Send(updateRequest, cancellationToken);
             if (!updateResult.Success)
             {
-                _logger.LogError("Failed to update actual quantity for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to update actual quantity for order {OrderId}: {ErrorCode}",
                     orderId, updateResult.ErrorCode);
                 return new ConfirmSemiProductManufactureResult(false, $"Chyba při aktualizaci množství: {updateResult.ErrorCode}");
             }
@@ -81,12 +81,12 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var submitManufactureResult = await _mediator.Send(submitManufactureRequest, cancellationToken);
             if (!submitManufactureResult.Success)
             {
-                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}",
                     orderId, submitManufactureResult.ErrorCode);
                 return new ConfirmSemiProductManufactureResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
             }
 
-            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}", 
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}",
                 submitManufactureResult.ManufactureId, orderId);
 
             // Step 3: Change state to SemiProductManufactured
@@ -103,13 +103,13 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
             if (!statusResult.Success)
             {
-                _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
                     orderId, statusResult.ErrorCode);
                 return new ConfirmSemiProductManufactureResult(false, $"Chyba při změně stavu: {statusResult.ErrorCode}");
             }
 
             _logger.LogInformation("Successfully confirmed semi-product manufacture for order {OrderId}", orderId);
-            return new ConfirmSemiProductManufactureResult(true, 
+            return new ConfirmSemiProductManufactureResult(true,
                 $"Polotovar byl úspěšně vyroben se skutečným množstvím {actualQuantity}");
         }
         catch (Exception ex)
@@ -127,7 +127,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     {
         try
         {
-            _logger.LogInformation("Starting product completion confirmation for order {OrderId} with {ProductCount} products", 
+            _logger.LogInformation("Starting product completion confirmation for order {OrderId} with {ProductCount} products",
                 orderId, productActualQuantities.Count);
 
             // Step 1: Update the ActualQuantity on each product
@@ -146,7 +146,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var updateResult = await _mediator.Send(updateRequest, cancellationToken);
             if (!updateResult.Success)
             {
-                _logger.LogError("Failed to update actual quantities for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to update actual quantities for order {OrderId}: {ErrorCode}",
                     orderId, updateResult.ErrorCode);
                 return new ConfirmProductCompletionResult(false, $"Chyba při aktualizaci množství produktů: {updateResult.ErrorCode}");
             }
@@ -160,9 +160,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 CreatedBy = _currentUserService.GetCurrentUser().Name,
                 Items = updateResult.Order!.Products.Select(p => new SubmitManufactureRequestItem()
                 {
-                        ProductCode = p.ProductCode,
-                        Name = p.ProductName,
-                        Amount = p.ActualQuantity ?? p.PlannedQuantity,
+                    ProductCode = p.ProductCode,
+                    Name = p.ProductName,
+                    Amount = p.ActualQuantity ?? p.PlannedQuantity,
                 }).ToList(),
                 LotNumber = updateResult.Order.SemiProduct.LotNumber,
                 ExpirationDate = updateResult.Order.SemiProduct.ExpirationDate,
@@ -171,7 +171,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var submitManufactureResult = await _mediator.Send(submitManufactureRequest, cancellationToken);
             if (!submitManufactureResult.Success)
             {
-                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}",
                     orderId, submitManufactureResult.ErrorCode);
                 //return new ConfirmProductCompletionResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
             }
@@ -195,13 +195,13 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
             if (!statusResult.Success)
             {
-                _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}", 
+                _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
                     orderId, statusResult.ErrorCode);
                 return new ConfirmProductCompletionResult(false, $"Chyba při změně stavu: {statusResult.ErrorCode}");
             }
 
             _logger.LogInformation("Successfully confirmed product completion for order {OrderId}", orderId);
-            return new ConfirmProductCompletionResult(true, 
+            return new ConfirmProductCompletionResult(true,
                 $"Výroba produktů byla úspěšně dokončena");
         }
         catch (Exception ex)

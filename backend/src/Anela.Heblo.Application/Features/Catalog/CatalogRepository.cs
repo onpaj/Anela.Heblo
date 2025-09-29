@@ -457,7 +457,7 @@ public class CatalogRepository : ICatalogRepository
 
         // Set last merge timestamp
         SetLastMergeDateTime();
-        
+
         return products.ToList();
     }
 
@@ -748,20 +748,20 @@ public class CatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => GetLoadDateFromCache(nameof(CachedErpPriceData));
     public DateTime? ManufactureDifficultySettingsLoadDate => GetLoadDateFromCache(nameof(CachedManufactureDifficultySettingsData));
     public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(nameof(CachedManufactureCostData));
-    
+
     // Merge operation tracking
     public DateTime? LastMergeDateTime => _cache.Get<DateTime?>("LastMergeDateTime");
-    
+
     public bool ChangesPendingForMerge
     {
         get
         {
             var lastMerge = LastMergeDateTime;
-            
+
             // If no merge has been performed yet, changes are pending
             if (lastMerge == null)
                 return true;
-                
+
             // Get all LoadDate properties
             var loadDates = new DateTime?[]
             {
@@ -782,22 +782,22 @@ public class CatalogRepository : ICatalogRepository
                 ErpPricesLoadDate,
                 ManufactureDifficultySettingsLoadDate,
             };
-            
+
             // If any LoadDate is null, changes are pending
             if (loadDates.Any(date => date == null))
                 return true;
-                
+
             // If any LoadDate is greater than LastMergeDateTime, changes are pending
             var maxLoadDate = loadDates.Where(date => date.HasValue).Max(date => date.Value);
             return maxLoadDate > lastMerge;
         }
     }
-    
+
     private DateTime? GetLoadDateFromCache(string dataKey)
     {
         return _cache.Get<DateTime?>($"{dataKey}_LoadDate");
     }
-    
+
     private void SetLoadDateInCache(string dataKey)
     {
         var loadDate = _timeProvider.GetUtcNow().DateTime;
@@ -807,7 +807,7 @@ public class CatalogRepository : ICatalogRepository
         };
         _cache.Set($"{dataKey}_LoadDate", loadDate, cacheOptions);
     }
-    
+
     private void SetLastMergeDateTime()
     {
         var mergeDateTime = _timeProvider.GetUtcNow().DateTime;

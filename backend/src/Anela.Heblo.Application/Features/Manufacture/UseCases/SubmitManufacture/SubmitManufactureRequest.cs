@@ -13,7 +13,7 @@ public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
     public DateTime Date { get; set; }
     public string? CreatedBy { get; set; }
     public List<SubmitManufactureRequestItem> Items { get; set; } = [];
-    
+
     public string? LotNumber { get; set; }
     public DateOnly? ExpirationDate { get; set; }
 }

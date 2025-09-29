@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.ResolveManualAct
 public class ResolveManualActionResponse : BaseResponse
 {
     public ResolveManualActionResponse() : base() { }
-    
-    public ResolveManualActionResponse(ErrorCodes errorCode, Dictionary<string, string>? validationErrors = null) 
+
+    public ResolveManualActionResponse(ErrorCodes errorCode, Dictionary<string, string>? validationErrors = null)
         : base(errorCode, validationErrors) { }
 }

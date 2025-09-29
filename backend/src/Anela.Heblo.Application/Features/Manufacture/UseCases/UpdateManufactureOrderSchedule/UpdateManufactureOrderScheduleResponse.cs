@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactur
 public class UpdateManufactureOrderScheduleResponse : BaseResponse
 {
     public string? Message { get; set; }
-    
+
     public UpdateManufactureOrderScheduleResponse() : base()
     {
         Message = "Schedule updated successfully";

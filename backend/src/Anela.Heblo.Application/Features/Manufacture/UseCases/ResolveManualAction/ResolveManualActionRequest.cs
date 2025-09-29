@@ -9,7 +9,7 @@ public class ResolveManualActionRequest : IRequest<ResolveManualActionResponse>
     public int OrderId { get; set; }
 
     public string? ErpOrderNumberSemiproduct { get; set; }
-    
+
     public string? ErpOrderNumberProduct { get; set; }
 
     public string? Note { get; set; }

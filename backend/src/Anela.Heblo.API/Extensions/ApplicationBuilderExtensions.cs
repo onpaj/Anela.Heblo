@@ -62,7 +62,7 @@ public static class ApplicationBuilderExtensions
 
         // Configure forwarded headers for deployment behind load balancer/proxy (HTTPS handling)
         app.UseForwardedHeaders();
-        
+
         app.UseHttpsRedirection();
 
         // Built-in HTTP request logging

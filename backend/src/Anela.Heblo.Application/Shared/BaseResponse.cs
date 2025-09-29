@@ -37,7 +37,7 @@ public abstract class BaseResponse
         ErrorCode = errorCode;
         Params = parameters;
     }
-    
+
     /// <summary>
     /// Creates an error response
     /// </summary>
@@ -56,7 +56,7 @@ public abstract class BaseResponse
     {
         if (Success)
             return string.Empty;
-        
+
         return $"{ErrorCode}: {string.Join(" | ", Params.Select(s => $"{s.Key}: {s.Value}"))}";
     }
 }

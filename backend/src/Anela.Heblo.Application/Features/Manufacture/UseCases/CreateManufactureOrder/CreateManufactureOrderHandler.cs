@@ -14,7 +14,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
-        ICatalogRepository  catalogRepository,
+        ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
@@ -50,7 +50,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         {
             return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);
         }
-        
+
         // Create the semi-product entry (the main product being manufactured)
         var semiProduct = new ManufactureOrderSemiProduct
         {

@@ -29,7 +29,7 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
         var defaultDaysBack = _configuration.GetValue<int>("InvoiceImport:DefaultDaysBack", 14);
 
         // Use provided days back or default from configuration
-        var daysBack = request.DaysBack > 0 ? request.DaysBack : defaultDaysBack;
+        var daysBack = request.DaysBack ?? defaultDaysBack;
 
         // Calculate date range - work with UTC dates for consistency
         // Repository will handle conversion to Unspecified for PostgreSQL timestamp without time zone

@@ -75,7 +75,7 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
 
-            _logger.LogInformation("Manual action resolved for order {OrderId} by user {UserName}", 
+            _logger.LogInformation("Manual action resolved for order {OrderId} by user {UserName}",
                 request.OrderId, userName);
 
             return new ResolveManualActionResponse();

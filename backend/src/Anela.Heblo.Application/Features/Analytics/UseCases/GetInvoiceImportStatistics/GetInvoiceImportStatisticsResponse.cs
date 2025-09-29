@@ -11,7 +11,7 @@ public class GetInvoiceImportStatisticsResponse : BaseResponse
     /// Daily invoice counts for the requested period
     /// </summary>
     public List<DailyInvoiceCount> Data { get; set; } = new();
-    
+
     /// <summary>
     /// Configured minimum threshold for marking days as problematic
     /// </summary>
@@ -27,12 +27,12 @@ public class DailyInvoiceCount
     /// Date for this count (only date part, time is ignored)
     /// </summary>
     public DateTime Date { get; set; }
-    
+
     /// <summary>
     /// Number of invoices for this date
     /// </summary>
     public int Count { get; set; }
-    
+
     /// <summary>
     /// Whether this day is below the minimum threshold (problematic)
     /// </summary>

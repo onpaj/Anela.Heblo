@@ -27,7 +27,7 @@ public class CatalogAggregate : Entity<string>
 
     public decimal? PriceWithVat => GetSafeProductPrice();
     public decimal? PriceWithoutVat => GetSafeProductPrideWithoutVat();
-    
+
     public bool PriceIsFromEshop => EshopPrice?.PriceWithVat is not 0;
 
     private decimal? GetSafeProductPrideWithoutVat()
@@ -45,7 +45,7 @@ public class CatalogAggregate : Entity<string>
 
         return null;
     }
-    
+
     private decimal? GetSafeProductPrice()
     {
         // Safe price extraction
