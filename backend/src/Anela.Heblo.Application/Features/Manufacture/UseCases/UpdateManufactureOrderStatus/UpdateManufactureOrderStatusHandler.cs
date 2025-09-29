@@ -54,8 +54,9 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             order.State = request.NewState;
             order.StateChangedAt = _timeProvider.GetUtcNow().DateTime;
             order.StateChangedByUser = GetCurrentUserName();
-            order.ManualActionRequired = request.ManualActionRequired;
 
+            if (request.ManualActionRequired.HasValue)
+                order.ManualActionRequired = request.ManualActionRequired.Value;
             if (request.SemiProductOrderCode != null)
                 order.ErpOrderNumberSemiproduct = request.SemiProductOrderCode;
             if (request.ProductOrderCode != null)

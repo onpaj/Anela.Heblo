@@ -6,6 +6,11 @@ using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.UserManagement.Services;
 
+/// <summary>
+/// Service for accessing Microsoft Graph API to retrieve group members.
+/// Uses application permissions (GetAccessTokenForAppAsync) instead of user permissions
+/// to avoid MSAL IDW10502 error that requires user context or login hint.
+/// </summary>
 public class GraphService : IGraphService
 {
     private readonly ITokenAcquisition _tokenAcquisition;
@@ -48,30 +53,30 @@ public class GraphService : IGraphService
 
             _logger.LogInformation("GroupId validation passed. GroupId: {GroupId}", groupId);
 
-            // Acquire Graph API token
-            var scopes = new[] { "https://graph.microsoft.com/GroupMember.Read.All" };
-            _logger.LogInformation("Attempting to acquire MS Graph token with scopes: {Scopes}", string.Join(", ", scopes));
+            // Acquire Graph API token using application permissions (not user context)
+            var scope = "https://graph.microsoft.com/.default";
+            _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
 
             string graphToken;
             try
             {
                 var tokenStart = DateTime.UtcNow;
-                graphToken = await _tokenAcquisition.GetAccessTokenForUserAsync(scopes);
+                graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
                 var tokenDuration = DateTime.UtcNow - tokenStart;
-                _logger.LogInformation("Successfully acquired MS Graph token in {Duration}ms", tokenDuration.TotalMilliseconds);
+                _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
 
                 // Log token length for troubleshooting (not the actual token)
                 _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
             }
             catch (MsalException msalEx)
             {
-                _logger.LogError(msalEx, "Failed to acquire Graph API token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scopes: {Scopes}",
-                    msalEx.ErrorCode, msalEx.Message, groupId, string.Join(", ", scopes));
+                _logger.LogError(msalEx, "Failed to acquire Graph API application token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scope: {Scope}",
+                    msalEx.ErrorCode, msalEx.Message, groupId, scope);
                 return new List<UserDto>();
             }
             catch (Exception tokenEx)
             {
-                _logger.LogError(tokenEx, "Unexpected error acquiring Graph API token for groupId: {GroupId}, scopes: {Scopes}", groupId, string.Join(", ", scopes));
+                _logger.LogError(tokenEx, "Unexpected error acquiring Graph API application token for groupId: {GroupId}, scope: {Scope}", groupId, scope);
                 return new List<UserDto>();
             }
 
