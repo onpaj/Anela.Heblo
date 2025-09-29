@@ -1,97 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AlertCircle,
   RefreshCw,
   CreditCard,
+  Calendar,
 } from "lucide-react";
 import {
   useBankStatementImportStatistics,
-  BankStatementImportStatisticsDto,
 } from "../../api/hooks/useBankStatements";
-import { format, parseISO } from 'date-fns';
-import { cs } from 'date-fns/locale';
+import { BankStatementImportChart } from '../charts/BankStatementImportChart';
 
-interface BankStatementSimpleChartProps {
-  data: BankStatementImportStatisticsDto[];
-}
+type ViewOption = 'ImportCount' | 'TotalItemCount';
 
-const BankStatementSimpleChart: React.FC<BankStatementSimpleChartProps> = ({ data }) => {
-  const maxImports = Math.max(...data.map(d => d.importCount), 1);
-  const maxItems = Math.max(...data.map(d => d.totalItemCount), 1);
+const BankStatementImportPage: React.FC = () => {
+  const [viewType, setViewType] = useState<ViewOption>('ImportCount');
   
-  return (
-    <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
-        Import banky - přehled posledních dní
-      </h3>
-      
-      <div className="space-y-3">
-        {data.slice(-30).reverse().map((stat, index) => {
-          const date = parseISO(stat.date);
-          const formattedDate = format(date, 'dd.MM.yyyy', { locale: cs });
-          const dayName = format(date, 'EEE', { locale: cs });
-          
-          return (
-            <div key={index} className="flex items-center gap-4">
-              <div className="w-20 text-sm text-gray-600 flex-shrink-0">
-                <div className="font-medium">{formattedDate}</div>
-                <div className="text-xs text-gray-400 capitalize">{dayName}</div>
-              </div>
-              
-              <div className="flex-1 space-y-2">
-                {/* Import Count Bar */}
-                <div className="flex items-center gap-2">
-                  <div className="w-16 text-xs text-gray-500">Importy:</div>
-                  <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
-                    <div
-                      className="bg-indigo-600 h-4 rounded-full transition-all duration-300"
-                      style={{
-                        width: maxImports > 0 ? `${(stat.importCount / maxImports) * 100}%` : '0%'
-                      }}
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                      {stat.importCount}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Total Item Count Bar */}
-                <div className="flex items-center gap-2">
-                  <div className="w-16 text-xs text-gray-500">Položky:</div>
-                  <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
-                    <div
-                      className="bg-green-600 h-4 rounded-full transition-all duration-300"
-                      style={{
-                        width: maxItems > 0 ? `${(stat.totalItemCount / maxItems) * 100}%` : '0%'
-                      }}
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                      {stat.totalItemCount}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Legend */}
-      <div className="mt-4 flex gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 bg-indigo-600 rounded"></div>
-          <span className="text-gray-600">Počet importů</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 bg-green-600 rounded"></div>
-          <span className="text-gray-600">Počet položek</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const BankStatementImportChart: React.FC = () => {
   // API query - no filters, just get last 30 days
   const { 
     data, 
@@ -100,6 +23,10 @@ const BankStatementImportChart: React.FC = () => {
     refetch,
     isFetching
   } = useBankStatementImportStatistics({});
+
+  const handleViewTypeChange = (newViewType: ViewOption) => {
+    setViewType(newViewType);
+  };
 
   // Calculate summary statistics
   const summaryStats = React.useMemo(() => {
@@ -170,20 +97,44 @@ const BankStatementImportChart: React.FC = () => {
         </button>
       </div>
 
+      {/* View type selector */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Calendar className="h-5 w-5 text-gray-600" />
+          <h3 className="font-medium text-gray-900">Zobrazení podle</h3>
+        </div>
+        
+        <div className="flex gap-3">
+          <button
+            onClick={() => handleViewTypeChange('ImportCount')}
+            className={`px-4 py-2 rounded-lg border transition-colors ${
+              viewType === 'ImportCount'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Počet importů
+          </button>
+          <button
+            onClick={() => handleViewTypeChange('TotalItemCount')}
+            className={`px-4 py-2 rounded-lg border transition-colors ${
+              viewType === 'TotalItemCount'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Počet položek výpisů
+          </button>
+        </div>
+      </div>
+
       {/* Summary statistics */}
       {summaryStats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="text-sm font-medium text-gray-600">Celkem importů</h3>
             <p className="text-2xl font-bold text-gray-900 mt-1">
               {summaryStats.totalImports}
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-medium text-gray-600">Celkem položek</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {summaryStats.totalItems}
             </p>
           </div>
           
@@ -220,8 +171,9 @@ const BankStatementImportChart: React.FC = () => {
             </div>
           </div>
         ) : data ? (
-          <BankStatementSimpleChart
+          <BankStatementImportChart
             data={data.statistics}
+            viewType={viewType}
           />
         ) : (
           <div className="flex items-center justify-center h-80">
@@ -266,4 +218,4 @@ const BankStatementImportChart: React.FC = () => {
   );
 };
 
-export default BankStatementImportChart;
+export default BankStatementImportPage;
