@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface UseInvoiceImportStatisticsParams {
   dateType?: 'InvoiceDate' | 'LastSyncTime';
@@ -27,7 +27,7 @@ export function useInvoiceImportStatistics(params: UseInvoiceImportStatisticsPar
   const { dateType = 'InvoiceDate', daysBack } = params;
 
   return useQuery({
-    queryKey: ['invoice-import-statistics', dateType, daysBack],
+    queryKey: [...QUERY_KEYS.invoiceImportStatistics, dateType, daysBack],
     queryFn: async (): Promise<InvoiceImportStatisticsResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       

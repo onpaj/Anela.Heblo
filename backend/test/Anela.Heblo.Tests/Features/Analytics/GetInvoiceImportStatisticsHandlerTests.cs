@@ -104,7 +104,7 @@ public class GetInvoiceImportStatisticsHandlerTests
         var customConfiguration = customConfigurationBuilder.Build();
         var handlerWithCustomConfig = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, customConfiguration);
 
-        var request = new GetInvoiceImportStatisticsRequest { DaysBack = 0 }; // Use default
+        var request = new GetInvoiceImportStatisticsRequest(); // DaysBack = null to use default
         var expectedData = new List<DailyInvoiceCount>();
 
         _mockRepository.Setup(r => r.GetInvoiceImportStatisticsAsync(
@@ -118,9 +118,13 @@ public class GetInvoiceImportStatisticsHandlerTests
         var result = await handlerWithCustomConfig.Handle(request, CancellationToken.None);
 
         // Assert - Verify that 30 days range was used by checking repository call
+        // Implementation uses: startDate = endDate.AddDays(-daysBack), endDate = DateTime.UtcNow.Date
+        var expectedEndDate = DateTime.UtcNow.Date;
+        var expectedStartDate = expectedEndDate.AddDays(-30);
+
         _mockRepository.Verify(r => r.GetInvoiceImportStatisticsAsync(
-            It.Is<DateTime>(d => d <= DateTime.UtcNow.Date.AddDays(-29)), // Should be around 30 days ago
-            It.Is<DateTime>(d => d >= DateTime.UtcNow.Date.AddDays(-1)), // Should be around today
+            It.Is<DateTime>(d => d.Date == expectedStartDate), // Should be 30 days ago
+            It.Is<DateTime>(d => d.Date == expectedEndDate), // Should be today
             It.IsAny<ImportDateType>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
