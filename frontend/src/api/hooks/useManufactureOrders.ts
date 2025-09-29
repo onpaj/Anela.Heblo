@@ -28,6 +28,7 @@ export interface GetManufactureOrdersRequest {
   responsiblePerson?: string | null;
   orderNumber?: string | null;
   productCode?: string | null;
+  manualActionRequired?: boolean | null;
 }
 
 // Query keys using QUERY_KEYS for consistency
@@ -60,7 +61,8 @@ export const useManufactureOrdersQuery = (request: GetManufactureOrdersRequest =
         request.dateTo || undefined,
         request.responsiblePerson || undefined,
         request.orderNumber || undefined,
-        request.productCode || undefined
+        request.productCode || undefined,
+        request.manualActionRequired || undefined
       );
     },
     staleTime: 1000 * 60 * 5, // 5 minutes

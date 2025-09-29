@@ -83,7 +83,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}",
                     orderId, submitManufactureResult.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
             }
 
             _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}",
@@ -97,7 +96,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 ChangeReason = changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
                 Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku meziproduktu: {submitManufactureResult.FullError()}",
                 SemiProductOrderCode = submitManufactureResult.ManufactureId,
-                ManualActionRequired = !submitManufactureResult.Success
+                ManualActionRequired = submitManufactureResult.Success == false ? true : null
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);
@@ -173,7 +172,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}",
                     orderId, submitManufactureResult.ErrorCode);
-                //return new ConfirmProductCompletionResult(false, $"Chyba při vytvoření výroby: {submitManufactureResult.ErrorCode}");
             }
             else
             {
@@ -189,7 +187,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 ChangeReason = changeReason ?? $"Potvrzeno dokončení výroby produktů",
                 Note = submitManufactureResult.Success ? $"Vytvořena vydaná objednávka produktů {submitManufactureResult.ManufactureId}" : $"Nepodařilo se vytvořit vydanou objednávku produktů {submitManufactureResult.FullError()}",
                 ProductOrderCode = submitManufactureResult.ManufactureId,
-                ManualActionRequired = !submitManufactureResult.Success
+                ManualActionRequired = submitManufactureResult.Success == false ? true : null
             };
 
             var statusResult = await _mediator.Send(statusRequest, cancellationToken);

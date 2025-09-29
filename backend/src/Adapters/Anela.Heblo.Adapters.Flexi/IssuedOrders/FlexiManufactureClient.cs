@@ -45,6 +45,7 @@ public class FlexiManufactureClient : IManufactureClient
                 CreatedBy = request.CreatedBy,
                 User = request.CreatedBy,
                 Note = request.ManufactureOrderCode,
+                Description = request.ManufactureOrderCode,
                 Items = request.Items.Select(s => MapToFlexiItem(s, request)).ToList()
             };
 
@@ -55,8 +56,8 @@ public class FlexiManufactureClient : IManufactureClient
             var result = await _ordersClient.SaveAsync(createOrder, cancellationToken);
             if (!result.IsSuccess)
             {
-                _logger.LogError("SaveAsync returned no results for manufacture order {ManufactureOrderId}", request.ManufactureOrderCode);
-                throw new InvalidOperationException("Failed to create issued order - no results returned");
+                _logger.LogError("Failed to create manufacture order {ManufactureOrderId}: {Error}", request.ManufactureOrderCode, result.GetErrorMessage());
+                throw new InvalidOperationException($"Failed to create issued order: {result.GetErrorMessage()}");
             }
 
             var firstResult = result.Result.Results.First();
@@ -124,7 +125,7 @@ public class FlexiManufactureClient : IManufactureClient
     {
         if (request.ManufactureType == ManufactureType.SemiProduct)
         {
-            return $"{request.Items.First().ProductCode} - {request.Items.First().ProductName}";
+            return $"{request.Items.First().ProductCode} - {request.Items.First().ProductName.Replace(" - meziprodukt", "")}";
         }
 
         return $"{request.Items.First().ProductCode.Left(6)} - {request.Items.First().ProductName}";

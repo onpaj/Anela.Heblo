@@ -23,4 +23,6 @@ public class UpdateManufactureOrderRequest : IRequest<UpdateManufactureOrderResp
     public List<UpdateManufactureOrderProductRequest> Products { get; set; } = new();
 
     public string? NewNote { get; set; }
+    
+    public bool? ManualActionRequired { get; set; }
 }

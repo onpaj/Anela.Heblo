@@ -165,8 +165,9 @@ const BatchPlanningCalculator: React.FC = () => {
   useEffect(() => {
     const productCodeParam = searchParams.get('productCode');
     const productNameParam = searchParams.get('productName');
+    const batchSizeParam = searchParams.get('batchSize');
     
-    if (selectedSemiproduct && productCodeParam && productNameParam && !hasAutoTriggered) {
+    if (selectedSemiproduct && productCodeParam && productNameParam && !hasAutoTriggered && !batchSizeParam) {
       // This means we just pre-filled from URL parameters and haven't triggered yet
       console.log('Triggering batch plan calculation for pre-filled product:', selectedSemiproduct);
       
@@ -418,9 +419,8 @@ const BatchPlanningCalculator: React.FC = () => {
       return;
     }
 
-    // Get products with quantity > 0
+    // Get all products that can be manufactured from this semiproduct (including zero quantities)
     const productsToManufacture = response.productSizes
-      ?.filter(product => (product.recommendedUnitsToProduceHumanReadable || 0) > 0)
       ?.map(product => ({
         productCode: product.productCode || "",
         productName: product.productName || "",
@@ -428,7 +428,7 @@ const BatchPlanningCalculator: React.FC = () => {
       })) || [];
 
     if (productsToManufacture.length === 0) {
-      alert("Žádné produkty nemají plánované množství > 0");
+      alert("Žádné produkty nenalezeny pro tento polotovar");
       return;
     }
 
@@ -453,11 +453,26 @@ const BatchPlanningCalculator: React.FC = () => {
     }
 
     try {
+      // Use exact user input values instead of calculated results
+      let userRequestedBatchSize: number;
+      
+      switch (controlMode) {
+        case BatchPlanControlMode.TotalWeight:
+          userRequestedBatchSize = totalBatchSize;
+          break;
+        case BatchPlanControlMode.MmqMultiplier:
+          userRequestedBatchSize = productMMQ ? (productMMQ * mmqMultiplier) : (response.summary.actualTotalWeight || 0);
+          break;
+        default:
+          userRequestedBatchSize = response.summary.actualTotalWeight || 0;
+          break;
+      }
+
       const orderRequest = new CreateManufactureOrderRequest({
         productCode: response.semiproduct.productCode || "",
         productName: response.semiproduct.productName || "",
         originalBatchSize: response.semiproduct.minimalManufactureQuantity || 0,
-        newBatchSize: response.summary.actualTotalWeight || 0,
+        newBatchSize: userRequestedBatchSize,
         scaleFactor: response.summary.effectiveMmqMultiplier || 1.0,
         products: productsToManufacture.map(p => new CreateManufactureOrderProductRequest({
           productCode: p.productCode,

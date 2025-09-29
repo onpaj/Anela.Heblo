@@ -19,12 +19,14 @@ interface BasicInfoSectionProps {
   editableSemiProductDate: string;
   editableLotNumber: string;
   editableExpirationDate: string;
+  editableManualActionRequired: boolean;
   onResponsiblePersonChange: (value: string | null) => void;
   onErpOrderNumberSemiproductChange: (value: string) => void;
   onErpOrderNumberProductChange: (value: string) => void;
   onSemiProductDateChange: (value: string) => void;
   onLotNumberChange: (value: string) => void;
   onExpirationDateChange: (value: string) => void;
+  onManualActionRequiredChange: (value: boolean) => void;
   onResolveManualAction: () => void;
   onExpandNote: (noteText: string) => void;
   formatDateTime: (date: Date | string | undefined) => string;
@@ -42,12 +44,14 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   editableSemiProductDate,
   editableLotNumber,
   editableExpirationDate,
+  editableManualActionRequired,
   onResponsiblePersonChange,
   onErpOrderNumberSemiproductChange,
   onErpOrderNumberProductChange,
   onSemiProductDateChange,
   onLotNumberChange,
   onExpirationDateChange,
+  onManualActionRequiredChange,
   onResolveManualAction,
   onExpandNote,
   formatDateTime,
@@ -133,11 +137,11 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
-              checked={order.manualActionRequired || false}
-              disabled={true}
-              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              checked={editableManualActionRequired}
+              onChange={(e) => onManualActionRequiredChange(e.target.checked)}
+              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
             />
-            {order.manualActionRequired && (
+            {editableManualActionRequired && (
               <button
                 onClick={onResolveManualAction}
                 className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors duration-150"

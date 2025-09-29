@@ -80,6 +80,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableExpirationDate, setEditableExpirationDate] = useState("");
   const [editableErpOrderNumberSemiproduct, setEditableErpOrderNumberSemiproduct] = useState("");
   const [editableErpOrderNumberProduct, setEditableErpOrderNumberProduct] = useState("");
+  const [editableManualActionRequired, setEditableManualActionRequired] = useState(false);
   
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -275,6 +276,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
       setEditableErpOrderNumberSemiproduct(order.erpOrderNumberSemiproduct || "");
       setEditableErpOrderNumberProduct(order.erpOrderNumberProduct || "");
+      setEditableManualActionRequired(order.manualActionRequired || false);
       
       const productQuantities: Record<number, string> = {};
       order.products?.forEach((product: any, index: number) => {
@@ -358,6 +360,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         semiProduct: semiProductRequest,
         products,
         newNote: newNote.trim() || undefined,
+        manualActionRequired: editableManualActionRequired,
       });
       
       await updateOrderMutation.mutateAsync(request);
@@ -558,12 +561,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       editableSemiProductDate={editableSemiProductDate}
                       editableLotNumber={editableLotNumber}
                       editableExpirationDate={editableExpirationDate}
+                      editableManualActionRequired={editableManualActionRequired}
                       onResponsiblePersonChange={(value) => setEditableResponsiblePerson(value || "")}
                       onErpOrderNumberSemiproductChange={setEditableErpOrderNumberSemiproduct}
                       onErpOrderNumberProductChange={setEditableErpOrderNumberProduct}
                       onSemiProductDateChange={setEditableSemiProductDate}
                       onLotNumberChange={setEditableLotNumber}
                       onExpirationDateChange={setEditableExpirationDate}
+                      onManualActionRequiredChange={setEditableManualActionRequired}
                       onResolveManualAction={() => setShowResolveModal(true)}
                       onExpandNote={handleExpandNote}
                       formatDateTime={formatDateTime}

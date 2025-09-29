@@ -116,6 +116,10 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 }
             }
 
+            // Update manual action required if provided
+            if (request.ManualActionRequired.HasValue)
+                order.ManualActionRequired = request.ManualActionRequired.Value;
+
             // Add note if provided
             if (!string.IsNullOrWhiteSpace(request.NewNote))
             {

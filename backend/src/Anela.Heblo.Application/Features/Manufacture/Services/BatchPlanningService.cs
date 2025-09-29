@@ -236,6 +236,11 @@ public class BatchPlanningService : IBatchPlanningService
         var fixedCount = items.Count(x => x.IsFixed);
         var optimizedCount = items.Count(x => !x.IsFixed);
 
+        // ActualTotalWeight should reflect the original user input for TotalWeight mode, not the calculated volume used
+        var actualTotalWeight = request.ControlMode == BatchPlanControlMode.TotalWeight 
+            ? request.TotalWeightToUse ?? totalVolumeUsed 
+            : totalVolumeUsed;
+
         return new BatchPlanSummaryDto
         {
             TotalProductSizes = items.Count,
@@ -244,7 +249,7 @@ public class BatchPlanningService : IBatchPlanningService
             VolumeUtilizationPercentage = availableVolume > 0 ? (totalVolumeUsed / availableVolume) * 100 : 0,
             UsedControlMode = request.ControlMode,
             EffectiveMmqMultiplier = request.MmqMultiplier ?? 1.0,
-            ActualTotalWeight = totalVolumeUsed,
+            ActualTotalWeight = actualTotalWeight,
             AchievedAverageCoverage = CalculateAverageCoverage(items),
             FixedProductsCount = fixedCount,
             OptimizedProductsCount = optimizedCount
