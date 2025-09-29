@@ -205,6 +205,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Import vydaných faktur",
           href: "/automation/invoice-import-statistics",
         },
+        {
+          id: "import-banky",
+          name: "Import banky",
+          href: "/finance/bank-statements",
+        },
       ],
     },
   ];

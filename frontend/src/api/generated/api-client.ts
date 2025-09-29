@@ -243,15 +243,13 @@ export class ApiClient {
         return Promise.resolve<GetMarginReportResponse>(null as any);
     }
 
-    analytics_GetInvoiceImportStatistics(dateType: ImportDateType | undefined, daysBack: number | undefined): Promise<GetInvoiceImportStatisticsResponse> {
+    analytics_GetInvoiceImportStatistics(dateType: ImportDateType | undefined, daysBack: number | null | undefined): Promise<GetInvoiceImportStatisticsResponse> {
         let url_ = this.baseUrl + "/api/Analytics/invoice-import-statistics?";
         if (dateType === null)
             throw new Error("The parameter 'dateType' cannot be null.");
         else if (dateType !== undefined)
             url_ += "DateType=" + encodeURIComponent("" + dateType) + "&";
-        if (daysBack === null)
-            throw new Error("The parameter 'daysBack' cannot be null.");
-        else if (daysBack !== undefined)
+        if (daysBack !== undefined && daysBack !== null)
             url_ += "DaysBack=" + encodeURIComponent("" + daysBack) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -301,6 +299,66 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetInvoiceImportStatisticsResponse>(null as any);
+    }
+
+    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined, dateType: string | undefined): Promise<GetBankStatementImportStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/bank-statement-import-statistics?";
+        if (startDate !== undefined && startDate !== null)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate !== undefined && endDate !== null)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        if (dateType === null)
+            throw new Error("The parameter 'dateType' cannot be null.");
+        else if (dateType !== undefined)
+            url_ += "DateType=" + encodeURIComponent("" + dateType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetBankStatementImportStatistics(_response);
+        });
+    }
+
+    protected processAnalytics_GetBankStatementImportStatistics(response: Response): Promise<GetBankStatementImportStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetBankStatementImportStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetBankStatementImportStatisticsResponse>(null as any);
     }
 
     audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
@@ -5071,6 +5129,91 @@ export interface IDailyInvoiceCount {
 export enum ImportDateType {
     InvoiceDate = "InvoiceDate",
     LastSyncTime = "LastSyncTime",
+}
+
+export class GetBankStatementImportStatisticsResponse extends BaseResponse implements IGetBankStatementImportStatisticsResponse {
+    statistics?: BankStatementImportStatisticsDto[];
+
+    constructor(data?: IGetBankStatementImportStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["statistics"])) {
+                this.statistics = [] as any;
+                for (let item of _data["statistics"])
+                    this.statistics!.push(BankStatementImportStatisticsDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetBankStatementImportStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetBankStatementImportStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.statistics)) {
+            data["statistics"] = [];
+            for (let item of this.statistics)
+                data["statistics"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetBankStatementImportStatisticsResponse extends IBaseResponse {
+    statistics?: BankStatementImportStatisticsDto[];
+}
+
+export class BankStatementImportStatisticsDto implements IBankStatementImportStatisticsDto {
+    date?: Date;
+    importCount?: number;
+    totalItemCount?: number;
+
+    constructor(data?: IBankStatementImportStatisticsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.importCount = _data["importCount"];
+            this.totalItemCount = _data["totalItemCount"];
+        }
+    }
+
+    static fromJS(data: any): BankStatementImportStatisticsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BankStatementImportStatisticsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["importCount"] = this.importCount;
+        data["totalItemCount"] = this.totalItemCount;
+        return data;
+    }
+}
+
+export interface IBankStatementImportStatisticsDto {
+    date?: Date;
+    importCount?: number;
+    totalItemCount?: number;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
