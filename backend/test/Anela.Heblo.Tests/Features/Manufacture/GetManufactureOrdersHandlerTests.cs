@@ -38,6 +38,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -71,6 +72,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -83,6 +85,7 @@ public class GetManufactureOrdersHandlerTests
         _repositoryMock.Verify(
             x => x.GetOrdersAsync(
                 ManufactureOrderState.SemiProductManufactured,
+                null,
                 null,
                 null,
                 null,
@@ -115,6 +118,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -129,6 +133,7 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 dateFrom,
                 dateTo,
+                null,
                 null,
                 null,
                 null,
@@ -156,6 +161,7 @@ public class GetManufactureOrdersHandlerTests
                 responsiblePerson,
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -171,6 +177,7 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 responsiblePerson,
+                null,
                 null,
                 null,
                 It.IsAny<CancellationToken>()),
@@ -197,6 +204,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 orderNumber,
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -213,6 +221,7 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 orderNumber,
+                null,
                 null,
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -238,6 +247,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 productCode,
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -255,6 +265,7 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 productCode,
+                null,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -283,6 +294,7 @@ public class GetManufactureOrdersHandlerTests
                 request.ResponsiblePerson,
                 request.OrderNumber,
                 request.ProductCode,
+                request.ManualActionRequired,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -300,6 +312,7 @@ public class GetManufactureOrdersHandlerTests
                 request.ResponsiblePerson,
                 request.OrderNumber,
                 request.ProductCode,
+                request.ManualActionRequired,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -319,6 +332,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -345,6 +359,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
@@ -368,6 +383,7 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 

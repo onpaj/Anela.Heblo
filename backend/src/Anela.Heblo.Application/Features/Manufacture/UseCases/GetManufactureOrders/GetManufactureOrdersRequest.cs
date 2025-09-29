@@ -11,4 +11,5 @@ public class GetManufactureOrdersRequest : IRequest<GetManufactureOrdersResponse
     public string? ResponsiblePerson { get; set; }
     public string? OrderNumber { get; set; }
     public string? ProductCode { get; set; }
+    public bool? ManualActionRequired { get; set; }
 }

@@ -36,11 +36,13 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   const [toDateInput, setToDateInput] = useState("");
   const [responsiblePersonInput, setResponsiblePersonInput] = useState("");
   const [productCodeInput, setProductCodeInput] = useState("");
+  const [manualActionRequiredInput, setManualActionRequiredInput] = useState<boolean | null>(null);
 
   const [orderNumberFilter, setOrderNumberFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<ManufactureOrderState | null>(null);
   const [responsiblePersonFilter, setResponsiblePersonFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
+  const [manualActionRequiredFilter, setManualActionRequiredFilter] = useState<boolean | null>(null);
 
   // Handler for applying filters on Enter or button click
   const handleApplyFilters = async () => {
@@ -48,6 +50,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setStateFilter(stateInput === "" ? null : (stateInput as ManufactureOrderState));
     setResponsiblePersonFilter(responsiblePersonInput);
     setProductCodeFilter(productCodeInput);
+    setManualActionRequiredFilter(manualActionRequiredInput);
 
     // Build request object
     const filters: GetManufactureOrdersRequest = {
@@ -57,6 +60,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       dateTo: toDateInput ? new Date(toDateInput) : null,
       responsiblePerson: responsiblePersonInput || null,
       productCode: productCodeInput || null,
+      manualActionRequired: manualActionRequiredInput,
     };
 
     onFiltersChange(filters);
@@ -71,11 +75,13 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setToDateInput("");
     setResponsiblePersonInput("");
     setProductCodeInput("");
+    setManualActionRequiredInput(null);
     
     setOrderNumberFilter("");
     setStateFilter(null);
     setResponsiblePersonFilter("");
     setProductCodeFilter("");
+    setManualActionRequiredFilter(null);
 
     const emptyFilters: GetManufactureOrdersRequest = {
       orderNumber: null,
@@ -84,6 +90,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       dateTo: null,
       responsiblePerson: null,
       productCode: null,
+      manualActionRequired: null,
     };
 
     onFiltersChange(emptyFilters);
@@ -122,7 +129,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
           {isFiltersCollapsed && (
             <div className="flex items-center space-x-3 text-xs">
               {/* Quick filter info */}
-              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter) ? (
+              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || manualActionRequiredFilter !== null) ? (
                 <span className="text-gray-600">Aktivní filtry</span>
               ) : (
                 <span className="text-gray-500">Klikněte pro rozbalení filtrů</span>
@@ -248,6 +255,25 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                 productTypes={[ProductType.Product, ProductType.SemiProduct]}
                 itemAdapter={(item) => item.productCode || ""}
               />
+            </div>
+
+            {/* Manual Action Required */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Ruční zásah
+              </label>
+              <select
+                value={manualActionRequiredInput === null ? "" : manualActionRequiredInput.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setManualActionRequiredInput(value === "" ? null : value === "true");
+                }}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="">Vše</option>
+                <option value="true">Vyžaduje ruční zásah</option>
+                <option value="false">Nevyžaduje ruční zásah</option>
+              </select>
             </div>
           </div>
 

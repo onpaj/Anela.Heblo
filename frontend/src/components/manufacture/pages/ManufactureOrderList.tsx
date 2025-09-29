@@ -30,6 +30,7 @@ const ManufactureOrderList: React.FC = () => {
     dateTo: null,
     responsiblePerson: null,
     productCode: null,
+    manualActionRequired: null,
   });
 
   // Modal states

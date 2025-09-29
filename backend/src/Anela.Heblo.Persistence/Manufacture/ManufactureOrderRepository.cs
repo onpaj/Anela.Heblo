@@ -19,6 +19,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         string? responsiblePerson = null,
         string? orderNumber = null,
         string? productCode = null,
+        bool? manualActionRequired = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.ManufactureOrders
@@ -58,6 +59,11 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             query = query.Where(x =>
                 (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
                 x.Products.Any(p => p.ProductCode.Contains(productCode)));
+        }
+
+        if (manualActionRequired.HasValue)
+        {
+            query = query.Where(x => x.ManualActionRequired == manualActionRequired.Value);
         }
 
         return await query

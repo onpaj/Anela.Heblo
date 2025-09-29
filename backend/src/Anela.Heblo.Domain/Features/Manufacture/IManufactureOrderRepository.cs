@@ -9,6 +9,7 @@ public interface IManufactureOrderRepository
         string? responsiblePerson = null,
         string? orderNumber = null,
         string? productCode = null,
+        bool? manualActionRequired = null,
         CancellationToken cancellationToken = default);
 
     Task<ManufactureOrder?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default);

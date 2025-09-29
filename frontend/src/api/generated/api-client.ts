@@ -2588,7 +2588,7 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchPlanResponse>(null as any);
     }
 
-    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined): Promise<GetManufactureOrdersResponse> {
+    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, manualActionRequired: boolean | null | undefined): Promise<GetManufactureOrdersResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder?";
         if (state !== undefined && state !== null)
             url_ += "State=" + encodeURIComponent("" + state) + "&";
@@ -2602,6 +2602,8 @@ export class ApiClient {
             url_ += "OrderNumber=" + encodeURIComponent("" + orderNumber) + "&";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (manualActionRequired !== undefined && manualActionRequired !== null)
+            url_ += "ManualActionRequired=" + encodeURIComponent("" + manualActionRequired) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -9999,6 +10001,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
+    manualActionRequired?: boolean | undefined;
 
     constructor(data?: IUpdateManufactureOrderRequest) {
         if (data) {
@@ -10024,6 +10027,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
                     this.products!.push(UpdateManufactureOrderProductRequest.fromJS(item));
             }
             this.newNote = _data["newNote"];
+            this.manualActionRequired = _data["manualActionRequired"];
         }
     }
 
@@ -10049,6 +10053,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
                 data["products"].push(item.toJSON());
         }
         data["newNote"] = this.newNote;
+        data["manualActionRequired"] = this.manualActionRequired;
         return data;
     }
 }
@@ -10063,6 +10068,7 @@ export interface IUpdateManufactureOrderRequest {
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
+    manualActionRequired?: boolean | undefined;
 }
 
 export class UpdateManufactureOrderSemiProductRequest implements IUpdateManufactureOrderSemiProductRequest {

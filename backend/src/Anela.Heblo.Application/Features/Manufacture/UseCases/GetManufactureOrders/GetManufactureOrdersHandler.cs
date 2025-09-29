@@ -24,6 +24,7 @@ public class GetManufactureOrdersHandler : IRequestHandler<GetManufactureOrdersR
             request.ResponsiblePerson,
             request.OrderNumber,
             request.ProductCode,
+            request.ManualActionRequired,
             cancellationToken);
 
         var orderDtos = _mapper.Map<List<ManufactureOrderDto>>(orders);
