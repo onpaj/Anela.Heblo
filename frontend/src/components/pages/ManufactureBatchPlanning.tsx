@@ -453,10 +453,20 @@ const BatchPlanningCalculator: React.FC = () => {
     }
 
     try {
-      // For TotalWeight mode, use the user's original input value, not the calculated result
-      const userRequestedBatchSize = controlMode === BatchPlanControlMode.TotalWeight 
-        ? totalBatchSize 
-        : (response.summary.actualTotalWeight || 0);
+      // Use exact user input values instead of calculated results
+      let userRequestedBatchSize: number;
+      
+      switch (controlMode) {
+        case BatchPlanControlMode.TotalWeight:
+          userRequestedBatchSize = totalBatchSize;
+          break;
+        case BatchPlanControlMode.MmqMultiplier:
+          userRequestedBatchSize = productMMQ ? (productMMQ * mmqMultiplier) : (response.summary.actualTotalWeight || 0);
+          break;
+        default:
+          userRequestedBatchSize = response.summary.actualTotalWeight || 0;
+          break;
+      }
 
       const orderRequest = new CreateManufactureOrderRequest({
         productCode: response.semiproduct.productCode || "",
