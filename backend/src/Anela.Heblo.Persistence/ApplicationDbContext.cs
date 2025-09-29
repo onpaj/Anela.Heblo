@@ -91,6 +91,5 @@ public class ApplicationDbContext : DbContext
         //modelBuilder.ConfigureRecurringJobs();
         //modelBuilder.ConfigureTransportBoxes();
         //modelBuilder.ConfigureStockTaking();
-        //modelBuilder.ConfigureBankStatements();
     }
 }

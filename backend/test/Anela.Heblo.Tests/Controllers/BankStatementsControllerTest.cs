@@ -10,28 +10,31 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Controllers;
 
-public class BankStatementsControllerTest : IClassFixture<ManufactureOrderTestFactory>
+public class AnalyticsControllerBankStatementsTest : IClassFixture<ManufactureOrderTestFactory>
 {
     private readonly ManufactureOrderTestFactory _factory;
 
-    public BankStatementsControllerTest(ManufactureOrderTestFactory factory)
+    public AnalyticsControllerBankStatementsTest(ManufactureOrderTestFactory factory)
     {
         _factory = factory;
     }
 
     [Fact]
-    public async Task GetStatistics_Should_Return_Success_With_Data()
+    public async Task GetBankStatementImportStatistics_Should_Return_Success_With_Data()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        var controller = new BankStatementsController(mediator);
+        var controller = new AnalyticsController(mediator);
 
-        var startDate = DateTime.Today.AddDays(-30);
-        var endDate = DateTime.Today;
+        var request = new GetBankStatementImportStatisticsRequest
+        {
+            StartDate = DateTime.Today.AddDays(-30),
+            EndDate = DateTime.Today
+        };
 
         // Act
-        var result = await controller.GetStatistics(startDate, endDate);
+        var result = await controller.GetBankStatementImportStatistics(request);
 
         // Assert
         result.Should().NotBeNull();
@@ -47,15 +50,17 @@ public class BankStatementsControllerTest : IClassFixture<ManufactureOrderTestFa
     }
 
     [Fact]
-    public async Task GetStatistics_Should_Accept_Null_Dates()
+    public async Task GetBankStatementImportStatistics_Should_Accept_Null_Dates()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        var controller = new BankStatementsController(mediator);
+        var controller = new AnalyticsController(mediator);
+
+        var request = new GetBankStatementImportStatisticsRequest();
 
         // Act
-        var result = await controller.GetStatistics();
+        var result = await controller.GetBankStatementImportStatistics(request);
 
         // Assert
         result.Should().NotBeNull();
@@ -67,7 +72,7 @@ public class BankStatementsControllerTest : IClassFixture<ManufactureOrderTestFa
     }
 
     [Fact]
-    public async Task GetStatistics_Should_Pass_Correct_Parameters_To_Handler()
+    public async Task GetBankStatementImportStatistics_Should_Pass_Correct_Parameters_To_Handler()
     {
         // Arrange
         var mockMediator = new Mock<IMediator>();
@@ -88,18 +93,21 @@ public class BankStatementsControllerTest : IClassFixture<ManufactureOrderTestFa
             .Setup(m => m.Send(It.IsAny<GetBankStatementImportStatisticsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
-        var controller = new BankStatementsController(mockMediator.Object);
-        var startDate = DateTime.Today.AddDays(-7);
-        var endDate = DateTime.Today;
+        var controller = new AnalyticsController(mockMediator.Object);
+        var request = new GetBankStatementImportStatisticsRequest
+        {
+            StartDate = DateTime.Today.AddDays(-7),
+            EndDate = DateTime.Today
+        };
 
         // Act
-        var result = await controller.GetStatistics(startDate, endDate);
+        var result = await controller.GetBankStatementImportStatistics(request);
 
         // Assert
         mockMediator.Verify(
             m => m.Send(
                 It.Is<GetBankStatementImportStatisticsRequest>(r => 
-                    r.StartDate == startDate && r.EndDate == endDate),
+                    r.StartDate == request.StartDate && r.EndDate == request.EndDate),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 

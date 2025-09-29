@@ -301,6 +301,62 @@ export class ApiClient {
         return Promise.resolve<GetInvoiceImportStatisticsResponse>(null as any);
     }
 
+    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined): Promise<GetBankStatementImportStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Analytics/bank-statement-import-statistics?";
+        if (startDate !== undefined && startDate !== null)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate !== undefined && endDate !== null)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAnalytics_GetBankStatementImportStatistics(_response);
+        });
+    }
+
+    protected processAnalytics_GetBankStatementImportStatistics(response: Response): Promise<GetBankStatementImportStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetBankStatementImportStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetBankStatementImportStatisticsResponse>(null as any);
+    }
+
     audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Audit/data-loads?";
         if (limit !== undefined && limit !== null)
@@ -385,44 +441,6 @@ export class ApiClient {
             });
         }
         return Promise.resolve<FileResponse>(null as any);
-    }
-
-    bankStatements_GetStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined): Promise<GetBankStatementImportStatisticsResponse> {
-        let url_ = this.baseUrl + "/api/BankStatements/statistics?";
-        if (startDate !== undefined && startDate !== null)
-            url_ += "startDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
-        if (endDate !== undefined && endDate !== null)
-            url_ += "endDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processBankStatements_GetStatistics(_response);
-        });
-    }
-
-    protected processBankStatements_GetStatistics(response: Response): Promise<GetBankStatementImportStatisticsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetBankStatementImportStatisticsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetBankStatementImportStatisticsResponse>(null as any);
     }
 
     catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {

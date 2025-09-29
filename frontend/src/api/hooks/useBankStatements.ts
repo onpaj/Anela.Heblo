@@ -32,7 +32,7 @@ export const useBankStatementImportStatistics = (
         params.append('endDate', request.endDate);
       }
 
-      const relativeUrl = `/api/bankstatements/statistics`;
+      const relativeUrl = `/api/analytics/bank-statement-import-statistics`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}?${params.toString()}`;
       
       const response = await (apiClient as any).http.fetch(fullUrl, {

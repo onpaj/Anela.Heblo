@@ -89,11 +89,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 name: "Analýza marže",
                 href: "/analytics/product-margin-summary",
               },
-              {
-                id: "bank-statements",
-                name: "Výpisy z účtu",
-                href: "/finance/bank-statements",
-              },
             ],
           },
         ]
@@ -209,6 +204,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "import-vydanych-faktur",
           name: "Import vydaných faktur",
           href: "/automation/invoice-import-statistics",
+        },
+        {
+          id: "import-banky",
+          name: "Import banky",
+          href: "/finance/bank-statements",
         },
       ],
     },

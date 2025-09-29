@@ -9,10 +9,3 @@ public interface IBankStatementImportRepository
     Task UpdateAsync(BankStatementImport bankStatement);
     Task DeleteAsync(int id);
 }
-
-public class BankStatementImportStatistics
-{
-    public DateTime Date { get; set; }
-    public int ImportCount { get; set; }
-    public int TotalItemCount { get; set; }
-}
