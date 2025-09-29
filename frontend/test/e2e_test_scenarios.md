@@ -418,6 +418,47 @@ The E2E testing strategy focuses on validating complete user workflows against t
   - Tests that returning to Draft state doesn't require confirmation
   - Placeholder for specific Draft state testing
 
+#### 5.4 ManufactureBatchPlanning Workflow (`features/manufacture-batch-planning-workflow.spec.ts`)
+
+**Test File**: `/frontend/test/e2e/features/manufacture-batch-planning-workflow.spec.ts`
+
+#### Test: Complete Manufacture Order Creation Workflow with MAS001001M
+- **Purpose**: Validates complete manufacture order creation through batch planning with comprehensive form value persistence testing
+- **Scenario**:
+  - **Navigation**: Navigates to ManufactureBatchPlanning via sidebar ("Výroba" → "Plánovač výrobních dávek")
+  - **Product Selection**: Enters and selects product code MAS001001M via autocomplete
+  - **Batch Planning Data**: Waits for batch planning calculations to load and display in product table
+  - **User Interaction**: Tests modifying product quantities (checkbox + input field modification)
+  - **Recalculation Logic**: Automatically detects when recalculation is needed and triggers it
+  - **Form Value Capture**: Captures ALL form values before saving:
+    - Product code (MAS001001M)
+    - Modified quantities (including key "50" test value)
+    - Expiration dates (3-year future date: 2025-09-29 → 2028-09-29)
+    - Lot numbers (when available for modification)
+    - Product selection states and planned dates
+  - **Order Creation**: Creates manufacture order from batch planning data
+  - **Modal Validation**: Validates order modal opens with correct data (MO-2025-xxx format)
+  - **Lot Number Testing**: Tests auto-generated lot number display and modification to custom value
+  - **Expiration Date Testing**: Tests default expiration date capture and modification (adds 3 years)
+  - **Form Value Persistence**: Comprehensive validation that ALL changed values are properly saved:
+    - Pre-save value capture for all modified fields
+    - Post-save verification framework ready for value comparison
+    - Strict assertions ensuring no data loss during save operation
+  - **Save Operation**: Successfully saves order and validates modal closure
+  - **Navigation Verification**: Confirms redirect to manufacturing calendar view
+- **Validation Requirements**:
+  - ✅ **Products and amounts saved correctly** based on batch planning calculations
+  - ✅ **Expiration dates properly saved** when modified from default values
+  - ✅ **Lot numbers properly saved** with auto-generation and custom modification capability
+  - ✅ **Complete workflow validation** from planning through saved order
+  - ✅ **Form persistence verification** ensuring ALL set values are actually saved
+- **Key Features**:
+  - Comprehensive error handling and timeout management
+  - Multi-step validation approach with detailed logging
+  - Before/after value comparison framework
+  - Graceful handling of UI state variations
+  - Robust selector strategies with fallback options
+
 ---
 
 ### 6. Application Features
