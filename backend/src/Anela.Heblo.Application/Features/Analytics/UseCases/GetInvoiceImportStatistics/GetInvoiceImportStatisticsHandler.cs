@@ -27,9 +27,9 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
         // Get minimum threshold from configuration
         var minimumThreshold = _configuration.GetValue<int>("InvoiceImport:MinimumDailyThreshold", 10);
         
-        // Calculate date range
-        var endDate = DateTime.UtcNow.Date;
-        var startDate = endDate.AddDays(-request.DaysBack);
+        // Calculate date range - ensure proper UTC handling
+        var endDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var startDate = DateTime.SpecifyKind(endDate.AddDays(-request.DaysBack), DateTimeKind.Utc);
         
         // Get daily invoice counts from repository
         var dailyCounts = await _analyticsRepository.GetInvoiceImportStatisticsAsync(

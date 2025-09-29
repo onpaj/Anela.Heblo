@@ -185,33 +185,49 @@ public class AnalyticsRepository : IAnalyticsRepository
         
         if (dateType == ImportDateType.InvoiceDate)
         {
-            results = await _dbContext.IssuedInvoices
+            var rawResults = await _dbContext.IssuedInvoices
                 .Where(i => i.InvoiceDate >= startDate && i.InvoiceDate <= endDate)
                 .GroupBy(i => new { Year = i.InvoiceDate.Year, Month = i.InvoiceDate.Month, Day = i.InvoiceDate.Day })
-                .Select(g => new DailyInvoiceCount
+                .Select(g => new 
                 {
-                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, 0, 0, 0, DateTimeKind.Utc),
-                    Count = g.Count(),
-                    IsBelowThreshold = false // Will be set by handler based on configuration
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Day = g.Key.Day,
+                    Count = g.Count()
                 })
-                .OrderBy(d => d.Date)
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
                 .ToListAsync(cancellationToken);
+            
+            results = rawResults.Select(r => new DailyInvoiceCount
+            {
+                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                Count = r.Count,
+                IsBelowThreshold = false
+            }).ToList();
         }
         else
         {
-            results = await _dbContext.IssuedInvoices
+            var rawResults = await _dbContext.IssuedInvoices
                 .Where(i => i.LastSyncTime.HasValue && 
                            i.LastSyncTime.Value >= startDate && 
                            i.LastSyncTime.Value <= endDate)
                 .GroupBy(i => new { Year = i.LastSyncTime.Value.Year, Month = i.LastSyncTime.Value.Month, Day = i.LastSyncTime.Value.Day })
-                .Select(g => new DailyInvoiceCount
+                .Select(g => new 
                 {
-                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, 0, 0, 0, DateTimeKind.Utc),
-                    Count = g.Count(),
-                    IsBelowThreshold = false
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Day = g.Key.Day,
+                    Count = g.Count()
                 })
-                .OrderBy(d => d.Date)
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
                 .ToListAsync(cancellationToken);
+            
+            results = rawResults.Select(r => new DailyInvoiceCount
+            {
+                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                Count = r.Count,
+                IsBelowThreshold = false
+            }).ToList();
         }
 
         // Fill in missing dates with zero counts

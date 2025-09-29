@@ -32,8 +32,8 @@ public class GetInvoiceImportStatisticsHandlerTests
         var expectedThreshold = 10;
         var expectedData = new List<DailyInvoiceCount>
         {
-            new() { Date = DateTime.UtcNow.Date.AddDays(-1), Count = 15, IsBelowThreshold = false },
-            new() { Date = DateTime.UtcNow.Date, Count = 5, IsBelowThreshold = false } // Will be set by handler
+            new() { Date = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(-1), DateTimeKind.Utc), Count = 15, IsBelowThreshold = false },
+            new() { Date = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc), Count = 5, IsBelowThreshold = false } // Will be set by handler
         };
 
         _mockConfiguration.Setup(c => c["InvoiceImport:MinimumDailyThreshold"])
