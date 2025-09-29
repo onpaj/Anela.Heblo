@@ -176,19 +176,25 @@ public class AnalyticsRepository : IAnalyticsRepository
         ImportDateType dateType,
         CancellationToken cancellationToken = default)
     {
-        // Ensure dates are UTC
-        startDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
-        endDate = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
-        
-        // Use date trunc for PostgreSQL compatibility
+        // PostgreSQL timestamp without time zone: work with UTC dates but store as Unspecified
+        // Convert input dates to UTC if needed, then to Unspecified for PostgreSQL compatibility
+        if (startDate.Kind != DateTimeKind.Utc)
+            startDate = startDate.ToUniversalTime();
+        if (endDate.Kind != DateTimeKind.Utc)
+            endDate = endDate.ToUniversalTime();
+
+        // Convert to Unspecified for PostgreSQL timestamp without time zone queries
+        var startDateUnspecified = DateTime.SpecifyKind(startDate, DateTimeKind.Unspecified);
+        var endDateUnspecified = DateTime.SpecifyKind(endDate, DateTimeKind.Unspecified);
+
         var results = new List<DailyInvoiceCount>();
-        
+
         if (dateType == ImportDateType.InvoiceDate)
         {
             var rawResults = await _dbContext.IssuedInvoices
-                .Where(i => i.InvoiceDate >= startDate && i.InvoiceDate <= endDate)
+                .Where(i => i.InvoiceDate >= startDateUnspecified && i.InvoiceDate <= endDateUnspecified)
                 .GroupBy(i => new { Year = i.InvoiceDate.Year, Month = i.InvoiceDate.Month, Day = i.InvoiceDate.Day })
-                .Select(g => new 
+                .Select(g => new
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
@@ -197,7 +203,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                 })
                 .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
                 .ToListAsync(cancellationToken);
-            
+
             results = rawResults.Select(r => new DailyInvoiceCount
             {
                 Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
@@ -208,11 +214,11 @@ public class AnalyticsRepository : IAnalyticsRepository
         else
         {
             var rawResults = await _dbContext.IssuedInvoices
-                .Where(i => i.LastSyncTime.HasValue && 
-                           i.LastSyncTime.Value >= startDate && 
-                           i.LastSyncTime.Value <= endDate)
+                .Where(i => i.LastSyncTime.HasValue &&
+                           i.LastSyncTime.Value >= startDateUnspecified &&
+                           i.LastSyncTime.Value <= endDateUnspecified)
                 .GroupBy(i => new { Year = i.LastSyncTime.Value.Year, Month = i.LastSyncTime.Value.Month, Day = i.LastSyncTime.Value.Day })
-                .Select(g => new 
+                .Select(g => new
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
@@ -221,7 +227,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                 })
                 .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
                 .ToListAsync(cancellationToken);
-            
+
             results = rawResults.Select(r => new DailyInvoiceCount
             {
                 Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
@@ -230,7 +236,7 @@ public class AnalyticsRepository : IAnalyticsRepository
             }).ToList();
         }
 
-        // Fill in missing dates with zero counts
+        // Fill in missing dates with zero counts - work with UTC dates for consistency
         var filledResults = new List<DailyInvoiceCount>();
         var currentDate = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
         var endDateOnly = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc);
@@ -240,8 +246,6 @@ public class AnalyticsRepository : IAnalyticsRepository
             var existingResult = results.FirstOrDefault(r => r.Date.Date == currentDate.Date);
             if (existingResult != null)
             {
-                // Ensure the date is properly UTC
-                existingResult.Date = DateTime.SpecifyKind(existingResult.Date, DateTimeKind.Utc);
                 filledResults.Add(existingResult);
             }
             else

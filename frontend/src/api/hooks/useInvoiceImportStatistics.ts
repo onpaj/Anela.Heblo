@@ -24,13 +24,21 @@ export interface InvoiceImportStatisticsResponse {
  * Hook for fetching invoice import statistics for monitoring
  */
 export function useInvoiceImportStatistics(params: UseInvoiceImportStatisticsParams = {}) {
-  const { dateType = 'InvoiceDate', daysBack = 14 } = params;
+  const { dateType = 'InvoiceDate', daysBack } = params;
 
   return useQuery({
     queryKey: ['invoice-import-statistics', dateType, daysBack],
     queryFn: async (): Promise<InvoiceImportStatisticsResponse> => {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/analytics/invoice-import-statistics?dateType=${dateType}&daysBack=${daysBack}`;
+      
+      // Build URL with parameters - only include daysBack if explicitly provided
+      const urlParams = new URLSearchParams();
+      urlParams.append('dateType', dateType);
+      if (daysBack !== undefined) {
+        urlParams.append('daysBack', daysBack.toString());
+      }
+      
+      const relativeUrl = `/api/analytics/invoice-import-statistics?${urlParams.toString()}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
       
       const response = await (apiClient as any).http.fetch(fullUrl, {

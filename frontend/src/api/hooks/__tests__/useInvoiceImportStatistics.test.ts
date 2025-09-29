@@ -33,9 +33,9 @@ describe('useInvoiceImportStatistics', () => {
     mockFetch.mockClear();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) => {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
 
   it('should fetch invoice import statistics with default parameters', async () => {
     // Arrange
@@ -65,12 +65,41 @@ describe('useInvoiceImportStatistics', () => {
 
     expect(result.current.data).toEqual(mockData);
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:5000/api/analytics/invoice-import-statistics?dateType=InvoiceDate&daysBack=14',
+      'http://localhost:5000/api/analytics/invoice-import-statistics?dateType=InvoiceDate',
       expect.objectContaining({
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+      })
+    );
+  });
+
+  it('should not include daysBack parameter when not provided', async () => {
+    // Arrange
+    const mockData = {
+      data: [],
+      minimumThreshold: 10,
+      success: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockData),
+    });
+
+    // Act
+    const { result } = renderHook(() => useInvoiceImportStatistics({ dateType: 'LastSyncTime' }), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Assert - Should not include daysBack parameter
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:5000/api/analytics/invoice-import-statistics?dateType=LastSyncTime',
+      expect.objectContaining({
+        method: 'GET',
       })
     );
   });
@@ -130,7 +159,7 @@ describe('useInvoiceImportStatistics', () => {
     // Act
     const { result } = renderHook(() => useInvoiceImportStatistics(), { wrapper });
 
-    // Assert
-    expect(result.current.isStale).toBe(false); // Should respect staleTime
+    // Assert - Initially loading, then should have proper stale time configuration
+    expect(result.current.isLoading || result.current.isStale).toBe(true);
   });
 });

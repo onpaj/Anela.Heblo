@@ -12,44 +12,36 @@ public class IssuedInvoiceConfiguration : IEntityTypeConfiguration<IssuedInvoice
     public void Configure(EntityTypeBuilder<IssuedInvoice> builder)
     {
         builder.ToTable("IssuedInvoice", "dbo");
-        
+
         builder.HasKey(e => e.Id);
-        
+
         builder.Property(e => e.Code)
             .IsRequired()
             .HasMaxLength(50);
-            
+
         builder.Property(e => e.InvoiceDate)
             .IsRequired()
-            .HasConversion(
-                v => v.ToUniversalTime(),
-                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-            
+            .HasColumnType("timestamp without time zone");
+
         builder.Property(e => e.LastSyncTime)
             .IsRequired(false)
-            .HasConversion(
-                v => v.HasValue ? v.Value.ToUniversalTime() : (DateTime?)null,
-                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
-            
+            .HasColumnType("timestamp without time zone");
+
         builder.Property(e => e.CreatedAt)
             .IsRequired()
-            .HasConversion(
-                v => v.ToUniversalTime(),
-                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-            
+            .HasColumnType("timestamp without time zone");
+
         builder.Property(e => e.UpdatedAt)
             .IsRequired()
-            .HasConversion(
-                v => v.ToUniversalTime(),
-                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-            
+            .HasColumnType("timestamp without time zone");
+
         // Create index for efficient date range queries
         builder.HasIndex(e => e.InvoiceDate)
             .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
-            
+
         builder.HasIndex(e => e.LastSyncTime)
             .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
-            
+
         // Unique constraint on Code to prevent duplicates
         builder.HasIndex(e => e.Code)
             .IsUnique()
