@@ -176,49 +176,63 @@ public class AnalyticsRepository : IAnalyticsRepository
         ImportDateType dateType,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<IGrouping<DateTime, Domain.Features.Invoices.IssuedInvoice>> query;
-
+        // Ensure dates are UTC
+        startDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
+        endDate = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
+        
+        // Use date trunc for PostgreSQL compatibility
+        var results = new List<DailyInvoiceCount>();
+        
         if (dateType == ImportDateType.InvoiceDate)
         {
-            query = _dbContext.IssuedInvoices
+            results = await _dbContext.IssuedInvoices
                 .Where(i => i.InvoiceDate >= startDate && i.InvoiceDate <= endDate)
-                .GroupBy(i => i.InvoiceDate.Date);
+                .GroupBy(i => new { Year = i.InvoiceDate.Year, Month = i.InvoiceDate.Month, Day = i.InvoiceDate.Day })
+                .Select(g => new DailyInvoiceCount
+                {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, 0, 0, 0, DateTimeKind.Utc),
+                    Count = g.Count(),
+                    IsBelowThreshold = false // Will be set by handler based on configuration
+                })
+                .OrderBy(d => d.Date)
+                .ToListAsync(cancellationToken);
         }
         else
         {
-            query = _dbContext.IssuedInvoices
+            results = await _dbContext.IssuedInvoices
                 .Where(i => i.LastSyncTime.HasValue && 
-                           i.LastSyncTime.Value.Date >= startDate && 
-                           i.LastSyncTime.Value.Date <= endDate)
-                .GroupBy(i => i.LastSyncTime.Value.Date);
+                           i.LastSyncTime.Value >= startDate && 
+                           i.LastSyncTime.Value <= endDate)
+                .GroupBy(i => new { Year = i.LastSyncTime.Value.Year, Month = i.LastSyncTime.Value.Month, Day = i.LastSyncTime.Value.Day })
+                .Select(g => new DailyInvoiceCount
+                {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, 0, 0, 0, DateTimeKind.Utc),
+                    Count = g.Count(),
+                    IsBelowThreshold = false
+                })
+                .OrderBy(d => d.Date)
+                .ToListAsync(cancellationToken);
         }
 
-        var results = await query
-            .Select(g => new DailyInvoiceCount
-            {
-                Date = g.Key,
-                Count = g.Count(),
-                IsBelowThreshold = false // Will be set by handler based on configuration
-            })
-            .OrderBy(d => d.Date)
-            .ToListAsync(cancellationToken);
-
         // Fill in missing dates with zero counts
-        var currentDate = startDate;
         var filledResults = new List<DailyInvoiceCount>();
+        var currentDate = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
+        var endDateOnly = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc);
 
-        while (currentDate <= endDate)
+        while (currentDate <= endDateOnly)
         {
             var existingResult = results.FirstOrDefault(r => r.Date.Date == currentDate.Date);
             if (existingResult != null)
             {
+                // Ensure the date is properly UTC
+                existingResult.Date = DateTime.SpecifyKind(existingResult.Date, DateTimeKind.Utc);
                 filledResults.Add(existingResult);
             }
             else
             {
                 filledResults.Add(new DailyInvoiceCount
                 {
-                    Date = currentDate.Date,
+                    Date = currentDate,
                     Count = 0,
                     IsBelowThreshold = false
                 });
