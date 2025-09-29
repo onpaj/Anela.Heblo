@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Anela.Heblo.API.Infrastructure.Authentication;
 
@@ -24,23 +25,38 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
 {
     private readonly ILogger<ServicePrincipalTokenValidator> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IMemoryCache _cache;
 
     public ServicePrincipalTokenValidator(
         ILogger<ServicePrincipalTokenValidator> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IMemoryCache cache)
     {
         _logger = logger;
         _configuration = configuration;
+        _cache = cache;
     }
 
     /// <summary>
     /// Validates a Service Principal JWT token comprehensively
     /// Checks issuer, audience, expiration, app claims, and tenant validation
+    /// Uses caching to improve performance for repeated validations
     /// </summary>
-    public async Task<bool> ValidateAsync(string token)
+    public Task<bool> ValidateAsync(string token)
     {
         try
         {
+            // Use token hash as cache key for validation results
+            var tokenHash = token.GetHashCode().ToString();
+            var cacheKey = $"sptoken_{tokenHash}";
+
+            // Check cache first to avoid repeated validation overhead
+            if (_cache.TryGetValue(cacheKey, out bool cachedResult))
+            {
+                _logger.LogDebug("Service Principal token validation: Using cached result for token");
+                return Task.FromResult(cachedResult);
+            }
+
             // Parse JWT token to get basic info
             var handler = new JwtSecurityTokenHandler();
             var jsonToken = handler.ReadJwtToken(token);
@@ -52,7 +68,7 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             if (appIdClaim == null || tenantIdClaim == null)
             {
                 _logger.LogWarning("Service Principal token validation: Token missing required app claims");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Check if it matches our expected Service Principal
@@ -63,14 +79,14 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             {
                 _logger.LogWarning("Service Principal token validation: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedClientId, appIdClaim.Value);
-                return false;
+                return Task.FromResult(false);
             }
 
             if (!string.IsNullOrEmpty(expectedTenantId) && tenantIdClaim.Value != expectedTenantId)
             {
                 _logger.LogWarning("Service Principal token validation: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}",
                     expectedTenantId, tenantIdClaim.Value);
-                return false;
+                return Task.FromResult(false);
             }
 
             // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD (accept both v1.0 and v2.0 tokens)
@@ -82,7 +98,7 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             {
                 _logger.LogWarning("Service Principal token validation: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}",
                     expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
-                return false;
+                return Task.FromResult(false);
             }
 
             // CRITICAL SECURITY: Validate audience 
@@ -91,7 +107,7 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             if (audienceClaim == null)
             {
                 _logger.LogWarning("Service Principal token validation: Token missing audience claim");
-                return false;
+                return Task.FromResult(false);
             }
 
             // CRITICAL SECURITY: Validate token expiration
@@ -102,19 +118,38 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
                 if (expirationTime <= DateTimeOffset.UtcNow)
                 {
                     _logger.LogWarning("Service Principal token validation: Token has expired. Expiration: {Expiration}", expirationTime);
-                    return false;
+                    return Task.FromResult(false);
                 }
             }
 
             _logger.LogInformation("Service Principal token validation: Token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}",
                 appIdClaim.Value, tenantIdClaim.Value, issuerClaim.Value);
 
-            return true;
+            // Cache the successful validation result for 5 minutes (tokens typically valid for 1 hour)
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                Priority = CacheItemPriority.Normal
+            };
+            _cache.Set(cacheKey, true, cacheOptions);
+
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Service Principal token validation: Error parsing Service Principal token");
-            return false;
+
+            // Cache failed validation result for shorter period to allow retry
+            var tokenHash = token.GetHashCode().ToString();
+            var cacheKey = $"sptoken_{tokenHash}";
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                Priority = CacheItemPriority.Low
+            };
+            _cache.Set(cacheKey, false, cacheOptions);
+
+            return Task.FromResult(false);
         }
     }
 }

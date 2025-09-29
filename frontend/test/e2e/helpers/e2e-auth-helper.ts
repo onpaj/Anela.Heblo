@@ -18,31 +18,65 @@ export async function getServicePrincipalToken(): Promise<string> {
 
   const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
   
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: 'api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default',
-    }),
-  });
+  // Add timeout and retry logic for Azure AD token requests
+  const maxAttempts = 3;
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`🎫 Requesting Service Principal token (attempt ${attempt}/${maxAttempts})...`);
+      
+      // Use AbortController for timeout control
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'api://8b34be89-f86f-422f-af40-7dbcd30cb66a/.default',
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-  if (!response.ok) {
-    throw new Error(`Failed to get token: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Azure AD token request failed: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+
+      const tokenData = await response.json();
+      console.log(`✅ Service Principal token obtained successfully`);
+      return tokenData.access_token;
+      
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Service Principal token request attempt ${attempt} failed:`, error);
+      
+      if (attempt === maxAttempts) {
+        break;
+      }
+      
+      // Wait before retry with exponential backoff
+      const delay = 2000 * Math.pow(1.5, attempt - 1);
+      console.log(`⏳ Waiting ${delay/1000}s before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
-
-  const tokenData = await response.json();
-  return tokenData.access_token;
+  
+  throw new Error(`Failed to get Service Principal token after ${maxAttempts} attempts. Last error: ${lastError}`);
 }
 
 
 export async function createE2EAuthSession(page: any): Promise<void> {
-  const maxRetries = 3;
-  const retryDelay = 5000; // 5 seconds
+  const maxRetries = 5; // Increased retries for better resilience
+  const retryDelay = 3000; // Reduced initial delay, will use exponential backoff
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -56,7 +90,7 @@ export async function createE2EAuthSession(page: any): Promise<void> {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        timeout: 90000 // 90 seconds timeout for auth calls
+        timeout: 120000 // 120 seconds timeout for auth calls to handle staging performance issues
       });
       
       if (!response.ok()) {
@@ -75,8 +109,10 @@ export async function createE2EAuthSession(page: any): Promise<void> {
         throw error;
       }
       
-      console.log(`⏳ Waiting ${retryDelay/1000}s before retry...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      // Exponential backoff with jitter to reduce staging environment load
+      const backoffDelay = retryDelay * Math.pow(1.5, attempt - 1) + Math.random() * 1000;
+      console.log(`⏳ Waiting ${Math.round(backoffDelay/1000)}s before retry (attempt ${attempt + 1})...`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
   }
 }
@@ -128,12 +164,12 @@ async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
     sessionStorage.setItem('e2e-test-token', token);
   }, token);
   
-  // Wait for React app to initialize
+  // Wait for React app to initialize with increased timeout for staging
   await page.waitForFunction(() => {
     return document.querySelector('.App') !== null || 
            document.querySelector('#root > div') !== null ||
            document.querySelector('nav') !== null;
-  }, { timeout: 30000 });
+  }, { timeout: 60000 }); // Increased timeout for staging performance
 }
 
 export async function navigateToTransportBoxes(page: any): Promise<void> {

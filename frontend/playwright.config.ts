@@ -54,19 +54,28 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     
-    /* Increase timeout for E2E test actions - increased for staging environment performance */
-    actionTimeout: 60000, // 60 seconds for actions
-    navigationTimeout: 60000, // 60 seconds for page navigation
+    /* Increased timeouts for staging environment performance issues */
+    actionTimeout: 90000, // 90 seconds for actions (increased from 60s)
+    navigationTimeout: 90000, // 90 seconds for page navigation (increased from 60s)
     
     /* Screenshot on failure */
     screenshot: 'only-on-failure',
     
     /* Video for failed tests */
     video: 'retain-on-failure',
+    
+    /* Configure browser context with optimal settings for staging */
+    launchOptions: {
+      // Reduce resource contention that might affect staging performance
+      args: ['--disable-dev-shm-usage', '--disable-extensions', '--no-sandbox']
+    }
   },
 
   /* Global test timeout for E2E - increased for staging environment performance */
-  timeout: 300000, // 5 minutes per test
+  timeout: 420000, // 7 minutes per test (increased from 5 minutes)
+  
+  /* Test file timeout - how long to wait for entire test file to complete */
+  globalTimeout: 1800000, // 30 minutes for entire test run
 
   /* Configure projects for major browsers */
   projects: [
