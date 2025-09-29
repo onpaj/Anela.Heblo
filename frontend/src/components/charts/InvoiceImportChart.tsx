@@ -8,8 +8,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
 } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWeekend } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { DailyInvoiceCount } from '../../api/hooks/useInvoiceImportStatistics';
 
@@ -24,6 +25,7 @@ interface ChartDataPoint {
   displayDate: string;
   count: number;
   isBelowThreshold: boolean;
+  isWeekend: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
     displayDate: format(parseISO(item.date), 'dd.MM.', { locale: cs }),
     count: item.count,
     isBelowThreshold: item.isBelowThreshold,
+    isWeekend: isWeekend(parseISO(item.date)),
   }));
 
   // Custom tooltip component
@@ -47,13 +50,20 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       const fullDate = format(parseISO(data.date), 'dd. MMMM yyyy', { locale: cs });
+      const dayOfWeek = format(parseISO(data.date), 'EEEE', { locale: cs });
       
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900">{fullDate}</p>
+          <p className="text-xs text-gray-500 capitalize">{dayOfWeek}</p>
           <p className="text-sm text-gray-600">
             Počet faktur: <span className="font-medium">{data.count}</span>
           </p>
+          {data.isWeekend && (
+            <p className="text-xs text-blue-600">
+              📅 Víkend
+            </p>
+          )}
           {data.isBelowThreshold && (
             <p className="text-sm text-red-600 font-medium">
               ⚠️ Pod minimálním prahem ({minimumThreshold})
@@ -83,12 +93,40 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
     return null;
   };
 
+  // Find weekend periods for highlighting
+  const weekendPeriods = React.useMemo(() => {
+    const periods: Array<{ start: string; end: string }> = [];
+    let weekendStart: string | null = null;
+
+    chartData.forEach((point, index) => {
+      if (point.isWeekend && !weekendStart) {
+        weekendStart = point.displayDate;
+      } else if (!point.isWeekend && weekendStart) {
+        periods.push({
+          start: weekendStart,
+          end: chartData[index - 1]?.displayDate || weekendStart,
+        });
+        weekendStart = null;
+      }
+    });
+
+    // Handle weekend period that extends to the end
+    if (weekendStart) {
+      periods.push({
+        start: weekendStart,
+        end: chartData[chartData.length - 1]?.displayDate || weekendStart,
+      });
+    }
+
+    return periods;
+  }, [chartData]);
+
   return (
     <div className="w-full">
       {/* Chart title and info */}
       <div className="mb-4">
         <h3 className="text-lg font-medium text-gray-900 mb-1">
-          Import vydaných faktur - posledních 14 dní
+          Import vydaných faktur - přehled posledních dní
         </h3>
         <p className="text-sm text-gray-600">
           Zobrazení podle: {dateType === 'InvoiceDate' ? 'datum vystavení faktury' : 'datum importu faktury'}
@@ -114,6 +152,18 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
               label={{ value: 'Počet faktur', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip content={<CustomTooltip />} />
+            
+            {/* Weekend highlighting */}
+            {weekendPeriods.map((period, index) => (
+              <ReferenceArea
+                key={index}
+                x1={period.start}
+                x2={period.end}
+                fill="#e0f2fe"
+                fillOpacity={0.3}
+                strokeOpacity={0}
+              />
+            ))}
             
             {/* Reference line for minimum threshold */}
             <ReferenceLine
@@ -154,6 +204,10 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-red-600 rounded-full border-2 border-white"></div>
           <span className="text-gray-600">Problémové dny</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-3 bg-sky-100 border border-sky-200"></div>
+          <span className="text-gray-600">Víkendy</span>
         </div>
       </div>
     </div>

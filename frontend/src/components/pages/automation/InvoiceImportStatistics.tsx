@@ -19,8 +19,8 @@ const InvoiceImportStatistics: React.FC = () => {
     refetch,
     isFetching
   } = useInvoiceImportStatistics({ 
-    dateType, 
-    daysBack: 14 
+    dateType
+    // Note: daysBack not specified - let backend use configured default
   });
 
   const handleDateTypeChange = (newDateType: DateTypeOption) => {
@@ -208,7 +208,7 @@ const InvoiceImportStatistics: React.FC = () => {
                 • <strong>Problémové dny:</strong> Dny s počtem faktur pod nastaveným minimálním prahem
               </p>
               <p>
-                • Graf zobrazuje posledních 14 dní včetně dnů s nulovým počtem faktur
+                • Graf zobrazuje konfigurovatelný počet posledních dní včetně dnů s nulovým počtem faktur
               </p>
             </div>
           </div>
