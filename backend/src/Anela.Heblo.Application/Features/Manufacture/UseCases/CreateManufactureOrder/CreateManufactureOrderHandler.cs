@@ -63,8 +63,8 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         };
         order.SemiProduct = semiProduct;
 
-        // Create final products from the request (only products with quantity > 0)
-        foreach (var productRequest in request.Products.Where(p => p.PlannedQuantity > 0))
+        // Create final products from the request (include all products, even those with quantity 0)
+        foreach (var productRequest in request.Products)
         {
             var product = new ManufactureOrderProduct
             {
@@ -83,7 +83,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             Timestamp = DateTime.UtcNow,
             User = currentUser.Name,
             Action = ManufactureOrderAuditAction.OrderCreated,
-            Details = $"Order created from batch planning. Target batch size: {request.NewBatchSize}g (scale factor: {request.ScaleFactor:F3}). Products planned: {request.Products.Count(p => p.PlannedQuantity > 0)}",
+            Details = $"Order created from batch planning. Target batch size: {request.NewBatchSize}g (scale factor: {request.ScaleFactor:F3}). Products planned: {request.Products.Count} (including {request.Products.Count(p => p.PlannedQuantity > 0)} with quantities > 0)",
             NewValue = ManufactureOrderState.Draft.ToString()
         };
         order.AuditLog.Add(auditLog);
