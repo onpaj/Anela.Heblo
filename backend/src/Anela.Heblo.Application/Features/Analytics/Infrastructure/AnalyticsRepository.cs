@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
 
@@ -11,10 +14,12 @@ namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
 public class AnalyticsRepository : IAnalyticsRepository
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly ApplicationDbContext _dbContext;
 
-    public AnalyticsRepository(ICatalogRepository catalogRepository)
+    public AnalyticsRepository(ICatalogRepository catalogRepository, ApplicationDbContext dbContext)
     {
         _catalogRepository = catalogRepository;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -160,5 +165,68 @@ public class AnalyticsRepository : IAnalyticsRepository
     private decimal GetLatestHandlingCost(CatalogAggregate product)
     {
         return product.ManufactureCostHistory.LastOrDefault()?.HandlingCost ?? 0;
+    }
+
+    /// <summary>
+    /// Gets daily invoice import statistics for monitoring purposes
+    /// </summary>
+    public async Task<List<DailyInvoiceCount>> GetInvoiceImportStatisticsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        ImportDateType dateType,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<IGrouping<DateTime, Domain.Features.Invoices.IssuedInvoice>> query;
+
+        if (dateType == ImportDateType.InvoiceDate)
+        {
+            query = _dbContext.IssuedInvoices
+                .Where(i => i.InvoiceDate >= startDate && i.InvoiceDate <= endDate)
+                .GroupBy(i => i.InvoiceDate.Date);
+        }
+        else
+        {
+            query = _dbContext.IssuedInvoices
+                .Where(i => i.LastSyncTime.HasValue && 
+                           i.LastSyncTime.Value.Date >= startDate && 
+                           i.LastSyncTime.Value.Date <= endDate)
+                .GroupBy(i => i.LastSyncTime.Value.Date);
+        }
+
+        var results = await query
+            .Select(g => new DailyInvoiceCount
+            {
+                Date = g.Key,
+                Count = g.Count(),
+                IsBelowThreshold = false // Will be set by handler based on configuration
+            })
+            .OrderBy(d => d.Date)
+            .ToListAsync(cancellationToken);
+
+        // Fill in missing dates with zero counts
+        var currentDate = startDate;
+        var filledResults = new List<DailyInvoiceCount>();
+
+        while (currentDate <= endDate)
+        {
+            var existingResult = results.FirstOrDefault(r => r.Date.Date == currentDate.Date);
+            if (existingResult != null)
+            {
+                filledResults.Add(existingResult);
+            }
+            else
+            {
+                filledResults.Add(new DailyInvoiceCount
+                {
+                    Date = currentDate.Date,
+                    Count = 0,
+                    IsBelowThreshold = false
+                });
+            }
+
+            currentDate = currentDate.AddDays(1);
+        }
+
+        return filledResults;
     }
 }

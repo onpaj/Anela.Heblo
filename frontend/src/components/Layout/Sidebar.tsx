@@ -200,6 +200,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openHangfireDashboard,
         },
+        {
+          id: "import-vydanych-faktur",
+          name: "Import vydaných faktur",
+          href: "/automation/invoice-import-statistics",
+        },
       ],
     },
   ];

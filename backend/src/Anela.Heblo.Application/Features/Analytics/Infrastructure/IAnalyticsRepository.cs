@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 
@@ -36,5 +37,14 @@ public interface IAnalyticsRepository
         string productId,
         DateTime fromDate,
         DateTime toDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets daily invoice import statistics for monitoring purposes
+    /// </summary>
+    Task<List<DailyInvoiceCount>> GetInvoiceImportStatisticsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        ImportDateType dateType,
         CancellationToken cancellationToken = default);
 }
