@@ -15,6 +15,7 @@ import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
+import BankStatementImportChart from "./components/pages/BankStatementImportChart";
 import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
@@ -291,6 +292,10 @@ function App() {
                         <Route
                           path="/finance/overview"
                           element={<FinancialOverview />}
+                        />
+                        <Route
+                          path="/finance/bank-statements"
+                          element={<BankStatementImportChart />}
                         />
                         <Route
                           path="/analytics/product-margin-summary"

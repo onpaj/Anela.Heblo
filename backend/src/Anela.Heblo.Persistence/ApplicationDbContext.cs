@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -23,7 +24,7 @@ public class ApplicationDbContext : DbContext
 
     //public DbSet<ScheduledTask> Tasks { get; set; }
     public DbSet<IssuedInvoice> IssuedInvoices { get; set; } = null!;
-    //public DbSet<BankStatementImport> BankStatements { get; set; }
+    public DbSet<BankStatementImport> BankStatements { get; set; } = null!;
     //public DbSet<RecurringJob> Jobs { get; set; }
     public DbSet<TransportBox> TransportBoxes { get; set; }
     public DbSet<StockTakingRecord> StockTakings { get; set; }

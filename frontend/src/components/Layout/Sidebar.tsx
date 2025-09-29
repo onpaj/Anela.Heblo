@@ -89,6 +89,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 name: "Analýza marže",
                 href: "/analytics/product-margin-summary",
               },
+              {
+                id: "bank-statements",
+                name: "Výpisy z účtu",
+                href: "/finance/bank-statements",
+              },
             ],
           },
         ]
