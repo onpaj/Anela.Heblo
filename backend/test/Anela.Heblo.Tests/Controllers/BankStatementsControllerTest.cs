@@ -39,11 +39,11 @@ public class AnalyticsControllerBankStatementsTest : IClassFixture<ManufactureOr
         // Assert
         result.Should().NotBeNull();
         result.Result.Should().BeOfType<OkObjectResult>();
-        
+
         var okResult = result.Result as OkObjectResult;
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeOfType<GetBankStatementImportStatisticsResponse>();
-        
+
         var response = okResult.Value as GetBankStatementImportStatisticsResponse;
         response.Should().NotBeNull();
         response!.Statistics.Should().NotBeNull();
@@ -65,7 +65,7 @@ public class AnalyticsControllerBankStatementsTest : IClassFixture<ManufactureOr
         // Assert
         result.Should().NotBeNull();
         result.Result.Should().BeOfType<OkObjectResult>();
-        
+
         var okResult = result.Result as OkObjectResult;
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeOfType<GetBankStatementImportStatisticsResponse>();
@@ -106,14 +106,14 @@ public class AnalyticsControllerBankStatementsTest : IClassFixture<ManufactureOr
         // Assert
         mockMediator.Verify(
             m => m.Send(
-                It.Is<GetBankStatementImportStatisticsRequest>(r => 
+                It.Is<GetBankStatementImportStatisticsRequest>(r =>
                     r.StartDate == request.StartDate && r.EndDate == request.EndDate),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
         result.Should().NotBeNull();
         result.Result.Should().BeOfType<OkObjectResult>();
-        
+
         var okResult = result.Result as OkObjectResult;
         okResult!.Value.Should().Be(expectedResponse);
     }
