@@ -46,7 +46,8 @@ public class FlexiManufactureClient : IManufactureClient
                 User = request.CreatedBy,
                 Note = request.ManufactureOrderCode,
                 Description = request.ManufactureOrderCode,
-                Items = request.Items.Select(s => MapToFlexiItem(s, request)).ToList()
+                Items = request.Items.Where(w => w.Amount > 0)
+                    .Select(s => MapToFlexiItem(s, request)).ToList()
             };
 
             _logger.LogDebug("Mapped request to CreateIssuedOrderFlexiDto. DocumentType: {DocumentType}, ItemsCount: {ItemsCount}",
