@@ -299,7 +299,8 @@ public static class ServiceCollectionExtensions
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
-        // Register ProductExportOptions configuration
+        // Register configuration options
+        services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
 
         return services;

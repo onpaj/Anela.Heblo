@@ -1,4 +1,6 @@
 using Hangfire;
+using Microsoft.Extensions.Options;
+using Anela.Heblo.API.Extensions;
 
 namespace Anela.Heblo.API.Services;
 
@@ -6,29 +8,35 @@ public class HangfireJobSchedulerService : IHostedService
 {
     private readonly ILogger<HangfireJobSchedulerService> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly HangfireOptions _hangfireOptions;
 
     private const string QueueName = "heblo";
 
-    public HangfireJobSchedulerService(ILogger<HangfireJobSchedulerService> logger, IWebHostEnvironment environment)
+    public HangfireJobSchedulerService(
+        ILogger<HangfireJobSchedulerService> logger, 
+        IWebHostEnvironment environment,
+        IOptions<HangfireOptions> hangfireOptions)
     {
         _logger = logger;
         _environment = environment;
+        _hangfireOptions = hangfireOptions.Value;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment", _environment.EnvironmentName);
+        _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment with SchedulerEnabled={SchedulerEnabled}", 
+            _environment.EnvironmentName, _hangfireOptions.SchedulerEnabled);
 
-        // Additional safety check - only register jobs in Production and Staging
-        if (!_environment.IsProduction() && !_environment.IsStaging())
+        // Check if scheduler is enabled via configuration
+        if (!_hangfireOptions.SchedulerEnabled)
         {
-            _logger.LogWarning("Hangfire job scheduler service is running in {Environment} environment. Jobs will NOT be scheduled. Only Production and Staging environments schedule background jobs.", _environment.EnvironmentName);
+            _logger.LogInformation("Hangfire job scheduler is disabled via configuration (SchedulerEnabled=false). No recurring jobs will be registered.");
             return Task.CompletedTask;
         }
 
         try
         {
-            // Register recurring jobs - in Production and Staging
+            // Register recurring jobs
 
             // Purchase price recalculation daily at 2:00 AM UTC
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
@@ -43,6 +51,15 @@ public class HangfireJobSchedulerService : IHostedService
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "product-export-download",
                 service => service.DownloadProductExportAsync(),
+                "0 2 * * *", // Daily at 2:00 AM UTC
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
+            // Product weight recalculation daily at 2:00 AM UTC
+            RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
+                "product-weight-recalculation",
+                service => service.RecalculateProductWeightsAsync(),
                 "0 2 * * *", // Daily at 2:00 AM UTC
                 timeZone: TimeZoneInfo.Utc,
                 queue: QueueName
