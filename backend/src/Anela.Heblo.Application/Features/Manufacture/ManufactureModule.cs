@@ -36,6 +36,7 @@ public static class ManufactureModule
 
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
+        services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
 
         return services;
     }

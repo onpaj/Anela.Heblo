@@ -8,7 +8,8 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
 {
     [Required] public string ManufactureOrderNumber { get; set; } = null!;
-
+    
+    [Required] public string ManufactureInternalNumber { get; set; } = null!;
     public ManufactureType ManufactureType { get; set; }
     public DateTime Date { get; set; }
     public string? CreatedBy { get; set; }

@@ -37,7 +37,7 @@ public class FlexiManufactureClient : IManufactureClient
             var createOrder = new CreateIssuedOrderFlexiDto()
             {
                 DepartmentCode = "C",
-                OrderInternalNumber = FormatOrderName(request),
+                OrderInternalNumber = request.ManufactureInternalNumber,
                 DocumentType = request.ManufactureType == ManufactureType.SemiProduct ? DocumentTypeSemiProduct : DocumentTypeProduct,
                 WarehouseDocumentType = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
                 DateCreated = request.Date,
@@ -126,10 +126,10 @@ public class FlexiManufactureClient : IManufactureClient
     {
         if (request.ManufactureType == ManufactureType.SemiProduct)
         {
-            return $"{request.Items.First().ProductCode} - {request.Items.First().ProductName.Replace(" - meziprodukt", "")}";
+            return $"{request.Items.First().ProductCode} - {request.Items.First().ProductName.Split(" - ").First()}";
         }
 
-        return $"{request.Items.First().ProductCode.Left(6)} - {request.Items.First().ProductName}";
+        return $"{request.Items.First().ProductCode.Left(6)} - {request.Items.First().ProductName.Split(" - ").First()}";
     }
 
     private static IssuedOrderItemFlexiDto MapToFlexiItem(SubmitManufactureClientItem item,

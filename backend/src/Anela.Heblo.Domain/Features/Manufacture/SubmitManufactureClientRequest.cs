@@ -3,6 +3,7 @@ namespace Anela.Heblo.Domain.Features.Manufacture;
 public class SubmitManufactureClientRequest
 {
     public string ManufactureOrderCode { get; set; } = null!;
+    public string ManufactureInternalNumber { get; set; } = null!;
     public DateTime Date { get; set; }
     public string? CreatedBy { get; set; }
     public List<SubmitManufactureClientItem> Items { get; set; } = [];

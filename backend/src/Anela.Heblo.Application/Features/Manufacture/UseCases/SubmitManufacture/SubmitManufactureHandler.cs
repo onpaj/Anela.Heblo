@@ -30,6 +30,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
             var clientRequest = new SubmitManufactureClientRequest
             {
                 ManufactureOrderCode = request.ManufactureOrderNumber,
+                ManufactureInternalNumber = request.ManufactureInternalNumber,
                 Date = request.Date,
                 CreatedBy = request.CreatedBy,
                 ManufactureType = request.ManufactureType,

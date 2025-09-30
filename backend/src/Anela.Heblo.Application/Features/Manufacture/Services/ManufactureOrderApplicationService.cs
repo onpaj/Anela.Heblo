@@ -14,17 +14,20 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     private readonly TimeProvider _timeProvider;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ManufactureOrderApplicationService> _logger;
+    private readonly IProductNameFormatter _productNameFormatter;
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
-        ILogger<ManufactureOrderApplicationService> logger)
+        ILogger<ManufactureOrderApplicationService> logger,
+        IProductNameFormatter productNameFormatter)
     {
         _mediator = mediator;
         _timeProvider = timeProvider;
         _currentUserService = currentUserService;
         _logger = logger;
+        _productNameFormatter = productNameFormatter;
     }
 
     public async Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
@@ -62,6 +65,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             var submitManufactureRequest = new SubmitManufactureRequest
             {
                 ManufactureOrderNumber = updateResult.Order.OrderNumber,
+                ManufactureInternalNumber = $"{semiProduct.ProductCode.Substring(0,6)} {_productNameFormatter.ShortProductName(semiProduct.ProductName)}",
                 ManufactureType = ManufactureType.SemiProduct,
                 Date = _timeProvider.GetUtcNow().DateTime,
                 CreatedBy = _currentUserService.GetCurrentUser().Name,
@@ -118,6 +122,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
     }
 
+
     public async Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
         int orderId,
         Dictionary<int, decimal> productActualQuantities,
@@ -150,10 +155,12 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 return new ConfirmProductCompletionResult(false, $"Chyba při aktualizaci množství produktů: {updateResult.ErrorCode}");
             }
 
+            var semiProduct = updateResult.Order!.SemiProduct;
             // Step 2: Create manufacture via external client
             var submitManufactureRequest = new SubmitManufactureRequest
             {
                 ManufactureOrderNumber = updateResult.Order!.OrderNumber,
+                ManufactureInternalNumber = $"{semiProduct.ProductCode.Substring(0,6)} {_productNameFormatter.ShortProductName(semiProduct.ProductName)}",
                 ManufactureType = ManufactureType.Product,
                 Date = _timeProvider.GetUtcNow().DateTime,
                 CreatedBy = _currentUserService.GetCurrentUser().Name,
