@@ -23,18 +23,18 @@ public class GetBankStatementImportStatisticsHandler : IRequestHandler<GetBankSt
         // Create a complete range of dates to include days with zero imports
         var allDates = new List<BankStatementImportStatisticsDto>();
         var currentDate = startDate;
-        
+
         while (currentDate <= endDate)
         {
             var statForDate = statistics.FirstOrDefault(s => s.Date.Date == currentDate.Date);
-            
+
             allDates.Add(new BankStatementImportStatisticsDto
             {
                 Date = currentDate,
                 ImportCount = statForDate?.ImportCount ?? 0,
                 TotalItemCount = statForDate?.TotalItemCount ?? 0
             });
-            
+
             currentDate = currentDate.AddDays(1);
         }
 

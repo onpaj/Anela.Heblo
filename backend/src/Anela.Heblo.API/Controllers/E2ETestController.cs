@@ -83,11 +83,23 @@ public class E2ETestController : ControllerBase
 
         try
         {
+            // Add timeout to token validation to prevent hanging requests
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
             // Validate Service Principal token using dedicated validator
-            if (!await _tokenValidator.ValidateAsync(token))
+            var validationTask = _tokenValidator.ValidateAsync(token);
+            var isValid = await validationTask.WaitAsync(cts.Token);
+
+            if (!isValid)
             {
+                _logger.LogWarning("E2E Test: Service Principal token validation failed");
                 return Unauthorized("Invalid Service Principal token");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("E2E Test: Token validation timed out after 30 seconds");
+            return StatusCode(408, new { error = "Token validation timeout", details = "Validation process exceeded maximum allowed time" });
         }
         catch (Exception ex)
         {

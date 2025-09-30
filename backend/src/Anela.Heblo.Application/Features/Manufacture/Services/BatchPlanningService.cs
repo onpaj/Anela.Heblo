@@ -237,8 +237,8 @@ public class BatchPlanningService : IBatchPlanningService
         var optimizedCount = items.Count(x => !x.IsFixed);
 
         // ActualTotalWeight should reflect the original user input for TotalWeight mode, not the calculated volume used
-        var actualTotalWeight = request.ControlMode == BatchPlanControlMode.TotalWeight 
-            ? request.TotalWeightToUse ?? totalVolumeUsed 
+        var actualTotalWeight = request.ControlMode == BatchPlanControlMode.TotalWeight
+            ? request.TotalWeightToUse ?? totalVolumeUsed
             : totalVolumeUsed;
 
         return new BatchPlanSummaryDto

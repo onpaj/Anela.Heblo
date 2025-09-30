@@ -71,11 +71,11 @@ const ManufactureOrderList: React.FC = () => {
     setIsDetailModalOpen(true);
   };
 
-  // Format datetime for display
-  const formatDateTime = (date: Date | string | undefined) => {
+  // Format date only (without time) for display
+  const formatDateOnly = (date: Date | string | undefined) => {
     if (!date) return "-";
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return dateObj.toLocaleString("cs-CZ");
+    return dateObj.toLocaleDateString("cs-CZ");
   };
 
   if (loading) {
@@ -179,7 +179,7 @@ const ManufactureOrderList: React.FC = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Datum vytvoření
+                  Datum výroby
                 </th>
                 <th
                   scope="col"
@@ -238,7 +238,7 @@ const ManufactureOrderList: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDateTime(order.createdDate)}
+                    {formatDateOnly(order.semiProductPlannedDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order.erpOrderNumberSemiproduct || "-"}

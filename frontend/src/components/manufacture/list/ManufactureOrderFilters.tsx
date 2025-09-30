@@ -191,11 +191,9 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                 className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
               >
                 <option value="">Všechny stavy</option>
-                {Object.values(ManufactureOrderState)
-                  .filter(value => typeof value === 'number')
-                  .map((state) => (
+                {Object.values(ManufactureOrderState).map((state) => (
                   <option key={state} value={state}>
-                    {getStateLabel(state as ManufactureOrderState)}
+                    {getStateLabel(state)}
                   </option>
                 ))}
               </select>

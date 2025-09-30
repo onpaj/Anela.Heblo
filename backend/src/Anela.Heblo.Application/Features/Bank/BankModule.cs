@@ -8,7 +8,7 @@ public static class BankModule
     public static IServiceCollection AddBankModule(this IServiceCollection services)
     {
         services.AddScoped<IBankStatementImportRepository, BankStatementImportRepository>();
-        
+
         return services;
     }
 }
