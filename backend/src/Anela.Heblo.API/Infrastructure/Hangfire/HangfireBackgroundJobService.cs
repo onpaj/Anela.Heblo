@@ -135,16 +135,31 @@ public class HangfireBackgroundJobService
         try
         {
             _logger.LogInformation("Starting daily product weight recalculation job at {Timestamp}", DateTime.UtcNow);
+            
+            var result = await _productWeightRecalculationService.RecalculateAllProductWeights();
+            
+            _logger.LogInformation("Product weight recalculation completed at {Timestamp}. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}", 
+                DateTime.UtcNow, result.SuccessCount, result.ErrorCount, result.Duration);
 
-            await _productWeightRecalculationService.RecalculateAllProductWeights();
-
-            _logger.LogInformation("Product weight recalculation completed successfully at {Timestamp}", DateTime.UtcNow);
-
+            // Create structured report for telemetry
             _telemetryService.TrackBusinessEvent("ProductWeightRecalculation", new Dictionary<string, string>
             {
-                ["Status"] = "Success",
+                ["Status"] = result.ErrorCount == 0 ? "Success" : "PartialSuccess",
+                ["ProcessedCount"] = result.ProcessedCount.ToString(),
+                ["SuccessCount"] = result.SuccessCount.ToString(),
+                ["ErrorCount"] = result.ErrorCount.ToString(),
+                ["Duration"] = result.Duration.ToString(),
+                ["StartTime"] = result.StartTime.ToString("O"),
+                ["EndTime"] = result.EndTime.ToString("O"),
                 ["Timestamp"] = DateTime.UtcNow.ToString("O")
             });
+
+            // Log errors if any
+            if (result.ErrorCount > 0)
+            {
+                _logger.LogWarning("Product weight recalculation completed with {ErrorCount} errors: {ErrorMessages}", 
+                    result.ErrorCount, string.Join("; ", result.ErrorMessages));
+            }
         }
         catch (Exception ex)
         {

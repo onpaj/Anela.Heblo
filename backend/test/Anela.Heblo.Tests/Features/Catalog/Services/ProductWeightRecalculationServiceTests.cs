@@ -184,18 +184,25 @@ public class ProductWeightRecalculationServiceTests
     }
 
     [Fact]
-    public async Task RecalculateAllProductWeights_WithRepositoryError_ThrowsException()
+    public async Task RecalculateAllProductWeights_WithRepositoryError_ReturnsErrorResult()
     {
         // Arrange
         _mockCatalogRepository
             .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Repository error"));
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.RecalculateAllProductWeights());
+        // Act
+        var result = await _service.RecalculateAllProductWeights();
 
-        exception.Message.Should().Be("Repository error");
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(0);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Critical error: Repository error");
+        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+
         VerifyErrorLog("Failed to complete product weight recalculation");
     }
 
@@ -334,4 +341,226 @@ public class ProductWeightRecalculationServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
     }
+
+    #region Single Product Recalculation Tests
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithValidProduct_ReturnsSuccessResult()
+    {
+        // Arrange
+        const string productCode = "PROD001";
+        var product = CreateProduct(productCode);
+        product.NetWeight = 1.0;
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        _mockProductWeightClient
+            .Setup(x => x.RefreshProductWeight(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2.5);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(1);
+        result.SuccessCount.Should().Be(1);
+        result.ErrorCount.Should().Be(0);
+        result.ErrorMessages.Should().BeEmpty();
+        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+        result.StartTime.Should().BeBefore(result.EndTime);
+
+        product.NetWeight.Should().Be(2.5);
+
+        VerifyInfoLog("Starting product weight recalculation for product PROD001");
+        VerifyInfoLog("Successfully recalculated weight for product PROD001: 2.5");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithProductNotFound_ReturnsErrorResult()
+    {
+        // Arrange
+        const string productCode = "NONEXISTENT";
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CatalogAggregate?)null);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(0);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Product with code 'NONEXISTENT' not found");
+
+        _mockProductWeightClient.Verify(
+            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        VerifyWarningLog("Product with code 'NONEXISTENT' not found");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithNonProductType_ReturnsErrorResult()
+    {
+        // Arrange
+        const string productCode = "MAT001";
+        var material = CreateMaterial(productCode);
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(material);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(0);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Product 'MAT001' is not of type 'Product'");
+
+        _mockProductWeightClient.Verify(
+            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        VerifyWarningLog("Product 'MAT001' is not of type 'Product'");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithNullWeightReturned_ReturnsErrorResult()
+    {
+        // Arrange
+        const string productCode = "PROD001";
+        var product = CreateProduct(productCode);
+        product.NetWeight = 1.0;
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        _mockProductWeightClient
+            .Setup(x => x.RefreshProductWeight(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((double?)null);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(1);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Failed to calculate weight for product 'PROD001' - no weight returned");
+
+        product.NetWeight.Should().Be(1.0); // Should remain unchanged
+
+        VerifyWarningLog("Failed to calculate weight for product 'PROD001' - no weight returned");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithWeightClientException_ReturnsErrorResult()
+    {
+        // Arrange
+        const string productCode = "PROD001";
+        var product = CreateProduct(productCode);
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var exception = new InvalidOperationException("Connection failed");
+        _mockProductWeightClient
+            .Setup(x => x.RefreshProductWeight(productCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(1);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Failed to recalculate weight for product PROD001: Connection failed");
+        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+
+        VerifyErrorLog("Failed to recalculate weight for product PROD001");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithRepositoryException_ReturnsErrorResult()
+    {
+        // Arrange
+        const string productCode = "PROD001";
+        var exception = new InvalidOperationException("Database connection failed");
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ProcessedCount.Should().Be(1);
+        result.SuccessCount.Should().Be(0);
+        result.ErrorCount.Should().Be(1);
+        result.ErrorMessages.Should().HaveCount(1);
+        result.ErrorMessages[0].Should().Be("Failed to recalculate weight for product PROD001: Database connection failed");
+        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+
+        _mockProductWeightClient.Verify(
+            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        VerifyErrorLog("Failed to recalculate weight for product PROD001");
+    }
+
+    [Fact]
+    public async Task RecalculateProductWeight_WithCancellationToken_PropagatesTokenCorrectly()
+    {
+        // Arrange
+        const string productCode = "PROD001";
+        var product = CreateProduct(productCode);
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, cancellationToken))
+            .ReturnsAsync(product);
+
+        _mockProductWeightClient
+            .Setup(x => x.RefreshProductWeight(productCode, cancellationToken))
+            .ReturnsAsync(1.5);
+
+        // Act
+        var result = await _service.RecalculateProductWeight(productCode, cancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.SuccessCount.Should().Be(1);
+        result.ErrorCount.Should().Be(0);
+
+        _mockCatalogRepository.Verify(
+            x => x.GetByIdAsync(productCode, cancellationToken),
+            Times.Once);
+
+        _mockProductWeightClient.Verify(
+            x => x.RefreshProductWeight(productCode, cancellationToken),
+            Times.Once);
+    }
+
+    #endregion
 }
