@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficulty
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
+using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Microsoft.AspNetCore.Mvc;
@@ -256,6 +257,22 @@ public class CatalogController : BaseApiController
         var request = new GetWarehouseStatisticsRequest();
         var response = await _mediator.Send(request);
         return Ok(response);
+    }
+
+    [HttpPost("recalculate-product-weight")]
+    public async Task<ActionResult<RecalculateProductWeightResponse>> RecalculateProductWeight(
+        [FromBody] RecalculateProductWeightRequest request)
+    {
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("recalculate-product-weight/{productCode}")]
+    public async Task<ActionResult<RecalculateProductWeightResponse>> RecalculateProductWeight(string productCode)
+    {
+        var request = new RecalculateProductWeightRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
     }
 
 }

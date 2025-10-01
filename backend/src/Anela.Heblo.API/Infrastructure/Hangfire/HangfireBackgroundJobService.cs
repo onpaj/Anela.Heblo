@@ -1,6 +1,7 @@
 using System.Configuration;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Configuration;
 using Hangfire;
 using Anela.Heblo.Xcc.Telemetry;
@@ -15,17 +16,20 @@ public class HangfireBackgroundJobService
     private readonly ITelemetryService _telemetryService;
     private readonly IMediator _mediator;
     private readonly IOptions<ProductExportOptions> _productExportOptions;
+    private readonly IProductWeightRecalculationService _productWeightRecalculationService;
 
     public HangfireBackgroundJobService(
         ILogger<HangfireBackgroundJobService> logger,
         ITelemetryService telemetryService,
         IMediator mediator,
-        IOptions<ProductExportOptions> productExportOptions)
+        IOptions<ProductExportOptions> productExportOptions,
+        IProductWeightRecalculationService productWeightRecalculationService)
     {
         _logger = logger;
         _telemetryService = telemetryService;
         _mediator = mediator;
         _productExportOptions = productExportOptions;
+        _productWeightRecalculationService = productWeightRecalculationService;
     }
 
     /// <summary>
@@ -116,6 +120,53 @@ public class HangfireBackgroundJobService
             _telemetryService.TrackException(ex, new Dictionary<string, string>
             {
                 ["Job"] = "ProductExportDownload",
+                ["Timestamp"] = DateTime.UtcNow.ToString("O")
+            });
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Daily product weight recalculation job (runs at 2:00 AM UTC)
+    /// </summary>
+    [Queue("heblo")]
+    public async Task RecalculateProductWeightsAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Starting daily product weight recalculation job at {Timestamp}", DateTime.UtcNow);
+            
+            var result = await _productWeightRecalculationService.RecalculateAllProductWeights();
+            
+            _logger.LogInformation("Product weight recalculation completed at {Timestamp}. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}", 
+                DateTime.UtcNow, result.SuccessCount, result.ErrorCount, result.Duration);
+
+            // Create structured report for telemetry
+            _telemetryService.TrackBusinessEvent("ProductWeightRecalculation", new Dictionary<string, string>
+            {
+                ["Status"] = result.ErrorCount == 0 ? "Success" : "PartialSuccess",
+                ["ProcessedCount"] = result.ProcessedCount.ToString(),
+                ["SuccessCount"] = result.SuccessCount.ToString(),
+                ["ErrorCount"] = result.ErrorCount.ToString(),
+                ["Duration"] = result.Duration.ToString(),
+                ["StartTime"] = result.StartTime.ToString("O"),
+                ["EndTime"] = result.EndTime.ToString("O"),
+                ["Timestamp"] = DateTime.UtcNow.ToString("O")
+            });
+
+            // Log errors if any
+            if (result.ErrorCount > 0)
+            {
+                _logger.LogWarning("Product weight recalculation completed with {ErrorCount} errors: {ErrorMessages}", 
+                    result.ErrorCount, string.Join("; ", result.ErrorMessages));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Product weight recalculation failed at {Timestamp}", DateTime.UtcNow);
+            _telemetryService.TrackException(ex, new Dictionary<string, string>
+            {
+                ["Job"] = "ProductWeightRecalculation",
                 ["Timestamp"] = DateTime.UtcNow.ToString("O")
             });
             throw;

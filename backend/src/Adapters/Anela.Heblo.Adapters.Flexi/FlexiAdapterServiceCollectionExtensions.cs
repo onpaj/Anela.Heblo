@@ -5,6 +5,8 @@ using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
 using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
+using Anela.Heblo.Adapters.Flexi.Products;
+using Anela.Heblo.Domain.Features.Catalog.Products;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
@@ -23,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rem.FlexiBeeSDK.Client.Clients.Contacts;
 using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
+using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 using Rem.FlexiBeeSDK.Client.DI;
@@ -53,10 +56,10 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
-        services.AddSingleton<IProductPriceErpClient, FlexiProductPriceErpClient>();
+        services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
-        services.AddSingleton<IManufactureRepository, FlexiManufactureRepository>();
+        services.AddScoped<IManufactureRepository, FlexiManufactureRepository>();
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
 
         services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();
@@ -69,6 +72,9 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ILedgerService, LedgerService>();
         services.AddScoped<IIssuedOrdersClient, IssuedOrdersClient>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
+        services.AddScoped<IBoMClient, BoMClient>();
+        
+        services.AddScoped<IProductWeightClient, FlexiProductClient>();
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 
