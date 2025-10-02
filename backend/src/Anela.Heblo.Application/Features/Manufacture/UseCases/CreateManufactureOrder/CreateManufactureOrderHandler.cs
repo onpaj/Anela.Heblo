@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -9,15 +10,18 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactur
 public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOrderRequest, CreateManufactureOrderResponse>
 {
     private readonly IManufactureOrderRepository _repository;
+    private readonly IProductNameFormatter _productNameFormatter;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
+        IProductNameFormatter  productNameFormatter,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
+        _productNameFormatter = productNameFormatter;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
     }
@@ -55,7 +59,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var semiProduct = new ManufactureOrderSemiProduct
         {
             ProductCode = request.ProductCode,
-            ProductName = semiproduct.ShortName,
+            ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
             PlannedQuantity = (decimal)request.NewBatchSize,
             ActualQuantity = (decimal)request.NewBatchSize,
             BatchMultiplier = (decimal)request.ScaleFactor,

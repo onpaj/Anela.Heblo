@@ -46,15 +46,15 @@ const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
       >
         <div className="flex items-center space-x-1">
           <Factory className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate font-medium">
-            {event.title || event.orderNumber}
-          </span>
           {event.manualActionRequired && (
             <div 
               className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
               title="Vyžaduje ruční zásah"
             />
           )}
+          <span className="truncate font-medium">
+            {event.title || event.orderNumber}
+          </span>
         </div>
         {event.responsiblePerson && (
           <div className="flex items-center space-x-1 text-xs opacity-75">

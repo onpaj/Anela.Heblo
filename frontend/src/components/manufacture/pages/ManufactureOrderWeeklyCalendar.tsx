@@ -458,13 +458,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                 <Factory className="h-4 w-4 flex-shrink-0" />
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-bold truncate flex items-center space-x-2">
-                                    <span>{event.semiProduct?.productName || event.orderNumber}</span>
                                     {event.manualActionRequired && (
                                       <div 
                                         className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
                                         title="Vyžaduje ruční zásah"
                                       />
                                     )}
+                                    <span>{event.semiProduct?.productName || event.orderNumber}</span>
                                   </div>
                                   {event.semiProduct?.productCode && (
                                     <div className="text-xs text-gray-600 truncate">

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -14,6 +15,7 @@ public class CreateManufactureOrderHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
     private readonly CreateManufactureOrderHandler _handler;
 
     private const string ValidProductCode = "SEMI001";
@@ -29,13 +31,16 @@ public class CreateManufactureOrderHandlerTests
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _productNameFormatterMock = new Mock<IProductNameFormatter>();
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("test-user-id", "Test User", "test@example.com", true));
 
+        _productNameFormatterMock.Setup(s => s.ShortProductName(It.IsAny<string>())).Returns<string>(_ => ValidProductName);
         _handler = new CreateManufactureOrderHandler(
             _repositoryMock.Object,
+            _productNameFormatterMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object);
     }
