@@ -17,4 +17,5 @@ public class UpdateManufactureOrderStatusRequest : IRequest<UpdateManufactureOrd
     public bool? ManualActionRequired { get; set; }
     public string? SemiProductOrderCode { get; set; }
     public string? ProductOrderCode { get; set; }
+    public string? DiscardRedisueDocumentCode { get; set; }
 }

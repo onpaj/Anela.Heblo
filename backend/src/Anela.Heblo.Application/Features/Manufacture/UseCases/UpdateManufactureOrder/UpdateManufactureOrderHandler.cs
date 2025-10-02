@@ -49,6 +49,9 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             if (request.ErpOrderNumberProduct != null)
                 order.ErpOrderNumberProduct = request.ErpOrderNumberProduct;
 
+            if (request.ErpDiscardResidueDocumentNumber != null)
+                order.ErpDiscardResidueDocumentNumber = request.ErpDiscardResidueDocumentNumber;
+
             // Update semi-product if provided
             if (request.SemiProduct != null)
             {

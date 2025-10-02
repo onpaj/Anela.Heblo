@@ -8,4 +8,6 @@ public record CatalogProperties
 
     public int ExpirationMonths { get; set; } = 12;
     public int[] SeasonMonths { get; set; } = Array.Empty<int>();
+    
+    public double AllowedResiduePercentage { get; set; } = 100;
 }

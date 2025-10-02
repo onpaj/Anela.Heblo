@@ -47,5 +47,5 @@ public class FlexiProductClient : IProductWeightClient
         }
         
         return request.Weight;
-    }
+        }
 }

@@ -3,11 +3,17 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ConfirmProductCompletionResult
 {
     public bool Success { get; }
-    public string Message { get; }
+    public string? ErrorMessage { get; }
 
-    public ConfirmProductCompletionResult(bool success, string message)
+    public ConfirmProductCompletionResult(string errorMessage)
     {
-        Success = success;
-        Message = message;
+        Success = false;
+        ErrorMessage = errorMessage;
+    }
+    
+    public ConfirmProductCompletionResult()
+    {
+        Success = true;
+        ErrorMessage = null;
     }
 }

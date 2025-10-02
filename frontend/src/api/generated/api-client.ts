@@ -1436,6 +1436,81 @@ export class ApiClient {
         return Promise.resolve<GetWarehouseStatisticsResponse>(null as any);
     }
 
+    catalog_RecalculateProductWeight(request: RecalculateProductWeightRequest): Promise<RecalculateProductWeightResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RecalculateProductWeight(_response);
+        });
+    }
+
+    protected processCatalog_RecalculateProductWeight(response: Response): Promise<RecalculateProductWeightResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculateProductWeightResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculateProductWeightResponse>(null as any);
+    }
+
+    catalog_RecalculateProductWeight2(productCode: string): Promise<RecalculateProductWeightResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight/{productCode}";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RecalculateProductWeight2(_response);
+        });
+    }
+
+    protected processCatalog_RecalculateProductWeight2(response: Response): Promise<RecalculateProductWeightResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculateProductWeightResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculateProductWeightResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -6808,6 +6883,95 @@ export interface IGetWarehouseStatisticsResponse extends IBaseResponse {
     lastUpdated?: Date;
 }
 
+export class RecalculateProductWeightResponse extends BaseResponse implements IRecalculateProductWeightResponse {
+    processedCount?: number;
+    successCount?: number;
+    errorCount?: number;
+    errorMessages?: string[];
+
+    constructor(data?: IRecalculateProductWeightResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.processedCount = _data["processedCount"];
+            this.successCount = _data["successCount"];
+            this.errorCount = _data["errorCount"];
+            if (Array.isArray(_data["errorMessages"])) {
+                this.errorMessages = [] as any;
+                for (let item of _data["errorMessages"])
+                    this.errorMessages!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): RecalculateProductWeightResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculateProductWeightResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processedCount"] = this.processedCount;
+        data["successCount"] = this.successCount;
+        data["errorCount"] = this.errorCount;
+        if (Array.isArray(this.errorMessages)) {
+            data["errorMessages"] = [];
+            for (let item of this.errorMessages)
+                data["errorMessages"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecalculateProductWeightResponse extends IBaseResponse {
+    processedCount?: number;
+    successCount?: number;
+    errorCount?: number;
+    errorMessages?: string[];
+}
+
+export class RecalculateProductWeightRequest implements IRecalculateProductWeightRequest {
+    productCode?: string | undefined;
+
+    constructor(data?: IRecalculateProductWeightRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+        }
+    }
+
+    static fromJS(data: any): RecalculateProductWeightRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculateProductWeightRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        return data;
+    }
+}
+
+export interface IRecalculateProductWeightRequest {
+    productCode?: string | undefined;
+}
+
 export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
@@ -9134,7 +9298,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -9163,7 +9331,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberSemiproductDate = _data["erpOrderNumberSemiproductDate"] ? new Date(_data["erpOrderNumberSemiproductDate"].toString()) : <any>undefined;
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
+            this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
@@ -9204,7 +9376,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberSemiproductDate"] = this.erpOrderNumberSemiproductDate ? this.erpOrderNumberSemiproductDate.toISOString() : <any>undefined;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
+        data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
@@ -9238,7 +9414,11 @@ export interface IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -9998,6 +10178,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -10020,6 +10201,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
             this.responsiblePerson = _data["responsiblePerson"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
             this.semiProduct = _data["semiProduct"] ? UpdateManufactureOrderSemiProductRequest.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -10046,6 +10228,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
         data["responsiblePerson"] = this.responsiblePerson;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -10065,6 +10248,7 @@ export interface IUpdateManufactureOrderRequest {
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -10221,9 +10405,10 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     newState!: ManufactureOrderState;
     changeReason?: string | undefined;
     note?: string | undefined;
-    manualActionRequired?: boolean;
+    manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
+    discardRedisueDocumentCode?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderStatusRequest) {
         if (data) {
@@ -10243,6 +10428,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.manualActionRequired = _data["manualActionRequired"];
             this.semiProductOrderCode = _data["semiProductOrderCode"];
             this.productOrderCode = _data["productOrderCode"];
+            this.discardRedisueDocumentCode = _data["discardRedisueDocumentCode"];
         }
     }
 
@@ -10262,6 +10448,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["manualActionRequired"] = this.manualActionRequired;
         data["semiProductOrderCode"] = this.semiProductOrderCode;
         data["productOrderCode"] = this.productOrderCode;
+        data["discardRedisueDocumentCode"] = this.discardRedisueDocumentCode;
         return data;
     }
 }
@@ -10271,9 +10458,10 @@ export interface IUpdateManufactureOrderStatusRequest {
     newState: ManufactureOrderState;
     changeReason?: string | undefined;
     note?: string | undefined;
-    manualActionRequired?: boolean;
+    manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
+    discardRedisueDocumentCode?: string | undefined;
 }
 
 export class ConfirmSemiProductManufactureResponse extends BaseResponse implements IConfirmSemiProductManufactureResponse {
@@ -10531,7 +10719,11 @@ export class CalendarEventDto implements ICalendarEventDto {
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 
@@ -10554,7 +10746,11 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.responsiblePerson = _data["responsiblePerson"];
             this.manualActionRequired = _data["manualActionRequired"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberSemiproductDate = _data["erpOrderNumberSemiproductDate"] ? new Date(_data["erpOrderNumberSemiproductDate"].toString()) : <any>undefined;
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
+            this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
             this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -10581,7 +10777,11 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["responsiblePerson"] = this.responsiblePerson;
         data["manualActionRequired"] = this.manualActionRequired;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberSemiproductDate"] = this.erpOrderNumberSemiproductDate ? this.erpOrderNumberSemiproductDate.toISOString() : <any>undefined;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
+        data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -10601,7 +10801,11 @@ export interface ICalendarEventDto {
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 }

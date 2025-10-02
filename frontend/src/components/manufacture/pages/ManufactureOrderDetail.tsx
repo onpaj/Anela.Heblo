@@ -80,6 +80,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableExpirationDate, setEditableExpirationDate] = useState("");
   const [editableErpOrderNumberSemiproduct, setEditableErpOrderNumberSemiproduct] = useState("");
   const [editableErpOrderNumberProduct, setEditableErpOrderNumberProduct] = useState("");
+  const [editableErpDiscardResidueDocumentNumber, setEditableErpDiscardResidueDocumentNumber] = useState("");
   const [editableManualActionRequired, setEditableManualActionRequired] = useState(false);
   
   // Confirmation dialog state
@@ -276,6 +277,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
       setEditableErpOrderNumberSemiproduct(order.erpOrderNumberSemiproduct || "");
       setEditableErpOrderNumberProduct(order.erpOrderNumberProduct || "");
+      setEditableErpDiscardResidueDocumentNumber(order.erpDiscardResidueDocumentNumber || "");
       setEditableManualActionRequired(order.manualActionRequired || false);
       
       const productQuantities: Record<number, string> = {};
@@ -357,6 +359,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         responsiblePerson: editableResponsiblePerson || undefined,
         erpOrderNumberSemiproduct: editableErpOrderNumberSemiproduct || undefined,
         erpOrderNumberProduct: editableErpOrderNumberProduct || undefined,
+        erpDiscardResidueDocumentNumber: editableErpDiscardResidueDocumentNumber || undefined,
         semiProduct: semiProductRequest,
         products,
         newNote: newNote.trim() || undefined,
@@ -558,6 +561,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       editableResponsiblePerson={editableResponsiblePerson}
                       editableErpOrderNumberSemiproduct={editableErpOrderNumberSemiproduct}
                       editableErpOrderNumberProduct={editableErpOrderNumberProduct}
+                      editableErpDiscardResidueDocumentNumber={editableErpDiscardResidueDocumentNumber}
                       editableSemiProductDate={editableSemiProductDate}
                       editableLotNumber={editableLotNumber}
                       editableExpirationDate={editableExpirationDate}
@@ -565,6 +569,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       onResponsiblePersonChange={(value) => setEditableResponsiblePerson(value || "")}
                       onErpOrderNumberSemiproductChange={setEditableErpOrderNumberSemiproduct}
                       onErpOrderNumberProductChange={setEditableErpOrderNumberProduct}
+                      onErpDiscardResidueDocumentNumberChange={setEditableErpDiscardResidueDocumentNumber}
                       onSemiProductDateChange={setEditableSemiProductDate}
                       onLotNumberChange={setEditableLotNumber}
                       onExpirationDateChange={setEditableExpirationDate}

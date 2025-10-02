@@ -15,4 +15,6 @@ public class ErpStock
     public string? Note { get; set; }
     public string? SupplierCode { get; set; }
     public string? SupplierName { get; set; }
+
+    public decimal Price { get; set; }
 }
