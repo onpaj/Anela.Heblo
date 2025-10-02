@@ -28,6 +28,7 @@ export interface GetManufactureOrdersRequest {
   responsiblePerson?: string | null;
   orderNumber?: string | null;
   productCode?: string | null;
+  erpDocumentNumber?: string | null;
   manualActionRequired?: boolean | null;
 }
 
@@ -54,16 +55,35 @@ export const useManufactureOrdersQuery = (request: GetManufactureOrdersRequest =
   return useQuery({
     queryKey: manufactureOrderKeys.list(request),
     queryFn: async () => {
-      const apiClient = getManufactureOrdersClient();
-      return await apiClient.manufactureOrder_GetOrders(
-        request.state || undefined,
-        request.dateFrom || undefined,
-        request.dateTo || undefined,
-        request.responsiblePerson || undefined,
-        request.orderNumber || undefined,
-        request.productCode || undefined,
-        request.manualActionRequired || undefined
-      );
+      const apiClient = getAuthenticatedApiClient();
+      const relativeUrl = `/api/manufactureorder`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      
+      const params = new URLSearchParams();
+      if (request.state !== undefined && request.state !== null) params.append('state', request.state.toString());
+      if (request.dateFrom) params.append('dateFrom', request.dateFrom.toISOString());
+      if (request.dateTo) params.append('dateTo', request.dateTo.toISOString());
+      if (request.responsiblePerson) params.append('responsiblePerson', request.responsiblePerson);
+      if (request.orderNumber) params.append('orderNumber', request.orderNumber);
+      if (request.productCode) params.append('productCode', request.productCode);
+      if (request.erpDocumentNumber) params.append('erpDocumentNumber', request.erpDocumentNumber);
+      if (request.manualActionRequired !== undefined && request.manualActionRequired !== null) {
+        params.append('manualActionRequired', request.manualActionRequired.toString());
+      }
+      
+      const urlWithParams = params.toString() ? `${fullUrl}?${params.toString()}` : fullUrl;
+      const response = await (apiClient as any).http.fetch(urlWithParams, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

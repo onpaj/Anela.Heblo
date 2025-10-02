@@ -9,6 +9,7 @@ public interface IManufactureOrderRepository
         string? responsiblePerson = null,
         string? orderNumber = null,
         string? productCode = null,
+        string? erpDocumentNumber = null,
         bool? manualActionRequired = null,
         CancellationToken cancellationToken = default);
 

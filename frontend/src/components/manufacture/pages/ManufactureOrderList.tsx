@@ -10,6 +10,7 @@ import {
   useManufactureOrdersQuery,
   GetManufactureOrdersRequest,
 } from "../../../api/hooks/useManufactureOrders";
+import { ManufactureOrderDto } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import LoadingState from "../../common/LoadingState";
 import ErrorState from "../../common/ErrorState";
@@ -30,6 +31,7 @@ const ManufactureOrderList: React.FC = () => {
     dateTo: null,
     responsiblePerson: null,
     productCode: null,
+    erpDocumentNumber: null,
     manualActionRequired: null,
   });
 
@@ -57,7 +59,7 @@ const ManufactureOrderList: React.FC = () => {
     refetch,
   } = useManufactureOrdersQuery(filters);
 
-  const orders = data?.orders || [];
+  const orders: ManufactureOrderDto[] = data?.orders || [];
 
   // Handle order click to open detail modal
   const handleOrderClick = (orderId: number) => {

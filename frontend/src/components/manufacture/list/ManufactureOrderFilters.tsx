@@ -4,6 +4,7 @@ import {
   Search,
   Filter,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import { ManufactureOrderState, ProductType } from "../../../api/generated/api-client";
 import { GetManufactureOrdersRequest } from "../../../api/hooks/useManufactureOrders";
@@ -36,12 +37,14 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   const [toDateInput, setToDateInput] = useState("");
   const [responsiblePersonInput, setResponsiblePersonInput] = useState("");
   const [productCodeInput, setProductCodeInput] = useState("");
+  const [erpDocumentNumberInput, setErpDocumentNumberInput] = useState("");
   const [manualActionRequiredInput, setManualActionRequiredInput] = useState<boolean | null>(null);
 
   const [orderNumberFilter, setOrderNumberFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<ManufactureOrderState | null>(null);
   const [responsiblePersonFilter, setResponsiblePersonFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
+  const [erpDocumentNumberFilter, setErpDocumentNumberFilter] = useState("");
   const [manualActionRequiredFilter, setManualActionRequiredFilter] = useState<boolean | null>(null);
 
   // Handler for applying filters on Enter or button click
@@ -50,6 +53,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setStateFilter(stateInput === "" ? null : (stateInput as ManufactureOrderState));
     setResponsiblePersonFilter(responsiblePersonInput);
     setProductCodeFilter(productCodeInput);
+    setErpDocumentNumberFilter(erpDocumentNumberInput);
     setManualActionRequiredFilter(manualActionRequiredInput);
 
     // Build request object
@@ -60,6 +64,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       dateTo: toDateInput ? new Date(toDateInput) : null,
       responsiblePerson: responsiblePersonInput || null,
       productCode: productCodeInput || null,
+      erpDocumentNumber: erpDocumentNumberInput || null,
       manualActionRequired: manualActionRequiredInput,
     };
 
@@ -75,12 +80,14 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setToDateInput("");
     setResponsiblePersonInput("");
     setProductCodeInput("");
+    setErpDocumentNumberInput("");
     setManualActionRequiredInput(null);
     
     setOrderNumberFilter("");
     setStateFilter(null);
     setResponsiblePersonFilter("");
     setProductCodeFilter("");
+    setErpDocumentNumberFilter("");
     setManualActionRequiredFilter(null);
 
     const emptyFilters: GetManufactureOrdersRequest = {
@@ -90,6 +97,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       dateTo: null,
       responsiblePerson: null,
       productCode: null,
+      erpDocumentNumber: null,
       manualActionRequired: null,
     };
 
@@ -129,7 +137,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
           {isFiltersCollapsed && (
             <div className="flex items-center space-x-3 text-xs">
               {/* Quick filter info */}
-              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || manualActionRequiredFilter !== null) ? (
+              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || erpDocumentNumberFilter || manualActionRequiredFilter !== null) ? (
                 <span className="text-gray-600">Aktivní filtry</span>
               ) : (
                 <span className="text-gray-500">Klikněte pro rozbalení filtrů</span>
@@ -137,6 +145,52 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
               
               {/* Quick apply button when collapsed */}
               <div className="flex items-center space-x-2">
+                {/* Manual Action Required 3-state checkbox */}
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => {
+                      // Cycle through: null (všechny) -> true (vyžaduje ruční zásah) -> false (nevyžaduje ruční zásah) -> null
+                      if (manualActionRequiredInput === null) {
+                        setManualActionRequiredInput(true);
+                      } else if (manualActionRequiredInput === true) {
+                        setManualActionRequiredInput(false);
+                      } else {
+                        setManualActionRequiredInput(null);
+                      }
+                      // Auto-apply filter
+                      setTimeout(() => handleApplyFilters(), 50);
+                    }}
+                    className={`flex items-center space-x-1 px-2 py-1 rounded text-xs transition-colors ${
+                      manualActionRequiredFilter === true
+                        ? "bg-red-100 text-red-700 border border-red-300"
+                        : manualActionRequiredFilter === false
+                        ? "bg-green-100 text-green-700 border border-green-300"
+                        : "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200"
+                    }`}
+                    title={
+                      manualActionRequiredFilter === true
+                        ? "Aktuálně se zobrazují zakázky vyžadující ruční zásah"
+                        : manualActionRequiredFilter === false
+                        ? "Aktuálně se zobrazují zakázky nevyžadující ruční zásah"
+                        : "Aktuálně se zobrazují všechny zakázky (klikněte pro filtrování)"
+                    }
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>
+                      {manualActionRequiredFilter === true
+                        ? "Vyžaduje ruční zásah"
+                        : manualActionRequiredFilter === false
+                        ? "Nevyžaduje ruční zásah"
+                        : "Vše"}
+                    </span>
+                    {manualActionRequiredFilter !== null && (
+                      <span className="ml-1 text-xs">
+                        {manualActionRequiredFilter ? "✓" : "✗"}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                
                 <CatalogAutocomplete<string>
                   value={productCodeInput}
                   onSelect={handleProductCodeSelect}
@@ -253,6 +307,24 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                 productTypes={[ProductType.Product, ProductType.SemiProduct]}
                 itemAdapter={(item) => item.productCode || ""}
               />
+            </div>
+
+            {/* ERP Document Number */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                ERP číslo dokladu
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="ERP číslo dokladu"
+                  value={erpDocumentNumberInput}
+                  onChange={(e) => setErpDocumentNumberInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             {/* Manual Action Required */}

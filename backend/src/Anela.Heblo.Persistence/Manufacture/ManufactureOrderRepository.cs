@@ -19,6 +19,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         string? responsiblePerson = null,
         string? orderNumber = null,
         string? productCode = null,
+        string? erpDocumentNumber = null,
         bool? manualActionRequired = null,
         CancellationToken cancellationToken = default)
     {
@@ -59,6 +60,14 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             query = query.Where(x =>
                 (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
                 x.Products.Any(p => p.ProductCode.Contains(productCode)));
+        }
+
+        if (!string.IsNullOrEmpty(erpDocumentNumber))
+        {
+            query = query.Where(x =>
+                (x.ErpOrderNumberSemiproduct != null && x.ErpOrderNumberSemiproduct.Contains(erpDocumentNumber)) ||
+                (x.ErpOrderNumberProduct != null && x.ErpOrderNumberProduct.Contains(erpDocumentNumber)) ||
+                (x.ErpDiscardResidueDocumentNumber != null && x.ErpDiscardResidueDocumentNumber.Contains(erpDocumentNumber)));
         }
 
         if (manualActionRequired.HasValue)
