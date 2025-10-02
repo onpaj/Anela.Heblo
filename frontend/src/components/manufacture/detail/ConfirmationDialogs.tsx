@@ -200,6 +200,7 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
           orderId={orderId!}
           currentErpSemiproduct={order.erpOrderNumberSemiproduct || ""}
           currentErpProduct={order.erpOrderNumberProduct || ""}
+          currentErpDiscardResidueDocumentNumber={order.erpDiscardResidueDocumentNumber || ""}
           onSuccess={onResolveSuccess}
         />
       )}

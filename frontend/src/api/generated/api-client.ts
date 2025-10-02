@@ -11063,6 +11063,7 @@ export class ResolveManualActionRequest implements IResolveManualActionRequest {
     orderId!: number;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     note?: string | undefined;
 
     constructor(data?: IResolveManualActionRequest) {
@@ -11079,6 +11080,7 @@ export class ResolveManualActionRequest implements IResolveManualActionRequest {
             this.orderId = _data["orderId"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
             this.note = _data["note"];
         }
     }
@@ -11095,6 +11097,7 @@ export class ResolveManualActionRequest implements IResolveManualActionRequest {
         data["orderId"] = this.orderId;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
         data["note"] = this.note;
         return data;
     }
@@ -11104,6 +11107,7 @@ export interface IResolveManualActionRequest {
     orderId: number;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     note?: string | undefined;
 }
 

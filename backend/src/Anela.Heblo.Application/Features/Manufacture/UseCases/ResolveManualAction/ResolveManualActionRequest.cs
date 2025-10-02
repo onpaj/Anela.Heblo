@@ -12,5 +12,7 @@ public class ResolveManualActionRequest : IRequest<ResolveManualActionResponse>
 
     public string? ErpOrderNumberProduct { get; set; }
 
+    public string? ErpDiscardResidueDocumentNumber { get; set; }
+
     public string? Note { get; set; }
 }

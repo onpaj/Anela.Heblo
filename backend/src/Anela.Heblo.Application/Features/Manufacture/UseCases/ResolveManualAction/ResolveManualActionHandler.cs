@@ -11,7 +11,7 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
     private readonly IManufactureOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ResolveManualActionHandler> _logger;
-
+    
     public ResolveManualActionHandler(
         IManufactureOrderRepository repository,
         ICurrentUserService currentUserService,
@@ -46,6 +46,12 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
             if (!string.IsNullOrEmpty(request.ErpOrderNumberProduct))
             {
                 order.ErpOrderNumberProduct = request.ErpOrderNumberProduct;
+            }
+
+            if (!string.IsNullOrEmpty(request.ErpDiscardResidueDocumentNumber))
+            {
+                order.ErpDiscardResidueDocumentNumber = request.ErpDiscardResidueDocumentNumber;
+                order.ErpDiscardResidueDocumentNumberDate = DateTime.UtcNow;
             }
 
             // Set ManualActionRequired to false

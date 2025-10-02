@@ -9,6 +9,7 @@ interface ResolveManualActionModalProps {
   orderId: number;
   currentErpSemiproduct: string;
   currentErpProduct: string;
+  currentErpDiscardResidueDocumentNumber: string;
   onSuccess: () => void;
 }
 
@@ -18,10 +19,12 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
   orderId,
   currentErpSemiproduct,
   currentErpProduct,
+  currentErpDiscardResidueDocumentNumber,
   onSuccess,
 }) => {
   const [erpSemiproduct, setErpSemiproduct] = useState(currentErpSemiproduct);
   const [erpProduct, setErpProduct] = useState(currentErpProduct);
+  const [erpDiscardResidueDocumentNumber, setErpDiscardResidueDocumentNumber] = useState(currentErpDiscardResidueDocumentNumber);
   const [note, setNote] = useState("");
   
   const resolveManualActionMutation = useResolveManualAction();
@@ -31,9 +34,10 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
     if (isOpen) {
       setErpSemiproduct(currentErpSemiproduct);
       setErpProduct(currentErpProduct);
+      setErpDiscardResidueDocumentNumber(currentErpDiscardResidueDocumentNumber);
       setNote("");
     }
-  }, [isOpen, currentErpSemiproduct, currentErpProduct]);
+  }, [isOpen, currentErpSemiproduct, currentErpProduct, currentErpDiscardResidueDocumentNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +49,7 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
         orderId,
         erpOrderNumberSemiproduct: erpSemiproduct || undefined,
         erpOrderNumberProduct: erpProduct || undefined,
+        erpDiscardResidueDocumentNumber: erpDiscardResidueDocumentNumber || undefined,
         note: note.trim() || undefined
       });
 
@@ -121,6 +126,24 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               value={erpProduct}
               onChange={(e) => setErpProduct(e.target.value)}
               placeholder="Zadejte ERP číslo pro produkt"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={resolveManualActionMutation.isPending}
+            />
+          </div>
+
+          {/* ERP Discard Residue Document Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="flex items-center space-x-1">
+                <Hash className="h-4 w-4" />
+                <span>ERP číslo dokladu likvidace zbytku</span>
+              </div>
+            </label>
+            <input
+              type="text"
+              value={erpDiscardResidueDocumentNumber}
+              onChange={(e) => setErpDiscardResidueDocumentNumber(e.target.value)}
+              placeholder="Zadejte ERP číslo dokladu likvidace zbytku"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               disabled={resolveManualActionMutation.isPending}
             />

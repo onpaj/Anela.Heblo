@@ -665,7 +665,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
           setShowResolveModal(false);
           queryClient.invalidateQueries({ queryKey: ["manufacture-order", orderId] });
           queryClient.invalidateQueries({ queryKey: ["manufacture-orders"] });
-          queryClient.invalidateQueries({ queryKey: ["manufactureOrders", "calendar"] });
+          queryClient.invalidateQueries({ queryKey: ["manufacture-orders", "list"] });
+          queryClient.invalidateQueries({ queryKey: ["manufacture-orders", "calendar"] });
         }}
         showExpandedNote={showExpandedNote}
         expandedNoteContent={expandedNoteContent}
