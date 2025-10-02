@@ -68,7 +68,10 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             if (request.SemiProduct != null)
             {
                 if (request.SemiProduct.PlannedQuantity != null)
+                {
                     order.SemiProduct.PlannedQuantity = request.SemiProduct.PlannedQuantity.Value;
+                    order.SemiProduct.ActualQuantity = request.SemiProduct.PlannedQuantity.Value;
+                }
 
                 if (request.SemiProduct.LotNumber != null)
                     order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
