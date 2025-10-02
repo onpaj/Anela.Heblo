@@ -17,6 +17,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     private const int SeasonalAttributeId = 84;
     private const int MmqAttributeId = 85;
     private const int ExpiraceMonthsId = 86;
+    private const int AllowedResiduePercentageID = 87;
 
     public FlexiProductAttributesQueryClient(
         FlexiBeeSettings connection,
@@ -51,6 +52,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
             ExpirationMonths = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == ExpiraceMonthsId)?.Value, 0),
             MinimalManufactureQuantity = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == MmqAttributeId)?.Value, 0),
             SeasonMonthsArray = _seasonalDataParser.GetSeasonalMonths(values.FirstOrDefault(w => w.AttributeId == SeasonalAttributeId)?.Value),
+            AllowedResiduePercentage = StrToDoubleDef(values.FirstOrDefault(w => w.AttributeId == AllowedResiduePercentageID)?.Value, 0),
         }).ToList();
     }
 
@@ -58,6 +60,14 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     {
         int number;
         if (int.TryParse(s, out number))
+            return number;
+        return @default;
+    }
+    
+    private static double StrToDoubleDef(string? s, double @default)
+    {
+        double number;
+        if (double.TryParse(s, out number))
             return number;
         return @default;
     }

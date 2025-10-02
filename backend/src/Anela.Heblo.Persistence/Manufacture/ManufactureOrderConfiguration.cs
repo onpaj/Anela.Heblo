@@ -47,6 +47,30 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(x => x.ErpOrderNumberSemiproduct)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        builder.Property(x => x.ErpOrderNumberSemiproductDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.ErpOrderNumberProduct)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        builder.Property(x => x.ErpOrderNumberProductDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.ErpDiscardResidueDocumentNumber)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        builder.Property(x => x.ErpDiscardResidueDocumentNumberDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
         // Indexes for performance
         builder.HasIndex(x => x.OrderNumber)
             .IsUnique()

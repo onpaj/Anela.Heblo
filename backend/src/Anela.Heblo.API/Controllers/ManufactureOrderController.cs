@@ -159,13 +159,12 @@ public class ManufactureOrderController : BaseApiController
             if (result.Success)
             {
                 var response = new ConfirmProductCompletionResponse();
-                response.Message = result.Message;
                 return Ok(response);
             }
             else
             {
                 var response = new ConfirmProductCompletionResponse(ErrorCodes.InvalidOperation);
-                response.Message = result.Message;
+                response.Message = result.ErrorMessage;
                 return BadRequest(response);
             }
         }

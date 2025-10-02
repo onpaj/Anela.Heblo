@@ -13,7 +13,11 @@ public class ManufactureOrderDto
     public int Id { get; set; }
     public string OrderNumber { get; set; } = null!;
     public string? ErpOrderNumberSemiproduct { get; set; }
+    public DateTime? ErpOrderNumberSemiproductDate { get; set; }
     public string? ErpOrderNumberProduct { get; set; }
+    public DateTime? ErpOrderNumberProductDate { get; set; }
+    public string? ErpDiscardResidueDocumentNumber { get; set; }
+    public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }

@@ -11,6 +11,9 @@ import {
   Hash,
   Layers,
   Plus,
+  Check,
+  X,
+  HelpCircle,
 } from "lucide-react";
 import {
   useManufactureOrderCalendarQuery,
@@ -35,6 +38,89 @@ const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 border-yellow-200",
   [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 border-green-200",
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200",
+};
+
+type ErpDocumentStatus = 'pending' | 'failed' | 'success';
+
+const getErpDocumentStatus = (
+  documentNumber: string | undefined, 
+  orderState: ManufactureOrderState | undefined, 
+  documentType: 'semiproduct' | 'product' | 'discard'
+): ErpDocumentStatus => {
+  // If state is undefined, default to pending
+  if (orderState === undefined) {
+    return 'pending';
+  }
+  
+  // Logic based on order state and document type
+  let shouldHaveDocument = false;
+  
+  switch (documentType) {
+    case 'semiproduct':
+      // Should have semiproduct document if in SemiProductManufactured or Completed state
+      shouldHaveDocument = orderState === ManufactureOrderState.SemiProductManufactured || 
+                          orderState === ManufactureOrderState.Completed;
+      break;
+    case 'product':
+      // Should have product document only if in Completed state
+      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
+      break;
+    case 'discard':
+      // Should have discard document only if in Completed state
+      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
+      break;
+  }
+  
+  if (!shouldHaveDocument) {
+    // Not yet in the required state - show pending (question mark)
+    return 'pending';
+  }
+  
+  if (documentNumber) {
+    // In required state and has document number - success (green check)
+    return 'success';
+  } else {
+    // In required state but missing document number - failed (red X)
+    return 'failed';
+  }
+};
+
+const ErpStatusIndicator: React.FC<{ 
+  status: ErpDocumentStatus; 
+  title: string;
+}> = ({ status, title }) => {
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'success':
+        return <Check className="h-3 w-3 text-green-600" />;
+      case 'failed':
+        return <X className="h-3 w-3 text-red-600" />;
+      case 'pending':
+      default:
+        return <HelpCircle className="h-3 w-3 text-gray-400" />;
+    }
+  };
+
+  const getStatusBg = () => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-50 border-green-200';
+      case 'failed':
+        return 'bg-red-50 border-red-200';
+      case 'pending':
+      default:
+        return 'bg-gray-50 border-gray-200';
+    }
+  };
+
+  return (
+    <div 
+      className={`flex items-center justify-center w-6 h-6 rounded border ${getStatusBg()}`}
+      title={title}
+    >
+      {getStatusIcon()}
+    </div>
+  );
 };
 
 
@@ -472,6 +558,22 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                     </div>
                                   )}
                                 </div>
+                              </div>
+                              
+                              {/* ERP Status Indicators - Right aligned */}
+                              <div className="flex items-center space-x-1 flex-shrink-0">
+                                <ErpStatusIndicator 
+                                  status={getErpDocumentStatus(event.erpOrderNumberSemiproduct, event.state, 'semiproduct')}
+                                  title={`ERP doklad meziproduktu: ${event.erpOrderNumberSemiproduct || 'čeká se'}`}
+                                />
+                                <ErpStatusIndicator 
+                                  status={getErpDocumentStatus(event.erpOrderNumberProduct, event.state, 'product')}
+                                  title={`ERP doklad produktu: ${event.erpOrderNumberProduct || 'čeká se'}`}
+                                />
+                                <ErpStatusIndicator 
+                                  status={getErpDocumentStatus(event.erpDiscardResidueDocumentNumber, event.state, 'discard')}
+                                  title={`ERP výdejka přebytků: ${event.erpDiscardResidueDocumentNumber || 'čeká se'}`}
+                                />
                               </div>
                             </div>
 

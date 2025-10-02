@@ -9331,7 +9331,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -9360,7 +9364,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberSemiproductDate = _data["erpOrderNumberSemiproductDate"] ? new Date(_data["erpOrderNumberSemiproductDate"].toString()) : <any>undefined;
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
+            this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
@@ -9401,7 +9409,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberSemiproductDate"] = this.erpOrderNumberSemiproductDate ? this.erpOrderNumberSemiproductDate.toISOString() : <any>undefined;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
+        data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
@@ -9435,7 +9447,11 @@ export interface IManufactureOrderDto {
     id?: number;
     orderNumber?: string;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -10195,6 +10211,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -10217,6 +10234,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
             this.responsiblePerson = _data["responsiblePerson"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
             this.semiProduct = _data["semiProduct"] ? UpdateManufactureOrderSemiProductRequest.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -10243,6 +10261,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
         data["responsiblePerson"] = this.responsiblePerson;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -10262,6 +10281,7 @@ export interface IUpdateManufactureOrderRequest {
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
     semiProduct?: UpdateManufactureOrderSemiProductRequest | undefined;
     products?: UpdateManufactureOrderProductRequest[];
     newNote?: string | undefined;
@@ -10421,6 +10441,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
+    discardRedisueDocumentCode?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderStatusRequest) {
         if (data) {
@@ -10440,6 +10461,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.manualActionRequired = _data["manualActionRequired"];
             this.semiProductOrderCode = _data["semiProductOrderCode"];
             this.productOrderCode = _data["productOrderCode"];
+            this.discardRedisueDocumentCode = _data["discardRedisueDocumentCode"];
         }
     }
 
@@ -10459,6 +10481,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["manualActionRequired"] = this.manualActionRequired;
         data["semiProductOrderCode"] = this.semiProductOrderCode;
         data["productOrderCode"] = this.productOrderCode;
+        data["discardRedisueDocumentCode"] = this.discardRedisueDocumentCode;
         return data;
     }
 }
@@ -10471,6 +10494,7 @@ export interface IUpdateManufactureOrderStatusRequest {
     manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
+    discardRedisueDocumentCode?: string | undefined;
 }
 
 export class ConfirmSemiProductManufactureResponse extends BaseResponse implements IConfirmSemiProductManufactureResponse {
@@ -10728,7 +10752,11 @@ export class CalendarEventDto implements ICalendarEventDto {
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 
@@ -10751,7 +10779,11 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.responsiblePerson = _data["responsiblePerson"];
             this.manualActionRequired = _data["manualActionRequired"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
+            this.erpOrderNumberSemiproductDate = _data["erpOrderNumberSemiproductDate"] ? new Date(_data["erpOrderNumberSemiproductDate"].toString()) : <any>undefined;
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
+            this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
+            this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
+            this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
             this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -10778,7 +10810,11 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["responsiblePerson"] = this.responsiblePerson;
         data["manualActionRequired"] = this.manualActionRequired;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
+        data["erpOrderNumberSemiproductDate"] = this.erpOrderNumberSemiproductDate ? this.erpOrderNumberSemiproductDate.toISOString() : <any>undefined;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
+        data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
+        data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
+        data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -10798,7 +10834,11 @@ export interface ICalendarEventDto {
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
     erpOrderNumberSemiproduct?: string | undefined;
+    erpOrderNumberSemiproductDate?: Date | undefined;
     erpOrderNumberProduct?: string | undefined;
+    erpOrderNumberProductDate?: Date | undefined;
+    erpDiscardResidueDocumentNumber?: string | undefined;
+    erpDiscardResidueDocumentNumberDate?: Date | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 }

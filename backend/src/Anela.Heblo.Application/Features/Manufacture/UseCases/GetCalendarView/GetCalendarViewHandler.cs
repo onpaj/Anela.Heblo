@@ -49,7 +49,11 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                         ResponsiblePerson = order.ResponsiblePerson,
                         ManualActionRequired = order.ManualActionRequired,
                         ErpOrderNumberSemiproduct = order.ErpOrderNumberSemiproduct,
+                        ErpOrderNumberSemiproductDate = order.ErpOrderNumberSemiproductDate,
                         ErpOrderNumberProduct = order.ErpOrderNumberProduct,
+                        ErpOrderNumberProductDate = order.ErpOrderNumberProductDate,
+                        ErpDiscardResidueDocumentNumber = order.ErpDiscardResidueDocumentNumber,
+                        ErpDiscardResidueDocumentNumberDate = order.ErpDiscardResidueDocumentNumberDate,
                         SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto
                         {
                             ProductCode = order.SemiProduct.ProductCode,

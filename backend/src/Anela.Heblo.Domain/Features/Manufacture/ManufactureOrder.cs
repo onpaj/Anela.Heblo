@@ -24,5 +24,9 @@ public class ManufactureOrder
     public List<ManufactureOrderAuditLog> AuditLog { get; set; } = new();
     public bool ManualActionRequired { get; set; } = false;
     public string? ErpOrderNumberSemiproduct { get; set; }
+    public DateTime? ErpOrderNumberSemiproductDate { get; set; }
     public string? ErpOrderNumberProduct { get; set; }
+    public DateTime? ErpOrderNumberProductDate { get; set; }
+    public string? ErpDiscardResidueDocumentNumber { get; set; }
+    public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
 }
