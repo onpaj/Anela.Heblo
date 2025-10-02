@@ -70,13 +70,17 @@ public class GiftPackageManufactureServiceTests
         giftPackage1.Name.Should().Be("Test Gift Set 1");
         giftPackage1.AvailableStock.Should().Be(50);
         giftPackage1.DailySales.Should().BeApproximately(0.274m, 0.001m); // 100 sales / 365 days
-        giftPackage1.OverstockLimit.Should().Be(20);
+        giftPackage1.OverstockMinimal.Should().Be(20);
+        giftPackage1.SuggestedQuantity.Should().BeGreaterOrEqualTo(0);
+        giftPackage1.Severity.Should().BeDefined();
 
         var giftPackage2 = result.First(x => x.Code == "SET002");
         giftPackage2.Name.Should().Be("Test Gift Set 2");
         giftPackage2.AvailableStock.Should().Be(30);
         giftPackage2.DailySales.Should().BeApproximately(0.410m, 0.002m); // 150 sales / 365 days
-        giftPackage2.OverstockLimit.Should().Be(20); // All test products have StockMinSetup = 20
+        giftPackage2.OverstockMinimal.Should().Be(20); // All test products have StockMinSetup = 20
+        giftPackage2.SuggestedQuantity.Should().BeGreaterOrEqualTo(0);
+        giftPackage2.Severity.Should().BeDefined();
     }
 
     [Fact]
@@ -145,7 +149,9 @@ public class GiftPackageManufactureServiceTests
         result.Name.Should().Be("Test Gift Set 1");
         result.AvailableStock.Should().Be(50);
         result.DailySales.Should().BeApproximately(0.274m, 0.001m); // 100 sales / 365 days
-        result.OverstockLimit.Should().Be(20);
+        result.OverstockMinimal.Should().Be(20);
+        result.SuggestedQuantity.Should().BeGreaterOrEqualTo(0);
+        result.Severity.Should().BeDefined();
 
         result.Ingredients.Should().NotBeNull();
         result.Ingredients.Should().HaveCount(2);

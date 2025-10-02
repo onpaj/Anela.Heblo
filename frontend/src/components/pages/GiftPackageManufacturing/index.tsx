@@ -9,6 +9,7 @@ const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
   const [selectedPackage, setSelectedPackage] = useState<GiftPackage | null>(null);
   const [isManufactureModalOpen, setIsManufactureModalOpen] = useState(false);
+  const [salesCoefficient, setSalesCoefficient] = useState<number>(1.3);
   
   // State for catalog detail modal
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
@@ -21,6 +22,11 @@ const GiftPackageManufacturing: React.FC = () => {
   const handlePackageClick = (pkg: GiftPackage) => {
     setSelectedPackage(pkg);
     setIsManufactureModalOpen(true);
+  };
+  
+  // Coefficient handler
+  const handleSalesCoefficientChange = (coefficient: number) => {
+    setSalesCoefficient(coefficient);
   };
   
   // Catalog detail handlers
@@ -63,6 +69,7 @@ const GiftPackageManufacturing: React.FC = () => {
       <GiftPackageManufacturingList
         onPackageClick={handlePackageClick}
         onCatalogDetailClick={handleCatalogDetailClick}
+        onSalesCoefficientChange={handleSalesCoefficientChange}
       />
       
       {/* Manufacturing Detail Modal */}
@@ -71,6 +78,7 @@ const GiftPackageManufacturing: React.FC = () => {
         isOpen={isManufactureModalOpen}
         onClose={handleCloseManufactureModal}
         onManufacture={handleManufacture}
+        salesCoefficient={salesCoefficient}
       />
       
       {/* Catalog Detail Modal */}

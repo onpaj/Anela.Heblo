@@ -29,9 +29,10 @@ public class LogisticsController : BaseApiController
     /// </summary>
     [HttpGet("gift-packages/available")]
     public async Task<ActionResult<GetAvailableGiftPackagesResponse>> GetAvailableGiftPackages(
-        CancellationToken cancellationToken)
+        [FromQuery] decimal salesCoefficient = 1.0m,
+        CancellationToken cancellationToken = default)
     {
-        var request = new GetAvailableGiftPackagesRequest();
+        var request = new GetAvailableGiftPackagesRequest { SalesCoefficient = salesCoefficient };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
@@ -42,9 +43,14 @@ public class LogisticsController : BaseApiController
     [HttpGet("gift-packages/{giftPackageCode}/detail")]
     public async Task<ActionResult<GetGiftPackageDetailResponse>> GetGiftPackageDetail(
         string giftPackageCode,
-        CancellationToken cancellationToken)
+        [FromQuery] decimal salesCoefficient = 1.0m,
+        CancellationToken cancellationToken = default)
     {
-        var request = new GetGiftPackageDetailRequest { GiftPackageCode = giftPackageCode };
+        var request = new GetGiftPackageDetailRequest 
+        { 
+            GiftPackageCode = giftPackageCode,
+            SalesCoefficient = salesCoefficient
+        };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }

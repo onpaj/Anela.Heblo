@@ -90,6 +90,7 @@ public class StockAnalysisSummaryDto
 public enum StockSeverity
 {
     Critical,
+    Severe,
     Low,
     Optimal,
     Overstocked,

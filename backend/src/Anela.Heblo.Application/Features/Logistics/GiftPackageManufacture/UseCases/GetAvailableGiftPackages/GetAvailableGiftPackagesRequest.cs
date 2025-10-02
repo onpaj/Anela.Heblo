@@ -4,4 +4,5 @@ namespace Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.UseC
 
 public class GetAvailableGiftPackagesRequest : IRequest<GetAvailableGiftPackagesResponse>
 {
+    public decimal SalesCoefficient { get; set; } = 1.0m;
 }

@@ -14,7 +14,7 @@ public class GetAvailableGiftPackagesHandler : IRequestHandler<GetAvailableGiftP
 
     public async Task<GetAvailableGiftPackagesResponse> Handle(GetAvailableGiftPackagesRequest request, CancellationToken cancellationToken)
     {
-        var giftPackages = await _giftPackageService.GetAvailableGiftPackagesAsync(cancellationToken);
+        var giftPackages = await _giftPackageService.GetAvailableGiftPackagesAsync(request.SalesCoefficient, cancellationToken);
 
         return new GetAvailableGiftPackagesResponse
         {

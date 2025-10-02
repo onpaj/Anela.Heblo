@@ -1436,6 +1436,81 @@ export class ApiClient {
         return Promise.resolve<GetWarehouseStatisticsResponse>(null as any);
     }
 
+    catalog_RecalculateProductWeight(request: RecalculateProductWeightRequest): Promise<RecalculateProductWeightResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RecalculateProductWeight(_response);
+        });
+    }
+
+    protected processCatalog_RecalculateProductWeight(response: Response): Promise<RecalculateProductWeightResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculateProductWeightResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculateProductWeightResponse>(null as any);
+    }
+
+    catalog_RecalculateProductWeight2(productCode: string): Promise<RecalculateProductWeightResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight/{productCode}";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_RecalculateProductWeight2(_response);
+        });
+    }
+
+    protected processCatalog_RecalculateProductWeight2(response: Response): Promise<RecalculateProductWeightResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculateProductWeightResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculateProductWeightResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -2252,8 +2327,12 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
-    logistics_GetAvailableGiftPackages(): Promise<GetAvailableGiftPackagesResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/available";
+    logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined): Promise<GetAvailableGiftPackagesResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
+        if (salesCoefficient === null)
+            throw new Error("The parameter 'salesCoefficient' cannot be null.");
+        else if (salesCoefficient !== undefined)
+            url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2286,11 +2365,15 @@ export class ApiClient {
         return Promise.resolve<GetAvailableGiftPackagesResponse>(null as any);
     }
 
-    logistics_GetGiftPackageDetail(giftPackageCode: string): Promise<GetGiftPackageDetailResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail";
+    logistics_GetGiftPackageDetail(giftPackageCode: string, salesCoefficient: number | undefined): Promise<GetGiftPackageDetailResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail?";
         if (giftPackageCode === undefined || giftPackageCode === null)
             throw new Error("The parameter 'giftPackageCode' must be defined.");
         url_ = url_.replace("{giftPackageCode}", encodeURIComponent("" + giftPackageCode));
+        if (salesCoefficient === null)
+            throw new Error("The parameter 'salesCoefficient' cannot be null.");
+        else if (salesCoefficient !== undefined)
+            url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -6808,6 +6891,95 @@ export interface IGetWarehouseStatisticsResponse extends IBaseResponse {
     lastUpdated?: Date;
 }
 
+export class RecalculateProductWeightResponse extends BaseResponse implements IRecalculateProductWeightResponse {
+    processedCount?: number;
+    successCount?: number;
+    errorCount?: number;
+    errorMessages?: string[];
+
+    constructor(data?: IRecalculateProductWeightResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.processedCount = _data["processedCount"];
+            this.successCount = _data["successCount"];
+            this.errorCount = _data["errorCount"];
+            if (Array.isArray(_data["errorMessages"])) {
+                this.errorMessages = [] as any;
+                for (let item of _data["errorMessages"])
+                    this.errorMessages!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): RecalculateProductWeightResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculateProductWeightResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processedCount"] = this.processedCount;
+        data["successCount"] = this.successCount;
+        data["errorCount"] = this.errorCount;
+        if (Array.isArray(this.errorMessages)) {
+            data["errorMessages"] = [];
+            for (let item of this.errorMessages)
+                data["errorMessages"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecalculateProductWeightResponse extends IBaseResponse {
+    processedCount?: number;
+    successCount?: number;
+    errorCount?: number;
+    errorMessages?: string[];
+}
+
+export class RecalculateProductWeightRequest implements IRecalculateProductWeightRequest {
+    productCode?: string | undefined;
+
+    constructor(data?: IRecalculateProductWeightRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+        }
+    }
+
+    static fromJS(data: any): RecalculateProductWeightRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculateProductWeightRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        return data;
+    }
+}
+
+export interface IRecalculateProductWeightRequest {
+    productCode?: string | undefined;
+}
+
 export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
@@ -7949,7 +8121,11 @@ export class GiftPackageDto implements IGiftPackageDto {
     name?: string;
     availableStock?: number;
     dailySales?: number;
-    overstockLimit?: number;
+    overstockOptimal?: number;
+    overstockMinimal?: number;
+    suggestedQuantity?: number;
+    severity?: StockSeverity;
+    stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 
     constructor(data?: IGiftPackageDto) {
@@ -7967,7 +8143,11 @@ export class GiftPackageDto implements IGiftPackageDto {
             this.name = _data["name"];
             this.availableStock = _data["availableStock"];
             this.dailySales = _data["dailySales"];
-            this.overstockLimit = _data["overstockLimit"];
+            this.overstockOptimal = _data["overstockOptimal"];
+            this.overstockMinimal = _data["overstockMinimal"];
+            this.suggestedQuantity = _data["suggestedQuantity"];
+            this.severity = _data["severity"];
+            this.stockCoveragePercent = _data["stockCoveragePercent"];
             if (Array.isArray(_data["ingredients"])) {
                 this.ingredients = [] as any;
                 for (let item of _data["ingredients"])
@@ -7989,7 +8169,11 @@ export class GiftPackageDto implements IGiftPackageDto {
         data["name"] = this.name;
         data["availableStock"] = this.availableStock;
         data["dailySales"] = this.dailySales;
-        data["overstockLimit"] = this.overstockLimit;
+        data["overstockOptimal"] = this.overstockOptimal;
+        data["overstockMinimal"] = this.overstockMinimal;
+        data["suggestedQuantity"] = this.suggestedQuantity;
+        data["severity"] = this.severity;
+        data["stockCoveragePercent"] = this.stockCoveragePercent;
         if (Array.isArray(this.ingredients)) {
             data["ingredients"] = [];
             for (let item of this.ingredients)
@@ -8004,8 +8188,21 @@ export interface IGiftPackageDto {
     name?: string;
     availableStock?: number;
     dailySales?: number;
-    overstockLimit?: number;
+    overstockOptimal?: number;
+    overstockMinimal?: number;
+    suggestedQuantity?: number;
+    severity?: StockSeverity;
+    stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
+}
+
+export enum StockSeverity {
+    Critical = "Critical",
+    Severe = "Severe",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
 }
 
 export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
@@ -10221,7 +10418,7 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     newState!: ManufactureOrderState;
     changeReason?: string | undefined;
     note?: string | undefined;
-    manualActionRequired?: boolean;
+    manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
 
@@ -10271,7 +10468,7 @@ export interface IUpdateManufactureOrderStatusRequest {
     newState: ManufactureOrderState;
     changeReason?: string | undefined;
     note?: string | undefined;
-    manualActionRequired?: boolean;
+    manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
 }
@@ -13241,14 +13438,6 @@ export interface IStockAnalysisItemDto {
     supplier?: string | undefined;
     recommendedOrderQuantity?: number | undefined;
     isConfigured?: boolean;
-}
-
-export enum StockSeverity {
-    Critical = "Critical",
-    Low = "Low",
-    Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
 }
 
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {

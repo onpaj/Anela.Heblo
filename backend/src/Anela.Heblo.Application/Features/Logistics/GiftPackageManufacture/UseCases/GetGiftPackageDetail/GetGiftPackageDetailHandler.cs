@@ -17,7 +17,7 @@ public class GetGiftPackageDetailHandler : IRequestHandler<GetGiftPackageDetailR
     {
         try
         {
-            var giftPackage = await _giftPackageService.GetGiftPackageDetailAsync(request.GiftPackageCode, cancellationToken);
+            var giftPackage = await _giftPackageService.GetGiftPackageDetailAsync(request.GiftPackageCode, request.SalesCoefficient, cancellationToken);
 
             return new GetGiftPackageDetailResponse
             {

@@ -86,7 +86,7 @@ const GiftPackageManufacturingFilters: React.FC<GiftPackageManufacturingFiltersP
   return (
     <div>
       <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Search */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -133,6 +133,28 @@ const GiftPackageManufacturingFilters: React.FC<GiftPackageManufacturingFiltersP
               onFilterChange({ toDate: new Date(e.target.value) })
             }
             className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Sales Coefficient */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Koeficient prodejů
+          </label>
+          <input
+            type="number"
+            min="0.1"
+            max="5.0"
+            step="0.1"
+            value={filters.salesCoefficient?.toFixed(1) || "1.3"}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              if (!isNaN(value) && value >= 0.1 && value <= 5.0) {
+                onFilterChange({ salesCoefficient: value });
+              }
+            }}
+            className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+            title="Násobí prodejní data (0.1 - 5.0)"
           />
         </div>
 
