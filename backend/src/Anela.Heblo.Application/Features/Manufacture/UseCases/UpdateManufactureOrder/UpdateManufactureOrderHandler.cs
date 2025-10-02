@@ -9,15 +9,18 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
 {
     private readonly IManufactureOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderHandler> _logger;
 
     public UpdateManufactureOrderHandler(
         IManufactureOrderRepository repository,
         ICurrentUserService currentUserService,
+        TimeProvider timeProvider,
         ILogger<UpdateManufactureOrderHandler> logger)
     {
         _repository = repository;
         _currentUserService = currentUserService;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -44,13 +47,22 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 order.ResponsiblePerson = request.ResponsiblePerson;
 
             if (request.ErpOrderNumberSemiproduct != null)
+            {
                 order.ErpOrderNumberSemiproduct = request.ErpOrderNumberSemiproduct;
+                order.ErpOrderNumberSemiproductDate = _timeProvider.GetUtcNow().Date;
+            }
 
             if (request.ErpOrderNumberProduct != null)
+            {
                 order.ErpOrderNumberProduct = request.ErpOrderNumberProduct;
+                order.ErpOrderNumberProductDate = _timeProvider.GetUtcNow().Date;
+            }
 
             if (request.ErpDiscardResidueDocumentNumber != null)
+            {
                 order.ErpDiscardResidueDocumentNumber = request.ErpDiscardResidueDocumentNumber;
+                order.ErpDiscardResidueDocumentNumberDate = _timeProvider.GetUtcNow().Date;
+            }
 
             // Update semi-product if provided
             if (request.SemiProduct != null)
