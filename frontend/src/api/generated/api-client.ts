@@ -2327,8 +2327,12 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
-    logistics_GetAvailableGiftPackages(): Promise<GetAvailableGiftPackagesResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/available";
+    logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined): Promise<GetAvailableGiftPackagesResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
+        if (salesCoefficient === null)
+            throw new Error("The parameter 'salesCoefficient' cannot be null.");
+        else if (salesCoefficient !== undefined)
+            url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2361,11 +2365,15 @@ export class ApiClient {
         return Promise.resolve<GetAvailableGiftPackagesResponse>(null as any);
     }
 
-    logistics_GetGiftPackageDetail(giftPackageCode: string): Promise<GetGiftPackageDetailResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail";
+    logistics_GetGiftPackageDetail(giftPackageCode: string, salesCoefficient: number | undefined): Promise<GetGiftPackageDetailResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail?";
         if (giftPackageCode === undefined || giftPackageCode === null)
             throw new Error("The parameter 'giftPackageCode' must be defined.");
         url_ = url_.replace("{giftPackageCode}", encodeURIComponent("" + giftPackageCode));
+        if (salesCoefficient === null)
+            throw new Error("The parameter 'salesCoefficient' cannot be null.");
+        else if (salesCoefficient !== undefined)
+            url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -8113,7 +8121,11 @@ export class GiftPackageDto implements IGiftPackageDto {
     name?: string;
     availableStock?: number;
     dailySales?: number;
-    overstockLimit?: number;
+    overstockOptimal?: number;
+    overstockMinimal?: number;
+    suggestedQuantity?: number;
+    severity?: StockSeverity;
+    stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 
     constructor(data?: IGiftPackageDto) {
@@ -8131,7 +8143,11 @@ export class GiftPackageDto implements IGiftPackageDto {
             this.name = _data["name"];
             this.availableStock = _data["availableStock"];
             this.dailySales = _data["dailySales"];
-            this.overstockLimit = _data["overstockLimit"];
+            this.overstockOptimal = _data["overstockOptimal"];
+            this.overstockMinimal = _data["overstockMinimal"];
+            this.suggestedQuantity = _data["suggestedQuantity"];
+            this.severity = _data["severity"];
+            this.stockCoveragePercent = _data["stockCoveragePercent"];
             if (Array.isArray(_data["ingredients"])) {
                 this.ingredients = [] as any;
                 for (let item of _data["ingredients"])
@@ -8153,7 +8169,11 @@ export class GiftPackageDto implements IGiftPackageDto {
         data["name"] = this.name;
         data["availableStock"] = this.availableStock;
         data["dailySales"] = this.dailySales;
-        data["overstockLimit"] = this.overstockLimit;
+        data["overstockOptimal"] = this.overstockOptimal;
+        data["overstockMinimal"] = this.overstockMinimal;
+        data["suggestedQuantity"] = this.suggestedQuantity;
+        data["severity"] = this.severity;
+        data["stockCoveragePercent"] = this.stockCoveragePercent;
         if (Array.isArray(this.ingredients)) {
             data["ingredients"] = [];
             for (let item of this.ingredients)
@@ -8168,8 +8188,21 @@ export interface IGiftPackageDto {
     name?: string;
     availableStock?: number;
     dailySales?: number;
-    overstockLimit?: number;
+    overstockOptimal?: number;
+    overstockMinimal?: number;
+    suggestedQuantity?: number;
+    severity?: StockSeverity;
+    stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
+}
+
+export enum StockSeverity {
+    Critical = "Critical",
+    Severe = "Severe",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
 }
 
 export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
@@ -13449,14 +13482,6 @@ export interface IStockAnalysisItemDto {
     supplier?: string | undefined;
     recommendedOrderQuantity?: number | undefined;
     isConfigured?: boolean;
-}
-
-export enum StockSeverity {
-    Critical = "Critical",
-    Low = "Low",
-    Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
 }
 
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {

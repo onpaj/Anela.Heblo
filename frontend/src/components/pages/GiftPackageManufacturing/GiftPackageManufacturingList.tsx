@@ -28,6 +28,7 @@ interface GiftPackageFilters {
   pageSize: number;
   sortBy: GiftPackageSortBy;
   sortDescending: boolean;
+  salesCoefficient: number;
 }
 
 enum GiftPackageSortBy {
@@ -36,6 +37,10 @@ enum GiftPackageSortBy {
   AvailableStock = "AvailableStock",
   DailySales = "DailySales",
   SuggestedQuantity = "SuggestedQuantity",
+  OverstockOptimal = "OverstockOptimal",
+  OverstockMinimal = "OverstockMinimal",
+  StockCoveragePercent = "StockCoveragePercent",
+  Severity = "Severity",
 }
 
 interface GiftPackage {
@@ -45,11 +50,15 @@ interface GiftPackage {
   dailySales: number;
   suggestedQuantity: number;
   severity: StockSeverity;
+  overstockOptimal: number;
+  overstockMinimal: number;
+  stockCoveragePercent: number;
 }
 
 interface GiftPackageSummary {
   totalPackages: number;
   criticalCount: number;
+  severeCount: number;
   lowStockCount: number;
   optimalCount: number;
   overstockedCount: number;
@@ -59,11 +68,13 @@ interface GiftPackageSummary {
 interface GiftPackageManufacturingListProps {
   onPackageClick: (pkg: GiftPackage) => void;
   onCatalogDetailClick: (productCode: string) => void;
+  onSalesCoefficientChange: (coefficient: number) => void;
 }
 
 const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> = ({
   onPackageClick,
   onCatalogDetailClick,
+  onSalesCoefficientChange,
 }) => {
   // State for filters
   const [filters, setFilters] = useState<GiftPackageFilters>({
@@ -77,8 +88,9 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     severity: "All",
     pageNumber: 1,
     pageSize: 20,
-    sortBy: GiftPackageSortBy.SuggestedQuantity,
-    sortDescending: true,
+    sortBy: GiftPackageSortBy.Severity,
+    sortDescending: false,
+    salesCoefficient: 1.3,
   });
 
   // State for collapsible sections
@@ -87,51 +99,31 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   // Load gift package data from backend with date parameters
   const { data: giftPackageData, isLoading: giftPackageLoading, error: giftPackageError, refetch } = useAvailableGiftPackages({
     fromDate: filters.fromDate,
-    toDate: filters.toDate
+    toDate: filters.toDate,
+    salesCoefficient: filters.salesCoefficient
   });
 
-  // Process gift package data with date-range-based calculation
+  // Process gift package data - now using server-calculated values
   const { giftPackages, summary } = useMemo(() => {
     if (!giftPackageData?.giftPackages) return { giftPackages: [], summary: null };
     
-    const packages: GiftPackage[] = giftPackageData.giftPackages.map(pkg => {
-        const availableStock = pkg.availableStock ?? 0;
-        const dailySales = pkg.dailySales ?? 0;
-        
-        // Calculate period for reference (currently unused but may be useful for future features)
-        // const daysDiff = Math.ceil((filters.toDate.getTime() - filters.fromDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Calculate suggested quantity for weekly production
-        const suggestedQuantity = Math.max(0, Math.ceil(dailySales * 7) - availableStock);
-        
-        // Severity calculation based on backend data
-        let severity: StockSeverity;
-        if (availableStock <= 0 || (dailySales > 0 && availableStock < dailySales * 2)) {
-          severity = StockSeverity.Critical;
-        } else if (dailySales > 0 && availableStock < dailySales * 7) {
-          severity = StockSeverity.Low;
-        } else if (pkg.overstockLimit && availableStock > pkg.overstockLimit) {
-          severity = StockSeverity.Overstocked;
-        } else if (dailySales > 0) {
-          severity = StockSeverity.Optimal;
-        } else {
-          severity = StockSeverity.NotConfigured;
-        }
-        
-        return {
-          code: pkg.code!,
-          name: pkg.name!,
-          availableStock,
-          dailySales,
-          suggestedQuantity,
-          severity,
-        };
-      });
+    const packages: GiftPackage[] = giftPackageData.giftPackages.map(pkg => ({
+      code: pkg.code!,
+      name: pkg.name!,
+      availableStock: pkg.availableStock ?? 0,
+      dailySales: pkg.dailySales ?? 0,
+      suggestedQuantity: pkg.suggestedQuantity ?? 0,
+      severity: pkg.severity ?? StockSeverity.NotConfigured,
+      overstockOptimal: pkg.overstockOptimal ?? 0,
+      overstockMinimal: pkg.overstockMinimal ?? 0,
+      stockCoveragePercent: pkg.stockCoveragePercent ?? 0,
+    }));
     
     // Calculate summary
     const summaryData: GiftPackageSummary = {
       totalPackages: packages.length,
       criticalCount: packages.filter(p => p.severity === StockSeverity.Critical).length,
+      severeCount: packages.filter(p => p.severity === StockSeverity.Severe).length,
       lowStockCount: packages.filter(p => p.severity === StockSeverity.Low).length,
       optimalCount: packages.filter(p => p.severity === StockSeverity.Optimal).length,
       overstockedCount: packages.filter(p => p.severity === StockSeverity.Overstocked).length,
@@ -161,6 +153,36 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     
     // Apply sorting
     filtered.sort((a, b) => {
+      // Helper function to get severity order
+      const getSeverityOrder = (severity: StockSeverity) => {
+        switch (severity) {
+          case StockSeverity.Critical: return 0;
+          case StockSeverity.Severe: return 1;
+          case StockSeverity.Low: return 2;
+          case StockSeverity.Optimal: return 3;
+          case StockSeverity.Overstocked: return 4;
+          case StockSeverity.NotConfigured: return 5;
+          default: return 6;
+        }
+      };
+
+      // Default sorting by Severity first, then by NS% ascending
+      if (filters.sortBy === GiftPackageSortBy.Severity || filters.sortBy === GiftPackageSortBy.SuggestedQuantity) {
+        // Primary sort by severity (Critical -> Severe -> Low -> Optimal)
+        const severityA = getSeverityOrder(a.severity);
+        const severityB = getSeverityOrder(b.severity);
+        
+        if (severityA !== severityB) {
+          return filters.sortDescending ? severityB - severityA : severityA - severityB;
+        }
+        
+        // Secondary sort by NS% ascending (lower percentages = more urgent)
+        const nsA = a.stockCoveragePercent || 0;
+        const nsB = b.stockCoveragePercent || 0;
+        return nsA - nsB;
+      }
+
+      // Standard sorting for other columns
       let aValue: any, bValue: any;
       
       switch (filters.sortBy) {
@@ -180,9 +202,9 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
           aValue = a.dailySales;
           bValue = b.dailySales;
           break;
-        case GiftPackageSortBy.SuggestedQuantity:
-          aValue = a.suggestedQuantity;
-          bValue = b.suggestedQuantity;
+        case GiftPackageSortBy.StockCoveragePercent:
+          aValue = a.stockCoveragePercent;
+          bValue = b.stockCoveragePercent;
           break;
         default:
           aValue = a.code;
@@ -215,6 +237,11 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   // Handler for filter changes
   const handleFilterChange = (newFilters: Partial<GiftPackageFilters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters, pageNumber: 1 }));
+    
+    // Propagate sales coefficient changes to parent
+    if (newFilters.salesCoefficient !== undefined) {
+      onSalesCoefficientChange(newFilters.salesCoefficient);
+    }
   };
 
   // Handler for pagination
@@ -285,6 +312,8 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     switch (severity) {
       case StockSeverity.Critical:
         return "bg-red-50/30 hover:bg-red-50/50";
+      case StockSeverity.Severe:
+        return "bg-orange-50/30 hover:bg-orange-50/50";
       case StockSeverity.Low:
         return "bg-amber-50/30 hover:bg-amber-50/50";
       case StockSeverity.Optimal:
@@ -307,6 +336,8 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     switch (severity) {
       case StockSeverity.Critical:
         return "bg-red-500";
+      case StockSeverity.Severe:
+        return "bg-orange-500";
       case StockSeverity.Low:
         return "bg-amber-500";
       case StockSeverity.Optimal:
@@ -443,7 +474,16 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                         <span className="font-medium text-red-200">
                           Kritické:
                         </span>{" "}
-                        Nulové zásoby nebo vysoká poptávka
+                        Zásoby pod minimem
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-3 h-3 bg-orange-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
+                      <div>
+                        <span className="font-medium text-orange-200">
+                          Vážné:
+                        </span>{" "}
+                        Potřeba výroby
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -546,6 +586,19 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                   >
                     Skladem
                   </SortableHeader>
+                  
+                  <SortableHeader
+                    column={GiftPackageSortBy.SuggestedQuantity}
+                    className="text-right"
+                  >
+                    Doporučeno
+                  </SortableHeader>
+                  <SortableHeader
+                    column={GiftPackageSortBy.StockCoveragePercent}
+                    className="text-right"
+                  >
+                    NS%
+                  </SortableHeader>
                   <SortableHeader
                     column={GiftPackageSortBy.DailySales}
                     className="text-right hidden md:table-cell"
@@ -553,10 +606,16 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                     Prodeje/den
                   </SortableHeader>
                   <SortableHeader
-                    column={GiftPackageSortBy.SuggestedQuantity}
+                    column={GiftPackageSortBy.OverstockOptimal}
                     className="text-right"
                   >
-                    Doporučeno
+                    NS dní
+                  </SortableHeader>
+                   <SortableHeader
+                    column={GiftPackageSortBy.OverstockMinimal}
+                    className="text-right"
+                  >
+                    NS min
                   </SortableHeader>
                 </tr>
               </thead>
@@ -606,15 +665,6 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                         {pkg.availableStock.toFixed(0)}
                       </div>
                     </td>
-
-                    {/* Daily Sales - Hidden on mobile */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
-                      <div>{pkg.dailySales.toFixed(1)}</div>
-                      <div className="text-xs text-gray-500 md:hidden">
-                        {pkg.dailySales.toFixed(1)}/den
-                      </div>
-                    </td>
-
                     {/* Suggested Quantity */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
                       <div className={`font-bold ${
@@ -624,6 +674,34 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                       </div>
                       <div className="text-xs text-gray-500 md:hidden">
                         {pkg.dailySales.toFixed(1)}/den
+                      </div>
+                    </td>
+                    {/* NS% (StockCoveragePercent) */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <div className={`font-bold ${
+                        pkg.stockCoveragePercent >= 100 ? "text-green-600" : 
+                        pkg.stockCoveragePercent >= 50 ? "text-orange-600" : "text-red-600"
+                      }`}>
+                        {pkg.stockCoveragePercent.toFixed(0)}%
+                      </div>
+                    </td>
+                    {/* Daily Sales - Hidden on mobile */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
+                      <div>{pkg.dailySales.toFixed(1)}</div>
+                      <div className="text-xs text-gray-500 md:hidden">
+                        {pkg.dailySales.toFixed(1)}/den
+                      </div>
+                    </td>
+                    {/* NS dní (OverstockOptimal) */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <div className="font-bold">
+                        {pkg.overstockOptimal}
+                      </div>
+                    </td>
+                    {/* NS min (OverstockMinimal) */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                      <div className="font-bold">
+                        {pkg.overstockMinimal}
                       </div>
                     </td>
                   </tr>

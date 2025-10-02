@@ -288,7 +288,7 @@ describe("useGiftPackageManufacturing hooks", () => {
       });
 
       await waitFor(() => {
-        expect(mockApiClient.logistics_GetGiftPackageDetail).toHaveBeenCalledWith("SET001");
+        expect(mockApiClient.logistics_GetGiftPackageDetail).toHaveBeenCalledWith("SET001", undefined);
       });
     });
   });

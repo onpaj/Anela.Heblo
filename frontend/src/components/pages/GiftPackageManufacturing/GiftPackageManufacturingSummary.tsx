@@ -53,6 +53,19 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
           </span>
         </button>
         <button
+          onClick={() => onSeverityFilterClick(StockSeverity.Severe)}
+          className={`px-1 py-0.5 rounded transition-colors hover:bg-orange-50 ${
+            filters.severity === StockSeverity.Severe
+              ? "bg-orange-50 ring-1 ring-orange-300"
+              : ""
+          }`}
+          title="Vážné zásoby"
+        >
+          <span className="text-orange-600 font-medium">
+            {summary.severeCount}
+          </span>
+        </button>
+        <button
           onClick={() => onSeverityFilterClick(StockSeverity.Low)}
           className={`px-1 py-0.5 rounded transition-colors hover:bg-amber-50 ${
             filters.severity === StockSeverity.Low
@@ -61,7 +74,7 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
           }`}
           title="Nízké zásoby"
         >
-          <span className="text-orange-600 font-medium">
+          <span className="text-amber-600 font-medium">
             {summary.lowStockCount}
           </span>
         </button>
@@ -119,6 +132,21 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
         </button>
 
         <button
+          onClick={() => onSeverityFilterClick(StockSeverity.Severe)}
+          className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-orange-50 ${
+            filters.severity === StockSeverity.Severe
+              ? "bg-orange-50 ring-1 ring-orange-300"
+              : ""
+          }`}
+        >
+          <TrendingDown className="h-3 w-3 text-orange-500 mr-1" />
+          <span className="text-gray-600">Vážné:</span>
+          <span className="font-semibold text-orange-600 ml-1">
+            {summary.severeCount}
+          </span>
+        </button>
+
+        <button
           onClick={() => onSeverityFilterClick(StockSeverity.Low)}
           className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-amber-50 ${
             filters.severity === StockSeverity.Low
@@ -126,9 +154,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
               : ""
           }`}
         >
-          <TrendingDown className="h-3 w-3 text-orange-500 mr-1" />
+          <TrendingDown className="h-3 w-3 text-amber-500 mr-1" />
           <span className="text-gray-600">Nízké:</span>
-          <span className="font-semibold text-orange-600 ml-1">
+          <span className="font-semibold text-amber-600 ml-1">
             {summary.lowStockCount}
           </span>
         </button>

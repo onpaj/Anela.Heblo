@@ -4,9 +4,9 @@ namespace Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Serv
 
 public interface IGiftPackageManufactureService
 {
-    Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(CancellationToken cancellationToken = default);
+    Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default);
 
-    Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, CancellationToken cancellationToken = default);
+    Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default);
 
     Task<GiftPackageManufactureDto> CreateManufactureAsync(
         string giftPackageCode,

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Contracts;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
@@ -40,7 +41,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         _backgroundWorker = backgroundWorker;
     }
 
-    public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default)
     {
         // Get all products with ProductType.Set from catalog
         var catalogData = await _catalogRepository.GetAllAsync(cancellationToken);
@@ -56,8 +57,23 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         foreach (var product in setProducts)
         {
             // Calculate daily sales from sales history
-            var totalSalesInPeriod = product.GetTotalSold(fromDate, toDate);
-            var dailySales = (decimal)(totalSalesInPeriod / daysDiff);
+            var totalSalesInPeriod = (decimal)product.GetTotalSold(fromDate, toDate) * salesCoefficient;
+            var dailySales = totalSalesInPeriod / daysDiff;
+
+            // Calculate suggested quantity: DailySales * OverstockOptimal
+            var suggestedQuantity = (int)Math.Max(0, dailySales * product.Properties.OptimalStockDaysSetup);
+
+            // Calculate severity based on new rules
+            var severity = CalculateSeverity(
+                (int)product.Stock.Available,
+                suggestedQuantity,
+                (int)product.Properties.StockMinSetup);
+
+            // Calculate stock coverage percentage: (AvailableStock / (DailySales * OverstockOptimal)) * 100
+            var stockCoveragePercent = CalculateStockCoveragePercent(
+                (int)product.Stock.Available,
+                dailySales,
+                product.Properties.OptimalStockDaysSetup);
 
             var giftPackage = new GiftPackageDto
             {
@@ -65,7 +81,11 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 Name = product.ProductName,
                 AvailableStock = (int)product.Stock.Available,
                 DailySales = dailySales,
-                OverstockLimit = (int)product.Properties.StockMinSetup
+                OverstockMinimal = (int)product.Properties.StockMinSetup,
+                OverstockOptimal = product.Properties.OptimalStockDaysSetup,
+                SuggestedQuantity = suggestedQuantity,
+                Severity = severity,
+                StockCoveragePercent = stockCoveragePercent,
                 // Ingredients will be loaded separately when detail is requested
             };
 
@@ -75,7 +95,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return giftPackages;
     }
 
-    public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, CancellationToken cancellationToken = default)
+    public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default)
     {
         // Get the basic product info from catalog
         var product = await _catalogRepository.GetByIdAsync(giftPackageCode, cancellationToken);
@@ -91,8 +111,23 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         var daysDiff = Math.Max((toDate - fromDate).Days, 1);
 
         // Calculate daily sales from sales history
-        var totalSalesInPeriod = product.GetTotalSold(fromDate, toDate);
-        var dailySales = (decimal)(totalSalesInPeriod / daysDiff);
+        var totalSalesInPeriod = (decimal)product.GetTotalSold(fromDate, toDate) * salesCoefficient;
+        var dailySales = totalSalesInPeriod / daysDiff;
+
+        // Calculate suggested quantity: DailySales * OverstockOptimal
+        var suggestedQuantity = (int)Math.Max(0, dailySales * product.Properties.OptimalStockDaysSetup);
+
+        // Calculate severity based on new rules
+        var severity = CalculateSeverity(
+            (int)product.Stock.Available,
+            suggestedQuantity,
+            (int)product.Properties.StockMinSetup);
+
+        // Calculate stock coverage percentage: (AvailableStock / (DailySales * OverstockOptimal)) * 100
+        var stockCoveragePercent = CalculateStockCoveragePercent(
+            (int)product.Stock.Available,
+            dailySales,
+            product.Properties.OptimalStockDaysSetup);
 
         // Create the detailed gift package with ingredients
         var giftPackage = new GiftPackageDto
@@ -101,7 +136,11 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             Name = product.ProductName,
             AvailableStock = (int)product.Stock.Available,
             DailySales = dailySales,
-            OverstockLimit = (int)product.Properties.StockMinSetup,
+            OverstockMinimal = (int)product.Properties.StockMinSetup,
+            OverstockOptimal = product.Properties.OptimalStockDaysSetup,
+            SuggestedQuantity = suggestedQuantity,
+            Severity = severity,
+            StockCoveragePercent = stockCoveragePercent,
             Ingredients = new List<GiftPackageIngredientDto>()
         };
 
@@ -147,7 +186,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             _currentUserService.GetCurrentUser().Name ?? "System");
 
         // Add consumed items - get detailed info with ingredients
-        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, cancellationToken);
+        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, cancellationToken);
 
         var stockUpRequest = new StockUpRequest() { StockUpId = Guid.NewGuid().ToString() };
         foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
@@ -185,5 +224,35 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, cancellationToken));
 
         return Task.FromResult(jobId);
+    }
+
+    private static StockSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
+    {
+        // If less than minimal (in any case), then severity is Critical (red on UI)
+        if (availableStock < overstockMinimal)
+        {
+            return StockSeverity.Critical;
+        }
+        
+        // If suggestedQuantity < availableStock but greater than overstockMinimal, then severity is Severe (orange on UI)
+        if (availableStock < suggestedQuantity)
+        {
+            return StockSeverity.Severe;
+        }
+
+        return StockSeverity.Optimal;
+    }
+
+    private static decimal CalculateStockCoveragePercent(int availableStock, decimal dailySales, int overstockOptimal)
+    {
+        // Calculate stock coverage percentage: (AvailableStock / (DailySales * OverstockOptimal)) * 100
+        // If dailySales is 0, return 0% to avoid division by zero
+        if (dailySales <= 0 || overstockOptimal <= 0)
+        {
+            return 0m;
+        }
+
+        var optimalStockAmount = dailySales * overstockOptimal;
+        return (availableStock / optimalStockAmount) * 100m;
     }
 }

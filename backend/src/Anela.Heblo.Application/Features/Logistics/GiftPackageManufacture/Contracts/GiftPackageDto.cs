@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
+
 namespace Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Contracts;
 
 public class GiftPackageDto
@@ -6,6 +8,10 @@ public class GiftPackageDto
     public string Name { get; set; } = null!;
     public int AvailableStock { get; set; }
     public decimal DailySales { get; set; }
-    public int OverstockLimit { get; set; }
+    public int OverstockOptimal { get; set; }
+    public int OverstockMinimal { get; set; }
+    public int SuggestedQuantity { get; set; }
+    public StockSeverity Severity { get; set; }
+    public decimal StockCoveragePercent { get; set; }
     public List<GiftPackageIngredientDto>? Ingredients { get; set; }
 }
