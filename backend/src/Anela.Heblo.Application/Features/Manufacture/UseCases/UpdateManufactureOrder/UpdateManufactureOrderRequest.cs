@@ -18,6 +18,8 @@ public class UpdateManufactureOrderRequest : IRequest<UpdateManufactureOrderResp
 
     public string? ErpOrderNumberProduct { get; set; }
 
+    public string? ErpDiscardResidueDocumentNumber { get; set; }
+
     public UpdateManufactureOrderSemiProductRequest? SemiProduct { get; set; }
 
     public List<UpdateManufactureOrderProductRequest> Products { get; set; } = new();

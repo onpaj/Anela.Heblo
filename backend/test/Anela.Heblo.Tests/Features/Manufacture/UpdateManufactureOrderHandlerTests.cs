@@ -14,6 +14,7 @@ public class UpdateManufactureOrderHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<UpdateManufactureOrderHandler>> _loggerMock;
+    private readonly TimeProvider _timeProvider;
     private readonly UpdateManufactureOrderHandler _handler;
 
     private const int ValidOrderId = 1;
@@ -26,6 +27,7 @@ public class UpdateManufactureOrderHandlerTests
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderHandler>>();
+        _timeProvider = TimeProvider.System;
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -34,6 +36,7 @@ public class UpdateManufactureOrderHandlerTests
         _handler = new UpdateManufactureOrderHandler(
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
+            _timeProvider,
             _loggerMock.Object);
     }
 

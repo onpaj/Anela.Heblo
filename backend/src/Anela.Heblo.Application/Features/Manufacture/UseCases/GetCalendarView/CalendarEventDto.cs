@@ -12,7 +12,11 @@ public class CalendarEventDto
     public string? ResponsiblePerson { get; set; }
     public bool ManualActionRequired { get; set; }
     public string? ErpOrderNumberSemiproduct { get; set; }
+    public DateTime? ErpOrderNumberSemiproductDate { get; set; }
     public string? ErpOrderNumberProduct { get; set; }
+    public DateTime? ErpOrderNumberProductDate { get; set; }
+    public string? ErpDiscardResidueDocumentNumber { get; set; }
+    public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
 
     // Extended information for detailed views
     public CalendarEventSemiProductDto? SemiProduct { get; set; }

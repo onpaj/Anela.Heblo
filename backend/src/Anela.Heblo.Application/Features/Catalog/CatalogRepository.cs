@@ -365,6 +365,7 @@ public class CatalogRepository : ICatalogRepository
                 product.Properties.ExpirationMonths = attributes.ExpirationMonths;
                 product.Properties.SeasonMonths = attributes.SeasonMonthsArray;
                 product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
+                product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
             }
 
             if (CachedInTransportData.TryGetValue(product.ProductCode, out var inTransport))

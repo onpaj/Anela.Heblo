@@ -16,6 +16,7 @@ interface BasicInfoSectionProps {
   editableResponsiblePerson: string;
   editableErpOrderNumberSemiproduct: string;
   editableErpOrderNumberProduct: string;
+  editableErpDiscardResidueDocumentNumber: string;
   editableSemiProductDate: string;
   editableLotNumber: string;
   editableExpirationDate: string;
@@ -23,6 +24,7 @@ interface BasicInfoSectionProps {
   onResponsiblePersonChange: (value: string | null) => void;
   onErpOrderNumberSemiproductChange: (value: string) => void;
   onErpOrderNumberProductChange: (value: string) => void;
+  onErpDiscardResidueDocumentNumberChange: (value: string) => void;
   onSemiProductDateChange: (value: string) => void;
   onLotNumberChange: (value: string) => void;
   onExpirationDateChange: (value: string) => void;
@@ -41,6 +43,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   editableResponsiblePerson,
   editableErpOrderNumberSemiproduct,
   editableErpOrderNumberProduct,
+  editableErpDiscardResidueDocumentNumber,
   editableSemiProductDate,
   editableLotNumber,
   editableExpirationDate,
@@ -48,6 +51,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   onResponsiblePersonChange,
   onErpOrderNumberSemiproductChange,
   onErpOrderNumberProductChange,
+  onErpDiscardResidueDocumentNumberChange,
   onSemiProductDateChange,
   onLotNumberChange,
   onExpirationDateChange,
@@ -100,9 +104,13 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               onChange={(e) => onErpOrderNumberSemiproductChange(e.target.value)}
               className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
               placeholder="ERP číslo pro meziprodukt"
+              title={order.erpOrderNumberSemiproductDate ? `Datum: ${formatDateTime(order.erpOrderNumberSemiproductDate)}` : "Datum není nastaveno"}
             />
           ) : (
-            <span className="text-sm text-gray-900">
+            <span 
+              className="text-sm text-gray-900"
+              title={order.erpOrderNumberSemiproductDate ? `Datum: ${formatDateTime(order.erpOrderNumberSemiproductDate)}` : "Datum není nastaveno"}
+            >
               {order.erpOrderNumberSemiproduct || "-"}
             </span>
           )}
@@ -120,10 +128,38 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               onChange={(e) => onErpOrderNumberProductChange(e.target.value)}
               className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
               placeholder="ERP číslo pro produkt"
+              title={order.erpOrderNumberProductDate ? `Datum: ${formatDateTime(order.erpOrderNumberProductDate)}` : "Datum není nastaveno"}
             />
           ) : (
-            <span className="text-sm text-gray-900">
+            <span 
+              className="text-sm text-gray-900"
+              title={order.erpOrderNumberProductDate ? `Datum: ${formatDateTime(order.erpOrderNumberProductDate)}` : "Datum není nastaveno"}
+            >
               {order.erpOrderNumberProduct || "-"}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Hash className="h-4 w-4 text-gray-400 mr-2" />
+            <span className="text-sm text-gray-500">ERP vydejka zbytku:</span>
+          </div>
+          {canEditFields ? (
+            <input
+              type="text"
+              value={editableErpDiscardResidueDocumentNumber}
+              onChange={(e) => onErpDiscardResidueDocumentNumberChange(e.target.value)}
+              className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
+              placeholder="ERP číslo pro vydejku zbytku"
+              title={order.erpDiscardResidueDocumentNumberDate ? `Datum: ${formatDateTime(order.erpDiscardResidueDocumentNumberDate)}` : "Datum není nastaveno"}
+            />
+          ) : (
+            <span 
+              className="text-sm text-gray-900"
+              title={order.erpDiscardResidueDocumentNumberDate ? `Datum: ${formatDateTime(order.erpDiscardResidueDocumentNumberDate)}` : "Datum není nastaveno"}
+            >
+              {order.erpDiscardResidueDocumentNumber || "-"}
             </span>
           )}
         </div>

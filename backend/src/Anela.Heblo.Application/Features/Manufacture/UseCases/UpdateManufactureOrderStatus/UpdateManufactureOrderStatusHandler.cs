@@ -58,9 +58,22 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             if (request.ManualActionRequired.HasValue)
                 order.ManualActionRequired = request.ManualActionRequired.Value;
             if (request.SemiProductOrderCode != null)
+            {
                 order.ErpOrderNumberSemiproduct = request.SemiProductOrderCode;
+                order.ErpOrderNumberSemiproductDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
             if (request.ProductOrderCode != null)
+            {
                 order.ErpOrderNumberProduct = request.ProductOrderCode;
+                order.ErpOrderNumberProductDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
+            if (request.ProductOrderCode != null)
+            {
+                order.ErpDiscardResidueDocumentNumber = request.DiscardRedisueDocumentCode;
+                order.ErpDiscardResidueDocumentNumberDate = _timeProvider.GetUtcNow().DateTime;
+            }
 
 
             if (request.Note != null)
