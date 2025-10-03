@@ -41,7 +41,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         _backgroundWorker = backgroundWorker;
     }
 
-    public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default)
+    public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
         // Get all products with ProductType.Set from catalog
         var catalogData = await _catalogRepository.GetAllAsync(cancellationToken);
@@ -49,15 +49,16 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         var giftPackages = new List<GiftPackageDto>();
 
-        // Calculate date range for daily sales calculation (last 12 months)
-        var toDate = _timeProvider.GetUtcNow().DateTime;
-        var fromDate = toDate.AddYears(-1);
-        var daysDiff = Math.Max((toDate - fromDate).Days, 1);
+        // Calculate date range for daily sales calculation
+        // Use provided dates or fallback to last 12 months
+        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
+        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
+        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
 
         foreach (var product in setProducts)
         {
-            // Calculate daily sales from sales history
-            var totalSalesInPeriod = (decimal)product.GetTotalSold(fromDate, toDate) * salesCoefficient;
+            // Calculate daily sales from sales history using the actual date range
+            var totalSalesInPeriod = (decimal)product.GetTotalSold(actualFromDate, actualToDate) * salesCoefficient;
             var dailySales = totalSalesInPeriod / daysDiff;
 
             // Calculate suggested quantity: DailySales * OverstockOptimal
@@ -95,7 +96,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return giftPackages;
     }
 
-    public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, decimal salesCoefficient = 1.0m, CancellationToken cancellationToken = default)
+    public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, decimal salesCoefficient = 1.0m, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
         // Get the basic product info from catalog
         var product = await _catalogRepository.GetByIdAsync(giftPackageCode, cancellationToken);
@@ -105,13 +106,14 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
         }
 
-        // Calculate date range for daily sales calculation (last 12 months)
-        var toDate = _timeProvider.GetUtcNow().DateTime;
-        var fromDate = toDate.AddYears(-1);
-        var daysDiff = Math.Max((toDate - fromDate).Days, 1);
+        // Calculate date range for daily sales calculation
+        // Use provided dates or fallback to last 12 months
+        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
+        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
+        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
 
-        // Calculate daily sales from sales history
-        var totalSalesInPeriod = (decimal)product.GetTotalSold(fromDate, toDate) * salesCoefficient;
+        // Calculate daily sales from sales history using the actual date range
+        var totalSalesInPeriod = (decimal)product.GetTotalSold(actualFromDate, actualToDate) * salesCoefficient;
         var dailySales = totalSalesInPeriod / daysDiff;
 
         // Calculate suggested quantity: DailySales * OverstockOptimal
@@ -186,7 +188,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             _currentUserService.GetCurrentUser().Name ?? "System");
 
         // Add consumed items - get detailed info with ingredients
-        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, cancellationToken);
+        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, cancellationToken);
 
         var stockUpRequest = new StockUpRequest() { StockUpId = Guid.NewGuid().ToString() };
         foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())

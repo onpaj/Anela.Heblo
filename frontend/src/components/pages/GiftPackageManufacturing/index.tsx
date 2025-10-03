@@ -11,6 +11,12 @@ const GiftPackageManufacturing: React.FC = () => {
   const [isManufactureModalOpen, setIsManufactureModalOpen] = useState(false);
   const [salesCoefficient, setSalesCoefficient] = useState<number>(1.3);
   
+  // State for date filtering - shared between list and detail
+  const [dateFilters, setDateFilters] = useState<{fromDate: Date, toDate: Date}>({
+    fromDate: new Date(new Date().getFullYear() - 1, new Date().getMonth(), new Date().getDate()),
+    toDate: new Date()
+  });
+  
   // State for catalog detail modal
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
@@ -27,6 +33,11 @@ const GiftPackageManufacturing: React.FC = () => {
   // Coefficient handler
   const handleSalesCoefficientChange = (coefficient: number) => {
     setSalesCoefficient(coefficient);
+  };
+  
+  // Date filter handler
+  const handleDateFilterChange = (fromDate: Date, toDate: Date) => {
+    setDateFilters({ fromDate, toDate });
   };
   
   // Catalog detail handlers
@@ -70,6 +81,7 @@ const GiftPackageManufacturing: React.FC = () => {
         onPackageClick={handlePackageClick}
         onCatalogDetailClick={handleCatalogDetailClick}
         onSalesCoefficientChange={handleSalesCoefficientChange}
+        onDateFilterChange={handleDateFilterChange}
       />
       
       {/* Manufacturing Detail Modal */}
@@ -79,6 +91,8 @@ const GiftPackageManufacturing: React.FC = () => {
         onClose={handleCloseManufactureModal}
         onManufacture={handleManufacture}
         salesCoefficient={salesCoefficient}
+        fromDate={dateFilters.fromDate}
+        toDate={dateFilters.toDate}
       />
       
       {/* Catalog Detail Modal */}

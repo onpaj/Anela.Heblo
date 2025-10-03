@@ -69,12 +69,14 @@ interface GiftPackageManufacturingListProps {
   onPackageClick: (pkg: GiftPackage) => void;
   onCatalogDetailClick: (productCode: string) => void;
   onSalesCoefficientChange: (coefficient: number) => void;
+  onDateFilterChange: (fromDate: Date, toDate: Date) => void;
 }
 
 const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> = ({
   onPackageClick,
   onCatalogDetailClick,
   onSalesCoefficientChange,
+  onDateFilterChange,
 }) => {
   // State for filters
   const [filters, setFilters] = useState<GiftPackageFilters>({
@@ -241,6 +243,14 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     // Propagate sales coefficient changes to parent
     if (newFilters.salesCoefficient !== undefined) {
       onSalesCoefficientChange(newFilters.salesCoefficient);
+    }
+    
+    // Propagate date filter changes to parent
+    if (newFilters.fromDate !== undefined || newFilters.toDate !== undefined) {
+      const currentFilters = filters;
+      const updatedFromDate = newFilters.fromDate ?? currentFilters.fromDate;
+      const updatedToDate = newFilters.toDate ?? currentFilters.toDate;
+      onDateFilterChange(updatedFromDate, updatedToDate);
     }
   };
 

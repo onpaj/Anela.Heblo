@@ -15,6 +15,8 @@ interface GiftPackageManufacturingDetailProps {
   onClose: () => void;
   onManufacture: (quantity: number) => Promise<void>;
   salesCoefficient?: number;
+  fromDate?: Date;
+  toDate?: Date;
 }
 
 const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailProps> = ({
@@ -23,13 +25,17 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   onClose,
   onManufacture,
   salesCoefficient,
+  fromDate,
+  toDate,
 }) => {
   const [quantity, setQuantity] = useState(1);
 
   // Load gift package detail with components when modal is open
   const { data: giftPackageDetail, isLoading: detailLoading } = useGiftPackageDetail(
     selectedPackage?.code,
-    salesCoefficient
+    salesCoefficient,
+    fromDate,
+    toDate
   );
 
   // Calculate validation results
@@ -219,25 +225,25 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
               <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-3">
                 Statistiky balíčku
               </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">Aktuální sklad</div>
-                  <div className="text-lg font-bold text-gray-900">{selectedPackage.availableStock.toFixed(0)}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">Aktuální sklad</div>
+                  <div className="text-base font-bold text-gray-900">{selectedPackage.availableStock.toFixed(0)}</div>
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">Prodeje/den</div>
-                  <div className="text-lg font-bold text-gray-900">{selectedPackage.dailySales.toFixed(1)}</div>
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">Prodeje/den</div>
+                  <div className="text-base font-bold text-gray-900">{selectedPackage.dailySales.toFixed(1)}</div>
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">Doporučeno</div>
-                  <div className="text-lg font-bold text-orange-600">{selectedPackage.suggestedQuantity}</div>
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">Doporučeno</div>
+                  <div className="text-base font-bold text-orange-600">{selectedPackage.suggestedQuantity}</div>
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">NS%</div>
-                  <div className={`text-lg font-bold ${
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">NS%</div>
+                  <div className={`text-base font-bold ${
                     selectedPackage.stockCoveragePercent >= 100 ? "text-green-600" : 
                     selectedPackage.stockCoveragePercent >= 50 ? "text-orange-600" : "text-red-600"
                   }`}>
@@ -245,14 +251,14 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   </div>
                   <div className="text-xs text-gray-500">pokrytí</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">NS optimál</div>
-                  <div className="text-lg font-bold text-gray-900">{selectedPackage.overstockOptimal}</div>
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">NS optimál</div>
+                  <div className="text-base font-bold text-gray-900">{selectedPackage.overstockOptimal}</div>
                   <div className="text-xs text-gray-500">dní</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center border">
-                  <div className="text-xs text-gray-500 mb-1">NS minimál</div>
-                  <div className="text-lg font-bold text-gray-900">{selectedPackage.overstockMinimal}</div>
+                <div className="bg-white rounded-md p-2 text-center border">
+                  <div className="text-xs text-gray-500">NS minimál</div>
+                  <div className="text-base font-bold text-gray-900">{selectedPackage.overstockMinimal}</div>
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
               </div>

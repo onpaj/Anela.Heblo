@@ -270,6 +270,68 @@ public class GiftPackageManufactureServiceTests
         giftPackage.DailySales.Should().BeApproximately(0.274m, 0.001m);
     }
 
+    [Fact]
+    public async Task GetAvailableGiftPackagesAsync_WithCustomDateRange_ShouldUseSpecifiedDates()
+    {
+        // Arrange
+        var customFromDate = new DateTime(2024, 1, 1);
+        var customToDate = new DateTime(2024, 3, 31); // 3 month period = ~90 days
+        var expectedDaysDiff = (customToDate - customFromDate).Days; // Should be around 90 days
+
+        var catalogData = new List<CatalogAggregate>
+        {
+            CreateCatalogItemWithSpecificSalesData("SET001", "Test Gift Set 1", ProductType.Set, customFromDate, customToDate, 180) // 180 sales in 90 days = 2 sales/day
+        };
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogData);
+
+        // Act
+        var result = await _service.GetAvailableGiftPackagesAsync(1.0m, customFromDate, customToDate);
+
+        // Assert
+        result.Should().HaveCount(1);
+        var giftPackage = result.First();
+        
+        // Daily sales should be around 180 sales / 90 days = 2.0 sales/day (approximately due to weekly distribution)
+        giftPackage.DailySales.Should().BeApproximately(2.0m, 0.3m);
+    }
+
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_WithCustomDateRange_ShouldUseSpecifiedDates()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var customFromDate = new DateTime(2024, 1, 1);
+        var customToDate = new DateTime(2024, 2, 29); // 2 month period = ~60 days
+        
+        var product = CreateCatalogItemWithSpecificSalesData(giftPackageCode, "Test Gift Set 1", ProductType.Set, customFromDate, customToDate, 120); // 120 sales in 60 days = 2 sales/day
+        var ingredients = CreateTestIngredients();
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Setup catalog repository to return ingredient products
+        foreach (var ingredient in ingredients)
+        {
+            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
+            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ingredientProduct);
+        }
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, customFromDate, customToDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Code.Should().Be(giftPackageCode);
+        
+        // Daily sales should be around 120 sales / 60 days = 2.0 sales/day (approximately due to weekly distribution)
+        result.DailySales.Should().BeApproximately(2.0m, 0.3m);
+    }
+
     private List<CatalogAggregate> CreateTestCatalogData()
     {
         return new List<CatalogAggregate>
@@ -307,6 +369,38 @@ public class GiftPackageManufactureServiceTests
                 AmountB2C = totalSales / 24, // Half B2C
                 SumB2B = (decimal)(totalSales / 24 * 10), // Dummy price calculation
                 SumB2C = (decimal)(totalSales / 24 * 12)
+            });
+        }
+
+        item.SalesHistory = salesHistory;
+        return item;
+    }
+
+    private CatalogAggregate CreateCatalogItemWithSpecificSalesData(string code, string name, ProductType type, DateTime fromDate, DateTime toDate, double totalSales)
+    {
+        var item = new CatalogAggregate
+        {
+            ProductCode = code,
+            ProductName = name,
+            Type = type,
+            Stock = new Anela.Heblo.Domain.Features.Catalog.Stock.StockData { Erp = 50 }, // Default stock
+            Properties = new CatalogProperties { StockMinSetup = 20 }
+        };
+
+        // Create sales history within the specified date range
+        var salesHistory = new List<CatalogSaleRecord>();
+        var daysDiff = (toDate - fromDate).Days;
+        var salesPerRecord = totalSales / Math.Max(daysDiff / 7, 1); // Weekly records
+
+        for (var date = fromDate; date <= toDate; date = date.AddDays(7))
+        {
+            salesHistory.Add(new CatalogSaleRecord
+            {
+                Date = date,
+                AmountB2B = salesPerRecord / 2, // Half B2B
+                AmountB2C = salesPerRecord / 2, // Half B2C
+                SumB2B = (decimal)(salesPerRecord / 2 * 10), // Dummy price calculation
+                SumB2C = (decimal)(salesPerRecord / 2 * 12)
             });
         }
 

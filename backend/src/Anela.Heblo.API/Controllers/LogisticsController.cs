@@ -30,9 +30,16 @@ public class LogisticsController : BaseApiController
     [HttpGet("gift-packages/available")]
     public async Task<ActionResult<GetAvailableGiftPackagesResponse>> GetAvailableGiftPackages(
         [FromQuery] decimal salesCoefficient = 1.0m,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetAvailableGiftPackagesRequest { SalesCoefficient = salesCoefficient };
+        var request = new GetAvailableGiftPackagesRequest 
+        { 
+            SalesCoefficient = salesCoefficient,
+            FromDate = fromDate,
+            ToDate = toDate
+        };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
@@ -44,12 +51,16 @@ public class LogisticsController : BaseApiController
     public async Task<ActionResult<GetGiftPackageDetailResponse>> GetGiftPackageDetail(
         string giftPackageCode,
         [FromQuery] decimal salesCoefficient = 1.0m,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
         var request = new GetGiftPackageDetailRequest 
         { 
             GiftPackageCode = giftPackageCode,
-            SalesCoefficient = salesCoefficient
+            SalesCoefficient = salesCoefficient,
+            FromDate = fromDate,
+            ToDate = toDate
         };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);

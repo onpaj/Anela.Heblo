@@ -2327,12 +2327,16 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
-    logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined): Promise<GetAvailableGiftPackagesResponse> {
+    logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetAvailableGiftPackagesResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
         if (salesCoefficient === null)
             throw new Error("The parameter 'salesCoefficient' cannot be null.");
         else if (salesCoefficient !== undefined)
             url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2365,7 +2369,7 @@ export class ApiClient {
         return Promise.resolve<GetAvailableGiftPackagesResponse>(null as any);
     }
 
-    logistics_GetGiftPackageDetail(giftPackageCode: string, salesCoefficient: number | undefined): Promise<GetGiftPackageDetailResponse> {
+    logistics_GetGiftPackageDetail(giftPackageCode: string, salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetGiftPackageDetailResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/detail?";
         if (giftPackageCode === undefined || giftPackageCode === null)
             throw new Error("The parameter 'giftPackageCode' must be defined.");
@@ -2374,6 +2378,10 @@ export class ApiClient {
             throw new Error("The parameter 'salesCoefficient' cannot be null.");
         else if (salesCoefficient !== undefined)
             url_ += "salesCoefficient=" + encodeURIComponent("" + salesCoefficient) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2671,7 +2679,7 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchPlanResponse>(null as any);
     }
 
-    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, manualActionRequired: boolean | null | undefined): Promise<GetManufactureOrdersResponse> {
+    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, erpDocumentNumber: string | null | undefined, manualActionRequired: boolean | null | undefined): Promise<GetManufactureOrdersResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder?";
         if (state !== undefined && state !== null)
             url_ += "State=" + encodeURIComponent("" + state) + "&";
@@ -2685,6 +2693,8 @@ export class ApiClient {
             url_ += "OrderNumber=" + encodeURIComponent("" + orderNumber) + "&";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (erpDocumentNumber !== undefined && erpDocumentNumber !== null)
+            url_ += "ErpDocumentNumber=" + encodeURIComponent("" + erpDocumentNumber) + "&";
         if (manualActionRequired !== undefined && manualActionRequired !== null)
             url_ += "ManualActionRequired=" + encodeURIComponent("" + manualActionRequired) + "&";
         url_ = url_.replace(/[?&]$/, "");

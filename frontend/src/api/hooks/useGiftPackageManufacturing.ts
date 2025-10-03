@@ -31,7 +31,11 @@ export const useAvailableGiftPackages = (params?: GiftPackageQueryParams) => {
     queryKey: [...QUERY_KEYS.giftPackages, "available", params?.fromDate, params?.toDate, params?.salesCoefficient],
     queryFn: async (): Promise<GetAvailableGiftPackagesResponse> => {
       const client = getGiftPackageClient();
-      return await client.logistics_GetAvailableGiftPackages(params?.salesCoefficient);
+      return await client.logistics_GetAvailableGiftPackages(
+        params?.salesCoefficient, 
+        params?.fromDate, 
+        params?.toDate
+      );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
@@ -41,16 +45,16 @@ export const useAvailableGiftPackages = (params?: GiftPackageQueryParams) => {
 /**
  * Hook to get gift package detail with full BOM information
  */
-export const useGiftPackageDetail = (giftPackageCode?: string, salesCoefficient?: number) => {
+export const useGiftPackageDetail = (giftPackageCode?: string, salesCoefficient?: number, fromDate?: Date, toDate?: Date) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.giftPackages, "detail", giftPackageCode || "", salesCoefficient],
+    queryKey: [...QUERY_KEYS.giftPackages, "detail", giftPackageCode || "", salesCoefficient, fromDate, toDate],
     queryFn: async (): Promise<GetGiftPackageDetailResponse> => {
       if (!giftPackageCode) {
         throw new Error("Gift package code is required");
       }
       
       const client = getGiftPackageClient();
-      return await client.logistics_GetGiftPackageDetail(giftPackageCode, salesCoefficient);
+      return await client.logistics_GetGiftPackageDetail(giftPackageCode, salesCoefficient, fromDate, toDate);
     },
     enabled: !!giftPackageCode,
     staleTime: 2 * 60 * 1000, // 2 minutes
