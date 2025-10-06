@@ -42,6 +42,21 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
   const margin = item?.marginPercentage || 0;
   const marginAmount = item?.marginAmount || 0;
 
+  // Check if M0-M3 properties are available (from future backend updates)
+  const hasM0M3Data = 'm0Percentage' in (item || {});
+  const m0Percentage = (item as any)?.m0Percentage || 0;
+  const m1Percentage = (item as any)?.m1Percentage || 0;
+  const m2Percentage = (item as any)?.m2Percentage || 0;
+  const m3Percentage = (item as any)?.m3Percentage || 0;
+
+  // Get margin color based on percentage
+  const getMarginColor = (marginPercent: number) => {
+    if (marginPercent < 30) return "text-red-900 bg-red-50 border-red-200";
+    if (marginPercent < 50) return "text-orange-900 bg-orange-50 border-orange-200";
+    if (marginPercent < 80) return "text-yellow-900 bg-yellow-50 border-yellow-200";
+    return "text-green-900 bg-green-50 border-green-200";
+  };
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
       <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
@@ -102,42 +117,96 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
         </div>
       </div>
 
-      {/* Margin summary */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
-          <div className="text-sm font-medium text-gray-600 mb-1">
-            Marže v %
-          </div>
-          <div
-            className={`text-2xl font-bold ${margin >= 0 ? "text-amber-900" : "text-red-900"}`}
-          >
-            {margin.toLocaleString("cs-CZ", {
-              minimumFractionDigits: 1,
-              maximumFractionDigits: 1,
-            })}
-            %
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {margin >= 0 ? "zisk" : "ztráta"}
-          </div>
-        </div>
+      {/* Margin summary - M0-M3 levels or legacy format */}
+      {hasM0M3Data ? (
+        <div>
+          <h5 className="text-sm font-medium text-gray-700 mb-2">Úrovně marže</h5>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`text-center p-3 rounded-lg border ${getMarginColor(m0Percentage)}`}>
+              <div className="text-sm font-medium text-gray-600 mb-1">M0 - Materiál</div>
+              <div className="text-xl font-bold">
+                {m0Percentage.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}%
+              </div>
+              <div className="text-xs text-gray-500 mt-1">základní marže</div>
+            </div>
 
-        <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
-          <div className="text-sm font-medium text-gray-600 mb-1">
-            Marže v Kč
+            <div className={`text-center p-3 rounded-lg border ${getMarginColor(m1Percentage)}`}>
+              <div className="text-sm font-medium text-gray-600 mb-1">M1 - + Výroba</div>
+              <div className="text-xl font-bold">
+                {m1Percentage.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}%
+              </div>
+              <div className="text-xs text-gray-500 mt-1">s výrobou</div>
+            </div>
+
+            <div className={`text-center p-3 rounded-lg border ${getMarginColor(m2Percentage)}`}>
+              <div className="text-sm font-medium text-gray-600 mb-1">M2 - + Prodej</div>
+              <div className="text-xl font-bold">
+                {m2Percentage.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}%
+              </div>
+              <div className="text-xs text-gray-500 mt-1">s prodejem</div>
+            </div>
+
+            <div className={`text-center p-3 rounded-lg border ${getMarginColor(m3Percentage)}`}>
+              <div className="text-sm font-medium text-gray-600 mb-1">M3 - Celkem</div>
+              <div className="text-xl font-bold">
+                {m3Percentage.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}%
+              </div>
+              <div className="text-xs text-gray-500 mt-1">finální marže</div>
+            </div>
           </div>
-          <div
-            className={`text-2xl font-bold ${marginAmount >= 0 ? "text-amber-900" : "text-red-900"}`}
-          >
-            {marginAmount.toLocaleString("cs-CZ", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{" "}
-            Kč
-          </div>
-          <div className="text-xs text-gray-500 mt-1">za kus</div>
         </div>
-      </div>
+      ) : (
+        <div>
+          <h5 className="text-sm font-medium text-gray-700 mb-2">Marže</h5>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="text-sm font-medium text-gray-600 mb-1">
+                Marže v %
+              </div>
+              <div
+                className={`text-2xl font-bold ${margin >= 0 ? "text-amber-900" : "text-red-900"}`}
+              >
+                {margin.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}
+                %
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {margin >= 0 ? "zisk" : "ztráta"}
+              </div>
+            </div>
+
+            <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="text-sm font-medium text-gray-600 mb-1">
+                Marže v Kč
+              </div>
+              <div
+                className={`text-2xl font-bold ${marginAmount >= 0 ? "text-amber-900" : "text-red-900"}`}
+              >
+                {marginAmount.toLocaleString("cs-CZ", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                Kč
+              </div>
+              <div className="text-xs text-gray-500 mt-1">za kus</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {manufactureCostHistory.length === 0 && (
         <div className="mt-3 text-center text-sm text-gray-500">

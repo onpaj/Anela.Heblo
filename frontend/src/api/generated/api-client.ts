@@ -12091,6 +12091,23 @@ export class ProductMarginDto implements IProductMarginDto {
     marginPercentage?: number;
     marginAmount?: number;
     priceWithoutVatIsFromEshop?: boolean;
+    m0Percentage?: number;
+    m0Amount?: number;
+    m1Percentage?: number;
+    m1Amount?: number;
+    m2Percentage?: number;
+    m2Amount?: number;
+    m3Percentage?: number;
+    m3Amount?: number;
+    m0PercentageAvg12M?: number;
+    m1PercentageAvg12M?: number;
+    m2PercentageAvg12M?: number;
+    m3PercentageAvg12M?: number;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    salesCost?: number | undefined;
+    totalCosts?: number | undefined;
+    monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
         if (data) {
@@ -12113,6 +12130,27 @@ export class ProductMarginDto implements IProductMarginDto {
             this.marginPercentage = _data["marginPercentage"];
             this.marginAmount = _data["marginAmount"];
             this.priceWithoutVatIsFromEshop = _data["priceWithoutVatIsFromEshop"];
+            this.m0Percentage = _data["m0Percentage"];
+            this.m0Amount = _data["m0Amount"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.m1Amount = _data["m1Amount"];
+            this.m2Percentage = _data["m2Percentage"];
+            this.m2Amount = _data["m2Amount"];
+            this.m3Percentage = _data["m3Percentage"];
+            this.m3Amount = _data["m3Amount"];
+            this.m0PercentageAvg12M = _data["m0PercentageAvg12M"];
+            this.m1PercentageAvg12M = _data["m1PercentageAvg12M"];
+            this.m2PercentageAvg12M = _data["m2PercentageAvg12M"];
+            this.m3PercentageAvg12M = _data["m3PercentageAvg12M"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.salesCost = _data["salesCost"];
+            this.totalCosts = _data["totalCosts"];
+            if (Array.isArray(_data["monthlyHistory"])) {
+                this.monthlyHistory = [] as any;
+                for (let item of _data["monthlyHistory"])
+                    this.monthlyHistory!.push(MonthlyMarginDto.fromJS(item));
+            }
         }
     }
 
@@ -12135,6 +12173,27 @@ export class ProductMarginDto implements IProductMarginDto {
         data["marginPercentage"] = this.marginPercentage;
         data["marginAmount"] = this.marginAmount;
         data["priceWithoutVatIsFromEshop"] = this.priceWithoutVatIsFromEshop;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m0Amount"] = this.m0Amount;
+        data["m1Percentage"] = this.m1Percentage;
+        data["m1Amount"] = this.m1Amount;
+        data["m2Percentage"] = this.m2Percentage;
+        data["m2Amount"] = this.m2Amount;
+        data["m3Percentage"] = this.m3Percentage;
+        data["m3Amount"] = this.m3Amount;
+        data["m0PercentageAvg12M"] = this.m0PercentageAvg12M;
+        data["m1PercentageAvg12M"] = this.m1PercentageAvg12M;
+        data["m2PercentageAvg12M"] = this.m2PercentageAvg12M;
+        data["m3PercentageAvg12M"] = this.m3PercentageAvg12M;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["salesCost"] = this.salesCost;
+        data["totalCosts"] = this.totalCosts;
+        if (Array.isArray(this.monthlyHistory)) {
+            data["monthlyHistory"] = [];
+            for (let item of this.monthlyHistory)
+                data["monthlyHistory"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -12150,6 +12209,91 @@ export interface IProductMarginDto {
     marginPercentage?: number;
     marginAmount?: number;
     priceWithoutVatIsFromEshop?: boolean;
+    m0Percentage?: number;
+    m0Amount?: number;
+    m1Percentage?: number;
+    m1Amount?: number;
+    m2Percentage?: number;
+    m2Amount?: number;
+    m3Percentage?: number;
+    m3Amount?: number;
+    m0PercentageAvg12M?: number;
+    m1PercentageAvg12M?: number;
+    m2PercentageAvg12M?: number;
+    m3PercentageAvg12M?: number;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    salesCost?: number | undefined;
+    totalCosts?: number | undefined;
+    monthlyHistory?: MonthlyMarginDto[];
+}
+
+export class MonthlyMarginDto implements IMonthlyMarginDto {
+    month?: Date;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    salesCost?: number;
+    totalCosts?: number;
+
+    constructor(data?: IMonthlyMarginDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.month = _data["month"] ? new Date(_data["month"].toString()) : <any>undefined;
+            this.m0Percentage = _data["m0Percentage"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.m2Percentage = _data["m2Percentage"];
+            this.m3Percentage = _data["m3Percentage"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.salesCost = _data["salesCost"];
+            this.totalCosts = _data["totalCosts"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyMarginDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyMarginDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["month"] = this.month ? this.month.toISOString() : <any>undefined;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m1Percentage"] = this.m1Percentage;
+        data["m2Percentage"] = this.m2Percentage;
+        data["m3Percentage"] = this.m3Percentage;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["salesCost"] = this.salesCost;
+        data["totalCosts"] = this.totalCosts;
+        return data;
+    }
+}
+
+export interface IMonthlyMarginDto {
+    month?: Date;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    salesCost?: number;
+    totalCosts?: number;
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {

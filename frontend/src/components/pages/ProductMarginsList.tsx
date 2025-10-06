@@ -27,7 +27,7 @@ const ProductMarginsList: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
 
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>("marginPercentage");
+  const [sortBy, setSortBy] = useState<string>("m3Percentage");
   const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
 
   // Modal states
@@ -196,6 +196,26 @@ const ProductMarginsList: React.FC = () => {
     return "text-green-600";
   };
 
+  // Get tooltip content for margin levels
+  const getMarginTooltip = (level: "M0" | "M1" | "M2" | "M3", item: any): string => {
+    const materialCost = item.materialCost || 0;
+    const manufacturingCost = item.manufacturingCost || 0;
+    const totalCosts = item.totalCosts || 0;
+
+    switch (level) {
+      case "M0":
+        return `Materiál: ${formatCurrency(materialCost)}`;
+      case "M1":
+        return `Materiál: ${formatCurrency(materialCost)} + Výroba: ${formatCurrency(manufacturingCost)}`;
+      case "M2":
+        return `Materiál + Výroba + Prodej: ${formatCurrency(totalCosts)}`;
+      case "M3":
+        return `Celkové náklady: ${formatCurrency(totalCosts)}`;
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -335,8 +355,17 @@ const ProductMarginsList: React.FC = () => {
                 <SortableHeader column="manufactureDifficulty" align="right">
                   Složitost výroby
                 </SortableHeader>
-                <SortableHeader column="marginPercentage" align="right">
-                  Marže %
+                <SortableHeader column="m0Percentage" align="right">
+                  M0 %
+                </SortableHeader>
+                <SortableHeader column="m1Percentage" align="right">
+                  M1 %
+                </SortableHeader>
+                <SortableHeader column="m2Percentage" align="right">
+                  M2 %
+                </SortableHeader>
+                <SortableHeader column="m3Percentage" align="right">
+                  M3 %
                 </SortableHeader>
               </tr>
             </thead>
@@ -377,9 +406,28 @@ const ProductMarginsList: React.FC = () => {
                       : "-"}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m0Percentage)}`}
+                    title={getMarginTooltip("M0", item)}
                   >
-                    {formatPercentage(item.marginPercentage)}
+                    {formatPercentage(item.m0Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m1Percentage)}`}
+                    title={getMarginTooltip("M1", item)}
+                  >
+                    {formatPercentage(item.m1Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m2Percentage)}`}
+                    title={getMarginTooltip("M2", item)}
+                  >
+                    {formatPercentage(item.m2Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m3Percentage)}`}
+                    title={getMarginTooltip("M3", item)}
+                  >
+                    {formatPercentage(item.m3Percentage)}
                   </td>
                 </tr>
               ))}
