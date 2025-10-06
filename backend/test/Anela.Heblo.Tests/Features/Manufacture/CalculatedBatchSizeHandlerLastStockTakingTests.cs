@@ -46,16 +46,16 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             ProductName = "Test Product",
             OriginalAmount = 500.0,
             BatchSize = 500.0,
-            Ingredients = new List<ManufactureTemplateIngredient>
+            Ingredients = new List<Ingredient>
             {
-                new ManufactureTemplateIngredient
+                new Ingredient
                 {
                     ProductCode = "INGREDIENT-1",
                     ProductName = "Test Ingredient 1",
                     Amount = 100.0,
                     Price = 5.0m
                 },
-                new ManufactureTemplateIngredient
+                new Ingredient
                 {
                     ProductCode = "INGREDIENT-2",
                     ProductName = "Test Ingredient 2",
@@ -65,18 +65,18 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogItem
+        var product = new CatalogAggregate
         {
             ProductCode = productCode,
             ProductName = "Test Product",
             MinimalManufactureQuantity = 500.0
         };
 
-        var ingredient1 = new CatalogItem
+        var ingredient1 = new CatalogAggregate
         {
             ProductCode = "INGREDIENT-1",
             ProductName = "Test Ingredient 1",
-            Stock = new Stock { Total = 1000.0m },
+            Stock = new StockData { Erp = 1000.0m },
             StockTakingHistory = new List<StockTakingRecord>
             {
                 new StockTakingRecord { Date = stockTakingDate1, Code = "INGREDIENT-1" },
@@ -84,11 +84,11 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var ingredient2 = new CatalogItem
+        var ingredient2 = new CatalogAggregate
         {
             ProductCode = "INGREDIENT-2",
             ProductName = "Test Ingredient 2",
-            Stock = new Stock { Total = 2000.0m },
+            Stock = new StockData { Erp = 2000.0m },
             StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
         };
 
@@ -143,9 +143,9 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             ProductName = "Test Product",
             OriginalAmount = 500.0,
             BatchSize = 500.0,
-            Ingredients = new List<ManufactureTemplateIngredient>
+            Ingredients = new List<Ingredient>
             {
-                new ManufactureTemplateIngredient
+                new Ingredient
                 {
                     ProductCode = "INGREDIENT-1",
                     ProductName = "Test Ingredient 1",
@@ -155,19 +155,19 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogItem
+        var product = new CatalogAggregate
         {
             ProductCode = productCode,
             ProductName = "Test Product",
             MinimalManufactureQuantity = 500.0
         };
 
-        var ingredient = new CatalogItem
+        var ingredient = new CatalogAggregate
         {
             ProductCode = "INGREDIENT-1",
             ProductName = "Test Ingredient 1",
-            Stock = new Stock { Total = 1000.0m },
-            StockTakingHistory = null // No stock taking history
+            Stock = new StockData { Erp = 1000.0m },
+            StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
         };
 
         _mockManufactureRepository
@@ -211,9 +211,9 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             ProductName = "Test Product",
             OriginalAmount = 500.0,
             BatchSize = 500.0,
-            Ingredients = new List<ManufactureTemplateIngredient>
+            Ingredients = new List<Ingredient>
             {
-                new ManufactureTemplateIngredient
+                new Ingredient
                 {
                     ProductCode = "INGREDIENT-1",
                     ProductName = "Test Ingredient 1",
@@ -223,7 +223,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogItem
+        var product = new CatalogAggregate
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -240,7 +240,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
 
         _mockCatalogRepository
             .Setup(x => x.GetByIdAsync("INGREDIENT-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogItem?)null); // Ingredient not found
+            .ReturnsAsync((CatalogAggregate?)null); // Ingredient not found
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
