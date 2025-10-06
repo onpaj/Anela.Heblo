@@ -13,7 +13,7 @@ public class HangfireJobSchedulerService : IHostedService
     private const string QueueName = "heblo";
 
     public HangfireJobSchedulerService(
-        ILogger<HangfireJobSchedulerService> logger, 
+        ILogger<HangfireJobSchedulerService> logger,
         IWebHostEnvironment environment,
         IOptions<HangfireOptions> hangfireOptions)
     {
@@ -24,7 +24,7 @@ public class HangfireJobSchedulerService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment with SchedulerEnabled={SchedulerEnabled}", 
+        _logger.LogInformation("Starting Hangfire job scheduler service in {Environment} environment with SchedulerEnabled={SchedulerEnabled}",
             _environment.EnvironmentName, _hangfireOptions.SchedulerEnabled);
 
         // Check if scheduler is enabled via configuration

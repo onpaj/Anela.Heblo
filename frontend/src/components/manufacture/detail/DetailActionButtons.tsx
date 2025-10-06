@@ -5,6 +5,7 @@ import {
   Save,
   XCircle,
   Loader2,
+  Calculator,
 } from "lucide-react";
 import { ManufactureOrderState } from "../../../api/generated/api-client";
 
@@ -14,6 +15,7 @@ interface DetailActionButtonsProps {
   onDuplicate: () => void;
   onClose: () => void;
   onSave: () => void;
+  onBatchCalculator?: () => void;
   isUpdateLoading: boolean;
   isDuplicateLoading: boolean;
 }
@@ -24,6 +26,7 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
   onDuplicate,
   onClose,
   onSave,
+  onBatchCalculator,
   isUpdateLoading,
   isDuplicateLoading,
 }) => {
@@ -45,8 +48,9 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
           )}
         </div>
 
-        {/* Duplicate button in the center */}
-        <div>
+        {/* Center buttons */}
+        <div className="flex items-center space-x-2">
+          {/* Duplicate button */}
           {order && (
             <button
               onClick={onDuplicate}
@@ -60,6 +64,18 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
                 <Copy className="h-4 w-4 mr-1" />
               )}
               Duplikovat
+            </button>
+          )}
+
+          {/* Batch Calculator button */}
+          {order && order.semiProduct && onBatchCalculator && (
+            <button
+              onClick={onBatchCalculator}
+              className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm"
+              title="Otevřít kalkulačku dávek s přednastavenými hodnotami"
+            >
+              <Calculator className="h-4 w-4 mr-1" />
+              Kalkulačka dávek
             </button>
           )}
         </div>

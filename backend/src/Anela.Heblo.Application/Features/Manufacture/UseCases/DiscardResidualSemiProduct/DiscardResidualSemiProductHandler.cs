@@ -36,7 +36,7 @@ public class DiscardResidualSemiProductHandler : IRequestHandler<DiscardResidual
             {
                 return new DiscardResidualSemiProductResponse(ErrorCodes.ProductNotFound);
             }
-            
+
             var clientRequest = new Domain.Features.Manufacture.DiscardResidualSemiProductRequest
             {
                 ManufactureOrderCode = request.ManufactureOrderCode,
@@ -72,7 +72,7 @@ public class DiscardResidualSemiProductHandler : IRequestHandler<DiscardResidual
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during discard residual semi-product process for manufacture order {ManufactureOrderCode}", 
+            _logger.LogError(ex, "Error during discard residual semi-product process for manufacture order {ManufactureOrderCode}",
                 request.ManufactureOrderCode);
             return new DiscardResidualSemiProductResponse(ex);
         }

@@ -25,7 +25,7 @@ public class ProductWeightRecalculationServiceTests
         _mockCatalogRepository = new Mock<ICatalogRepository>();
         _mockProductWeightClient = new Mock<IProductWeightClient>();
         _mockLogger = new Mock<ILogger<ProductWeightRecalculationService>>();
-        
+
         _service = new ProductWeightRecalculationService(
             _mockCatalogRepository.Object,
             _mockProductWeightClient.Object,
@@ -56,13 +56,13 @@ public class ProductWeightRecalculationServiceTests
 
         // Assert
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()),
             Times.Once);
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()),
             Times.Once);
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("PROD003", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("PROD003", It.IsAny<CancellationToken>()),
             Times.Once);
 
         VerifyInfoLog("Starting product weight recalculation for all products");
@@ -94,18 +94,18 @@ public class ProductWeightRecalculationServiceTests
 
         // Assert
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()),
             Times.Once);
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()),
             Times.Once);
-        
+
         // Should not process materials or semi-products
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("MAT001", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("MAT001", It.IsAny<CancellationToken>()),
             Times.Never);
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight("SEMI001", It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight("SEMI001", It.IsAny<CancellationToken>()),
             Times.Never);
 
         VerifyInfoLog("Product weight recalculation completed. Success: 2, Errors: 0");
@@ -129,11 +129,11 @@ public class ProductWeightRecalculationServiceTests
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(1.0);
-        
+
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Failed to calculate weight"));
-        
+
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD003", It.IsAny<CancellationToken>()))
             .ReturnsAsync(3.0);
@@ -143,7 +143,7 @@ public class ProductWeightRecalculationServiceTests
 
         // Assert
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
 
         VerifyErrorLog("Failed to recalculate weight for product PROD002");
@@ -166,11 +166,11 @@ public class ProductWeightRecalculationServiceTests
             .ReturnsAsync(products);
 
         var cancellationTokenSource = new CancellationTokenSource();
-        
+
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(1.0);
-        
+
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()))
             .Callback(() => cancellationTokenSource.Cancel())
@@ -223,7 +223,7 @@ public class ProductWeightRecalculationServiceTests
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD001", It.IsAny<CancellationToken>()))
             .ReturnsAsync((double?)null);
-        
+
         _mockProductWeightClient
             .Setup(x => x.RefreshProductWeight("PROD002", It.IsAny<CancellationToken>()))
             .ReturnsAsync(2.5);
@@ -251,7 +251,7 @@ public class ProductWeightRecalculationServiceTests
 
         // Assert
         _mockProductWeightClient.Verify(
-            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+            x => x.RefreshProductWeight(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
 
         VerifyInfoLog("Product weight recalculation completed. Success: 0, Errors: 0");

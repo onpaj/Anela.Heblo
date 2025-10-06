@@ -5,13 +5,13 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.DiscardResidualS
 public class DiscardResidualSemiProductResponse : BaseResponse
 {
     public double QuantityFound { get; set; }
-    
+
     public double QuantityDiscarded { get; set; }
-    
+
     public bool RequiresManualApproval { get; set; }
-    
+
     public string? StockMovementReference { get; set; }
-    
+
     public string? Details { get; set; }
 
     public DiscardResidualSemiProductResponse() : base() { }

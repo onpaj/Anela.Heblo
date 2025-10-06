@@ -34,8 +34,8 @@ public class LogisticsController : BaseApiController
         [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetAvailableGiftPackagesRequest 
-        { 
+        var request = new GetAvailableGiftPackagesRequest
+        {
             SalesCoefficient = salesCoefficient,
             FromDate = fromDate,
             ToDate = toDate
@@ -55,8 +55,8 @@ public class LogisticsController : BaseApiController
         [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetGiftPackageDetailRequest 
-        { 
+        var request = new GetGiftPackageDetailRequest
+        {
             GiftPackageCode = giftPackageCode,
             SalesCoefficient = salesCoefficient,
             FromDate = fromDate,

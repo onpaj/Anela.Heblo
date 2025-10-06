@@ -10,7 +10,7 @@ public class ConfirmProductCompletionResult
         Success = false;
         ErrorMessage = errorMessage;
     }
-    
+
     public ConfirmProductCompletionResult()
     {
         Success = true;

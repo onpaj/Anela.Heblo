@@ -45,7 +45,7 @@ public class RecalculateProductWeightHandler : IRequestHandler<RecalculateProduc
                 Success = result.ErrorCount == 0
             };
 
-            _logger.LogInformation("Product weight recalculation completed via MediatR. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}", 
+            _logger.LogInformation("Product weight recalculation completed via MediatR. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}",
                 result.SuccessCount, result.ErrorCount, result.Duration);
 
             return response;
@@ -53,7 +53,7 @@ public class RecalculateProductWeightHandler : IRequestHandler<RecalculateProduc
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred during product weight recalculation in MediatR handler");
-            
+
             return new RecalculateProductWeightResponse
             {
                 ProcessedCount = 0,

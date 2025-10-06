@@ -16,7 +16,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
-        IProductNameFormatter  productNameFormatter,
+        IProductNameFormatter productNameFormatter,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService)
     {

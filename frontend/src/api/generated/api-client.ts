@@ -8683,6 +8683,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
     calculatedAmount?: number;
     price?: number;
     stockTotal?: number;
+    lastStockTaking?: Date | undefined;
 
     constructor(data?: ICalculatedIngredientDto) {
         if (data) {
@@ -8701,6 +8702,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
             this.calculatedAmount = _data["calculatedAmount"];
             this.price = _data["price"];
             this.stockTotal = _data["stockTotal"];
+            this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
         }
     }
 
@@ -8719,6 +8721,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
         data["calculatedAmount"] = this.calculatedAmount;
         data["price"] = this.price;
         data["stockTotal"] = this.stockTotal;
+        data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
         return data;
     }
 }
@@ -8730,6 +8733,7 @@ export interface ICalculatedIngredientDto {
     calculatedAmount?: number;
     price?: number;
     stockTotal?: number;
+    lastStockTaking?: Date | undefined;
 }
 
 export class CalculatedBatchSizeRequest implements ICalculatedBatchSizeRequest {

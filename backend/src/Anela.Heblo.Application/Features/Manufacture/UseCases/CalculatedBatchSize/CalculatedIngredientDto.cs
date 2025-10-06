@@ -8,4 +8,5 @@ public class CalculatedIngredientDto
     public double CalculatedAmount { get; set; }
     public decimal Price { get; set; }
     public decimal StockTotal { get; set; }
+    public DateTime? LastStockTaking { get; set; }
 }

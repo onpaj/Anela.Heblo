@@ -292,7 +292,7 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().HaveCount(1);
         var giftPackage = result.First();
-        
+
         // Daily sales should be around 180 sales / 90 days = 2.0 sales/day (approximately due to weekly distribution)
         giftPackage.DailySales.Should().BeApproximately(2.0m, 0.3m);
     }
@@ -304,7 +304,7 @@ public class GiftPackageManufactureServiceTests
         var giftPackageCode = "SET001";
         var customFromDate = new DateTime(2024, 1, 1);
         var customToDate = new DateTime(2024, 2, 29); // 2 month period = ~60 days
-        
+
         var product = CreateCatalogItemWithSpecificSalesData(giftPackageCode, "Test Gift Set 1", ProductType.Set, customFromDate, customToDate, 120); // 120 sales in 60 days = 2 sales/day
         var ingredients = CreateTestIngredients();
 
@@ -327,7 +327,7 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Code.Should().Be(giftPackageCode);
-        
+
         // Daily sales should be around 120 sales / 60 days = 2.0 sales/day (approximately due to weekly distribution)
         result.DailySales.Should().BeApproximately(2.0m, 0.3m);
     }

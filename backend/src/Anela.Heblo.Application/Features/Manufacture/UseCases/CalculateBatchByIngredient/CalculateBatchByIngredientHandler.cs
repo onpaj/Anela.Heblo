@@ -51,6 +51,11 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
             {
                 var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
 
+                // Get the latest stock taking date for this ingredient
+                var lastStockTaking = ingredientCatalog?.StockTakingHistory
+                    ?.OrderByDescending(st => st.Date)
+                    ?.FirstOrDefault()?.Date;
+
                 ingredientsWithStock.Add(new CalculatedIngredientDto
                 {
                     ProductCode = ingredient.ProductCode,
@@ -58,7 +63,8 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
                     OriginalAmount = ingredient.Amount,
                     CalculatedAmount = Math.Round(ingredient.Amount * scaleFactor, 2),
                     Price = ingredient.Price,
-                    StockTotal = ingredientCatalog?.Stock?.Total ?? 0
+                    StockTotal = ingredientCatalog?.Stock?.Total ?? 0,
+                    LastStockTaking = lastStockTaking
                 });
             }
 
