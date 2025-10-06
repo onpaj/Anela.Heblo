@@ -72,7 +72,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IIssuedOrdersClient, IssuedOrdersClient>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IBoMClient, BoMClient>();
-        
+
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
 
         services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();

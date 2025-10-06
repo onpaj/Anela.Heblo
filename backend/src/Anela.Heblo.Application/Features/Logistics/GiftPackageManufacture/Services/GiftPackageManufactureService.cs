@@ -235,7 +235,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         {
             return StockSeverity.Critical;
         }
-        
+
         // If suggestedQuantity < availableStock but greater than overstockMinimal, then severity is Severe (orange on UI)
         if (availableStock < suggestedQuantity)
         {

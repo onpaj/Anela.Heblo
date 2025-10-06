@@ -335,7 +335,7 @@ public class ManufactureOrderApplicationServiceTests
     {
         // Arrange
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
-        
+
         _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
@@ -464,9 +464,9 @@ public class ManufactureOrderApplicationServiceTests
     private void VerifyUpdateOrderCall()
     {
         _mediatorMock.Verify(x => x.Send(
-            It.Is<UpdateManufactureOrderRequest>(r => 
-                r.Id == ValidOrderId && 
-                r.SemiProduct != null && 
+            It.Is<UpdateManufactureOrderRequest>(r =>
+                r.Id == ValidOrderId &&
+                r.SemiProduct != null &&
                 r.SemiProduct.ActualQuantity == ValidQuantity),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -474,8 +474,8 @@ public class ManufactureOrderApplicationServiceTests
     private void VerifyUpdateProductsCall(Dictionary<int, decimal> productQuantities)
     {
         _mediatorMock.Verify(x => x.Send(
-            It.Is<UpdateManufactureOrderRequest>(r => 
-                r.Id == ValidOrderId && 
+            It.Is<UpdateManufactureOrderRequest>(r =>
+                r.Id == ValidOrderId &&
                 r.Products != null &&
                 r.Products.Count == productQuantities.Count),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -503,7 +503,7 @@ public class ManufactureOrderApplicationServiceTests
         bool expectedManualActionRequired)
     {
         _mediatorMock.Verify(x => x.Send(
-            It.Is<UpdateManufactureOrderStatusRequest>(r => 
+            It.Is<UpdateManufactureOrderStatusRequest>(r =>
                 r.Id == ValidOrderId &&
                 r.NewState == expectedState &&
                 r.SemiProductOrderCode == expectedSemiProductCode &&

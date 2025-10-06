@@ -14,6 +14,6 @@ public class CatalogAttributes
     public ProductType ProductType { get; set; }
     public int[] SeasonMonthsArray { get; set; } = Array.Empty<int>();
     public int ExpirationMonths { get; set; } = 12;
-    
+
     public double AllowedResiduePercentage { get; set; } = 0;
 }

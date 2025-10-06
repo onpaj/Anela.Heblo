@@ -63,7 +63,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
             return number;
         return @default;
     }
-    
+
     private static double StrToDoubleDef(string? s, double @default)
     {
         double number;

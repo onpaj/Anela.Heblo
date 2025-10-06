@@ -11,7 +11,7 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
     private readonly IManufactureOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ResolveManualActionHandler> _logger;
-    
+
     public ResolveManualActionHandler(
         IManufactureOrderRepository repository,
         ICurrentUserService currentUserService,

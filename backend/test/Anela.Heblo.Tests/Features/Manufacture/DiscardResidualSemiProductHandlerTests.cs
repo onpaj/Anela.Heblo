@@ -80,10 +80,10 @@ public class DiscardResidualSemiProductHandlerTests
         result.Details.Should().Be("Successfully auto-discarded 5 units");
 
         _manufactureClientMock.Verify(x => x.DiscardResidualSemiProductAsync(
-            It.Is<DomainRequest>(r => 
-                r.ManufactureOrderCode == "TEST001" && 
+            It.Is<DomainRequest>(r =>
+                r.ManufactureOrderCode == "TEST001" &&
                 r.ProductCode == "SP001001" &&
-                r.ProductName == "Test Semi Product"), 
+                r.ProductName == "Test Semi Product"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -247,7 +247,7 @@ public class DiscardResidualSemiProductHandlerTests
 
         // Verify that the manufacture client was not called when product is not found
         _manufactureClientMock.Verify(x => x.DiscardResidualSemiProductAsync(
-            It.IsAny<DomainRequest>(), 
+            It.IsAny<DomainRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 }

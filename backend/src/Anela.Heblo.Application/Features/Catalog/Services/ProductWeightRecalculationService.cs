@@ -67,7 +67,7 @@ public class ProductWeightRecalculationService : IProductWeightRecalculationServ
             result.Duration = stopwatch.Elapsed;
             result.EndTime = DateTime.UtcNow;
 
-            _logger.LogInformation("Product weight recalculation completed. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}", 
+            _logger.LogInformation("Product weight recalculation completed. Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}",
                 result.SuccessCount, result.ErrorCount, result.Duration);
 
             return result;
@@ -75,13 +75,13 @@ public class ProductWeightRecalculationService : IProductWeightRecalculationServ
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to complete product weight recalculation");
-            
+
             stopwatch.Stop();
             result.Duration = stopwatch.Elapsed;
             result.EndTime = DateTime.UtcNow;
             result.ErrorMessages.Add($"Critical error: {ex.Message}");
             result.ErrorCount++;
-            
+
             return result;
         }
     }
@@ -142,10 +142,10 @@ public class ProductWeightRecalculationService : IProductWeightRecalculationServ
         {
             var errorMessage = $"Failed to recalculate weight for product {productCode}: {ex.Message}";
             _logger.LogError(ex, "Failed to recalculate weight for product {ProductCode}", productCode);
-            
+
             result.ErrorMessages.Add(errorMessage);
             result.ErrorCount = 1;
-            
+
             return result;
         }
         finally

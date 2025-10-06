@@ -145,12 +145,12 @@ public class FlexiManufactureClient : IManufactureClient
             // Step 1: Read current stock quantity for the semi-product
             var stockItems = await _stockClient.StockToDateAsync(request.CompletionDate, FlexiStockClient.SemiProductsWarehouseId, cancellationToken);
             var semiProductStock = stockItems.FirstOrDefault(s => s.ProductCode == request.ProductCode);
-            
+
             if (semiProductStock == null)
             {
-                _logger.LogDebug("No stock found for semi-product {SemiProductCode} in warehouse {WarehouseId}", 
+                _logger.LogDebug("No stock found for semi-product {SemiProductCode} in warehouse {WarehouseId}",
                     request.ProductCode, FlexiStockClient.SemiProductsWarehouseId);
-                
+
                 return new DiscardResidualSemiProductResponse
                 {
                     Success = true,
@@ -162,16 +162,16 @@ public class FlexiManufactureClient : IManufactureClient
             }
 
             var currentQuantity = (double)semiProductStock.Stock;
-            
-            _logger.LogDebug("Found {CurrentQuantity} units of semi-product {SemiProductCode} in stock", 
+
+            _logger.LogDebug("Found {CurrentQuantity} units of semi-product {SemiProductCode} in stock",
                 currentQuantity, request.ProductCode);
 
 
             if (currentQuantity > request.MaxAutoDiscardQuantity)
             {
-                _logger.LogWarning("Residual quantity {CurrentQuantity} exceeds auto-discard limit {MaxAutoDiscardQuantity} for product {SemiProductCode}", 
+                _logger.LogWarning("Residual quantity {CurrentQuantity} exceeds auto-discard limit {MaxAutoDiscardQuantity} for product {SemiProductCode}",
                     currentQuantity, request.MaxAutoDiscardQuantity, request.ProductCode);
-                
+
                 return new DiscardResidualSemiProductResponse
                 {
                     Success = false,
@@ -184,7 +184,7 @@ public class FlexiManufactureClient : IManufactureClient
 
 
             // Step 3: Create stock movement for discard (stock reduction)
-            _logger.LogDebug("Creating stock movement to discard {CurrentQuantity} units of {SemiProductCode}", 
+            _logger.LogDebug("Creating stock movement to discard {CurrentQuantity} units of {SemiProductCode}",
                 currentQuantity, request.ProductCode);
             string? movementReference;
             try
@@ -231,7 +231,7 @@ public class FlexiManufactureClient : IManufactureClient
                 var newDocumentId = Int32.Parse(newDocumentIdString);
                 var document = await _stockMovementClient.GetAsync(newDocumentId);
                 movementReference = document.FirstOrDefault()?.Document.DocumentCode;
-                
+
                 _logger.LogDebug("Successfully created stock movement {MovementReference} for discard", movementReference);
             }
             catch (Exception ex)
@@ -247,8 +247,8 @@ public class FlexiManufactureClient : IManufactureClient
                     Details = "Vytvoření skladového pohybu selhalo - vyžaduje ruční schválení"
                 };
             }
-            
-            _logger.LogInformation("Successfully discarded {CurrentQuantity} units of semi-product {SemiProductCode} for manufacture order {ManufactureOrderCode}", 
+
+            _logger.LogInformation("Successfully discarded {CurrentQuantity} units of semi-product {SemiProductCode} for manufacture order {ManufactureOrderCode}",
                 currentQuantity, request.ProductCode, request.ManufactureOrderCode);
 
             return new DiscardResidualSemiProductResponse
@@ -265,7 +265,7 @@ public class FlexiManufactureClient : IManufactureClient
         {
             _logger.LogError(ex, "Failed to discard residual semi-product for manufacture order {ManufactureOrderCode}: {ErrorMessage}",
                 request.ManufactureOrderCode, ex.Message);
-            
+
             return new DiscardResidualSemiProductResponse
             {
                 Success = false,

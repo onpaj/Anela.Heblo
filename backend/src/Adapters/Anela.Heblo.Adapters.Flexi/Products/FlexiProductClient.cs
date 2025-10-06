@@ -45,7 +45,7 @@ public class FlexiProductClient : IProductWeightClient
             _logger.LogError("Failed to update product Weight: {ErrorMessage}", result.GetErrorMessage());
             throw new InvalidOperationException($"Failed to update product Weight: {result.GetErrorMessage()}");
         }
-        
+
         return request.Weight;
-        }
+    }
 }

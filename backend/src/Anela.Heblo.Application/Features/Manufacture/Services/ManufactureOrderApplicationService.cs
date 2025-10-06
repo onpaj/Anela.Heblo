@@ -57,7 +57,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
             // Step 3: Change state to SemiProductManufactured
             var result = await UpdateOrderStatus(
-                orderId, 
+                orderId,
                 ManufactureOrderState.SemiProductManufactured,
                 changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
                 submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : submitManufactureResult.FullError(),
@@ -66,7 +66,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 discardDocumentCode: null,
                 !submitManufactureResult.Success,
                 cancellationToken);
-            
+
             if (!result.Success)
             {
                 _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
@@ -85,8 +85,8 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
     }
 
-    
-    
+
+
 
     public async Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
         int orderId,
@@ -111,30 +111,30 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             string? orderNote = null;
             // Step 2: Create manufacture via external client
             var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ManufactureType.Product, cancellationToken);
-            if(!submitManufactureResult.Success)
+            if (!submitManufactureResult.Success)
                 orderNote = submitManufactureResult.FullError();
-            
+
             DiscardResidualSemiProductResponse? discardResiduesResult = null;
             // Step 3: Dispose remaining semiproduct
             if (submitManufactureResult.Success)
             {
                 discardResiduesResult = await DiscardResidueMaterial(cancellationToken, updateResult);
-                if(!discardResiduesResult.Success)
+                if (!discardResiduesResult.Success)
                     orderNote = discardResiduesResult.Details ?? discardResiduesResult.FullError();
             }
 
             // Step 4: Change state to Completed
             var result = await UpdateOrderStatus(
-                orderId, 
+                orderId,
                 ManufactureOrderState.Completed,
                 changeReason ?? $"Potvrzeno dokončení výroby produktů",
-                orderNote ?? $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId} (+ {discardResiduesResult!.StockMovementReference})", 
+                orderNote ?? $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId} (+ {discardResiduesResult!.StockMovementReference})",
                 semiproductDocumentCode: null,
                 productDocumentCode: submitManufactureResult.ManufactureId,
                 discardDocumentCode: discardResiduesResult?.StockMovementReference,
                 manualActionRequired: !submitManufactureResult.Success || discardResiduesResult == null || !discardResiduesResult.Success || discardResiduesResult.RequiresManualApproval,
                 cancellationToken);
-           
+
             if (!result.Success)
             {
                 _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
@@ -152,7 +152,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
     }
 
-    
+
 
     private async Task<DiscardResidualSemiProductResponse> DiscardResidueMaterial(CancellationToken cancellationToken,
         UpdateManufactureOrderResponse updateResult)
@@ -192,9 +192,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     }
 
     private async Task<UpdateManufactureOrderStatusResponse> UpdateOrderStatus(
-        int orderId, 
+        int orderId,
         ManufactureOrderState targetState,
-        string changeReason, 
+        string changeReason,
         string note,
         string? semiproductDocumentCode,
         string? productDocumentCode,
@@ -218,13 +218,13 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         var statusResult = await _mediator.Send(statusRequest, cancellationToken);
         return statusResult;
     }
-    
+
     private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(int orderId, UpdateManufactureOrderDto order, ManufactureType type, CancellationToken cancellationToken)
     {
         string manufactureName;
         List<SubmitManufactureRequestItem> items;
         var semiProduct = order!.SemiProduct;
-        
+
         if (type == ManufactureType.Product)
         {
             manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)} {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
@@ -248,7 +248,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 }
             };
         }
-        
+
         var submitManufactureRequest = new SubmitManufactureRequest
         {
             ManufactureOrderNumber = order.OrderNumber,
@@ -272,7 +272,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             submitManufactureResult.ManufactureId, orderId);
         return submitManufactureResult;
     }
-    
+
 
     private async Task<UpdateManufactureOrderResponse> UpdateSemiProductQuantity(int orderId, decimal actualQuantity, CancellationToken cancellationToken)
     {
