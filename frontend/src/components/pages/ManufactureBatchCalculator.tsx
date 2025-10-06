@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
-import InventoryModal from "../inventory/InventoryModal";
+import ManufactureInventoryModal from "../inventory/ManufactureInventoryDetail";
 import InventoryStatusCell from "../inventory/InventoryStatusCell";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
@@ -60,16 +60,28 @@ const ManufactureBatchCalculator: React.FC = () => {
         const templateData = await getBatchTemplate(product.productCode || "");
         if (templateData.success) {
           setTemplate(templateData);
-          // Set desired batch size to original batch size when loading recipe
-          const originalBatchSize = templateData.originalBatchSize?.toString() || "";
-          setDesiredBatchSize(originalBatchSize);
           
-          // Automatically calculate with original batch size
-          if (templateData.originalBatchSize) {
+          // Check if there's a batch size from URL parameters
+          const params = new URLSearchParams(location.search);
+          const urlBatchSize = params.get('batchSize');
+          
+          let batchSizeToUse: number;
+          if (urlBatchSize && parseFloat(urlBatchSize) > 0) {
+            // Use batch size from URL
+            batchSizeToUse = parseFloat(urlBatchSize);
+            setDesiredBatchSize(urlBatchSize);
+          } else {
+            // Use original batch size from template
+            batchSizeToUse = templateData.originalBatchSize || 0;
+            setDesiredBatchSize(templateData.originalBatchSize?.toString() || "");
+          }
+          
+          // Automatically calculate with the determined batch size
+          if (batchSizeToUse > 0) {
             try {
               const result = await calculateBySize(
                 product.productCode || "",
-                templateData.originalBatchSize,
+                batchSizeToUse,
               );
 
               if (result.success) {
@@ -84,7 +96,7 @@ const ManufactureBatchCalculator: React.FC = () => {
         console.error("Error loading template:", error);
       }
     }
-  }, [getBatchTemplate, calculateBySize]);
+  }, [getBatchTemplate, calculateBySize, location.search]);
 
   // Handle URL parameters for direct navigation from ManufactureOrder
   useEffect(() => {
@@ -93,6 +105,9 @@ const ManufactureBatchCalculator: React.FC = () => {
     const batchSize = params.get('batchSize');
     
     if (productCode && batchSize && !selectedProduct) {
+      // Set batch size first
+      setDesiredBatchSize(batchSize);
+      
       // Create a minimal CatalogItemDto for auto-selection
       const autoSelectedProduct = new CatalogItemDto({
         productCode: productCode,
@@ -100,11 +115,7 @@ const ManufactureBatchCalculator: React.FC = () => {
         type: ProductType.SemiProduct
       });
       
-      // Auto-select the product and set batch size
-      setSelectedProduct(autoSelectedProduct);
-      setDesiredBatchSize(batchSize);
-      
-      // Load template and calculate automatically
+      // Auto-select the product - this will load template and calculate with URL batchSize
       handleProductSelect(autoSelectedProduct);
     }
   }, [location.search, selectedProduct, handleProductSelect]);
@@ -566,10 +577,16 @@ const ManufactureBatchCalculator: React.FC = () => {
                           {stockTotal.toFixed(2)}g
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td 
+                        className="px-6 py-4 whitespace-nowrap text-center"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent catalog detail from opening
+                          handleInventoryClick(ingredient.productCode || "", ingredient.productName || "");
+                        }}
+                      >
                         <InventoryStatusCell
                           lastStockTaking={ingredient.lastStockTaking}
-                          onClick={() => handleInventoryClick(ingredient.productCode || "", ingredient.productName || "")}
+                          onClick={() => {}} // Empty onClick as we handle it at the cell level
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -628,8 +645,8 @@ const ManufactureBatchCalculator: React.FC = () => {
         defaultTab="basic"
       />
 
-      {/* Inventory Modal */}
-      <InventoryModal
+      {/* Manufacture Inventory Modal */}
+      <ManufactureInventoryModal
         item={selectedInventoryItem}
         isOpen={isInventoryModalOpen}
         onClose={handleCloseInventoryModal}
