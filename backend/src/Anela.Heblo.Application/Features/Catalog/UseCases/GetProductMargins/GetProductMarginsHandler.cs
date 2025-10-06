@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -11,26 +12,18 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 
 public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest, GetProductMarginsResponse>
 {
-    private const int AverageCostHistoryMonthsCount = 6;
-
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILedgerService _ledgerService;
-    private readonly TimeProvider _timeProvider;
-    private readonly SafeMarginCalculator _marginCalculator;
+    private readonly IMarginCalculationService _marginCalculationService;
     private readonly ILogger<GetProductMarginsHandler> _logger;
 
     public GetProductMarginsHandler(
         ICatalogRepository catalogRepository,
-        ILedgerService ledgerService,
-        TimeProvider timeProvider,
-        SafeMarginCalculator marginCalculator,
+        IMarginCalculationService marginCalculationService,
         ILogger<GetProductMarginsHandler> logger
         )
     {
         _catalogRepository = catalogRepository;
-        _ledgerService = ledgerService;
-        _timeProvider = timeProvider;
-        _marginCalculator = marginCalculator;
+        _marginCalculationService = marginCalculationService;
         _logger = logger;
     }
 
@@ -51,7 +44,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             var totalCount = filteredItems.Count;
 
             // Create DTOs with calculated values and error handling
-            var itemsWithCalculatedValues = CreateMargins(filteredItems);
+            var itemsWithCalculatedValues = await CreateMarginsAsync(filteredItems, cancellationToken);
 
             // Apply sorting in memory
             itemsWithCalculatedValues = ApplySortingInMemory(itemsWithCalculatedValues, request.SortBy, request.SortDescending);
@@ -138,7 +131,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private List<ProductMarginDto> CreateMargins(List<CatalogAggregate> products)
+    private async Task<List<ProductMarginDto>> CreateMarginsAsync(List<CatalogAggregate> products, CancellationToken cancellationToken)
     {
         var results = new List<ProductMarginDto>();
 
@@ -146,7 +139,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         {
             try
             {
-                var dto = MapToMarginDto(product);
+                var dto = await MapToMarginDtoAsync(product, cancellationToken);
                 results.Add(dto);
             }
             catch (Exception ex)
@@ -173,17 +166,59 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         return results;
     }
 
-    private ProductMarginDto MapToMarginDto(CatalogAggregate product)
+    private async Task<ProductMarginDto> MapToMarginDtoAsync(CatalogAggregate product, CancellationToken cancellationToken)
     {
         try
         {
+            // Calculate margins using the domain service
+            var marginResult = await _marginCalculationService.CalculateAllMarginLevelsAsync(product, cancellationToken);
+            var monthlyHistory = await _marginCalculationService.CalculateMonthlyMarginHistoryAsync(product, 13, cancellationToken);
+
             var dto = new ProductMarginDto
             {
                 ProductCode = product?.ProductCode ?? "UNKNOWN",
                 ProductName = product?.ProductName ?? "Unknown Product",
                 ManufactureDifficulty = product?.ManufactureDifficulty ?? 0,
+
+                // Keep existing margin calculation for backward compatibility
                 MarginPercentage = product?.MarginPercentage ?? 0,
-                MarginAmount = product?.MarginAmount ?? 0
+                MarginAmount = product?.MarginAmount ?? 0,
+
+                // Current month M0-M3 margins
+                M0Percentage = marginResult.M0.Percentage,
+                M0Amount = marginResult.M0.Amount,
+                M1Percentage = marginResult.M1.Percentage,
+                M1Amount = marginResult.M1.Amount,
+                M2Percentage = marginResult.M2.Percentage,
+                M2Amount = marginResult.M2.Amount,
+                M3Percentage = marginResult.M3.Percentage,
+                M3Amount = marginResult.M3.Amount,
+
+                // 12-month averages
+                M0PercentageAvg12M = marginResult.M0Average12Months.Percentage,
+                M1PercentageAvg12M = marginResult.M1Average12Months.Percentage,
+                M2PercentageAvg12M = marginResult.M2Average12Months.Percentage,
+                M3PercentageAvg12M = marginResult.M3Average12Months.Percentage,
+
+                // Cost components for tooltips
+                MaterialCost = marginResult.CostBreakdown.MaterialCost > 0 ? marginResult.CostBreakdown.MaterialCost : null,
+                ManufacturingCost = marginResult.CostBreakdown.ManufacturingCost > 0 ? marginResult.CostBreakdown.ManufacturingCost : null,
+                SalesCost = marginResult.CostBreakdown.SalesCost > 0 ? marginResult.CostBreakdown.SalesCost : null,
+                TotalCosts = marginResult.CostBreakdown.M3Cost > 0 ? marginResult.CostBreakdown.M3Cost : null,
+
+                // Monthly history for charts
+                MonthlyHistory = monthlyHistory.MonthlyData.Select(m => new MonthlyMarginDto
+                {
+                    Month = m.Month,
+                    M0Percentage = m.M0.Percentage,
+                    M1Percentage = m.M1.Percentage,
+                    M2Percentage = m.M2.Percentage,
+                    M3Percentage = m.M3.Percentage,
+                    MaterialCost = m.CostsForMonth.MaterialCost,
+                    ManufacturingCost = m.CostsForMonth.ManufacturingCost,
+                    SalesCost = m.CostsForMonth.SalesCost,
+                    TotalCosts = m.CostsForMonth.M3Cost
+                }).ToList()
             };
 
             dto.PriceWithoutVat = product?.PriceWithoutVat;
@@ -200,27 +235,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 dto.PurchasePrice = null;
             }
 
-            // Safe material cost calculation
-            try
-            {
-                dto.AverageMaterialCost = CalculateAverageMaterialCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to calculate average material cost for product {ProductCode}", product?.ProductCode);
-                dto.AverageMaterialCost = null;
-            }
-
-            // Safe handling cost calculation
-            try
-            {
-                dto.AverageHandlingCost = CalculateAverageHandlingCostFromHistory(product?.ManufactureCostHistory ?? new List<ManufactureCost>());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to calculate average handling cost for product {ProductCode}", product?.ProductCode);
-                dto.AverageHandlingCost = null;
-            }
+            // Use cost breakdown from margin calculation service for backward compatibility
+            dto.AverageMaterialCost = marginResult.CostBreakdown.MaterialCost > 0 ? marginResult.CostBreakdown.MaterialCost : null;
+            dto.AverageHandlingCost = marginResult.CostBreakdown.ManufacturingCost > 0 ? marginResult.CostBreakdown.ManufacturingCost : null;
 
             return dto;
         }
@@ -231,49 +248,6 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private static decimal? CalculateAverageMaterialCostFromHistory(List<ManufactureCost> manufactureCostHistory)
-    {
-        if (manufactureCostHistory == null || manufactureCostHistory.Count == 0)
-        {
-            return null;
-        }
-
-        // Exclude zero values as requested, order by date descending, take last 6
-        var lastSixNonZeroCosts = manufactureCostHistory
-            .Where(c => c.MaterialCost > 0)
-            .OrderByDescending(c => c.Date)
-            .Take(AverageCostHistoryMonthsCount)
-            .ToList();
-
-        if (lastSixNonZeroCosts.Count == 0)
-        {
-            return null;
-        }
-
-        return lastSixNonZeroCosts.Average(c => c.MaterialCost);
-    }
-
-    private static decimal? CalculateAverageHandlingCostFromHistory(List<ManufactureCost> manufactureCostHistory)
-    {
-        if (manufactureCostHistory == null || manufactureCostHistory.Count == 0)
-        {
-            return null;
-        }
-
-        // Exclude zero values as requested, order by date descending, take last 6
-        var lastSixNonZeroCosts = manufactureCostHistory
-            .Where(c => c.HandlingCost > 0)
-            .OrderByDescending(c => c.Date)
-            .Take(AverageCostHistoryMonthsCount)
-            .ToList();
-
-        if (lastSixNonZeroCosts.Count == 0)
-        {
-            return null;
-        }
-
-        return lastSixNonZeroCosts.Average(c => c.HandlingCost);
-    }
 
     private static List<ProductMarginDto> ApplySortingInMemory(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
     {
