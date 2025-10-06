@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
+import InventoryModal from "../inventory/InventoryModal";
+import InventoryStatusCell from "../inventory/InventoryStatusCell";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 type CalculationMode = "batch-size" | "ingredient";
 
@@ -33,6 +35,10 @@ const ManufactureBatchCalculator: React.FC = () => {
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItemDto | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
 
+  // Modal state for inventory
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<CatalogItemDto | null>(null);
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
   const {
     getBatchTemplate,
     calculateBySize,
@@ -41,8 +47,9 @@ const ManufactureBatchCalculator: React.FC = () => {
   } = useManufactureBatch();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleProductSelect = async (product: CatalogItemDto | null) => {
+  const handleProductSelect = useCallback(async (product: CatalogItemDto | null) => {
     setSelectedProduct(product);
     setCalculationResult(null);
     setTemplate(null);
@@ -77,7 +84,30 @@ const ManufactureBatchCalculator: React.FC = () => {
         console.error("Error loading template:", error);
       }
     }
-  };
+  }, [getBatchTemplate, calculateBySize]);
+
+  // Handle URL parameters for direct navigation from ManufactureOrder
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const productCode = params.get('productCode');
+    const batchSize = params.get('batchSize');
+    
+    if (productCode && batchSize && !selectedProduct) {
+      // Create a minimal CatalogItemDto for auto-selection
+      const autoSelectedProduct = new CatalogItemDto({
+        productCode: productCode,
+        productName: productCode, // Will be updated when template loads
+        type: ProductType.SemiProduct
+      });
+      
+      // Auto-select the product and set batch size
+      setSelectedProduct(autoSelectedProduct);
+      setDesiredBatchSize(batchSize);
+      
+      // Load template and calculate automatically
+      handleProductSelect(autoSelectedProduct);
+    }
+  }, [location.search, selectedProduct, handleProductSelect]);
 
   const handleCalculateBySize = async () => {
     if (!selectedProduct || !desiredBatchSize) return;
@@ -138,6 +168,28 @@ const ManufactureBatchCalculator: React.FC = () => {
   const handleCloseCatalogDetail = () => {
     setIsCatalogDetailOpen(false);
     setSelectedCatalogItem(null);
+  };
+
+  const handleInventoryClick = (productCode: string, productName: string) => {
+    // Create a minimal CatalogItemDto for the inventory modal
+    const catalogItem = new CatalogItemDto({
+      productCode: productCode,
+      productName: productName,
+      type: ProductType.Material, // Ingredients are typically materials
+    });
+    
+    setSelectedInventoryItem(catalogItem);
+    setIsInventoryModalOpen(true);
+  };
+
+  const handleCloseInventoryModal = () => {
+    setIsInventoryModalOpen(false);
+    setSelectedInventoryItem(null);
+    
+    // Refresh calculation to get updated inventory data
+    if (selectedProduct && desiredBatchSize) {
+      handleCalculateBySize();
+    }
   };
 
   const handleGoToBatchPlanning = () => {
@@ -467,6 +519,9 @@ const ManufactureBatchCalculator: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Skladem
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Posl. inventura
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rozdíl
                   </th>
@@ -510,6 +565,12 @@ const ManufactureBatchCalculator: React.FC = () => {
                         >
                           {stockTotal.toFixed(2)}g
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <InventoryStatusCell
+                          lastStockTaking={ingredient.lastStockTaking}
+                          onClick={() => handleInventoryClick(ingredient.productCode || "", ingredient.productName || "")}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span
@@ -565,6 +626,13 @@ const ManufactureBatchCalculator: React.FC = () => {
         isOpen={isCatalogDetailOpen}
         onClose={handleCloseCatalogDetail}
         defaultTab="basic"
+      />
+
+      {/* Inventory Modal */}
+      <InventoryModal
+        item={selectedInventoryItem}
+        isOpen={isInventoryModalOpen}
+        onClose={handleCloseInventoryModal}
       />
 
     </div>

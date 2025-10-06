@@ -435,6 +435,23 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     }
   };
 
+  const handleGoToBatchCalculator = () => {
+    if (!order?.semiProduct) return;
+
+    // Get the semi-product data for navigation parameters
+    const productCode = order.semiProduct.productCode;
+    const plannedQuantity = order.semiProduct.plannedQuantity;
+
+    if (productCode && plannedQuantity) {
+      // Navigate to batch calculator with URL parameters
+      const params = new URLSearchParams({
+        productCode: productCode,
+        batchSize: plannedQuantity.toString()
+      });
+      navigate(`/manufacturing/batch-calculator?${params.toString()}`);
+    }
+  };
+
   // Validation
   if (!isModalMode && (!id || isNaN(urlOrderId) || urlOrderId <= 0)) {
     return <Navigate to="/manufacturing/orders" replace />;
@@ -628,6 +645,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         onDuplicate={handleDuplicate}
         onClose={handleCloseWithWeekNavigation}
         onSave={handleSave}
+        onBatchCalculator={handleGoToBatchCalculator}
         isUpdateLoading={updateOrderMutation.isPending}
         isDuplicateLoading={duplicateOrderMutation.isPending}
       />
