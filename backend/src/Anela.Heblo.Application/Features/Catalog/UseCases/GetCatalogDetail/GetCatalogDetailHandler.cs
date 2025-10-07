@@ -5,6 +5,7 @@ using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using AutoMapper;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 
@@ -15,19 +16,22 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
     private readonly IMarginCalculationService _marginCalculationService;
+    private readonly ILogger<GetCatalogDetailHandler> _logger;
 
     public GetCatalogDetailHandler(
         ICatalogRepository catalogRepository,
         ILotsClient lotsClient,
         IMapper mapper,
         TimeProvider timeProvider,
-        IMarginCalculationService marginCalculationService)
+        IMarginCalculationService marginCalculationService,
+        ILogger<GetCatalogDetailHandler> logger)
     {
         _catalogRepository = catalogRepository;
         _lotsClient = lotsClient;
         _mapper = mapper;
         _timeProvider = timeProvider;
         _marginCalculationService = marginCalculationService;
+        _logger = logger;
     }
 
     public async Task<GetCatalogDetailResponse> Handle(GetCatalogDetailRequest request, CancellationToken cancellationToken)
@@ -52,7 +56,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         var purchaseHistory = GetPurchaseHistoryFromAggregate(catalogItem, request.MonthsBack);
         var consumedHistory = GetConsumedHistoryFromAggregate(catalogItem, request.MonthsBack);
         var manufactureHistory = GetManufactureHistoryFromAggregate(catalogItem, request.MonthsBack);
-        var manufactureCostHistory = GetManufactureCostHistoryFromAggregate(catalogItem, request.MonthsBack);
+        var manufactureCostHistory = await GetManufactureCostHistoryFromMarginServiceAsync(catalogItem, request.MonthsBack, cancellationToken);
         var marginHistory = await GetMarginHistoryFromMarginService(catalogItem, request.MonthsBack, cancellationToken);
 
         // Get catalog item DTO
@@ -200,37 +204,46 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
             }).ToList();
     }
 
-    private List<ManufactureCostDto> GetManufactureCostHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
+    private async Task<List<ManufactureCostDto>> GetManufactureCostHistoryFromMarginServiceAsync(CatalogAggregate catalogItem, int monthsBack, CancellationToken cancellationToken)
     {
-        // Return individual manufacture cost records
-        var currentDate = _timeProvider.GetUtcNow().Date;
-
-        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
-        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
+        try
         {
-            return catalogItem.ManufactureCostHistory
-                .OrderByDescending(mc => mc.Date)
-                .Select(mc => new ManufactureCostDto
+            var currentDate = _timeProvider.GetUtcNow().Date;
+
+            // Calculate date range
+            DateOnly dateFrom;
+            DateOnly dateTo = DateOnly.FromDateTime(currentDate);
+
+            if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
+            {
+                // For "all history", start from a very early date
+                dateFrom = new DateOnly(2020, 1, 1);
+            }
+            else
+            {
+                var fromDate = currentDate.AddMonths(-monthsBack);
+                dateFrom = DateOnly.FromDateTime(fromDate);
+            }
+
+            // Get margin data from service which includes cost breakdown
+            var marginHistory = await _marginCalculationService.GetMarginAsync(catalogItem, dateFrom, dateTo, cancellationToken);
+
+            // Convert margin history to ManufactureCostDto format
+            return marginHistory.MonthlyData
+                .OrderByDescending(m => m.Month)
+                .Select(m => new ManufactureCostDto
                 {
-                    Date = mc.Date,
-                    MaterialCost = mc.MaterialCost,
-                    HandlingCost = mc.HandlingCost,
-                    Total = mc.Total
+                    Date = m.Month, // DateTime is compatible
+                    MaterialCost = m.CostsForMonth.MaterialCost,
+                    HandlingCost = m.CostsForMonth.ManufacturingCost, // Map ManufacturingCost to HandlingCost
+                    Total = m.CostsForMonth.MaterialCost + m.CostsForMonth.ManufacturingCost
                 }).ToList();
         }
-
-        var fromDate = currentDate.AddMonths(-monthsBack);
-
-        return catalogItem.ManufactureCostHistory
-            .Where(mc => mc.Date >= fromDate)
-            .OrderByDescending(mc => mc.Date)
-            .Select(mc => new ManufactureCostDto
-            {
-                Date = mc.Date,
-                MaterialCost = mc.MaterialCost,
-                HandlingCost = mc.HandlingCost,
-                Total = mc.Total
-            }).ToList();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting manufacture cost history for product {ProductCode}", catalogItem.ProductCode);
+            return new List<ManufactureCostDto>();
+        }
     }
 
     private async Task<List<MarginHistoryDto>> GetMarginHistoryFromMarginService(CatalogAggregate catalogItem, int monthsBack, CancellationToken cancellationToken)

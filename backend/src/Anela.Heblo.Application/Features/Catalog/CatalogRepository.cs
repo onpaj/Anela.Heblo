@@ -446,15 +446,7 @@ public class CatalogRepository : ICatalogRepository
                 product.ManufactureDifficultySettings.Assign(difficultySettings.ToList(), _timeProvider.GetUtcNow().UtcDateTime);
             }
 
-            if (CachedManufactureCostData.TryGetValue(product.ProductCode, out var costHistory))
-            {
-                product.ManufactureCostHistory = costHistory.ToList();
-                if (product.ErpPrice != null)
-                    product.ManufactureCostHistory.ForEach(f => f.MaterialCostFromPurchasePrice = product.ErpPrice.PurchasePrice);
-            }
-
-            // Calculate margin after all data (including EshopPrice and ManufactureCostHistory) is populated
-            product.UpdateMarginCalculation();
+            // Legacy margin calculation removed - now handled by IMarginCalculationService on-demand
         }
 
         // Set last merge timestamp

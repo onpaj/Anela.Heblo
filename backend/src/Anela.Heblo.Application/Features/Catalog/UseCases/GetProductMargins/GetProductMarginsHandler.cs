@@ -159,8 +159,14 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                     AverageSalesCost = null,
                     AverageOverheadCost = null,
                     ManufactureDifficulty = 0,
-                    MarginPercentage = 0,
-                    MarginAmount = 0
+                    M0Percentage = 0,
+                    M0Amount = 0,
+                    M1Percentage = 0,
+                    M1Amount = 0,
+                    M2Percentage = 0,
+                    M2Amount = 0,
+                    M3Percentage = 0,
+                    M3Amount = 0
                 });
             }
         }
@@ -183,9 +189,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ProductName = product?.ProductName ?? "Unknown Product",
                 ManufactureDifficulty = product?.ManufactureDifficulty ?? 0,
 
-                // Keep existing margin calculation for backward compatibility
-                MarginPercentage = product?.MarginPercentage ?? 0,
-                MarginAmount = product?.MarginAmount ?? 0,
+                // Legacy margin properties removed - using M0-M3 levels instead
 
                 // Average month M0-M3 margins
                 M0Percentage = monthlyHistory.Averages.M0.Percentage,
@@ -248,10 +252,10 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     {
         if (string.IsNullOrWhiteSpace(sortBy))
         {
-            // Default sorting by MarginPercentage descending (highest margins first)
+            // Default sorting by ProductCode (since legacy MarginPercentage is removed)
             return sortDescending
-                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
-                : items.OrderBy(x => x.MarginPercentage).ToList();
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList();
         }
 
         return sortBy.ToLower() switch
@@ -271,9 +275,6 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "manufacturedifficulty" => sortDescending
                 ? items.OrderByDescending(x => x.ManufactureDifficulty ?? 0).ToList()
                 : items.OrderBy(x => x.ManufactureDifficulty ?? 0).ToList(),
-            "marginpercentage" => sortDescending
-                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
-                : items.OrderBy(x => x.MarginPercentage).ToList(),
             // For complex calculated fields, we'll use basic name sorting as fallback
             "averagematerialcost" => sortDescending
                 ? items.OrderByDescending(x => x.ProductName).ToList()
@@ -282,8 +283,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ? items.OrderByDescending(x => x.ProductName).ToList()
                 : items.OrderBy(x => x.ProductName).ToList(),
             _ => sortDescending
-                ? items.OrderByDescending(x => x.MarginPercentage).ToList()
-                : items.OrderBy(x => x.MarginPercentage).ToList()
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList()
         };
     }
 }

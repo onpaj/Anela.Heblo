@@ -124,17 +124,8 @@ public class CatalogAggregate : Entity<string>
     public double MinimalManufactureQuantity { get; set; } = 0;
     public double? ManufactureDifficulty => ManufactureDifficultySettings.ManufactureDifficulty;
 
-    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
-    public List<ManufactureCost> ManufactureCostHistory { get; set; } = new();
-
     // Manufacture difficulty settings - historical data and current value
     public ManufactureDifficultyConfiguration ManufactureDifficultySettings { get; set; } = new();
-
-    // Margin properties - calculated after ManufactureCostHistory is populated
-    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
-    public decimal MarginPercentage { get; set; } = 0;
-    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
-    public decimal MarginAmount { get; set; } = 0;
 
     // Readonly PROPS
     public bool IsSameFamily(CatalogAggregate product) => product.ProductFamily == this.ProductFamily;
@@ -279,45 +270,6 @@ public class CatalogAggregate : Entity<string>
     }
 
 
-    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
-    public void UpdateMarginCalculation()
-    {
-        decimal averageTotalCost = 0;
-
-        // First try to use manufacturing cost history for manufactured products
-        if (ManufactureCostHistory.Count > 0)
-        {
-            averageTotalCost = ManufactureCostHistory
-                .Average(record => record.Total);
-        }
-        // Fallback to ERP purchase price for purchased products
-        else if (ErpPrice?.PurchasePrice > 0)
-        {
-            averageTotalCost = ErpPrice.PurchasePrice;
-        }
-
-        // If no cost data available, set margins to zero
-        if (averageTotalCost == 0)
-        {
-            MarginPercentage = 0;
-            MarginAmount = 0;
-            return;
-        }
-
-        // Get selling price without VAT from eshop
-        var sellingPrice = PriceWithoutVat ?? 0;
-
-        if (sellingPrice > 0)
-        {
-            MarginAmount = sellingPrice - averageTotalCost;
-            MarginPercentage = (MarginAmount / sellingPrice) * 100;
-        }
-        else
-        {
-            MarginPercentage = 0;
-            MarginAmount = 0;
-        }
-    }
 
     /// <summary>
     /// Synchronizes stock taking results with the catalog aggregate.

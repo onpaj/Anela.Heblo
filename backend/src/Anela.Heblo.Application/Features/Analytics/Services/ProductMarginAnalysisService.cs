@@ -1,11 +1,18 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
 public class ProductMarginAnalysisService : IProductMarginAnalysisService
 {
+    private readonly Domain.Features.Catalog.Services.IMarginCalculationService _marginCalculationService;
+
+    public ProductMarginAnalysisService(Domain.Features.Catalog.Services.IMarginCalculationService marginCalculationService)
+    {
+        _marginCalculationService = marginCalculationService;
+    }
     public (DateTime fromDate, DateTime toDate) ParseTimeWindow(string timeWindow)
     {
         var today = DateTime.Today;
@@ -21,13 +28,24 @@ public class ProductMarginAnalysisService : IProductMarginAnalysisService
         };
     }
 
-    public Dictionary<string, decimal> CalculateGroupTotalMargin(List<CatalogAggregate> products, DateTime fromDate, DateTime toDate, ProductGroupingMode groupingMode)
+    public async Task<Dictionary<string, decimal>> CalculateGroupTotalMarginAsync(List<CatalogAggregate> products, DateTime fromDate, DateTime toDate, ProductGroupingMode groupingMode, CancellationToken cancellationToken = default)
     {
         var groupMarginMap = new Dictionary<string, decimal>();
 
         foreach (var product in products)
         {
-            if (product.MarginAmount <= 0)
+            // Use IMarginCalculationService to get current margin
+            var marginData = await _marginCalculationService.GetMarginAsync(
+                product, 
+                DateOnly.FromDateTime(fromDate), 
+                DateOnly.FromDateTime(toDate), 
+                cancellationToken);
+            
+            // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
+            var latestMargin = marginData.MonthlyData.LastOrDefault();
+            var marginAmount = latestMargin?.M0.Amount ?? 0;
+            
+            if (marginAmount <= 0)
                 continue;
 
             // Get group key for this product
@@ -39,7 +57,7 @@ public class ProductMarginAnalysisService : IProductMarginAnalysisService
                 .Sum(s => s.AmountB2B + s.AmountB2C);
 
             // Calculate total margin contribution (units sold * margin per piece)
-            var totalMargin = totalSold * (double)product.MarginAmount;
+            var totalMargin = totalSold * (double)marginAmount;
 
             // Add to group total
             if (groupMarginMap.ContainsKey(groupKey))
@@ -85,17 +103,29 @@ public class ProductMarginAnalysisService : IProductMarginAnalysisService
         };
     }
 
-    public decimal CalculateMaterialCosts(CatalogAggregate product)
+    public async Task<decimal> CalculateMaterialCostsAsync(CatalogAggregate product, CancellationToken cancellationToken = default)
     {
-        // Get latest manufacturing costs or return zero if not available
-        var latestCost = product.ManufactureCostHistory.LastOrDefault();
-        return latestCost?.MaterialCost ?? 0;
+        var currentDate = DateTime.UtcNow;
+        var marginData = await _marginCalculationService.GetMarginAsync(
+            product, 
+            DateOnly.FromDateTime(currentDate.AddMonths(-1)), 
+            DateOnly.FromDateTime(currentDate), 
+            cancellationToken);
+        
+        var latestMargin = marginData.MonthlyData.LastOrDefault();
+        return latestMargin?.CostsForMonth.MaterialCost ?? 0;
     }
 
-    public decimal CalculateLaborCosts(CatalogAggregate product)
+    public async Task<decimal> CalculateLaborCostsAsync(CatalogAggregate product, CancellationToken cancellationToken = default)
     {
-        // Get latest manufacturing costs or return zero if not available  
-        var latestCost = product.ManufactureCostHistory.LastOrDefault();
-        return latestCost?.HandlingCost ?? 0;
+        var currentDate = DateTime.UtcNow;
+        var marginData = await _marginCalculationService.GetMarginAsync(
+            product, 
+            DateOnly.FromDateTime(currentDate.AddMonths(-1)), 
+            DateOnly.FromDateTime(currentDate), 
+            cancellationToken);
+        
+        var latestMargin = marginData.MonthlyData.LastOrDefault();
+        return latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
     }
 }

@@ -3,12 +3,6 @@ using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
-public interface IMarginCalculationService
-{
-    ServiceMarginCalculationResult CalculateProductMargins(AnalyticsProduct product, DateTime startDate, DateTime endDate);
-    decimal CalculateMarginPercentage(decimal margin, decimal revenue);
-}
-
 public class MarginCalculationService : IMarginCalculationService
 {
     public ServiceMarginCalculationResult CalculateProductMargins(AnalyticsProduct product, DateTime startDate, DateTime endDate)
@@ -49,39 +43,4 @@ public class MarginCalculationService : IMarginCalculationService
     {
         return revenue > 0 ? (margin / revenue) * 100 : 0;
     }
-}
-
-public class ServiceMarginCalculationResult
-{
-    public bool IsSuccess { get; private set; }
-    public MarginData? Data { get; private set; }
-    public ErrorCodes? ErrorCode { get; private set; }
-    public string? ErrorMessage { get; private set; }
-
-    private ServiceMarginCalculationResult(bool isSuccess, MarginData? data, ErrorCodes? errorCode, string? errorMessage)
-    {
-        IsSuccess = isSuccess;
-        Data = data;
-        ErrorCode = errorCode;
-        ErrorMessage = errorMessage;
-    }
-
-    public static ServiceMarginCalculationResult Success(MarginData data)
-    {
-        return new ServiceMarginCalculationResult(true, data, null, null);
-    }
-
-    public static ServiceMarginCalculationResult Failure(ErrorCodes errorCode, string? errorMessage = null)
-    {
-        return new ServiceMarginCalculationResult(false, null, errorCode, errorMessage);
-    }
-}
-
-public class MarginData
-{
-    public decimal Revenue { get; set; }
-    public decimal Cost { get; set; }
-    public decimal Margin { get; set; }
-    public decimal MarginPercentage { get; set; }
-    public int UnitsSold { get; set; }
 }
