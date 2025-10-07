@@ -65,6 +65,10 @@ public class AnalyticsRepository : IAnalyticsRepository
                 var marginAmount = latestMargin?.M0.Amount ?? 0;
                 var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
                 var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
+                
+                // Get latest purchase price from purchase history
+                var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
+                var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
 
                 yield return new AnalyticsProduct
                 {
@@ -74,8 +78,25 @@ public class AnalyticsRepository : IAnalyticsRepository
                     ProductFamily = product.ProductFamily,
                     ProductCategory = product.ProductCategory,
                     MarginAmount = marginAmount,
+                    
+                    // M0-M3 margin amounts
+                    M0Amount = latestMargin?.M0.Amount ?? 0,
+                    M1Amount = latestMargin?.M1.Amount ?? 0,
+                    M2Amount = latestMargin?.M2.Amount ?? 0,
+                    M3Amount = latestMargin?.M3.Amount ?? 0,
+                    
+                    // M0-M3 margin percentages
+                    M0Percentage = latestMargin?.M0.Percentage ?? 0,
+                    M1Percentage = latestMargin?.M1.Percentage ?? 0,
+                    M2Percentage = latestMargin?.M2.Percentage ?? 0,
+                    M3Percentage = latestMargin?.M3.Percentage ?? 0,
+                    
+                    // Pricing
                     SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
                     EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
+                    PurchasePrice = purchasePrice,
+                    
+                    // Cost components
                     MaterialCost = materialCost,
                     HandlingCost = handlingCost,
                     SalesHistory = product.SalesHistory
@@ -152,6 +173,10 @@ public class AnalyticsRepository : IAnalyticsRepository
         var marginAmount = latestMargin?.M0.Amount ?? 0;
         var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
         var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
+        
+        // Get latest purchase price from purchase history
+        var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
+        var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
 
         return new AnalyticsProduct
         {
@@ -161,8 +186,25 @@ public class AnalyticsRepository : IAnalyticsRepository
             ProductFamily = product.ProductFamily,
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,
+            
+            // M0-M3 margin amounts
+            M0Amount = latestMargin?.M0.Amount ?? 0,
+            M1Amount = latestMargin?.M1.Amount ?? 0,
+            M2Amount = latestMargin?.M2.Amount ?? 0,
+            M3Amount = latestMargin?.M3.Amount ?? 0,
+            
+            // M0-M3 margin percentages
+            M0Percentage = latestMargin?.M0.Percentage ?? 0,
+            M1Percentage = latestMargin?.M1.Percentage ?? 0,
+            M2Percentage = latestMargin?.M2.Percentage ?? 0,
+            M3Percentage = latestMargin?.M3.Percentage ?? 0,
+            
+            // Pricing
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
             EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
+            PurchasePrice = purchasePrice,
+            
+            // Cost components
             MaterialCost = materialCost,
             HandlingCost = handlingCost,
             SalesHistory = product.SalesHistory

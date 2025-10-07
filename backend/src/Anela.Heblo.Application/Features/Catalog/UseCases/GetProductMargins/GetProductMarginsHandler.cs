@@ -43,17 +43,37 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             var filteredItems = query.ToList();
             var totalCount = filteredItems.Count;
 
-            // Apply basic sorting on entities (for better performance, sort first before expensive DTO mapping)
-            var sortedFilteredItems = ApplyBasicSortingOnEntities(filteredItems, request.SortBy, request.SortDescending);
-
-            // Apply pagination to reduce number of expensive DTO mappings
-            var pagedItems = sortedFilteredItems
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
-                .ToList();
-
-            // Create DTOs only for the paged items (performance optimization)
-            var items = await CreateMarginsAsync(pagedItems, cancellationToken);
+            // Check if sorting requires DTO calculation (M0-M3 margins)
+            bool requiresComplexSorting = RequiresComplexSorting(request.SortBy);
+            
+            List<ProductMarginDto> items;
+            
+            if (requiresComplexSorting)
+            {
+                // For complex sorting (M0-M3), we need to create all DTOs first, then sort
+                var allDtos = await CreateMarginsAsync(filteredItems, cancellationToken);
+                var sortedDtos = ApplyComplexSorting(allDtos, request.SortBy, request.SortDescending);
+                
+                // Apply pagination after sorting
+                items = sortedDtos
+                    .Skip((request.PageNumber - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+            }
+            else
+            {
+                // For basic sorting, sort entities first for better performance
+                var sortedFilteredItems = ApplyBasicSortingOnEntities(filteredItems, request.SortBy, request.SortDescending);
+                
+                // Apply pagination to reduce number of expensive DTO mappings
+                var pagedItems = sortedFilteredItems
+                    .Skip((request.PageNumber - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+                
+                // Create DTOs only for the paged items (performance optimization)
+                items = await CreateMarginsAsync(pagedItems, cancellationToken);
+            }
 
             _logger.LogDebug("Product margins query completed successfully. Found {Count} products, returning {PageSize} items",
                 totalCount, items.Count);
@@ -248,6 +268,92 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     }
 
 
+    private static bool RequiresComplexSorting(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return false;
+            
+        return sortBy.ToLower() switch
+        {
+            "m0percentage" or "m0amount" or "m1percentage" or "m1amount" or 
+            "m2percentage" or "m2amount" or "m3percentage" or "m3amount" or
+            "averagematerialcost" or "averagehandlingcost" or "averagesalescost" or "averageoverheadcost" => true,
+            _ => false
+        };
+    }
+    
+    private static List<ProductMarginDto> ApplyComplexSorting(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            // Default sorting by ProductCode
+            return sortDescending
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList();
+        }
+
+        return sortBy.ToLower() switch
+        {
+            "productcode" => sortDescending
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList(),
+            "productname" => sortDescending
+                ? items.OrderByDescending(x => x.ProductName).ToList()
+                : items.OrderBy(x => x.ProductName).ToList(),
+            "pricewithoutVat" => sortDescending
+                ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
+                : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
+            "purchaseprice" => sortDescending
+                ? items.OrderByDescending(x => x.PurchasePrice ?? 0).ToList()
+                : items.OrderBy(x => x.PurchasePrice ?? 0).ToList(),
+            "manufacturedifficulty" => sortDescending
+                ? items.OrderByDescending(x => x.ManufactureDifficulty).ToList()
+                : items.OrderBy(x => x.ManufactureDifficulty).ToList(),
+            // M0-M3 margin levels - amounts
+            "m0amount" => sortDescending
+                ? items.OrderByDescending(x => x.M0Amount).ToList()
+                : items.OrderBy(x => x.M0Amount).ToList(),
+            "m1amount" => sortDescending
+                ? items.OrderByDescending(x => x.M1Amount).ToList()
+                : items.OrderBy(x => x.M1Amount).ToList(),
+            "m2amount" => sortDescending
+                ? items.OrderByDescending(x => x.M2Amount).ToList()
+                : items.OrderBy(x => x.M2Amount).ToList(),
+            "m3amount" => sortDescending
+                ? items.OrderByDescending(x => x.M3Amount).ToList()
+                : items.OrderBy(x => x.M3Amount).ToList(),
+            // M0-M3 margin levels - percentages
+            "m0percentage" => sortDescending
+                ? items.OrderByDescending(x => x.M0Percentage).ToList()
+                : items.OrderBy(x => x.M0Percentage).ToList(),
+            "m1percentage" => sortDescending
+                ? items.OrderByDescending(x => x.M1Percentage).ToList()
+                : items.OrderBy(x => x.M1Percentage).ToList(),
+            "m2percentage" => sortDescending
+                ? items.OrderByDescending(x => x.M2Percentage).ToList()
+                : items.OrderBy(x => x.M2Percentage).ToList(),
+            "m3percentage" => sortDescending
+                ? items.OrderByDescending(x => x.M3Percentage).ToList()
+                : items.OrderBy(x => x.M3Percentage).ToList(),
+            // Cost components
+            "averagematerialcost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageMaterialCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageMaterialCost ?? 0).ToList(),
+            "averagehandlingcost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageHandlingCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageHandlingCost ?? 0).ToList(),
+            "averagesalescost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageSalesCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageSalesCost ?? 0).ToList(),
+            "averageoverheadcost" => sortDescending
+                ? items.OrderByDescending(x => x.AverageOverheadCost ?? 0).ToList()
+                : items.OrderBy(x => x.AverageOverheadCost ?? 0).ToList(),
+            _ => sortDescending
+                ? items.OrderByDescending(x => x.ProductCode).ToList()
+                : items.OrderBy(x => x.ProductCode).ToList()
+        };
+    }
+
     private static List<CatalogAggregate> ApplyBasicSortingOnEntities(List<CatalogAggregate> items, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
@@ -266,7 +372,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "productname" => sortDescending
                 ? items.OrderByDescending(x => x.ProductName).ToList()
                 : items.OrderBy(x => x.ProductName).ToList(),
-            "pricewithoutVat" => sortDescending
+            "pricewithoutvat" => sortDescending
                 ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
                 : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
             "purchaseprice" => sortDescending
@@ -275,13 +381,6 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "manufacturedifficulty" => sortDescending
                 ? items.OrderByDescending(x => x.ManufactureDifficulty ?? 0).ToList()
                 : items.OrderBy(x => x.ManufactureDifficulty ?? 0).ToList(),
-            // For complex calculated fields, we'll use basic name sorting as fallback
-            "averagematerialcost" => sortDescending
-                ? items.OrderByDescending(x => x.ProductName).ToList()
-                : items.OrderBy(x => x.ProductName).ToList(),
-            "averagehandlingcost" => sortDescending
-                ? items.OrderByDescending(x => x.ProductName).ToList()
-                : items.OrderBy(x => x.ProductName).ToList(),
             _ => sortDescending
                 ? items.OrderByDescending(x => x.ProductCode).ToList()
                 : items.OrderBy(x => x.ProductCode).ToList()
