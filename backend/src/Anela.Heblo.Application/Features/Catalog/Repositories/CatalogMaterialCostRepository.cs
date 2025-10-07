@@ -25,23 +25,31 @@ public class CatalogMaterialCostRepository : IMaterialCostRepository
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
-        IEnumerable<CatalogAggregate> products;
-        if (productCodes?.Count == 1)
+        try
         {
-            var product = await _catalogRepository.GetByIdAsync(productCodes.Single(), cancellationToken);
-            products = [product];
-        }
-        else
-        {
-            products = await _catalogRepository.GetAllAsync(cancellationToken);
-            // Filter by product codes if specified
-            if (productCodes != null && productCodes.Count > 0)
+            IEnumerable<CatalogAggregate> products;
+            if (productCodes?.Count == 1)
             {
-                products = products.Where(p => p.ProductCode != null && productCodes.Contains(p.ProductCode)).ToList();
+                var product = await _catalogRepository.GetByIdAsync(productCodes.Single(), cancellationToken);
+                products = [product];
             }
-        }
+            else
+            {
+                products = await _catalogRepository.GetAllAsync(cancellationToken);
+                // Filter by product codes if specified
+                if (productCodes != null && productCodes.Count > 0)
+                {
+                    products = products.Where(p => p.ProductCode != null && productCodes.Contains(p.ProductCode)).ToList();
+                }
+            }
 
-        return await GetCostsAsync(products, dateFrom, dateTo, cancellationToken);
+            return await GetCostsAsync(products, dateFrom, dateTo, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating material costs");
+            throw;
+        }
     }
 
     private async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(IEnumerable<CatalogAggregate> products,
