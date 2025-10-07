@@ -13,6 +13,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using MarginData = Anela.Heblo.Application.Features.Analytics.Services.MarginData;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 

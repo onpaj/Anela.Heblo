@@ -12,6 +12,10 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<DataSourceOptions> _dataSourceOptions;
     private readonly ILogger<ManufactureCostCalculationService> _logger;
+    private readonly SemaphoreSlim _cacheLock = new(1, 1);
+
+    private Dictionary<string, List<ManufactureCost>>? _cachedData;
+    private bool _isLoaded;
 
     public ManufactureCostCalculationService(
         ILedgerService ledgerService,
@@ -26,6 +30,20 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
     }
 
     public async Task<Dictionary<string, List<ManufactureCost>>> CalculateManufactureCostHistoryAsync(
+        List<CatalogAggregate> products,
+        CancellationToken cancellationToken = default)
+    {
+        // Return cached data if available
+        if (_isLoaded && _cachedData != null)
+        {
+            _logger.LogDebug("Returning cached manufacture cost history data");
+            return _cachedData;
+        }
+
+        return new Dictionary<string, List<ManufactureCost>>();
+    }
+
+    private async Task<Dictionary<string, List<ManufactureCost>>> CalculateManufactureCostHistoryInternalAsync(
         List<CatalogAggregate> products,
         CancellationToken cancellationToken = default)
     {
@@ -64,6 +82,9 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
             .SelectMany(p => p.ManufactureHistory.Select(m => new { Product = p, ManufactureRecord = m }))
             .Where(x => x.ManufactureRecord.Date >= startDate && x.ManufactureRecord.Date <= endDate)
             .ToList();
+
+        if (!allManufactureHistory.Any())
+            return result; // Data not ready yet
 
         var monthlyManufactureData = allManufactureHistory
             .GroupBy(x => new { x.ManufactureRecord.Date.Year, x.ManufactureRecord.Date.Month })
@@ -150,5 +171,38 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
 
         _logger.LogInformation("Calculated manufacture cost history for {ProductCount} products", result.Count);
         return result;
+    }
+
+    public bool IsLoaded => _isLoaded;
+
+    public async Task Reload(List<CatalogAggregate> products)
+    {
+        await _cacheLock.WaitAsync();
+        try
+        {
+            _logger.LogInformation("Reloading manufacture cost calculation cache");
+
+            // Calculate new data
+            var newData = await CalculateManufactureCostHistoryInternalAsync(products);
+            if (!newData.Any())
+            {
+                _logger.LogInformation("Manufacture cost calculation data not ready yet");
+                return;
+            }
+            // Update cache atomically
+            _cachedData = newData;
+            _isLoaded = true;
+
+            _logger.LogInformation("Manufacture cost calculation cache reloaded with {ProductCount} products", newData.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reload manufacture cost calculation cache");
+            throw;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
     }
 }

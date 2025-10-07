@@ -27,7 +27,7 @@ const ProductMarginsList: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
 
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>("marginPercentage");
+  const [sortBy, setSortBy] = useState<string>("m3Percentage");
   const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
 
   // Modal states
@@ -196,6 +196,27 @@ const ProductMarginsList: React.FC = () => {
     return "text-green-600";
   };
 
+  // Get tooltip content for margin levels using average costs from backend
+  const getMarginTooltip = (level: "M0" | "M1" | "M2" | "M3", item: any): string => {
+    const avgMaterialCost = item.averageMaterialCost || 0;
+    const avgHandlingCost = item.averageHandlingCost || 0;
+    const avgSalesCost = item.averageSalesCost || 0;
+    const avgOverheadCost = item.averageOverheadCost || 0;
+
+    switch (level) {
+      case "M0":
+        return `Průměrné materiálové náklady: ${formatCurrency(avgMaterialCost)}`;
+      case "M1":
+        return `Průměrné náklady materiál + výroba: ${formatCurrency(avgMaterialCost + avgHandlingCost)}`;
+      case "M2":
+        return `Průměrné náklady materiál + výroba + prodej: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost)}`;
+      case "M3":
+        return `Průměrné celkové náklady: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost + avgOverheadCost)}`;
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -321,22 +342,25 @@ const ProductMarginsList: React.FC = () => {
                   Název produktu
                 </SortableHeader>
                 <SortableHeader column="priceWithoutVat" align="right">
-                  Cena bez DPH
+                  Prodej
                 </SortableHeader>
                 <SortableHeader column="purchasePrice" align="right">
-                  Nákupní cena
-                </SortableHeader>
-                <SortableHeader column="averageMaterialCost" align="right">
-                  Materiál
-                </SortableHeader>
-                <SortableHeader column="averageHandlingCost" align="right">
-                  Výroba průměr
+                  Nákup
                 </SortableHeader>
                 <SortableHeader column="manufactureDifficulty" align="right">
-                  Složitost výroby
+                  Složitost
                 </SortableHeader>
-                <SortableHeader column="marginPercentage" align="right">
-                  Marže %
+                <SortableHeader column="m0Percentage" align="right">
+                  M0 %
+                </SortableHeader>
+                <SortableHeader column="m1Percentage" align="right">
+                  M1 %
+                </SortableHeader>
+                <SortableHeader column="m2Percentage" align="right">
+                  M2 %
+                </SortableHeader>
+                <SortableHeader column="m3Percentage" align="right">
+                  M3 %
                 </SortableHeader>
               </tr>
             </thead>
@@ -365,21 +389,34 @@ const ProductMarginsList: React.FC = () => {
                     {formatCurrency(item.purchasePrice)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {formatCurrency(item.averageMaterialCost)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                    {formatCurrency(item.averageHandlingCost)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                     {item.manufactureDifficulty ||
                     item.manufactureDifficulty === 0
                       ? item.manufactureDifficulty.toFixed(1)
                       : "-"}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.marginPercentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m0Percentage)}`}
+                    title={getMarginTooltip("M0", item)}
                   >
-                    {formatPercentage(item.marginPercentage)}
+                    {formatPercentage(item.m0Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m1Percentage)}`}
+                    title={getMarginTooltip("M1", item)}
+                  >
+                    {formatPercentage(item.m1Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m2Percentage)}`}
+                    title={getMarginTooltip("M2", item)}
+                  >
+                    {formatPercentage(item.m2Percentage)}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m3Percentage)}`}
+                    title={getMarginTooltip("M3", item)}
+                  >
+                    {formatPercentage(item.m3Percentage)}
                   </td>
                 </tr>
               ))}

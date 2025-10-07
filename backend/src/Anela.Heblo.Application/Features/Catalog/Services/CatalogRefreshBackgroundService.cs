@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -83,6 +85,7 @@ public class CatalogRefreshBackgroundService : BackgroundService
 
             using var scope = _serviceProvider.CreateScope();
             var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+            var manufactureCostCalculationService = scope.ServiceProvider.GetRequiredService<IManufactureCostCalculationService>();
 
             // Check and execute refresh operations based on intervals
             if (await RefreshIfNeeded(catalogRepository, "Transport",
@@ -219,7 +222,11 @@ public class CatalogRefreshBackgroundService : BackgroundService
             {
                 if ((await RefreshIfNeeded(catalogRepository, "Manufacture Cost",
                     _lastManufactureCostRefresh, _options.ManufactureHistoryRefreshInterval,
-                    async ct => await ((CatalogRepository)catalogRepository).RefreshManufactureCostData(ct),
+                    async ct =>
+                    {
+                        var catalogData = await catalogRepository.GetAllAsync(ct);
+                        await manufactureCostCalculationService.Reload(catalogData.ToList());
+                    },
                     now, stoppingToken, isInitialLoad)))
                 {
                     _lastManufactureCostRefresh = now;

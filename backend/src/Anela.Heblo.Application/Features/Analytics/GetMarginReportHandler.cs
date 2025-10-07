@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
+using MarginData = Anela.Heblo.Application.Features.Analytics.Services.MarginData;
 
 namespace Anela.Heblo.Application.Features.Analytics;
 

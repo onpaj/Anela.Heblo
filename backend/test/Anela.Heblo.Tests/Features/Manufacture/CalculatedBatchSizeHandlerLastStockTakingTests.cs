@@ -31,8 +31,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
     {
         // Arrange
         var productCode = "TEST-PRODUCT";
-        var request = new CalculatedBatchSizeRequest 
-        { 
+        var request = new CalculatedBatchSizeRequest
+        {
             ProductCode = productCode,
             DesiredBatchSize = 1000.0
         };
@@ -131,8 +131,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
     {
         // Arrange
         var productCode = "TEST-PRODUCT";
-        var request = new CalculatedBatchSizeRequest 
-        { 
+        var request = new CalculatedBatchSizeRequest
+        {
             ProductCode = productCode,
             DesiredBatchSize = 1000.0
         };
@@ -199,8 +199,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
     {
         // Arrange
         var productCode = "TEST-PRODUCT";
-        var request = new CalculatedBatchSizeRequest 
-        { 
+        var request = new CalculatedBatchSizeRequest
+        {
             ProductCode = productCode,
             DesiredBatchSize = 1000.0
         };

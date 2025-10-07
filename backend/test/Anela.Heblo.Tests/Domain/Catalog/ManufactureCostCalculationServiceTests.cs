@@ -41,7 +41,21 @@ public class ManufactureCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateManufactureCostHistoryAsync_WithValidData_ShouldReturnCorrectCosts()
+    public async Task CalculateManufactureCostHistoryAsync_WhenNotLoaded_ShouldReturnEmptyDictionary()
+    {
+        // Arrange
+        var products = CreateTestProducts();
+
+        // Act
+        var result = await _service.CalculateManufactureCostHistoryAsync(products);
+
+        // Assert
+        result.Should().BeEmpty();
+        _service.IsLoaded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CalculateManufactureCostHistoryAsync_AfterReload_ShouldReturnCorrectCosts()
     {
         // Arrange
         var products = CreateTestProducts();
@@ -57,12 +71,14 @@ public class ManufactureCostCalculationServiceTests
             .ReturnsAsync(personalCosts);
 
         // Act
+        await _service.Reload(products);
         var result = await _service.CalculateManufactureCostHistoryAsync(products);
 
         // Assert
         result.Should().NotBeEmpty();
         result.Should().ContainKey("PROD001");
         result.Should().ContainKey("PROD002");
+        _service.IsLoaded.Should().BeTrue();
 
         var product1Costs = result["PROD001"];
         product1Costs.Should().NotBeEmpty();
@@ -141,21 +157,14 @@ public class ManufactureCostCalculationServiceTests
         // Arrange
         var products = new List<CatalogAggregate>();
 
-        _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CostStatistics>());
-
-        _ledgerServiceMock
-            .Setup(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CostStatistics>());
-
         // Act
         var result = await _service.CalculateManufactureCostHistoryAsync(products);
 
         // Assert
         result.Should().BeEmpty();
-        _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-        _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        // Since service is not loaded, ledger service methods should not be called
+        _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -180,7 +189,7 @@ public class ManufactureCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateManufactureCostHistoryAsync_WithCorrectDateRange_ShouldCallLedgerServiceWithCorrectDates()
+    public async Task Reload_WithCorrectDateRange_ShouldCallLedgerServiceWithCorrectDates()
     {
         // Arrange
         var products = CreateTestProducts();
@@ -196,7 +205,7 @@ public class ManufactureCostCalculationServiceTests
             .ReturnsAsync(new List<CostStatistics>());
 
         // Act
-        await _service.CalculateManufactureCostHistoryAsync(products);
+        await _service.Reload(products);
 
         // Assert
         _ledgerServiceMock.Verify(x => x.GetDirectCosts(expectedStartDate, expectedEndDate, "VYROBA", It.IsAny<CancellationToken>()), Times.Once);
@@ -204,7 +213,7 @@ public class ManufactureCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateManufactureCostHistoryAsync_WithPersonalCosts_ShouldDividePersonalCostsByTwo()
+    public async Task Reload_WithPersonalCosts_ShouldDividePersonalCostsByTwo()
     {
         // Arrange
         var products = CreateTestProducts();
@@ -228,6 +237,7 @@ public class ManufactureCostCalculationServiceTests
             .ReturnsAsync(personalCosts);
 
         // Act
+        await _service.Reload(products);
         var result = await _service.CalculateManufactureCostHistoryAsync(products);
 
         // Assert
@@ -238,7 +248,7 @@ public class ManufactureCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateManufactureCostHistoryAsync_WithMultipleManufactureRecords_ShouldCalculateWeightedAverage()
+    public async Task Reload_WithMultipleManufactureRecords_ShouldCalculateWeightedAverage()
     {
         // Arrange
         var products = new List<CatalogAggregate>
@@ -279,6 +289,7 @@ public class ManufactureCostCalculationServiceTests
             .ReturnsAsync(new List<CostStatistics>());
 
         // Act
+        await _service.Reload(products);
         var result = await _service.CalculateManufactureCostHistoryAsync(products);
 
         // Assert
@@ -291,26 +302,20 @@ public class ManufactureCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateManufactureCostHistoryAsync_ShouldHandleCancellationToken()
+    public async Task CalculateManufactureCostHistoryAsync_WhenNotLoaded_ShouldHandleCancellationToken()
     {
         // Arrange
         var products = CreateTestProducts();
         var cancellationToken = new CancellationToken();
 
-        _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", cancellationToken))
-            .ReturnsAsync(new List<CostStatistics>());
-
-        _ledgerServiceMock
-            .Setup(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), cancellationToken))
-            .ReturnsAsync(new List<CostStatistics>());
-
         // Act
-        await _service.CalculateManufactureCostHistoryAsync(products, cancellationToken);
+        var result = await _service.CalculateManufactureCostHistoryAsync(products, cancellationToken);
 
         // Assert
-        _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", cancellationToken), Times.Once);
-        _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), cancellationToken), Times.Once);
+        result.Should().BeEmpty();
+        // Verify that ledger service methods are not called when service is not loaded
+        _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", cancellationToken), Times.Never);
+        _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), cancellationToken), Times.Never);
     }
 
     [Fact]
@@ -435,6 +440,67 @@ public class ManufactureCostCalculationServiceTests
                 Department = "HR"
             }
         };
+    }
+
+    [Fact]
+    public async Task Reload_WithNoManufactureHistory_ShouldNotLoadData()
+    {
+        // Arrange
+        var products = new List<CatalogAggregate>
+        {
+            new CatalogAggregate
+            {
+                ProductCode = "PROD001",
+                ManufactureHistory = new List<ManufactureHistoryRecord>() // Empty history
+            }
+        };
+        SetupManufactureDifficulty(products[0], 2);
+
+        _ledgerServiceMock
+            .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestDirectCosts());
+
+        _ledgerServiceMock
+            .Setup(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestPersonalCosts());
+
+        // Act
+        await _service.Reload(products);
+
+        // Assert
+        _service.IsLoaded.Should().BeFalse(); // Should not be loaded when no manufacture history
+    }
+
+    [Fact]
+    public async Task Reload_AfterSuccessfulLoad_ShouldReturnCachedData()
+    {
+        // Arrange
+        var products = CreateTestProducts();
+        var directCosts = CreateTestDirectCosts();
+        var personalCosts = CreateTestPersonalCosts();
+
+        _ledgerServiceMock
+            .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(directCosts);
+
+        _ledgerServiceMock
+            .Setup(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(personalCosts);
+
+        // Act
+        await _service.Reload(products);
+        var firstCall = await _service.CalculateManufactureCostHistoryAsync(products);
+        var secondCall = await _service.CalculateManufactureCostHistoryAsync(products);
+
+        // Assert
+        _service.IsLoaded.Should().BeTrue();
+        firstCall.Should().NotBeEmpty();
+        secondCall.Should().NotBeEmpty();
+        firstCall.Should().BeEquivalentTo(secondCall);
+        
+        // Verify ledger service was called only during Reload, not during subsequent CalculateManufactureCostHistoryAsync calls
+        _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()), Times.Once);
+        _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private void SetupManufactureDifficulty(CatalogAggregate product, int difficultyValue)
