@@ -156,6 +156,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                     PurchasePrice = null,
                     AverageMaterialCost = null,
                     AverageHandlingCost = null,
+                    AverageSalesCost = null,
+                    AverageOverheadCost = null,
                     ManufactureDifficulty = 0,
                     MarginPercentage = 0,
                     MarginAmount = 0
@@ -195,11 +197,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 M3Percentage = monthlyHistory.Averages.M3.Percentage,
                 M3Amount = monthlyHistory.Averages.M3.Amount,
 
-                // Cost components for tooltips with safe handling for empty collections
-                MaterialCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.MaterialCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.MaterialCost ?? 0),
-                ManufacturingCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.ManufacturingCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.ManufacturingCost ?? 0),
-                SalesCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.SalesCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.SalesCost ?? 0),
-                OverheadCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.OverheadCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.OverheadCost ?? 0),
+                // Cost components are now calculated below as average fields to avoid duplication
 
                 // Monthly history for charts
                 MonthlyHistory = monthlyHistory.MonthlyData.Select(m => new MonthlyMarginDto
@@ -230,11 +228,11 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 dto.PurchasePrice = null;
             }
 
-            // Use cost breakdown from margin calculation service for backward compatibility with safe handling for empty collections
+            // Calculate average costs from historical data (excluding zero values) for frontend use
             dto.AverageMaterialCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.MaterialCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.MaterialCost ?? 0);
             dto.AverageHandlingCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.ManufacturingCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.ManufacturingCost ?? 0);
-            // dto.AverageSalesCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.SalesCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.SalesCost ?? 0);
-            // dto.AverageOverheadCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.OverheadCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.OverheadCost ?? 0);
+            dto.AverageSalesCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.SalesCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.SalesCost ?? 0);
+            dto.AverageOverheadCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.OverheadCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.OverheadCost ?? 0);
 
             return dto;
         }

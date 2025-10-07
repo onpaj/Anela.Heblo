@@ -30,7 +30,7 @@ public class ProductMarginDto
     public decimal M3Percentage { get; set; }  // Net profitability %
     public decimal M3Amount { get; set; }      // Net profitability amount
 
-    // Cost components for tooltips (current month)
+    // Current month cost components (used by CatalogDetail and other components)
     public decimal? MaterialCost { get; set; }
     public decimal? ManufacturingCost { get; set; }
     public decimal? SalesCost { get; set; }
@@ -38,17 +38,4 @@ public class ProductMarginDto
 
     // Historical data for charts (13 months)
     public List<MonthlyMarginDto> MonthlyHistory { get; set; } = new();
-}
-
-public class MonthlyMarginDto
-{
-    public DateTime Month { get; set; }
-    public decimal M0Percentage { get; set; }
-    public decimal M1Percentage { get; set; }
-    public decimal M2Percentage { get; set; }
-    public decimal M3Percentage { get; set; }
-    public decimal MaterialCost { get; set; }
-    public decimal ManufacturingCost { get; set; }
-    public decimal SalesCost { get; set; }
-    public decimal TotalCosts { get; set; }
 }

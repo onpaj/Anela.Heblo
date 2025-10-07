@@ -196,21 +196,22 @@ const ProductMarginsList: React.FC = () => {
     return "text-green-600";
   };
 
-  // Get tooltip content for margin levels
+  // Get tooltip content for margin levels using average costs from backend
   const getMarginTooltip = (level: "M0" | "M1" | "M2" | "M3", item: any): string => {
-    const materialCost = item.materialCost || 0;
-    const manufacturingCost = item.manufacturingCost || 0;
-    const totalCosts = item.totalCosts || 0;
+    const avgMaterialCost = item.averageMaterialCost || 0;
+    const avgHandlingCost = item.averageHandlingCost || 0;
+    const avgSalesCost = item.averageSalesCost || 0;
+    const avgOverheadCost = item.averageOverheadCost || 0;
 
     switch (level) {
       case "M0":
-        return `Materiál: ${formatCurrency(materialCost)}`;
+        return `Průměrné materiálové náklady: ${formatCurrency(avgMaterialCost)}`;
       case "M1":
-        return `Materiál: ${formatCurrency(materialCost)} + Výroba: ${formatCurrency(manufacturingCost)}`;
+        return `Průměrné náklady materiál + výroba: ${formatCurrency(avgMaterialCost + avgHandlingCost)}`;
       case "M2":
-        return `Materiál + Výroba + Prodej: ${formatCurrency(totalCosts)}`;
+        return `Průměrné náklady materiál + výroba + prodej: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost)}`;
       case "M3":
-        return `Celkové náklady: ${formatCurrency(totalCosts)}`;
+        return `Průměrné celkové náklady: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost + avgOverheadCost)}`;
       default:
         return "";
     }

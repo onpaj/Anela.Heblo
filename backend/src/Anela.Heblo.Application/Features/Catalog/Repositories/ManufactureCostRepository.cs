@@ -25,22 +25,37 @@ public class ManufactureCostRepository : IManufactureCostRepository
         _logger = logger;
     }
 
-    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
-        List<string>? productCodes = null,
+    
+    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
+        CancellationToken cancellationToken = default)
+    {
+        IEnumerable<CatalogAggregate> products;
+        if (productCodes?.Count == 1)
+        {
+            var product = await _catalogRepository.GetByIdAsync(productCodes.Single(), cancellationToken);
+            products = [product];
+        }
+        else
+        {
+            products = await _catalogRepository.GetAllAsync(cancellationToken);
+            // Filter by product codes if specified
+            if (productCodes != null && productCodes.Count > 0)
+            {
+                products = products.Where(p => p.ProductCode != null && productCodes.Contains(p.ProductCode)).ToList();
+            }
+        }
+
+        return await GetCostsAsync(products, dateFrom, dateTo, cancellationToken);
+    }
+    
+    private async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
+        IEnumerable<CatalogAggregate> products,
         DateOnly? dateFrom = null,
         DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var products = await _catalogRepository.GetAllAsync(cancellationToken);
-
-            // Filter by product codes if specified
-            if (productCodes != null && productCodes.Count > 0)
-            {
-                products = products.Where(p => p.ProductCode != null && productCodes.Contains(p.ProductCode)).ToList();
-            }
-
             var now = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
             var endDate = dateTo ?? now;
             var startDate = dateFrom ?? endDate.AddMonths(-12);
