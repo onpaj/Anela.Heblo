@@ -34,7 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Caching\" />
     <Folder Include="Features\Analytics\Infrastructure\" />
     <Folder Include="Features\Configuration\UseCases\" />
     <Folder Include="Features\Journal\Infrastructure\" />

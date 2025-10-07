@@ -42,7 +42,6 @@ public static class CatalogModule
 
         // Register catalog-specific services
         services.AddSingleton<IManufactureCostCalculationService, ManufactureCostCalculationService>();
-        services.AddTransient<ISalesCostCalculationService, SalesCostCalculationService>();
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
