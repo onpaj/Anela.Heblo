@@ -7,9 +7,9 @@ namespace Anela.Heblo.Application.Features.Analytics.Services;
 public interface IProductMarginAnalysisService
 {
     (DateTime fromDate, DateTime toDate) ParseTimeWindow(string timeWindow);
-    Dictionary<string, decimal> CalculateGroupTotalMargin(List<CatalogAggregate> products, DateTime fromDate, DateTime toDate, ProductGroupingMode groupingMode);
+    Task<Dictionary<string, decimal>> CalculateGroupTotalMarginAsync(List<CatalogAggregate> products, DateTime fromDate, DateTime toDate, ProductGroupingMode groupingMode, CancellationToken cancellationToken = default);
     string GetGroupKey(CatalogAggregate product, ProductGroupingMode groupingMode);
     string GetGroupDisplayName(string groupKey, ProductGroupingMode groupingMode, List<CatalogAggregate> products);
-    decimal CalculateMaterialCosts(CatalogAggregate product);
-    decimal CalculateLaborCosts(CatalogAggregate product);
+    Task<decimal> CalculateMaterialCostsAsync(CatalogAggregate product, CancellationToken cancellationToken = default);
+    Task<decimal> CalculateLaborCostsAsync(CatalogAggregate product, CancellationToken cancellationToken = default);
 }
