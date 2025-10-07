@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using AutoMapper;
 using FluentAssertions;
 using Moq;
@@ -19,6 +20,7 @@ public class GetCatalogDetailHandlerTests
     private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly Mock<IMarginCalculationService> _marginCalculationServiceMock;
     private readonly GetCatalogDetailHandler _handler;
 
     public GetCatalogDetailHandlerTests()
@@ -27,7 +29,16 @@ public class GetCatalogDetailHandlerTests
         _lotsClientMock = new Mock<ILotsClient>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object);
+        _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, _marginCalculationServiceMock.Object);
+
+        // Setup margin calculation service to return empty history
+        _marginCalculationServiceMock.Setup(x => x.GetMarginAsync(
+            It.IsAny<CatalogAggregate>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MonthlyMarginHistory());
     }
 
     [Fact]

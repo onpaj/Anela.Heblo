@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Xcc;
@@ -123,13 +124,16 @@ public class CatalogAggregate : Entity<string>
     public double MinimalManufactureQuantity { get; set; } = 0;
     public double? ManufactureDifficulty => ManufactureDifficultySettings.ManufactureDifficulty;
 
+    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     public List<ManufactureCost> ManufactureCostHistory { get; set; } = new();
 
     // Manufacture difficulty settings - historical data and current value
     public ManufactureDifficultyConfiguration ManufactureDifficultySettings { get; set; } = new();
 
     // Margin properties - calculated after ManufactureCostHistory is populated
+    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     public decimal MarginPercentage { get; set; } = 0;
+    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     public decimal MarginAmount { get; set; } = 0;
 
     // Readonly PROPS
@@ -274,6 +278,8 @@ public class CatalogAggregate : Entity<string>
         UpdateConsumedHistorySummary();
     }
 
+
+    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     public void UpdateMarginCalculation()
     {
         decimal averageTotalCost = 0;

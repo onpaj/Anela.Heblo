@@ -43,17 +43,17 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             var filteredItems = query.ToList();
             var totalCount = filteredItems.Count;
 
-            // Create DTOs with calculated values and error handling
-            var itemsWithCalculatedValues = await CreateMarginsAsync(filteredItems, cancellationToken);
+            // Apply basic sorting on entities (for better performance, sort first before expensive DTO mapping)
+            var sortedFilteredItems = ApplyBasicSortingOnEntities(filteredItems, request.SortBy, request.SortDescending);
 
-            // Apply sorting in memory
-            itemsWithCalculatedValues = ApplySortingInMemory(itemsWithCalculatedValues, request.SortBy, request.SortDescending);
-
-            // Apply pagination
-            var items = itemsWithCalculatedValues
+            // Apply pagination to reduce number of expensive DTO mappings
+            var pagedItems = sortedFilteredItems
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToList();
+
+            // Create DTOs only for the paged items (performance optimization)
+            var items = await CreateMarginsAsync(pagedItems, cancellationToken);
 
             _logger.LogDebug("Product margins query completed successfully. Found {Count} products, returning {PageSize} items",
                 totalCount, items.Count);
@@ -170,9 +170,10 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     {
         try
         {
-            // Calculate margins using the domain service
-            var marginResult = await _marginCalculationService.CalculateAllMarginLevelsAsync(product, cancellationToken);
-            var monthlyHistory = await _marginCalculationService.CalculateMonthlyMarginHistoryAsync(product, 13, cancellationToken);
+            // Calculate margins for the last 13 months using the domain service
+            var dateFrom = DateOnly.FromDateTime(DateTime.Now.AddMonths(-13));
+            var dateTo = DateOnly.FromDateTime(DateTime.Now);
+            var monthlyHistory = await _marginCalculationService.GetMarginAsync(product, dateFrom, dateTo, cancellationToken);
 
             var dto = new ProductMarginDto
             {
@@ -184,27 +185,21 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 MarginPercentage = product?.MarginPercentage ?? 0,
                 MarginAmount = product?.MarginAmount ?? 0,
 
-                // Current month M0-M3 margins
-                M0Percentage = marginResult.M0.Percentage,
-                M0Amount = marginResult.M0.Amount,
-                M1Percentage = marginResult.M1.Percentage,
-                M1Amount = marginResult.M1.Amount,
-                M2Percentage = marginResult.M2.Percentage,
-                M2Amount = marginResult.M2.Amount,
-                M3Percentage = marginResult.M3.Percentage,
-                M3Amount = marginResult.M3.Amount,
+                // Average month M0-M3 margins
+                M0Percentage = monthlyHistory.Averages.M0.Percentage,
+                M0Amount = monthlyHistory.Averages.M0.Amount,
+                M1Percentage = monthlyHistory.Averages.M1.Percentage,
+                M1Amount = monthlyHistory.Averages.M1.Amount,
+                M2Percentage = monthlyHistory.Averages.M2.Percentage,
+                M2Amount = monthlyHistory.Averages.M2.Amount,
+                M3Percentage = monthlyHistory.Averages.M3.Percentage,
+                M3Amount = monthlyHistory.Averages.M3.Amount,
 
-                // 12-month averages
-                M0PercentageAvg12M = marginResult.M0Average12Months.Percentage,
-                M1PercentageAvg12M = marginResult.M1Average12Months.Percentage,
-                M2PercentageAvg12M = marginResult.M2Average12Months.Percentage,
-                M3PercentageAvg12M = marginResult.M3Average12Months.Percentage,
-
-                // Cost components for tooltips
-                MaterialCost = marginResult.CostBreakdown.MaterialCost > 0 ? marginResult.CostBreakdown.MaterialCost : null,
-                ManufacturingCost = marginResult.CostBreakdown.ManufacturingCost > 0 ? marginResult.CostBreakdown.ManufacturingCost : null,
-                SalesCost = marginResult.CostBreakdown.SalesCost > 0 ? marginResult.CostBreakdown.SalesCost : null,
-                TotalCosts = marginResult.CostBreakdown.M3Cost > 0 ? marginResult.CostBreakdown.M3Cost : null,
+                // Cost components for tooltips with safe handling for empty collections
+                MaterialCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.MaterialCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.MaterialCost ?? 0),
+                ManufacturingCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.ManufacturingCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.ManufacturingCost ?? 0),
+                SalesCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.SalesCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.SalesCost ?? 0),
+                OverheadCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.OverheadCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.OverheadCost ?? 0),
 
                 // Monthly history for charts
                 MonthlyHistory = monthlyHistory.MonthlyData.Select(m => new MonthlyMarginDto
@@ -235,9 +230,11 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 dto.PurchasePrice = null;
             }
 
-            // Use cost breakdown from margin calculation service for backward compatibility
-            dto.AverageMaterialCost = marginResult.CostBreakdown.MaterialCost > 0 ? marginResult.CostBreakdown.MaterialCost : null;
-            dto.AverageHandlingCost = marginResult.CostBreakdown.ManufacturingCost > 0 ? marginResult.CostBreakdown.ManufacturingCost : null;
+            // Use cost breakdown from margin calculation service for backward compatibility with safe handling for empty collections
+            dto.AverageMaterialCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.MaterialCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.MaterialCost ?? 0);
+            dto.AverageHandlingCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.ManufacturingCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.ManufacturingCost ?? 0);
+            // dto.AverageSalesCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.SalesCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.SalesCost ?? 0);
+            // dto.AverageOverheadCost = monthlyHistory.MonthlyData.Where(w => w.CostsForMonth.OverheadCost > 0).DefaultIfEmpty().Average(a => a?.CostsForMonth.OverheadCost ?? 0);
 
             return dto;
         }
@@ -249,7 +246,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     }
 
 
-    private static List<ProductMarginDto> ApplySortingInMemory(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
+    private static List<CatalogAggregate> ApplyBasicSortingOnEntities(List<CatalogAggregate> items, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
         {
@@ -271,20 +268,21 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
                 : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
             "purchaseprice" => sortDescending
-                ? items.OrderByDescending(x => x.PurchasePrice ?? 0).ToList()
-                : items.OrderBy(x => x.PurchasePrice ?? 0).ToList(),
-            "averagematerialcost" => sortDescending
-                ? items.OrderByDescending(x => x.AverageMaterialCost ?? 0).ToList()
-                : items.OrderBy(x => x.AverageMaterialCost ?? 0).ToList(),
-            "averagehandlingcost" => sortDescending
-                ? items.OrderByDescending(x => x.AverageHandlingCost ?? 0).ToList()
-                : items.OrderBy(x => x.AverageHandlingCost ?? 0).ToList(),
+                ? items.OrderByDescending(x => x.ErpPrice?.PurchasePrice ?? 0).ToList()
+                : items.OrderBy(x => x.ErpPrice?.PurchasePrice ?? 0).ToList(),
             "manufacturedifficulty" => sortDescending
-                ? items.OrderByDescending(x => x.ManufactureDifficulty).ToList()
-                : items.OrderBy(x => x.ManufactureDifficulty).ToList(),
+                ? items.OrderByDescending(x => x.ManufactureDifficulty ?? 0).ToList()
+                : items.OrderBy(x => x.ManufactureDifficulty ?? 0).ToList(),
             "marginpercentage" => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList(),
+            // For complex calculated fields, we'll use basic name sorting as fallback
+            "averagematerialcost" => sortDescending
+                ? items.OrderByDescending(x => x.ProductName).ToList()
+                : items.OrderBy(x => x.ProductName).ToList(),
+            "averagehandlingcost" => sortDescending
+                ? items.OrderByDescending(x => x.ProductName).ToList()
+                : items.OrderBy(x => x.ProductName).ToList(),
             _ => sortDescending
                 ? items.OrderByDescending(x => x.MarginPercentage).ToList()
                 : items.OrderBy(x => x.MarginPercentage).ToList()

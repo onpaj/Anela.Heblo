@@ -8,11 +8,3 @@ public interface ISalesCostCalculationService
         List<CatalogAggregate> products,
         CancellationToken cancellationToken = default);
 }
-
-public class SalesCost
-{
-    public DateTime Date { get; set; }
-    public decimal MarketingCost { get; set; }
-    public decimal StorageCost { get; set; }
-    public decimal Total => MarketingCost + StorageCost;
-}

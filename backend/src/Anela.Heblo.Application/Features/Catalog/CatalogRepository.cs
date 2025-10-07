@@ -10,6 +10,7 @@ using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -709,6 +710,7 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     private IDictionary<string, List<ManufactureCost>> CachedManufactureCostData
     {
         get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(nameof(CachedManufactureCostData)) ?? new Dictionary<string, List<ManufactureCost>>();

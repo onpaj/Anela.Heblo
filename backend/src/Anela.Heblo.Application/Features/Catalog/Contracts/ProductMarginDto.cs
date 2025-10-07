@@ -9,6 +9,9 @@ public class ProductMarginDto
     public decimal? PurchasePrice { get; set; }
     public decimal? AverageMaterialCost { get; set; } // Average MaterialCost from ManufactureCostHistory (excluding zero values)
     public decimal? AverageHandlingCost { get; set; } // Average HandlingCost from ManufactureCostHistory (excluding zero values)
+    public decimal? AverageSalesCost { get; set; }
+    public decimal? AverageOverheadCost { get; set; }
+
     public double ManufactureDifficulty { get; set; }
     public decimal MarginPercentage { get; set; } // Direct from CatalogAggregate.MarginPercentage
     public decimal MarginAmount { get; set; } // Direct from CatalogAggregate.MarginAmount
@@ -27,17 +30,11 @@ public class ProductMarginDto
     public decimal M3Percentage { get; set; }  // Net profitability %
     public decimal M3Amount { get; set; }      // Net profitability amount
 
-    // 12-month averages for business decisions
-    public decimal M0PercentageAvg12M { get; set; }
-    public decimal M1PercentageAvg12M { get; set; }
-    public decimal M2PercentageAvg12M { get; set; }
-    public decimal M3PercentageAvg12M { get; set; }
-
     // Cost components for tooltips (current month)
     public decimal? MaterialCost { get; set; }
     public decimal? ManufacturingCost { get; set; }
     public decimal? SalesCost { get; set; }
-    public decimal? TotalCosts { get; set; }
+    public decimal? OverheadCost { get; set; }
 
     // Historical data for charts (13 months)
     public List<MonthlyMarginDto> MonthlyHistory { get; set; } = new();

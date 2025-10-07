@@ -2,12 +2,9 @@ namespace Anela.Heblo.Domain.Features.Catalog.Services;
 
 public interface IMarginCalculationService
 {
-    Task<ProductMarginResult> CalculateAllMarginLevelsAsync(
+    Task<MonthlyMarginHistory> GetMarginAsync(
         CatalogAggregate product,
-        CancellationToken cancellationToken = default);
-
-    Task<MonthlyMarginHistory> CalculateMonthlyMarginHistoryAsync(
-        CatalogAggregate product,
-        int monthsBack = 13,
+        DateOnly dateFrom,
+        DateOnly dateTo,
         CancellationToken cancellationToken = default);
 }

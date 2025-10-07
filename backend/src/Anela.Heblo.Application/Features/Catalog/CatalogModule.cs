@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -10,6 +11,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -32,8 +34,14 @@ public static class CatalogModule
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
 
+        // Register cost repositories
+        services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
+        services.AddTransient<IManufactureCostRepository, ManufactureCostRepository>();
+        services.AddTransient<ISalesCostRepository, SalesCostRepository>();
+        services.AddTransient<IOverheadCostRepository, OverheadCostRepository>();
+
         // Register catalog-specific services
-        services.AddTransient<IManufactureCostCalculationService, ManufactureCostCalculationService>();
+        services.AddSingleton<IManufactureCostCalculationService, ManufactureCostCalculationService>();
         services.AddTransient<ISalesCostCalculationService, SalesCostCalculationService>();
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
