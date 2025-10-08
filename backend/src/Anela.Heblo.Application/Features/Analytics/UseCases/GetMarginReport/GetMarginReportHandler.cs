@@ -1,12 +1,12 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
-using MarginData = Anela.Heblo.Application.Features.Analytics.Services.MarginData;
 
-namespace Anela.Heblo.Application.Features.Analytics;
+namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 
 /// <summary>
 /// Handler for generating comprehensive margin reports across multiple products
@@ -16,18 +16,15 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
 {
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly IProductFilterService _productFilterService;
-    private readonly IMarginCalculationService _marginCalculationService;
     private readonly IReportBuilderService _reportBuilderService;
 
     public GetMarginReportHandler(
         IAnalyticsRepository analyticsRepository,
         IProductFilterService productFilterService,
-        IMarginCalculationService marginCalculationService,
         IReportBuilderService reportBuilderService)
     {
         _analyticsRepository = analyticsRepository;
         _productFilterService = productFilterService;
-        _marginCalculationService = marginCalculationService;
         _reportBuilderService = reportBuilderService;
     }
 
@@ -112,20 +109,32 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             if (!HasSalesInPeriod(product, startDate, endDate))
                 continue;
 
-            // Calculate margins for this product
-            var marginResult = _marginCalculationService.CalculateProductMargins(product, startDate, endDate);
-            if (!marginResult.IsSuccess)
-                continue; // Skip products with calculation errors
+            // Calculate basic margin data from sales and product data
+            var totalSales = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
+            var revenue = (decimal)totalSales * product.SellingPrice;
+            var cost = (decimal)totalSales * (product.SellingPrice - product.MarginAmount);
+            var margin = revenue - cost;
+            var marginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0;
 
-            // Build product summary
-            var productSummary = _reportBuilderService.BuildProductSummary(product, marginResult.Data!);
+            // Create margin data using the product's already calculated M0-M3 data
+            var marginData = new AnalysisMarginData
+            {
+                Margin = margin,
+                Revenue = revenue,
+                Cost = cost,
+                MarginPercentage = marginPercentage,
+                UnitsSold = (int)totalSales
+            };
+
+            // Build product summary using the AnalyticsProduct data
+            var productSummary = _reportBuilderService.BuildProductSummary(product, marginData);
             productSummaries.Add(productSummary);
 
             // Accumulate category totals
-            AccumulateCategoryTotals(categoryTotals, product, marginResult.Data!);
+            AccumulateCategoryTotals(categoryTotals, product, marginData);
 
             // Accumulate overall totals
-            overallTotals.Add(marginResult.Data!);
+            overallTotals.Add(marginData);
         }
 
         // Sort products by M3 margin percentage (net profitability percentage, descending)
@@ -150,7 +159,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
     private static void AccumulateCategoryTotals(
         Dictionary<string, CategoryData> categoryTotals,
         Domain.Features.Analytics.AnalyticsProduct product,
-        MarginData marginData)
+        AnalysisMarginData marginData)
     {
         var category = product.ProductCategory ?? AnalyticsConstants.DEFAULT_CATEGORY;
         if (!categoryTotals.ContainsKey(category))
@@ -166,9 +175,9 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
 
     private GetMarginReportResponse BuildSuccessResponse(GetMarginReportRequest request, ReportData reportData)
     {
-        var averageMarginPercentage = _marginCalculationService.CalculateMarginPercentage(
-            reportData.OverallTotals.TotalMargin,
-            reportData.OverallTotals.TotalRevenue);
+        var averageMarginPercentage = reportData.OverallTotals.TotalRevenue > 0 
+            ? (reportData.OverallTotals.TotalMargin / reportData.OverallTotals.TotalRevenue) * 100 
+            : 0;
 
         return new GetMarginReportResponse
         {
@@ -215,7 +224,7 @@ internal class OverallTotals
     public decimal TotalCost { get; private set; }
     public int TotalUnitsSold { get; private set; }
 
-    public void Add(MarginData marginData)
+    public void Add(AnalysisMarginData marginData)
     {
         TotalMargin += marginData.Margin;
         TotalRevenue += marginData.Revenue;

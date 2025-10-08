@@ -35,8 +35,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         ProductType[] productTypes,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // TODO: In real implementation, this would stream from database
-        // For now, we'll process in batches to reduce memory pressure
         const int batchSize = 100;
 
         // Get total count for batching
@@ -53,11 +51,10 @@ public class AnalyticsRepository : IAnalyticsRepository
 
                 // Convert to lightweight analytics model
                 // Calculate current month margin using IMarginCalculationService
-                var currentDate = DateTime.UtcNow;
                 var marginData = await _marginCalculationService.GetMarginAsync(
                     product, 
-                    DateOnly.FromDateTime(currentDate.AddMonths(-1)), 
-                    DateOnly.FromDateTime(currentDate), 
+                    DateOnly.FromDateTime(fromDate), 
+                    DateOnly.FromDateTime(toDate), 
                     cancellationToken);
                 
                 // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
@@ -154,8 +151,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        // TODO: In real implementation, this would be a direct database query
-        // For now, use the catalog repository to get the product
         var product = await _catalogRepository.GetByIdAsync(productId, cancellationToken);
         if (product == null)
             return null;

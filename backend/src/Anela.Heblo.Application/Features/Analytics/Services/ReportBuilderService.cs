@@ -1,4 +1,7 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Models;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
@@ -16,7 +19,7 @@ public interface IReportBuilderService
 
     GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
         AnalyticsProduct product,
-        MarginData marginData);
+        AnalysisMarginData marginData);
 }
 
 public class ReportBuilderService : IReportBuilderService
@@ -74,7 +77,7 @@ public class ReportBuilderService : IReportBuilderService
 
     public GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
         AnalyticsProduct product,
-        MarginData marginData)
+        AnalysisMarginData marginData)
     {
         return new GetMarginReportResponse.ProductMarginSummary
         {

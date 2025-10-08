@@ -4,16 +4,17 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.Models;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
-using MarginData = Anela.Heblo.Application.Features.Analytics.Services.MarginData;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
@@ -24,7 +25,6 @@ public class GetMarginReportHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
     private readonly Mock<IProductFilterService> _productFilterServiceMock;
-    private readonly Mock<IMarginCalculationService> _marginCalculationServiceMock;
     private readonly Mock<IReportBuilderService> _reportBuilderServiceMock;
     private readonly GetMarginReportHandler _handler;
 
@@ -32,13 +32,11 @@ public class GetMarginReportHandlerTests
     {
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _productFilterServiceMock = new Mock<IProductFilterService>();
-        _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
         _reportBuilderServiceMock = new Mock<IReportBuilderService>();
 
         _handler = new GetMarginReportHandler(
             _analyticsRepositoryMock.Object,
             _productFilterServiceMock.Object,
-            _marginCalculationServiceMock.Object,
             _reportBuilderServiceMock.Object);
 
         // Set up default service behaviors for all tests
@@ -47,32 +45,6 @@ public class GetMarginReportHandlerTests
 
     private void SetupDefaultServiceMocks()
     {
-        // Default margin calculation service behavior
-        _marginCalculationServiceMock
-            .Setup(x => x.CalculateProductMargins(It.IsAny<AnalyticsProduct>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-            .Returns((AnalyticsProduct product, DateTime start, DateTime end) =>
-            {
-                var salesInPeriod = product.SalesHistory.Where(s => s.Date >= start && s.Date <= end).ToList();
-                var unitsSold = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
-
-                if (unitsSold == 0)
-                {
-                    return ServiceMarginCalculationResult.Failure(ErrorCodes.InsufficientData);
-                }
-
-                var revenue = unitsSold * product.SellingPrice;
-                var margin = unitsSold * product.MarginAmount;
-                var cost = revenue - margin;
-
-                return ServiceMarginCalculationResult.Success(new MarginData
-                {
-                    Revenue = revenue,
-                    Cost = cost,
-                    Margin = margin,
-                    MarginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0,
-                    UnitsSold = unitsSold
-                });
-            });
 
         // Default product filter service behavior - implements actual filtering logic
         _productFilterServiceMock
@@ -109,8 +81,8 @@ public class GetMarginReportHandlerTests
 
         // Default report builder service behavior
         _reportBuilderServiceMock
-            .Setup(x => x.BuildProductSummary(It.IsAny<AnalyticsProduct>(), It.IsAny<MarginData>()))
-            .Returns((AnalyticsProduct product, MarginData data) => new GetMarginReportResponse.ProductMarginSummary
+            .Setup(x => x.BuildProductSummary(It.IsAny<AnalyticsProduct>(), It.IsAny<AnalysisMarginData>()))
+            .Returns((AnalyticsProduct product, AnalysisMarginData data) => new GetMarginReportResponse.ProductMarginSummary
             {
                 ProductId = product.ProductCode,
                 ProductName = product.ProductName,
@@ -135,10 +107,6 @@ public class GetMarginReportHandlerTests
                     TotalUnitsSold = kvp.Value.TotalUnitsSold,
                     AverageMarginPercentage = kvp.Value.TotalRevenue > 0 ? (kvp.Value.TotalMargin / kvp.Value.TotalRevenue) * 100 : 0
                 }).ToList());
-
-        _marginCalculationServiceMock
-            .Setup(x => x.CalculateMarginPercentage(It.IsAny<decimal>(), It.IsAny<decimal>()))
-            .Returns((decimal margin, decimal revenue) => revenue > 0 ? (margin / revenue) * 100 : 0);
     }
 
     [Fact]

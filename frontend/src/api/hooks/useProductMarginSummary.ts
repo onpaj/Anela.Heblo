@@ -11,16 +11,23 @@ export { GetProductMarginSummaryResponse, ProductGroupingMode };
 export const useProductMarginSummaryQuery = (
   timeWindow: string = "current-year",
   groupingMode: ProductGroupingMode = ProductGroupingMode.Products,
+  marginLevel: string = "M3",
 ) => {
   return useQuery<GetProductMarginSummaryResponse, Error>({
-    queryKey: [...QUERY_KEYS.productMarginSummary, timeWindow, groupingMode],
+    queryKey: [...QUERY_KEYS.productMarginSummary, timeWindow, groupingMode, marginLevel],
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
-      // Backend now returns all products, topProductCount parameter is no longer needed
+      // Use sortBy parameter to sort by the selected margin level percentage (descending)
+      const sortBy = `totalmargin`;
+      
+      // Use generated API client method with proper parameters
       return apiClient.analytics_GetProductMarginSummary(
         timeWindow,
-        0,
+        0, // topProductCount = 0 means no limit
         groupingMode,
+        marginLevel,
+        sortBy,
+        true // sortDescending = true
       );
     },
     staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes

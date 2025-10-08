@@ -4,15 +4,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
-using MarginData = Anela.Heblo.Application.Features.Analytics.Services.MarginData;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
@@ -22,19 +23,16 @@ namespace Anela.Heblo.Tests.Features.Analytics;
 public class GetProductMarginAnalysisHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
-    private readonly Mock<IMarginCalculationService> _marginCalculationServiceMock;
     private readonly Mock<IReportBuilderService> _reportBuilderServiceMock;
     private readonly GetProductMarginAnalysisHandler _handler;
 
     public GetProductMarginAnalysisHandlerTests()
     {
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
-        _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
         _reportBuilderServiceMock = new Mock<IReportBuilderService>();
 
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
-            _marginCalculationServiceMock.Object,
             _reportBuilderServiceMock.Object);
     }
 
@@ -64,7 +62,7 @@ public class GetProductMarginAnalysisHandlerTests
             }
         };
 
-        var marginData = new MarginData
+        var marginData = new AnalysisMarginData
         {
             Revenue = 6750m,
             Cost = 2250m,
@@ -89,10 +87,6 @@ public class GetProductMarginAnalysisHandlerTests
         _analyticsRepositoryMock
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
-
-        _marginCalculationServiceMock
-            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
-            .Returns(ServiceMarginCalculationResult.Success(marginData));
 
         _reportBuilderServiceMock
             .Setup(x => x.BuildMonthlyBreakdown(It.IsAny<List<SalesDataPoint>>(), productData, request.StartDate, request.EndDate))
@@ -253,10 +247,6 @@ public class GetProductMarginAnalysisHandlerTests
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
 
-        _marginCalculationServiceMock
-            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
-            .Returns(ServiceMarginCalculationResult.Failure(ErrorCodes.InsufficientData));
-
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -292,7 +282,7 @@ public class GetProductMarginAnalysisHandlerTests
             }
         };
 
-        var marginData = new MarginData
+        var marginData = new AnalysisMarginData
         {
             Revenue = 2250m,
             Cost = 750m,
@@ -304,10 +294,6 @@ public class GetProductMarginAnalysisHandlerTests
         _analyticsRepositoryMock
             .Setup(x => x.GetProductAnalysisDataAsync("PROD001", request.StartDate, request.EndDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productData);
-
-        _marginCalculationServiceMock
-            .Setup(x => x.CalculateProductMargins(productData, request.StartDate, request.EndDate))
-            .Returns(ServiceMarginCalculationResult.Success(marginData));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

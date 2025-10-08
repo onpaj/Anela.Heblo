@@ -1,6 +1,6 @@
-namespace Anela.Heblo.Application.Features.Analytics.Services;
+namespace Anela.Heblo.Application.Features.Analytics.Contracts;
 
-public class MarginData
+public class AnalysisMarginData
 {
     public decimal Revenue { get; set; }
     public decimal Cost { get; set; }

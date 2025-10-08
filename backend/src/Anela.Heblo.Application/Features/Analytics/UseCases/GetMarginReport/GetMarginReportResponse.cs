@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Shared;
 
-namespace Anela.Heblo.Application.Features.Analytics;
+namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 
 public class GetMarginReportResponse : BaseResponse
 {
