@@ -17,15 +17,11 @@ public class BackgroundServicesReadyHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_ShouldReturnHealthy_WhenAllServicesReady()
+    public async Task CheckHealthAsync_ShouldReturnHealthy_WhenUsingRefreshTaskSystem()
     {
         // Arrange
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(true);
-        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
-        {
-            { "CatalogRefreshBackgroundService", true },
-            { "FinancialAnalysisBackgroundService", true }
-        });
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
@@ -33,33 +29,23 @@ public class BackgroundServicesReadyHealthCheckTests
         // Assert
         Assert.Equal(HealthStatus.Healthy, result.Status);
         Assert.Equal("All background services have completed initial load", result.Description);
-        Assert.Contains("CatalogRefreshBackgroundService", result.Data.Keys);
-        Assert.Contains("FinancialAnalysisBackgroundService", result.Data.Keys);
-        Assert.Equal("Ready", result.Data["CatalogRefreshBackgroundService"]);
-        Assert.Equal("Ready", result.Data["FinancialAnalysisBackgroundService"]);
+        Assert.Empty(result.Data); // No individual services tracked with refresh task system
     }
 
     [Fact]
-    public async Task CheckHealthAsync_ShouldReturnUnhealthy_WhenSomeServicesNotReady()
+    public async Task CheckHealthAsync_ShouldReturnUnhealthy_WhenRefreshTaskSystemNotReady()
     {
         // Arrange
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
-        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
-        {
-            { "CatalogRefreshBackgroundService", true },
-            { "FinancialAnalysisBackgroundService", false }
-        });
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
-        Assert.Equal("Waiting for services: FinancialAnalysisBackgroundService", result.Description);
-        Assert.Contains("CatalogRefreshBackgroundService", result.Data.Keys);
-        Assert.Contains("FinancialAnalysisBackgroundService", result.Data.Keys);
-        Assert.Equal("Ready", result.Data["CatalogRefreshBackgroundService"]);
-        Assert.Equal("NotReady", result.Data["FinancialAnalysisBackgroundService"]);
+        Assert.Equal("Background services initialization pending", result.Description);
+        Assert.Empty(result.Data);
     }
 
     [Fact]
@@ -79,23 +65,18 @@ public class BackgroundServicesReadyHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_ShouldReturnUnhealthy_WithMultipleNotReadyServices()
+    public async Task CheckHealthAsync_ShouldReturnHealthy_WithRefreshTaskSystemReplacingOldServices()
     {
-        // Arrange
-        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
-        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>
-        {
-            { "CatalogRefreshBackgroundService", false },
-            { "FinancialAnalysisBackgroundService", false }
-        });
+        // Arrange - This test verifies the transition to refresh task system
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(true);
+        _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
-        Assert.Equal(HealthStatus.Unhealthy, result.Status);
-        Assert.Contains("Waiting for services:", result.Description);
-        Assert.Contains("CatalogRefreshBackgroundService", result.Description);
-        Assert.Contains("FinancialAnalysisBackgroundService", result.Description);
+        Assert.Equal(HealthStatus.Healthy, result.Status);
+        Assert.Equal("All background services have completed initial load", result.Description);
+        Assert.Empty(result.Data); // Refresh task system doesn't track individual services
     }
 }

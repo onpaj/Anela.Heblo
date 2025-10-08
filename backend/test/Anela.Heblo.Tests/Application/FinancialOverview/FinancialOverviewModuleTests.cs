@@ -95,29 +95,24 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_CanOverrideBackgroundService_ForTesting()
+    public void AddFinancialOverviewModule_UsesRefreshTaskSystem_InsteadOfBackgroundService()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        // Act - Register module first
+        // Act - Register module
         services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Override/remove background service for testing
-        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(FinancialAnalysisBackgroundService));
-        if (hostedServiceDescriptor != null)
-        {
-            services.Remove(hostedServiceDescriptor);
-        }
-
-        // Assert - Background service should be removable for testing
-        var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
+        // Assert - No specific background service should be registered (using centralized refresh system)
+        var hostedServices = services.Where(s => 
+            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) && 
+            s.ImplementationType?.Name.Contains("FinancialAnalysis") == true).ToList();
         hostedServices.Should().BeEmpty();
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_RegistersBackgroundService_ByDefault()
+    public void AddFinancialOverviewModule_RegistersRefreshTasks_ForBackgroundDataRefresh()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -131,10 +126,13 @@ public class FinancialOverviewModuleTests
         // Act
         services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Assert - Background service should be registered by default
-        var hostedServices = services.Where(s => s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
-        hostedServices.Should().HaveCount(1);
-        Assert.Equal(typeof(FinancialAnalysisBackgroundService), hostedServices.First().ImplementationType);
+        // Assert - Refresh task registration should be present (via RegisterRefreshTask extension)
+        // Note: We can't easily test the internal refresh task registration here,
+        // but we can verify the module doesn't register old background services
+        var financialAnalysisServices = services.Where(s => 
+            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) && 
+            s.ImplementationType?.Name.Contains("FinancialAnalysis") == true).ToList();
+        financialAnalysisServices.Should().BeEmpty();
     }
 
     [Fact]

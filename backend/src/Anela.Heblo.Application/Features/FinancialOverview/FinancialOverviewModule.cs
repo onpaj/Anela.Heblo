@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
+using Anela.Heblo.Application.Common.Cache;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -26,9 +27,9 @@ public static class FinancialOverviewModule
         // Register financial analysis service as scoped (uses IMemoryCache for caching)
         services.AddScoped<IFinancialAnalysisService, FinancialAnalysisService>();
 
-        // Register background service for financial data caching
-        // Tests can configure hosted services separately
-        services.AddHostedService<FinancialAnalysisBackgroundService>();
+        // Background refresh services are now handled by centralized BackgroundRefreshSchedulerService
+        // Old FinancialAnalysisBackgroundService is replaced by refresh task
+        RegisterBackgroundRefreshTasks(services);
 
         // Configure financial analysis options from configuration
         services.Configure<FinancialAnalysisOptions>(options =>
@@ -37,5 +38,13 @@ public static class FinancialOverviewModule
         });
 
         return services;
+    }
+
+    private static void RegisterBackgroundRefreshTasks(IServiceCollection services)
+    {
+        services.RegisterRefreshTask<IFinancialAnalysisService>(
+            nameof(IFinancialAnalysisService.RefreshFinancialDataAsync),
+            (s, ct) => s.RefreshFinancialDataAsync(null, null, ct) 
+        );
     }
 }
