@@ -58,9 +58,8 @@ public static class CatalogModule
             options.IsBackgroundRefreshEnabled = true;
         });
 
-        // Register background service for periodic refresh operations
-        // Tests can configure hosted services separately
-        services.AddHostedService<CatalogRefreshBackgroundService>();
+        // Background refresh services are now handled by centralized BackgroundRefreshSchedulerService
+        // Old CatalogRefreshBackgroundService is replaced by individual refresh tasks
 
         // Configure catalog repository options from configuration
         services.Configure<DataSourceOptions>(options =>
@@ -93,16 +92,138 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
 
+        RegisterBackgroundRefreshTasks(services);
+
+        return services;
+    }
+
+    private static void RegisterBackgroundRefreshTasks(IServiceCollection services)
+    {
+        // Catalog repository refresh tasks
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshTransportData),
             (r, ct) => r.RefreshTransportData(ct)
         );
-        // Register background refresh tasks
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshReserveData),
+            (r, ct) => r.RefreshReserveData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshOrderedData),
+            (r, ct) => r.RefreshOrderedData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshPlannedData),
+            (r, ct) => r.RefreshPlannedData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshSalesData),
+            (r, ct) => r.RefreshSalesData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshAttributesData),
+            (r, ct) => r.RefreshAttributesData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshErpStockData),
+            (r, ct) => r.RefreshErpStockData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshEshopStockData),
+            (r, ct) => r.RefreshEshopStockData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshPurchaseHistoryData),
+            (r, ct) => r.RefreshPurchaseHistoryData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshManufactureHistoryData),
+            (r, ct) => r.RefreshManufactureHistoryData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshConsumedHistoryData),
+            (r, ct) => r.RefreshConsumedHistoryData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshStockTakingData),
+            (r, ct) => r.RefreshStockTakingData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshLotsData),
+            (r, ct) => r.RefreshLotsData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshEshopPricesData),
+            (r, ct) => r.RefreshEshopPricesData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshErpPricesData),
+            (r, ct) => r.RefreshErpPricesData(ct)
+        );
+        
+        services.RegisterRefreshTask<ICatalogRepository>(
+            "RefreshManufactureDifficultySettingsData",
+            (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
+        );
+
+        // Manufacture cost calculation task (requires special logic)
+        services.RegisterRefreshTask(
+            "IManufactureCostCalculationService",
+            "RefreshManufactureCostData",
+            async (serviceProvider, ct) =>
+            {
+                using var scope = serviceProvider.CreateScope();
+                var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+                var manufactureCostService = scope.ServiceProvider.GetRequiredService<IManufactureCostCalculationService>();
+                
+                // Check that all required data sources are loaded and no changes are pending
+                if (AreAllDataSourcesLoaded(catalogRepository) && !catalogRepository.ChangesPendingForMerge)
+                {
+                    var catalogData = await catalogRepository.GetAllAsync(ct);
+                    await manufactureCostService.Reload(catalogData.ToList());
+                }
+            },
+            "RefreshManufactureCostData"
+        );
+
+        // Other services refresh tasks
         services.RegisterRefreshTask<IProductWeightRecalculationService>(
             nameof(IProductWeightRecalculationService.RecalculateAllProductWeights),
             (s, ct) => s.RecalculateAllProductWeights(ct)
         );
-        
-        return services;
+    }
+
+    private static bool AreAllDataSourcesLoaded(ICatalogRepository catalogRepository)
+    {
+        return catalogRepository.TransportLoadDate != null &&
+               catalogRepository.ReserveLoadDate != null &&
+               catalogRepository.OrderedLoadDate != null &&
+               catalogRepository.PlannedLoadDate != null &&
+               catalogRepository.SalesLoadDate != null &&
+               catalogRepository.AttributesLoadDate != null &&
+               catalogRepository.ErpStockLoadDate != null &&
+               catalogRepository.EshopStockLoadDate != null &&
+               catalogRepository.PurchaseHistoryLoadDate != null &&
+               catalogRepository.ManufactureHistoryLoadDate != null &&
+               catalogRepository.ConsumedHistoryLoadDate != null &&
+               catalogRepository.StockTakingLoadDate != null &&
+               catalogRepository.LotsLoadDate != null &&
+               catalogRepository.EshopPricesLoadDate != null &&
+               catalogRepository.ErpPricesLoadDate != null &&
+               catalogRepository.ManufactureDifficultySettingsLoadDate != null;
     }
 }
