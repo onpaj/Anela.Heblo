@@ -45,15 +45,15 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
 
             // Check if sorting requires DTO calculation (M0-M3 margins)
             bool requiresComplexSorting = RequiresComplexSorting(request.SortBy);
-            
+
             List<ProductMarginDto> items;
-            
+
             if (requiresComplexSorting)
             {
                 // For complex sorting (M0-M3), we need to create all DTOs first, then sort
                 var allDtos = await CreateMarginsAsync(filteredItems, cancellationToken);
                 var sortedDtos = ApplyComplexSorting(allDtos, request.SortBy, request.SortDescending);
-                
+
                 // Apply pagination after sorting
                 items = sortedDtos
                     .Skip((request.PageNumber - 1) * request.PageSize)
@@ -64,13 +64,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             {
                 // For basic sorting, sort entities first for better performance
                 var sortedFilteredItems = ApplyBasicSortingOnEntities(filteredItems, request.SortBy, request.SortDescending);
-                
+
                 // Apply pagination to reduce number of expensive DTO mappings
                 var pagedItems = sortedFilteredItems
                     .Skip((request.PageNumber - 1) * request.PageSize)
                     .Take(request.PageSize)
                     .ToList();
-                
+
                 // Create DTOs only for the paged items (performance optimization)
                 items = await CreateMarginsAsync(pagedItems, cancellationToken);
             }
@@ -272,16 +272,16 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     {
         if (string.IsNullOrWhiteSpace(sortBy))
             return false;
-            
+
         return sortBy.ToLower() switch
         {
-            "m0percentage" or "m0amount" or "m1percentage" or "m1amount" or 
+            "m0percentage" or "m0amount" or "m1percentage" or "m1amount" or
             "m2percentage" or "m2amount" or "m3percentage" or "m3amount" or
             "averagematerialcost" or "averagehandlingcost" or "averagesalescost" or "averageoverheadcost" => true,
             _ => false
         };
     }
-    
+
     private static List<ProductMarginDto> ApplyComplexSorting(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))

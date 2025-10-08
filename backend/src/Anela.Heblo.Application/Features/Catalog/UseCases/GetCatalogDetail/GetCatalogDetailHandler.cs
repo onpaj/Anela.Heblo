@@ -276,22 +276,22 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 Date = m.Month,
                 SellingPrice = m.M3.CostBase + m.M3.Amount, // Reconstructed selling price from highest level
                 TotalCost = m.M0.CostBase, // Base cost (material + manufacturing)
-                
+
                 // M0 - Material + Manufacturing costs
                 M0Percentage = m.M0.Percentage,
                 M0Amount = m.M0.Amount,
                 M0CostBase = m.M0.CostBase,
-                
+
                 // M1 - M0 + Manufacturing costs (if different)
                 M1Percentage = m.M1.Percentage,
                 M1Amount = m.M1.Amount,
                 M1CostBase = m.M1.CostBase,
-                
+
                 // M2 - M1 + Sales costs
                 M2Percentage = m.M2.Percentage,
                 M2Amount = m.M2.Amount,
                 M2CostBase = m.M2.CostBase,
-                
+
                 // M3 - M2 + Overhead costs (final margin)
                 M3Percentage = m.M3.Percentage,
                 M3Amount = m.M3.Amount,

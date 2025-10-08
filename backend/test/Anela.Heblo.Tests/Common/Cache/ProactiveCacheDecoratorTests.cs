@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Anela.Heblo.Application.Common.Cache.Abstractions;
 using Anela.Heblo.Application.Common.Cache.Implementation;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -13,14 +12,14 @@ namespace Anela.Heblo.Tests.Common.Cache;
 public class ProactiveCacheDecoratorTests
 {
     private readonly Mock<ILogger<ProactiveCacheDecorator<ITestDataSource, TestData>>> _mockLogger;
-    private readonly FakeTimeProvider _timeProvider;
+    private readonly TimeProvider _timeProvider;
     private readonly Mock<ITestDataSource> _mockDataSource;
     private readonly TestData _testData;
 
     public ProactiveCacheDecoratorTests()
     {
         _mockLogger = new Mock<ILogger<ProactiveCacheDecorator<ITestDataSource, TestData>>>();
-        _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        _timeProvider = TimeProvider.System;
         _mockDataSource = new Mock<ITestDataSource>();
         _testData = new TestData { Value = "test-value" };
     }
@@ -85,17 +84,14 @@ public class ProactiveCacheDecoratorTests
             .ReturnsAsync(_testData);
 
         var config = CreateConfiguration();
-        config.RefreshInterval = TimeSpan.FromMinutes(15);
+        config.RefreshInterval = TimeSpan.FromMilliseconds(100); // Short interval for test
         var cache = CreateCache(config);
 
         // First refresh
         await cache.ForceRefreshAsync();
         var firstRefreshTime = cache.LastRefreshTime;
 
-        // Advance time by 5 minutes (less than interval)
-        _timeProvider.Advance(TimeSpan.FromMinutes(5));
-
-        // Act - try to refresh again
+        // Act - try to refresh again immediately (interval not met)
         var result = await CallRefreshAsync(cache);
 
         // Assert
@@ -111,17 +107,17 @@ public class ProactiveCacheDecoratorTests
             .ReturnsAsync(_testData);
 
         var config = CreateConfiguration();
-        config.RefreshInterval = TimeSpan.FromMinutes(15);
+        config.RefreshInterval = TimeSpan.FromMilliseconds(50); // Very short interval for test
         var cache = CreateCache(config);
 
         // First refresh
         await cache.ForceRefreshAsync();
         var firstRefreshTime = cache.LastRefreshTime;
 
-        // Advance time by 16 minutes (more than interval)
-        _timeProvider.Advance(TimeSpan.FromMinutes(16));
+        // Wait for interval to pass
+        await Task.Delay(100); // Wait longer than refresh interval
 
-        // Act - try to refresh again
+        // Act - try to refresh again (interval should be met)
         var result = await CallRefreshAsync(cache);
 
         // Assert

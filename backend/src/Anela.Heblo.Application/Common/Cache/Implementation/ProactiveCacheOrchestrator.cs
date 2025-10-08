@@ -1,18 +1,9 @@
 using System.Collections.Concurrent;
-using Anela.Heblo.Application.Common.Cache.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Common.Cache.Implementation;
-
-public class CacheRegistration
-{
-    public string Name { get; set; } = string.Empty;
-    public ICacheRefreshConfiguration Configuration { get; set; } = null!;
-    public object CacheService { get; set; } = null!;
-    public Type CacheServiceType { get; set; } = null!;
-}
 
 public class ProactiveCacheOrchestrator : IHostedService, IDisposable
 {

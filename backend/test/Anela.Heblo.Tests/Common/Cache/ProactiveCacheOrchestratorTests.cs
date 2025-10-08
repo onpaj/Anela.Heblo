@@ -6,7 +6,6 @@ using Anela.Heblo.Application.Common.Cache.Abstractions;
 using Anela.Heblo.Application.Common.Cache.Implementation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -16,14 +15,14 @@ public class ProactiveCacheOrchestratorTests : IDisposable
 {
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<ILogger<ProactiveCacheOrchestrator>> _mockLogger;
-    private readonly FakeTimeProvider _timeProvider;
+    private readonly TimeProvider _timeProvider;
     private readonly ProactiveCacheOrchestrator _orchestrator;
 
     public ProactiveCacheOrchestratorTests()
     {
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockLogger = new Mock<ILogger<ProactiveCacheOrchestrator>>();
-        _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        _timeProvider = TimeProvider.System;
         
         _orchestrator = new ProactiveCacheOrchestrator(
             _mockServiceProvider.Object,

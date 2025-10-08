@@ -52,17 +52,17 @@ public class AnalyticsRepository : IAnalyticsRepository
                 // Convert to lightweight analytics model
                 // Calculate current month margin using IMarginCalculationService
                 var marginData = await _marginCalculationService.GetMarginAsync(
-                    product, 
-                    DateOnly.FromDateTime(fromDate), 
-                    DateOnly.FromDateTime(toDate), 
+                    product,
+                    DateOnly.FromDateTime(fromDate),
+                    DateOnly.FromDateTime(toDate),
                     cancellationToken);
-                
+
                 // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
                 var latestMargin = marginData.MonthlyData.LastOrDefault();
                 var marginAmount = latestMargin?.M0.Amount ?? 0;
                 var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
                 var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
-                
+
                 // Get latest purchase price from purchase history
                 var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
                 var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
@@ -75,24 +75,24 @@ public class AnalyticsRepository : IAnalyticsRepository
                     ProductFamily = product.ProductFamily,
                     ProductCategory = product.ProductCategory,
                     MarginAmount = marginAmount,
-                    
+
                     // M0-M3 margin amounts
                     M0Amount = latestMargin?.M0.Amount ?? 0,
                     M1Amount = latestMargin?.M1.Amount ?? 0,
                     M2Amount = latestMargin?.M2.Amount ?? 0,
                     M3Amount = latestMargin?.M3.Amount ?? 0,
-                    
+
                     // M0-M3 margin percentages
                     M0Percentage = latestMargin?.M0.Percentage ?? 0,
                     M1Percentage = latestMargin?.M1.Percentage ?? 0,
                     M2Percentage = latestMargin?.M2.Percentage ?? 0,
                     M3Percentage = latestMargin?.M3.Percentage ?? 0,
-                    
+
                     // Pricing
                     SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
                     EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
                     PurchasePrice = purchasePrice,
-                    
+
                     // Cost components
                     MaterialCost = materialCost,
                     HandlingCost = handlingCost,
@@ -158,17 +158,17 @@ public class AnalyticsRepository : IAnalyticsRepository
         // Convert to analytics product with filtered sales data
         // Calculate margin using IMarginCalculationService
         var marginData = await _marginCalculationService.GetMarginAsync(
-            product, 
-            DateOnly.FromDateTime(fromDate), 
-            DateOnly.FromDateTime(toDate), 
+            product,
+            DateOnly.FromDateTime(fromDate),
+            DateOnly.FromDateTime(toDate),
             cancellationToken);
-        
+
         // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
         var latestMargin = marginData.MonthlyData.LastOrDefault();
         var marginAmount = latestMargin?.M0.Amount ?? 0;
         var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
         var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
-        
+
         // Get latest purchase price from purchase history
         var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
         var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
@@ -181,24 +181,24 @@ public class AnalyticsRepository : IAnalyticsRepository
             ProductFamily = product.ProductFamily,
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,
-            
+
             // M0-M3 margin amounts
             M0Amount = latestMargin?.M0.Amount ?? 0,
             M1Amount = latestMargin?.M1.Amount ?? 0,
             M2Amount = latestMargin?.M2.Amount ?? 0,
             M3Amount = latestMargin?.M3.Amount ?? 0,
-            
+
             // M0-M3 margin percentages
             M0Percentage = latestMargin?.M0.Percentage ?? 0,
             M1Percentage = latestMargin?.M1.Percentage ?? 0,
             M2Percentage = latestMargin?.M2.Percentage ?? 0,
             M3Percentage = latestMargin?.M3.Percentage ?? 0,
-            
+
             // Pricing
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
             EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
             PurchasePrice = purchasePrice,
-            
+
             // Cost components
             MaterialCost = materialCost,
             HandlingCost = handlingCost,

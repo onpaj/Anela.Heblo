@@ -175,8 +175,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
 
     private GetMarginReportResponse BuildSuccessResponse(GetMarginReportRequest request, ReportData reportData)
     {
-        var averageMarginPercentage = reportData.OverallTotals.TotalRevenue > 0 
-            ? (reportData.OverallTotals.TotalMargin / reportData.OverallTotals.TotalRevenue) * 100 
+        var averageMarginPercentage = reportData.OverallTotals.TotalRevenue > 0
+            ? (reportData.OverallTotals.TotalMargin / reportData.OverallTotals.TotalRevenue) * 100
             : 0;
 
         return new GetMarginReportResponse

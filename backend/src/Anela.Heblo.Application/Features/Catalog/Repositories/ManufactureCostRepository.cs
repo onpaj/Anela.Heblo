@@ -25,7 +25,7 @@ public class ManufactureCostRepository : IManufactureCostRepository
         _logger = logger;
     }
 
-    
+
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
@@ -47,7 +47,7 @@ public class ManufactureCostRepository : IManufactureCostRepository
 
         return await GetCostsAsync(products, dateFrom, dateTo, cancellationToken);
     }
-    
+
     private async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
         IEnumerable<CatalogAggregate> products,
         DateOnly? dateFrom = null,
