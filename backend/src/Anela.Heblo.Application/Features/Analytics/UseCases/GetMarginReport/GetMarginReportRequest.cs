@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Analytics;
+namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 
 public class GetMarginReportRequest : IRequest<GetMarginReportResponse>
 {

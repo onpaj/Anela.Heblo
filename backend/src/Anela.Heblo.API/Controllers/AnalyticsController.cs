@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;

@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
 using FluentValidation;
@@ -21,7 +23,7 @@ public static class AnalyticsModule
         services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
         // Register refactored services for clean separation of concerns
-        services.AddScoped<IMarginCalculationService, MarginCalculationService>();
+        // Note: IMarginCalculationService is registered by CatalogModule and injected here
         services.AddScoped<IProductFilterService, ProductFilterService>();
         services.AddScoped<IReportBuilderService, ReportBuilderService>();
 
@@ -32,7 +34,6 @@ public static class AnalyticsModule
         // Legacy services (keeping for backward compatibility)
         services.AddScoped<MarginCalculator>();
         services.AddScoped<MonthlyBreakdownGenerator>();
-        services.AddTransient<IProductMarginAnalysisService, ProductMarginAnalysisService>();
 
         return services;
     }

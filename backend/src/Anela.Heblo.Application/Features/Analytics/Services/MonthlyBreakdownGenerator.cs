@@ -23,7 +23,8 @@ public class MonthlyBreakdownGenerator
     public List<MonthlyProductMarginDto> Generate(
         MarginCalculationResult calculationResult,
         DateRange dateRange,
-        ProductGroupingMode groupingMode)
+        ProductGroupingMode groupingMode,
+        string marginLevel = "M3")
     {
         var monthlyData = new List<MonthlyProductMarginDto>();
 
@@ -40,7 +41,8 @@ public class MonthlyBreakdownGenerator
                 calculationResult.GroupProducts,
                 monthStart,
                 monthEnd,
-                groupingMode);
+                groupingMode,
+                marginLevel);
 
             monthlyData.Add(new MonthlyProductMarginDto
             {
@@ -64,14 +66,15 @@ public class MonthlyBreakdownGenerator
         Dictionary<string, List<AnalyticsProduct>> groupProducts,
         DateTime monthStart,
         DateTime monthEnd,
-        ProductGroupingMode groupingMode)
+        ProductGroupingMode groupingMode,
+        string marginLevel)
     {
         var segments = new List<ProductMarginSegmentDto>();
         var totalMonthMargin = 0m;
 
         foreach (var (groupKey, products) in groupProducts)
         {
-            var groupData = ProcessGroupForMonth(products, monthStart, monthEnd);
+            var groupData = ProcessGroupForMonth(products, monthStart, monthEnd, marginLevel);
 
             if (groupData.totalMargin <= 0)
                 continue;
@@ -119,7 +122,8 @@ public class MonthlyBreakdownGenerator
              int productCount) ProcessGroupForMonth(
         List<AnalyticsProduct> products,
         DateTime monthStart,
-        DateTime monthEnd)
+        DateTime monthEnd,
+        string marginLevel)
     {
         var totalMargin = 0m;
         var totalUnitsSold = 0;
@@ -135,18 +139,20 @@ public class MonthlyBreakdownGenerator
                 .Where(s => s.Date >= monthStart && s.Date <= monthEnd)
                 .ToList();
 
-            if (!salesInMonth.Any() || product.MarginAmount <= 0)
+            var marginAmount = _marginCalculator.GetMarginAmountForLevel(product, marginLevel);
+            
+            if (!salesInMonth.Any() || marginAmount <= 0)
                 continue;
 
             var unitsSold = (int)salesInMonth.Sum(s => s.AmountB2B + s.AmountB2C);
-            var marginContribution = unitsSold * product.MarginAmount;
+            var marginContribution = unitsSold * marginAmount;
 
             totalMargin += marginContribution;
             totalUnitsSold += unitsSold;
             productCount++;
 
             // Accumulate for averages
-            totalMarginPerPiece += product.MarginAmount;
+            totalMarginPerPiece += marginAmount;
             totalSellingPrice += product.EshopPriceWithoutVat ?? 0;
             totalMaterialCosts += product.MaterialCost;
             totalLaborCosts += product.HandlingCost;

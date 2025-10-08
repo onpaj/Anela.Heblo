@@ -1,29 +1,18 @@
 using System;
-using FluentAssertions;
 using System.Collections.Generic;
-using FluentAssertions;
 using System.Linq;
-using FluentAssertions;
 using System.Threading;
-using FluentAssertions;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using FluentAssertions;
-using FluentAssertions;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Analytics.Services;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Domain.Features.Analytics;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
-using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
@@ -34,7 +23,6 @@ namespace Anela.Heblo.Tests.Features.Analytics;
 public class GetProductMarginSummaryHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
-    private readonly Mock<IProductMarginAnalysisService> _marginAnalysisServiceMock;
     private readonly MarginCalculator _marginCalculator;
     private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
     private readonly GetProductMarginSummaryHandler _handler;
@@ -42,12 +30,10 @@ public class GetProductMarginSummaryHandlerTests
     public GetProductMarginSummaryHandlerTests()
     {
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
-        _marginAnalysisServiceMock = new Mock<IProductMarginAnalysisService>();
         _marginCalculator = new MarginCalculator();
         _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
         _handler = new GetProductMarginSummaryHandler(
             _analyticsRepositoryMock.Object,
-            _marginAnalysisServiceMock.Object,
             _marginCalculator,
             _monthlyBreakdownGenerator);
     }
@@ -62,8 +48,9 @@ public class GetProductMarginSummaryHandlerTests
             GroupingMode = ProductGroupingMode.Products
         };
 
-        var fromDate = new DateTime(2024, 1, 1);
-        var toDate = new DateTime(2024, 12, 31);
+        var today = DateTime.Today;
+        var fromDate = new DateTime(today.Year, 1, 1);
+        var toDate = today;
 
         var analyticsProducts = new List<AnalyticsProduct>
         {
@@ -73,9 +60,13 @@ public class GetProductMarginSummaryHandlerTests
                 ProductName = "Product 1",
                 Type = ProductType.Product,
                 MarginAmount = 100m,
+                M0Amount = 100m,
+                M1Amount = 100m,
+                M2Amount = 100m,
+                M3Amount = 100m,
                 SalesHistory = new List<SalesDataPoint>
                 {
-                    new() { Date = new DateTime(2024, 3, 15), AmountB2B = 10, AmountB2C = 5 }
+                    new() { Date = new DateTime(today.Year, 3, 15), AmountB2B = 10, AmountB2C = 5 }
                 }
             },
             new AnalyticsProduct
@@ -84,16 +75,17 @@ public class GetProductMarginSummaryHandlerTests
                 ProductName = "Product 2",
                 Type = ProductType.Product,
                 MarginAmount = 50m,
+                M0Amount = 50m,
+                M1Amount = 50m,
+                M2Amount = 50m,
+                M3Amount = 50m,
                 SalesHistory = new List<SalesDataPoint>
                 {
-                    new() { Date = new DateTime(2024, 4, 20), AmountB2B = 20, AmountB2C = 10 }
+                    new() { Date = new DateTime(today.Year, 4, 20), AmountB2B = 20, AmountB2C = 10 }
                 }
             }
         };
 
-        _marginAnalysisServiceMock
-            .Setup(x => x.ParseTimeWindow("current-year"))
-            .Returns((fromDate, toDate));
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
@@ -121,11 +113,14 @@ public class GetProductMarginSummaryHandlerTests
     {
         // Arrange
         var request = new GetProductMarginSummaryRequest { TimeWindow = timeWindow, GroupingMode = ProductGroupingMode.Products };
-        var expectedDates = (DateTime.Today.AddMonths(-6), DateTime.Today);
-
-        _marginAnalysisServiceMock
-            .Setup(x => x.ParseTimeWindow(timeWindow))
-            .Returns(expectedDates);
+        var today = DateTime.Today;
+        var expectedDates = timeWindow switch
+        {
+            "current-year" => (new DateTime(today.Year, 1, 1), today),
+            "last-6-months" => (today.AddMonths(-6), today),
+            "last-12-months" => (today.AddMonths(-12), today),
+            _ => (new DateTime(today.Year, 1, 1), today)
+        };
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(),
@@ -151,12 +146,10 @@ public class GetProductMarginSummaryHandlerTests
             GroupingMode = ProductGroupingMode.Products
         };
 
-        var fromDate = new DateTime(2024, 1, 1);
-        var toDate = new DateTime(2024, 12, 31);
+        var today = DateTime.Today;
+        var fromDate = new DateTime(today.Year, 1, 1);
+        var toDate = today;
 
-        _marginAnalysisServiceMock
-            .Setup(x => x.ParseTimeWindow("current-year"))
-            .Returns((fromDate, toDate));
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,

@@ -13,8 +13,6 @@ public class ProductMarginDto
     public decimal? AverageOverheadCost { get; set; }
 
     public double ManufactureDifficulty { get; set; }
-    public decimal MarginPercentage { get; set; } // Direct from CatalogAggregate.MarginPercentage
-    public decimal MarginAmount { get; set; } // Direct from CatalogAggregate.MarginAmount
     public bool PriceWithoutVatIsFromEshop { get; set; } = false;
 
     // Current month margin levels

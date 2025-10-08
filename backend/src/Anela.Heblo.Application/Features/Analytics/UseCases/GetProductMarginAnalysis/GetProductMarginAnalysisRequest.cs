@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Analytics;
+namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 
 public class GetProductMarginAnalysisRequest : IRequest<GetProductMarginAnalysisResponse>
 {

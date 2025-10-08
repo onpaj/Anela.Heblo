@@ -9,6 +9,7 @@ using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using AutoMapper;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
@@ -29,7 +30,8 @@ public class GetCatalogDetailHandlerFullHistoryTests
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
         _marginCalculationServiceMock = new Mock<IMarginCalculationService>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, _marginCalculationServiceMock.Object);
+        var loggerMock = new Mock<ILogger<GetCatalogDetailHandler>>();
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, _marginCalculationServiceMock.Object, loggerMock.Object);
 
         // Setup margin calculation service to return empty history
         _marginCalculationServiceMock.Setup(x => x.GetMarginAsync(

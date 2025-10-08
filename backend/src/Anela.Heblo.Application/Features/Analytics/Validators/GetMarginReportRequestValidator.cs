@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using FluentValidation;
 
 namespace Anela.Heblo.Application.Features.Analytics.Validators;

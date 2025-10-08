@@ -13,6 +13,7 @@ public class MarginCalculator
         IAsyncEnumerable<AnalyticsProduct> products,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
+        string marginLevel = "M3",
         CancellationToken cancellationToken = default)
     {
         var groupTotals = new Dictionary<string, decimal>();
@@ -28,7 +29,7 @@ public class MarginCalculator
 
             // Calculate total units sold in the period
             var totalSold = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
-            var marginContribution = (decimal)totalSold * product.MarginAmount;
+            var marginContribution = (decimal)totalSold * GetMarginAmountForLevel(product, marginLevel);
 
             // Update group totals
             if (!groupTotals.ContainsKey(groupKey))
@@ -75,6 +76,21 @@ public class MarginCalculator
             ProductGroupingMode.ProductFamily => $"Rodina {groupKey}",
             ProductGroupingMode.ProductCategory => $"Kategorie {groupKey}",
             _ => groupKey
+        };
+    }
+
+    /// <summary>
+    /// Gets the margin amount for a specific margin level
+    /// </summary>
+    public decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel)
+    {
+        return marginLevel.ToUpperInvariant() switch
+        {
+            "M0" => product.M0Amount,
+            "M1" => product.M1Amount,
+            "M2" => product.M2Amount,
+            "M3" => product.M3Amount,
+            _ => product.M3Amount // Default to M3
         };
     }
 }

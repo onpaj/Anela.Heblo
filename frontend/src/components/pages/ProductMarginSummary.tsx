@@ -14,6 +14,8 @@ type TimeWindowType =
   | "last-12-months"
   | "last-24-months";
 
+type MarginLevelType = "M0" | "M1" | "M2" | "M3";
+
 // Color palette for products (blue/green/purple theme, highest margin to lowest)
 const PRODUCT_COLORS = [
   "#1E40AF", // Deep blue (highest)
@@ -41,10 +43,13 @@ const ProductMarginSummary: React.FC = () => {
     useState<TimeWindowType>("current-year");
   const [selectedGroupingMode, setSelectedGroupingMode] =
     useState<ProductGroupingMode>(ProductGroupingMode.Products);
+  const [selectedMarginLevel, setSelectedMarginLevel] =
+    useState<MarginLevelType>("M3");
 
   const { data, isLoading, error } = useProductMarginSummaryQuery(
     selectedTimeWindow,
     selectedGroupingMode,
+    selectedMarginLevel,
   );
 
   const formatCurrency = useCallback((amount: number) => {
@@ -159,107 +164,46 @@ const ProductMarginSummary: React.FC = () => {
     return { labels, datasets };
   }, [data]);
 
-  // Prepare table data with aggregated statistics across all months for ALL products
+  // Prepare table data using topProducts which already contain all M0-M3 data
   const tableData = useMemo(() => {
-    if (!data?.monthlyData) return [];
+    if (!data?.topProducts) return [];
 
-    // Collect all unique products/groups from all months (excluding "Other")
-    const allProducts = new Map<
-      string,
-      { displayName: string; colorCode: string }
-    >();
-
-    data.monthlyData.forEach((month) => {
-      month.productSegments?.forEach((segment) => {
-        if (
-          segment.groupKey &&
-          segment.displayName &&
-          !allProducts.has(segment.groupKey)
-        ) {
-          // Find if this product is in top products to get proper color
-          // First sort products by total margin to get consistent ordering
-          const sortedTopProducts = data.topProducts
-            ? [...data.topProducts].sort(
-                (a, b) => (b.totalMargin || 0) - (a.totalMargin || 0),
-              )
-            : [];
-          const topProductIndex = sortedTopProducts.findIndex(
-            (tp) => tp.groupKey === segment.groupKey,
-          );
-          const color =
-            topProductIndex >= 0
-              ? PRODUCT_COLORS[topProductIndex % PRODUCT_COLORS.length]
-              : DEFAULT_COLOR;
-
-          allProducts.set(segment.groupKey, {
-            displayName: segment.displayName,
-            colorCode: color,
-          });
-        }
-      });
-    });
-
-    return Array.from(allProducts.entries())
-      .map(([groupKey, product]) => {
-        // Aggregate data across all months for this product
-        let totalMargin = 0;
-        let totalUnits = 0;
-        let totalRevenue = 0;
-        let avgMarginPerPiece = 0;
-        let avgSellingPrice = 0;
-        let avgMaterialCosts = 0;
-        let avgLaborCosts = 0;
-        let monthsWithData = 0;
-
-        data.monthlyData!.forEach((month) => {
-          const segment = month.productSegments?.find(
-            (s) => s.groupKey === groupKey,
-          );
-          if (segment) {
-            totalMargin += segment.marginContribution || 0;
-            totalUnits += segment.unitsSold || 0;
-            totalRevenue +=
-              (segment.unitsSold || 0) *
-              (segment.averageSellingPriceWithoutVat || 0);
-
-            // Accumulate averages (will divide by monthsWithData)
-            avgMarginPerPiece += segment.averageMarginPerPiece || 0;
-            avgSellingPrice += segment.averageSellingPriceWithoutVat || 0;
-            avgMaterialCosts += segment.averageMaterialCosts || 0;
-            avgLaborCosts += segment.averageLaborCosts || 0;
-            monthsWithData++;
-          }
-        });
-
-        // Calculate averages
-        const finalAvgMarginPerPiece =
-          monthsWithData > 0 ? avgMarginPerPiece / monthsWithData : 0;
-        const finalAvgSellingPrice =
-          monthsWithData > 0 ? avgSellingPrice / monthsWithData : 0;
-        const finalAvgMaterialCosts =
-          monthsWithData > 0 ? avgMaterialCosts / monthsWithData : 0;
-        const finalAvgLaborCosts =
-          monthsWithData > 0 ? avgLaborCosts / monthsWithData : 0;
-
-        // Calculate margin percentage
-        const marginPercentage =
-          totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+    return data.topProducts
+      .map((product) => {
+        // Find if this product is in top products to get proper color
+        const productIndex = data.topProducts!.findIndex(
+          (tp) => tp.groupKey === product.groupKey,
+        );
+        const color =
+          productIndex >= 0
+            ? PRODUCT_COLORS[productIndex % PRODUCT_COLORS.length]
+            : DEFAULT_COLOR;
 
         return {
-          groupKey,
-          displayName: product.displayName,
-          colorCode: product.colorCode,
-          totalMargin,
-          marginPercentage,
-          totalUnits,
-          totalRevenue,
-          avgMarginPerPiece: finalAvgMarginPerPiece,
-          avgSellingPrice: finalAvgSellingPrice,
-          avgMaterialCosts: finalAvgMaterialCosts,
-          avgLaborCosts: finalAvgLaborCosts,
+          groupKey: product.groupKey || "",
+          displayName: product.displayName || "",
+          colorCode: color,
+          totalMargin: product.totalMargin || 0,
+          rank: product.rank || 0,
+          
+          // M0-M3 margin levels - amounts
+          m0Amount: product.m0Amount || 0,
+          m1Amount: product.m1Amount || 0,
+          m2Amount: product.m2Amount || 0,
+          m3Amount: product.m3Amount || 0,
+          
+          // M0-M3 margin levels - percentages
+          m0Percentage: product.m0Percentage || 0,
+          m1Percentage: product.m1Percentage || 0,
+          m2Percentage: product.m2Percentage || 0,
+          m3Percentage: product.m3Percentage || 0,
+          
+          // Pricing
+          sellingPrice: product.sellingPrice || 0,
+          purchasePrice: product.purchasePrice || 0,
         };
       })
-      .sort((a, b) => b.totalMargin - a.totalMargin); // Sort by total margin desc
+      .sort((a, b) => a.rank - b.rank); // Sort by rank from backend
   }, [data]);
 
   const chartOptions: ChartOptions<"bar"> = useMemo(
@@ -420,6 +364,29 @@ const ProductMarginSummary: React.FC = () => {
       {/* Controls */}
       <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
         <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-8">
+          {/* Margin Level Selector */}
+          <div className="flex items-center space-x-4">
+            <label
+              htmlFor="margin-level"
+              className="text-sm font-medium text-gray-700"
+            >
+              Úroveň marže:
+            </label>
+            <select
+              id="margin-level"
+              value={selectedMarginLevel}
+              onChange={(e) =>
+                setSelectedMarginLevel(e.target.value as MarginLevelType)
+              }
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value="M0">M0 (Materiál)</option>
+              <option value="M1">M1 (+ Výroba)</option>
+              <option value="M2">M2 (+ Prodej)</option>
+              <option value="M3">M3 (Čistá marže)</option>
+            </select>
+          </div>
+
           {/* Grouping Mode Selector */}
           <div className="flex items-center space-x-4">
             <label
@@ -522,7 +489,7 @@ const ProductMarginSummary: React.FC = () => {
               Detailní přehled produktů
             </h3>
             <p className="mt-1 text-sm text-gray-600">
-              Celkové průměry a statistiky za vybrané období
+              Kompletní přehled všech úrovní marží M0-M3 za vybrané období
             </p>
           </div>
           <div className="flex-1 overflow-auto">
@@ -536,22 +503,34 @@ const ProductMarginSummary: React.FC = () => {
                     Celková marže
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Marže %
+                    M0 (Kč)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prodáno kusů
+                    M0 (%)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prům. marže/kus
+                    M1 (Kč)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prům. cena/kus
+                    M1 (%)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prům. materiál
+                    M2 (Kč)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prům. práce
+                    M2 (%)
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    M3 (Kč)
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    M3 (%)
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Prod. cena
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nák. cena
                   </th>
                 </tr>
               </thead>
@@ -576,22 +555,34 @@ const ProductMarginSummary: React.FC = () => {
                       {formatCurrency(row.totalMargin)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {row.marginPercentage.toFixed(1)}%
+                      {formatCurrency(row.m0Amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {row.totalUnits.toLocaleString("cs-CZ")}
+                      {row.m0Percentage.toFixed(1)}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {formatCurrency(row.avgMarginPerPiece)}
+                      {formatCurrency(row.m1Amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {formatCurrency(row.avgSellingPrice)}
+                      {row.m1Percentage.toFixed(1)}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {formatCurrency(row.avgMaterialCosts)}
+                      {formatCurrency(row.m2Amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {formatCurrency(row.avgLaborCosts)}
+                      {row.m2Percentage.toFixed(1)}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      {formatCurrency(row.m3Amount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      {row.m3Percentage.toFixed(1)}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      {formatCurrency(row.sellingPrice)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      {formatCurrency(row.purchasePrice)}
                     </td>
                   </tr>
                 ))}

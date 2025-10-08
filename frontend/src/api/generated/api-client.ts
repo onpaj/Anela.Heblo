@@ -18,7 +18,7 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined): Promise<GetProductMarginSummaryResponse> {
+    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: string | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
         let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
         if (timeWindow === null)
             throw new Error("The parameter 'timeWindow' cannot be null.");
@@ -32,6 +32,16 @@ export class ApiClient {
             throw new Error("The parameter 'groupingMode' cannot be null.");
         else if (groupingMode !== undefined)
             url_ += "GroupingMode=" + encodeURIComponent("" + groupingMode) + "&";
+        if (marginLevel === null)
+            throw new Error("The parameter 'marginLevel' cannot be null.");
+        else if (marginLevel !== undefined)
+            url_ += "MarginLevel=" + encodeURIComponent("" + marginLevel) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -4349,6 +4359,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
+    marginLevel?: string;
     fromDate?: Date;
     toDate?: Date;
 
@@ -4372,6 +4383,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
             this.totalMargin = _data["totalMargin"];
             this.timeWindow = _data["timeWindow"];
             this.groupingMode = _data["groupingMode"];
+            this.marginLevel = _data["marginLevel"];
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
         }
@@ -4399,6 +4411,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
         data["totalMargin"] = this.totalMargin;
         data["timeWindow"] = this.timeWindow;
         data["groupingMode"] = this.groupingMode;
+        data["marginLevel"] = this.marginLevel;
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         super.toJSON(data);
@@ -4412,6 +4425,7 @@ export interface IGetProductMarginSummaryResponse extends IBaseResponse {
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
+    marginLevel?: string;
     fromDate?: Date;
     toDate?: Date;
 }
@@ -4586,6 +4600,16 @@ export class TopProductDto implements ITopProductDto {
     totalMargin?: number;
     colorCode?: string;
     rank?: number;
+    m0Amount?: number;
+    m1Amount?: number;
+    m2Amount?: number;
+    m3Amount?: number;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    sellingPrice?: number;
+    purchasePrice?: number;
     productCode?: string;
     productName?: string;
 
@@ -4605,6 +4629,16 @@ export class TopProductDto implements ITopProductDto {
             this.totalMargin = _data["totalMargin"];
             this.colorCode = _data["colorCode"];
             this.rank = _data["rank"];
+            this.m0Amount = _data["m0Amount"];
+            this.m1Amount = _data["m1Amount"];
+            this.m2Amount = _data["m2Amount"];
+            this.m3Amount = _data["m3Amount"];
+            this.m0Percentage = _data["m0Percentage"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.m2Percentage = _data["m2Percentage"];
+            this.m3Percentage = _data["m3Percentage"];
+            this.sellingPrice = _data["sellingPrice"];
+            this.purchasePrice = _data["purchasePrice"];
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
         }
@@ -4624,6 +4658,16 @@ export class TopProductDto implements ITopProductDto {
         data["totalMargin"] = this.totalMargin;
         data["colorCode"] = this.colorCode;
         data["rank"] = this.rank;
+        data["m0Amount"] = this.m0Amount;
+        data["m1Amount"] = this.m1Amount;
+        data["m2Amount"] = this.m2Amount;
+        data["m3Amount"] = this.m3Amount;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m1Percentage"] = this.m1Percentage;
+        data["m2Percentage"] = this.m2Percentage;
+        data["m3Percentage"] = this.m3Percentage;
+        data["sellingPrice"] = this.sellingPrice;
+        data["purchasePrice"] = this.purchasePrice;
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         return data;
@@ -4636,6 +4680,16 @@ export interface ITopProductDto {
     totalMargin?: number;
     colorCode?: string;
     rank?: number;
+    m0Amount?: number;
+    m1Amount?: number;
+    m2Amount?: number;
+    m3Amount?: number;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    sellingPrice?: number;
+    purchasePrice?: number;
     productCode?: string;
     productName?: string;
 }
@@ -5017,6 +5071,16 @@ export class ProductMarginSummary implements IProductMarginSummary {
     productName?: string;
     category?: string;
     marginAmount?: number;
+    m0Amount?: number;
+    m1Amount?: number;
+    m2Amount?: number;
+    m3Amount?: number;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    sellingPrice?: number;
+    purchasePrice?: number;
     marginPercentage?: number;
     revenue?: number;
     cost?: number;
@@ -5037,6 +5101,16 @@ export class ProductMarginSummary implements IProductMarginSummary {
             this.productName = _data["productName"];
             this.category = _data["category"];
             this.marginAmount = _data["marginAmount"];
+            this.m0Amount = _data["m0Amount"];
+            this.m1Amount = _data["m1Amount"];
+            this.m2Amount = _data["m2Amount"];
+            this.m3Amount = _data["m3Amount"];
+            this.m0Percentage = _data["m0Percentage"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.m2Percentage = _data["m2Percentage"];
+            this.m3Percentage = _data["m3Percentage"];
+            this.sellingPrice = _data["sellingPrice"];
+            this.purchasePrice = _data["purchasePrice"];
             this.marginPercentage = _data["marginPercentage"];
             this.revenue = _data["revenue"];
             this.cost = _data["cost"];
@@ -5057,6 +5131,16 @@ export class ProductMarginSummary implements IProductMarginSummary {
         data["productName"] = this.productName;
         data["category"] = this.category;
         data["marginAmount"] = this.marginAmount;
+        data["m0Amount"] = this.m0Amount;
+        data["m1Amount"] = this.m1Amount;
+        data["m2Amount"] = this.m2Amount;
+        data["m3Amount"] = this.m3Amount;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m1Percentage"] = this.m1Percentage;
+        data["m2Percentage"] = this.m2Percentage;
+        data["m3Percentage"] = this.m3Percentage;
+        data["sellingPrice"] = this.sellingPrice;
+        data["purchasePrice"] = this.purchasePrice;
         data["marginPercentage"] = this.marginPercentage;
         data["revenue"] = this.revenue;
         data["cost"] = this.cost;
@@ -5070,6 +5154,16 @@ export interface IProductMarginSummary {
     productName?: string;
     category?: string;
     marginAmount?: number;
+    m0Amount?: number;
+    m1Amount?: number;
+    m2Amount?: number;
+    m3Amount?: number;
+    m0Percentage?: number;
+    m1Percentage?: number;
+    m2Percentage?: number;
+    m3Percentage?: number;
+    sellingPrice?: number;
+    purchasePrice?: number;
     marginPercentage?: number;
     revenue?: number;
     cost?: number;
@@ -12130,8 +12224,6 @@ export class ProductMarginDto implements IProductMarginDto {
     averageSalesCost?: number | undefined;
     averageOverheadCost?: number | undefined;
     manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
     priceWithoutVatIsFromEshop?: boolean;
     m0Percentage?: number;
     m0Amount?: number;
@@ -12167,8 +12259,6 @@ export class ProductMarginDto implements IProductMarginDto {
             this.averageSalesCost = _data["averageSalesCost"];
             this.averageOverheadCost = _data["averageOverheadCost"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
-            this.marginPercentage = _data["marginPercentage"];
-            this.marginAmount = _data["marginAmount"];
             this.priceWithoutVatIsFromEshop = _data["priceWithoutVatIsFromEshop"];
             this.m0Percentage = _data["m0Percentage"];
             this.m0Amount = _data["m0Amount"];
@@ -12208,8 +12298,6 @@ export class ProductMarginDto implements IProductMarginDto {
         data["averageSalesCost"] = this.averageSalesCost;
         data["averageOverheadCost"] = this.averageOverheadCost;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
-        data["marginPercentage"] = this.marginPercentage;
-        data["marginAmount"] = this.marginAmount;
         data["priceWithoutVatIsFromEshop"] = this.priceWithoutVatIsFromEshop;
         data["m0Percentage"] = this.m0Percentage;
         data["m0Amount"] = this.m0Amount;
@@ -12242,8 +12330,6 @@ export interface IProductMarginDto {
     averageSalesCost?: number | undefined;
     averageOverheadCost?: number | undefined;
     manufactureDifficulty?: number;
-    marginPercentage?: number;
-    marginAmount?: number;
     priceWithoutVatIsFromEshop?: boolean;
     m0Percentage?: number;
     m0Amount?: number;

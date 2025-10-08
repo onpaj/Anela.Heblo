@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,11 +16,13 @@ public class AnalyticsRepository : IAnalyticsRepository
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IMarginCalculationService _marginCalculationService;
 
-    public AnalyticsRepository(ICatalogRepository catalogRepository, ApplicationDbContext dbContext)
+    public AnalyticsRepository(ICatalogRepository catalogRepository, ApplicationDbContext dbContext, IMarginCalculationService marginCalculationService)
     {
         _catalogRepository = catalogRepository;
         _dbContext = dbContext;
+        _marginCalculationService = marginCalculationService;
     }
 
     /// <summary>
@@ -32,8 +35,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         ProductType[] productTypes,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // TODO: In real implementation, this would stream from database
-        // For now, we'll process in batches to reduce memory pressure
         const int batchSize = 100;
 
         // Get total count for batching
@@ -49,6 +50,23 @@ public class AnalyticsRepository : IAnalyticsRepository
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Convert to lightweight analytics model
+                // Calculate current month margin using IMarginCalculationService
+                var marginData = await _marginCalculationService.GetMarginAsync(
+                    product, 
+                    DateOnly.FromDateTime(fromDate), 
+                    DateOnly.FromDateTime(toDate), 
+                    cancellationToken);
+                
+                // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
+                var latestMargin = marginData.MonthlyData.LastOrDefault();
+                var marginAmount = latestMargin?.M0.Amount ?? 0;
+                var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
+                var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
+                
+                // Get latest purchase price from purchase history
+                var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
+                var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
+
                 yield return new AnalyticsProduct
                 {
                     ProductCode = product.ProductCode,
@@ -56,11 +74,28 @@ public class AnalyticsRepository : IAnalyticsRepository
                     Type = product.Type,
                     ProductFamily = product.ProductFamily,
                     ProductCategory = product.ProductCategory,
-                    MarginAmount = product.MarginAmount,
+                    MarginAmount = marginAmount,
+                    
+                    // M0-M3 margin amounts
+                    M0Amount = latestMargin?.M0.Amount ?? 0,
+                    M1Amount = latestMargin?.M1.Amount ?? 0,
+                    M2Amount = latestMargin?.M2.Amount ?? 0,
+                    M3Amount = latestMargin?.M3.Amount ?? 0,
+                    
+                    // M0-M3 margin percentages
+                    M0Percentage = latestMargin?.M0.Percentage ?? 0,
+                    M1Percentage = latestMargin?.M1.Percentage ?? 0,
+                    M2Percentage = latestMargin?.M2.Percentage ?? 0,
+                    M3Percentage = latestMargin?.M3.Percentage ?? 0,
+                    
+                    // Pricing
                     SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
                     EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
-                    MaterialCost = GetLatestMaterialCost(product),
-                    HandlingCost = GetLatestHandlingCost(product),
+                    PurchasePrice = purchasePrice,
+                    
+                    // Cost components
+                    MaterialCost = materialCost,
+                    HandlingCost = handlingCost,
                     SalesHistory = product.SalesHistory
                         .Where(s => s.Date >= fromDate && s.Date <= toDate)
                         .Select(s => new SalesDataPoint
@@ -116,13 +151,28 @@ public class AnalyticsRepository : IAnalyticsRepository
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        // TODO: In real implementation, this would be a direct database query
-        // For now, use the catalog repository to get the product
         var product = await _catalogRepository.GetByIdAsync(productId, cancellationToken);
         if (product == null)
             return null;
 
         // Convert to analytics product with filtered sales data
+        // Calculate margin using IMarginCalculationService
+        var marginData = await _marginCalculationService.GetMarginAsync(
+            product, 
+            DateOnly.FromDateTime(fromDate), 
+            DateOnly.FromDateTime(toDate), 
+            cancellationToken);
+        
+        // Use M0 margin (material + manufacturing) as equivalent to legacy MarginAmount
+        var latestMargin = marginData.MonthlyData.LastOrDefault();
+        var marginAmount = latestMargin?.M0.Amount ?? 0;
+        var materialCost = latestMargin?.CostsForMonth.MaterialCost ?? 0;
+        var handlingCost = latestMargin?.CostsForMonth.ManufacturingCost ?? 0;
+        
+        // Get latest purchase price from purchase history
+        var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
+        var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
+
         return new AnalyticsProduct
         {
             ProductCode = product.ProductCode,
@@ -130,11 +180,28 @@ public class AnalyticsRepository : IAnalyticsRepository
             Type = product.Type,
             ProductFamily = product.ProductFamily,
             ProductCategory = product.ProductCategory,
-            MarginAmount = product.MarginAmount,
+            MarginAmount = marginAmount,
+            
+            // M0-M3 margin amounts
+            M0Amount = latestMargin?.M0.Amount ?? 0,
+            M1Amount = latestMargin?.M1.Amount ?? 0,
+            M2Amount = latestMargin?.M2.Amount ?? 0,
+            M3Amount = latestMargin?.M3.Amount ?? 0,
+            
+            // M0-M3 margin percentages
+            M0Percentage = latestMargin?.M0.Percentage ?? 0,
+            M1Percentage = latestMargin?.M1.Percentage ?? 0,
+            M2Percentage = latestMargin?.M2.Percentage ?? 0,
+            M3Percentage = latestMargin?.M3.Percentage ?? 0,
+            
+            // Pricing
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
             EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
-            MaterialCost = GetLatestMaterialCost(product),
-            HandlingCost = GetLatestHandlingCost(product),
+            PurchasePrice = purchasePrice,
+            
+            // Cost components
+            MaterialCost = materialCost,
+            HandlingCost = handlingCost,
             SalesHistory = product.SalesHistory
                 .Select(s => new SalesDataPoint
                 {
@@ -157,15 +224,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         };
     }
 
-    private decimal GetLatestMaterialCost(CatalogAggregate product)
-    {
-        return product.ManufactureCostHistory.LastOrDefault()?.MaterialCost ?? 0;
-    }
-
-    private decimal GetLatestHandlingCost(CatalogAggregate product)
-    {
-        return product.ManufactureCostHistory.LastOrDefault()?.HandlingCost ?? 0;
-    }
 
     /// <summary>
     /// Gets daily invoice import statistics for monitoring purposes
