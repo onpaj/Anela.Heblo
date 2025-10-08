@@ -219,7 +219,7 @@ public class GetProductMarginAnalysisHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroUnitsSold_ReturnsErrorResponse()
+    public async Task Handle_ZeroUnitsSold_ReturnsSuccessWithZeroValues()
     {
         // Arrange
         var request = new GetProductMarginAnalysisRequest
@@ -252,9 +252,12 @@ public class GetProductMarginAnalysisHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InsufficientData);
-        result.Params.Should().ContainKey("reason");
+        result.Success.Should().BeTrue();
+        result.TotalUnitsSold.Should().Be(0);
+        result.TotalRevenue.Should().Be(0m);
+        result.TotalCost.Should().Be(0m);
+        result.TotalMargin.Should().Be(0m);
+        result.MarginPercentage.Should().Be(0m);
     }
 
     [Fact]

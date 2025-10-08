@@ -433,7 +433,7 @@ public class GetMarginReportHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ProductsWithZeroSales_AreFiltered()
+    public async Task Handle_ProductsWithZeroSales_AreIncluded()
     {
         // Arrange
         var request = new GetMarginReportRequest
@@ -460,7 +460,7 @@ public class GetMarginReportHandlerTests
             new AnalyticsProduct
             {
                 ProductCode = "PROD002",
-                ProductName = "Product without Sales",
+                ProductName = "Product with Zero Sales",
                 Type = ProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
@@ -483,8 +483,10 @@ public class GetMarginReportHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        result.TotalProductsAnalyzed.Should().Be(1); // Only product with sales
-        result.ProductSummaries[0].ProductName.Should().Be("Product with Sales");
+        result.TotalProductsAnalyzed.Should().Be(2); // Both products are included
+        result.ProductSummaries.Should().HaveCount(2);
+        result.ProductSummaries.Should().Contain(p => p.ProductName == "Product with Sales");
+        result.ProductSummaries.Should().Contain(p => p.ProductName == "Product with Zero Sales");
     }
 
     [Fact]
