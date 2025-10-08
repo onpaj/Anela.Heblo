@@ -24,7 +24,11 @@ public class BackgroundRefreshController : ControllerBase
     public ActionResult<IEnumerable<RefreshTaskDto>> GetRegisteredTasks()
     {
         var tasks = _taskRegistry.GetRegisteredTasks()
-            .Select(MapToDto)
+            .Select(task =>
+            {
+                var lastExecution = _taskRegistry.GetLastExecution(task.TaskId);
+                return MapToDto(task, lastExecution);
+            })
             .ToList();
 
         return Ok(tasks);
@@ -99,14 +103,23 @@ public class BackgroundRefreshController : ControllerBase
         return Ok(status);
     }
 
-    private static RefreshTaskDto MapToDto(RefreshTaskConfiguration task)
+    private static RefreshTaskDto MapToDto(RefreshTaskConfiguration task, RefreshTaskExecutionLog? lastExecution)
     {
+        DateTime? nextScheduledRun = null;
+
+        if (task.Enabled && lastExecution?.CompletedAt != null)
+        {
+            nextScheduledRun = lastExecution.CompletedAt.Value.Add(task.RefreshInterval);
+        }
+
         return new RefreshTaskDto
         {
             TaskId = task.TaskId,
             InitialDelay = task.InitialDelay,
             RefreshInterval = task.RefreshInterval,
             Enabled = task.Enabled,
+            NextScheduledRun = nextScheduledRun,
+            LastExecution = lastExecution != null ? MapToDto(lastExecution) : null
         };
     }
 

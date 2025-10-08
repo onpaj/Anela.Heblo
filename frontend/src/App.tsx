@@ -27,6 +27,7 @@ import ManufactureInventoryList from "./components/pages/ManufactureInventoryLis
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
+import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -370,6 +371,10 @@ function App() {
                         <Route
                           path="/automation/invoice-import-statistics"
                           element={<InvoiceImportStatistics />}
+                        />
+                        <Route
+                          path="/automation/background-tasks"
+                          element={<BackgroundTasks />}
                         />
                       </Routes>
                     </Layout>
