@@ -16,7 +16,6 @@ public class CatalogRefreshBackgroundService : BackgroundService
     private readonly DataSourceOptions _options;
     private readonly IBackgroundServiceReadinessTracker _readinessTracker;
 
-    private DateTime _lastTransportRefresh = DateTime.MinValue;
     private DateTime _lastReserveRefresh = DateTime.MinValue;
     private DateTime _lastOrderedRefresh = DateTime.MinValue;
     private DateTime _lastPlannedRefresh = DateTime.MinValue;
@@ -88,13 +87,13 @@ public class CatalogRefreshBackgroundService : BackgroundService
             var manufactureCostCalculationService = scope.ServiceProvider.GetRequiredService<IManufactureCostCalculationService>();
 
             // Check and execute refresh operations based on intervals
-            if (await RefreshIfNeeded(catalogRepository, "Transport",
-                _lastTransportRefresh, _options.TransportRefreshInterval,
-                async ct => await catalogRepository.RefreshTransportData(ct),
-                now, stoppingToken, isInitialLoad))
-            {
-                _lastTransportRefresh = now;
-            }
+            // if (await RefreshIfNeeded(catalogRepository, "Transport",
+            //     _lastTransportRefresh, _options.TransportRefreshInterval,
+            //     async ct => await catalogRepository.RefreshTransportData(ct),
+            //     now, stoppingToken, isInitialLoad))
+            // {
+            //     _lastTransportRefresh = now;
+            // }
 
             if (await RefreshIfNeeded(catalogRepository, "Reserve",
                 _lastReserveRefresh, _options.ReserveRefreshInterval,

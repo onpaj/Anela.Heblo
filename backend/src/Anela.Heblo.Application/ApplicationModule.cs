@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Common.Cache;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Analytics;
@@ -34,6 +35,9 @@ public static class ApplicationModule
         // Register common services
         services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
 
+        // Register background refresh system
+        services.AddBackgroundRefresh();
+
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAuditModule();
@@ -50,7 +54,7 @@ public static class ApplicationModule
         services.AddUserManagement(configuration);
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
-
+        
         return services;
     }
 }

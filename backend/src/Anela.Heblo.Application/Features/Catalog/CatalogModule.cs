@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Common.Cache;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Application.Features.Catalog.Services;
@@ -92,6 +93,16 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
 
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshTransportData),
+            (r, ct) => r.RefreshTransportData(ct)
+        );
+        // Register background refresh tasks
+        services.RegisterRefreshTask<IProductWeightRecalculationService>(
+            nameof(IProductWeightRecalculationService.RecalculateAllProductWeights),
+            (s, ct) => s.RecalculateAllProductWeights(ct)
+        );
+        
         return services;
     }
 }
