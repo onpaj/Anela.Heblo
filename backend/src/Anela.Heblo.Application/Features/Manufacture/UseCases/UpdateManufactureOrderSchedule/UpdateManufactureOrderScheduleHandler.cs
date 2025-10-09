@@ -71,18 +71,6 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
                 };
             }
 
-            // Add audit log entry
-            var auditLog = new ManufactureOrderAuditLog
-            {
-                ManufactureOrderId = request.Id,
-                Action = ManufactureOrderAuditAction.DateChanged,
-                Timestamp = DateTime.UtcNow,
-                User = "system", // TODO: Get from current user context
-                Details = $"Semi-product: {request.SemiProductPlannedDate?.ToString() ?? "unchanged"}, " +
-                         $"Product: {request.ProductPlannedDate?.ToString() ?? "unchanged"}"
-            };
-
-            existingOrder.AuditLog.Add(auditLog);
 
             // Save changes
             await _repository.UpdateOrderAsync(existingOrder, cancellationToken);

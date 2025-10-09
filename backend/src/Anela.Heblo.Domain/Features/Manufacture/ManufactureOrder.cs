@@ -21,7 +21,6 @@ public class ManufactureOrder
     public ManufactureOrderSemiProduct SemiProduct { get; set; } = null!;
     public List<ManufactureOrderProduct> Products { get; set; } = new();
     public List<ManufactureOrderNote> Notes { get; set; } = new();
-    public List<ManufactureOrderAuditLog> AuditLog { get; set; } = new();
     public bool ManualActionRequired { get; set; } = false;
     public string? ErpOrderNumberSemiproduct { get; set; }
     public DateTime? ErpOrderNumberSemiproductDate { get; set; }

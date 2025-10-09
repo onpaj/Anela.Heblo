@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Common.Cache;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public class BackgroundRefreshSchedulerService : BackgroundService
 {

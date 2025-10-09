@@ -1,6 +1,5 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Xcc.Audit;
 using AutoMapper;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
 
@@ -14,14 +13,12 @@ public class FlexiStockClient : IErpStockClient
 
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
-    private readonly IDataLoadAuditService _auditService;
     private readonly IMapper _mapper;
 
-    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IDataLoadAuditService auditService, IMapper mapper)
+    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IMapper mapper)
     {
         _stockClient = stockClient;
         _timeProvider = timeProvider;
-        _auditService = auditService;
         _mapper = mapper;
     }
 
@@ -40,47 +37,15 @@ public class FlexiStockClient : IErpStockClient
             .ToList();
     }
 
-    public async Task<IReadOnlyList<ErpStock>> StockToDateAsync(DateTime date, int warehouseId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ErpStock>> StockToDateAsync(DateTime date, int warehouseId,
+        CancellationToken cancellationToken)
     {
-        var startTime = DateTime.UtcNow;
-        var parameters = new Dictionary<string, object>
-        {
-            ["date"] = date,
-            ["warehouseId"] = warehouseId
-        };
+        // Map store code to warehouse ID
+        var stockToDate = await _stockClient
+            .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
-        try
-        {
-            // Map store code to warehouse ID
-            var stockToDate = await _stockClient
-                .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
-
-            var stock = _mapper.Map<List<ErpStock>>(stockToDate);
-
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "StockToDate",
-                source: "Flexi ERP",
-                recordCount: stock.Count,
-                success: true,
-                parameters: parameters,
-                duration: duration);
-
-            return stock;
-        }
-        catch (Exception ex)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "StockToDate",
-                source: "Flexi ERP",
-                recordCount: 0,
-                success: false,
-                parameters: parameters,
-                errorMessage: ex.Message,
-                duration: duration);
-            throw;
-        }
+        var stock = _mapper.Map<List<ErpStock>>(stockToDate);
+        return stock;
     }
 
     private Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType productType,
@@ -89,7 +54,8 @@ public class FlexiStockClient : IErpStockClient
         return ListByWarehouse(warehouseId, new[] { productType }, cancellationToken);
     }
 
-    private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes,
+        CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
         var parameters = new Dictionary<string, object>
@@ -99,38 +65,12 @@ public class FlexiStockClient : IErpStockClient
             ["date"] = _timeProvider.GetUtcNow().Date
         };
 
-        try
-        {
-            var stockToDate = await _stockClient
-                .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
+        var stockToDate = await _stockClient
+            .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
-            var productTypeIds = productTypes.Select(i => (int?)i).ToList();
-            var filteredStockToDate = stockToDate.Where(w => productTypeIds.Contains(w.ProductTypeId));
-            var stock = _mapper.Map<List<ErpStock>>(filteredStockToDate);
-
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "Stock",
-                source: "Flexi ERP",
-                recordCount: stock.Count,
-                success: true,
-                parameters: parameters,
-                duration: duration);
-
-            return stock;
-        }
-        catch (Exception ex)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "Stock",
-                source: "Flexi ERP",
-                recordCount: 0,
-                success: false,
-                parameters: parameters,
-                errorMessage: ex.Message,
-                duration: duration);
-            throw;
-        }
+        var productTypeIds = productTypes.Select(i => (int?)i).ToList();
+        var filteredStockToDate = stockToDate.Where(w => productTypeIds.Contains(w.ProductTypeId));
+        var stock = _mapper.Map<List<ErpStock>>(filteredStockToDate);
+        return stock;
     }
 }

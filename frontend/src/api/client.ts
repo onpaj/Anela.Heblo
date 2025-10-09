@@ -366,7 +366,6 @@ export const getApiConfig = () => {
 export const QUERY_KEYS = {
   weather: ["weather"] as const,
   catalog: ["catalog"] as const,
-  audit: ["audit"] as const,
   productMargins: ["productMargins"] as const,
   productMarginSummary: ["productMarginSummary"] as const,
   financialOverview: ["financialOverview"] as const,

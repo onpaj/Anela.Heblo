@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Common.Cache;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public record RefreshTaskExecutionLog
 {
@@ -9,12 +9,4 @@ public record RefreshTaskExecutionLog
     public string? ErrorMessage { get; init; }
     public TimeSpan? Duration => CompletedAt.HasValue ? CompletedAt.Value - StartedAt : null;
     public Dictionary<string, object>? Metadata { get; init; }
-}
-
-public enum RefreshTaskExecutionStatus
-{
-    Running,
-    Completed,
-    Failed,
-    Cancelled
 }

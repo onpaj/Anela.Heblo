@@ -27,7 +27,6 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes)
-            .Include(x => x.AuditLog)
             .AsQueryable();
 
         if (state.HasValue)
@@ -86,7 +85,6 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes.OrderByDescending(n => n.CreatedAt))
-            .Include(x => x.AuditLog.OrderByDescending(a => a.Timestamp))
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
@@ -144,7 +142,6 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes)
-            .Include(x => x.AuditLog)
             .Where(x => (x.SemiProductPlannedDate >= startDate && x.SemiProductPlannedDate <= endDate) ||
                        (x.ProductPlannedDate >= startDate && x.ProductPlannedDate <= endDate))
             .OrderBy(x => x.SemiProductPlannedDate)

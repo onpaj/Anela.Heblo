@@ -50,7 +50,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderSemiProduct> ManufactureOrderSemiProducts { get; set; } = null!;
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
-    public DbSet<ManufactureOrderAuditLog> ManufactureOrderAuditLogs { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

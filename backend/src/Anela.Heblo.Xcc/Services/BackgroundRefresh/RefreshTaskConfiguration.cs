@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Common.Cache;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public class RefreshTaskConfiguration
 {

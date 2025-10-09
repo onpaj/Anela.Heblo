@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Common.Cache;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

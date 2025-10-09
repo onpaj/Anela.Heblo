@@ -174,75 +174,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.NewState.Should().Be(toState.ToString());
     }
 
-    [Fact]
-    public async Task Handle_WithChangeReason_ShouldAddAuditLogEntry()
-    {
-        var request = new UpdateManufactureOrderStatusRequest
-        {
-            Id = ValidOrderId,
-            NewState = ManufactureOrderState.Planned,
-            ChangeReason = ValidChangeReason
-        };
 
-        var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
-        ManufactureOrder? updatedOrder = null;
-
-        _repositoryMock
-            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingOrder);
-
-        _repositoryMock
-            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                updatedOrder = order;
-                return order;
-            });
-
-        await _handler.Handle(request, CancellationToken.None);
-
-        updatedOrder.Should().NotBeNull();
-        updatedOrder!.AuditLog.Should().HaveCount(1);
-
-        var auditEntry = updatedOrder.AuditLog.First();
-        auditEntry.Action.Should().Be(ManufactureOrderAuditAction.StateChanged);
-        auditEntry.Details.Should().Be(ValidChangeReason);
-        auditEntry.OldValue.Should().Be("Draft");
-        auditEntry.NewValue.Should().Be("Planned");
-        auditEntry.User.Should().Be(TestUserName);
-        auditEntry.ManufactureOrderId.Should().Be(ValidOrderId);
-    }
-
-    [Fact]
-    public async Task Handle_WithoutChangeReason_ShouldNotAddAuditLogEntry()
-    {
-        var request = new UpdateManufactureOrderStatusRequest
-        {
-            Id = ValidOrderId,
-            NewState = ManufactureOrderState.Planned
-            // No ChangeReason provided
-        };
-
-        var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
-        ManufactureOrder? updatedOrder = null;
-
-        _repositoryMock
-            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingOrder);
-
-        _repositoryMock
-            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                updatedOrder = order;
-                return order;
-            });
-
-        await _handler.Handle(request, CancellationToken.None);
-
-        updatedOrder.Should().NotBeNull();
-        updatedOrder!.AuditLog.Should().BeEmpty();
-    }
 
     [Fact]
     public async Task Handle_WithoutHttpContext_ShouldUseSystemAsUser()

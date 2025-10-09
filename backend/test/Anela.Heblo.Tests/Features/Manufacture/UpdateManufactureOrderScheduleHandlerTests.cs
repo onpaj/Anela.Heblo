@@ -221,39 +221,6 @@ public class UpdateManufactureOrderScheduleHandlerTests
         updatedOrder.ProductPlannedDate.Should().Be(request.ProductPlannedDate);
     }
 
-    [Fact]
-    public async Task Handle_ShouldAddAuditLogEntry()
-    {
-        // Arrange
-        var request = CreateValidRequest();
-        var existingOrder = CreateExistingOrder();
-        ManufactureOrder? updatedOrder = null;
-
-        _repositoryMock
-            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingOrder);
-
-        _repositoryMock
-            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                updatedOrder = order;
-                return order;
-            });
-
-        // Act
-        await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        updatedOrder.Should().NotBeNull();
-        updatedOrder!.AuditLog.Should().HaveCount(1);
-
-        var auditEntry = updatedOrder.AuditLog.First();
-        auditEntry.Action.Should().Be(ManufactureOrderAuditAction.DateChanged);
-        auditEntry.User.Should().Be("system");
-        auditEntry.Details.Should().Contain("Semi-product");
-        auditEntry.Details.Should().Contain("Product");
-    }
 
     [Fact]
     public async Task Handle_WithNoChanges_ShouldReturnNoChangesMessage()
@@ -416,8 +383,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
                     SemiProductCode = "SEMI001"
                 }
             },
-            Notes = new List<ManufactureOrderNote>(),
-            AuditLog = new List<ManufactureOrderAuditLog>()
+            Notes = new List<ManufactureOrderNote>()
         };
     }
 }

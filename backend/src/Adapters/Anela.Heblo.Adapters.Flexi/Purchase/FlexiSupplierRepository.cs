@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Contacts;
@@ -11,18 +10,15 @@ namespace Anela.Heblo.Adapters.Flexi.Purchase;
 public class FlexiSupplierRepository : ISupplierRepository
 {
     private readonly IContactListClient _contactListClient;
-    private readonly IDataLoadAuditService _auditService;
     private readonly ILogger<FlexiSupplierRepository> _logger;
     private readonly IMemoryCache _cache;
 
     public FlexiSupplierRepository(
         IContactListClient contactListClient,
-        IDataLoadAuditService auditService,
         ILogger<FlexiSupplierRepository> logger,
         IMemoryCache cache)
     {
         _contactListClient = contactListClient;
-        _auditService = auditService;
         _logger = logger;
         _cache = cache;
     }
@@ -66,52 +62,27 @@ public class FlexiSupplierRepository : ISupplierRepository
             return cachedSuppliers ?? new List<Supplier>();
         }
 
-        var startTime = DateTime.UtcNow;
+        var contactsResult =
+            await _contactListClient.GetAsync([ContactType.Supplier, ContactType.SupplierAndCustomer], 0, 0);
 
-        try
+        var suppliers = contactsResult
+            .Select(MapToSupplier)
+            .ToList();
+
+        if (suppliers.Any())
         {
-            var contactsResult = await _contactListClient.GetAsync([ContactType.Supplier, ContactType.SupplierAndCustomer], 0, 0);
-
-            var suppliers = contactsResult
-                .Select(MapToSupplier)
-                .ToList();
-
-            if (suppliers.Any())
+            // Cache for 2 hours with sliding expiration
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
             {
-                // Cache for 2 hours with sliding expiration
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2),
-                    SlidingExpiration = TimeSpan.FromHours(1)
-                };
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2),
+                SlidingExpiration = TimeSpan.FromHours(1)
+            };
 
-                _cache.Set(cacheKey, suppliers, cacheEntryOptions);
-            }
-
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "All Suppliers Load",
-                source: "Flexi ERP",
-                recordCount: suppliers.Count,
-                success: suppliers.Count > 0,
-                duration: duration);
-
-            return suppliers;
+            _cache.Set(cacheKey, suppliers, cacheEntryOptions);
         }
-        catch (Exception ex)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "All Suppliers Load",
-                source: "Flexi ERP",
-                recordCount: 0,
-                success: false,
-                errorMessage: ex.Message,
-                duration: duration);
 
-            _logger.LogError(ex, "Error loading all suppliers");
-            throw;
-        }
+        return suppliers;
+
     }
 
     private static Supplier MapToSupplier(ContactFlexiDto contact)

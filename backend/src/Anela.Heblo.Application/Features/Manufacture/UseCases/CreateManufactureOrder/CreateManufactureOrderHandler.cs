@@ -81,16 +81,6 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             order.Products.Add(product);
         }
 
-        // Create initial audit log entry
-        var auditLog = new ManufactureOrderAuditLog
-        {
-            Timestamp = DateTime.UtcNow,
-            User = currentUser.Name,
-            Action = ManufactureOrderAuditAction.OrderCreated,
-            Details = $"Order created from batch planning. Target batch size: {request.NewBatchSize}g (scale factor: {request.ScaleFactor:F3}). Products planned: {request.Products.Count(p => p.PlannedQuantity > 0)} with positive quantities",
-            NewValue = ManufactureOrderState.Draft.ToString()
-        };
-        order.AuditLog.Add(auditLog);
 
         // Save the order
         var createdOrder = await _repository.AddOrderAsync(order, cancellationToken);

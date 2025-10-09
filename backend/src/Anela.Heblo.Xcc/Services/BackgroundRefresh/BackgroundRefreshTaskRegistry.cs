@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
-namespace Anela.Heblo.Application.Common.Cache;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
 {

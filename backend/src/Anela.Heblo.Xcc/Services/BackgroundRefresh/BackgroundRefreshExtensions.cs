@@ -1,19 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anela.Heblo.Application.Common.Cache;
-
-public class BackgroundRefreshTaskRegistrySetup
-{
-    public List<TaskRegistrationInfo> TaskRegistrations { get; } = new();
-}
-
-public class TaskRegistrationInfo
-{
-    public required string TaskId { get; init; }
-    public required Func<IServiceProvider, CancellationToken, Task> RefreshMethod { get; init; }
-    public RefreshTaskConfiguration? Configuration { get; init; }
-    public string? ConfigurationKey { get; init; }
-}
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public static class BackgroundRefreshExtensions
 {

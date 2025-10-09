@@ -68,16 +68,6 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
                 });
             }
 
-            // Add audit log entry
-            order.AuditLog.Add(new ManufactureOrderAuditLog
-            {
-                Timestamp = DateTime.UtcNow,
-                User = userName,
-                Action = ManufactureOrderAuditAction.ManualActionResolved,
-                Details = "Ruční zásah označen za vyřešený",
-                OldValue = "true",
-                NewValue = "false"
-            });
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
 

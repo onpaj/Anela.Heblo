@@ -1,4 +1,4 @@
-using Anela.Heblo.Xcc.Audit;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -11,8 +11,8 @@ public static class XccModule
 {
     public static IServiceCollection AddXccServices(this IServiceCollection services)
     {
-        // Register audit services
-        services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
+        // Register background refresh services
+        services.AddBackgroundRefresh();
 
         return services;
     }

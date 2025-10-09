@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
-using Anela.Heblo.Application.Common.Cache;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;

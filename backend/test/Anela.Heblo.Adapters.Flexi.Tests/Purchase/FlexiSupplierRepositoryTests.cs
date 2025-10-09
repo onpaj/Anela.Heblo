@@ -1,5 +1,4 @@
 using Anela.Heblo.Adapters.Flexi.Purchase;
-using Anela.Heblo.Xcc.Audit;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -12,7 +11,6 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Purchase;
 public class FlexiSupplierRepositoryTests
 {
     private readonly Mock<IContactListClient> _mockContactListClient;
-    private readonly Mock<IDataLoadAuditService> _mockAuditService;
     private readonly Mock<ILogger<FlexiSupplierRepository>> _mockLogger;
     private readonly IMemoryCache _memoryCache;
     private readonly FlexiSupplierRepository _repository;
@@ -54,13 +52,11 @@ public class FlexiSupplierRepositoryTests
     public FlexiSupplierRepositoryTests()
     {
         _mockContactListClient = new Mock<IContactListClient>();
-        _mockAuditService = new Mock<IDataLoadAuditService>();
         _mockLogger = new Mock<ILogger<FlexiSupplierRepository>>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
         _repository = new FlexiSupplierRepository(
             _mockContactListClient.Object,
-            _mockAuditService.Object,
             _mockLogger.Object,
             _memoryCache);
     }
@@ -83,17 +79,6 @@ public class FlexiSupplierRepositoryTests
 
         _mockContactListClient.Verify(
             x => x.GetAsync(It.Is<IEnumerable<ContactType>>(ct => ct.Contains(ContactType.Supplier)), It.Is<int>(i => i == 0), It.Is<int>(i => i == 0), It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        _mockAuditService.Verify(
-            x => x.LogDataLoadAsync(
-                "All Suppliers Load",
-                "Flexi ERP",
-                3,
-                true,
-                It.IsAny<Dictionary<string, object>>(),
-                null,
-                It.IsAny<TimeSpan>()),
             Times.Once);
     }
 
@@ -278,17 +263,6 @@ public class FlexiSupplierRepositoryTests
         var act = async () => await _repository.SearchSuppliersAsync("ABC", 10, CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("FlexiBee connection failed");
-
-        _mockAuditService.Verify(
-            x => x.LogDataLoadAsync(
-                "All Suppliers Load",
-                "Flexi ERP",
-                0,
-                false,
-                It.IsAny<Dictionary<string, object>>(),
-                "FlexiBee connection failed",
-                It.IsAny<TimeSpan>()),
-            Times.Once);
 
         _mockLogger.Verify(
             x => x.Log(

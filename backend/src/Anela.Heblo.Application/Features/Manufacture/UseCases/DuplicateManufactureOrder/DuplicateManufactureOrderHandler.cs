@@ -93,16 +93,6 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
             duplicateOrder.Products.Add(product);
         }
 
-        // Create initial audit log entry
-        var auditLog = new ManufactureOrderAuditLog
-        {
-            Timestamp = DateTime.UtcNow,
-            User = currentUser.Name,
-            Action = ManufactureOrderAuditAction.OrderCreated,
-            Details = $"Order duplicated from order #{sourceOrder.OrderNumber}. Dates updated to current date.",
-            NewValue = ManufactureOrderState.Draft.ToString()
-        };
-        duplicateOrder.AuditLog.Add(auditLog);
 
         // Save the duplicate order
         var createdOrder = await _repository.AddOrderAsync(duplicateOrder, cancellationToken);

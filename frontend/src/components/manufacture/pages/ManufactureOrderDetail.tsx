@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Edit,
   Info,
-  ScrollText,
   StickyNote,
   Factory,
   ArrowLeft,
@@ -37,7 +36,6 @@ import BasicInfoSection from "../detail/BasicInfoSection";
 import SemiProductSection from "../detail/SemiProductSection";
 import ProductsDataGrid from "../detail/ProductsDataGrid";
 import NotesTabContent from "../detail/NotesTabContent";
-import AuditLogTabContent from "../detail/AuditLogTabContent";
 import DetailActionButtons from "../detail/DetailActionButtons";
 import ConfirmationDialogs from "../detail/ConfirmationDialogs";
 
@@ -131,10 +129,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     return new Date();
   };
 
-  const getAuditActionLabel = (action: any): string => {
-    const actionName = typeof action === 'string' ? action : action?.toString();
-    return t(`manufacture.auditActions.${actionName}`) || actionName || '-';
-  };
 
   const shouldTruncateText = (text: string): boolean => text.length > 100;
   const truncateText = (text: string): string => text.length <= 100 ? text : text.substring(0, 97) + '...';
@@ -553,17 +547,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                   <StickyNote className="h-4 w-4 mr-2" />
                   Poznámky ({order.notes?.length || 0})
                 </button>
-                <button
-                  onClick={() => setActiveTab("log")}
-                  className={`${
-                    activeTab === "log"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <ScrollText className="h-4 w-4 mr-2" />
-                  Audit log ({order.auditLog?.length || 0})
-                </button>
               </nav>
             </div>
 
@@ -627,13 +610,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                 />
               )}
 
-              {activeTab === "log" && (
-                <AuditLogTabContent
-                  order={order}
-                  formatDateTime={formatDateTime}
-                  getAuditActionLabel={getAuditActionLabel}
-                />
-              )}
             </div>
           </>
         ) : null}
