@@ -23,7 +23,7 @@ public static class TransportModule
         // Register dashboard tiles
         services.RegisterTile<InTransitBoxesTile>();
         services.RegisterTile<ReceivedBoxesTile>();
-        services.RegisterTile<StockedBoxesTile>();
+        services.RegisterTile<ErrorBoxesTile>();
 
         return services;
     }

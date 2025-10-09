@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
+using Anela.Heblo.Application.Features.Catalog.Dashboard;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Application.Features.Catalog.Services;
@@ -18,6 +19,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Catalog.ManufactureDifficulty;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -93,6 +95,12 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
 
         RegisterBackgroundRefreshTasks(services);
+
+        // Register dashboard tiles
+        services.RegisterTile<ProductInventoryCountTile>();
+        services.RegisterTile<MaterialInventoryCountTile>();
+        services.RegisterTile<ProductInventorySummaryTile>();
+        services.RegisterTile<MaterialInventorySummaryTile>();
 
         return services;
     }
