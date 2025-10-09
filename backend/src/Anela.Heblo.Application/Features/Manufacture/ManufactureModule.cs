@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
+using Anela.Heblo.Application.Features.Manufacture.Dashboard;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence.Manufacture;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,6 +39,10 @@ public static class ManufactureModule
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
+        
+        // Register dashboard tiles
+        services.RegisterTile<TodayProductionTile>();
+        services.RegisterTile<NextDayProductionTile>();
 
         return services;
     }

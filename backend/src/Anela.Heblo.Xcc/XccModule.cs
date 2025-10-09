@@ -1,4 +1,6 @@
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
+using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Xcc.Services.Dashboard.Tiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -13,6 +15,13 @@ public static class XccModule
     {
         // Register background refresh services
         services.AddBackgroundRefresh();
+        
+        // Register dashboard services
+        services.AddSingleton<ITileRegistry, TileRegistry>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        
+        // Register system tiles
+        services.RegisterTile<BackgroundTaskStatusTile>();
 
         return services;
     }

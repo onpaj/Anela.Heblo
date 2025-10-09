@@ -5,6 +5,7 @@ using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.API;
 
@@ -61,6 +62,9 @@ public partial class Program
         builder.Services.AddOpenApiDocument();
 
         var app = builder.Build();
+        
+        // Initialize tile registry with all registered tiles
+        TileRegistryExtensions.InitializeTileRegistry(app.Services);
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();

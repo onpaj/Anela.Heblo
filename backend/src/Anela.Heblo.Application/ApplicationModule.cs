@@ -11,6 +11,7 @@ using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.Transport;
 using Anela.Heblo.Application.Features.UserManagement;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

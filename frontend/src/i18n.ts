@@ -37,6 +37,22 @@ const resources = {
         },
         scheduleUpdatedSuccessfully: "Rozpis výroby byl úspěšně aktualizován"
       },
+      dashboard: {
+        tileCategories: {
+          Manufacture: "Výroba",
+          System: "Systém",
+          Warehouse: "Sklad",
+          Purchase: "Nákup",
+          Finance: "Finance",
+          Orders: "Objednávky",
+          Error: "Chyba"
+        },
+        tileSizes: {
+          Small: "S",
+          Medium: "M",
+          Large: "L"
+        }
+      },
       errors: {
         // String keys for ErrorCodes enum names (primary approach)
         // General errors
@@ -191,6 +207,22 @@ const resources = {
           ResponsiblePersonAssigned: "Responsible Person Assigned",
           NoteAdded: "Note Added",
           OrderCreated: "Order Created"
+        }
+      },
+      dashboard: {
+        tileCategories: {
+          Manufacture: "Manufacturing",
+          System: "System",
+          Warehouse: "Warehouse",
+          Purchase: "Purchase",
+          Finance: "Finance",
+          Orders: "Orders",
+          Error: "Error"
+        },
+        tileSizes: {
+          Small: "S",
+          Medium: "M",
+          Large: "L"
         }
       },
       errors: {

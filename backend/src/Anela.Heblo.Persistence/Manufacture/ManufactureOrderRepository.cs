@@ -142,8 +142,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes)
-            .Where(x => (x.SemiProductPlannedDate >= startDate && x.SemiProductPlannedDate <= endDate) ||
-                       (x.ProductPlannedDate >= startDate && x.ProductPlannedDate <= endDate))
+            .Where(x => (x.SemiProductPlannedDate >= startDate && x.SemiProductPlannedDate <= endDate))
             .OrderBy(x => x.SemiProductPlannedDate)
             .ThenBy(x => x.ProductPlannedDate)
             .ToListAsync(cancellationToken);

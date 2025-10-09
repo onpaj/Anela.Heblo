@@ -371,92 +371,6 @@ export class ApiClient {
         return Promise.resolve<GetBankStatementImportStatisticsResponse>(null as any);
     }
 
-    audit_GetDataLoadAuditLogs(limit: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Audit/data-loads?";
-        if (limit !== undefined && limit !== null)
-            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAudit_GetDataLoadAuditLogs(_response);
-        });
-    }
-
-    protected processAudit_GetDataLoadAuditLogs(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    audit_GetAuditSummary(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Audit/summary?";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAudit_GetAuditSummary(_response);
-        });
-    }
-
-    protected processAudit_GetAuditSummary(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -1765,6 +1679,246 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetConfigurationResponse>(null as any);
+    }
+
+    dashboard_GetAvailableTiles(): Promise<DashboardTileDto[]> {
+        let url_ = this.baseUrl + "/api/Dashboard/tiles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_GetAvailableTiles(_response);
+        });
+    }
+
+    protected processDashboard_GetAvailableTiles(response: Response): Promise<DashboardTileDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(DashboardTileDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DashboardTileDto[]>(null as any);
+    }
+
+    dashboard_GetUserSettings(): Promise<UserDashboardSettingsDto> {
+        let url_ = this.baseUrl + "/api/Dashboard/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_GetUserSettings(_response);
+        });
+    }
+
+    protected processDashboard_GetUserSettings(response: Response): Promise<UserDashboardSettingsDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UserDashboardSettingsDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UserDashboardSettingsDto>(null as any);
+    }
+
+    dashboard_SaveUserSettings(request: SaveDashboardSettingsRequest): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Dashboard/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_SaveUserSettings(_response);
+        });
+    }
+
+    protected processDashboard_SaveUserSettings(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    dashboard_GetTileData(): Promise<DashboardTileDto[]> {
+        let url_ = this.baseUrl + "/api/Dashboard/data";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_GetTileData(_response);
+        });
+    }
+
+    protected processDashboard_GetTileData(response: Response): Promise<DashboardTileDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(DashboardTileDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DashboardTileDto[]>(null as any);
+    }
+
+    dashboard_EnableTile(tileId: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/enable";
+        if (tileId === undefined || tileId === null)
+            throw new Error("The parameter 'tileId' must be defined.");
+        url_ = url_.replace("{tileId}", encodeURIComponent("" + tileId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_EnableTile(_response);
+        });
+    }
+
+    protected processDashboard_EnableTile(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    dashboard_DisableTile(tileId: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/disable";
+        if (tileId === undefined || tileId === null)
+            throw new Error("The parameter 'tileId' must be defined.");
+        url_ = url_.replace("{tileId}", encodeURIComponent("" + tileId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDashboard_DisableTile(_response);
+        });
+    }
+
+    protected processDashboard_DisableTile(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
     }
 
     diagnostics_TestLogging(): Promise<FileResponse> {
@@ -7561,6 +7715,218 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     timestamp?: Date;
 }
 
+export class DashboardTileDto implements IDashboardTileDto {
+    tileId?: string;
+    title?: string;
+    description?: string;
+    size?: string;
+    category?: string;
+    defaultEnabled?: boolean;
+    autoShow?: boolean;
+    requiredPermissions?: string[];
+    data?: any | undefined;
+
+    constructor(data?: IDashboardTileDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.tileId = _data["tileId"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.size = _data["size"];
+            this.category = _data["category"];
+            this.defaultEnabled = _data["defaultEnabled"];
+            this.autoShow = _data["autoShow"];
+            if (Array.isArray(_data["requiredPermissions"])) {
+                this.requiredPermissions = [] as any;
+                for (let item of _data["requiredPermissions"])
+                    this.requiredPermissions!.push(item);
+            }
+            this.data = _data["data"];
+        }
+    }
+
+    static fromJS(data: any): DashboardTileDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new DashboardTileDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tileId"] = this.tileId;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["size"] = this.size;
+        data["category"] = this.category;
+        data["defaultEnabled"] = this.defaultEnabled;
+        data["autoShow"] = this.autoShow;
+        if (Array.isArray(this.requiredPermissions)) {
+            data["requiredPermissions"] = [];
+            for (let item of this.requiredPermissions)
+                data["requiredPermissions"].push(item);
+        }
+        data["data"] = this.data;
+        return data;
+    }
+}
+
+export interface IDashboardTileDto {
+    tileId?: string;
+    title?: string;
+    description?: string;
+    size?: string;
+    category?: string;
+    defaultEnabled?: boolean;
+    autoShow?: boolean;
+    requiredPermissions?: string[];
+    data?: any | undefined;
+}
+
+export class UserDashboardSettingsDto implements IUserDashboardSettingsDto {
+    tiles?: UserDashboardTileDto[];
+    lastModified?: Date;
+
+    constructor(data?: IUserDashboardSettingsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["tiles"])) {
+                this.tiles = [] as any;
+                for (let item of _data["tiles"])
+                    this.tiles!.push(UserDashboardTileDto.fromJS(item));
+            }
+            this.lastModified = _data["lastModified"] ? new Date(_data["lastModified"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UserDashboardSettingsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserDashboardSettingsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tiles)) {
+            data["tiles"] = [];
+            for (let item of this.tiles)
+                data["tiles"].push(item.toJSON());
+        }
+        data["lastModified"] = this.lastModified ? this.lastModified.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUserDashboardSettingsDto {
+    tiles?: UserDashboardTileDto[];
+    lastModified?: Date;
+}
+
+export class UserDashboardTileDto implements IUserDashboardTileDto {
+    tileId?: string;
+    isVisible?: boolean;
+    displayOrder?: number;
+
+    constructor(data?: IUserDashboardTileDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.tileId = _data["tileId"];
+            this.isVisible = _data["isVisible"];
+            this.displayOrder = _data["displayOrder"];
+        }
+    }
+
+    static fromJS(data: any): UserDashboardTileDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserDashboardTileDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tileId"] = this.tileId;
+        data["isVisible"] = this.isVisible;
+        data["displayOrder"] = this.displayOrder;
+        return data;
+    }
+}
+
+export interface IUserDashboardTileDto {
+    tileId?: string;
+    isVisible?: boolean;
+    displayOrder?: number;
+}
+
+export class SaveDashboardSettingsRequest implements ISaveDashboardSettingsRequest {
+    tiles?: UserDashboardTileDto[];
+
+    constructor(data?: ISaveDashboardSettingsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["tiles"])) {
+                this.tiles = [] as any;
+                for (let item of _data["tiles"])
+                    this.tiles!.push(UserDashboardTileDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SaveDashboardSettingsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveDashboardSettingsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tiles)) {
+            data["tiles"] = [];
+            for (let item of this.tiles)
+                data["tiles"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISaveDashboardSettingsRequest {
+    tiles?: UserDashboardTileDto[];
+}
+
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
     blobUrl?: string;
     blobName?: string;
@@ -9888,7 +10254,6 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
-    auditLog?: ManufactureOrderAuditLogDto[];
 
     constructor(data?: IManufactureOrderDto) {
         if (data) {
@@ -9928,11 +10293,6 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
                 this.notes = [] as any;
                 for (let item of _data["notes"])
                     this.notes!.push(ManufactureOrderNoteDto.fromJS(item));
-            }
-            if (Array.isArray(_data["auditLog"])) {
-                this.auditLog = [] as any;
-                for (let item of _data["auditLog"])
-                    this.auditLog!.push(ManufactureOrderAuditLogDto.fromJS(item));
             }
         }
     }
@@ -9974,11 +10334,6 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             for (let item of this.notes)
                 data["notes"].push(item.toJSON());
         }
-        if (Array.isArray(this.auditLog)) {
-            data["auditLog"] = [];
-            for (let item of this.auditLog)
-                data["auditLog"].push(item.toJSON());
-        }
         return data;
     }
 }
@@ -10004,7 +10359,6 @@ export interface IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
-    auditLog?: ManufactureOrderAuditLogDto[];
 }
 
 export enum ManufactureOrderState {
@@ -10185,76 +10539,6 @@ export interface IManufactureOrderNoteDto {
     text?: string;
     createdAt?: Date;
     createdByUser?: string;
-}
-
-export class ManufactureOrderAuditLogDto implements IManufactureOrderAuditLogDto {
-    id?: number;
-    timestamp?: Date;
-    user?: string;
-    action?: ManufactureOrderAuditAction;
-    details?: string;
-    oldValue?: string | undefined;
-    newValue?: string | undefined;
-
-    constructor(data?: IManufactureOrderAuditLogDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
-            this.user = _data["user"];
-            this.action = _data["action"];
-            this.details = _data["details"];
-            this.oldValue = _data["oldValue"];
-            this.newValue = _data["newValue"];
-        }
-    }
-
-    static fromJS(data: any): ManufactureOrderAuditLogDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ManufactureOrderAuditLogDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
-        data["user"] = this.user;
-        data["action"] = this.action;
-        data["details"] = this.details;
-        data["oldValue"] = this.oldValue;
-        data["newValue"] = this.newValue;
-        return data;
-    }
-}
-
-export interface IManufactureOrderAuditLogDto {
-    id?: number;
-    timestamp?: Date;
-    user?: string;
-    action?: ManufactureOrderAuditAction;
-    details?: string;
-    oldValue?: string | undefined;
-    newValue?: string | undefined;
-}
-
-export enum ManufactureOrderAuditAction {
-    StateChanged = "StateChanged",
-    QuantityChanged = "QuantityChanged",
-    DateChanged = "DateChanged",
-    ResponsiblePersonAssigned = "ResponsiblePersonAssigned",
-    NoteAdded = "NoteAdded",
-    OrderCreated = "OrderCreated",
-    ManualActionResolved = "ManualActionResolved",
 }
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
