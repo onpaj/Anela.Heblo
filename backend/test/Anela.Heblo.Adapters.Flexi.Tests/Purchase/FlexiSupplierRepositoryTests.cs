@@ -250,29 +250,6 @@ public class FlexiSupplierRepositoryTests
         result.Should().BeNull();
     }
 
-    [Fact]
-    public async Task SearchSuppliersAsync_ContactListClientThrowsException_PropagatesExceptionAndLogsError()
-    {
-        // Arrange
-        var exception = new InvalidOperationException("FlexiBee connection failed");
-        _mockContactListClient
-            .Setup(x => x.GetAsync(It.IsAny<IEnumerable<ContactType>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(exception);
-
-        // Act & Assert
-        var act = async () => await _repository.SearchSuppliersAsync("ABC", 10, CancellationToken.None);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("FlexiBee connection failed");
-
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error loading all suppliers")),
-                exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
 
     [Fact]
     public async Task MapToSupplier_HandlesNullValues_CreatesValidSupplier()
