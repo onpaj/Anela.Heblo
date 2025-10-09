@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
-using Anela.Heblo.Application.Features.Catalog.Dashboard;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Application.Features.Catalog.Services;

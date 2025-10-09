@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Transport.UseCases;
-using Anela.Heblo.Application.Features.Transport.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Features.Logistics.UseCases;
+using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;

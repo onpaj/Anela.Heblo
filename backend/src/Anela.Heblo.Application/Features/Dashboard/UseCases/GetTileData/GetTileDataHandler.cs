@@ -1,0 +1,38 @@
+using Anela.Heblo.Application.Features.Dashboard.Contracts;
+using Anela.Heblo.Xcc.Services.Dashboard;
+using MediatR;
+
+namespace Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
+
+public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDataResponse>
+{
+    private readonly IDashboardService _dashboardService;
+
+    public GetTileDataHandler(IDashboardService dashboardService)
+    {
+        _dashboardService = dashboardService;
+    }
+
+    public async Task<GetTileDataResponse> Handle(GetTileDataRequest request, CancellationToken cancellationToken)
+    {
+        var tileData = await _dashboardService.GetTileDataAsync(request.UserId);
+        
+        var result = tileData.Select(td => new DashboardTileDto
+        {
+            TileId = td.TileId,
+            Title = td.Title,
+            Description = td.Description,
+            Size = td.Size.ToString(),
+            Category = td.Category.ToString(),
+            DefaultEnabled = td.DefaultEnabled,
+            AutoShow = td.AutoShow,
+            RequiredPermissions = td.RequiredPermissions,
+            Data = td.Data
+        });
+
+        return new GetTileDataResponse
+        {
+            Tiles = result
+        };
+    }
+}

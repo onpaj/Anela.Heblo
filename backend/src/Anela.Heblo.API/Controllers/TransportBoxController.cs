@@ -1,10 +1,16 @@
-using Anela.Heblo.Application.Features.Transport.UseCases;
-using Anela.Heblo.Application.Features.Transport.UseCases.UpdateTransportBoxDescription;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Application.Features.Logistics.UseCases;
+using Anela.Heblo.Application.Features.Logistics.UseCases.AddItemToBox;
+using Anela.Heblo.Application.Features.Logistics.UseCases.CreateNewTransportBox;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxes;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxSummary;
+using Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
+using Anela.Heblo.Application.Features.Logistics.UseCases.UpdateTransportBoxDescription;
 
 namespace Anela.Heblo.API.Controllers;
 

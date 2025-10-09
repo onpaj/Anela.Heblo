@@ -1,7 +1,11 @@
 using System.Security.Claims;
-using Anela.Heblo.API.Controllers.Dashboard;
-using Anela.Heblo.Xcc.Domain;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetAvailableTiles;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -10,143 +14,71 @@ namespace Anela.Heblo.API.Controllers;
 [Route("api/[controller]")]
 public class DashboardController : BaseApiController
 {
-    private readonly ITileRegistry _tileRegistry;
-    private readonly IDashboardService _dashboardService;
+    private readonly IMediator _mediator;
 
-    public DashboardController(ITileRegistry tileRegistry, IDashboardService dashboardService)
+    public DashboardController(IMediator mediator)
     {
-        _tileRegistry = tileRegistry;
-        _dashboardService = dashboardService;
+        _mediator = mediator;
     }
 
     [HttpGet("tiles")]
-    public async Task<ActionResult<IEnumerable<DashboardTileDto>>> GetAvailableTiles()
+    public async Task<ActionResult<IEnumerable<Application.Features.Dashboard.Contracts.DashboardTileDto>>> GetAvailableTiles()
     {
-        var tiles = _tileRegistry.GetAvailableTiles();
+        var request = new GetAvailableTilesRequest();
+        var response = await _mediator.Send(request);
         
-        var result = tiles.Select(t => new DashboardTileDto
-        {
-            TileId = t.GetTileId(),
-            Title = t.Title,
-            Description = t.Description,
-            Size = t.Size.ToString(),
-            Category = t.Category.ToString(),
-            DefaultEnabled = t.DefaultEnabled,
-            AutoShow = t.AutoShow,
-            RequiredPermissions = t.RequiredPermissions
-        });
-
-        return Ok(result);
+        return Ok(response.Tiles);
     }
 
     [HttpGet("settings")]
-    public async Task<ActionResult<UserDashboardSettingsDto>> GetUserSettings()
+    public async Task<ActionResult<Application.Features.Dashboard.Contracts.UserDashboardSettingsDto>> GetUserSettings()
     {
         var userId = GetCurrentUserId();
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
+        var request = new GetUserSettingsRequest { UserId = userId };
+        var response = await _mediator.Send(request);
         
-        var result = new UserDashboardSettingsDto
-        {
-            Tiles = settings.Tiles.Select(t => new UserDashboardTileDto
+        return Ok(response.Settings);
+    }
+
+    [HttpPost("settings")]
+    public async Task<ActionResult> SaveUserSettings([FromBody] SaveUserSettingsRequest request)
+    {
+        var userId = GetCurrentUserId();
+        var mediatorRequest = new SaveUserSettingsRequest 
+        { 
+            UserId = userId,
+            Tiles = request.Tiles.Select(t => new Application.Features.Dashboard.Contracts.UserDashboardTileDto
             {
                 TileId = t.TileId,
                 IsVisible = t.IsVisible,
                 DisplayOrder = t.DisplayOrder
-            }).ToArray(),
-            LastModified = settings.LastModified
+            }).ToArray()
         };
-
-        return Ok(result);
-    }
-
-    [HttpPost("settings")]
-    public async Task<ActionResult> SaveUserSettings([FromBody] SaveDashboardSettingsRequest request)
-    {
-        var userId = GetCurrentUserId();
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
-        // Update tile settings
-        foreach (var tileDto in request.Tiles)
-        {
-            var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == tileDto.TileId);
-            if (existingTile != null)
-            {
-                existingTile.IsVisible = tileDto.IsVisible;
-                existingTile.DisplayOrder = tileDto.DisplayOrder;
-                existingTile.LastModified = DateTime.UtcNow;
-            }
-            else
-            {
-                // Add new tile
-                settings.Tiles.Add(new UserDashboardTile
-                {
-                    UserId = userId,
-                    TileId = tileDto.TileId,
-                    IsVisible = tileDto.IsVisible,
-                    DisplayOrder = tileDto.DisplayOrder,
-                    LastModified = DateTime.UtcNow,
-                    DashboardSettings = settings
-                });
-            }
-        }
-        
-        settings.LastModified = DateTime.UtcNow;
-        await _dashboardService.SaveUserSettingsAsync(userId, settings);
+        await _mediator.Send(mediatorRequest);
         
         return Ok();
     }
 
     [HttpGet("data")]
-    public async Task<ActionResult<IEnumerable<DashboardTileDto>>> GetTileData()
+    public async Task<ActionResult<IEnumerable<Application.Features.Dashboard.Contracts.DashboardTileDto>>> GetTileData()
     {
         var userId = GetCurrentUserId();
-        var tileData = await _dashboardService.GetTileDataAsync(userId);
+        var request = new GetTileDataRequest { UserId = userId };
+        var response = await _mediator.Send(request);
         
-        var result = tileData.Select(td => new DashboardTileDto
-        {
-            TileId = td.TileId,
-            Title = td.Title,
-            Description = td.Description,
-            Size = td.Size.ToString(),
-            Category = td.Category.ToString(),
-            DefaultEnabled = td.DefaultEnabled,
-            AutoShow = td.AutoShow,
-            RequiredPermissions = td.RequiredPermissions,
-            Data = td.Data
-        });
-
-        return Ok(result);
+        return Ok(response.Tiles);
     }
 
     [HttpPost("tiles/{tileId}/enable")]
     public async Task<ActionResult> EnableTile(string tileId)
     {
         var userId = GetCurrentUserId();
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
-        var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == tileId);
-        if (existingTile != null)
-        {
-            existingTile.IsVisible = true;
-            existingTile.LastModified = DateTime.UtcNow;
-        }
-        else
-        {
-            // Add new tile with next display order
-            var maxOrder = settings.Tiles.Any() ? settings.Tiles.Max(t => t.DisplayOrder) : -1;
-            settings.Tiles.Add(new UserDashboardTile
-            {
-                UserId = userId,
-                TileId = tileId,
-                IsVisible = true,
-                DisplayOrder = maxOrder + 1,
-                LastModified = DateTime.UtcNow,
-                DashboardSettings = settings
-            });
-        }
-        
-        settings.LastModified = DateTime.UtcNow;
-        await _dashboardService.SaveUserSettingsAsync(userId, settings);
+        var request = new EnableTileRequest 
+        { 
+            UserId = userId,
+            TileId = tileId 
+        };
+        await _mediator.Send(request);
 
         return Ok();
     }
@@ -155,17 +87,12 @@ public class DashboardController : BaseApiController
     public async Task<ActionResult> DisableTile(string tileId)
     {
         var userId = GetCurrentUserId();
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
-        var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == tileId);
-        if (existingTile != null)
-        {
-            existingTile.IsVisible = false;
-            existingTile.LastModified = DateTime.UtcNow;
-            settings.LastModified = DateTime.UtcNow;
-            
-            await _dashboardService.SaveUserSettingsAsync(userId, settings);
-        }
+        var request = new DisableTileRequest 
+        { 
+            UserId = userId,
+            TileId = tileId 
+        };
+        await _mediator.Send(request);
 
         return Ok();
     }

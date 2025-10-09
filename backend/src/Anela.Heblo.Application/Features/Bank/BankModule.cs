@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Bank.Dashboard;
+using Anela.Heblo.Application.Features.Bank.DashboardTiles;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.DependencyInjection;

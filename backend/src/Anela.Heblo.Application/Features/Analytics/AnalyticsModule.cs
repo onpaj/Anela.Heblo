@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Analytics.Dashboard;
+using Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;

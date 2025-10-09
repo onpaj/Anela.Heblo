@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
-using Anela.Heblo.Application.Features.Manufacture.Dashboard;
+using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence.Manufacture;

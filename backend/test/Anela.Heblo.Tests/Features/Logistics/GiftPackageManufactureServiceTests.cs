@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Contracts;
-using Anela.Heblo.Application.Features.Logistics.GiftPackageManufacture.Services;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
