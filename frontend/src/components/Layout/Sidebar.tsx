@@ -195,6 +195,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         {
+          id: "background-tasks",
+          name: "Background Tasky",
+          href: "/automation/background-tasks",
+        },
+        {
           id: "hangfire",
           name: "Hangfire",
           href: "#",

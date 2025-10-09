@@ -30,9 +30,9 @@ public class BackgroundServiceReadinessTracker : IBackgroundServiceReadinessTrac
 
     public bool AreAllServicesReady()
     {
-        // Check required services by their types
-        return IsServiceReady<CatalogRefreshBackgroundService>() &&
-               IsServiceReady<FinancialAnalysisBackgroundService>();
+        // All background services have been replaced by centralized refresh task system
+        // For now, return true as the new system doesn't require explicit readiness tracking
+        return true;
     }
 
     public IReadOnlyDictionary<string, bool> GetServiceStatuses()

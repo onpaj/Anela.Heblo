@@ -86,20 +86,6 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 });
             }
 
-            // Add audit log entry if change reason provided
-            if (!string.IsNullOrEmpty(request.ChangeReason))
-            {
-                order.AuditLog.Add(new ManufactureOrderAuditLog
-                {
-                    Action = ManufactureOrderAuditAction.StateChanged,
-                    Details = request.ChangeReason,
-                    OldValue = oldState.ToString(),
-                    NewValue = request.NewState.ToString(),
-                    Timestamp = DateTime.UtcNow,
-                    User = order.StateChangedByUser,
-                    ManufactureOrderId = order.Id
-                });
-            }
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
 

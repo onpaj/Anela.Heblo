@@ -14,8 +14,8 @@ public interface IFinancialAnalysisService
     /// Refreshes cached financial data for specified date range
     /// </summary>
     Task RefreshFinancialDataAsync(
-        DateTime startDate,
-        DateTime endDate,
+        DateTime? startDate,
+        DateTime? endDate,
         CancellationToken cancellationToken = default);
 
     /// <summary>

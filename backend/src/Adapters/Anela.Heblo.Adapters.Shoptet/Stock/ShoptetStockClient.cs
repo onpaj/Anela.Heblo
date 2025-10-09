@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Xcc.Audit;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Options;
@@ -12,16 +11,13 @@ public class ShoptetStockClient : IEshopStockClient
 {
     private readonly HttpClient _client;
     private readonly IOptions<ShoptetStockClientOptions> _options;
-    private readonly IDataLoadAuditService _auditService;
 
     public ShoptetStockClient(
         HttpClient client,
-        IOptions<ShoptetStockClientOptions> options,
-        IDataLoadAuditService auditService)
+        IOptions<ShoptetStockClientOptions> options)
     {
         _client = client;
         _options = options;
-        _auditService = auditService;
     }
 
     public async Task<List<EshopStock>> ListAsync(CancellationToken cancellationToken)
@@ -47,28 +43,10 @@ public class ShoptetStockClient : IEshopStockClient
                 stockDataList = csv.GetRecords<EshopStock>().ToList();
             }
 
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "Stock",
-                source: "Shoptet E-shop",
-                recordCount: stockDataList.Count,
-                success: true,
-                parameters: parameters,
-                duration: duration);
-
             return stockDataList;
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "Stock",
-                source: "Shoptet E-shop",
-                recordCount: 0,
-                success: false,
-                parameters: parameters,
-                errorMessage: ex.Message,
-                duration: duration);
             throw;
         }
     }

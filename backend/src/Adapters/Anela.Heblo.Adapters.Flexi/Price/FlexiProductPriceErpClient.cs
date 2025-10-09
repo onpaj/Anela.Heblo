@@ -1,5 +1,4 @@
 using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
@@ -13,7 +12,6 @@ namespace Anela.Heblo.Adapters.Flexi.Price;
 public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>, IProductPriceErpClient
 {
     private readonly IMemoryCache _cache;
-    private readonly IDataLoadAuditService _auditService;
     private readonly IBoMClient _bomClient;
     private const string CacheKey = "FlexiProductPrices";
 
@@ -23,13 +21,11 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         IResultHandler resultHandler,
         IMemoryCache cache,
         ILogger<ReceivedInvoiceClient> logger,
-        IDataLoadAuditService auditService,
         IBoMClient bomClient
     )
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
-        _auditService = auditService;
         _bomClient = bomClient;
     }
 
@@ -68,35 +64,19 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
         if (data == null)
         {
+            data = await GetAsync(0, cancellationToken);
+
+            // Safe cache set with disposed object protection
             try
             {
-                data = await GetAsync(0, cancellationToken);
-
-                // Safe cache set with disposed object protection
-                try
-                {
-                    _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Cache is disposed, skip caching but continue with the data
-                }
-
-                dataLoaded = true;
+                _cache.Set(CacheKey, data, DateTimeOffset.UtcNow.AddMinutes(5));
             }
-            catch (Exception ex)
+            catch (ObjectDisposedException)
             {
-                var duration = DateTime.UtcNow - startTime;
-                await _auditService.LogDataLoadAsync(
-                    dataType: "Product Prices",
-                    source: "Flexi ERP",
-                    recordCount: 0,
-                    success: false,
-                    parameters: parameters,
-                    errorMessage: ex.Message,
-                    duration: duration);
-                throw;
+                // Cache is disposed, skip caching but continue with the data
             }
+
+            dataLoaded = true;
         }
 
         var prices = data!.Select(s => new ProductPriceErp()
@@ -108,18 +88,6 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
             BoMId = s.BoMId
         }).ToList();
-
-        if (dataLoaded)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            await _auditService.LogDataLoadAsync(
-                dataType: "Product Prices",
-                source: "Flexi ERP",
-                recordCount: prices.Count(),
-                success: true,
-                parameters: parameters,
-                duration: duration);
-        }
 
         return prices;
     }

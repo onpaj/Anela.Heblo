@@ -366,7 +366,6 @@ export const getApiConfig = () => {
 export const QUERY_KEYS = {
   weather: ["weather"] as const,
   catalog: ["catalog"] as const,
-  audit: ["audit"] as const,
   productMargins: ["productMargins"] as const,
   productMarginSummary: ["productMarginSummary"] as const,
   financialOverview: ["financialOverview"] as const,
@@ -384,6 +383,7 @@ export const QUERY_KEYS = {
   userManagement: ["user-management"] as const,
   invoiceImportStatistics: ["invoice-import-statistics"] as const,
   bankStatements: ["bank-statements"] as const,
+  backgroundRefresh: ["background-refresh"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

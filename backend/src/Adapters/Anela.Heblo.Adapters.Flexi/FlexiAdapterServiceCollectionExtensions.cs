@@ -18,7 +18,6 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Xcc.Audit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -74,8 +73,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IBoMClient, BoMClient>();
 
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
-
-        services.TryAddSingleton<IDataLoadAuditService, InMemoryDataLoadAuditService>();
 
         return services;
     }

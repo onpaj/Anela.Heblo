@@ -457,6 +457,218 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
+        let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBackgroundRefresh_GetRegisteredTasks(_response);
+        });
+    }
+
+    protected processBackgroundRefresh_GetRegisteredTasks(response: Response): Promise<RefreshTaskDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(RefreshTaskDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshTaskDto[]>(null as any);
+    }
+
+    backgroundRefresh_GetTaskHistory(taskId: string, maxRecords: number | undefined): Promise<RefreshTaskExecutionLogDto[]> {
+        let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks/{taskId}/history?";
+        if (taskId === undefined || taskId === null)
+            throw new Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        if (maxRecords === null)
+            throw new Error("The parameter 'maxRecords' cannot be null.");
+        else if (maxRecords !== undefined)
+            url_ += "maxRecords=" + encodeURIComponent("" + maxRecords) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBackgroundRefresh_GetTaskHistory(_response);
+        });
+    }
+
+    protected processBackgroundRefresh_GetTaskHistory(response: Response): Promise<RefreshTaskExecutionLogDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(RefreshTaskExecutionLogDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshTaskExecutionLogDto[]>(null as any);
+    }
+
+    backgroundRefresh_GetAllHistory(maxRecords: number | undefined): Promise<RefreshTaskExecutionLogDto[]> {
+        let url_ = this.baseUrl + "/api/BackgroundRefresh/history?";
+        if (maxRecords === null)
+            throw new Error("The parameter 'maxRecords' cannot be null.");
+        else if (maxRecords !== undefined)
+            url_ += "maxRecords=" + encodeURIComponent("" + maxRecords) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBackgroundRefresh_GetAllHistory(_response);
+        });
+    }
+
+    protected processBackgroundRefresh_GetAllHistory(response: Response): Promise<RefreshTaskExecutionLogDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(RefreshTaskExecutionLogDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshTaskExecutionLogDto[]>(null as any);
+    }
+
+    backgroundRefresh_ForceRefresh(taskId: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks/{taskId}/force-refresh";
+        if (taskId === undefined || taskId === null)
+            throw new Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBackgroundRefresh_ForceRefresh(_response);
+        });
+    }
+
+    protected processBackgroundRefresh_ForceRefresh(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    backgroundRefresh_GetTaskStatus(taskId: string): Promise<RefreshTaskStatusDto> {
+        let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks/{taskId}/status";
+        if (taskId === undefined || taskId === null)
+            throw new Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBackgroundRefresh_GetTaskStatus(_response);
+        });
+    }
+
+    protected processBackgroundRefresh_GetTaskStatus(response: Response): Promise<RefreshTaskStatusDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RefreshTaskStatusDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshTaskStatusDto>(null as any);
+    }
+
     catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (type !== undefined && type !== null)
@@ -5403,6 +5615,186 @@ export interface IBankStatementImportStatisticsDto {
     date?: Date;
     importCount?: number;
     totalItemCount?: number;
+}
+
+export class RefreshTaskDto implements IRefreshTaskDto {
+    taskId?: string;
+    initialDelay?: string;
+    refreshInterval?: string;
+    enabled?: boolean;
+    nextScheduledRun?: Date | undefined;
+    lastExecution?: RefreshTaskExecutionLogDto | undefined;
+
+    constructor(data?: IRefreshTaskDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.taskId = _data["taskId"];
+            this.initialDelay = _data["initialDelay"];
+            this.refreshInterval = _data["refreshInterval"];
+            this.enabled = _data["enabled"];
+            this.nextScheduledRun = _data["nextScheduledRun"] ? new Date(_data["nextScheduledRun"].toString()) : <any>undefined;
+            this.lastExecution = _data["lastExecution"] ? RefreshTaskExecutionLogDto.fromJS(_data["lastExecution"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): RefreshTaskDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshTaskDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["taskId"] = this.taskId;
+        data["initialDelay"] = this.initialDelay;
+        data["refreshInterval"] = this.refreshInterval;
+        data["enabled"] = this.enabled;
+        data["nextScheduledRun"] = this.nextScheduledRun ? this.nextScheduledRun.toISOString() : <any>undefined;
+        data["lastExecution"] = this.lastExecution ? this.lastExecution.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IRefreshTaskDto {
+    taskId?: string;
+    initialDelay?: string;
+    refreshInterval?: string;
+    enabled?: boolean;
+    nextScheduledRun?: Date | undefined;
+    lastExecution?: RefreshTaskExecutionLogDto | undefined;
+}
+
+export class RefreshTaskExecutionLogDto implements IRefreshTaskExecutionLogDto {
+    taskId?: string;
+    startedAt?: Date;
+    completedAt?: Date | undefined;
+    status?: string;
+    errorMessage?: string | undefined;
+    duration?: string | undefined;
+    metadata?: { [key: string]: any; } | undefined;
+
+    constructor(data?: IRefreshTaskExecutionLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.taskId = _data["taskId"];
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+            this.status = _data["status"];
+            this.errorMessage = _data["errorMessage"];
+            this.duration = _data["duration"];
+            if (_data["metadata"]) {
+                this.metadata = {} as any;
+                for (let key in _data["metadata"]) {
+                    if (_data["metadata"].hasOwnProperty(key))
+                        (<any>this.metadata)![key] = _data["metadata"][key];
+                }
+            }
+        }
+    }
+
+    static fromJS(data: any): RefreshTaskExecutionLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshTaskExecutionLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["taskId"] = this.taskId;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        data["status"] = this.status;
+        data["errorMessage"] = this.errorMessage;
+        data["duration"] = this.duration;
+        if (this.metadata) {
+            data["metadata"] = {};
+            for (let key in this.metadata) {
+                if (this.metadata.hasOwnProperty(key))
+                    (<any>data["metadata"])[key] = (<any>this.metadata)[key];
+            }
+        }
+        return data;
+    }
+}
+
+export interface IRefreshTaskExecutionLogDto {
+    taskId?: string;
+    startedAt?: Date;
+    completedAt?: Date | undefined;
+    status?: string;
+    errorMessage?: string | undefined;
+    duration?: string | undefined;
+    metadata?: { [key: string]: any; } | undefined;
+}
+
+export class RefreshTaskStatusDto implements IRefreshTaskStatusDto {
+    taskId?: string;
+    enabled?: boolean;
+    description?: string | undefined;
+    refreshInterval?: string;
+    lastExecution?: RefreshTaskExecutionLogDto | undefined;
+
+    constructor(data?: IRefreshTaskStatusDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.taskId = _data["taskId"];
+            this.enabled = _data["enabled"];
+            this.description = _data["description"];
+            this.refreshInterval = _data["refreshInterval"];
+            this.lastExecution = _data["lastExecution"] ? RefreshTaskExecutionLogDto.fromJS(_data["lastExecution"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): RefreshTaskStatusDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshTaskStatusDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["taskId"] = this.taskId;
+        data["enabled"] = this.enabled;
+        data["description"] = this.description;
+        data["refreshInterval"] = this.refreshInterval;
+        data["lastExecution"] = this.lastExecution ? this.lastExecution.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IRefreshTaskStatusDto {
+    taskId?: string;
+    enabled?: boolean;
+    description?: string | undefined;
+    refreshInterval?: string;
+    lastExecution?: RefreshTaskExecutionLogDto | undefined;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {

@@ -33,7 +33,6 @@ public class ManufactureOrderDto
     public ManufactureOrderSemiProductDto? SemiProduct { get; set; }
     public List<ManufactureOrderProductDto> Products { get; set; } = new();
     public List<ManufactureOrderNoteDto> Notes { get; set; } = new();
-    public List<ManufactureOrderAuditLogDto> AuditLog { get; set; } = new();
 }
 
 public class ManufactureOrderSemiProductDto
@@ -67,13 +66,3 @@ public class ManufactureOrderNoteDto
     public string CreatedByUser { get; set; } = null!;
 }
 
-public class ManufactureOrderAuditLogDto
-{
-    public int Id { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string User { get; set; } = null!;
-    public ManufactureOrderAuditAction Action { get; set; }
-    public string Details { get; set; } = null!;
-    public string? OldValue { get; set; }
-    public string? NewValue { get; set; }
-}

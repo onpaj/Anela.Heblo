@@ -1,6 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Xcc.Audit;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,6 @@ public class FlexiProductPriceErpClientTests
     private readonly Mock<IResultHandler> _resultHandlerMock;
     private readonly Mock<IMemoryCache> _memoryCacheMock;
     private readonly Mock<ILogger<ReceivedInvoiceClient>> _loggerMock;
-    private readonly Mock<IDataLoadAuditService> _auditServiceMock;
     private readonly Mock<IBoMClient> _bomClientMock;
     private readonly FlexiBeeSettings _flexiBeeSettings;
     private readonly FlexiProductPriceErpClient _client;
@@ -29,7 +27,6 @@ public class FlexiProductPriceErpClientTests
         _resultHandlerMock = new Mock<IResultHandler>();
         _memoryCacheMock = new Mock<IMemoryCache>();
         _loggerMock = new Mock<ILogger<ReceivedInvoiceClient>>();
-        _auditServiceMock = new Mock<IDataLoadAuditService>();
         _bomClientMock = new Mock<IBoMClient>();
 
         _flexiBeeSettings = new FlexiBeeSettings
@@ -46,7 +43,6 @@ public class FlexiProductPriceErpClientTests
             _resultHandlerMock.Object,
             _memoryCacheMock.Object,
             _loggerMock.Object,
-            _auditServiceMock.Object,
             _bomClientMock.Object);
     }
 

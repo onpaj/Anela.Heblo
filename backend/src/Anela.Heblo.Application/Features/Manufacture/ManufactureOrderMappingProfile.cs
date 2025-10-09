@@ -12,7 +12,6 @@ public class ManufactureOrderMappingProfile : Profile
         CreateMap<ManufactureOrderSemiProduct, ManufactureOrderSemiProductDto>();
         CreateMap<ManufactureOrderProduct, ManufactureOrderProductDto>();
         CreateMap<ManufactureOrderNote, ManufactureOrderNoteDto>();
-        CreateMap<ManufactureOrderAuditLog, ManufactureOrderAuditLogDto>();
     }
 
 }

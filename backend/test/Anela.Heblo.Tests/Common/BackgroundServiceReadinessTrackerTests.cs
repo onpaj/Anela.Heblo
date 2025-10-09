@@ -40,33 +40,9 @@ public class BackgroundServiceReadinessTrackerTests
     }
 
     [Fact]
-    public void AreAllServicesReady_ShouldReturnFalseWhenCatalogServiceNotReady()
+    public void AreAllServicesReady_ShouldReturnTrueWhenUsingRefreshTaskSystem()
     {
-        // Arrange
-        _tracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
-
-        // Act & Assert
-        Assert.False(_tracker.AreAllServicesReady());
-    }
-
-    [Fact]
-    public void AreAllServicesReady_ShouldReturnFalseWhenFinancialServiceNotReady()
-    {
-        // Arrange
-        _tracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
-
-        // Act & Assert
-        Assert.False(_tracker.AreAllServicesReady());
-    }
-
-    [Fact]
-    public void AreAllServicesReady_ShouldReturnTrueWhenAllRequiredServicesReady()
-    {
-        // Arrange
-        _tracker.ReportInitialLoadCompleted<CatalogRefreshBackgroundService>();
-        _tracker.ReportInitialLoadCompleted<FinancialAnalysisBackgroundService>();
-
-        // Act & Assert
+        // Act & Assert - All background services replaced by refresh task system
         Assert.True(_tracker.AreAllServicesReady());
     }
 

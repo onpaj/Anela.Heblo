@@ -64,8 +64,8 @@ public class FinancialAnalysisService : IFinancialAnalysisService
     }
 
     public async Task RefreshFinancialDataAsync(
-        DateTime startDate,
-        DateTime endDate,
+        DateTime? startDate,
+        DateTime? endDate,
         CancellationToken cancellationToken = default)
     {
         lock (_refreshLock)
@@ -80,12 +80,14 @@ public class FinancialAnalysisService : IFinancialAnalysisService
 
         try
         {
-            _logger.LogInformation("Starting financial analysis data refresh from {StartDate} to {EndDate}",
-                startDate, endDate);
+            endDate ??= new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddDays(-1); // Last day of previous month
+            startDate ??= endDate.Value.AddMonths(-_options.MonthsToCache + 1);
+            
+            _logger.LogInformation("Starting financial analysis data refresh from {StartDate} to {EndDate}", startDate, endDate);
 
             // Load financial data month by month sequentially from newest to oldest
             // to avoid overloading the target system
-            var currentDate = endDate;
+            var currentDate = endDate.Value;
 
             while (currentDate >= startDate)
             {
@@ -139,7 +141,6 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             LastRefresh = lastRefresh,
             CachedMonthsCount = estimatedCachedMonths,
             CachedStockMonthsCount = estimatedCachedStockMonths,
-            NextRefreshDue = lastRefresh.Add(_options.RefreshInterval)
         };
     }
 

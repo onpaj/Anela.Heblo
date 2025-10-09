@@ -362,7 +362,6 @@ public class CreateManufactureOrderHandlerTests
 
         capturedOrder.Should().NotBeNull();
         capturedOrder!.Products.Should().BeEmpty();
-        capturedOrder.AuditLog.First().Details.Should().Contain("Products planned: 0");
     }
 
     [Fact]

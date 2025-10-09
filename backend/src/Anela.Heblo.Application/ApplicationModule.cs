@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
-using Anela.Heblo.Application.Features.Audit;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
@@ -34,9 +33,10 @@ public static class ApplicationModule
         // Register common services
         services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
 
+        // Background refresh system is now handled by XCC module
+
         // Register all feature modules
         services.AddConfigurationModule();
-        services.AddAuditModule();
         services.AddAnalyticsModule();
         services.AddBankModule();
         services.AddCatalogModule(configuration);
@@ -50,7 +50,7 @@ public static class ApplicationModule
         services.AddUserManagement(configuration);
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
-
+        
         return services;
     }
 }

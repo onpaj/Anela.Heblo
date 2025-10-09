@@ -109,8 +109,7 @@ public class ManufactureOrderControllerTests
                             ActualQuantity = 0m
                         }
                     },
-                    Notes = new List<ManufactureOrderNoteDto>(),
-                    AuditLog = new List<ManufactureOrderAuditLogDto>()
+                    Notes = new List<ManufactureOrderNoteDto>()
                 }
             }
         };

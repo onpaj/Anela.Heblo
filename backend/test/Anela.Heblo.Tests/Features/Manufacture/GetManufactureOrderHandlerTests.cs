@@ -208,15 +208,6 @@ public class GetManufactureOrderHandlerTests
             CreatedByUser = "Test User"
         });
 
-        order.AuditLog.Add(new ManufactureOrderAuditLog
-        {
-            Id = 1,
-            Timestamp = DateTime.UtcNow.AddDays(-2),
-            User = "Test User",
-            Action = ManufactureOrderAuditAction.OrderCreated,
-            Details = "Order created from batch planning",
-            NewValue = ManufactureOrderState.Draft.ToString()
-        });
 
         return order;
     }

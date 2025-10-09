@@ -199,11 +199,7 @@ public class FinancialOverviewTestFactory : HebloWebApplicationFactory
             return new PlaceholderStockValueService(logger);
         });
 
-        // Remove background service for testing
-        var hostedServiceDescriptor = services.SingleOrDefault(s => s.ImplementationType == typeof(FinancialAnalysisBackgroundService));
-        if (hostedServiceDescriptor != null)
-        {
-            services.Remove(hostedServiceDescriptor);
-        }
+        // Background services are now handled by centralized refresh system
+        // No specific background service removal needed for testing
     }
 }
