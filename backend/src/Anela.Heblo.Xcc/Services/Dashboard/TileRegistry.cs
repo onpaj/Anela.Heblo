@@ -17,11 +17,6 @@ public class TileRegistry : ITileRegistry
         var tileType = typeof(TTile);
         var tileId = tileType.GetTileId();
         
-        if (_registeredTiles.ContainsKey(tileId))
-        {
-            throw new InvalidOperationException($"Tile with ID '{tileId}' is already registered.");
-        }
-        
         _registeredTiles[tileId] = tileType;
     }
 
