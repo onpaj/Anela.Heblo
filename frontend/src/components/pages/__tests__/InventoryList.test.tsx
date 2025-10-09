@@ -37,10 +37,12 @@ jest.mock('../../../api/hooks/useCatalog', () => ({
     error: null,
   }),
   ProductType: {
-    Product: 1,
-    Goods: 2,
-    Material: 3,
-    SemiProduct: 4,
+    UNDEFINED: "UNDEFINED",
+    Goods: "Goods",
+    Material: "Material",
+    SemiProduct: "SemiProduct",
+    Product: "Product",
+    Set: "Set",
   },
 }));
 
@@ -53,7 +55,7 @@ const mockInventoryData = {
       {
         productCode: 'PRODUCT-1',
         productName: 'Test Product 1',
-        type: 1,
+        type: 'Product',
         location: 'A1-B2',
         stock: {
           available: 25,
@@ -67,7 +69,7 @@ const mockInventoryData = {
       {
         productCode: 'PRODUCT-2',
         productName: 'Test Product 2',
-        type: 1,
+        type: 'Product',
         location: 'B2-C3',
         stock: {
           available: 15,
@@ -81,7 +83,7 @@ const mockInventoryData = {
       {
         productCode: 'PRODUCT-3',
         productName: 'Test Product 3',
-        type: 1,
+        type: 'Product',
         location: 'C3-D4',
         stock: {
           available: 8,

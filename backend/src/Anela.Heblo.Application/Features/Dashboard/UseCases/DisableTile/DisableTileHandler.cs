@@ -14,7 +14,13 @@ public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTil
 
     public async Task<DisableTileResponse> Handle(DisableTileRequest request, CancellationToken cancellationToken)
     {
-        var settings = await _dashboardService.GetUserSettingsAsync(request.UserId);
+        if (string.IsNullOrEmpty(request.TileId))
+        {
+            return new DisableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
+        }
+        
+        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var settings = await _dashboardService.GetUserSettingsAsync(userId);
         
         var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
         if (existingTile != null)
@@ -23,7 +29,7 @@ public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTil
             existingTile.LastModified = DateTime.UtcNow;
             settings.LastModified = DateTime.UtcNow;
             
-            await _dashboardService.SaveUserSettingsAsync(request.UserId, settings);
+            await _dashboardService.SaveUserSettingsAsync(userId, settings);
         }
 
         return new DisableTileResponse();

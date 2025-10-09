@@ -15,7 +15,8 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
 
     public async Task<GetTileDataResponse> Handle(GetTileDataRequest request, CancellationToken cancellationToken)
     {
-        var tileData = await _dashboardService.GetTileDataAsync(request.UserId);
+        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var tileData = await _dashboardService.GetTileDataAsync(userId);
         
         var result = tileData.Select(td => new DashboardTileDto
         {

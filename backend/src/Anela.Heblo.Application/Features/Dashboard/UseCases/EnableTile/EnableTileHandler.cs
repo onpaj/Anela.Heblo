@@ -15,7 +15,13 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
 
     public async Task<EnableTileResponse> Handle(EnableTileRequest request, CancellationToken cancellationToken)
     {
-        var settings = await _dashboardService.GetUserSettingsAsync(request.UserId);
+        if (string.IsNullOrEmpty(request.TileId))
+        {
+            return new EnableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
+        }
+        
+        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var settings = await _dashboardService.GetUserSettingsAsync(userId);
         
         var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
         if (existingTile != null)
@@ -29,7 +35,7 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
             var maxOrder = settings.Tiles.Any() ? settings.Tiles.Max(t => t.DisplayOrder) : -1;
             settings.Tiles.Add(new UserDashboardTile
             {
-                UserId = request.UserId,
+                UserId = userId,
                 TileId = request.TileId,
                 IsVisible = true,
                 DisplayOrder = maxOrder + 1,
@@ -39,7 +45,7 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
         }
         
         settings.LastModified = DateTime.UtcNow;
-        await _dashboardService.SaveUserSettingsAsync(request.UserId, settings);
+        await _dashboardService.SaveUserSettingsAsync(userId, settings);
 
         return new EnableTileResponse();
     }

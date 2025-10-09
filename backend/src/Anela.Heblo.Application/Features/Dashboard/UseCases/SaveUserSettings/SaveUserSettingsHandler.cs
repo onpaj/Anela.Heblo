@@ -15,10 +15,13 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var settings = await _dashboardService.GetUserSettingsAsync(request.UserId);
+        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var settings = await _dashboardService.GetUserSettingsAsync(userId);
         
         // Update tile settings
-        foreach (var tileDto in request.Tiles)
+        if (request.Tiles != null)
+        {
+            foreach (var tileDto in request.Tiles)
         {
             var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == tileDto.TileId);
             if (existingTile != null)
@@ -32,7 +35,7 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
                 // Add new tile
                 settings.Tiles.Add(new UserDashboardTile
                 {
-                    UserId = request.UserId,
+                    UserId = userId,
                     TileId = tileDto.TileId,
                     IsVisible = tileDto.IsVisible,
                     DisplayOrder = tileDto.DisplayOrder,
@@ -41,9 +44,10 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
                 });
             }
         }
+        }
         
         settings.LastModified = DateTime.UtcNow;
-        await _dashboardService.SaveUserSettingsAsync(request.UserId, settings);
+        await _dashboardService.SaveUserSettingsAsync(userId, settings);
         
         return new SaveUserSettingsResponse();
     }

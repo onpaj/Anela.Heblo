@@ -15,7 +15,8 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
 
     public async Task<GetUserSettingsResponse> Handle(GetUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var settings = await _dashboardService.GetUserSettingsAsync(request.UserId);
+        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var settings = await _dashboardService.GetUserSettingsAsync(userId);
         
         var result = new UserDashboardSettingsDto
         {
