@@ -12,7 +12,7 @@ export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }
   const { completed = 0, total = 0, status = '0/0' } = data;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-center">
       <div className="text-3xl font-bold text-blue-600 mb-2">
         {status}
       </div>

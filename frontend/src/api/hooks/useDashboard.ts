@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface DashboardTile {
   tileId: string;
@@ -31,7 +31,7 @@ export interface SaveDashboardSettingsRequest {
 // Hook to get all available tiles
 export const useAvailableTiles = () => {
   return useQuery({
-    queryKey: ['dashboard', 'tiles'],
+    queryKey: [...QUERY_KEYS.dashboard, 'tiles'],
     queryFn: async (): Promise<DashboardTile[]> => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/dashboard/tiles`;
@@ -47,7 +47,7 @@ export const useAvailableTiles = () => {
 // Hook to get user dashboard settings
 export const useUserDashboardSettings = () => {
   return useQuery({
-    queryKey: ['dashboard', 'settings'],
+    queryKey: [...QUERY_KEYS.dashboard, 'settings'],
     queryFn: async (): Promise<UserDashboardSettings> => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/dashboard/settings`;
@@ -63,7 +63,7 @@ export const useUserDashboardSettings = () => {
 // Hook to get tile data
 export const useTileData = () => {
   return useQuery({
-    queryKey: ['dashboard', 'data'],
+    queryKey: [...QUERY_KEYS.dashboard, 'data'],
     queryFn: async (): Promise<DashboardTile[]> => {
       const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/dashboard/data`;
@@ -95,8 +95,8 @@ export const useSaveDashboardSettings = () => {
     },
     onSuccess: () => {
       // Invalidate both settings and data queries to refetch
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'settings'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'data'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'settings'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'data'] });
     },
   });
 };
@@ -116,8 +116,8 @@ export const useEnableTile = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'settings'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'data'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'settings'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'data'] });
     },
   });
 };
@@ -137,8 +137,8 @@ export const useDisableTile = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'settings'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'data'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'settings'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.dashboard, 'data'] });
     },
   });
 };

@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Features.Transport.Dashboard;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +19,11 @@ public static class TransportModule
             var logger = provider.GetRequiredService<ILogger<TransportBoxRepository>>();
             return new TransportBoxRepository(context, logger);
         });
+
+        // Register dashboard tiles
+        services.RegisterTile<InTransitBoxesTile>();
+        services.RegisterTile<ReceivedBoxesTile>();
+        services.RegisterTile<StockedBoxesTile>();
 
         return services;
     }

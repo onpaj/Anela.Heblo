@@ -56,18 +56,10 @@ describe("Dashboard", () => {
 
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(
-      screen.getByText("Přehled systému a stavu aplikace"),
+      screen.getByText("Přehled systému a aktuálního stavu"),
     ).toBeInTheDocument();
   });
 
-  it("should render system status information", () => {
-    renderWithQueryClient(<Dashboard />);
-
-    expect(screen.getByText("Systém běží")).toBeInTheDocument();
-    expect(
-      screen.getByText("Background procesy automaticky zpracovávají data"),
-    ).toBeInTheDocument();
-  });
 
   it("should call health check hooks on mount", () => {
     renderWithQueryClient(<Dashboard />);

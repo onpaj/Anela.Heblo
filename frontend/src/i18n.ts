@@ -45,6 +45,8 @@ const resources = {
           Purchase: "Nákup",
           Finance: "Finance",
           Orders: "Objednávky",
+          Logistics: "Logistika",
+          Analytics: "Analytika",
           Error: "Chyba"
         },
         tileSizes: {
@@ -217,6 +219,8 @@ const resources = {
           Purchase: "Purchase",
           Finance: "Finance",
           Orders: "Orders",
+          Logistics: "Logistics",
+          Analytics: "Analytics",
           Error: "Error"
         },
         tileSizes: {
