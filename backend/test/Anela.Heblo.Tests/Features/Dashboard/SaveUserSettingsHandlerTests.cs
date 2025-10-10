@@ -16,7 +16,7 @@ public class SaveUserSettingsHandlerTests
     public SaveUserSettingsHandlerTests()
     {
         _dashboardServiceMock = new Mock<IDashboardService>();
-        _handler = new SaveUserSettingsHandler(_dashboardServiceMock.Object);
+        _handler = new SaveUserSettingsHandler(_dashboardServiceMock.Object, TimeProvider.System);
     }
 
     [Fact]

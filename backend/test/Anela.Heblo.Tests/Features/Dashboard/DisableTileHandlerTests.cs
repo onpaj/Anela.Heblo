@@ -15,7 +15,7 @@ public class DisableTileHandlerTests
     public DisableTileHandlerTests()
     {
         _dashboardServiceMock = new Mock<IDashboardService>();
-        _handler = new DisableTileHandler(_dashboardServiceMock.Object);
+        _handler = new DisableTileHandler(_dashboardServiceMock.Object, TimeProvider.System);
     }
 
     [Fact]

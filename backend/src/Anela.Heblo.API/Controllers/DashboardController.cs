@@ -6,12 +6,14 @@ using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class DashboardController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -44,17 +46,8 @@ public class DashboardController : BaseApiController
     public async Task<ActionResult> SaveUserSettings([FromBody] SaveUserSettingsRequest request)
     {
         var userId = GetCurrentUserId();
-        var mediatorRequest = new SaveUserSettingsRequest 
-        { 
-            UserId = userId,
-            Tiles = request.Tiles.Select(t => new Application.Features.Dashboard.Contracts.UserDashboardTileDto
-            {
-                TileId = t.TileId,
-                IsVisible = t.IsVisible,
-                DisplayOrder = t.DisplayOrder
-            }).ToArray()
-        };
-        await _mediator.Send(mediatorRequest);
+        request.UserId = userId;
+        await _mediator.Send(request);
         
         return Ok();
     }
@@ -100,11 +93,10 @@ public class DashboardController : BaseApiController
     private string GetCurrentUserId()
     {
         // Get user ID from authentication claims
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                    ?? User.FindFirst("sub")?.Value 
-                    ?? User.FindFirst("oid")?.Value
-                    ?? "anonymous";
-        
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("oid")?.Value
+                     ?? "anonymous";        
         return userId;
     }
 }
