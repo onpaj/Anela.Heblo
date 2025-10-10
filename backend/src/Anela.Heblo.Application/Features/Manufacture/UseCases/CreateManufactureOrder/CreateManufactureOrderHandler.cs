@@ -67,8 +67,8 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         };
         order.SemiProduct = semiProduct;
 
-        // Create final products from the request (only products with positive quantities)
-        foreach (var productRequest in request.Products.Where(p => p.PlannedQuantity > 0))
+        // Create final products from the request 
+        foreach (var productRequest in request.Products)
         {
             var product = new ManufactureOrderProduct
             {

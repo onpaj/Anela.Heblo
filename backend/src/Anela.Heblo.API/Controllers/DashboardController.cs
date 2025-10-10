@@ -96,7 +96,7 @@ public class DashboardController : BaseApiController
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value
                      ?? User.FindFirst("oid")?.Value
-                     ?? "anonymous";        
+                     ?? throw new Exception("User not found");  
         return userId;
     }
 }
