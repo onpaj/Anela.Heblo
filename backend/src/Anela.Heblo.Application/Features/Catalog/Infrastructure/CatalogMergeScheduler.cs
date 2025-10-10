@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
 
 namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -8,6 +9,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 {
     private readonly ILogger<CatalogMergeScheduler> _logger;
     private readonly CatalogCacheOptions _options;
+    private readonly CancellationToken _applicationStopping;
 
     private readonly SemaphoreSlim _mergeSemaphore = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTime> _invalidationTimes = new();
@@ -23,10 +25,12 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
     public CatalogMergeScheduler(
         ILogger<CatalogMergeScheduler> logger,
-        IOptions<CatalogCacheOptions> options)
+        IOptions<CatalogCacheOptions> options,
+        IHostApplicationLifetime applicationLifetime)
     {
         _logger = logger;
         _options = options.Value;
+        _applicationStopping = applicationLifetime.ApplicationStopping;
     }
 
     public void SetMergeCallback(Func<CancellationToken, Task> mergeCallback)
@@ -38,14 +42,14 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
     public void ScheduleMerge(string dataSource)
     {
-        if (_disposed) return;
+        if (_disposed || _applicationStopping.IsCancellationRequested) return;
 
         var now = DateTime.UtcNow;
         _invalidationTimes.TryAdd(dataSource, now);
 
         lock (_timerLock)
         {
-            if (_disposed) return;
+            if (_disposed || _applicationStopping.IsCancellationRequested) return;
 
             // Track first invalidation time for max interval enforcement
             if (_firstPendingInvalidation == DateTime.MinValue)
@@ -61,7 +65,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
                     _options.MaxMergeInterval.TotalMilliseconds);
 
                 // Execute immediately
-                _ = Task.Run(async () => await ExecuteMergeAsync());
+                _ = Task.Run(async () => await ExecuteMergeAsync(), _applicationStopping);
                 return;
             }
 
@@ -79,7 +83,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
     private async Task ExecuteMergeAsync()
     {
-        if (_disposed || !_mergeScheduled || _mergeCallback == null) return;
+        if (_disposed || _applicationStopping.IsCancellationRequested || !_mergeScheduled || _mergeCallback == null) return;
 
         if (!await _mergeSemaphore.WaitAsync(100)) // Don't block if merge already running
         {
@@ -93,7 +97,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
         {
             _logger.LogInformation("Starting background merge operation");
 
-            await _mergeCallback(CancellationToken.None);
+            await _mergeCallback(_applicationStopping);
 
             _lastMergeCompleted = DateTime.UtcNow;
             _mergeScheduled = false;
@@ -110,7 +114,10 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
         }
         finally
         {
-            _mergeSemaphore.Release();
+            if (!_disposed)
+            {
+                _mergeSemaphore.Release();
+            }
             stopwatch.Stop();
         }
     }

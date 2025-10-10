@@ -21,7 +21,9 @@ public abstract class InventoryCountTileBase : ITile
 
     public abstract string Title { get; }
     public abstract string Description { get; }
-    protected abstract ProductType TargetProductType { get; }
+    protected abstract Func<CatalogAggregate, bool> ItemFilter { get; }
+    
+    protected int DaysOffset { get; set; } = 30;
     
     public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.Warehouse;
@@ -34,14 +36,12 @@ public abstract class InventoryCountTileBase : ITile
     {
         try
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-30);
+            var cutoffDate = DateTime.UtcNow.AddDays(-DaysOffset);
             var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
 
             var count = catalogItems
-                .Where(c => c.Type == TargetProductType &&
-                           c.LastStockTaking.HasValue &&
-                           c.LastStockTaking.Value >= cutoffDate)
-                .Count();
+                .Where(ItemFilter)
+                .Count(w => w.LastStockTaking.HasValue && w.LastStockTaking.Value >= cutoffDate);
 
             return new
             {

@@ -7,10 +7,14 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileResponse>
 {
     private readonly IDashboardService _dashboardService;
+    private readonly TimeProvider _timeProvider;
 
-    public EnableTileHandler(IDashboardService dashboardService)
+    public EnableTileHandler(
+        IDashboardService dashboardService,
+        TimeProvider timeProvider)
     {
         _dashboardService = dashboardService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<EnableTileResponse> Handle(EnableTileRequest request, CancellationToken cancellationToken)
@@ -27,7 +31,7 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
         if (existingTile != null)
         {
             existingTile.IsVisible = true;
-            existingTile.LastModified = DateTime.UtcNow;
+            existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
         }
         else
         {
@@ -39,12 +43,12 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
                 TileId = request.TileId,
                 IsVisible = true,
                 DisplayOrder = maxOrder + 1,
-                LastModified = DateTime.UtcNow,
+                LastModified = _timeProvider.GetUtcNow().DateTime,
                 DashboardSettings = settings
             });
         }
         
-        settings.LastModified = DateTime.UtcNow;
+        settings.LastModified = _timeProvider.GetUtcNow().DateTime;
         await _dashboardService.SaveUserSettingsAsync(userId, settings);
 
         return new EnableTileResponse();

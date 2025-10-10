@@ -7,10 +7,15 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, SaveUserSettingsResponse>
 {
     private readonly IDashboardService _dashboardService;
+    private readonly TimeProvider _timeProvider;
 
-    public SaveUserSettingsHandler(IDashboardService dashboardService)
+    public SaveUserSettingsHandler(
+        IDashboardService dashboardService,
+        TimeProvider timeProvider
+        )
     {
         _dashboardService = dashboardService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
@@ -28,7 +33,7 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
             {
                 existingTile.IsVisible = tileDto.IsVisible;
                 existingTile.DisplayOrder = tileDto.DisplayOrder;
-                existingTile.LastModified = DateTime.UtcNow;
+                existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
             }
             else
             {
@@ -39,14 +44,14 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
                     TileId = tileDto.TileId,
                     IsVisible = tileDto.IsVisible,
                     DisplayOrder = tileDto.DisplayOrder,
-                    LastModified = DateTime.UtcNow,
+                    LastModified = _timeProvider.GetUtcNow().DateTime,
                     DashboardSettings = settings
                 });
             }
         }
         }
         
-        settings.LastModified = DateTime.UtcNow;
+        settings.LastModified = _timeProvider.GetUtcNow().DateTime;
         await _dashboardService.SaveUserSettingsAsync(userId, settings);
         
         return new SaveUserSettingsResponse();

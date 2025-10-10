@@ -6,10 +6,14 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
 public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTileResponse>
 {
     private readonly IDashboardService _dashboardService;
+    private readonly TimeProvider _timeProvider;
 
-    public DisableTileHandler(IDashboardService dashboardService)
+    public DisableTileHandler(
+        IDashboardService dashboardService,
+        TimeProvider timeProvider)
     {
         _dashboardService = dashboardService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DisableTileResponse> Handle(DisableTileRequest request, CancellationToken cancellationToken)
@@ -26,8 +30,8 @@ public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTil
         if (existingTile != null)
         {
             existingTile.IsVisible = false;
-            existingTile.LastModified = DateTime.UtcNow;
-            settings.LastModified = DateTime.UtcNow;
+            existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
+            settings.LastModified = _timeProvider.GetUtcNow().DateTime;
             
             await _dashboardService.SaveUserSettingsAsync(userId, settings);
         }

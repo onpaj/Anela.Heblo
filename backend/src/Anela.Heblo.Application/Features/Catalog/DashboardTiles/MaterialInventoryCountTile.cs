@@ -12,9 +12,10 @@ public class MaterialInventoryCountTile : InventoryCountTileBase
         TimeProvider timeProvider
         ) : base(catalogRepository, timeProvider)
     {
+        DaysOffset = 30;
     }
 
     public override string Title => "Materiály inventarizované (30dní)";
     public override string Description => "Počet materiálů inventarizovaných za posledních 30 dní";
-    protected override ProductType TargetProductType => ProductType.Material;
+    protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Material;
 }
