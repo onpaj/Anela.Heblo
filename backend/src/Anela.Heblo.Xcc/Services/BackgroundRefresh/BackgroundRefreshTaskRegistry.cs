@@ -32,30 +32,23 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
     private void InitializeTasksFromSetup(BackgroundRefreshTaskRegistrySetup setup)
     {
         _logger.LogInformation("Initializing {TaskCount} background refresh tasks from setup", setup.TaskRegistrations.Count);
-        
+
         foreach (var taskInfo in setup.TaskRegistrations)
         {
-            try
+            if (taskInfo.Configuration != null)
             {
-                if (taskInfo.Configuration != null)
-                {
-                    RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.Configuration);
-                }
-                else if (taskInfo.ConfigurationKey != null)
-                {
-                    RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.ConfigurationKey);
-                }
-                else
-                {
-                    _logger.LogWarning("Task '{TaskId}' has neither Configuration nor ConfigurationKey", taskInfo.TaskId);
-                }
+                RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.Configuration);
             }
-            catch (Exception ex)
+            else if (taskInfo.ConfigurationKey != null)
             {
-                _logger.LogError(ex, "Failed to initialize task '{TaskId}'", taskInfo.TaskId);
+                RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.ConfigurationKey);
+            }
+            else
+            {
+                throw new InvalidOperationException($"No configuration found for {taskInfo.TaskId}");
             }
         }
-        
+
         _logger.LogInformation("Successfully initialized {RegisteredCount} background refresh tasks", _registeredTasks.Count);
     }
 
