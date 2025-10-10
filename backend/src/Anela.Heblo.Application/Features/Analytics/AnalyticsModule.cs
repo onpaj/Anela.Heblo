@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,6 +36,9 @@ public static class AnalyticsModule
         // Legacy services (keeping for backward compatibility)
         services.AddScoped<MarginCalculator>();
         services.AddScoped<MonthlyBreakdownGenerator>();
+
+        // Register dashboard tiles
+        services.RegisterTile<InvoiceImportStatisticsTile>();
 
         return services;
     }

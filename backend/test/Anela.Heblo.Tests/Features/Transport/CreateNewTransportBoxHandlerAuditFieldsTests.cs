@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.Transport.UseCases.CreateNewTransportBox;
-using Anela.Heblo.Application.Features.Transport.UseCases;
+using Anela.Heblo.Application.Features.Logistics.UseCases.CreateNewTransportBox;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;

@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;
@@ -50,6 +51,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderSemiProduct> ManufactureOrderSemiProducts { get; set; } = null!;
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
+    
+    // Dashboard module
+    public DbSet<UserDashboardSettings> UserDashboardSettings { get; set; } = null!;
+    public DbSet<UserDashboardTile> UserDashboardTiles { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

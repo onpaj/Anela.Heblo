@@ -634,55 +634,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ManufactureOrders", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderAuditLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Action")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Details")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("ManufactureOrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("NewValue")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("OldValue")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("User")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Action")
-                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_Action");
-
-                    b.HasIndex("ManufactureOrderId")
-                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_ManufactureOrderId");
-
-                    b.HasIndex("Timestamp")
-                        .HasDatabaseName("IX_ManufactureOrderAuditLogs_Timestamp");
-
-                    b.ToTable("ManufactureOrderAuditLogs", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
                 {
                     b.Property<int>("Id")
@@ -979,6 +930,67 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PurchaseOrderLines", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserDashboardSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardTile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("TileId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DisplayOrder");
+
+                    b.HasIndex("UserId", "TileId")
+                        .IsUnique();
+
+                    b.ToTable("UserDashboardTiles", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntry", "JournalEntry")
@@ -1036,17 +1048,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderAuditLog", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
-                        .WithMany("AuditLog")
-                        .HasForeignKey("ManufactureOrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManufactureOrder");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
@@ -1098,6 +1099,18 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardTile", b =>
+                {
+                    b.HasOne("Anela.Heblo.Xcc.Domain.UserDashboardSettings", "DashboardSettings")
+                        .WithMany("Tiles")
+                        .HasForeignKey("UserId")
+                        .HasPrincipalKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DashboardSettings");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>
                 {
                     b.Navigation("ProductAssociations");
@@ -1124,8 +1137,6 @@ namespace Anela.Heblo.Persistence.Migrations
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
                 {
-                    b.Navigation("AuditLog");
-
                     b.Navigation("Notes");
 
                     b.Navigation("Products");
@@ -1139,6 +1150,11 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("History");
 
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardSettings", b =>
+                {
+                    b.Navigation("Tiles");
                 });
 #pragma warning restore 612, 618
         }

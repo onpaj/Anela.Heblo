@@ -384,6 +384,7 @@ export const QUERY_KEYS = {
   invoiceImportStatistics: ["invoice-import-statistics"] as const,
   bankStatements: ["bank-statements"] as const,
   backgroundRefresh: ["background-refresh"] as const,
+  dashboard: ["dashboard"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
