@@ -11,6 +11,7 @@ interface EditableLot {
   expiration: Date | null;
   originalAmount: number;
   isNew?: boolean;
+  amountInput?: string; // Temporary input value for editing
 }
 
 interface ManufactureInventoryModalProps {
@@ -110,9 +111,23 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
   // Helper functions for lot management
   const updateLotAmount = (index: number, newAmount: number) => {
     const roundedAmount = Math.round(Math.max(0, newAmount) * 100) / 100;
-    setEditableLots(prev => prev.map((lot, i) => 
-      i === index ? { ...lot, amount: roundedAmount } : lot
+    setEditableLots(prev => prev.map((lot, i) =>
+      i === index ? { ...lot, amount: roundedAmount, amountInput: undefined } : lot
     ));
+  };
+
+  const updateLotAmountInput = (index: number, inputValue: string) => {
+    setEditableLots(prev => prev.map((lot, i) =>
+      i === index ? { ...lot, amountInput: inputValue } : lot
+    ));
+  };
+
+  const commitLotAmountInput = (index: number) => {
+    const lot = editableLots[index];
+    if (lot?.amountInput !== undefined) {
+      const value = parseFloat(lot.amountInput);
+      updateLotAmount(index, isNaN(value) ? 0 : value);
+    }
   };
 
   const updateLotCode = (index: number, newCode: string) => {
@@ -347,34 +362,24 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                                   {/* Amount Input with Buttons - larger space */}
                                   <div className="flex items-center space-x-1 flex-1">
-                                    <button
-                                      onClick={() => updateLotAmount(index, lot.amount - 1)}
-                                      className="w-8 h-8 flex items-center justify-center bg-gray-100 border border-gray-300 rounded text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                      type="button"
-                                      title="Snížit množství"
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </button>
+                                   
                                     <input
                                       type="number"
                                       min="0"
-                                      step="0.01"
-                                      value={lot.amount.toFixed(2)}
-                                      onChange={(e) => {
-                                        const value = parseFloat(e.target.value);
-                                        updateLotAmount(index, isNaN(value) ? 0 : value);
+                                      step="1"
+                                      value={lot.amountInput !== undefined ? lot.amountInput : lot.amount.toFixed(2)}
+                                      onChange={(e) => updateLotAmountInput(index, e.target.value)}
+                                      onBlur={() => commitLotAmountInput(index)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          commitLotAmountInput(index);
+                                          e.currentTarget.blur();
+                                        }
                                       }}
                                       className="flex-1 text-center border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-0"
                                       title="Množství"
                                     />
-                                    <button
-                                      onClick={() => updateLotAmount(index, lot.amount + 1)}
-                                      className="w-8 h-8 flex items-center justify-center bg-gray-100 border border-gray-300 rounded text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                      type="button"
-                                      title="Zvýšit množství"
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </button>
+                                   
                                     {lot.isNew && (
                                       <button
                                         onClick={() => removeLot(index)}
