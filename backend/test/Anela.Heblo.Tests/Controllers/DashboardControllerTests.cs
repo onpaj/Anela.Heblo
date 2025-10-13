@@ -227,7 +227,7 @@ public class DashboardControllerTests
     }
 
     [Fact]
-    public async Task GetCurrentUserId_WhenNoClaimsPresent_ShouldReturnAnonymous()
+    public async Task GetCurrentUserId_WhenNoClaimsPresent_ShouldThrowException()
     {
         // Arrange
         var controller = new DashboardController(_mediatorMock.Object);
@@ -236,17 +236,14 @@ public class DashboardControllerTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetUserSettingsResponse { Settings = new UserDashboardSettingsDto() });
-
-        // Act
-        await controller.GetUserSettings();
-
-        // Assert
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<Exception>(() => controller.GetUserSettings());
+        exception.Message.Should().Be("User not found");
+        
+        // Verify that mediator was never called since exception was thrown before
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "anonymous"), 
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<GetUserSettingsRequest>(), 
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
