@@ -8,6 +8,8 @@ interface ProductionTileProps {
       productName: string;
       semiProductCompleted: boolean;
       productsCompleted: boolean;
+      responsiblePerson: string;
+      actualQuantity: number;
     }>;
   };
   title: string;
@@ -36,8 +38,8 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
       <div className="space-y-3 max-h-24 overflow-y-auto">
         {products.slice(0, 3).map((product, index) => (
           <div key={index} className="flex justify-between items-center gap-2">
-            <span className="text-sm text-gray-900 truncate font-medium flex-1">
-              {product.productName}
+            <span className="text-base text-gray-900 truncate font-medium flex-1">
+              {product.productName} - {product.actualQuantity}g{product.responsiblePerson ? ` (${product.responsiblePerson})` : ''}
             </span>
             <div className="flex items-center gap-1 flex-shrink-0">
               <div title={product.semiProductCompleted ? 'Polotovar hotový' : 'Polotovar čeká'}>
