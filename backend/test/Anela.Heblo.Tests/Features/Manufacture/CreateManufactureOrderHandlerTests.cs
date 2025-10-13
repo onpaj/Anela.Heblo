@@ -42,7 +42,8 @@ public class CreateManufactureOrderHandlerTests
             _repositoryMock.Object,
             _productNameFormatterMock.Object,
             _catalogRepositoryMock.Object,
-            _currentUserServiceMock.Object);
+            _currentUserServiceMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]
