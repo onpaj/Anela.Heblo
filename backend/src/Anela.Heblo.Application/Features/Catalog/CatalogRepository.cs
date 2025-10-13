@@ -788,6 +788,11 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    public async Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default)
+    {
+        await _mergeScheduler.WaitForCurrentMergeAsync(cancellationToken);
+    }
+
     private DateTime? GetLoadDateFromCache(string dataKey)
     {
         return _cache.Get<DateTime?>($"{dataKey}_LoadDate");

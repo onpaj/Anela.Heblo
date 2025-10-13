@@ -30,4 +30,11 @@ public interface ICatalogMergeScheduler : IDisposable
     /// </summary>
     /// <returns>True if merge is scheduled but not yet executed</returns>
     bool HasPendingMerge();
+
+    /// <summary>
+    /// Waits for the currently running merge operation to complete, if any
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task that completes when the current merge finishes</returns>
+    Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default);
 }

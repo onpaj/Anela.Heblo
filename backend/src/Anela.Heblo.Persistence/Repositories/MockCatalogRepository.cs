@@ -397,6 +397,7 @@ public class MockCatalogRepository : ICatalogRepository
     // Merge operation tracking - always return current time for mock
     public DateTime? LastMergeDateTime => DateTime.UtcNow;
     public bool ChangesPendingForMerge => false;
+    public Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     // Refresh methods - no-op for mock
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;

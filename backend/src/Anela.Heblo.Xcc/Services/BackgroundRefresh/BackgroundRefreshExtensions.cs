@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
@@ -16,19 +17,17 @@ public static class BackgroundRefreshExtensions
 
     public static IServiceCollection RegisterRefreshTask(
         this IServiceCollection services,
-        string ownerType,
+        string ownerName,
         string methodName,
         Func<IServiceProvider, CancellationToken, Task> refreshMethod,
         RefreshTaskConfiguration configuration)
     {
-        var taskId = $"{ownerType}.{methodName}";
-
         // Register task immediately by configuring the singleton registry
         services.Configure<BackgroundRefreshTaskRegistrySetup>(setup =>
         {
             setup.TaskRegistrations.Add(new TaskRegistrationInfo
             {
-                TaskId = taskId,
+                TaskId = GetTaskId(ownerName, methodName),
                 RefreshMethod = refreshMethod,
                 Configuration = configuration
             });
@@ -39,25 +38,27 @@ public static class BackgroundRefreshExtensions
 
     public static IServiceCollection RegisterRefreshTask(
         this IServiceCollection services,
-        string ownerType,
+        string ownerName,
         string methodName,
-        Func<IServiceProvider, CancellationToken, Task> refreshMethod,
-        string configurationKey)
+        Func<IServiceProvider, CancellationToken, Task> refreshMethod)
     {
-        var taskId = $"{ownerType}.{methodName}";
 
         // Register task immediately by configuring the singleton registry
         services.Configure<BackgroundRefreshTaskRegistrySetup>(setup =>
         {
             setup.TaskRegistrations.Add(new TaskRegistrationInfo
             {
-                TaskId = taskId,
+                TaskId = GetTaskId(ownerName, methodName),
                 RefreshMethod = refreshMethod,
-                ConfigurationKey = configurationKey
             });
         });
 
         return services;
+    }
+
+    private static string GetTaskId(string ownerType, string methodName)
+    {
+        return $"{ownerType}.{methodName}";
     }
 
     public static IServiceCollection RegisterRefreshTask<TOwner>(
@@ -74,12 +75,11 @@ public static class BackgroundRefreshExtensions
     public static IServiceCollection RegisterRefreshTask<TOwner>(
         this IServiceCollection services,
         string methodName,
-        Func<IServiceProvider, CancellationToken, Task> refreshMethod,
-        string configurationKey)
+        Func<IServiceProvider, CancellationToken, Task> refreshMethod)
         where TOwner : class
     {
         var ownerType = typeof(TOwner).Name;
-        return services.RegisterRefreshTask(ownerType, methodName, refreshMethod, configurationKey);
+        return services.RegisterRefreshTask(ownerType, methodName, refreshMethod);
     }
     
     public static IServiceCollection RegisterRefreshTask<TOwner>(
@@ -90,7 +90,7 @@ public static class BackgroundRefreshExtensions
     {
         var ownerType = typeof(TOwner).Name;
         var wrappedMethod = CreateWrappedMethod(refreshMethod);
-        return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod, methodName);
+        return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod);
     }
     
     public static IServiceCollection RegisterRefreshTask<TOwner>(
@@ -101,8 +101,9 @@ public static class BackgroundRefreshExtensions
     {
         var ownerType = typeof(TOwner).Name;
         var wrappedMethod = CreateWrappedMethod(refreshMethod);
-        return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod, methodName);
+        return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod);
     }
+    
 
     private static Func<IServiceProvider, CancellationToken, Task> CreateWrappedMethod<TOwner>(
         Action<TOwner, CancellationToken> refreshMethod)
@@ -116,6 +117,8 @@ public static class BackgroundRefreshExtensions
             await Task.CompletedTask;
         };
     }
+    
+  
 
     private static Func<IServiceProvider, CancellationToken, Task> CreateWrappedMethod<TOwner>(
         Func<TOwner, CancellationToken, Task> refreshMethod)

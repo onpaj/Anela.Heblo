@@ -126,6 +126,19 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
     public bool HasPendingMerge() => _mergeScheduled;
 
+    public async Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_disposed || _applicationStopping.IsCancellationRequested) return;
+
+        // If no merge is currently in progress, return immediately
+        if (!IsMergeInProgress) return;
+
+        // Wait for the semaphore to become available (indicating merge completion)
+        // Then immediately release it since we don't want to hold it
+        await _mergeSemaphore.WaitAsync(cancellationToken);
+        _mergeSemaphore.Release();
+    }
+
     public void Dispose()
     {
         if (_disposed) return;

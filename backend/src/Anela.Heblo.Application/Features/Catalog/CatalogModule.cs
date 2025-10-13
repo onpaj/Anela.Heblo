@@ -40,11 +40,11 @@ public static class CatalogModule
         // Register cost repositories
         services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
         services.AddTransient<IManufactureCostRepository, ManufactureCostRepository>();
-        services.AddTransient<ISalesCostRepository, SalesCostRepository>();
         services.AddTransient<IOverheadCostRepository, OverheadCostRepository>();
 
         // Register catalog-specific services
         services.AddSingleton<IManufactureCostCalculationService, ManufactureCostCalculationService>();
+        services.AddTransient<ISalesCostCalculationService, SalesCostCalculationService>();
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
@@ -128,10 +128,17 @@ public static class CatalogModule
             (r, ct) => r.RefreshPlannedData(ct)
         );
         
-        services.RegisterRefreshTask<ICatalogRepository>(
+        services.RegisterRefreshTask(
+            nameof(ICatalogRepository),
             nameof(ICatalogRepository.RefreshSalesData),
-            (r, ct) => r.RefreshSalesData(ct)
-        );
+            async (sp, ct) => 
+            {
+                var catalogRepository = sp.GetRequiredService<ICatalogRepository>();
+                var salesCostService = sp.GetRequiredService<ISalesCostCalculationService>();
+                await catalogRepository.RefreshSalesData(ct);
+                await catalogRepository.WaitForCurrentMergeAsync(ct);
+                await salesCostService.Reload();
+            });
         
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshAttributesData),
@@ -184,19 +191,17 @@ public static class CatalogModule
         );
         
         services.RegisterRefreshTask<ICatalogRepository>(
-            "RefreshManufactureDifficultySettingsData",
+            nameof(ICatalogRepository.RefreshManufactureDifficultySettingsData),
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
 
         // Manufacture cost calculation task (requires special logic)
-        services.RegisterRefreshTask(
-            "IManufactureCostCalculationService",
+        services.RegisterRefreshTask<IManufactureCostCalculationService>(
             "RefreshManufactureCostData",
             async (serviceProvider, ct) =>
             {
-                using var scope = serviceProvider.CreateScope();
-                var catalogRepository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
-                var manufactureCostService = scope.ServiceProvider.GetRequiredService<IManufactureCostCalculationService>();
+                var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
+                var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
                 
                 // Check that all required data sources are loaded and no changes are pending
                 if (AreAllDataSourcesLoaded(catalogRepository) && !catalogRepository.ChangesPendingForMerge)
@@ -204,8 +209,7 @@ public static class CatalogModule
                     var catalogData = await catalogRepository.GetAllAsync(ct);
                     await manufactureCostService.Reload(catalogData.ToList());
                 }
-            },
-            "RefreshManufactureCostData"
+            }
         );
 
         // Other services refresh tasks

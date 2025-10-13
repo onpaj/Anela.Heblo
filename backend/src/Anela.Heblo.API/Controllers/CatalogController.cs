@@ -7,7 +7,6 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
-using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
@@ -45,110 +44,6 @@ public class CatalogController : BaseApiController
         return HandleResponse(response);
     }
 
-    [HttpPost("refresh/transport")]
-    public async Task<IActionResult> RefreshTransportData()
-    {
-        await _mediator.Send(new RefreshTransportDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/reserve")]
-    public async Task<IActionResult> RefreshReserveData()
-    {
-        await _mediator.Send(new RefreshReserveDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/sales")]
-    public async Task<IActionResult> RefreshSalesData()
-    {
-        await _mediator.Send(new RefreshSalesDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/attributes")]
-    public async Task<IActionResult> RefreshAttributesData()
-    {
-        await _mediator.Send(new RefreshAttributesDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/erp-stock")]
-    public async Task<IActionResult> RefreshErpStockData()
-    {
-        await _mediator.Send(new RefreshErpStockDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/eshop-stock")]
-    public async Task<IActionResult> RefreshEshopStockData()
-    {
-        await _mediator.Send(new RefreshEshopStockDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/purchase-history")]
-    public async Task<IActionResult> RefreshPurchaseHistoryData()
-    {
-        await _mediator.Send(new RefreshPurchaseHistoryDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/manufacture-history")]
-    public async Task<IActionResult> RefreshManufactureHistoryData()
-    {
-        await _mediator.Send(new RefreshManufactureHistoryDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/consumed-history")]
-    public async Task<IActionResult> RefreshConsumedHistoryData()
-    {
-        await _mediator.Send(new RefreshConsumedHistoryDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/stock-taking")]
-    public async Task<IActionResult> RefreshStockTakingData()
-    {
-        await _mediator.Send(new RefreshStockTakingDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/lots")]
-    public async Task<IActionResult> RefreshLotsData()
-    {
-        await _mediator.Send(new RefreshLotsDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/eshop-prices")]
-    public async Task<IActionResult> RefreshEshopPricesData()
-    {
-        await _mediator.Send(new RefreshEshopPricesDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/erp-prices")]
-    public async Task<IActionResult> RefreshErpPricesData()
-    {
-        await _mediator.Send(new RefreshErpPricesDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/manufacture-difficulty")]
-    public async Task<IActionResult> RefreshManufactureDifficultyData()
-    {
-        await _mediator.Send(new RefreshManufactureDifficultyDataRequest());
-        return NoContent();
-    }
-
-    [HttpPost("refresh/manufacture-cost")]
-    public async Task<IActionResult> RefreshManufactureCostData()
-    {
-        await _mediator.Send(new RefreshManufactureCostDataRequest());
-        return NoContent();
-    }
 
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)

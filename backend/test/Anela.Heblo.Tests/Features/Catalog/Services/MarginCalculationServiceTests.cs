@@ -22,7 +22,7 @@ public class MarginCalculationServiceTests
 {
     private readonly Mock<IMaterialCostRepository> _materialCostRepositoryMock;
     private readonly Mock<IManufactureCostRepository> _manufactureCostRepositoryMock;
-    private readonly Mock<ISalesCostRepository> _salesCostRepositoryMock;
+    private readonly Mock<ISalesCostCalculationService> _salesCostCalculationServiceMock;
     private readonly Mock<IOverheadCostRepository> _overheadCostRepositoryMock;
     private readonly Mock<ILogger<MarginCalculationService>> _loggerMock;
     private readonly MarginCalculationService _service;
@@ -31,14 +31,14 @@ public class MarginCalculationServiceTests
     {
         _materialCostRepositoryMock = new Mock<IMaterialCostRepository>();
         _manufactureCostRepositoryMock = new Mock<IManufactureCostRepository>();
-        _salesCostRepositoryMock = new Mock<ISalesCostRepository>();
+        _salesCostCalculationServiceMock = new Mock<ISalesCostCalculationService>();
         _overheadCostRepositoryMock = new Mock<IOverheadCostRepository>();
         _loggerMock = new Mock<ILogger<MarginCalculationService>>();
 
         _service = new MarginCalculationService(
             _materialCostRepositoryMock.Object,
             _manufactureCostRepositoryMock.Object,
-            _salesCostRepositoryMock.Object,
+            _salesCostCalculationServiceMock.Object,
             _overheadCostRepositoryMock.Object,
             _loggerMock.Object);
     }
@@ -391,7 +391,7 @@ public class MarginCalculationServiceTests
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
-        _salesCostRepositoryMock
+        _salesCostCalculationServiceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
@@ -548,7 +548,7 @@ public class MarginCalculationServiceTests
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(manufactureCostDict);
 
-        _salesCostRepositoryMock
+        _salesCostCalculationServiceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(salesCostDict);
 
@@ -573,7 +573,7 @@ public class MarginCalculationServiceTests
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(manufactureCostDict);
 
-        _salesCostRepositoryMock
+        _salesCostCalculationServiceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(salesCostDict);
 

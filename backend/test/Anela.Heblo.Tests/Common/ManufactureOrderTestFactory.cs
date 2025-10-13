@@ -178,6 +178,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshEshopPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
+    public Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,
         CancellationToken cancellationToken = default)

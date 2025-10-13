@@ -39,14 +39,7 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
             {
                 RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.Configuration);
             }
-            else if (taskInfo.ConfigurationKey != null)
-            {
-                RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.ConfigurationKey);
-            }
-            else
-            {
-                throw new InvalidOperationException($"No configuration found for {taskInfo.TaskId}");
-            }
+            RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod);
         }
 
         _logger.LogInformation("Successfully initialized {RegisteredCount} background refresh tasks", _registeredTasks.Count);
@@ -76,10 +69,9 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
 
     public void RegisterTask(
         string taskId,
-        Func<IServiceProvider, CancellationToken, Task> refreshMethod,
-        string configurationKey)
+        Func<IServiceProvider, CancellationToken, Task> refreshMethod)
     {
-        var configuration = LoadConfigurationFromAppSettings(taskId, configurationKey);
+        var configuration = RefreshTaskConfiguration.FromAppSettings(_configuration, taskId);
         RegisterTask(taskId, refreshMethod, configuration);
     }
 
@@ -153,7 +145,8 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
         {
             _logger.LogInformation("🚀 Executing refresh task '{TaskId}' (force: {IsForceRefresh})", taskId, isForceRefresh);
 
-            await registeredTask.RefreshMethod(_serviceProvider, cancellationToken);
+            using var scope = _serviceProvider.CreateScope();
+            await registeredTask.RefreshMethod(scope.ServiceProvider, cancellationToken);
 
             var completedLog = executionLog with
             {
@@ -198,56 +191,6 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
     internal IEnumerable<RegisteredTask> GetAllRegisteredTasks()
     {
         return _registeredTasks.Values;
-    }
-
-    private RefreshTaskConfiguration LoadConfigurationFromAppSettings(string taskId, string configurationKey)
-    {
-        // For task ID like "ICatalogRepository.RefreshTransportData" and configurationKey like "RefreshTransportData"
-        // We need to look in BackgroundRefresh:ICatalogRepository:RefreshTransportData
-        
-        var parts = taskId.Split('.');
-        if (parts.Length != 2)
-        {
-            throw new InvalidOperationException($"Task ID '{taskId}' must be in format 'Owner.Method'");
-        }
-        
-        var ownerType = parts[0];
-        var methodName = parts[1];
-        
-        var sectionPath = $"BackgroundRefresh:{ownerType}:{methodName}";
-        var section = _configuration.GetSection(sectionPath);
-
-        if (!section.Exists())
-        {
-            throw new InvalidOperationException($"Configuration section '{sectionPath}' not found for task '{taskId}'");
-        }
-
-        var initialDelayStr = section["InitialDelay"];
-        var refreshIntervalStr = section["RefreshInterval"];
-        var enabledStr = section["Enabled"];
-
-        if (!TimeSpan.TryParse(initialDelayStr, out var initialDelay))
-        {
-            initialDelay = TimeSpan.Zero;
-        }
-
-        if (!TimeSpan.TryParse(refreshIntervalStr, out var refreshInterval))
-        {
-            throw new InvalidOperationException($"Invalid RefreshInterval in configuration section '{sectionPath}' for task '{taskId}'");
-        }
-
-        if (!bool.TryParse(enabledStr, out var enabled))
-        {
-            enabled = true; // Default to enabled if not specified
-        }
-
-        return new RefreshTaskConfiguration
-        {
-            TaskId = taskId,
-            InitialDelay = initialDelay,
-            RefreshInterval = refreshInterval,
-            Enabled = enabled,
-        };
     }
 
 

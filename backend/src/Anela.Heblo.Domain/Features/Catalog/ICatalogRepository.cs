@@ -43,6 +43,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     // Merge operation tracking
     DateTime? LastMergeDateTime { get; }
     bool ChangesPendingForMerge { get; }
+    Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default);
 
     // Analytics methods
     Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(
