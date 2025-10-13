@@ -42,7 +42,8 @@ public class CreateManufactureOrderHandlerTests
             _repositoryMock.Object,
             _productNameFormatterMock.Object,
             _catalogRepositoryMock.Object,
-            _currentUserServiceMock.Object);
+            _currentUserServiceMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]
@@ -229,7 +230,7 @@ public class CreateManufactureOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldOnlyCreateProductsWithPositiveQuantity()
+    public async Task Handle_ShouldCreateAllProductsIncludingZeroQuantity()
     {
         var request = CreateValidRequest();
         request.Products.Add(new CreateManufactureOrderProductRequest
@@ -262,8 +263,14 @@ public class CreateManufactureOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         capturedOrder.Should().NotBeNull();
-        capturedOrder!.Products.Should().HaveCount(1);
-        capturedOrder.Products.First().ProductCode.Should().Be("PROD001");
+        capturedOrder!.Products.Should().HaveCount(2);
+        
+        var firstProduct = capturedOrder.Products.First(p => p.ProductCode == "PROD001");
+        firstProduct.PlannedQuantity.Should().Be(100.0m);
+        
+        var secondProduct = capturedOrder.Products.First(p => p.ProductCode == "PROD002");
+        secondProduct.PlannedQuantity.Should().Be(0.0m);
+        secondProduct.ProductName.Should().Be("Zero Quantity Product");
     }
 
 

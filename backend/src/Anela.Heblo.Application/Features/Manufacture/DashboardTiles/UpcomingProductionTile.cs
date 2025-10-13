@@ -27,16 +27,19 @@ public abstract class UpcomingProductionTile : ITile
     public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         var orders = await _repository.GetOrdersForDateRangeAsync(ReferenceDate, ReferenceDate, cancellationToken);
-
+        orders = orders.Where(w => w.State != ManufactureOrderState.Cancelled).ToList();
+        
         return new
         {
             TotalOrders = orders.Count(),
-            Products = orders.Take(5).SelectMany(o =>
-                o.Products.Take(1).Select(p => new {
-                    p.ProductName,
+            Products = orders.Take(5).Select(o =>
+                    new {
+                    o.SemiProduct.ProductName,
                     SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
-                    ProductsCompleted = o.State == ManufactureOrderState.Completed
-                })
+                    ProductsCompleted = o.State == ManufactureOrderState.Completed,
+                    o.ResponsiblePerson,
+                    o.SemiProduct.ActualQuantity
+                    }
             ).ToArray()
         };
     }

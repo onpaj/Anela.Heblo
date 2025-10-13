@@ -80,6 +80,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableErpOrderNumberProduct, setEditableErpOrderNumberProduct] = useState("");
   const [editableErpDiscardResidueDocumentNumber, setEditableErpDiscardResidueDocumentNumber] = useState("");
   const [editableManualActionRequired, setEditableManualActionRequired] = useState(false);
+
+  // Track initial semi-product date from server to detect user changes
+  const [initialSemiProductDate, setInitialSemiProductDate] = useState<string>("");
   
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -257,26 +260,31 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   React.useEffect(() => {
     if (order) {
       const fieldsCanBeEdited = order.state === ManufactureOrderState.Draft || order.state === ManufactureOrderState.Planned;
-      
+
       setEditableResponsiblePerson(order.responsiblePerson || "");
-      setEditableSemiProductDate(order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "");
+
+      const semiProductDateFromServer = order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "";
+      setEditableSemiProductDate(semiProductDateFromServer);
+      setInitialSemiProductDate(semiProductDateFromServer); // Track initial date from server
+
       setEditableProductDate(order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "");
-      
-      const semiProductQuantity = fieldsCanBeEdited 
+
+      const semiProductQuantity = fieldsCanBeEdited
         ? order.semiProduct?.plannedQuantity?.toString() || ""
         : order.semiProduct?.actualQuantity?.toString() || order.semiProduct?.plannedQuantity?.toString() || "";
       setEditableSemiProductQuantity(semiProductQuantity);
-      
+
       setEditableLotNumber(order.semiProduct?.lotNumber || "");
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
+
       setEditableErpOrderNumberSemiproduct(order.erpOrderNumberSemiproduct || "");
       setEditableErpOrderNumberProduct(order.erpOrderNumberProduct || "");
       setEditableErpDiscardResidueDocumentNumber(order.erpDiscardResidueDocumentNumber || "");
       setEditableManualActionRequired(order.manualActionRequired || false);
-      
+
       const productQuantities: Record<number, string> = {};
       order.products?.forEach((product: any, index: number) => {
-        const quantity = fieldsCanBeEdited 
+        const quantity = fieldsCanBeEdited
           ? product.plannedQuantity?.toString() || ""
           : product.actualQuantity?.toString() || product.plannedQuantity?.toString() || "";
         productQuantities[index] = quantity;
@@ -286,25 +294,34 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   }, [order]);
 
   // Auto-calculate lot number and expiration date when semi-product planned date changes
+  // Only in Draft state - in Planned state, user can edit manually without auto-recalculation
+  // Auto-recalculate when user actively changes the date (not on initial load)
   React.useEffect(() => {
-    if (editableSemiProductDate) {
-      const semiProductDate = new Date(editableSemiProductDate);
-      
-      const year = semiProductDate.getFullYear();
-      const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
-      const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
-      const newLotNumber = `${week}${year}${month}`;
-      setEditableLotNumber(newLotNumber);
-      
-      const expirationMonths = order?.semiProduct?.expirationMonths || 12;
-      const expirationDate = new Date(semiProductDate);
-      expirationDate.setMonth(expirationDate.getMonth() + expirationMonths);
-      const lastDayOfExpirationMonth = new Date(expirationDate.getFullYear(), expirationDate.getMonth() + 1, 0).getDate();
-      expirationDate.setDate(lastDayOfExpirationMonth);
-      const newExpirationDateString = expirationDate.toISOString().split('T')[0];
-      setEditableExpirationDate(newExpirationDateString);
+    if (editableSemiProductDate && order?.state === ManufactureOrderState.Draft) {
+      // Check if the date was actually changed by the user (not just loaded from server)
+      const hasUserChangedDate = editableSemiProductDate !== initialSemiProductDate;
+
+      if (hasUserChangedDate) {
+        const semiProductDate = new Date(editableSemiProductDate);
+
+        // Auto-calculate lot number
+        const year = semiProductDate.getFullYear();
+        const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
+        const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
+        const newLotNumber = `${week}${year}${month}`;
+        setEditableLotNumber(newLotNumber);
+
+        // Auto-calculate expiration date
+        const expirationMonths = order?.semiProduct?.expirationMonths || 12;
+        const expirationDate = new Date(semiProductDate);
+        expirationDate.setMonth(expirationDate.getMonth() + expirationMonths + 1);
+        const lastDayOfExpirationMonth = new Date(expirationDate.getFullYear(), expirationDate.getMonth() + 1, 0).getDate();
+        expirationDate.setDate(lastDayOfExpirationMonth);
+        const newExpirationDateString = expirationDate.toISOString().split('T')[0];
+        setEditableExpirationDate(newExpirationDateString);
+      }
     }
-  }, [editableSemiProductDate, order?.semiProduct?.expirationMonths]);
+  }, [editableSemiProductDate, order?.semiProduct?.expirationMonths, order?.state, initialSemiProductDate]);
 
   // Keyboard event listener for Esc key
   React.useEffect(() => {
