@@ -9,13 +9,16 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
 {
     private readonly IManufactureOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly TimeProvider _timeProvider;
 
     public DuplicateManufactureOrderHandler(
         IManufactureOrderRepository repository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _currentUserService = currentUserService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DuplicateManufactureOrderResponse> Handle(
@@ -35,7 +38,7 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         var orderNumber = await _repository.GenerateOrderNumberAsync(cancellationToken);
 
         // Get the current date for lot number and expiration calculations
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
 
         // Create the duplicate order
         var duplicateOrder = new ManufactureOrder
@@ -51,20 +54,12 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
             StateChangedByUser = currentUser.Name
         };
 
+        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, sourceOrder.SemiProduct.ExpirationMonths);
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
+        
         // Duplicate the semi-product with updated lot number and expiration date
         if (sourceOrder.SemiProduct != null)
         {
-            // Calculate lot number in wwyyyyMM format
-            var year = today.Year;
-            var month = today.Month.ToString("D2");
-            var week = GetWeekNumber(today.ToDateTime(TimeOnly.MinValue)).ToString("D2");
-            var lotNumber = $"{week}{year}{month}";
-
-            // Calculate expiration date (last day of month after adding expiration months)
-            var expirationMonths = sourceOrder.SemiProduct.ExpirationMonths;
-            var expirationDate = today.AddMonths(expirationMonths);
-            var lastDayOfExpirationMonth = DateOnly.FromDateTime(new DateTime(expirationDate.Year, expirationDate.Month, 1).AddMonths(1).AddDays(-1));
-
             var semiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = sourceOrder.SemiProduct.ProductCode,
@@ -73,8 +68,8 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
                 ActualQuantity = sourceOrder.SemiProduct.PlannedQuantity, // Reset actual to planned
                 BatchMultiplier = sourceOrder.SemiProduct.BatchMultiplier,
                 ExpirationMonths = sourceOrder.SemiProduct.ExpirationMonths,
+                ExpirationDate = expirationDate,
                 LotNumber = lotNumber,
-                ExpirationDate = lastDayOfExpirationMonth
             };
             duplicateOrder.SemiProduct = semiProduct;
         }
@@ -82,6 +77,7 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         // Duplicate the products with same quantities
         foreach (var sourceProduct in sourceOrder.Products)
         {
+            
             var product = new ManufactureOrderProduct
             {
                 ProductCode = sourceProduct.ProductCode,
@@ -89,6 +85,8 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
                 SemiProductCode = sourceProduct.SemiProductCode,
                 PlannedQuantity = sourceProduct.PlannedQuantity,
                 ActualQuantity = sourceProduct.PlannedQuantity, // Reset actual to planned
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
             };
             duplicateOrder.Products.Add(product);
         }
@@ -104,14 +102,5 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         };
     }
 
-    // Helper function to get ISO week number
-    private static int GetWeekNumber(DateTime date)
-    {
-        var d = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
-        var dayNum = (int)d.DayOfWeek;
-        if (dayNum == 0) dayNum = 7; // Sunday should be 7, not 0
-        d = d.AddDays(4 - dayNum);
-        var yearStart = new DateTime(d.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        return (int)Math.Ceiling(((d - yearStart).TotalDays + 1) / 7);
-    }
+    
 }

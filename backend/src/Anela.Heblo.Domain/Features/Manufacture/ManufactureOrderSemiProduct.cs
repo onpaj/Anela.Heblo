@@ -17,4 +17,9 @@ public class ManufactureOrderSemiProduct
     public int ExpirationMonths { get; set; }
 
     // Ingredients se načtou dynamicky z ManufactureTemplate při dokončování
+
+    
+    
+    // Helper function to get ISO week number
+    
 }

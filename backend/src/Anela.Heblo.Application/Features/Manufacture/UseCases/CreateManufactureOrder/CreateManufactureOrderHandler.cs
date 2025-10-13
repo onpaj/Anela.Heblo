@@ -13,17 +13,20 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
     private readonly IProductNameFormatter _productNameFormatter;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly TimeProvider _timeProvider;
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
         IProductNameFormatter productNameFormatter,
         ICatalogRepository catalogRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _productNameFormatter = productNameFormatter;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CreateManufactureOrderResponse> Handle(
@@ -55,6 +58,9 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);
         }
 
+        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, semiproduct.Properties.ExpirationMonths);
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
+
         // Create the semi-product entry (the main product being manufactured)
         var semiProduct = new ManufactureOrderSemiProduct
         {
@@ -63,7 +69,9 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             PlannedQuantity = (decimal)request.NewBatchSize,
             ActualQuantity = (decimal)request.NewBatchSize,
             BatchMultiplier = (decimal)request.ScaleFactor,
-            ExpirationMonths = semiproduct.Properties.ExpirationMonths
+            ExpirationMonths = semiproduct.Properties.ExpirationMonths,
+            ExpirationDate = expirationDate,
+            LotNumber = lotNumber,
         };
         order.SemiProduct = semiProduct;
 
@@ -77,6 +85,8 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
                 SemiProductCode = request.ProductCode, // Link to the semiproduct being manufactured
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
                 ActualQuantity = (decimal)productRequest.PlannedQuantity,
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
             };
             order.Products.Add(product);
         }
