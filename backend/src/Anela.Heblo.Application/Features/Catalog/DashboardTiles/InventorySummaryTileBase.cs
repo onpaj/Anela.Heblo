@@ -9,8 +9,8 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// </summary>
 public abstract class InventorySummaryTileBase : ITile
 {
-    private const double ThresholdCritical = 120;
-    private const double ThresholdWarning = 250;
+    private const double ThresholdCritical = 180;
+    private const double ThresholdWarning = 365;
     private readonly ICatalogRepository _catalogRepository;
 
     protected InventorySummaryTileBase(ICatalogRepository catalogRepository)
@@ -57,9 +57,9 @@ public abstract class InventorySummaryTileBase : ITile
                 status = "success",
                 data = new
                 {
-                    recent,      // < 120 days
-                    medium,      // 120-250 days
-                    old,         // > 250 days
+                    recent,      // < 180 days
+                    medium,      // 180-365 days
+                    old,         // > 365 days
                     never,       // never inventoried
                     total = filteredItems.Count(),
                     date = now

@@ -90,7 +90,7 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-green-500"></div>
-            <span className="text-sm text-gray-700">&lt; 120 dní</span>
+            <span className="text-sm text-gray-700">&lt; 180 dní</span>
           </div>
           <span className="text-xl font-bold text-gray-900">{recent}</span>
         </div>
@@ -99,7 +99,7 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-amber-500"></div>
-            <span className="text-sm text-gray-700">120-250 dní</span>
+            <span className="text-sm text-gray-700">180-365 dní</span>
           </div>
           <span className="text-xl font-bold text-gray-900">{medium}</span>
         </div>
@@ -108,7 +108,7 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-red-500"></div>
-            <span className="text-sm text-gray-700">&gt; 250 dní</span>
+            <span className="text-sm text-gray-700">&gt; 365 dní</span>
           </div>
           <span className="text-xl font-bold text-gray-900">{redTotal}</span>
         </div>
