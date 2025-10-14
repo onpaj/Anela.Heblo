@@ -1,124 +1,95 @@
-import React, { useState } from "react";
-import { BarChart3, ToggleLeft, ToggleRight } from "lucide-react";
-import { Line } from "react-chartjs-2";
+import React from "react";
+import { BarChart3 } from "lucide-react";
+import { Chart } from "react-chartjs-2";
 import {
-  ManufactureCostDto,
   MarginHistoryDto,
   JournalEntryDto,
 } from "../../../../../api/generated/api-client";
 import {
-  generateMonthLabels,
   generatePointStyling,
   generateTooltipCallback,
 } from "../../charts/ChartHelpers";
 
 interface MarginsChartProps {
-  manufactureCostHistory: ManufactureCostDto[];
   marginHistory: MarginHistoryDto[];
   journalEntries: JournalEntryDto[];
 }
 
 const MarginsChart: React.FC<MarginsChartProps> = ({
-  manufactureCostHistory,
   marginHistory,
   journalEntries,
 }) => {
-  const [showPercentage, setShowPercentage] = useState(true);
-  const monthLabels = generateMonthLabels();
-
-  // Map manufacturing cost data to monthly arrays
-  const mapCostDataToMonthlyArrays = () => {
-    const materialCostData = new Array(13).fill(0);
-    const handlingCostData = new Array(13).fill(0);
-    const totalCostData = new Array(13).fill(0);
+  // Generate month labels excluding current month (last 12 months)
+  const generateMonthLabelsExcludingCurrent = (): string[] => {
+    const months = [];
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
 
-    // Create maps for quick lookup of data by year-month key
-    const materialCostMap = new Map<string, number>();
-    const handlingCostMap = new Map<string, number>();
-    const totalCostMap = new Map<string, number>();
-
-    manufactureCostHistory.forEach((record) => {
-      if (record.date) {
-        const recordDate = new Date(record.date);
-        const key = `${recordDate.getFullYear()}-${recordDate.getMonth() + 1}`;
-        materialCostMap.set(key, record.materialCost || 0);
-        handlingCostMap.set(key, record.handlingCost || 0);
-        totalCostMap.set(key, record.total || 0);
-      }
-    });
-
-    // Fill the arrays with data for the last 13 months
-    for (let i = 0; i < 13; i++) {
-      const monthsBack = 12 - i;
-      let adjustedYear = currentYear;
-      let adjustedMonth = currentMonth - monthsBack;
-
-      // Handle year transitions
-      if (adjustedMonth <= 0) {
-        adjustedYear--;
-        adjustedMonth += 12;
-      }
-
-      const key = `${adjustedYear}-${adjustedMonth}`;
-      materialCostData[i] = materialCostMap.get(key) || 0;
-      handlingCostData[i] = handlingCostMap.get(key) || 0;
-      totalCostData[i] = totalCostMap.get(key) || 0;
+    // Start from 12 months back, excluding current month (i starts at 12 instead of 0)
+    for (let i = 12; i >= 1; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(
+        date.toLocaleDateString("cs-CZ", { month: "short", year: "numeric" }),
+      );
     }
 
-    return { materialCostData, handlingCostData, totalCostData };
+    return months;
   };
 
-  // Map margin history data to monthly arrays
+  const monthLabels = generateMonthLabelsExcludingCurrent();
+
+  // Map margin history data to monthly arrays (excluding current month)
   const mapMarginDataToMonthlyArrays = () => {
-    const marginAmountData = new Array(13).fill(0);
-    const m0PercentageData = new Array(13).fill(0);
-    const m1PercentageData = new Array(13).fill(0);
-    const m2PercentageData = new Array(13).fill(0);
-    const m3PercentageData = new Array(13).fill(0);
-    const m0AmountData = new Array(13).fill(0);
-    const m1AmountData = new Array(13).fill(0);
-    const m2AmountData = new Array(13).fill(0);
-    const m3AmountData = new Array(13).fill(0);
+    const m0PercentageData = new Array(12).fill(0);
+    const m1PercentageData = new Array(12).fill(0);
+    const m2PercentageData = new Array(12).fill(0);
+    const m3PercentageData = new Array(12).fill(0);
+    const m0CostLevelData = new Array(12).fill(0);
+    const m1CostLevelData = new Array(12).fill(0);
+    const m2CostLevelData = new Array(12).fill(0);
+    const m3CostLevelData = new Array(12).fill(0);
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
     // Create maps for quick lookup of margin data by year-month key
-    const marginMap = new Map<string, number>();
-    const m0Map = new Map<string, number>();
-    const m1Map = new Map<string, number>();
-    const m2Map = new Map<string, number>();
-    const m3Map = new Map<string, number>();
-    const m0AmountMap = new Map<string, number>();
-    const m1AmountMap = new Map<string, number>();
-    const m2AmountMap = new Map<string, number>();
-    const m3AmountMap = new Map<string, number>();
+    const m0PercentageMap = new Map<string, number>();
+    const m1PercentageMap = new Map<string, number>();
+    const m2PercentageMap = new Map<string, number>();
+    const m3PercentageMap = new Map<string, number>();
+    const m0CostLevelMap = new Map<string, number>();
+    const m1CostLevelMap = new Map<string, number>();
+    const m2CostLevelMap = new Map<string, number>();
+    const m3CostLevelMap = new Map<string, number>();
 
     marginHistory.forEach((record) => {
       if (record.date) {
         const recordDate = new Date(record.date);
-        const key = `${recordDate.getFullYear()}-${recordDate.getMonth() + 1}`;
-        marginMap.set(key, record.m3Amount || 0);
-        
+        const recordYear = recordDate.getFullYear();
+        const recordMonth = recordDate.getMonth() + 1;
+
+        // Skip current month data
+        if (recordYear === currentYear && recordMonth === currentMonth) {
+          return;
+        }
+
+        const key = `${recordYear}-${recordMonth}`;
+
         // M0-M3 percentage properties
-        m0Map.set(key, record.m0Percentage || 0);
-        m1Map.set(key, record.m1Percentage || 0);
-        m2Map.set(key, record.m2Percentage || 0);
-        m3Map.set(key, record.m3Percentage || 0);
-        
-        // M0-M3 amount properties
-        m0AmountMap.set(key, record.m0Amount || 0);
-        m1AmountMap.set(key, record.m1Amount || 0);
-        m2AmountMap.set(key, record.m2Amount || 0);
-        m3AmountMap.set(key, record.m3Amount || 0);
+        m0PercentageMap.set(key, record.m0?.percentage || 0);
+        m1PercentageMap.set(key, record.m1?.percentage || 0);
+        m2PercentageMap.set(key, record.m2?.percentage || 0);
+        m3PercentageMap.set(key, record.m3?.percentage || 0);
+
+        // M0-M3 CostLevel properties
+        m0CostLevelMap.set(key, record.m0?.costLevel || 0);
+        m1CostLevelMap.set(key, record.m1?.costLevel || 0);
+        m2CostLevelMap.set(key, record.m2?.costLevel || 0);
+        m3CostLevelMap.set(key, record.m3?.costLevel || 0);
       }
     });
 
-    // Fill the arrays with data for the last 13 months
-    for (let i = 0; i < 13; i++) {
+    // Fill the arrays with data for the last 12 months (excluding current month)
+    for (let i = 0; i < 12; i++) {
       const monthsBack = 12 - i;
       let adjustedYear = currentYear;
       let adjustedMonth = currentMonth - monthsBack;
@@ -130,130 +101,102 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       }
 
       const key = `${adjustedYear}-${adjustedMonth}`;
-      marginAmountData[i] = marginMap.get(key) || 0;
-      m0PercentageData[i] = m0Map.get(key) || 0;
-      m1PercentageData[i] = m1Map.get(key) || 0;
-      m2PercentageData[i] = m2Map.get(key) || 0;
-      m3PercentageData[i] = m3Map.get(key) || 0;
-      m0AmountData[i] = m0AmountMap.get(key) || 0;
-      m1AmountData[i] = m1AmountMap.get(key) || 0;
-      m2AmountData[i] = m2AmountMap.get(key) || 0;
-      m3AmountData[i] = m3AmountMap.get(key) || 0;
+      m0PercentageData[i] = m0PercentageMap.get(key) || 0;
+      m1PercentageData[i] = m1PercentageMap.get(key) || 0;
+      m2PercentageData[i] = m2PercentageMap.get(key) || 0;
+      m3PercentageData[i] = m3PercentageMap.get(key) || 0;
+      m0CostLevelData[i] = m0CostLevelMap.get(key) || 0;
+      m1CostLevelData[i] = m1CostLevelMap.get(key) || 0;
+      m2CostLevelData[i] = m2CostLevelMap.get(key) || 0;
+      m3CostLevelData[i] = m3CostLevelMap.get(key) || 0;
     }
 
-    return { 
-      marginAmountData, 
-      m0PercentageData, 
-      m1PercentageData, 
-      m2PercentageData, 
+    return {
+      m0PercentageData,
+      m1PercentageData,
+      m2PercentageData,
       m3PercentageData,
-      m0AmountData,
-      m1AmountData,
-      m2AmountData,
-      m3AmountData
+      m0CostLevelData,
+      m1CostLevelData,
+      m2CostLevelData,
+      m3CostLevelData
     };
   };
 
-  const { materialCostData, handlingCostData, totalCostData } =
-    mapCostDataToMonthlyArrays();
-  const { 
-    marginAmountData, 
-    m0PercentageData, 
-    m1PercentageData, 
-    m2PercentageData, 
+  const {
+    m0PercentageData,
+    m1PercentageData,
+    m2PercentageData,
     m3PercentageData,
-    m0AmountData,
-    m1AmountData,
-    m2AmountData,
-    m3AmountData
+    m0CostLevelData,
+    m1CostLevelData,
+    m2CostLevelData,
+    m3CostLevelData
   } = mapMarginDataToMonthlyArrays();
 
   // Check if we have M0-M3 data
-  const hasM0M3Data = m0PercentageData.some(value => value > 0) || 
-                      m1PercentageData.some(value => value > 0) || 
-                      m2PercentageData.some(value => value > 0) || 
+  const hasM0M3Data = m0PercentageData.some(value => value > 0) ||
+                      m1PercentageData.some(value => value > 0) ||
+                      m2PercentageData.some(value => value > 0) ||
                       m3PercentageData.some(value => value > 0);
 
-  // Generate point styling for each dataset
-  const materialStyling = generatePointStyling(
-    13,
-    journalEntries,
-    "rgba(34, 197, 94, 1)",
-  );
-  const handlingStyling = generatePointStyling(
-    13,
-    journalEntries,
-    "rgba(59, 130, 246, 1)",
-  );
-  const totalStyling = generatePointStyling(
-    13,
-    journalEntries,
-    "rgba(168, 85, 247, 1)",
-  );
-  const marginStyling = generatePointStyling(
-    13,
-    journalEntries,
-    "rgba(245, 158, 11, 1)",
-  );
-  
-  // M0-M3 styling - Reversed spectrum
-  const m0Styling = generatePointStyling(13, journalEntries, "rgba(34, 197, 94, 1)"); // Green
-  const m1Styling = generatePointStyling(13, journalEntries, "rgba(234, 179, 8, 1)"); // Yellow  
-  const m2Styling = generatePointStyling(13, journalEntries, "rgba(249, 115, 22, 1)"); // Orange
-  const m3Styling = generatePointStyling(13, journalEntries, "rgba(239, 68, 68, 1)"); // Red
+  // Generate point styling for percentage line charts (12 months without current)
+  const m0Styling = generatePointStyling(12, journalEntries, "rgba(34, 197, 94, 1)"); // Green
+  const m1Styling = generatePointStyling(12, journalEntries, "rgba(234, 179, 8, 1)"); // Yellow
+  const m2Styling = generatePointStyling(12, journalEntries, "rgba(249, 115, 22, 1)"); // Orange
+  const m3Styling = generatePointStyling(12, journalEntries, "rgba(239, 68, 68, 1)"); // Red
 
-  // Check if we have cost data
-  const hasCostData = totalCostData.some((value) => value > 0);
-  
-  // Build datasets conditionally based on available data
-  const costDatasets = hasCostData ? [
+  // Build stacked bar chart datasets for CostLevel (M0 bottom, M3 top)
+  const costLevelDatasets = hasM0M3Data ? [
     {
-      label: "Materiálové náklady (Kč/ks)",
-      data: materialCostData,
-      backgroundColor: "rgba(34, 197, 94, 0.2)", // Green for material costs
+      type: 'bar' as const,
+      label: "M0 - Náklady materiálu (Kč/ks)",
+      data: m0CostLevelData,
+      backgroundColor: "rgba(34, 197, 94, 0.7)", // Green
       borderColor: "rgba(34, 197, 94, 1)",
-      borderWidth: 2,
-      tension: 0.1,
-      pointBackgroundColor: materialStyling.pointBackgroundColors,
-      pointBorderColor: materialStyling.pointBackgroundColors,
-      pointRadius: materialStyling.pointRadiuses,
-      pointHoverRadius: materialStyling.pointHoverRadiuses,
+      borderWidth: 1,
       yAxisID: "y",
+      stack: 'costs',
     },
     {
-      label: "Náklady na zpracování (Kč/ks)",
-      data: handlingCostData,
-      backgroundColor: "rgba(59, 130, 246, 0.2)", // Blue for handling costs
-      borderColor: "rgba(59, 130, 246, 1)",
-      borderWidth: 2,
-      tension: 0.1,
-      pointBackgroundColor: handlingStyling.pointBackgroundColors,
-      pointBorderColor: handlingStyling.pointBackgroundColors,
-      pointRadius: handlingStyling.pointRadiuses,
-      pointHoverRadius: handlingStyling.pointHoverRadiuses,
+      type: 'bar' as const,
+      label: "M1 - Náklady výroby (Kč/ks)",
+      data: m1CostLevelData,
+      backgroundColor: "rgba(234, 179, 8, 0.7)", // Yellow
+      borderColor: "rgba(234, 179, 8, 1)",
+      borderWidth: 1,
       yAxisID: "y",
+      stack: 'costs',
     },
     {
-      label: "Celkové náklady (Kč/ks)",
-      data: totalCostData,
-      backgroundColor: "rgba(168, 85, 247, 0.2)", // Purple for total costs
-      borderColor: "rgba(168, 85, 247, 1)",
-      borderWidth: 2,
-      tension: 0.1,
-      pointBackgroundColor: totalStyling.pointBackgroundColors,
-      pointBorderColor: totalStyling.pointBackgroundColors,
-      pointRadius: totalStyling.pointRadiuses,
-      pointHoverRadius: totalStyling.pointHoverRadiuses,
+      type: 'bar' as const,
+      label: "M2 - Náklady prodeje (Kč/ks)",
+      data: m2CostLevelData,
+      backgroundColor: "rgba(249, 115, 22, 0.7)", // Orange
+      borderColor: "rgba(249, 115, 22, 1)",
+      borderWidth: 1,
       yAxisID: "y",
+      stack: 'costs',
+    },
+    {
+      type: 'bar' as const,
+      label: "M3 - Režijní náklady (Kč/ks)",
+      data: m3CostLevelData,
+      backgroundColor: "rgba(239, 68, 68, 0.7)", // Red
+      borderColor: "rgba(239, 68, 68, 1)",
+      borderWidth: 1,
+      yAxisID: "y",
+      stack: 'costs',
     },
   ] : [];
 
-  // Add margin datasets conditionally
-  const marginDatasets = hasM0M3Data ? [
+  // Add percentage line charts on secondary Y axis
+  const percentageDatasets = hasM0M3Data ? [
     {
-      label: showPercentage ? "M0 - Marže materiál (%)" : "M0 - Marže materiál (Kč/ks)",
-      data: showPercentage ? m0PercentageData : m0AmountData,
-      backgroundColor: "rgba(34, 197, 94, 0.2)", // Green
+      type: 'line' as const,
+      label: "M0 - Marže materiál (%)",
+      data: m0PercentageData,
+      backgroundColor: "rgba(34, 197, 94, 0.1)",
       borderColor: "rgba(34, 197, 94, 1)",
       borderWidth: 2,
       tension: 0.1,
@@ -262,11 +205,13 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       pointRadius: m0Styling.pointRadiuses,
       pointHoverRadius: m0Styling.pointHoverRadiuses,
       yAxisID: "y1",
+      fill: false,
     },
     {
-      label: showPercentage ? "M1 - Marže + výroba (%)" : "M1 - Marže + výroba (Kč/ks)",
-      data: showPercentage ? m1PercentageData : m1AmountData,
-      backgroundColor: "rgba(234, 179, 8, 0.2)", // Yellow
+      type: 'line' as const,
+      label: "M1 - Marže + výroba (%)",
+      data: m1PercentageData,
+      backgroundColor: "rgba(234, 179, 8, 0.1)",
       borderColor: "rgba(234, 179, 8, 1)",
       borderWidth: 2,
       tension: 0.1,
@@ -275,11 +220,13 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       pointRadius: m1Styling.pointRadiuses,
       pointHoverRadius: m1Styling.pointHoverRadiuses,
       yAxisID: "y1",
+      fill: false,
     },
     {
-      label: showPercentage ? "M2 - Marže + prodej (%)" : "M2 - Marže + prodej (Kč/ks)",
-      data: showPercentage ? m2PercentageData : m2AmountData,
-      backgroundColor: "rgba(249, 115, 22, 0.2)", // Orange
+      type: 'line' as const,
+      label: "M2 - Marže + prodej (%)",
+      data: m2PercentageData,
+      backgroundColor: "rgba(249, 115, 22, 0.1)",
       borderColor: "rgba(249, 115, 22, 1)",
       borderWidth: 2,
       tension: 0.1,
@@ -288,11 +235,13 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       pointRadius: m2Styling.pointRadiuses,
       pointHoverRadius: m2Styling.pointHoverRadiuses,
       yAxisID: "y1",
+      fill: false,
     },
     {
-      label: showPercentage ? "M3 - Finální marže (%)" : "M3 - Finální marže (Kč/ks)",
-      data: showPercentage ? m3PercentageData : m3AmountData,
-      backgroundColor: "rgba(239, 68, 68, 0.2)", // Red
+      type: 'line' as const,
+      label: "M3 - Finální marže (%)",
+      data: m3PercentageData,
+      backgroundColor: "rgba(239, 68, 68, 0.1)",
       borderColor: "rgba(239, 68, 68, 1)",
       borderWidth: 2,
       tension: 0.1,
@@ -301,31 +250,22 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       pointRadius: m3Styling.pointRadiuses,
       pointHoverRadius: m3Styling.pointHoverRadiuses,
       yAxisID: "y1",
+      fill: false,
     },
-  ] : [
-    {
-      label: "Absolutní marže (Kč/ks)",
-      data: marginAmountData,
-      backgroundColor: "rgba(245, 158, 11, 0.2)", // Amber for margin
-      borderColor: "rgba(245, 158, 11, 1)",
-      borderWidth: 2,
-      tension: 0.1,
-      pointBackgroundColor: marginStyling.pointBackgroundColors,
-      pointBorderColor: marginStyling.pointBackgroundColors,
-      pointRadius: marginStyling.pointRadiuses,
-      pointHoverRadius: marginStyling.pointHoverRadiuses,
-      yAxisID: "y1",
-    },
-  ];
+  ] : [];
 
   const chartData = {
     labels: monthLabels,
-    datasets: [...costDatasets, ...marginDatasets],
+    datasets: [...costLevelDatasets, ...percentageDatasets],
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: "index" as const,
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: "top" as const,
@@ -340,33 +280,32 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       },
     },
     scales: {
-      ...(hasCostData ? {
-        y: {
-          type: "linear" as const,
+      y: {
+        type: "linear" as const,
+        display: true,
+        position: "left" as const,
+        beginAtZero: true,
+        stacked: true,
+        title: {
           display: true,
-          position: "left" as const,
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: "Náklady na výrobu (Kč/ks)",
-          },
+          text: "Náklady (Kč/ks)",
         },
-      } : {}),
+      },
       y1: {
         type: "linear" as const,
         display: true,
-        position: hasCostData ? ("right" as const) : ("left" as const),
+        position: "right" as const,
+        beginAtZero: true,
         title: {
           display: true,
-          text: hasM0M3Data 
-            ? (showPercentage ? "Marže (%)" : "Marže (Kč/ks)")
-            : "Absolutní marže (Kč/ks)",
+          text: "Marže (%)",
         },
         grid: {
-          drawOnChartArea: hasCostData ? false : true,
+          drawOnChartArea: false,
         },
       },
       x: {
+        stacked: true,
         title: {
           display: true,
           text: "Měsíc",
@@ -376,33 +315,17 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
   };
 
   // Check if we have any non-zero data
-  const hasData = totalCostData.some((value) => value > 0) || marginAmountData.some((value) => value > 0);
+  const hasData = hasM0M3Data;
 
   return (
     <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4">
       {hasData ? (
         <>
-          {hasM0M3Data && (
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Vývoj marží</h3>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">Procenta</span>
-                <button
-                  onClick={() => setShowPercentage(!showPercentage)}
-                  className="flex items-center"
-                >
-                  {showPercentage ? (
-                    <ToggleRight className="h-6 w-6 text-blue-600" />
-                  ) : (
-                    <ToggleLeft className="h-6 w-6 text-gray-400" />
-                  )}
-                </button>
-                <span className="text-sm text-gray-600">Absolut. hodnoty</span>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Vývoj nákladů a marží</h3>
+          </div>
           <div className="h-96">
-            <Line data={chartData} options={chartOptions} />
+            <Chart type="bar" data={chartData} options={chartOptions} />
           </div>
         </>
       ) : (
@@ -410,7 +333,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
           <div className="text-center text-gray-500">
             <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
             <p>Žádná data pro zobrazení grafu</p>
-            <p className="text-sm">Náklady na výrobu za posledních 13 měsíců</p>
+            <p className="text-sm">Náklady a marže za posledních 12 měsíců (bez aktuálního měsíce)</p>
           </div>
         </div>
       )}

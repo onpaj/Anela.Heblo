@@ -25,11 +25,11 @@ public class DashboardServiceTests
         // Arrange
         var userId = "user123";
         var autoShowTiles = CreateMockAutoShowTiles();
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync((UserDashboardSettings)null);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(autoShowTiles);
@@ -43,13 +43,13 @@ public class DashboardServiceTests
         result.Tiles.Should().HaveCount(2);
         result.Tiles.All(t => t.IsVisible).Should().BeTrue();
         result.Tiles.All(t => t.UserId == userId).Should().BeTrue();
-        
+
         var tiles = result.Tiles.OrderBy(t => t.DisplayOrder).ToArray();
         tiles[0].TileId.Should().Be("auto1");
         tiles[0].DisplayOrder.Should().Be(0);
         tiles[1].TileId.Should().Be("auto2");
         tiles[1].DisplayOrder.Should().Be(1);
-        
+
         _settingsRepositoryMock.Verify(x => x.AddAsync(It.IsAny<UserDashboardSettings>()), Times.Once);
     }
 
@@ -59,11 +59,11 @@ public class DashboardServiceTests
         // Arrange
         var userId = "user123";
         var existingSettings = CreateExistingUserSettings(userId);
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(new List<ITile>());
@@ -75,7 +75,7 @@ public class DashboardServiceTests
         result.Should().Be(existingSettings);
         result.UserId.Should().Be(userId);
         result.Tiles.Should().HaveCount(2);
-        
+
         _settingsRepositoryMock.Verify(x => x.AddAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
         _settingsRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
     }
@@ -87,15 +87,15 @@ public class DashboardServiceTests
         var userId = "user123";
         var existingSettings = CreateExistingUserSettings(userId);
         var allTiles = CreateMockAutoShowTiles();
-        
+
         // Add a new auto-show tile that the user doesn't have yet
         var newTile = new NewAutoShowTile();
         allTiles.Add(newTile);
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(allTiles);
@@ -106,12 +106,12 @@ public class DashboardServiceTests
         // Assert
         result.Should().Be(existingSettings);
         result.Tiles.Should().HaveCount(3); // Original 2 + 1 new
-        
+
         var newAddedTile = result.Tiles.FirstOrDefault(t => t.TileId == "newautoshow");
         newAddedTile.Should().NotBeNull();
         newAddedTile.IsVisible.Should().BeTrue();
         newAddedTile.DisplayOrder.Should().Be(2); // Should be added after existing tiles
-        
+
         _settingsRepositoryMock.Verify(x => x.UpdateAsync(existingSettings), Times.Once);
     }
 
@@ -123,11 +123,11 @@ public class DashboardServiceTests
         var tilesWithoutAutoShow = new List<ITile>();
         var nonAutoShowTile = new ManualTile();
         tilesWithoutAutoShow.Add(nonAutoShowTile);
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync((UserDashboardSettings)null);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(tilesWithoutAutoShow);
@@ -139,7 +139,7 @@ public class DashboardServiceTests
         result.Should().NotBeNull();
         result.UserId.Should().Be(userId);
         result.Tiles.Should().BeEmpty();
-        
+
         _settingsRepositoryMock.Verify(x => x.AddAsync(It.IsAny<UserDashboardSettings>()), Times.Once);
     }
 
@@ -161,7 +161,7 @@ public class DashboardServiceTests
         // Assert
         settings.UserId.Should().Be(userId);
         settings.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        
+
         _settingsRepositoryMock.Verify(x => x.UpdateAsync(settings), Times.Once);
     }
 
@@ -173,7 +173,7 @@ public class DashboardServiceTests
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync((UserDashboardSettings)null);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(new List<ITile>());
@@ -193,19 +193,19 @@ public class DashboardServiceTests
         var userId = "user123";
         var userSettings = CreateUserSettingsWithVisibleTiles(userId);
         var mockTile = CreateMockTileWithData("tile1");
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(userSettings);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(new List<ITile>());
-        
+
         _tileRegistryMock
             .Setup(x => x.GetTile("tile1"))
             .Returns(mockTile);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync("tile1"))
             .ReturnsAsync(new { Status = "Active", Count = 42 });
@@ -216,7 +216,7 @@ public class DashboardServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
-        
+
         var tileData = result.First();
         tileData.TileId.Should().Be("testwithdata");
         tileData.Title.Should().Be("Test Tile");
@@ -229,15 +229,15 @@ public class DashboardServiceTests
         // Arrange
         var userId = "user123";
         var userSettings = CreateUserSettingsWithVisibleTiles(userId);
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(userSettings);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(new List<ITile>());
-        
+
         _tileRegistryMock
             .Setup(x => x.GetTile("tile1"))
             .Returns((ITile)null);
@@ -248,7 +248,7 @@ public class DashboardServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
-        
+
         var errorTile = result.First();
         errorTile.TileId.Should().Be("tile1");
         errorTile.Title.Should().Be("Error");
@@ -263,19 +263,19 @@ public class DashboardServiceTests
         var userId = "user123";
         var userSettings = CreateUserSettingsWithVisibleTiles(userId);
         var mockTile = CreateMockTileWithData("tile1");
-        
+
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(userSettings);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(new List<ITile>());
-        
+
         _tileRegistryMock
             .Setup(x => x.GetTile("tile1"))
             .Returns(mockTile);
-        
+
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync("tile1"))
             .ThrowsAsync(new InvalidOperationException("Data loading failed"));
@@ -286,7 +286,7 @@ public class DashboardServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
-        
+
         var errorTile = result.First();
         errorTile.TileId.Should().Be("tile1");
         errorTile.Title.Should().Be("Error");
@@ -297,13 +297,13 @@ public class DashboardServiceTests
     private static List<ITile> CreateMockAutoShowTiles()
     {
         var tiles = new List<ITile>();
-        
+
         var tile1 = new AutoTile1();
         tiles.Add(tile1);
-        
+
         var tile2 = new AutoTile2();
         tiles.Add(tile2);
-        
+
         return tiles;
     }
 
@@ -372,7 +372,7 @@ public class NewAutoShowTile : ITile
     public bool AutoShow { get; init; } = true;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto show data");
@@ -389,7 +389,7 @@ public class ManualTile : ITile
     public bool AutoShow { get; init; } = false;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Manual data");
@@ -406,7 +406,7 @@ public class AutoTile1 : ITile
     public bool AutoShow { get; init; } = true;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto tile 1 data");
@@ -423,7 +423,7 @@ public class AutoTile2 : ITile
     public bool AutoShow { get; init; } = true;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto tile 2 data");
@@ -441,12 +441,12 @@ public class TestTileWithData : ITile
     public bool AutoShow { get; init; } = false;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public TestTileWithData(string tileId)
     {
         TileId = tileId;
     }
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)$"Test data for {TileId}");

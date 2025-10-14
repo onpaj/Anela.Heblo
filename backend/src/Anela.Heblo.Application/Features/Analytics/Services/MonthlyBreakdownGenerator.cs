@@ -140,7 +140,7 @@ public class MonthlyBreakdownGenerator
                 .ToList();
 
             var marginAmount = _marginCalculator.GetMarginAmountForLevel(product, marginLevel);
-            
+
             if (!salesInMonth.Any() || marginAmount <= 0)
                 continue;
 

@@ -501,7 +501,6 @@ public class CatalogRepository : ICatalogRepository
                 var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
                 _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
             }
-
             // Replace with fresh data
             _cache.Set(CurrentCatalogCacheKey, newData);
             _cache.Set(CacheUpdateTimeKey, DateTime.UtcNow);
@@ -786,6 +785,11 @@ public class CatalogRepository : ICatalogRepository
             var maxLoadDate = loadDates.Where(date => date.HasValue).Max(date => date.Value);
             return maxLoadDate > lastMerge;
         }
+    }
+
+    public async Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default)
+    {
+        await _mergeScheduler.WaitForCurrentMergeAsync(cancellationToken);
     }
 
     private DateTime? GetLoadDateFromCache(string dataKey)

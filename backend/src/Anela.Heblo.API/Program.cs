@@ -62,7 +62,7 @@ public partial class Program
         builder.Services.AddOpenApiDocument();
 
         var app = builder.Build();
-        
+
         // Initialize tile registry with all registered tiles
         TileRegistryExtensions.InitializeTileRegistry(app.Services);
 

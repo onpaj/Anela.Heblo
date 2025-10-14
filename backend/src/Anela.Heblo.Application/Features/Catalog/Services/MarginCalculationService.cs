@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.Services;
@@ -10,20 +11,20 @@ public class MarginCalculationService : IMarginCalculationService
 {
     private readonly IMaterialCostRepository _materialCostRepository;
     private readonly IManufactureCostRepository _manufactureCostRepository;
-    private readonly ISalesCostRepository _salesCostRepository;
+    private readonly ISalesCostCalculationService _salesCostCalculationService;
     private readonly IOverheadCostRepository _overheadCostRepository;
     private readonly ILogger<MarginCalculationService> _logger;
 
     public MarginCalculationService(
         IMaterialCostRepository materialCostRepository,
         IManufactureCostRepository manufactureCostRepository,
-        ISalesCostRepository salesCostRepository,
+        ISalesCostCalculationService salesCostCalculationService,
         IOverheadCostRepository overheadCostRepository,
         ILogger<MarginCalculationService> logger)
     {
         _materialCostRepository = materialCostRepository;
         _manufactureCostRepository = manufactureCostRepository;
-        _salesCostRepository = salesCostRepository;
+        _salesCostCalculationService = salesCostCalculationService;
         _overheadCostRepository = overheadCostRepository;
         _logger = logger;
     }
@@ -47,7 +48,7 @@ public class MarginCalculationService : IMarginCalculationService
             var costData = await LoadCostDataAsync(product, dateFrom, dateTo, cancellationToken);
 
             // Calculate monthly margin history using the loaded data
-            var monthlyHistory = CalculateMarginHistoryFromData(product.ProductCode, sellingPrice, costData, dateFrom, dateTo);
+            var monthlyHistory = CalculateMarginHistoryFromData(sellingPrice, costData, dateFrom, dateTo);
 
             return monthlyHistory;
         }
@@ -70,7 +71,7 @@ public class MarginCalculationService : IMarginCalculationService
         // Load all cost data once from repositories
         var materialCosts = await _materialCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         var manufactureCosts = await _manufactureCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var salesCosts = await _salesCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var salesCosts = await _salesCostCalculationService.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         var overheadCosts = await _overheadCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
 
         return new CostData
@@ -83,7 +84,7 @@ public class MarginCalculationService : IMarginCalculationService
     }
 
 
-    private MonthlyMarginHistory CalculateMarginHistoryFromData(string productCode, decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
+    private MonthlyMarginHistory CalculateMarginHistoryFromData(decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
     {
         var monthlyData = new List<MonthlyMarginData>();
 
@@ -120,10 +121,10 @@ public class MarginCalculationService : IMarginCalculationService
         return new MonthlyMarginData
         {
             Month = month,
-            M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0Cost),
-            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1Cost),
-            M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2Cost),
-            M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3Cost),
+            M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0CostTotal, materialCost),
+            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1CostTotal, manufacturingCost),
+            M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2CostTotal, salesCost),
+            M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3CostTotal, overheadCost),
             CostsForMonth = costBreakdown
         };
     }
@@ -158,22 +159,26 @@ public class MarginCalculationService : IMarginCalculationService
             M0 = new MarginLevel(
                 validData.Average(m => m.M0.Percentage),
                 validData.Average(m => m.M0.Amount),
-                validData.Average(m => m.M0.CostBase)
+                validData.Average(m => m.M0.CostTotal),
+                validData.Average(m => m.M0.CostLevel)
             ),
             M1 = new MarginLevel(
                 validData.Average(m => m.M1.Percentage),
                 validData.Average(m => m.M1.Amount),
-                validData.Average(m => m.M1.CostBase)
+                validData.Average(m => m.M1.CostTotal),
+                validData.Average(m => m.M1.CostLevel)
             ),
             M2 = new MarginLevel(
                 validData.Average(m => m.M2.Percentage),
                 validData.Average(m => m.M2.Amount),
-                validData.Average(m => m.M2.CostBase)
+                validData.Average(m => m.M2.CostTotal),
+                validData.Average(m => m.M2.CostLevel)
             ),
             M3 = new MarginLevel(
                 validData.Average(m => m.M3.Percentage),
                 validData.Average(m => m.M3.Amount),
-                validData.Average(m => m.M3.CostBase)
+                validData.Average(m => m.M3.CostTotal),
+                validData.Average(m => m.M3.CostLevel)
             )
         };
     }

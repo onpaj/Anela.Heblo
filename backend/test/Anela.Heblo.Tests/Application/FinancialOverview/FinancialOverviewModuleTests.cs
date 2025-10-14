@@ -105,8 +105,8 @@ public class FinancialOverviewModuleTests
         services.AddFinancialOverviewModule(CreateMockConfiguration());
 
         // Assert - No specific background service should be registered (using centralized refresh system)
-        var hostedServices = services.Where(s => 
-            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) && 
+        var hostedServices = services.Where(s =>
+            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) &&
             s.ImplementationType?.Name.Contains("FinancialAnalysis") == true).ToList();
         hostedServices.Should().BeEmpty();
     }
@@ -129,8 +129,8 @@ public class FinancialOverviewModuleTests
         // Assert - Refresh task registration should be present (via RegisterRefreshTask extension)
         // Note: We can't easily test the internal refresh task registration here,
         // but we can verify the module doesn't register old background services
-        var financialAnalysisServices = services.Where(s => 
-            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) && 
+        var financialAnalysisServices = services.Where(s =>
+            s.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) &&
             s.ImplementationType?.Name.Contains("FinancialAnalysis") == true).ToList();
         financialAnalysisServices.Should().BeEmpty();
     }

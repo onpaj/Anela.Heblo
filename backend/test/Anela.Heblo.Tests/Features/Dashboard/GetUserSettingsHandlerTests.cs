@@ -24,7 +24,7 @@ public class GetUserSettingsHandlerTests
         // Arrange
         var request = new GetUserSettingsRequest { UserId = null };
         var userSettings = CreateSampleUserSettings("anonymous");
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync("anonymous"))
             .ReturnsAsync(userSettings);
@@ -44,7 +44,7 @@ public class GetUserSettingsHandlerTests
         // Arrange
         var request = new GetUserSettingsRequest { UserId = "" };
         var userSettings = CreateSampleUserSettings("anonymous");
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync("anonymous"))
             .ReturnsAsync(userSettings);
@@ -65,7 +65,7 @@ public class GetUserSettingsHandlerTests
         var userId = "user123";
         var request = new GetUserSettingsRequest { UserId = userId };
         var userSettings = CreateSampleUserSettings(userId);
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);
@@ -77,12 +77,12 @@ public class GetUserSettingsHandlerTests
         result.Should().NotBeNull();
         result.Settings.Should().NotBeNull();
         result.Settings.Tiles.Should().HaveCount(2);
-        
+
         var tiles = result.Settings.Tiles.ToArray();
         tiles[0].TileId.Should().Be("tile1");
         tiles[0].IsVisible.Should().BeTrue();
         tiles[0].DisplayOrder.Should().Be(0);
-        
+
         tiles[1].TileId.Should().Be("tile2");
         tiles[1].IsVisible.Should().BeFalse();
         tiles[1].DisplayOrder.Should().Be(1);
@@ -100,7 +100,7 @@ public class GetUserSettingsHandlerTests
             LastModified = DateTime.UtcNow,
             Tiles = new List<UserDashboardTile>()
         };
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);
@@ -122,7 +122,7 @@ public class GetUserSettingsHandlerTests
         var userId = "user123";
         var request = new GetUserSettingsRequest { UserId = userId };
         var userSettings = CreateSampleUserSettings(userId);
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);

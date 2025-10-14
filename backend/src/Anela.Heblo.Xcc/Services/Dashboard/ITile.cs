@@ -11,7 +11,7 @@ public interface ITile
     bool AutoShow { get; }
     Type ComponentType { get; }
     string[] RequiredPermissions { get; }
-    
+
     // Data loading
     Task<object> LoadDataAsync(CancellationToken cancellationToken = default);
 }

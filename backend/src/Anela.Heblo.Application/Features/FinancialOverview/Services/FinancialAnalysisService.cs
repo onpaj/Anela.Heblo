@@ -82,7 +82,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         {
             endDate ??= new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddDays(-1); // Last day of previous month
             startDate ??= endDate.Value.AddMonths(-_options.MonthsToCache + 1);
-            
+
             _logger.LogInformation("Starting financial analysis data refresh from {StartDate} to {EndDate}", startDate, endDate);
 
             // Load financial data month by month sequentially from newest to oldest

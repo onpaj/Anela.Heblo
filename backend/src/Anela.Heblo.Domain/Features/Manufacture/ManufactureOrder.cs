@@ -28,5 +28,5 @@ public class ManufactureOrder
     public DateTime? ErpOrderNumberProductDate { get; set; }
     public string? ErpDiscardResidueDocumentNumber { get; set; }
     public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
-    
+
 }

@@ -2,15 +2,9 @@ namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public interface IBackgroundRefreshTaskRegistry
 {
-    void RegisterTask(
-        string taskId,
-        Func<IServiceProvider, CancellationToken, Task> refreshMethod,
-        RefreshTaskConfiguration configuration);
+    void RegisterTask(string taskId, Func<IServiceProvider, CancellationToken, Task> refreshMethod, RefreshTaskConfiguration configuration);
 
-    void RegisterTask(
-        string taskId,
-        Func<IServiceProvider, CancellationToken, Task> refreshMethod,
-        string configurationKey);
+    void RegisterTask(string taskId, Func<IServiceProvider, CancellationToken, Task> refreshMethod);
 
     Task ForceRefreshAsync(string taskId, CancellationToken cancellationToken = default);
 

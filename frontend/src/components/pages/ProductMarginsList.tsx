@@ -196,22 +196,22 @@ const ProductMarginsList: React.FC = () => {
     return "text-green-600";
   };
 
-  // Get tooltip content for margin levels using average costs from backend
+  // Get tooltip content for margin levels using M0-M3 cost levels from backend
   const getMarginTooltip = (level: "M0" | "M1" | "M2" | "M3", item: any): string => {
-    const avgMaterialCost = item.averageMaterialCost || 0;
-    const avgHandlingCost = item.averageHandlingCost || 0;
-    const avgSalesCost = item.averageSalesCost || 0;
-    const avgOverheadCost = item.averageOverheadCost || 0;
+    const m0CostLevel = item.m0?.costLevel || 0;
+    const m1CostLevel = item.m1?.costLevel || 0;
+    const m2CostLevel = item.m2?.costLevel || 0;
+    const m3CostLevel = item.m3?.costLevel || 0;
 
     switch (level) {
       case "M0":
-        return `Průměrné materiálové náklady: ${formatCurrency(avgMaterialCost)}`;
+        return `Průměrné materiálové náklady: ${formatCurrency(m0CostLevel)}`;
       case "M1":
-        return `Průměrné náklady materiál + výroba: ${formatCurrency(avgMaterialCost + avgHandlingCost)}`;
+        return `Průměrné náklady materiál + výroba: ${formatCurrency(m0CostLevel + m1CostLevel)}`;
       case "M2":
-        return `Průměrné náklady materiál + výroba + prodej: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost)}`;
+        return `Průměrné náklady materiál + výroba + prodej: ${formatCurrency(m0CostLevel + m1CostLevel + m2CostLevel)}`;
       case "M3":
-        return `Průměrné celkové náklady: ${formatCurrency(avgMaterialCost + avgHandlingCost + avgSalesCost + avgOverheadCost)}`;
+        return `Průměrné celkové náklady: ${formatCurrency(m0CostLevel + m1CostLevel + m2CostLevel + m3CostLevel)}`;
       default:
         return "";
     }
@@ -395,28 +395,28 @@ const ProductMarginsList: React.FC = () => {
                       : "-"}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m0Percentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m0?.percentage)}`}
                     title={getMarginTooltip("M0", item)}
                   >
-                    {formatPercentage(item.m0Percentage)}
+                    {formatPercentage(item.m0?.percentage)}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m1Percentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m1?.percentage)}`}
                     title={getMarginTooltip("M1", item)}
                   >
-                    {formatPercentage(item.m1Percentage)}
+                    {formatPercentage(item.m1?.percentage)}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m2Percentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m2?.percentage)}`}
                     title={getMarginTooltip("M2", item)}
                   >
-                    {formatPercentage(item.m2Percentage)}
+                    {formatPercentage(item.m2?.percentage)}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m3Percentage)}`}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m3?.percentage)}`}
                     title={getMarginTooltip("M3", item)}
                   >
-                    {formatPercentage(item.m3Percentage)}
+                    {formatPercentage(item.m3?.percentage)}
                   </td>
                 </tr>
               ))}

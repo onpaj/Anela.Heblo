@@ -2,22 +2,22 @@ namespace Anela.Heblo.Domain.Features.Catalog;
 
 public class CostBreakdown
 {
-    public decimal MaterialCost { get; }
-    public decimal ManufacturingCost { get; }
-    public decimal SalesCost { get; }
-    public decimal OverheadCost { get; }
+    public decimal M0CostLevel { get; }
+    public decimal M1CostLevel { get; }
+    public decimal M2CostLevel { get; }
+    public decimal M3CostLevel { get; }
 
-    public decimal M0Cost => MaterialCost;
-    public decimal M1Cost => MaterialCost + ManufacturingCost;
-    public decimal M2Cost => MaterialCost + ManufacturingCost + SalesCost;
-    public decimal M3Cost => MaterialCost + ManufacturingCost + SalesCost + OverheadCost;
+    public decimal M0CostTotal => M0CostLevel;
+    public decimal M1CostTotal => M0CostLevel + M1CostLevel;
+    public decimal M2CostTotal => M0CostLevel + M1CostLevel + M2CostLevel;
+    public decimal M3CostTotal => M0CostLevel + M1CostLevel + M2CostLevel + M3CostLevel;
 
     public CostBreakdown(decimal materialCost, decimal manufacturingCost, decimal salesCost, decimal overheadCost)
     {
-        MaterialCost = Math.Round(materialCost, 2);
-        ManufacturingCost = Math.Round(manufacturingCost, 2);
-        SalesCost = Math.Round(salesCost, 2);
-        OverheadCost = Math.Round(overheadCost, 2);
+        M0CostLevel = Math.Round(materialCost, 2);
+        M1CostLevel = Math.Round(manufacturingCost, 2);
+        M2CostLevel = Math.Round(salesCost, 2);
+        M3CostLevel = Math.Round(overheadCost, 2);
     }
 
     public static CostBreakdown Zero => new CostBreakdown(0, 0, 0, 0);

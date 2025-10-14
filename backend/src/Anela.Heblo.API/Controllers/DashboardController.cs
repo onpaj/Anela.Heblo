@@ -28,7 +28,7 @@ public class DashboardController : BaseApiController
     {
         var request = new GetAvailableTilesRequest();
         var response = await _mediator.Send(request);
-        
+
         return Ok(response.Tiles);
     }
 
@@ -38,7 +38,7 @@ public class DashboardController : BaseApiController
         var userId = GetCurrentUserId();
         var request = new GetUserSettingsRequest { UserId = userId };
         var response = await _mediator.Send(request);
-        
+
         return Ok(response.Settings);
     }
 
@@ -48,7 +48,7 @@ public class DashboardController : BaseApiController
         var userId = GetCurrentUserId();
         request.UserId = userId;
         await _mediator.Send(request);
-        
+
         return Ok();
     }
 
@@ -58,7 +58,7 @@ public class DashboardController : BaseApiController
         var userId = GetCurrentUserId();
         var request = new GetTileDataRequest { UserId = userId };
         var response = await _mediator.Send(request);
-        
+
         return Ok(response.Tiles);
     }
 
@@ -66,10 +66,10 @@ public class DashboardController : BaseApiController
     public async Task<ActionResult> EnableTile(string tileId)
     {
         var userId = GetCurrentUserId();
-        var request = new EnableTileRequest 
-        { 
+        var request = new EnableTileRequest
+        {
             UserId = userId,
-            TileId = tileId 
+            TileId = tileId
         };
         await _mediator.Send(request);
 
@@ -80,10 +80,10 @@ public class DashboardController : BaseApiController
     public async Task<ActionResult> DisableTile(string tileId)
     {
         var userId = GetCurrentUserId();
-        var request = new DisableTileRequest 
-        { 
+        var request = new DisableTileRequest
+        {
             UserId = userId,
-            TileId = tileId 
+            TileId = tileId
         };
         await _mediator.Send(request);
 
@@ -96,7 +96,7 @@ public class DashboardController : BaseApiController
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value
                      ?? User.FindFirst("oid")?.Value
-                     ?? throw new Exception("User not found");  
+                     ?? throw new Exception("User not found");
         return userId;
     }
 }

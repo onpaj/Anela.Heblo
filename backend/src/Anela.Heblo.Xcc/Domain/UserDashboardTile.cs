@@ -7,7 +7,7 @@ public class UserDashboardTile : Entity<int>
     public bool IsVisible { get; set; } = true;
     public int DisplayOrder { get; set; } = 0;
     public DateTime LastModified { get; set; } = DateTime.UtcNow;
-    
+
     // Navigation property
     public UserDashboardSettings DashboardSettings { get; set; } = null!;
 }

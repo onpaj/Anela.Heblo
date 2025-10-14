@@ -16,7 +16,7 @@ public class GetAvailableTilesHandler : IRequestHandler<GetAvailableTilesRequest
     public Task<GetAvailableTilesResponse> Handle(GetAvailableTilesRequest request, CancellationToken cancellationToken)
     {
         var tiles = _tileRegistry.GetAvailableTiles();
-        
+
         var result = tiles.Select(t => new DashboardTileDto
         {
             TileId = t.GetTileId(),

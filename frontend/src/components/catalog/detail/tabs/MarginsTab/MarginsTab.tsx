@@ -59,7 +59,6 @@ const MarginsTab: React.FC<MarginsTabProps> = ({
         marginHistory={marginHistory}
       />
       <MarginsChart
-        manufactureCostHistory={manufactureCostHistory}
         marginHistory={marginHistory}
         journalEntries={journalEntries}
       />

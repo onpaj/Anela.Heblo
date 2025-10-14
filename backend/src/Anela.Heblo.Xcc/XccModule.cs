@@ -15,11 +15,11 @@ public static class XccModule
     {
         // Register background refresh services
         services.AddBackgroundRefresh();
-        
+
         // Register dashboard services
         services.AddSingleton<ITileRegistry, TileRegistry>();
         services.AddScoped<IDashboardService, DashboardService>();
-        
+
         // Register system tiles
         services.RegisterTile<BackgroundTaskStatusTile>();
 

@@ -680,576 +680,6 @@ export class ApiClient {
         return Promise.resolve<GetCatalogDetailResponse>(null as any);
     }
 
-    catalog_RefreshTransportData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/transport";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshTransportData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshTransportData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshReserveData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/reserve";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshReserveData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshReserveData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshSalesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/sales";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshSalesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshSalesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshAttributesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/attributes";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshAttributesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshAttributesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshErpStockData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/erp-stock";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshErpStockData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshErpStockData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshEshopStockData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-stock";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshEshopStockData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshEshopStockData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshPurchaseHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/purchase-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshPurchaseHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshPurchaseHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshManufactureHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshManufactureHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshManufactureHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshConsumedHistoryData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/consumed-history";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshConsumedHistoryData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshConsumedHistoryData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshStockTakingData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/stock-taking";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshStockTakingData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshStockTakingData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshLotsData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/lots";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshLotsData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshLotsData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshEshopPricesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/eshop-prices";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshEshopPricesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshEshopPricesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshErpPricesData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/erp-prices";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshErpPricesData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshErpPricesData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshManufactureDifficultyData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-difficulty";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshManufactureDifficultyData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshManufactureDifficultyData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
-    catalog_RefreshManufactureCostData(): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/refresh/manufacture-cost";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_RefreshManufactureCostData(_response);
-        });
-    }
-
-    protected processCatalog_RefreshManufactureCostData(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
     catalog_GetMaterialsForPurchase(searchTerm: string | null | undefined, limit: number | undefined): Promise<GetMaterialsForPurchaseResponse> {
         let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
         if (searchTerm !== undefined && searchTerm !== null)
@@ -1756,7 +1186,7 @@ export class ApiClient {
         return Promise.resolve<UserDashboardSettingsDto>(null as any);
     }
 
-    dashboard_SaveUserSettings(request: SaveDashboardSettingsRequest): Promise<FileResponse> {
+    dashboard_SaveUserSettings(request: SaveUserSettingsRequest): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Dashboard/settings";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -5776,6 +5206,7 @@ export class RefreshTaskDto implements IRefreshTaskDto {
     initialDelay?: string;
     refreshInterval?: string;
     enabled?: boolean;
+    hydrationTier?: number;
     nextScheduledRun?: Date | undefined;
     lastExecution?: RefreshTaskExecutionLogDto | undefined;
 
@@ -5794,6 +5225,7 @@ export class RefreshTaskDto implements IRefreshTaskDto {
             this.initialDelay = _data["initialDelay"];
             this.refreshInterval = _data["refreshInterval"];
             this.enabled = _data["enabled"];
+            this.hydrationTier = _data["hydrationTier"];
             this.nextScheduledRun = _data["nextScheduledRun"] ? new Date(_data["nextScheduledRun"].toString()) : <any>undefined;
             this.lastExecution = _data["lastExecution"] ? RefreshTaskExecutionLogDto.fromJS(_data["lastExecution"]) : <any>undefined;
         }
@@ -5812,6 +5244,7 @@ export class RefreshTaskDto implements IRefreshTaskDto {
         data["initialDelay"] = this.initialDelay;
         data["refreshInterval"] = this.refreshInterval;
         data["enabled"] = this.enabled;
+        data["hydrationTier"] = this.hydrationTier;
         data["nextScheduledRun"] = this.nextScheduledRun ? this.nextScheduledRun.toISOString() : <any>undefined;
         data["lastExecution"] = this.lastExecution ? this.lastExecution.toJSON() : <any>undefined;
         return data;
@@ -5823,6 +5256,7 @@ export interface IRefreshTaskDto {
     initialDelay?: string;
     refreshInterval?: string;
     enabled?: boolean;
+    hydrationTier?: number;
     nextScheduledRun?: Date | undefined;
     lastExecution?: RefreshTaskExecutionLogDto | undefined;
 }
@@ -6866,18 +6300,10 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     date?: Date;
     sellingPrice?: number;
     totalCost?: number;
-    m0Percentage?: number;
-    m0Amount?: number;
-    m0CostBase?: number;
-    m1Percentage?: number;
-    m1Amount?: number;
-    m1CostBase?: number;
-    m2Percentage?: number;
-    m2Amount?: number;
-    m2CostBase?: number;
-    m3Percentage?: number;
-    m3Amount?: number;
-    m3CostBase?: number;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMarginHistoryDto) {
         if (data) {
@@ -6893,18 +6319,10 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
             this.sellingPrice = _data["sellingPrice"];
             this.totalCost = _data["totalCost"];
-            this.m0Percentage = _data["m0Percentage"];
-            this.m0Amount = _data["m0Amount"];
-            this.m0CostBase = _data["m0CostBase"];
-            this.m1Percentage = _data["m1Percentage"];
-            this.m1Amount = _data["m1Amount"];
-            this.m1CostBase = _data["m1CostBase"];
-            this.m2Percentage = _data["m2Percentage"];
-            this.m2Amount = _data["m2Amount"];
-            this.m2CostBase = _data["m2CostBase"];
-            this.m3Percentage = _data["m3Percentage"];
-            this.m3Amount = _data["m3Amount"];
-            this.m3CostBase = _data["m3CostBase"];
+            this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
+            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -6920,18 +6338,10 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["date"] = this.date ? this.date.toISOString() : <any>undefined;
         data["sellingPrice"] = this.sellingPrice;
         data["totalCost"] = this.totalCost;
-        data["m0Percentage"] = this.m0Percentage;
-        data["m0Amount"] = this.m0Amount;
-        data["m0CostBase"] = this.m0CostBase;
-        data["m1Percentage"] = this.m1Percentage;
-        data["m1Amount"] = this.m1Amount;
-        data["m1CostBase"] = this.m1CostBase;
-        data["m2Percentage"] = this.m2Percentage;
-        data["m2Amount"] = this.m2Amount;
-        data["m2CostBase"] = this.m2CostBase;
-        data["m3Percentage"] = this.m3Percentage;
-        data["m3Amount"] = this.m3Amount;
-        data["m3CostBase"] = this.m3CostBase;
+        data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
+        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -6940,18 +6350,58 @@ export interface IMarginHistoryDto {
     date?: Date;
     sellingPrice?: number;
     totalCost?: number;
-    m0Percentage?: number;
-    m0Amount?: number;
-    m0CostBase?: number;
-    m1Percentage?: number;
-    m1Amount?: number;
-    m1CostBase?: number;
-    m2Percentage?: number;
-    m2Amount?: number;
-    m2CostBase?: number;
-    m3Percentage?: number;
-    m3Amount?: number;
-    m3CostBase?: number;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
+}
+
+export class MarginLevelDto implements IMarginLevelDto {
+    percentage?: number;
+    amount?: number;
+    costLevel?: number;
+    costTotal?: number;
+
+    constructor(data?: IMarginLevelDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.percentage = _data["percentage"];
+            this.amount = _data["amount"];
+            this.costLevel = _data["costLevel"];
+            this.costTotal = _data["costTotal"];
+        }
+    }
+
+    static fromJS(data: any): MarginLevelDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MarginLevelDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["percentage"] = this.percentage;
+        data["amount"] = this.amount;
+        data["costLevel"] = this.costLevel;
+        data["costTotal"] = this.costTotal;
+        return data;
+    }
+}
+
+export interface IMarginLevelDto {
+    percentage?: number;
+    amount?: number;
+    costLevel?: number;
+    costTotal?: number;
 }
 
 export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -7883,10 +7333,11 @@ export interface IUserDashboardTileDto {
     displayOrder?: number;
 }
 
-export class SaveDashboardSettingsRequest implements ISaveDashboardSettingsRequest {
+export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
+    userId?: string;
     tiles?: UserDashboardTileDto[];
 
-    constructor(data?: ISaveDashboardSettingsRequest) {
+    constructor(data?: ISaveUserSettingsRequest) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -7897,6 +7348,7 @@ export class SaveDashboardSettingsRequest implements ISaveDashboardSettingsReque
 
     init(_data?: any) {
         if (_data) {
+            this.userId = _data["userId"];
             if (Array.isArray(_data["tiles"])) {
                 this.tiles = [] as any;
                 for (let item of _data["tiles"])
@@ -7905,15 +7357,16 @@ export class SaveDashboardSettingsRequest implements ISaveDashboardSettingsReque
         }
     }
 
-    static fromJS(data: any): SaveDashboardSettingsRequest {
+    static fromJS(data: any): SaveUserSettingsRequest {
         data = typeof data === 'object' ? data : {};
-        let result = new SaveDashboardSettingsRequest();
+        let result = new SaveUserSettingsRequest();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
         if (Array.isArray(this.tiles)) {
             data["tiles"] = [];
             for (let item of this.tiles)
@@ -7923,7 +7376,8 @@ export class SaveDashboardSettingsRequest implements ISaveDashboardSettingsReque
     }
 }
 
-export interface ISaveDashboardSettingsRequest {
+export interface ISaveUserSettingsRequest {
+    userId?: string;
     tiles?: UserDashboardTileDto[];
 }
 
@@ -12895,24 +12349,12 @@ export class ProductMarginDto implements IProductMarginDto {
     productName?: string;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    averageMaterialCost?: number | undefined;
-    averageHandlingCost?: number | undefined;
-    averageSalesCost?: number | undefined;
-    averageOverheadCost?: number | undefined;
     manufactureDifficulty?: number;
     priceWithoutVatIsFromEshop?: boolean;
-    m0Percentage?: number;
-    m0Amount?: number;
-    m1Percentage?: number;
-    m1Amount?: number;
-    m2Percentage?: number;
-    m2Amount?: number;
-    m3Percentage?: number;
-    m3Amount?: number;
-    materialCost?: number | undefined;
-    manufacturingCost?: number | undefined;
-    salesCost?: number | undefined;
-    overheadCost?: number | undefined;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
@@ -12930,24 +12372,12 @@ export class ProductMarginDto implements IProductMarginDto {
             this.productName = _data["productName"];
             this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
-            this.averageMaterialCost = _data["averageMaterialCost"];
-            this.averageHandlingCost = _data["averageHandlingCost"];
-            this.averageSalesCost = _data["averageSalesCost"];
-            this.averageOverheadCost = _data["averageOverheadCost"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.priceWithoutVatIsFromEshop = _data["priceWithoutVatIsFromEshop"];
-            this.m0Percentage = _data["m0Percentage"];
-            this.m0Amount = _data["m0Amount"];
-            this.m1Percentage = _data["m1Percentage"];
-            this.m1Amount = _data["m1Amount"];
-            this.m2Percentage = _data["m2Percentage"];
-            this.m2Amount = _data["m2Amount"];
-            this.m3Percentage = _data["m3Percentage"];
-            this.m3Amount = _data["m3Amount"];
-            this.materialCost = _data["materialCost"];
-            this.manufacturingCost = _data["manufacturingCost"];
-            this.salesCost = _data["salesCost"];
-            this.overheadCost = _data["overheadCost"];
+            this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
+            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
                 this.monthlyHistory = [] as any;
                 for (let item of _data["monthlyHistory"])
@@ -12969,24 +12399,12 @@ export class ProductMarginDto implements IProductMarginDto {
         data["productName"] = this.productName;
         data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
-        data["averageMaterialCost"] = this.averageMaterialCost;
-        data["averageHandlingCost"] = this.averageHandlingCost;
-        data["averageSalesCost"] = this.averageSalesCost;
-        data["averageOverheadCost"] = this.averageOverheadCost;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["priceWithoutVatIsFromEshop"] = this.priceWithoutVatIsFromEshop;
-        data["m0Percentage"] = this.m0Percentage;
-        data["m0Amount"] = this.m0Amount;
-        data["m1Percentage"] = this.m1Percentage;
-        data["m1Amount"] = this.m1Amount;
-        data["m2Percentage"] = this.m2Percentage;
-        data["m2Amount"] = this.m2Amount;
-        data["m3Percentage"] = this.m3Percentage;
-        data["m3Amount"] = this.m3Amount;
-        data["materialCost"] = this.materialCost;
-        data["manufacturingCost"] = this.manufacturingCost;
-        data["salesCost"] = this.salesCost;
-        data["overheadCost"] = this.overheadCost;
+        data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
+        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
             data["monthlyHistory"] = [];
             for (let item of this.monthlyHistory)
@@ -13001,37 +12419,21 @@ export interface IProductMarginDto {
     productName?: string;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
-    averageMaterialCost?: number | undefined;
-    averageHandlingCost?: number | undefined;
-    averageSalesCost?: number | undefined;
-    averageOverheadCost?: number | undefined;
     manufactureDifficulty?: number;
     priceWithoutVatIsFromEshop?: boolean;
-    m0Percentage?: number;
-    m0Amount?: number;
-    m1Percentage?: number;
-    m1Amount?: number;
-    m2Percentage?: number;
-    m2Amount?: number;
-    m3Percentage?: number;
-    m3Amount?: number;
-    materialCost?: number | undefined;
-    manufacturingCost?: number | undefined;
-    salesCost?: number | undefined;
-    overheadCost?: number | undefined;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 }
 
 export class MonthlyMarginDto implements IMonthlyMarginDto {
     month?: Date;
-    m0Percentage?: number;
-    m1Percentage?: number;
-    m2Percentage?: number;
-    m3Percentage?: number;
-    materialCost?: number;
-    manufacturingCost?: number;
-    salesCost?: number;
-    totalCosts?: number;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMonthlyMarginDto) {
         if (data) {
@@ -13045,14 +12447,10 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     init(_data?: any) {
         if (_data) {
             this.month = _data["month"] ? new Date(_data["month"].toString()) : <any>undefined;
-            this.m0Percentage = _data["m0Percentage"];
-            this.m1Percentage = _data["m1Percentage"];
-            this.m2Percentage = _data["m2Percentage"];
-            this.m3Percentage = _data["m3Percentage"];
-            this.materialCost = _data["materialCost"];
-            this.manufacturingCost = _data["manufacturingCost"];
-            this.salesCost = _data["salesCost"];
-            this.totalCosts = _data["totalCosts"];
+            this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
+            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -13066,28 +12464,20 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["month"] = this.month ? this.month.toISOString() : <any>undefined;
-        data["m0Percentage"] = this.m0Percentage;
-        data["m1Percentage"] = this.m1Percentage;
-        data["m2Percentage"] = this.m2Percentage;
-        data["m3Percentage"] = this.m3Percentage;
-        data["materialCost"] = this.materialCost;
-        data["manufacturingCost"] = this.manufacturingCost;
-        data["salesCost"] = this.salesCost;
-        data["totalCosts"] = this.totalCosts;
+        data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
+        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
 
 export interface IMonthlyMarginDto {
     month?: Date;
-    m0Percentage?: number;
-    m1Percentage?: number;
-    m2Percentage?: number;
-    m3Percentage?: number;
-    materialCost?: number;
-    manufacturingCost?: number;
-    salesCost?: number;
-    totalCosts?: number;
+    m0?: MarginLevelDto;
+    m1?: MarginLevelDto;
+    m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {

@@ -8,21 +8,34 @@ public class BackgroundRefreshSchedulerService : BackgroundService
 {
     private readonly ILogger<BackgroundRefreshSchedulerService> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly TierBasedHydrationOrchestrator _hydrationOrchestrator;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     public BackgroundRefreshSchedulerService(
         ILogger<BackgroundRefreshSchedulerService> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        TierBasedHydrationOrchestrator hydrationOrchestrator)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _hydrationOrchestrator = hydrationOrchestrator;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Background refresh scheduler service starting");
+        _logger.LogInformation("Background refresh scheduler service starting - waiting for hydration completion");
 
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); // Give the application time to fully start
+        // Wait for hydration to complete before starting periodic scheduling
+        try
+        {
+            await _hydrationOrchestrator.WaitForHydrationCompletionAsync();
+            _logger.LogInformation("Hydration completed - starting periodic task scheduling");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hydration failed - aborting periodic task scheduling");
+            return;
+        }
 
         using var scope = _serviceProvider.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<IBackgroundRefreshTaskRegistry>();
@@ -57,15 +70,11 @@ public class BackgroundRefreshSchedulerService : BackgroundService
     private async Task RunTaskLoop(RefreshTaskConfiguration taskConfig, CancellationToken stoppingToken)
     {
         var taskId = taskConfig.TaskId;
-        
+
         try
         {
-            // Initial delay
-            if (taskConfig.InitialDelay > TimeSpan.Zero)
-            {
-                _logger.LogDebug("Task '{TaskId}' waiting {InitialDelay} before first execution", taskId, taskConfig.InitialDelay);
-                await Task.Delay(taskConfig.InitialDelay, stoppingToken);
-            }
+            // No initial delay needed - hydration already executed tasks initially
+            _logger.LogDebug("Starting periodic execution loop for task '{TaskId}'", taskId);
 
             // Main execution loop
             while (!stoppingToken.IsCancellationRequested)
@@ -73,7 +82,7 @@ public class BackgroundRefreshSchedulerService : BackgroundService
                 try
                 {
                     _logger.LogDebug("Executing scheduled task '{TaskId}'", taskId);
-                    
+
                     using var scope = _serviceProvider.CreateScope();
                     var registry = scope.ServiceProvider.GetRequiredService<IBackgroundRefreshTaskRegistry>();
                     await registry.ForceRefreshAsync(taskId, stoppingToken);
