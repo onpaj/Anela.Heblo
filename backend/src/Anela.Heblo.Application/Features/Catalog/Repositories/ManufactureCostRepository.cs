@@ -77,16 +77,26 @@ public class ManufactureCostRepository : IManufactureCostRepository
 
                 if (manufactureCostHistory.TryGetValue(product.ProductCode, out var costHistory))
                 {
-                    // Filter by date range and convert to MonthlyCost
-                    var filteredHistory = costHistory
-                        .Where(c => DateOnly.FromDateTime(c.Date) >= startDate && DateOnly.FromDateTime(c.Date) <= endDate)
-                        .OrderBy(c => c.Date)
-                        .ToList();
-
-                    if (filteredHistory.Count > 0)
+                    // First, fill missing months for complete history, then filter by date range
+                    var completeHistory = costHistory.OrderBy(c => c.Date).ToList();
+                    
+                    if (completeHistory.Count > 0)
                     {
-                        // Fill missing months with last known data
-                        monthlyCosts = FillMissingMonths(filteredHistory, startDate, endDate);
+                        // Get the earliest and latest dates from complete history
+                        var earliestDate = DateOnly.FromDateTime(completeHistory.First().Date);
+                        var latestDate = DateOnly.FromDateTime(completeHistory.Last().Date);
+                        
+                        // Extend the range to ensure we have last known values before startDate
+                        var extendedStartDate = earliestDate < startDate ? earliestDate : startDate;
+                        var extendedEndDate = latestDate > endDate ? latestDate : endDate;
+                        
+                        // Fill missing months for the extended range
+                        var completeFilledHistory = FillMissingMonths(completeHistory, extendedStartDate, extendedEndDate);
+                        
+                        // Now filter to the requested date range
+                        monthlyCosts = completeFilledHistory
+                            .Where(m => DateOnly.FromDateTime(m.Month) >= startDate && DateOnly.FromDateTime(m.Month) <= endDate)
+                            .ToList();
                     }
                 }
 
