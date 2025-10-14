@@ -9,7 +9,7 @@ public class ManualActionRequiredTile : ITile
     private readonly TimeProvider _timeProvider;
 
     // Self-describing metadata
-    public string Title => "Výrobní příkazy vyžadující akci";
+    public string Title => "Výrobní příkazy";
     public string Description => "Počet výrobních příkazů vyžadujících manuální zásah";
     public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.Manufacture;
