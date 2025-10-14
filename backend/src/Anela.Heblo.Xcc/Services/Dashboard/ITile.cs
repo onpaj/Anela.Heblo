@@ -13,5 +13,5 @@ public interface ITile
     string[] RequiredPermissions { get; }
 
     // Data loading
-    Task<object> LoadDataAsync(CancellationToken cancellationToken = default);
+    Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default);
 }

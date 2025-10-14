@@ -25,7 +25,7 @@ public class GetTileDataHandlerTests
         var tileData = CreateSampleTileData();
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync("anonymous"))
+            .Setup(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(tileData);
 
         // Act
@@ -34,7 +34,7 @@ public class GetTileDataHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Tiles.Should().NotBeNull();
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous"), Times.Once);
+        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()), Times.Once);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class GetTileDataHandlerTests
         var tileData = CreateSampleTileData();
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync("anonymous"))
+            .Setup(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(tileData);
 
         // Act
@@ -54,7 +54,7 @@ public class GetTileDataHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Tiles.Should().NotBeNull();
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous"), Times.Once);
+        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()), Times.Once);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class GetTileDataHandlerTests
         var tileData = CreateSampleTileData();
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId))
+            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(tileData);
 
         // Act
@@ -101,7 +101,7 @@ public class GetTileDataHandlerTests
         var request = new GetTileDataRequest { UserId = userId };
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId))
+            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(new List<TileData>());
 
         // Act
@@ -137,7 +137,7 @@ public class GetTileDataHandlerTests
         };
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId))
+            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(tileData);
 
         // Act
@@ -160,14 +160,14 @@ public class GetTileDataHandlerTests
         var tileData = CreateSampleTileData();
 
         _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId))
+            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(tileData);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync(userId), Times.Once);
+        _dashboardServiceMock.Verify(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()), Times.Once);
     }
 
     private static List<TileData> CreateSampleTileData()

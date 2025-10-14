@@ -26,15 +26,27 @@ public class InvoiceImportStatisticsTile : ITile
         _timeProvider = timeProvider;
     }
 
-    public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
-            var yesterday = today.AddDays(-1);
+            // Extract date parameter from frontend (should be in user's local timezone)
+            DateOnly targetDate;
+            if (parameters != null && parameters.TryGetValue("date", out var dateStr) &&
+                DateOnly.TryParse(dateStr, out var parsedDate))
+            {
+                targetDate = parsedDate;
+            }
+            else
+            {
+                // Fallback to UTC yesterday
+                var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
+                targetDate = today.AddDays(-1);
+            }
 
-            var startDate = yesterday.ToDateTime(TimeOnly.MinValue);
-            var endDate = yesterday.ToDateTime(TimeOnly.MaxValue);
+            // Convert target date to UTC DateTime range for database query
+            var startDate = targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var endDate = targetDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
             var statistics = await _analyticsRepository.GetInvoiceImportStatisticsAsync(
                 startDate,
@@ -42,20 +54,21 @@ public class InvoiceImportStatisticsTile : ITile
                 ImportDateType.LastSyncTime,
                 cancellationToken);
 
-            var yesterdayCount = statistics.FirstOrDefault()?.Count ?? 0;
+            var targetDateCount = statistics.FirstOrDefault()?.Count ?? 0;
 
             return new
             {
                 status = "success",
                 data = new
                 {
-                    count = yesterdayCount,
-                    date = yesterday.ToString("dd.MM.yyyy")
+                    count = targetDateCount,
+                    date = targetDate.ToString("dd.MM.yyyy")
                 },
                 metadata = new
                 {
                     lastUpdated = DateTime.UtcNow,
-                    source = "AnalyticsRepository"
+                    source = "AnalyticsRepository",
+                    targetDate = targetDate.ToString("yyyy-MM-dd")
                 }
             };
         }

@@ -130,7 +130,7 @@ public class TestTile1 : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = new[] { "read" };
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data");
     }
@@ -147,7 +147,7 @@ public class TestTile2 : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = new[] { "admin", "write" };
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data 2");
     }
@@ -164,7 +164,7 @@ public class TestTileNoPermissions : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data");
     }

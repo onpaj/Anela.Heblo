@@ -49,7 +49,7 @@ public class TileRegistry : ITileRegistry
         }
     }
 
-    public async Task<object?> GetTileDataAsync(string tileId)
+    public async Task<object?> GetTileDataAsync(string tileId, Dictionary<string, string>? parameters = null)
     {
         if (!_registeredTiles.TryGetValue(tileId, out var tileType))
         {
@@ -59,7 +59,7 @@ public class TileRegistry : ITileRegistry
         using (var scope = _serviceProvider.CreateScope())
         {
             var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
-            return await tile.LoadDataAsync();
+            return await tile.LoadDataAsync(parameters);
         }
     }
 

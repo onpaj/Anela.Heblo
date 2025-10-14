@@ -21,7 +21,7 @@ public class BackgroundTaskStatusTile : ITile
         _taskRegistry = taskRegistry;
     }
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         var registeredTasks = _taskRegistry.GetRegisteredTasks();
 

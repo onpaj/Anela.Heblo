@@ -200,7 +200,7 @@ public static class CatalogModule
                 await costService.Reload();
             }
         );
-        
+
         // Manufacture cost calculation task (requires special logic)
         services.RegisterRefreshTask<IManufactureCostCalculationService>(
             nameof(IManufactureCostCalculationService.Reload),

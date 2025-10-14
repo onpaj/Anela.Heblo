@@ -25,23 +25,35 @@ public class BankStatementImportStatisticsTile : ITile
         _timeProvider = timeProvider;
     }
 
-    public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
-            var yesterday = today.AddDays(-1);
+            // Extract date parameter from frontend (should be in user's local timezone)
+            DateOnly targetDate;
+            if (parameters != null && parameters.TryGetValue("date", out var dateStr) &&
+                DateOnly.TryParse(dateStr, out var parsedDate))
+            {
+                targetDate = parsedDate;
+            }
+            else
+            {
+                // Fallback to UTC yesterday
+                var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
+                targetDate = today.AddDays(-1);
+            }
 
-            var startDate = yesterday.ToDateTime(TimeOnly.MinValue);
-            var endDate = yesterday.ToDateTime(TimeOnly.MaxValue);
+            // Convert target date to UTC DateTime range for database query
+            var startDate = targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var endDate = targetDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
             var statistics = await _repository.GetImportStatisticsAsync(
                 startDate,
                 endDate,
                 "ImportDate");
 
-            var yesterdayStats = statistics.FirstOrDefault();
-            var itemCount = yesterdayStats?.TotalItemCount ?? 0;
+            var targetDateStats = statistics.FirstOrDefault();
+            var itemCount = targetDateStats?.TotalItemCount ?? 0;
 
             return new
             {
@@ -49,12 +61,13 @@ public class BankStatementImportStatisticsTile : ITile
                 data = new
                 {
                     count = itemCount,
-                    date = yesterday.ToString("dd.MM.yyyy")
+                    date = targetDate.ToString("dd.MM.yyyy")
                 },
                 metadata = new
                 {
                     lastUpdated = DateTime.UtcNow,
-                    source = "BankStatementImportRepository"
+                    source = "BankStatementImportRepository",
+                    targetDate = targetDate.ToString("yyyy-MM-dd")
                 }
             };
         }

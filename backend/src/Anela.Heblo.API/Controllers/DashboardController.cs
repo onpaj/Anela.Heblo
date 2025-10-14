@@ -53,10 +53,14 @@ public class DashboardController : BaseApiController
     }
 
     [HttpGet("data")]
-    public async Task<ActionResult<IEnumerable<Application.Features.Dashboard.Contracts.DashboardTileDto>>> GetTileData()
+    public async Task<ActionResult<IEnumerable<Application.Features.Dashboard.Contracts.DashboardTileDto>>> GetTileData([FromQuery] Dictionary<string, string>? tileParameters = null)
     {
         var userId = GetCurrentUserId();
-        var request = new GetTileDataRequest { UserId = userId };
+        var request = new GetTileDataRequest
+        {
+            UserId = userId,
+            TileParameters = tileParameters
+        };
         var response = await _mediator.Send(request);
 
         return Ok(response.Tiles);

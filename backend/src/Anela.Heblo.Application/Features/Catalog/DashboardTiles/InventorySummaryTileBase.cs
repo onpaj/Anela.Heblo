@@ -29,7 +29,7 @@ public abstract class InventorySummaryTileBase : ITile
     public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -24,7 +24,7 @@ public abstract class TransportBoxBaseTile : ITile
         _repository = repository;
     }
 
-    public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -79,20 +79,20 @@ public class ManufactureCostRepository : IManufactureCostRepository
                 {
                     // First, fill missing months for complete history, then filter by date range
                     var completeHistory = costHistory.OrderBy(c => c.Date).ToList();
-                    
+
                     if (completeHistory.Count > 0)
                     {
                         // Get the earliest and latest dates from complete history
                         var earliestDate = DateOnly.FromDateTime(completeHistory.First().Date);
                         var latestDate = DateOnly.FromDateTime(completeHistory.Last().Date);
-                        
+
                         // Extend the range to ensure we have last known values before startDate
                         var extendedStartDate = earliestDate < startDate ? earliestDate : startDate;
                         var extendedEndDate = latestDate > endDate ? latestDate : endDate;
-                        
+
                         // Fill missing months for the extended range
                         var completeFilledHistory = FillMissingMonths(completeHistory, extendedStartDate, extendedEndDate);
-                        
+
                         // Now filter to the requested date range
                         monthlyCosts = completeFilledHistory
                             .Where(m => DateOnly.FromDateTime(m.Month) >= startDate && DateOnly.FromDateTime(m.Month) <= endDate)
@@ -121,7 +121,7 @@ public class ManufactureCostRepository : IManufactureCostRepository
     private List<MonthlyCost> FillMissingMonths(List<ManufactureCost> costHistory, DateOnly startDate, DateOnly endDate)
     {
         var result = new List<MonthlyCost>();
-        
+
         // Group by month and take the latest entry for each month (in case there are multiple entries per month)
         var monthlyData = costHistory
             .GroupBy(c => new DateTime(c.Date.Year, c.Date.Month, 1))
@@ -130,7 +130,7 @@ public class ManufactureCostRepository : IManufactureCostRepository
         // Generate all months in the range
         var currentMonth = new DateTime(startDate.Year, startDate.Month, 1);
         var lastMonth = new DateTime(endDate.Year, endDate.Month, 1);
-        
+
         var lastKnownCost = 0m; // Default to 0 if no previous data exists
         var hasFoundFirstRecord = false;
 
