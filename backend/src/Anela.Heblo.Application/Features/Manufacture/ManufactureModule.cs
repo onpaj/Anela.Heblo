@@ -43,6 +43,7 @@ public static class ManufactureModule
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();
         services.RegisterTile<NextDayProductionTile>();
+        services.RegisterTile<ManualActionRequiredTile>();
 
         return services;
     }

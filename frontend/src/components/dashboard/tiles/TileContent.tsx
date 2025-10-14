@@ -5,6 +5,7 @@ import { BackgroundTasksTile } from './BackgroundTasksTile';
 import { ProductionTile } from './ProductionTile';
 import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
+import { ManualActionRequiredTile } from './ManualActionRequiredTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker } from 'lucide-react';
 
@@ -24,6 +25,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <ProductionTile data={tile.data} title={tile.title || 'Dnes'} />;
     case 'nextdayproduction':
       return <ProductionTile data={tile.data} title={tile.title || 'Zítra'} />;
+    // Manufacture tiles
+    case 'manualactionrequired':
+      return <ManualActionRequiredTile data={tile.data} />;
     // Transport tiles
     case 'intransitboxes':
       return <CountTile data={tile.data} icon={<Truck className="h-10 w-10" />} iconColor="text-blue-600" />;
