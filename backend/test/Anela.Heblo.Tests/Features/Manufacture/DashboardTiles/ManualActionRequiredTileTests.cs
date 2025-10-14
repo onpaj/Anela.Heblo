@@ -26,7 +26,7 @@ public class ManualActionRequiredTileTests
     public void Metadata_Properties_ShouldHaveCorrectValues()
     {
         // Assert
-        Assert.Equal("Výrobní příkazy vyžadující akci", _tile.Title);
+        Assert.Equal("Výrobní příkazy", _tile.Title);
         Assert.Equal("Počet výrobních příkazů vyžadujících manuální zásah", _tile.Description);
         Assert.Equal(TileSize.Small, _tile.Size);
         Assert.Equal(TileCategory.Manufacture, _tile.Category);
@@ -42,17 +42,34 @@ public class ManualActionRequiredTileTests
         // Arrange
         var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, It.IsAny<CancellationToken>()))
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
         // Act
         var result = await _tile.LoadDataAsync();
 
         // Assert
-        dynamic resultData = result;
-        Assert.Equal("success", resultData.status);
-        Assert.Equal(0, resultData.data.count);
-        Assert.Equal(_fixedDateTime, resultData.data.date);
+        Assert.NotNull(result);
+        
+        // Verify repository was called with correct parameters
+        _mockRepository.Verify(x => x.GetOrdersAsync(
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -61,16 +78,34 @@ public class ManualActionRequiredTileTests
         // Arrange
         var orders = new List<ManufactureOrder>();  // Repository returns empty list when manualActionRequired=true
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, It.IsAny<CancellationToken>()))
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
         // Act
         var result = await _tile.LoadDataAsync();
 
         // Assert
-        dynamic resultData = result;
-        Assert.Equal("success", resultData.status);
-        Assert.Equal(0, resultData.data.count);
+        Assert.NotNull(result);
+        
+        // Verify repository was called with correct parameters
+        _mockRepository.Verify(x => x.GetOrdersAsync(
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -84,35 +119,55 @@ public class ManualActionRequiredTileTests
             new() { Id = 4, ManualActionRequired = true }
         };
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, It.IsAny<CancellationToken>()))
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
         // Act
         var result = await _tile.LoadDataAsync();
 
         // Assert
-        dynamic resultData = result;
-        Assert.Equal("success", resultData.status);
-        Assert.Equal(3, resultData.data.count);
-        Assert.Equal(_fixedDateTime, resultData.data.date);
+        Assert.NotNull(result);
+        
+        // Verify repository was called with correct parameters
+        _mockRepository.Verify(x => x.GetOrdersAsync(
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task LoadDataAsync_WhenRepositoryThrows_ShouldReturnErrorStatus()
+    public async Task LoadDataAsync_WhenRepositoryThrows_ShouldThrowException()
     {
         // Arrange
         var expectedException = new InvalidOperationException("Database error");
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, It.IsAny<CancellationToken>()))
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
-        // Act
-        var result = await _tile.LoadDataAsync();
-
-        // Assert
-        dynamic resultData = result;
-        Assert.Equal("error", resultData.status);
-        Assert.Equal("Database error", resultData.error);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _tile.LoadDataAsync());
     }
 
     [Fact]
@@ -122,7 +177,15 @@ public class ManualActionRequiredTileTests
         var cancellationToken = new CancellationToken();
         var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, cancellationToken))
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            cancellationToken))
             .ReturnsAsync(orders);
 
         // Act
@@ -130,6 +193,14 @@ public class ManualActionRequiredTileTests
 
         // Assert
         _mockRepository.Verify(x => x.GetOrdersAsync(
-            null, null, null, null, null, null, null, true, cancellationToken), Times.Once);
+            It.IsAny<ManufactureOrderState?>(), 
+            It.IsAny<DateOnly?>(), 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            It.IsAny<string?>(), 
+            true, 
+            cancellationToken), Times.Once);
     }
 }

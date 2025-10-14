@@ -28,28 +28,13 @@ public class ManualActionRequiredTile : ITile
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var orders = await _repository.GetOrdersAsync(manualActionRequired: true, cancellationToken: cancellationToken);
-            var count = orders.Count;
+        var orders = await _repository.GetOrdersAsync(manualActionRequired: true, cancellationToken: cancellationToken);
+        var count = orders.Count;
 
-            return new
-            {
-                status = "success",
-                data = new
-                {
-                    count,
-                    date = _timeProvider.GetUtcNow().DateTime
-                }
-            };
-        }
-        catch (Exception ex)
+        return new
         {
-            return new
-            {
-                status = "error",
-                error = ex.Message
-            };
-        }
+            count,
+            date = _timeProvider.GetUtcNow().DateTime
+        };
     }
 }
