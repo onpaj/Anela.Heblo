@@ -38,7 +38,8 @@ public static class CatalogModule
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
 
         // Register cost repositories
-        services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
+        //services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
+        services.AddTransient<IMaterialCostRepository, PurchasePriceOnlyMaterialCostRepository>(); // Use purchase priceonly, till stock price is correct
         services.AddTransient<IManufactureCostRepository, ManufactureCostRepository>();
         services.AddTransient<IOverheadCostRepository, OverheadCostRepository>();
 

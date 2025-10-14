@@ -80,13 +80,13 @@ public class ManufactureCostRepository : IManufactureCostRepository
                     // Filter by date range and convert to MonthlyCost
                     var filteredHistory = costHistory
                         .Where(c => DateOnly.FromDateTime(c.Date) >= startDate && DateOnly.FromDateTime(c.Date) <= endDate)
-                        .OrderBy(c => c.Date);
+                        .OrderBy(c => c.Date)
+                        .ToList();
 
-                    foreach (var cost in filteredHistory)
+                    if (filteredHistory.Count > 0)
                     {
-                        // Use first day of month for consistency
-                        var monthStart = new DateTime(cost.Date.Year, cost.Date.Month, 1);
-                        monthlyCosts.Add(new MonthlyCost(monthStart, cost.HandlingCost));
+                        // Fill missing months with last known data
+                        monthlyCosts = FillMissingMonths(filteredHistory, startDate, endDate);
                     }
                 }
 
@@ -106,5 +106,44 @@ public class ManufactureCostRepository : IManufactureCostRepository
             _logger.LogError(ex, "Error calculating manufacture costs");
             throw;
         }
+    }
+
+    private List<MonthlyCost> FillMissingMonths(List<ManufactureCost> costHistory, DateOnly startDate, DateOnly endDate)
+    {
+        var result = new List<MonthlyCost>();
+        
+        // Group by month and take the latest entry for each month (in case there are multiple entries per month)
+        var monthlyData = costHistory
+            .GroupBy(c => new DateTime(c.Date.Year, c.Date.Month, 1))
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.Date).First());
+
+        // Generate all months in the range
+        var currentMonth = new DateTime(startDate.Year, startDate.Month, 1);
+        var lastMonth = new DateTime(endDate.Year, endDate.Month, 1);
+        
+        var lastKnownCost = 0m; // Default to 0 if no previous data exists
+        var hasFoundFirstRecord = false;
+
+        while (currentMonth <= lastMonth)
+        {
+            if (monthlyData.TryGetValue(currentMonth, out var monthData))
+            {
+                // We have actual data for this month
+                lastKnownCost = monthData.HandlingCost;
+                hasFoundFirstRecord = true;
+                result.Add(new MonthlyCost(currentMonth, lastKnownCost));
+            }
+            else if (hasFoundFirstRecord)
+            {
+                // We don't have data for this month, but we've seen at least one record before
+                // Use the last known cost
+                result.Add(new MonthlyCost(currentMonth, lastKnownCost));
+            }
+            // If we haven't found the first record yet, skip this month (don't create records before first known data)
+
+            currentMonth = currentMonth.AddMonths(1);
+        }
+
+        return result;
     }
 }

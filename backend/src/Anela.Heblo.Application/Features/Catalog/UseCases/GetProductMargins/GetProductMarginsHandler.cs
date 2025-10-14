@@ -30,46 +30,21 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             _logger.LogDebug("Starting product margins query with filters: ProductCode={ProductCode}, ProductName={ProductName}, ProductType={ProductType}",
                 request.ProductCode, request.ProductName, request.ProductType);
 
-            var allItems = await GetProducts(cancellationToken);
-            var query = allItems.AsQueryable();
+            var products = await GetProducts(cancellationToken);
+            var filteredProducts = ApplyFilters(products, request);
+            var totalCount = filteredProducts.Count();
 
-            query = ApplyFilters(query, request);
+            // Apply sorting directly on CatalogAggregate entities
+            var sortedProducts = ApplySorting(filteredProducts, request.SortBy, request.SortDescending);
 
-            // Convert to list first to enable in-memory operations for complex sorting
-            var filteredItems = query.ToList();
-            var totalCount = filteredItems.Count;
+            // Apply pagination
+            var pagedProducts = sortedProducts
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
 
-            // Check if sorting requires DTO calculation (M0-M3 margins)
-            bool requiresComplexSorting = RequiresComplexSorting(request.SortBy);
-
-            List<ProductMarginDto> items;
-
-            if (requiresComplexSorting)
-            {
-                // For complex sorting (M0-M3), we need to create all DTOs first, then sort
-                var allDtos = CreateMargins(filteredItems);
-                var sortedDtos = ApplyComplexSorting(allDtos, request.SortBy, request.SortDescending);
-
-                // Apply pagination after sorting
-                items = sortedDtos
-                    .Skip((request.PageNumber - 1) * request.PageSize)
-                    .Take(request.PageSize)
-                    .ToList();
-            }
-            else
-            {
-                // For basic sorting, sort entities first for better performance
-                var sortedFilteredItems = ApplyBasicSortingOnEntities(filteredItems, request.SortBy, request.SortDescending);
-
-                // Apply pagination to reduce number of expensive DTO mappings
-                var pagedItems = sortedFilteredItems
-                    .Skip((request.PageNumber - 1) * request.PageSize)
-                    .Take(request.PageSize)
-                    .ToList();
-
-                // Create DTOs only for the paged items (performance optimization)
-                items = CreateMargins(pagedItems);
-            }
+            // Create DTOs using pre-calculated margin data
+            var items = pagedProducts.Select(MapToMarginDto).ToList();
 
             _logger.LogDebug("Product margins query completed successfully. Found {Count} products, returning {PageSize} items",
                 totalCount, items.Count);
@@ -114,31 +89,33 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private IQueryable<CatalogAggregate> ApplyFilters(IQueryable<CatalogAggregate> query, GetProductMarginsRequest request)
+    private IEnumerable<CatalogAggregate> ApplyFilters(IEnumerable<CatalogAggregate> products, GetProductMarginsRequest request)
     {
         try
         {
+            var filtered = products;
+
             if (!string.IsNullOrWhiteSpace(request.ProductCode))
             {
-                query = query.Where(x => x.ProductCode != null && x.ProductCode.Contains(request.ProductCode, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(x => x.ProductCode != null && x.ProductCode.Contains(request.ProductCode, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrWhiteSpace(request.ProductName))
             {
-                query = query.Where(x => x.ProductName != null && x.ProductName.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(x => x.ProductName != null && x.ProductName.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase));
             }
 
             if (request.ProductType.HasValue)
             {
-                query = query.Where(x => x.Type == request.ProductType.Value);
+                filtered = filtered.Where(x => x.Type == request.ProductType.Value);
             }
             else
             {
                 // Default filter: only Product and Goods
-                query = query.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
+                filtered = filtered.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
             }
 
-            return query;
+            return filtered;
         }
         catch (Exception ex)
         {
@@ -147,40 +124,65 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
-    private List<ProductMarginDto> CreateMargins(List<CatalogAggregate> products)
+    private IEnumerable<CatalogAggregate> ApplySorting(IEnumerable<CatalogAggregate> products, string? sortBy, bool sortDescending)
     {
-        var results = new List<ProductMarginDto>();
-
-        foreach (var product in products)
+        if (string.IsNullOrWhiteSpace(sortBy))
         {
-            try
-            {
-                var dto = MapToMarginDto(product);
-                results.Add(dto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing product {ProductCode} - {ProductName}. Skipping product.",
-                    product?.ProductCode, product?.ProductName);
-
-                // Add error placeholder to maintain count consistency
-                results.Add(new ProductMarginDto
-                {
-                    ProductCode = product?.ProductCode ?? "ERROR",
-                    ProductName = $"Error processing product: {ex.Message}",
-                    PriceWithoutVat = null,
-                    PurchasePrice = null,
-                    ManufactureDifficulty = 0,
-                    M0 = new MarginLevelDto(),
-                    M1 = new MarginLevelDto(),
-                    M2 = new MarginLevelDto(),
-                    M3 = new MarginLevelDto()
-                });
-            }
+            // Default sorting by ProductCode
+            return sortDescending
+                ? products.OrderByDescending(x => x.ProductCode)
+                : products.OrderBy(x => x.ProductCode);
         }
 
-        return results;
+        return sortBy.ToLower() switch
+        {
+            "productcode" => sortDescending
+                ? products.OrderByDescending(x => x.ProductCode)
+                : products.OrderBy(x => x.ProductCode),
+            "productname" => sortDescending
+                ? products.OrderByDescending(x => x.ProductName)
+                : products.OrderBy(x => x.ProductName),
+            "pricewithoutvat" => sortDescending
+                ? products.OrderByDescending(x => x.PriceWithoutVat ?? 0)
+                : products.OrderBy(x => x.PriceWithoutVat ?? 0),
+            "purchaseprice" => sortDescending
+                ? products.OrderByDescending(x => x.ErpPrice?.PurchasePrice ?? 0)
+                : products.OrderBy(x => x.ErpPrice?.PurchasePrice ?? 0),
+            "manufacturedifficulty" => sortDescending
+                ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
+                : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
+            // M0-M3 margin levels - amounts (using pre-calculated data)
+            "m0amount" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M0.Amount),
+            "m1amount" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M1.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M1.Amount),
+            "m2amount" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M2.Amount),
+            "m3amount" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M3.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M3.Amount),
+            // M0-M3 margin levels - percentages (using pre-calculated data)
+            "m0percentage" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
+            "m1percentage" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M1.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M1.Percentage),
+            "m2percentage" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
+            "m3percentage" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M3.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M3.Percentage),
+            _ => sortDescending
+                ? products.OrderByDescending(x => x.ProductCode)
+                : products.OrderBy(x => x.ProductCode)
+        };
     }
+
 
     private ProductMarginDto MapToMarginDto(CatalogAggregate product)
     {
@@ -290,108 +292,4 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
     }
 
 
-    private static bool RequiresComplexSorting(string? sortBy)
-    {
-        if (string.IsNullOrWhiteSpace(sortBy))
-            return false;
-
-        return sortBy.ToLower() switch
-        {
-            "m0percentage" or "m0amount" or "m1percentage" or "m1amount" or
-            "m2percentage" or "m2amount" or "m3percentage" or "m3amount" => true,
-            _ => false
-        };
-    }
-
-    private static List<ProductMarginDto> ApplyComplexSorting(List<ProductMarginDto> items, string? sortBy, bool sortDescending)
-    {
-        if (string.IsNullOrWhiteSpace(sortBy))
-        {
-            // Default sorting by ProductCode
-            return sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList();
-        }
-
-        return sortBy.ToLower() switch
-        {
-            "productcode" => sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList(),
-            "productname" => sortDescending
-                ? items.OrderByDescending(x => x.ProductName).ToList()
-                : items.OrderBy(x => x.ProductName).ToList(),
-            "pricewithoutVat" => sortDescending
-                ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
-                : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
-            "purchaseprice" => sortDescending
-                ? items.OrderByDescending(x => x.PurchasePrice ?? 0).ToList()
-                : items.OrderBy(x => x.PurchasePrice ?? 0).ToList(),
-            "manufacturedifficulty" => sortDescending
-                ? items.OrderByDescending(x => x.ManufactureDifficulty).ToList()
-                : items.OrderBy(x => x.ManufactureDifficulty).ToList(),
-            // M0-M3 margin levels - amounts
-            "m0amount" => sortDescending
-                ? items.OrderByDescending(x => x.M0.Amount).ToList()
-                : items.OrderBy(x => x.M0.Amount).ToList(),
-            "m1amount" => sortDescending
-                ? items.OrderByDescending(x => x.M1.Amount).ToList()
-                : items.OrderBy(x => x.M1.Amount).ToList(),
-            "m2amount" => sortDescending
-                ? items.OrderByDescending(x => x.M2.Amount).ToList()
-                : items.OrderBy(x => x.M2.Amount).ToList(),
-            "m3amount" => sortDescending
-                ? items.OrderByDescending(x => x.M3.Amount).ToList()
-                : items.OrderBy(x => x.M3.Amount).ToList(),
-            // M0-M3 margin levels - percentages
-            "m0percentage" => sortDescending
-                ? items.OrderByDescending(x => x.M0.Percentage).ToList()
-                : items.OrderBy(x => x.M0.Percentage).ToList(),
-            "m1percentage" => sortDescending
-                ? items.OrderByDescending(x => x.M1.Percentage).ToList()
-                : items.OrderBy(x => x.M1.Percentage).ToList(),
-            "m2percentage" => sortDescending
-                ? items.OrderByDescending(x => x.M2.Percentage).ToList()
-                : items.OrderBy(x => x.M2.Percentage).ToList(),
-            "m3percentage" => sortDescending
-                ? items.OrderByDescending(x => x.M3.Percentage).ToList()
-                : items.OrderBy(x => x.M3.Percentage).ToList(),
-            _ => sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList()
-        };
-    }
-
-    private static List<CatalogAggregate> ApplyBasicSortingOnEntities(List<CatalogAggregate> items, string? sortBy, bool sortDescending)
-    {
-        if (string.IsNullOrWhiteSpace(sortBy))
-        {
-            // Default sorting by ProductCode (since legacy MarginPercentage is removed)
-            return sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList();
-        }
-
-        return sortBy.ToLower() switch
-        {
-            "productcode" => sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList(),
-            "productname" => sortDescending
-                ? items.OrderByDescending(x => x.ProductName).ToList()
-                : items.OrderBy(x => x.ProductName).ToList(),
-            "pricewithoutvat" => sortDescending
-                ? items.OrderByDescending(x => x.PriceWithoutVat ?? 0).ToList()
-                : items.OrderBy(x => x.PriceWithoutVat ?? 0).ToList(),
-            "purchaseprice" => sortDescending
-                ? items.OrderByDescending(x => x.ErpPrice?.PurchasePrice ?? 0).ToList()
-                : items.OrderBy(x => x.ErpPrice?.PurchasePrice ?? 0).ToList(),
-            "manufacturedifficulty" => sortDescending
-                ? items.OrderByDescending(x => x.ManufactureDifficulty ?? 0).ToList()
-                : items.OrderBy(x => x.ManufactureDifficulty ?? 0).ToList(),
-            _ => sortDescending
-                ? items.OrderByDescending(x => x.ProductCode).ToList()
-                : items.OrderBy(x => x.ProductCode).ToList()
-        };
-    }
 }
