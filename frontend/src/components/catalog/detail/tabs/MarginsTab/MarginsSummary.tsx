@@ -18,27 +18,27 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
   const safeMarginHistory = marginHistory || [];
 
   // Calculate average M0-M3 data from margin history
-  const hasM0M3Data = safeMarginHistory.length > 0 && safeMarginHistory.some(m => (m.m0Percentage || 0) > 0);
-  
-  const averageM0Percentage = safeMarginHistory.length > 0 
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m0Percentage || 0), 0) / safeMarginHistory.length 
+  const hasM0M3Data = safeMarginHistory.length > 0 && safeMarginHistory.some(m => (m.m0?.percentage || 0) > 0);
+
+  const averageM0Percentage = safeMarginHistory.length > 0
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m0?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
-  const averageM1Percentage = safeMarginHistory.length > 0 
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m1Percentage || 0), 0) / safeMarginHistory.length 
+  const averageM1Percentage = safeMarginHistory.length > 0
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
-  const averageM2Percentage = safeMarginHistory.length > 0 
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m2Percentage || 0), 0) / safeMarginHistory.length 
+  const averageM2Percentage = safeMarginHistory.length > 0
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m2?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
-  const averageM3Percentage = safeMarginHistory.length > 0 
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m3Percentage || 0), 0) / safeMarginHistory.length 
+  const averageM3Percentage = safeMarginHistory.length > 0
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m3?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
-    
+
 
   // Use pre-calculated margin values from backend
   const sellingPrice = item?.price?.eshopPrice?.priceWithoutVat || 0;
   const margin = averageM3Percentage;
-  const marginAmount = safeMarginHistory.length > 0 
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m3Amount || 0), 0) / safeMarginHistory.length 
+  const marginAmount = safeMarginHistory.length > 0
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m3?.amount || 0), 0) / safeMarginHistory.length
     : 0;
 
 
@@ -58,9 +58,9 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Marže</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Absolutní marže (Kč/ks)</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Náklady úrovně (Kč/ks)</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Kumulované náklady (Kč/ks)</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Procentuální marže (%)</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Nákladový základ (Kč/ks)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -74,8 +74,18 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-green-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m0Amount || 0), 0) / safeMarginHistory.length 
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m0?.costLevel || 0), 0) / safeMarginHistory.length
+                        : 0).toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-lg font-bold text-green-900">
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m0?.costTotal || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -90,16 +100,6 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                       })}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-lg font-bold text-green-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m0CostBase || 0), 0) / safeMarginHistory.length 
-                        : 0).toLocaleString("cs-CZ", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </td>
                 </tr>
 
                 {/* M1 Row - Yellow */}
@@ -112,8 +112,18 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-yellow-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1Amount || 0), 0) / safeMarginHistory.length 
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.costLevel || 0), 0) / safeMarginHistory.length
+                        : 0).toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-lg font-bold text-yellow-900">
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.costTotal || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -128,16 +138,6 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                       })}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-lg font-bold text-yellow-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1CostBase || 0), 0) / safeMarginHistory.length 
-                        : 0).toLocaleString("cs-CZ", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </td>
                 </tr>
 
                 {/* M2 Row - Orange */}
@@ -150,8 +150,18 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-orange-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m2Amount || 0), 0) / safeMarginHistory.length 
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m2?.costLevel || 0), 0) / safeMarginHistory.length
+                        : 0).toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-lg font-bold text-orange-900">
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m2?.costTotal || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -166,16 +176,6 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                       })}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-lg font-bold text-orange-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m2CostBase || 0), 0) / safeMarginHistory.length 
-                        : 0).toLocaleString("cs-CZ", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </td>
                 </tr>
 
                 {/* M3 Row - Red */}
@@ -188,8 +188,18 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-red-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m3Amount || 0), 0) / safeMarginHistory.length 
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m3?.costLevel || 0), 0) / safeMarginHistory.length
+                        : 0).toLocaleString("cs-CZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-lg font-bold text-red-900">
+                      {(safeMarginHistory.length > 0
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m3?.costTotal || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -202,16 +212,6 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                         minimumFractionDigits: 1,
                         maximumFractionDigits: 1,
                       })}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-lg font-bold text-red-900">
-                      {(safeMarginHistory.length > 0 
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m3CostBase || 0), 0) / safeMarginHistory.length 
-                        : 0).toLocaleString("cs-CZ", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
                     </span>
                   </td>
                 </tr>

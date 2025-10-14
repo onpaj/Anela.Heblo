@@ -16,14 +16,14 @@ public class TileRegistry : ITileRegistry
     {
         var tileType = typeof(TTile);
         var tileId = tileType.GetTileId();
-        
+
         _registeredTiles[tileId] = tileType;
     }
 
     public IEnumerable<ITile> GetAvailableTiles()
     {
         var tiles = new List<ITile>();
-        
+
         using (var scope = _serviceProvider.CreateScope())
         {
             foreach (var tileType in _registeredTiles.Values)
@@ -32,7 +32,7 @@ public class TileRegistry : ITileRegistry
                 tiles.Add(tile);
             }
         }
-        
+
         return tiles;
     }
 
@@ -42,20 +42,20 @@ public class TileRegistry : ITileRegistry
         {
             return null;
         }
-        
+
         using (var scope = _serviceProvider.CreateScope())
         {
             return (ITile)scope.ServiceProvider.GetRequiredService(tileType);
         }
     }
-    
+
     public async Task<object?> GetTileDataAsync(string tileId)
     {
         if (!_registeredTiles.TryGetValue(tileId, out var tileType))
         {
             return null;
         }
-        
+
         using (var scope = _serviceProvider.CreateScope())
         {
             var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);

@@ -501,7 +501,6 @@ public class CatalogRepository : ICatalogRepository
                 var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
                 _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
             }
-
             // Replace with fresh data
             _cache.Set(CurrentCatalogCacheKey, newData);
             _cache.Set(CacheUpdateTimeKey, DateTime.UtcNow);

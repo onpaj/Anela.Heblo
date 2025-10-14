@@ -58,7 +58,7 @@ public class GetAvailableTilesHandlerTests
         result.Tiles.Should().HaveCount(2);
 
         var resultTiles = result.Tiles.ToArray();
-        
+
         resultTiles[0].TileId.Should().Be("test1"); // TestTile1 -> test1
         resultTiles[0].Title.Should().Be("Test Tile 1");
         resultTiles[0].Description.Should().Be("Description 1");
@@ -129,7 +129,7 @@ public class TestTile1 : ITile
     public bool AutoShow { get; init; } = false;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = new[] { "read" };
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data");
@@ -146,7 +146,7 @@ public class TestTile2 : ITile
     public bool AutoShow { get; init; } = true;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = new[] { "admin", "write" };
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data 2");
@@ -163,7 +163,7 @@ public class TestTileNoPermissions : ITile
     public bool AutoShow { get; init; } = false;
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-    
+
     public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Test Data");

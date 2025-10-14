@@ -23,7 +23,7 @@ public class GetTileDataHandlerTests
         // Arrange
         var request = new GetTileDataRequest { UserId = null };
         var tileData = CreateSampleTileData();
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync("anonymous"))
             .ReturnsAsync(tileData);
@@ -43,7 +43,7 @@ public class GetTileDataHandlerTests
         // Arrange
         var request = new GetTileDataRequest { UserId = "" };
         var tileData = CreateSampleTileData();
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync("anonymous"))
             .ReturnsAsync(tileData);
@@ -64,7 +64,7 @@ public class GetTileDataHandlerTests
         var userId = "user123";
         var request = new GetTileDataRequest { UserId = userId };
         var tileData = CreateSampleTileData();
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync(userId))
             .ReturnsAsync(tileData);
@@ -76,7 +76,7 @@ public class GetTileDataHandlerTests
         result.Should().NotBeNull();
         result.Tiles.Should().NotBeNull();
         result.Tiles.Should().HaveCount(2);
-        
+
         var tiles = result.Tiles.ToArray();
         tiles[0].TileId.Should().Be("analytics-tile");
         tiles[0].Title.Should().Be("Analytics");
@@ -84,7 +84,7 @@ public class GetTileDataHandlerTests
         tiles[0].Size.Should().Be("Large");
         tiles[0].Category.Should().Be("Finance");
         tiles[0].Data.Should().NotBeNull();
-        
+
         tiles[1].TileId.Should().Be("finance-tile");
         tiles[1].Title.Should().Be("Finance");
         tiles[1].Description.Should().Be("Financial overview");
@@ -99,7 +99,7 @@ public class GetTileDataHandlerTests
         // Arrange
         var userId = "user123";
         var request = new GetTileDataRequest { UserId = userId };
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync(userId))
             .ReturnsAsync(new List<TileData>());
@@ -135,7 +135,7 @@ public class GetTileDataHandlerTests
                 Data = null
             }
         };
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync(userId))
             .ReturnsAsync(tileData);
@@ -158,7 +158,7 @@ public class GetTileDataHandlerTests
         var userId = "user123";
         var request = new GetTileDataRequest { UserId = userId };
         var tileData = CreateSampleTileData();
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetTileDataAsync(userId))
             .ReturnsAsync(tileData);

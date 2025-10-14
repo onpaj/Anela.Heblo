@@ -51,7 +51,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderSemiProduct> ManufactureOrderSemiProducts { get; set; } = null!;
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
-    
+
     // Dashboard module
     public DbSet<UserDashboardSettings> UserDashboardSettings { get; set; } = null!;
     public DbSet<UserDashboardTile> UserDashboardTiles { get; set; } = null!;

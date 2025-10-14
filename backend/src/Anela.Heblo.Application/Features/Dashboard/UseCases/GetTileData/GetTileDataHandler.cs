@@ -17,7 +17,7 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
     {
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
         var tileData = await _dashboardService.GetTileDataAsync(userId);
-        
+
         var result = tileData.Select(td => new DashboardTileDto
         {
             TileId = td.TileId,

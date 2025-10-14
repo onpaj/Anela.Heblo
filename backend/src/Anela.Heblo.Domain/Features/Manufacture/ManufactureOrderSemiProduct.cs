@@ -18,8 +18,8 @@ public class ManufactureOrderSemiProduct
 
     // Ingredients se načtou dynamicky z ManufactureTemplate při dokončování
 
-    
-    
+
+
     // Helper function to get ISO week number
-    
+
 }

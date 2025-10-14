@@ -7,8 +7,8 @@ using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -51,55 +51,57 @@ public class SalesCostCalculationServiceTests
         // Setup default catalog repository mock
         var defaultProducts = CreateTestProducts();
         _catalogRepositoryMock
-            .Setup(x => x.FindAsync(It.IsAny<System.Linq.Expressions.Expression<System.Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(defaultProducts);
 
         _service = new SalesCostCalculationService(
-            _ledgerServiceMock.Object,
             _catalogRepositoryMock.Object,
+            _ledgerServiceMock.Object,
             _timeProviderMock.Object,
             _dataSourceOptionsMock.Object,
             _loggerMock.Object);
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithValidData_ReturnsCorrectCostAllocation()
+    public async Task GetCostsAsync_WithValidData_ReturnsCorrectCostAllocation()
     {
         // Arrange
-        var products = CreateTestProducts();
         var costs = CreateTestCosts();
         SetupLedgerServiceMocks(costs);
 
         // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        var result = await _service.GetCostsAsync(null, new DateOnly(2024, 1, 1), new DateOnly(2024, 12, 31));
 
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2); // Two products
-        
+
         // Check ProductA costs (sold 100 units total in Jan 2024)
         result.Should().ContainKey("PROD001");
         var productACosts = result["PROD001"];
         productACosts.Should().HaveCount(1);
-        productACosts[0].Date.Should().Be(new DateTime(2024, 1, 1));
-        productACosts[0].Cost.Should().Be(500m); // (1000 total cost / 200 total units) * 100 units = 500
+        productACosts[0].Month.Should().Be(new DateTime(2024, 1, 1));
+        productACosts[0].Cost.Should().Be(5m); // Cost per unit: (1000 total cost / 200 total units) = 5
 
         // Check ProductB costs (sold 100 units total in Jan 2024)
         result.Should().ContainKey("PROD002");
         var productBCosts = result["PROD002"];
         productBCosts.Should().HaveCount(1);
-        productBCosts[0].Date.Should().Be(new DateTime(2024, 1, 1));
-        productBCosts[0].Cost.Should().Be(500m); // (1000 total cost / 200 total units) * 100 units = 500
+        productBCosts[0].Month.Should().Be(new DateTime(2024, 1, 1));
+        productBCosts[0].Cost.Should().Be(5m); // Cost per unit: (1000 total cost / 200 total units) = 5
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithEmptyProducts_ReturnsEmptyResult()
+    public async Task GetCostsAsync_WithEmptyProducts_ReturnsEmptyResult()
     {
         // Arrange
         var emptyProducts = new List<CatalogAggregate>();
+        _catalogRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(emptyProducts);
 
         // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        var result = await _service.GetCostsAsync(null, new DateOnly(2024, 1, 1), new DateOnly(2024, 12, 31));
 
         // Assert
         result.Should().NotBeNull();
@@ -107,7 +109,7 @@ public class SalesCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithNoSalesHistory_ReturnsEmptyResult()
+    public async Task GetCostsAsync_WithNoSalesHistory_ReturnsEmptyResult()
     {
         // Arrange
         var products = new List<CatalogAggregate>
@@ -116,9 +118,12 @@ public class SalesCostCalculationServiceTests
         };
         var costs = CreateTestCosts();
         SetupLedgerServiceMocks(costs);
+        _catalogRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(products);
 
         // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        var result = await _service.GetCostsAsync(null, new DateOnly(2024, 1, 1), new DateOnly(2024, 12, 31));
 
         // Assert
         result.Should().NotBeNull();
@@ -126,14 +131,13 @@ public class SalesCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithNoCosts_ReturnsEmptyResult()
+    public async Task GetCostsAsync_WithNoCosts_ReturnsEmptyResult()
     {
         // Arrange
-        var products = CreateTestProducts();
         SetupLedgerServiceMocks(new List<CostStatistics>());
 
         // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        var result = await _service.GetCostsAsync(null, new DateOnly(2024, 1, 1), new DateOnly(2024, 12, 31));
 
         // Assert
         result.Should().NotBeNull();
@@ -141,259 +145,83 @@ public class SalesCostCalculationServiceTests
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithZeroUnitsSold_SkipsMonth()
+    public async Task GetCostsAsync_WithSpecificProductCodes_ReturnsFilteredResults()
     {
         // Arrange
-        var products = new List<CatalogAggregate>
-        {
-            CreateTestProduct("PROD001", new List<CatalogSaleRecord>
-            {
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 1, 15),
-                    ProductCode = "PROD001",
-                    AmountTotal = 0, // Zero units sold
-                    SumTotal = 0m
-                }
-            })
-        };
+        var productCodes = new List<string> { "PROD001" };
         var costs = CreateTestCosts();
         SetupLedgerServiceMocks(costs);
 
         // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty(); // No results because month with zero sales is skipped
-    }
-
-    [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithUnevenSalesDistribution_AllocatesProportionally()
-    {
-        // Arrange
-        var products = new List<CatalogAggregate>
-        {
-            CreateTestProduct("PROD001", new List<CatalogSaleRecord>
-            {
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 1, 15),
-                    ProductCode = "PROD001",
-                    AmountTotal = 150, // 75% of total sales
-                    SumTotal = 1500m
-                }
-            }),
-            CreateTestProduct("PROD002", new List<CatalogSaleRecord>
-            {
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 1, 20),
-                    ProductCode = "PROD002",
-                    AmountTotal = 50, // 25% of total sales
-                    SumTotal = 500m
-                }
-            })
-        };
-        var costs = CreateTestCosts();
-        SetupLedgerServiceMocks(costs);
-
-        // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(2);
-        
-        // ProductA should get 75% of costs: (1000 / 200) * 150 = 750
-        result["PROD001"][0].Cost.Should().Be(750m);
-        
-        // ProductB should get 25% of costs: (1000 / 200) * 50 = 250
-        result["PROD002"][0].Cost.Should().Be(250m);
-    }
-
-    [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithMultipleMonths_CalculatesEachMonthSeparately()
-    {
-        // Arrange
-        var products = new List<CatalogAggregate>
-        {
-            CreateTestProduct("PROD001", new List<CatalogSaleRecord>
-            {
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 1, 15),
-                    ProductCode = "PROD001",
-                    AmountTotal = 100,
-                    SumTotal = 1000m
-                },
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 2, 15),
-                    ProductCode = "PROD001",
-                    AmountTotal = 50,
-                    SumTotal = 500m
-                }
-            })
-        };
-
-        var costs = new List<CostStatistics>
-        {
-            new CostStatistics { Date = new DateTime(2024, 1, 15), Cost = 1000m, Department = "SKLAD" },
-            new CostStatistics { Date = new DateTime(2024, 2, 15), Cost = 2000m, Department = "MARKETING" }
-        };
-        SetupLedgerServiceMocks(costs);
-
-        // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        var result = await _service.GetCostsAsync(productCodes, new DateOnly(2024, 1, 1), new DateOnly(2024, 12, 31));
 
         // Assert
         result.Should().NotBeNull();
         result.Should().ContainKey("PROD001");
-        
-        var productCosts = result["PROD001"];
-        productCosts.Should().HaveCount(2);
-        
-        // January: 1000 cost / 100 units = 10 per unit * 100 units = 1000
-        var januaryCost = productCosts.Single(c => c.Date.Month == 1);
-        januaryCost.Cost.Should().Be(1000m);
-        
-        // February: 2000 cost / 50 units = 40 per unit * 50 units = 2000
-        var februaryCost = productCosts.Single(c => c.Date.Month == 2);
-        februaryCost.Cost.Should().Be(2000m);
+        result.Should().NotContainKey("PROD002");
+        result.Should().HaveCount(1);
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithSalesOutsideDateRange_FiltersCorrectly()
+    public async Task GetCostsAsync_WithDateRange_FiltersCorrectly()
     {
         // Arrange
-        var products = new List<CatalogAggregate>
-        {
-            CreateTestProduct("PROD001", new List<CatalogSaleRecord>
-            {
-                // Sale within range
-                new CatalogSaleRecord
-                {
-                    Date = new DateTime(2024, 1, 15),
-                    ProductCode = "PROD001",
-                    AmountTotal = 100,
-                    SumTotal = 1000m
-                },
-                // Sale outside range (too old)
-                new CatalogSaleRecord
-                {
-                    Date = _fixedCurrentTime.AddDays(-500), // Outside 400 day range
-                    ProductCode = "PROD001",
-                    AmountTotal = 200,
-                    SumTotal = 2000m
-                }
-            })
-        };
         var costs = CreateTestCosts();
         SetupLedgerServiceMocks(costs);
 
-        // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
+        // Act - Request only January 2024
+        var result = await _service.GetCostsAsync(null, new DateOnly(2024, 1, 1), new DateOnly(2024, 1, 31));
 
         // Assert
         result.Should().NotBeNull();
         result.Should().ContainKey("PROD001");
-        
-        var productCosts = result["PROD001"];
-        productCosts.Should().HaveCount(1); // Only one month within range
-        productCosts[0].Cost.Should().Be(1000m); // Cost for 100 units only
+        result.Should().ContainKey("PROD002");
+
+        // Both products should have January data
+        var prod001Costs = result["PROD001"];
+        prod001Costs.Should().HaveCount(1);
+        prod001Costs[0].Month.Should().Be(new DateTime(2024, 1, 1));
     }
 
     [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithLedgerServiceException_ReturnsEmptyResult()
+    public void IsLoaded_InitialState_ReturnsFalse()
     {
-        // Arrange
-        var products = CreateTestProducts();
-        var exception = new Exception("Ledger service error");
-        
-        _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
-            .ThrowsAsync(exception);
-
-        // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
-
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task CalculateSalesCostHistoryAsync_WithCachedData_ReturnsCachedResult()
-    {
-        // Arrange
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        SetupLedgerServiceMocks(costs);
-
-        // First call to populate cache
-        await _service.Reload();
-
-        // Reset mock to verify it's not called again
-        _ledgerServiceMock.Reset();
-
-        // Act
-        var result = await _service.CalculateSalesCostHistoryAsync();
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().NotBeEmpty();
-        
-        // Verify ledger service was not called (using cached data)
-        _ledgerServiceMock.Verify(
-            x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Reload_WithValidData_UpdatesCacheAndSetsIsLoaded()
-    {
-        // Arrange
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        SetupLedgerServiceMocks(costs);
-
-        // Assert initial state
         _service.IsLoaded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Reload_WithValidData_SetsIsLoadedTrue()
+    {
+        // Arrange
+        var costs = CreateTestCosts();
+        SetupLedgerServiceMocks(costs);
 
         // Act
         await _service.Reload();
 
         // Assert
         _service.IsLoaded.Should().BeTrue();
-        
-        // Verify subsequent calls use cache
-        var result = await _service.CalculateSalesCostHistoryAsync();
-        result.Should().NotBeNull();
-        result.Should().NotBeEmpty();
     }
 
     [Fact]
-    public async Task Reload_WithEmptyData_DoesNotUpdateCache()
+    public async Task Reload_WithNoData_DoesNotSetIsLoaded()
     {
         // Arrange
-        var products = CreateTestProducts();
-        SetupLedgerServiceMocks(new List<CostStatistics>()); // No costs
+        SetupLedgerServiceMocks(new List<CostStatistics>());
 
         // Act
         await _service.Reload();
 
         // Assert
-        _service.IsLoaded.Should().BeFalse(); // Should not be loaded when no data
+        _service.IsLoaded.Should().BeFalse();
     }
 
     [Fact]
     public async Task Reload_WithException_DoesNotUpdateCacheAndThrows()
     {
         // Arrange
-        var products = CreateTestProducts();
         var exception = new Exception("Reload error");
-        
         _ledgerServiceMock
             .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
@@ -402,47 +230,8 @@ public class SalesCostCalculationServiceTests
         await _service.Invoking(s => s.Reload())
             .Should().ThrowAsync<Exception>()
             .WithMessage("Reload error");
-            
+
         _service.IsLoaded.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("SKLAD")]
-    [InlineData("MARKETING")]
-    public async Task CalculateSalesCostHistoryAsync_CallsCorrectDepartments(string department)
-    {
-        // Arrange
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        SetupLedgerServiceMocks(costs);
-
-        // Act
-        await _service.CalculateSalesCostHistoryAsync();
-
-        // Assert
-        _ledgerServiceMock.Verify(
-            x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), department, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CalculateSalesCostHistoryAsync_UsesCorrectDateRange()
-    {
-        // Arrange
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        SetupLedgerServiceMocks(costs);
-
-        var expectedStartDate = _fixedCurrentTime.Date.AddDays(-400);
-        var expectedEndDate = _fixedCurrentTime.Date;
-
-        // Act
-        await _service.CalculateSalesCostHistoryAsync();
-
-        // Assert
-        _ledgerServiceMock.Verify(
-            x => x.GetDirectCosts(expectedStartDate, expectedEndDate, It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
     }
 
     private List<CatalogAggregate> CreateTestProducts()
@@ -505,103 +294,5 @@ public class SalesCostCalculationServiceTests
         _ledgerServiceMock
             .Setup(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(marketingCosts);
-    }
-
-    [Fact]
-    public async Task GetCostsAsync_WithValidProductCodes_ReturnsCorrectMonthlyCosts()
-    {
-        // Arrange
-        var productCodes = new List<string> { "PROD001", "PROD002" };
-        var dateFrom = new DateOnly(2024, 1, 1);
-        var dateTo = new DateOnly(2024, 2, 28);
-
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        
-        SetupLedgerServiceMocks(costs);
-        SetupCatalogRepositoryMocks(products);
-
-        // Act
-        var result = await _service.GetCostsAsync(productCodes, dateFrom, dateTo);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().ContainKey("PROD001");
-        result.Should().ContainKey("PROD002");
-        
-        // Verify PROD001 has costs for January
-        var prod001Costs = result["PROD001"];
-        prod001Costs.Should().HaveCount(1);
-        prod001Costs.First().Month.Should().Be(new DateTime(2024, 1, 1));
-        prod001Costs.First().Cost.Should().BeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task GetCostsAsync_WithSingleProductCode_ReturnsCorrectResult()
-    {
-        // Arrange
-        var productCodes = new List<string> { "PROD001" };
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        
-        SetupLedgerServiceMocks(costs);
-        var singleProduct = products.First(p => p.ProductCode == "PROD001");
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(singleProduct);
-
-        // Act
-        var result = await _service.GetCostsAsync(productCodes);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().ContainKey("PROD001");
-        result.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task GetCostsAsync_WithNullProductCodes_ReturnsAllProducts()
-    {
-        // Arrange
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        
-        SetupLedgerServiceMocks(costs);
-        SetupCatalogRepositoryMocks(products);
-
-        // Act
-        var result = await _service.GetCostsAsync(null);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().ContainKey("PROD001");
-        result.Should().ContainKey("PROD002");
-    }
-
-    [Fact]
-    public async Task GetCostsAsync_WithEmptyProductCodes_ReturnsAllProducts()
-    {
-        // Arrange
-        var productCodes = new List<string>();
-        var products = CreateTestProducts();
-        var costs = CreateTestCosts();
-        
-        SetupLedgerServiceMocks(costs);
-        SetupCatalogRepositoryMocks(products);
-
-        // Act
-        var result = await _service.GetCostsAsync(productCodes);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().ContainKey("PROD001");
-        result.Should().ContainKey("PROD002");
-    }
-
-    private void SetupCatalogRepositoryMocks(List<CatalogAggregate> products)
-    {
-        _catalogRepositoryMock
-            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
     }
 }

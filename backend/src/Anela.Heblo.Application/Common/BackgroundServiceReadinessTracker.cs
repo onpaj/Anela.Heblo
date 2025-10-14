@@ -9,6 +9,10 @@ public class BackgroundServiceReadinessTracker : IBackgroundServiceReadinessTrac
 {
     private readonly ConcurrentDictionary<string, bool> _serviceStatuses = new();
     private readonly ILogger<BackgroundServiceReadinessTracker> _logger;
+    private volatile bool _hydrationCompleted = false;
+    private DateTime? _hydrationStartedAt;
+    private DateTime? _hydrationCompletedAt;
+    private string? _hydrationFailureReason;
 
     public BackgroundServiceReadinessTracker(ILogger<BackgroundServiceReadinessTracker> logger)
     {
@@ -28,15 +32,63 @@ public class BackgroundServiceReadinessTracker : IBackgroundServiceReadinessTrac
         return _serviceStatuses.TryGetValue(serviceName, out var isReady) && isReady;
     }
 
+    public void ReportHydrationStarted()
+    {
+        _hydrationStartedAt = DateTime.UtcNow;
+        _hydrationCompleted = false;
+        _hydrationFailureReason = null;
+        _logger.LogInformation("Tier-based hydration started");
+    }
+
+    public void ReportHydrationCompleted()
+    {
+        _hydrationCompleted = true;
+        _hydrationCompletedAt = DateTime.UtcNow;
+        _hydrationFailureReason = null;
+        _logger.LogInformation("Tier-based hydration completed - all background refresh tasks ready");
+    }
+
+    public void ReportHydrationFailed(string? reason = null)
+    {
+        _hydrationCompleted = false;
+        _hydrationFailureReason = reason;
+        _logger.LogError("Tier-based hydration failed - background refresh tasks not ready. Reason: {Reason}", reason ?? "Unknown");
+    }
+
     public bool AreAllServicesReady()
     {
-        // All background services have been replaced by centralized refresh task system
-        // For now, return true as the new system doesn't require explicit readiness tracking
-        return true;
+        return _hydrationCompleted;
     }
 
     public IReadOnlyDictionary<string, bool> GetServiceStatuses()
     {
-        return _serviceStatuses;
+        var statuses = new Dictionary<string, bool>(_serviceStatuses);
+
+        // Add tier-based hydration status
+        statuses["TierBasedHydration"] = _hydrationCompleted;
+
+        return statuses;
+    }
+
+    public IReadOnlyDictionary<string, object> GetHydrationDetails()
+    {
+        var details = new Dictionary<string, object>
+        {
+            ["IsCompleted"] = _hydrationCompleted,
+            ["StartedAt"] = _hydrationStartedAt?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") ?? "Not started",
+            ["CompletedAt"] = _hydrationCompletedAt?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") ?? "Not completed"
+        };
+
+        if (_hydrationStartedAt.HasValue && _hydrationCompletedAt.HasValue)
+        {
+            details["Duration"] = $"{(_hydrationCompletedAt.Value - _hydrationStartedAt.Value).TotalMilliseconds:F0}ms";
+        }
+
+        if (!string.IsNullOrEmpty(_hydrationFailureReason))
+        {
+            details["FailureReason"] = _hydrationFailureReason;
+        }
+
+        return details;
     }
 }

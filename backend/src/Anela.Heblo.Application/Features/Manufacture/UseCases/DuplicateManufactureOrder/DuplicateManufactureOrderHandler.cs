@@ -56,7 +56,7 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
 
         var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, sourceOrder.SemiProduct.ExpirationMonths);
         var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
-        
+
         // Duplicate the semi-product with updated lot number and expiration date
         if (sourceOrder.SemiProduct != null)
         {
@@ -77,7 +77,7 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         // Duplicate the products with same quantities
         foreach (var sourceProduct in sourceOrder.Products)
         {
-            
+
             var product = new ManufactureOrderProduct
             {
                 ProductCode = sourceProduct.ProductCode,
@@ -102,5 +102,5 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         };
     }
 
-    
+
 }

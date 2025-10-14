@@ -68,7 +68,7 @@ public class SalesCostCalculationService : ISalesCostCalculationService
         var marketingCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "MARKETING", cancellationToken) ?? new List<CostStatistics>();
 
         var totalCosts = warehouseCosts.Concat(marketingCosts);
-        
+
         // Group direct costs by month
         var monthlyCosts = totalCosts
             .GroupBy(c => new { c.Date.Year, c.Date.Month })
@@ -105,43 +105,43 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 continue;
 
             var monthTotalCost = monthlyCosts[monthKey];
-            
+
             // Calculate total units sold this month across all products
             var totalUnitsSoldThisMonth = monthSales.Sum(x => x.SaleRecord.AmountTotal);
-            
+
             if (totalUnitsSoldThisMonth <= 0)
                 continue; // Skip months with no sales
-            
+
             // Calculate cost per unit for this month
             var costPerUnit = monthTotalCost / (decimal)totalUnitsSoldThisMonth;
-            
+
             _logger.LogDebug("Month {Month}: Total cost {TotalCost}, Total units {TotalUnits}, Cost per unit {CostPerUnit}",
                 monthKey, monthTotalCost, totalUnitsSoldThisMonth, costPerUnit);
-            
+
             // Parse month date for the SalesCost record
             var dateParts = monthKey.Split('-');
             var monthDate = new DateTime(int.Parse(dateParts[0]), int.Parse(dateParts[1]), 1);
-            
+
             // Group sales by product for this month
             var productSalesThisMonth = monthSales
                 .GroupBy(x => x.Product.ProductCode)
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.SaleRecord.AmountTotal));
-            
+
             // Calculate sales cost for each product based on their share of total sales
             foreach (var productSale in productSalesThisMonth)
             {
                 var productCode = productSale.Key;
                 var productUnitsSold = productSale.Value;
-                
+
                 // Calculate this product's share of total costs (cost per unit * units sold)
                 var productSalesCost = costPerUnit * (decimal)productUnitsSold;
-                
+
                 // Initialize product list if needed
                 if (!result.ContainsKey(productCode))
                 {
                     result[productCode] = new List<SalesCost>();
                 }
-                
+
                 var salesCost = new SalesCost
                 {
                     Date = monthDate,
@@ -149,9 +149,9 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                     AmountSold = productUnitsSold,
                     UnitCost = costPerUnit
                 };
-                
+
                 result[productCode].Add(salesCost);
-                
+
                 _logger.LogDebug("Product {ProductCode}: {UnitsSold} units sold, allocated cost {Cost}",
                     productCode, productUnitsSold, productSalesCost);
             }
@@ -193,7 +193,7 @@ public class SalesCostCalculationService : ISalesCostCalculationService
             _cacheLock.Release();
         }
     }
-    
+
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
         List<string>? products,
         DateOnly? dateFrom = null,
@@ -221,13 +221,20 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                     var monthlyGroups = costHistory
                         .Where(c => DateOnly.FromDateTime(c.Date) >= startDate && DateOnly.FromDateTime(c.Date) <= endDate)
                         .GroupBy(c => new { c.Date.Year, c.Date.Month })
-                        .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month);
+                        .Select(s => new
+                        {
+                            s.Key.Year,
+                            s.Key.Month,
+                            TotalCost = s.Sum(x => x.TotalCost),
+                            UnitCost = s.Average(x => x.UnitCost)
+                        })
+                        .OrderBy(g => g.Year).ThenBy(g => g.Month);
 
                     foreach (var monthGroup in monthlyGroups)
                     {
                         // Use first day of month for consistency
-                        var monthStart = new DateTime(monthGroup.Key.Year, monthGroup.Key.Month, 1);
-                        monthlyCosts.Add(new MonthlyCost(monthStart, monthGroup.First().UnitCost));
+                        var monthStart = new DateTime(monthGroup.Year, monthGroup.Month, 1);
+                        monthlyCosts.Add(new MonthlyCost(monthStart, monthGroup.UnitCost));
                     }
                 }
 

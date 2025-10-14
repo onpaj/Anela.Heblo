@@ -8,8 +8,11 @@ public static class BackgroundRefreshExtensions
     public static IServiceCollection AddBackgroundRefresh(this IServiceCollection services)
     {
         services.AddSingleton<BackgroundRefreshTaskRegistry>();
-        services.AddSingleton<IBackgroundRefreshTaskRegistry>(provider => 
+        services.AddSingleton<IBackgroundRefreshTaskRegistry>(provider =>
             provider.GetRequiredService<BackgroundRefreshTaskRegistry>());
+        services.AddSingleton<TierBasedHydrationOrchestrator>();
+        services.AddHostedService<TierBasedHydrationOrchestrator>(provider =>
+            provider.GetRequiredService<TierBasedHydrationOrchestrator>());
         services.AddHostedService<BackgroundRefreshSchedulerService>();
 
         return services;
@@ -81,7 +84,7 @@ public static class BackgroundRefreshExtensions
         var ownerType = typeof(TOwner).Name;
         return services.RegisterRefreshTask(ownerType, methodName, refreshMethod);
     }
-    
+
     public static IServiceCollection RegisterRefreshTask<TOwner>(
         this IServiceCollection services,
         string methodName,
@@ -92,7 +95,7 @@ public static class BackgroundRefreshExtensions
         var wrappedMethod = CreateWrappedMethod(refreshMethod);
         return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod);
     }
-    
+
     public static IServiceCollection RegisterRefreshTask<TOwner>(
         this IServiceCollection services,
         string methodName,
@@ -103,7 +106,7 @@ public static class BackgroundRefreshExtensions
         var wrappedMethod = CreateWrappedMethod(refreshMethod);
         return services.RegisterRefreshTask(ownerType, methodName, wrappedMethod);
     }
-    
+
 
     private static Func<IServiceProvider, CancellationToken, Task> CreateWrappedMethod<TOwner>(
         Action<TOwner, CancellationToken> refreshMethod)
@@ -117,8 +120,8 @@ public static class BackgroundRefreshExtensions
             await Task.CompletedTask;
         };
     }
-    
-  
+
+
 
     private static Func<IServiceProvider, CancellationToken, Task> CreateWrappedMethod<TOwner>(
         Func<TOwner, CancellationToken, Task> refreshMethod)

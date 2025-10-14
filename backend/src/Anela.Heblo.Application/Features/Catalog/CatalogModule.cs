@@ -112,130 +112,128 @@ public static class CatalogModule
             nameof(ICatalogRepository.RefreshTransportData),
             (r, ct) => r.RefreshTransportData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshReserveData),
             (r, ct) => r.RefreshReserveData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshOrderedData),
             (r, ct) => r.RefreshOrderedData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshPlannedData),
             (r, ct) => r.RefreshPlannedData(ct)
         );
-        
-        services.RegisterRefreshTask(
-            nameof(ICatalogRepository),
+
+        services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshSalesData),
-            async (sp, ct) => 
-            {
-                var catalogRepository = sp.GetRequiredService<ICatalogRepository>();
-                var salesCostService = sp.GetRequiredService<ISalesCostCalculationService>();
-                await catalogRepository.RefreshSalesData(ct);
-                await catalogRepository.WaitForCurrentMergeAsync(ct);
-                await salesCostService.Reload();
-            });
-        
+            (r, ct) => r.RefreshSalesData(ct)
+        );
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshAttributesData),
             (r, ct) => r.RefreshAttributesData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshErpStockData),
             (r, ct) => r.RefreshErpStockData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshEshopStockData),
             (r, ct) => r.RefreshEshopStockData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshPurchaseHistoryData),
             (r, ct) => r.RefreshPurchaseHistoryData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshManufactureHistoryData),
             (r, ct) => r.RefreshManufactureHistoryData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshConsumedHistoryData),
             (r, ct) => r.RefreshConsumedHistoryData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshStockTakingData),
             (r, ct) => r.RefreshStockTakingData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshLotsData),
             (r, ct) => r.RefreshLotsData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshEshopPricesData),
             (r, ct) => r.RefreshEshopPricesData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshErpPricesData),
             (r, ct) => r.RefreshErpPricesData(ct)
         );
-        
+
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshManufactureDifficultySettingsData),
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
 
+        services.RegisterRefreshTask<ISalesCostCalculationService>(
+            nameof(ISalesCostCalculationService.Reload),
+            async (serviceProvider, ct) =>
+            {
+                var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
+                var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
+
+                await catalogRepository.WaitForCurrentMergeAsync(ct);
+                await costService.Reload();
+            }
+        );
+        
         // Manufacture cost calculation task (requires special logic)
         services.RegisterRefreshTask<IManufactureCostCalculationService>(
-            "RefreshManufactureCostData",
+            nameof(IManufactureCostCalculationService.Reload),
             async (serviceProvider, ct) =>
             {
                 var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
                 var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
-                
-                // Check that all required data sources are loaded and no changes are pending
-                if (AreAllDataSourcesLoaded(catalogRepository) && !catalogRepository.ChangesPendingForMerge)
-                {
-                    var catalogData = await catalogRepository.GetAllAsync(ct);
-                    await manufactureCostService.Reload(catalogData.ToList());
-                }
+
+                await catalogRepository.WaitForCurrentMergeAsync(ct);
+                var catalogData = await catalogRepository.GetAllAsync(ct);
+                await manufactureCostService.Reload(catalogData.ToList());
             }
         );
 
-        // Other services refresh tasks
-        services.RegisterRefreshTask<IProductWeightRecalculationService>(
-            nameof(IProductWeightRecalculationService.RecalculateAllProductWeights),
-            (s, ct) => s.RecalculateAllProductWeights(ct)
-        );
-    }
+        // Margin calculation task
+        services.RegisterRefreshTask(
+            nameof(ICatalogRepository),
+            "RefreshMarginData",
+            async (sp, ct) =>
+            {
+                var catalogRepository = sp.GetRequiredService<ICatalogRepository>();
+                var marginService = sp.GetRequiredService<IMarginCalculationService>();
 
-    private static bool AreAllDataSourcesLoaded(ICatalogRepository catalogRepository)
-    {
-        return catalogRepository.TransportLoadDate != null &&
-               catalogRepository.ReserveLoadDate != null &&
-               catalogRepository.OrderedLoadDate != null &&
-               catalogRepository.PlannedLoadDate != null &&
-               catalogRepository.SalesLoadDate != null &&
-               catalogRepository.AttributesLoadDate != null &&
-               catalogRepository.ErpStockLoadDate != null &&
-               catalogRepository.EshopStockLoadDate != null &&
-               catalogRepository.PurchaseHistoryLoadDate != null &&
-               catalogRepository.ManufactureHistoryLoadDate != null &&
-               catalogRepository.ConsumedHistoryLoadDate != null &&
-               catalogRepository.StockTakingLoadDate != null &&
-               catalogRepository.LotsLoadDate != null &&
-               catalogRepository.EshopPricesLoadDate != null &&
-               catalogRepository.ErpPricesLoadDate != null &&
-               catalogRepository.ManufactureDifficultySettingsLoadDate != null;
+                await catalogRepository.WaitForCurrentMergeAsync(ct);
+                var products = await catalogRepository.GetAllAsync(ct);
+                var twoYearsAgo = DateOnly.FromDateTime(DateTime.Now.AddYears(-2));
+                var minDate = new DateOnly(2025, 1, 1); // No M2 margins available for older data
+                var dateFrom = twoYearsAgo > minDate ? twoYearsAgo : minDate;
+                var dateTo = DateOnly.FromDateTime(DateTime.Now).AddMonths(-1); // Current month is not accurate
+
+                foreach (var product in products)
+                {
+                    product.Margins = await marginService.GetMarginAsync(product, dateFrom, dateTo, ct);
+                }
+            });
     }
 }

@@ -4,42 +4,42 @@ public static class ManufactureOrderExtensions
 {
     public static DateOnly GetDefaultExpiration(this ManufactureOrderSemiProduct manufactureOrderSemiProduct, DateTime manufactureDate)
     {
-        return GetDefaultExpiration(manufactureDate,  manufactureOrderSemiProduct.ExpirationMonths);
+        return GetDefaultExpiration(manufactureDate, manufactureOrderSemiProduct.ExpirationMonths);
     }
-    
+
     public static void SetDefaultExpiration(this ManufactureOrderSemiProduct manufactureOrderSemiProduct, DateTime manufactureDate)
     {
-        manufactureOrderSemiProduct.ExpirationDate = GetDefaultExpiration(manufactureDate,  manufactureOrderSemiProduct.ExpirationMonths);
+        manufactureOrderSemiProduct.ExpirationDate = GetDefaultExpiration(manufactureDate, manufactureOrderSemiProduct.ExpirationMonths);
     }
-    
+
     public static void SetDefaultExpiration(this ManufactureOrderProduct manufactureOrderProduct, DateTime manufactureDate, int expirationMonths)
     {
-        manufactureOrderProduct.ExpirationDate = GetDefaultExpiration(manufactureDate,  expirationMonths);
+        manufactureOrderProduct.ExpirationDate = GetDefaultExpiration(manufactureDate, expirationMonths);
     }
-    
+
     public static void SetDefaultExpiration(this ManufactureOrder manufactureOrder, DateTime manufactureDate)
     {
-        var expirationDate = GetDefaultExpiration(manufactureDate,  manufactureOrder.SemiProduct.ExpirationMonths);
+        var expirationDate = GetDefaultExpiration(manufactureDate, manufactureOrder.SemiProduct.ExpirationMonths);
         manufactureOrder.SemiProduct.ExpirationDate = expirationDate;
         manufactureOrder.Products.ForEach(p => p.ExpirationDate = expirationDate);
     }
 
-    
+
     public static string GetDefaultLot(this ManufactureOrderSemiProduct manufactureOrderSemiProduct, DateTime manufactureDate)
     {
         return GetDefaultLot(manufactureDate);
     }
-    
+
     public static void SetDefaultLot(this ManufactureOrderSemiProduct manufactureOrderSemiProduct, DateTime manufactureDate)
     {
         manufactureOrderSemiProduct.LotNumber = GetDefaultLot(manufactureDate);
     }
-    
+
     public static void SetDefaultLot(this ManufactureOrderProduct manufactureOrderProduct, DateTime manufactureDate)
     {
         manufactureOrderProduct.LotNumber = GetDefaultLot(manufactureDate);
     }
-    
+
     public static void SetDefaultLot(this ManufactureOrder manufactureOrder, DateTime manufactureDate)
     {
         var lotNumber = GetDefaultLot(manufactureDate);
@@ -65,7 +65,7 @@ public static class ManufactureOrderExtensions
 
         return lastDayOfExpirationMonth;
     }
-    
+
     public static string GetDefaultLot(DateTime manufactureDate)
     {
         // Calculate lot number in wwyyyyMM format
@@ -74,7 +74,7 @@ public static class ManufactureOrderExtensions
         var week = GetWeekNumber(manufactureDate).ToString("D2");
         return $"{week}{year}{month}";
     }
-        
+
     private static int GetWeekNumber(DateTime date)
     {
         var d = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);

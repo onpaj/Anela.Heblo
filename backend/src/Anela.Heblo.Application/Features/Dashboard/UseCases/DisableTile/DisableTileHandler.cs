@@ -22,17 +22,17 @@ public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTil
         {
             return new DisableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
         }
-        
+
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
         var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
+
         var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
         if (existingTile != null)
         {
             existingTile.IsVisible = false;
             existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
             settings.LastModified = _timeProvider.GetUtcNow().DateTime;
-            
+
             await _dashboardService.SaveUserSettingsAsync(userId, settings);
         }
 

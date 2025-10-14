@@ -23,10 +23,10 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
         {
             return new EnableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
         }
-        
+
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
         var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
+
         var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
         if (existingTile != null)
         {
@@ -47,7 +47,7 @@ public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileRe
                 DashboardSettings = settings
             });
         }
-        
+
         settings.LastModified = _timeProvider.GetUtcNow().DateTime;
         await _dashboardService.SaveUserSettingsAsync(userId, settings);
 

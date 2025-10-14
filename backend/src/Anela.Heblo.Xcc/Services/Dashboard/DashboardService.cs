@@ -8,7 +8,7 @@ public class DashboardService : IDashboardService
     private readonly IUserDashboardSettingsRepository _settingsRepository;
 
     public DashboardService(
-        ITileRegistry tileRegistry, 
+        ITileRegistry tileRegistry,
         IUserDashboardSettingsRepository settingsRepository)
     {
         _tileRegistry = tileRegistry;
@@ -84,7 +84,7 @@ public class DashboardService : IDashboardService
     {
         settings.UserId = userId;
         settings.LastModified = DateTime.UtcNow;
-        
+
         await _settingsRepository.UpdateAsync(settings);
     }
 
@@ -116,7 +116,7 @@ public class DashboardService : IDashboardService
                     });
                     continue;
                 }
-                
+
                 // Load data using registry method that manages scope properly
                 var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId);
 

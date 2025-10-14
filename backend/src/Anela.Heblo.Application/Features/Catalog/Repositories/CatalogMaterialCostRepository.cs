@@ -21,7 +21,7 @@ public class CatalogMaterialCostRepository : IMaterialCostRepository
         _timeProvider = timeProvider;
         _logger = logger;
     }
-    
+
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
@@ -59,7 +59,7 @@ public class CatalogMaterialCostRepository : IMaterialCostRepository
     {
         try
         {
-            
+
 
             var result = new Dictionary<string, List<MonthlyCost>>();
             var now = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
@@ -136,5 +136,5 @@ public class CatalogMaterialCostRepository : IMaterialCostRepository
         }
     }
 
-    
+
 }

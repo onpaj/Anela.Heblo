@@ -24,7 +24,7 @@ public class DisableTileHandlerTests
         // Arrange
         var request = new DisableTileRequest { UserId = null, TileId = "tile1" };
         var userSettings = CreateSampleUserSettings("anonymous");
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync("anonymous"))
             .ReturnsAsync(userSettings);
@@ -44,7 +44,7 @@ public class DisableTileHandlerTests
         // Arrange
         var request = new DisableTileRequest { UserId = "", TileId = "tile1" };
         var userSettings = CreateSampleUserSettings("anonymous");
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync("anonymous"))
             .ReturnsAsync(userSettings);
@@ -66,10 +66,10 @@ public class DisableTileHandlerTests
         var tileId = "tile1";
         var request = new DisableTileRequest { UserId = userId, TileId = tileId };
         var userSettings = CreateSampleUserSettings(userId);
-        
+
         // Ensure tile exists and is enabled
         userSettings.Tiles.First(t => t.TileId == tileId).IsVisible = true;
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);
@@ -80,10 +80,10 @@ public class DisableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        
+
         var disabledTile = userSettings.Tiles.First(t => t.TileId == tileId);
         disabledTile.IsVisible.Should().BeFalse();
-        
+
         _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(userId), Times.Once);
         _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Once);
     }
@@ -97,7 +97,7 @@ public class DisableTileHandlerTests
         var request = new DisableTileRequest { UserId = userId, TileId = tileId };
         var userSettings = CreateSampleUserSettings(userId);
         var originalTileCount = userSettings.Tiles.Count;
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);
@@ -108,11 +108,11 @@ public class DisableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        
+
         // Should not create a new tile - just return success without changing anything
         userSettings.Tiles.Should().HaveCount(originalTileCount);
         userSettings.Tiles.Should().NotContain(t => t.TileId == tileId);
-        
+
         // Should not call SaveUserSettingsAsync since no changes were made
         _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Never);
     }
@@ -125,11 +125,11 @@ public class DisableTileHandlerTests
         var tileId = "tile1";
         var request = new DisableTileRequest { UserId = userId, TileId = tileId };
         var userSettings = CreateSampleUserSettings(userId);
-        
+
         // Ensure tile is already disabled
         userSettings.Tiles.First(t => t.TileId == tileId).IsVisible = false;
         var originalLastModified = userSettings.Tiles.First(t => t.TileId == tileId).LastModified;
-        
+
         _dashboardServiceMock
             .Setup(x => x.GetUserSettingsAsync(userId))
             .ReturnsAsync(userSettings);
@@ -140,11 +140,11 @@ public class DisableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        
+
         var tile = userSettings.Tiles.First(t => t.TileId == tileId);
         tile.IsVisible.Should().BeFalse();
         tile.LastModified.Should().BeAfter(originalLastModified); // Should still update LastModified
-        
+
         _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Once);
     }
 
@@ -161,7 +161,7 @@ public class DisableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         // ErrorMessage property not available
-        
+
         _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(It.IsAny<string>()), Times.Never);
         _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(It.IsAny<string>(), It.IsAny<UserDashboardSettings>()), Times.Never);
     }
@@ -179,7 +179,7 @@ public class DisableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         // ErrorMessage property not available
-        
+
         _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(It.IsAny<string>()), Times.Never);
         _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(It.IsAny<string>(), It.IsAny<UserDashboardSettings>()), Times.Never);
     }

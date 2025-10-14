@@ -39,7 +39,7 @@ public static class ManufactureModule
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
-        
+
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();
         services.RegisterTile<NextDayProductionTile>();

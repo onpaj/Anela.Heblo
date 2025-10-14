@@ -35,6 +35,9 @@ public static class ApplicationModule
         // Register common services
         services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
 
+        // Register health check integration wrapper
+        services.AddHostedService<HydrationOrchestratorWrapper>();
+
         // Background refresh system is now handled by XCC module
 
         // Register all feature modules
@@ -53,7 +56,7 @@ public static class ApplicationModule
         services.AddUserManagement(configuration);
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
-        
+
         return services;
     }
 }

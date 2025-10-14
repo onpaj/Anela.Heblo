@@ -497,7 +497,7 @@ public class ManufactureCostCalculationServiceTests
         firstCall.Should().NotBeEmpty();
         secondCall.Should().NotBeEmpty();
         firstCall.Should().BeEquivalentTo(secondCall);
-        
+
         // Verify ledger service was called only during Reload, not during subsequent CalculateManufactureCostHistoryAsync calls
         _ledgerServiceMock.Verify(x => x.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()), Times.Once);
         _ledgerServiceMock.Verify(x => x.GetPersonalCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);

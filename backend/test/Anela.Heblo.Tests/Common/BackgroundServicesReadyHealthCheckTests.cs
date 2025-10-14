@@ -22,14 +22,15 @@ public class BackgroundServicesReadyHealthCheckTests
         // Arrange
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(true);
         _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
+        _readinessTrackerMock.Setup(x => x.GetHydrationDetails()).Returns(new Dictionary<string, object>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
         Assert.Equal(HealthStatus.Healthy, result.Status);
-        Assert.Equal("All background services have completed initial load", result.Description);
-        Assert.Empty(result.Data); // No individual services tracked with refresh task system
+        Assert.Equal("Tier-based hydration completed - all background refresh tasks ready", result.Description);
+        Assert.Empty(result.Data);
     }
 
     [Fact]
@@ -38,13 +39,14 @@ public class BackgroundServicesReadyHealthCheckTests
         // Arrange
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
         _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
+        _readinessTrackerMock.Setup(x => x.GetHydrationDetails()).Returns(new Dictionary<string, object>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
-        Assert.Equal("Background services initialization pending", result.Description);
+        Assert.Equal("Tier-based hydration in progress", result.Description);
         Assert.Empty(result.Data);
     }
 
@@ -54,13 +56,14 @@ public class BackgroundServicesReadyHealthCheckTests
         // Arrange
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
         _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
+        _readinessTrackerMock.Setup(x => x.GetHydrationDetails()).Returns(new Dictionary<string, object>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
-        Assert.Equal("Background services initialization pending", result.Description);
+        Assert.Equal("Tier-based hydration in progress", result.Description);
         Assert.Empty(result.Data);
     }
 
@@ -70,13 +73,14 @@ public class BackgroundServicesReadyHealthCheckTests
         // Arrange - This test verifies the transition to refresh task system
         _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(true);
         _readinessTrackerMock.Setup(x => x.GetServiceStatuses()).Returns(new Dictionary<string, bool>());
+        _readinessTrackerMock.Setup(x => x.GetHydrationDetails()).Returns(new Dictionary<string, object>());
 
         // Act
         var result = await _healthCheck.CheckHealthAsync(new HealthCheckContext());
 
         // Assert
         Assert.Equal(HealthStatus.Healthy, result.Status);
-        Assert.Equal("All background services have completed initial load", result.Description);
+        Assert.Equal("Tier-based hydration completed - all background refresh tasks ready", result.Description);
         Assert.Empty(result.Data); // Refresh task system doesn't track individual services
     }
 }

@@ -17,7 +17,7 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
     {
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
         var settings = await _dashboardService.GetUserSettingsAsync(userId);
-        
+
         var result = new UserDashboardSettingsDto
         {
             Tiles = settings.Tiles.Select(t => new UserDashboardTileDto

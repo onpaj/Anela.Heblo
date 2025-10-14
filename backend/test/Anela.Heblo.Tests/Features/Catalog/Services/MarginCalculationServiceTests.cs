@@ -290,10 +290,10 @@ public class MarginCalculationServiceTests
         // Všechny měsíce by měly mít pouze materiálové náklady (ostatní = 0)
         foreach (var monthlyData in result.MonthlyData)
         {
-            monthlyData.CostsForMonth.MaterialCost.Should().BeGreaterThan(0);
-            monthlyData.CostsForMonth.ManufacturingCost.Should().Be(0);
-            monthlyData.CostsForMonth.SalesCost.Should().Be(0);
-            monthlyData.CostsForMonth.OverheadCost.Should().Be(25m, $"Expected 25m but got {monthlyData.CostsForMonth.OverheadCost}m"); // Mock overhead cost
+            monthlyData.CostsForMonth.M0CostLevel.Should().BeGreaterThan(0);
+            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M3CostLevel.Should().Be(25m, $"Expected 25m but got {monthlyData.CostsForMonth.M3CostLevel}m"); // Mock overhead cost
         }
     }
 
@@ -319,10 +319,10 @@ public class MarginCalculationServiceTests
         // Všechny měsíce by měly mít nulové náklady
         foreach (var monthlyData in result.MonthlyData)
         {
-            monthlyData.CostsForMonth.MaterialCost.Should().Be(0);
-            monthlyData.CostsForMonth.ManufacturingCost.Should().Be(0);
-            monthlyData.CostsForMonth.SalesCost.Should().Be(0);
-            monthlyData.CostsForMonth.OverheadCost.Should().Be(0);
+            monthlyData.CostsForMonth.M0CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M3CostLevel.Should().Be(0);
         }
     }
 
@@ -361,9 +361,9 @@ public class MarginCalculationServiceTests
         // Všechny měsíce by měly používat nejbližší dostupné náklady
         foreach (var monthlyData in result.MonthlyData)
         {
-            monthlyData.CostsForMonth.MaterialCost.Should().Be(15m);
-            monthlyData.CostsForMonth.ManufacturingCost.Should().Be(8m);
-            monthlyData.CostsForMonth.SalesCost.Should().Be(3m);
+            monthlyData.CostsForMonth.M0CostLevel.Should().Be(15m);
+            monthlyData.CostsForMonth.M1CostLevel.Should().Be(8m);
+            monthlyData.CostsForMonth.M2CostLevel.Should().Be(3m);
         }
     }
 
@@ -409,10 +409,10 @@ public class MarginCalculationServiceTests
         // Protože žádná repository neobsahuje data pro "PROD001", všechny náklady by měly být nulové
         foreach (var monthlyData in result.MonthlyData)
         {
-            monthlyData.CostsForMonth.MaterialCost.Should().Be(0);
-            monthlyData.CostsForMonth.ManufacturingCost.Should().Be(0);
-            monthlyData.CostsForMonth.SalesCost.Should().Be(0);
-            monthlyData.CostsForMonth.OverheadCost.Should().Be(0);
+            monthlyData.CostsForMonth.M0CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
+            monthlyData.CostsForMonth.M3CostLevel.Should().Be(0);
         }
     }
 

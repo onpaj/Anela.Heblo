@@ -22,9 +22,9 @@ public abstract class InventoryCountTileBase : ITile
     public abstract string Title { get; }
     public abstract string Description { get; }
     protected abstract Func<CatalogAggregate, bool> ItemFilter { get; }
-    
+
     protected int DaysOffset { get; set; } = 30;
-    
+
     public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;

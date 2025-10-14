@@ -40,9 +40,19 @@ public class BackgroundServiceReadinessTrackerTests
     }
 
     [Fact]
-    public void AreAllServicesReady_ShouldReturnTrueWhenUsingRefreshTaskSystem()
+    public void AreAllServicesReady_ShouldReturnFalseByDefault()
     {
-        // Act & Assert - All background services replaced by refresh task system
+        // Act & Assert - Hydration not completed by default
+        Assert.False(_tracker.AreAllServicesReady());
+    }
+
+    [Fact]
+    public void AreAllServicesReady_ShouldReturnTrueAfterHydrationCompleted()
+    {
+        // Arrange
+        _tracker.ReportHydrationCompleted();
+
+        // Act & Assert
         Assert.True(_tracker.AreAllServicesReady());
     }
 
@@ -57,9 +67,10 @@ public class BackgroundServiceReadinessTrackerTests
         var statuses = _tracker.GetServiceStatuses();
 
         // Assert
-        Assert.Equal(2, statuses.Count);
+        Assert.Equal(3, statuses.Count); // 2 services + TierBasedHydration
         Assert.True(statuses["TestService1"]);
         Assert.True(statuses["TestService2"]);
+        Assert.False(statuses["TierBasedHydration"]); // Should be false by default
     }
 
     [Fact]
@@ -88,5 +99,54 @@ public class BackgroundServiceReadinessTrackerTests
         // Act & Assert
         Assert.True(_tracker.IsServiceReady<TestService1>());
         Assert.False(_tracker.IsServiceReady<TestService2>());
+    }
+
+    [Fact]
+    public void GetHydrationDetails_ShouldReturnCorrectInitialState()
+    {
+        // Act
+        var details = _tracker.GetHydrationDetails();
+
+        // Assert
+        Assert.False((bool)details["IsCompleted"]);
+        Assert.Equal("Not started", details["StartedAt"]);
+        Assert.Equal("Not completed", details["CompletedAt"]);
+        Assert.False(details.ContainsKey("FailureReason"));
+    }
+
+    [Fact]
+    public void ReportHydrationCompleted_ShouldUpdateStatusesCorrectly()
+    {
+        // Arrange
+        _tracker.ReportHydrationStarted();
+
+        // Act
+        _tracker.ReportHydrationCompleted();
+
+        // Assert
+        Assert.True(_tracker.AreAllServicesReady());
+        var statuses = _tracker.GetServiceStatuses();
+        Assert.True(statuses["TierBasedHydration"]);
+
+        var details = _tracker.GetHydrationDetails();
+        Assert.True((bool)details["IsCompleted"]);
+        Assert.NotEqual("Not completed", details["CompletedAt"]);
+    }
+
+    [Fact]
+    public void ReportHydrationFailed_ShouldSetFailureState()
+    {
+        // Arrange
+        _tracker.ReportHydrationStarted();
+        var failureReason = "Test failure";
+
+        // Act
+        _tracker.ReportHydrationFailed(failureReason);
+
+        // Assert
+        Assert.False(_tracker.AreAllServicesReady());
+        var details = _tracker.GetHydrationDetails();
+        Assert.False((bool)details["IsCompleted"]);
+        Assert.Equal(failureReason, details["FailureReason"]);
     }
 }

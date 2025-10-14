@@ -6,7 +6,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 public abstract class UpcomingProductionTile : ITile
 {
     private readonly IManufactureOrderRepository _repository;
-    
+
     // Self-describing metadata
     public abstract string Title { get; }
     public abstract string Description { get; }
@@ -23,22 +23,23 @@ public abstract class UpcomingProductionTile : ITile
     {
         _repository = repository;
     }
-    
+
     public async Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
     {
         var orders = await _repository.GetOrdersForDateRangeAsync(ReferenceDate, ReferenceDate, cancellationToken);
         orders = orders.Where(w => w.State != ManufactureOrderState.Cancelled).ToList();
-        
+
         return new
         {
             TotalOrders = orders.Count(),
             Products = orders.Take(5).Select(o =>
-                    new {
-                    o.SemiProduct.ProductName,
-                    SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
-                    ProductsCompleted = o.State == ManufactureOrderState.Completed,
-                    o.ResponsiblePerson,
-                    o.SemiProduct.ActualQuantity
+                    new
+                    {
+                        o.SemiProduct.ProductName,
+                        SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
+                        ProductsCompleted = o.State == ManufactureOrderState.Completed,
+                        o.ResponsiblePerson,
+                        o.SemiProduct.ActualQuantity
                     }
             ).ToArray()
         };

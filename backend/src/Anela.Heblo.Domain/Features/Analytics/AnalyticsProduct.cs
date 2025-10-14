@@ -14,24 +14,24 @@ public class AnalyticsProduct
     public string? ProductFamily { get; init; }
     public string? ProductCategory { get; init; }
     public required decimal MarginAmount { get; init; }
-    
+
     // M0-M3 margin levels - amounts
     public decimal M0Amount { get; init; } // Material + manufacturing margin
     public decimal M1Amount { get; init; } // M0 + additional manufacturing margin
     public decimal M2Amount { get; init; } // M1 + sales margin
     public decimal M3Amount { get; init; } // M2 + overhead margin (net profitability)
-    
+
     // M0-M3 margin levels - percentages
     public decimal M0Percentage { get; init; }
     public decimal M1Percentage { get; init; }
     public decimal M2Percentage { get; init; }
     public decimal M3Percentage { get; init; }
-    
+
     // Pricing
     public decimal SellingPrice { get; init; }
     public decimal? EshopPriceWithoutVat { get; init; }
     public decimal PurchasePrice { get; init; } // Latest purchase price
-    
+
     // Cost components
     public decimal MaterialCost { get; init; }
     public decimal HandlingCost { get; init; }

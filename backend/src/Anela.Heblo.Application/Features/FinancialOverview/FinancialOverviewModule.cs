@@ -44,7 +44,7 @@ public static class FinancialOverviewModule
     {
         services.RegisterRefreshTask<IFinancialAnalysisService>(
             nameof(IFinancialAnalysisService.RefreshFinancialDataAsync),
-            (s, ct) => s.RefreshFinancialDataAsync(null, null, ct) 
+            (s, ct) => s.RefreshFinancialDataAsync(null, null, ct)
         );
     }
 }

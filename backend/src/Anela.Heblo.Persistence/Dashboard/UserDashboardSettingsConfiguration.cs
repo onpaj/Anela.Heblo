@@ -10,16 +10,16 @@ public class UserDashboardSettingsConfiguration : IEntityTypeConfiguration<UserD
     public void Configure(EntityTypeBuilder<UserDashboardSettings> builder)
     {
         builder.ToTable("UserDashboardSettings");
-        
+
         builder.HasKey(x => x.Id);
-        
+
         builder.Property(x => x.UserId)
             .HasMaxLength(255)
             .IsRequired();
-            
+
         builder.HasIndex(x => x.UserId)
             .IsUnique();
-        
+
         // Navigation property configuration is handled by UserDashboardTileConfiguration
         builder.Property(x => x.LastModified)
             .AsUtcTimestamp()

@@ -40,7 +40,7 @@ public static class PersistenceModule
 
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
-        
+
         // Register repositories
         services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
 

@@ -8,7 +8,7 @@ public class RefreshTaskConfiguration
     public required TimeSpan InitialDelay { get; init; }
     public required TimeSpan RefreshInterval { get; init; }
     public required bool Enabled { get; init; }
-    public dynamic? Parameters { get; init; }
+    public int HydrationTier { get; init; } = 1;
 
 
     public static RefreshTaskConfiguration FromAppSettings(IConfiguration configuration, string taskId)
@@ -36,6 +36,7 @@ public class RefreshTaskConfiguration
         var initialDelayStr = section["InitialDelay"];
         var refreshIntervalStr = section["RefreshInterval"];
         var enabledStr = section["Enabled"];
+        var hydrationTierStr = section["HydrationTier"];
 
         if (!TimeSpan.TryParse(initialDelayStr, out var initialDelay))
         {
@@ -53,12 +54,18 @@ public class RefreshTaskConfiguration
             enabled = true; // Default to enabled if not specified
         }
 
+        if (!int.TryParse(hydrationTierStr, out var hydrationTier))
+        {
+            hydrationTier = 1; // Default to tier 1 if not specified
+        }
+
         return new RefreshTaskConfiguration
         {
             TaskId = taskId,
             InitialDelay = initialDelay,
             RefreshInterval = refreshInterval,
             Enabled = enabled,
+            HydrationTier = hydrationTier
         };
     }
 }

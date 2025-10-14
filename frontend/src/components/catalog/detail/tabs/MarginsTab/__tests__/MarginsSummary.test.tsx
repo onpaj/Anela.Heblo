@@ -24,18 +24,30 @@ const mockMarginHistoryEmpty: MarginHistoryDto[] = [];
 const mockMarginHistoryWithM0M3: MarginHistoryDto[] = [
   {
     date: new Date("2024-01-01"),
-    m0Percentage: 80.0,
-    m1Percentage: 66.67,
-    m2Percentage: 50.0,
-    m3Percentage: 33.33,
-    m0Amount: 120,
-    m1Amount: 100,
-    m2Amount: 75,
-    m3Amount: 50,
-    m0CostBase: 30,
-    m1CostBase: 50,
-    m2CostBase: 75,
-    m3CostBase: 100,
+    m0: {
+      percentage: 80.0,
+      amount: 120,
+      costLevel: 30,
+      costTotal: 30,
+    },
+    m1: {
+      percentage: 66.67,
+      amount: 100,
+      costLevel: 20,
+      costTotal: 50,
+    },
+    m2: {
+      percentage: 50.0,
+      amount: 75,
+      costLevel: 25,
+      costTotal: 75,
+    },
+    m3: {
+      percentage: 33.33,
+      amount: 50,
+      costLevel: 25,
+      costTotal: 100,
+    },
   },
 ];
 
@@ -95,7 +107,7 @@ describe("MarginsSummary", () => {
     expect(screen.getByText("0,00 Kč")).toBeInTheDocument();
 
     // Should not show M0-M3 table headers
-    expect(screen.queryByText("Absolutní marže (Kč/ks)")).not.toBeInTheDocument();
+    expect(screen.queryByText("Náklady úrovně (Kč/ks)")).not.toBeInTheDocument();
     expect(screen.queryByText("Procentuální marže (%)")).not.toBeInTheDocument();
   });
 
@@ -110,9 +122,9 @@ describe("MarginsSummary", () => {
 
     // Should show M0-M3 table format
     expect(screen.getByText("Marže")).toBeInTheDocument();
-    expect(screen.getByText("Absolutní marže (Kč/ks)")).toBeInTheDocument();
+    expect(screen.getByText("Náklady úrovně (Kč/ks)")).toBeInTheDocument();
     expect(screen.getByText("Procentuální marže (%)")).toBeInTheDocument();
-    expect(screen.getByText("Nákladový základ (Kč/ks)")).toBeInTheDocument();
+    expect(screen.getByText("Kumulované náklady (Kč/ks)")).toBeInTheDocument();
     
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
@@ -210,18 +222,30 @@ describe("MarginsSummary", () => {
     const edgeCaseMarginHistory: MarginHistoryDto[] = [
       {
         date: new Date("2024-01-01"),
-        m0Percentage: 25,
-        m1Percentage: 45,
-        m2Percentage: 75,
-        m3Percentage: 85,
-        m0Amount: 25,
-        m1Amount: 45,
-        m2Amount: 75,
-        m3Amount: 85,
-        m0CostBase: 100,
-        m1CostBase: 100,
-        m2CostBase: 100,
-        m3CostBase: 100,
+        m0: {
+          percentage: 25,
+          amount: 25,
+          costLevel: 100,
+          costTotal: 100,
+        },
+        m1: {
+          percentage: 45,
+          amount: 45,
+          costLevel: 0,
+          costTotal: 100,
+        },
+        m2: {
+          percentage: 75,
+          amount: 75,
+          costLevel: 0,
+          costTotal: 100,
+        },
+        m3: {
+          percentage: 85,
+          amount: 85,
+          costLevel: 0,
+          costTotal: 100,
+        },
       },
     ];
 

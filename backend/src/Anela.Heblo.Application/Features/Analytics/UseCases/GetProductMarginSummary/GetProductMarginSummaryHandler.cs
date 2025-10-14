@@ -72,51 +72,51 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             {
                 var displayName = _marginCalculator.GetGroupDisplayName(kvp.Key, groupingMode, calculationResult.GroupProducts[kvp.Key]);
                 var products = calculationResult.GroupProducts[kvp.Key];
-                
+
                 // Calculate aggregated margin data for the group
                 var groupData = CalculateGroupMarginData(products);
-                
+
                 // Calculate total margin based on selected margin level
                 var totalMarginForLevel = CalculateTotalMarginForLevel(products, marginLevel);
-                
+
                 return new TopProductDto
                 {
                     GroupKey = kvp.Key,
                     DisplayName = displayName,
                     TotalMargin = totalMarginForLevel,
                     ColorCode = "", // Color will be assigned on frontend
-                    
+
                     // M0-M3 margin levels - amounts (averaged)
                     M0Amount = groupData.M0Amount,
                     M1Amount = groupData.M1Amount,
                     M2Amount = groupData.M2Amount,
                     M3Amount = groupData.M3Amount,
-                    
+
                     // M0-M3 margin levels - percentages (averaged)
                     M0Percentage = groupData.M0Percentage,
                     M1Percentage = groupData.M1Percentage,
                     M2Percentage = groupData.M2Percentage,
                     M3Percentage = groupData.M3Percentage,
-                    
+
                     // Pricing (averaged)
                     SellingPrice = groupData.SellingPrice,
                     PurchasePrice = groupData.PurchasePrice
                 };
             })
             .ToList();
-            
+
         // Apply sorting
         var sortedProducts = ApplySorting(topProductsWithData, sortBy, sortDescending);
-        
+
         // Add rank after sorting
         for (int i = 0; i < sortedProducts.Count; i++)
         {
             sortedProducts[i].Rank = i + 1;
         }
-        
+
         return sortedProducts;
     }
-    
+
     /// <summary>
     /// Calculates aggregated margin data for a group of products
     /// </summary>
@@ -124,10 +124,10 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     {
         if (!products.Any())
             return new GroupMarginData();
-            
+
         // For groups, we calculate weighted averages based on sales volume
         var totalSales = products.Sum(p => p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C));
-        
+
         if (totalSales == 0)
         {
             // If no sales, use simple average
@@ -145,7 +145,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 PurchasePrice = products.Average(p => p.PurchasePrice)
             };
         }
-        
+
         // Weighted average by sales volume
         return new GroupMarginData
         {
@@ -161,7 +161,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             PurchasePrice = products.Sum(p => p.PurchasePrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales
         };
     }
-    
+
     /// <summary>
     /// Applies sorting to the top products list
     /// </summary>
@@ -224,18 +224,18 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 : products.OrderBy(p => p.TotalMargin).ToList()
         };
     }
-    
+
     /// <summary>
     /// Calculates total margin for a group of products based on selected margin level
     /// </summary>
     private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel)
     {
         var totalMargin = 0m;
-        
+
         foreach (var product in products)
         {
             var totalSales = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
-            
+
             var marginPerUnit = marginLevel.ToUpperInvariant() switch
             {
                 "M0" => product.M0Amount,
@@ -244,10 +244,10 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 "M3" => product.M3Amount,
                 _ => product.M3Amount // Default to M3
             };
-            
+
             totalMargin += (decimal)totalSales * marginPerUnit;
         }
-        
+
         return totalMargin;
     }
 

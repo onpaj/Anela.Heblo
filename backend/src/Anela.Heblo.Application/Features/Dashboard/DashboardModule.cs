@@ -8,7 +8,7 @@ public static class DashboardModule
     {
         // MediatR handlers are automatically registered by the ApplicationModule
         // No additional services needed for Dashboard feature at this time
-        
+
         return services;
     }
 }

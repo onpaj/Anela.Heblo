@@ -48,7 +48,7 @@ public class MarginCalculationService : IMarginCalculationService
             var costData = await LoadCostDataAsync(product, dateFrom, dateTo, cancellationToken);
 
             // Calculate monthly margin history using the loaded data
-            var monthlyHistory = CalculateMarginHistoryFromData(product.ProductCode, sellingPrice, costData, dateFrom, dateTo);
+            var monthlyHistory = CalculateMarginHistoryFromData(sellingPrice, costData, dateFrom, dateTo);
 
             return monthlyHistory;
         }
@@ -84,7 +84,7 @@ public class MarginCalculationService : IMarginCalculationService
     }
 
 
-    private MonthlyMarginHistory CalculateMarginHistoryFromData(string productCode, decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
+    private MonthlyMarginHistory CalculateMarginHistoryFromData(decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
     {
         var monthlyData = new List<MonthlyMarginData>();
 
@@ -121,10 +121,10 @@ public class MarginCalculationService : IMarginCalculationService
         return new MonthlyMarginData
         {
             Month = month,
-            M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0Cost, materialCost),
-            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1Cost, manufacturingCost),
-            M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2Cost, salesCost),
-            M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3Cost, overheadCost),
+            M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0CostTotal, materialCost),
+            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1CostTotal, manufacturingCost),
+            M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2CostTotal, salesCost),
+            M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3CostTotal, overheadCost),
             CostsForMonth = costBreakdown
         };
     }

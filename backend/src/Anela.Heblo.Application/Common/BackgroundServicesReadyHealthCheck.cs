@@ -15,34 +15,41 @@ public class BackgroundServicesReadyHealthCheck : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
+        var hydrationDetails = _readinessTracker.GetHydrationDetails() ?? new Dictionary<string, object>();
+        var data = new Dictionary<string, object>(hydrationDetails);
+
         if (_readinessTracker.AreAllServicesReady())
         {
             var statuses = _readinessTracker.GetServiceStatuses();
-            var data = new Dictionary<string, object>();
-
             foreach (var status in statuses)
             {
-                data[status.Key] = status.Value ? "Ready" : "NotReady";
+                data[$"Service_{status.Key}"] = status.Value ? "Ready" : "NotReady";
             }
 
             return Task.FromResult(
-                HealthCheckResult.Healthy("All background services have completed initial load", data));
+                HealthCheckResult.Healthy("Tier-based hydration completed - all background refresh tasks ready", data));
         }
 
         var serviceStatuses = _readinessTracker.GetServiceStatuses();
         var notReadyServices = serviceStatuses.Where(s => !s.Value).Select(s => s.Key).ToList();
 
-        var statusData = new Dictionary<string, object>();
         foreach (var status in serviceStatuses)
         {
-            statusData[status.Key] = status.Value ? "Ready" : "NotReady";
+            data[$"Service_{status.Key}"] = status.Value ? "Ready" : "NotReady";
         }
 
         var description = notReadyServices.Any()
-            ? $"Waiting for services: {string.Join(", ", notReadyServices)}"
-            : "Background services initialization pending";
+            ? $"Waiting for background services: {string.Join(", ", notReadyServices)}"
+            : "Tier-based hydration in progress";
+
+        // If hydration failed, return degraded instead of unhealthy
+        if (hydrationDetails.ContainsKey("FailureReason"))
+        {
+            return Task.FromResult(
+                HealthCheckResult.Degraded($"Tier-based hydration failed: {hydrationDetails["FailureReason"]}", data: data));
+        }
 
         return Task.FromResult(
-            HealthCheckResult.Unhealthy(description, data: statusData));
+            HealthCheckResult.Unhealthy(description, data: data));
     }
 }

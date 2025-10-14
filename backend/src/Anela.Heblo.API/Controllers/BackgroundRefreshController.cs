@@ -118,6 +118,7 @@ public class BackgroundRefreshController : ControllerBase
             InitialDelay = task.InitialDelay,
             RefreshInterval = task.RefreshInterval,
             Enabled = task.Enabled,
+            HydrationTier = task.HydrationTier,
             NextScheduledRun = nextScheduledRun,
             LastExecution = lastExecution != null ? MapToDto(lastExecution) : null
         };

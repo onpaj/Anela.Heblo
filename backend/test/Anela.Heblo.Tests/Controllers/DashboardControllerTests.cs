@@ -25,13 +25,13 @@ public class DashboardControllerTests
     {
         _mediatorMock = new Mock<IMediator>();
         _controller = new DashboardController(_mediatorMock.Object);
-        
+
         // Setup mock user context
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, "test-user-123")
         }));
-        
+
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = user }
@@ -63,7 +63,7 @@ public class DashboardControllerTests
         };
 
         var response = new GetAvailableTilesResponse { Tiles = expectedTiles };
-        
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<GetAvailableTilesRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
@@ -77,9 +77,9 @@ public class DashboardControllerTests
         tiles.Should().HaveCount(2);
         tiles.Should().ContainEquivalentOf(expectedTiles[0]);
         tiles.Should().ContainEquivalentOf(expectedTiles[1]);
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.IsAny<GetAvailableTilesRequest>(), 
+            It.IsAny<GetAvailableTilesRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -96,7 +96,7 @@ public class DashboardControllerTests
         };
 
         var response = new GetUserSettingsResponse { Settings = expectedSettings };
-        
+
         _mediatorMock
             .Setup(x => x.Send(It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
@@ -108,9 +108,9 @@ public class DashboardControllerTests
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var settings = okResult.Value.Should().BeAssignableTo<UserDashboardSettingsDto>().Subject;
         settings.Should().BeEquivalentTo(expectedSettings);
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"), 
+            It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -136,13 +136,13 @@ public class DashboardControllerTests
 
         // Assert
         result.Should().BeOfType<OkResult>();
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.Is<SaveUserSettingsRequest>(r => 
+            It.Is<SaveUserSettingsRequest>(r =>
                 r.UserId == "test-user-123" &&
                 r.Tiles.Length == 2 &&
                 r.Tiles.Any(t => t.TileId == "tile1" && t.IsVisible) &&
-                r.Tiles.Any(t => t.TileId == "tile2" && !t.IsVisible)), 
+                r.Tiles.Any(t => t.TileId == "tile2" && !t.IsVisible)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -161,7 +161,7 @@ public class DashboardControllerTests
         };
 
         var response = new GetTileDataResponse { Tiles = expectedTiles };
-        
+
         _mediatorMock
             .Setup(x => x.Send(It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
@@ -174,9 +174,9 @@ public class DashboardControllerTests
         var tiles = okResult.Value.Should().BeAssignableTo<IEnumerable<DashboardTileDto>>().Subject;
         tiles.Should().HaveCount(1);
         tiles.First().TileId.Should().Be("tile1");
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"), 
+            It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -185,7 +185,7 @@ public class DashboardControllerTests
     {
         // Arrange
         var tileId = "analytics-tile";
-        
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<EnableTileRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EnableTileResponse { Success = true });
@@ -195,11 +195,11 @@ public class DashboardControllerTests
 
         // Assert
         result.Should().BeOfType<OkResult>();
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.Is<EnableTileRequest>(r => 
-                r.UserId == "test-user-123" && 
-                r.TileId == tileId), 
+            It.Is<EnableTileRequest>(r =>
+                r.UserId == "test-user-123" &&
+                r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -208,7 +208,7 @@ public class DashboardControllerTests
     {
         // Arrange
         var tileId = "analytics-tile";
-        
+
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<DisableTileRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DisableTileResponse { Success = true });
@@ -218,11 +218,11 @@ public class DashboardControllerTests
 
         // Assert
         result.Should().BeOfType<OkResult>();
-        
+
         _mediatorMock.Verify(x => x.Send(
-            It.Is<DisableTileRequest>(r => 
-                r.UserId == "test-user-123" && 
-                r.TileId == tileId), 
+            It.Is<DisableTileRequest>(r =>
+                r.UserId == "test-user-123" &&
+                r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -239,10 +239,10 @@ public class DashboardControllerTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<Exception>(() => controller.GetUserSettings());
         exception.Message.Should().Be("User not found");
-        
+
         // Verify that mediator was never called since exception was thrown before
         _mediatorMock.Verify(x => x.Send(
-            It.IsAny<GetUserSettingsRequest>(), 
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -255,7 +255,7 @@ public class DashboardControllerTests
         {
             new Claim("sub", "sub-user-456")
         }));
-        
+
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = user }
@@ -270,7 +270,7 @@ public class DashboardControllerTests
 
         // Assert
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "sub-user-456"), 
+            It.Is<GetUserSettingsRequest>(r => r.UserId == "sub-user-456"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -283,7 +283,7 @@ public class DashboardControllerTests
         {
             new Claim("oid", "oid-user-789")
         }));
-        
+
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = user }
@@ -298,7 +298,7 @@ public class DashboardControllerTests
 
         // Assert
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "oid-user-789"), 
+            It.Is<GetUserSettingsRequest>(r => r.UserId == "oid-user-789"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -313,7 +313,7 @@ public class DashboardControllerTests
             new Claim("sub", "sub-user-456"),
             new Claim("oid", "oid-user-789")
         }));
-        
+
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = user }
@@ -328,7 +328,7 @@ public class DashboardControllerTests
 
         // Assert
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "name-id-123"), 
+            It.Is<GetUserSettingsRequest>(r => r.UserId == "name-id-123"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

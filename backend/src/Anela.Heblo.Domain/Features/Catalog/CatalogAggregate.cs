@@ -149,6 +149,8 @@ public class CatalogAggregate : Entity<string>
 
     public string? Note { get; set; }
 
+    public MonthlyMarginHistory Margins { get; set; } = new();
+
     // Price convenience properties
     public decimal? CurrentSellingPrice => EshopPrice?.PriceWithVat ?? ErpPrice?.PriceWithoutVat;
     public decimal? CurrentPurchasePrice => EshopPrice?.PurchasePrice ?? ErpPrice?.PurchasePrice;

@@ -24,7 +24,7 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
         _logger = logger;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
-        
+
         // Initialize tasks from setup configuration
         InitializeTasksFromSetup(setup.Value);
     }
