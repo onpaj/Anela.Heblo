@@ -207,7 +207,7 @@ public class DashboardServiceTests
             .Returns(mockTile);
 
         _tileRegistryMock
-            .Setup(x => x.GetTileDataAsync("tile1"))
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
             .ReturnsAsync(new { Status = "Active", Count = 42 });
 
         // Act
@@ -277,7 +277,7 @@ public class DashboardServiceTests
             .Returns(mockTile);
 
         _tileRegistryMock
-            .Setup(x => x.GetTileDataAsync("tile1"))
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
             .ThrowsAsync(new InvalidOperationException("Data loading failed"));
 
         // Act
@@ -373,7 +373,7 @@ public class NewAutoShowTile : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto show data");
     }
@@ -390,7 +390,7 @@ public class ManualTile : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Manual data");
     }
@@ -407,7 +407,7 @@ public class AutoTile1 : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto tile 1 data");
     }
@@ -424,7 +424,7 @@ public class AutoTile2 : ITile
     public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)"Auto tile 2 data");
     }
@@ -447,7 +447,7 @@ public class TestTileWithData : ITile
         TileId = tileId;
     }
 
-    public Task<object> LoadDataAsync(CancellationToken cancellationToken = default)
+    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((object)$"Test data for {TileId}");
     }

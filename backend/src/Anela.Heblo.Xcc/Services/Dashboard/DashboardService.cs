@@ -88,7 +88,7 @@ public class DashboardService : IDashboardService
         await _settingsRepository.UpdateAsync(settings);
     }
 
-    public async Task<IEnumerable<TileData>> GetTileDataAsync(string userId)
+    public async Task<IEnumerable<TileData>> GetTileDataAsync(string userId, Dictionary<string, string>? tileParameters = null)
     {
         var settings = await GetUserSettingsAsync(userId);
         var visibleTiles = settings.Tiles
@@ -118,7 +118,7 @@ public class DashboardService : IDashboardService
                 }
 
                 // Load data using registry method that manages scope properly
-                var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId);
+                var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
 
                 result.Add(new TileData
                 {
