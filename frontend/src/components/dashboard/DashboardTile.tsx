@@ -48,6 +48,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
       className={`
         bg-white rounded-lg shadow-sm border border-gray-200
         hover:shadow-md transition-shadow duration-200
+        flex flex-col
         ${getSizeClasses()}
         ${className}
       `}
@@ -58,7 +59,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
         dragHandleProps={{ ...attributes, ...listeners }}
       />
 
-      <div className="p-4 h-full">
+      <div className="p-4 flex-1">
         <TileContent tile={tile} />
       </div>
     </div>

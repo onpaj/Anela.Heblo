@@ -30,7 +30,7 @@ export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 't
   const count = data.data?.count ?? 0;
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full">
       <div className={`mb-2 ${iconColor}`}>
         {icon}
       </div>
