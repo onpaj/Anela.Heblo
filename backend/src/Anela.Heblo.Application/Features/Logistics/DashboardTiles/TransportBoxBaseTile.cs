@@ -50,7 +50,7 @@ public abstract class TransportBoxBaseTile : ITile
                 },
                 drillDown = new
                 {
-                    url = GenerateDrillDownUrl(),
+                    filters = GenerateDrillDownFilters(),
                     enabled = true,
                     tooltip = $"Zobrazit všechny {Title.ToLower()}"
                 }
@@ -67,12 +67,12 @@ public abstract class TransportBoxBaseTile : ITile
         }
     }
 
-    protected virtual string GenerateDrillDownUrl()
+    protected virtual object GenerateDrillDownFilters()
     {
-        // Generate URL with state filter(s)
+        // Single state filter
         if (FilterStates.Length == 1)
         {
-            return $"/logistics/transport-boxes?state={FilterStates[0]}";
+            return new { state = FilterStates[0].ToString() };
         }
         
         // Multiple states - use ACTIVE for "active" boxes or first state
@@ -82,14 +82,14 @@ public abstract class TransportBoxBaseTile : ITile
             var isActiveFilter = FilterStates.All(state => state != TransportBoxState.Closed);
             if (isActiveFilter)
             {
-                return "/logistics/transport-boxes?state=ACTIVE";
+                return new { state = "ACTIVE" };
             }
             
             // Default to first state
-            return $"/logistics/transport-boxes?state={FilterStates[0]}";
+            return new { state = FilterStates[0].ToString() };
         }
 
         // Fallback - no filter
-        return "/logistics/transport-boxes";
+        return new { };
     }
 }

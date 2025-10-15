@@ -6,7 +6,8 @@ import { NavigateFunction } from 'react-router-dom';
 
 // Type definitions for drill-down data
 export interface DrillDownInfo {
-  url: string;
+  url?: string; // For backward compatibility
+  filters?: Record<string, any>; // New filter-based approach
   enabled: boolean;
   tooltip?: string;
 }
@@ -23,14 +24,50 @@ export interface TileDataWithDrillDown {
 }
 
 /**
- * Handles tile click navigation using the drillDown URL
+ * Constructs URL from filter parameters for transport boxes
+ */
+const constructTransportBoxUrl = (filters: Record<string, any>): string => {
+  const baseUrl = '/logistics/transport-boxes';
+  
+  if (!filters || Object.keys(filters).length === 0) {
+    return baseUrl;
+  }
+  
+  return createFilteredUrl(baseUrl, filters);
+};
+
+/**
+ * Maps filter data to appropriate URLs based on feature
+ */
+const constructUrlFromFilters = (filters: Record<string, any>): string => {
+  // For now, we only have transport boxes. Add more feature mappings as needed.
+  return constructTransportBoxUrl(filters);
+};
+
+/**
+ * Handles tile click navigation using the drillDown URL or filters
  */
 export const handleTileClick = (
   tileData: TileDataWithDrillDown,
   navigate: NavigateFunction
 ): void => {
-  if (tileData.drillDown?.enabled && tileData.drillDown.url) {
-    navigate(tileData.drillDown.url);
+  if (!tileData.drillDown?.enabled) {
+    return;
+  }
+
+  let targetUrl: string | undefined;
+
+  // Prefer new filter-based approach
+  if (tileData.drillDown.filters) {
+    targetUrl = constructUrlFromFilters(tileData.drillDown.filters);
+  }
+  // Fall back to legacy URL approach for backward compatibility
+  else if (tileData.drillDown.url) {
+    targetUrl = tileData.drillDown.url;
+  }
+
+  if (targetUrl) {
+    navigate(targetUrl);
   }
 };
 
@@ -38,7 +75,8 @@ export const handleTileClick = (
  * Checks if a tile is clickable (has drill-down enabled)
  */
 export const isTileClickable = (tileData: TileDataWithDrillDown): boolean => {
-  return tileData.drillDown?.enabled === true && Boolean(tileData.drillDown.url);
+  return tileData.drillDown?.enabled === true && 
+         (Boolean(tileData.drillDown.filters) || Boolean(tileData.drillDown.url));
 };
 
 /**
