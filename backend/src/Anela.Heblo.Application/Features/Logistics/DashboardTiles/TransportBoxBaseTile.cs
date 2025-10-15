@@ -47,6 +47,12 @@ public abstract class TransportBoxBaseTile : ITile
                 {
                     lastUpdated = DateTime.UtcNow,
                     source = "TransportBoxRepository"
+                },
+                drillDown = new
+                {
+                    url = GenerateDrillDownUrl(),
+                    enabled = true,
+                    tooltip = $"Zobrazit všechny {Title.ToLower()}"
                 }
             };
         }
@@ -59,5 +65,31 @@ public abstract class TransportBoxBaseTile : ITile
                 details = ex.Message
             };
         }
+    }
+
+    protected virtual string GenerateDrillDownUrl()
+    {
+        // Generate URL with state filter(s)
+        if (FilterStates.Length == 1)
+        {
+            return $"/logistics/transport-boxes?state={FilterStates[0]}";
+        }
+        
+        // Multiple states - use ACTIVE for "active" boxes or first state
+        if (FilterStates.Length > 1)
+        {
+            // Check if this represents "active" boxes (non-closed states)
+            var isActiveFilter = FilterStates.All(state => state != TransportBoxState.Closed);
+            if (isActiveFilter)
+            {
+                return "/logistics/transport-boxes?state=ACTIVE";
+            }
+            
+            // Default to first state
+            return $"/logistics/transport-boxes?state={FilterStates[0]}";
+        }
+
+        // Fallback - no filter
+        return "/logistics/transport-boxes";
     }
 }

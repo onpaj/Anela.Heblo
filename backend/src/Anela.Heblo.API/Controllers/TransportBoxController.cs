@@ -28,10 +28,13 @@ public class TransportBoxController : ControllerBase
 
     /// <summary>
     /// Get transport boxes with optional filtering and pagination
+    /// URL Examples:
+    /// - /api/transport-boxes?state=Error&productCode=ABC123
+    /// - /api/transport-boxes?skip=20&take=50&sortBy=code&sortDescending=true
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<GetTransportBoxesResponse>> GetTransportBoxes(
-        [FromQuery] GetTransportBoxesRequest request,
+        [UrlMappedQuery] GetTransportBoxesRequest request,
         CancellationToken cancellationToken = default)
     {
         var response = await _mediator.Send(request, cancellationToken);

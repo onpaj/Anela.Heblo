@@ -168,7 +168,7 @@ const InventoryList: React.FC = () => {
     event.stopPropagation(); // Prevent row click from triggering
     if (!productCode) return; // Guard against undefined productCode
     // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=InTransit`);
+    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=InTransit`);
   };
 
   // Handler for clicking reserve quantity badge
@@ -176,7 +176,7 @@ const InventoryList: React.FC = () => {
     event.stopPropagation(); // Prevent row click from triggering
     if (!productCode) return; // Guard against undefined productCode
     // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=Reserve`);
+    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=Reserve`);
   };
 
   // Sortable header component
