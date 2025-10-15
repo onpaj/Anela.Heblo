@@ -52,12 +52,27 @@ export const ProductsDataGrid: React.FC<ProductsDataGridProps> = ({
                       />
                     ) : (
                       <div>
-                        {product.actualQuantity || product.plannedQuantity || "-"}
-                        {product.actualQuantity && product.plannedQuantity && product.actualQuantity !== product.plannedQuantity && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            (plán: {product.plannedQuantity})
-                          </span>
-                        )}
+                        {(() => {
+                          const hasActual = product.actualQuantity !== null && product.actualQuantity !== undefined;
+                          const hasPlanned = product.plannedQuantity !== null && product.plannedQuantity !== undefined;
+
+                          if (hasActual && hasPlanned && product.actualQuantity !== product.plannedQuantity) {
+                            return (
+                              <>
+                                {product.actualQuantity}
+                                <span className="text-xs text-gray-500 ml-1">
+                                  (plán: {product.plannedQuantity})
+                                </span>
+                              </>
+                            );
+                          } else if (hasActual) {
+                            return product.actualQuantity;
+                          } else if (hasPlanned) {
+                            return product.plannedQuantity;
+                          } else {
+                            return "-";
+                          }
+                        })()}
                       </div>
                     )}
                   </td>
