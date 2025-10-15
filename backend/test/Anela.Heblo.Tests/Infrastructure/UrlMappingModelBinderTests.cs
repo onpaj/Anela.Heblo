@@ -1,7 +1,9 @@
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
@@ -28,15 +30,15 @@ public class UrlMappingModelBinderTests
         httpContext.Request.Query = queryCollection;
 
         var modelMetadata = new EmptyModelMetadataProvider().GetMetadataForType(typeof(T));
+        var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
 
-        var bindingContext = new DefaultModelBindingContext
-        {
-            ModelName = "request",
-            ModelMetadata = modelMetadata,
-            ModelState = new ModelStateDictionary(),
-            HttpContext = httpContext,
-            ModelType = typeof(T)
-        };
+        var bindingContext = new DefaultModelBindingContext();
+
+        // Initialize the binding context properly using methods that set internal state
+        bindingContext.ActionContext = actionContext;
+        bindingContext.ModelMetadata = modelMetadata;
+        bindingContext.ModelName = "request";
+        bindingContext.ModelState = new ModelStateDictionary();
 
         return bindingContext;
     }
