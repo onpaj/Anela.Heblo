@@ -47,6 +47,12 @@ public abstract class TransportBoxBaseTile : ITile
                 {
                     lastUpdated = DateTime.UtcNow,
                     source = "TransportBoxRepository"
+                },
+                drillDown = new
+                {
+                    filters = GenerateDrillDownFilters(),
+                    enabled = true,
+                    tooltip = $"Zobrazit všechny {Title.ToLower()}"
                 }
             };
         }
@@ -59,5 +65,31 @@ public abstract class TransportBoxBaseTile : ITile
                 details = ex.Message
             };
         }
+    }
+
+    protected virtual object GenerateDrillDownFilters()
+    {
+        // Single state filter
+        if (FilterStates.Length == 1)
+        {
+            return new { state = FilterStates[0].ToString() };
+        }
+        
+        // Multiple states - use ACTIVE for "active" boxes or first state
+        if (FilterStates.Length > 1)
+        {
+            // Check if this represents "active" boxes (non-closed states)
+            var isActiveFilter = FilterStates.All(state => state != TransportBoxState.Closed);
+            if (isActiveFilter)
+            {
+                return new { state = "ACTIVE" };
+            }
+            
+            // Default to first state
+            return new { state = FilterStates[0].ToString() };
+        }
+
+        // Fallback - no filter
+        return new { };
     }
 }

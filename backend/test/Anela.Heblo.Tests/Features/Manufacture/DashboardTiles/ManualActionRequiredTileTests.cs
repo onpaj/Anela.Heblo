@@ -42,14 +42,14 @@ public class ManualActionRequiredTileTests
         // Arrange
         var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -58,17 +58,17 @@ public class ManualActionRequiredTileTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify repository was called with correct parameters
         _mockRepository.Verify(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -78,14 +78,14 @@ public class ManualActionRequiredTileTests
         // Arrange
         var orders = new List<ManufactureOrder>();  // Repository returns empty list when manualActionRequired=true
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -94,17 +94,17 @@ public class ManualActionRequiredTileTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify repository was called with correct parameters
         _mockRepository.Verify(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -119,14 +119,14 @@ public class ManualActionRequiredTileTests
             new() { Id = 4, ManualActionRequired = true }
         };
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
@@ -135,17 +135,17 @@ public class ManualActionRequiredTileTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify repository was called with correct parameters
         _mockRepository.Verify(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -155,14 +155,14 @@ public class ManualActionRequiredTileTests
         // Arrange
         var expectedException = new InvalidOperationException("Database error");
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
@@ -177,14 +177,14 @@ public class ManualActionRequiredTileTests
         var cancellationToken = new CancellationToken();
         var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             cancellationToken))
             .ReturnsAsync(orders);
 
@@ -193,14 +193,14 @@ public class ManualActionRequiredTileTests
 
         // Assert
         _mockRepository.Verify(x => x.GetOrdersAsync(
-            It.IsAny<ManufactureOrderState?>(), 
-            It.IsAny<DateOnly?>(), 
+            It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            It.IsAny<string?>(), 
-            true, 
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            true,
             cancellationToken), Times.Once);
     }
 }

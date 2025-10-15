@@ -168,7 +168,7 @@ const InventoryList: React.FC = () => {
     event.stopPropagation(); // Prevent row click from triggering
     if (!productCode) return; // Guard against undefined productCode
     // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=InTransit`);
+    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=InTransit`);
   };
 
   // Handler for clicking reserve quantity badge
@@ -176,7 +176,7 @@ const InventoryList: React.FC = () => {
     event.stopPropagation(); // Prevent row click from triggering
     if (!productCode) return; // Guard against undefined productCode
     // Navigate to TransportBoxList with pre-filled filters
-    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&status=Reserve`);
+    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=Reserve`);
   };
 
   // Sortable header component
@@ -364,7 +364,7 @@ const InventoryList: React.FC = () => {
                 const available = Math.round((item.stock?.eshop || 0) * 100) / 100;
                 const transport = Math.round((item.stock?.transport || 0) * 100) / 100;
                 const reserve = Math.round((item.stock?.reserve || 0) * 100) / 100;
-                const total = Math.round((item.stock?.available || 0) * 100) / 100;
+                const total = Math.round(((item.stock?.available || 0) + (item.stock?.reserve || 0)) * 100) / 100;
 
                 return (
                   <tr

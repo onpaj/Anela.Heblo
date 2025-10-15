@@ -1,6 +1,12 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import { ManualActionRequiredTile } from '../ManualActionRequiredTile';
+
+// Helper to render with Router context
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<BrowserRouter>{component}</BrowserRouter>);
+};
 
 describe('ManualActionRequiredTile', () => {
   it('renders zero count when no manual actions required', () => {
@@ -12,7 +18,7 @@ describe('ManualActionRequiredTile', () => {
       }
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if count is displayed
     expect(screen.getByText('0')).toBeInTheDocument();
@@ -27,7 +33,7 @@ describe('ManualActionRequiredTile', () => {
       }
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if count is displayed
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -42,7 +48,7 @@ describe('ManualActionRequiredTile', () => {
       }
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if count is displayed
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -54,7 +60,7 @@ describe('ManualActionRequiredTile', () => {
       error: 'Failed to load data'
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if error message is displayed
     expect(screen.getByText('Failed to load data')).toBeInTheDocument();
@@ -72,7 +78,7 @@ describe('ManualActionRequiredTile', () => {
       }
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if zero count is displayed (fallback)
     expect(screen.getByText('0')).toBeInTheDocument();
@@ -84,7 +90,7 @@ describe('ManualActionRequiredTile', () => {
       // data is undefined
     };
 
-    render(<ManualActionRequiredTile data={data} />);
+    renderWithRouter(<ManualActionRequiredTile data={data} />);
 
     // Check if zero count is displayed (fallback)
     expect(screen.getByText('0')).toBeInTheDocument();

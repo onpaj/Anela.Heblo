@@ -60,7 +60,7 @@ const TransportBoxList: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
 
   const [codeFilter, setCodeFilter] = useState("");
-  const [stateFilter, setStateFilter] = useState("ACTIVE");
+  const [stateFilter, setStateFilter] = useState("");
   const [productFilter, setProductFilter] = useState("");
 
   // Pagination states
@@ -81,7 +81,7 @@ const TransportBoxList: React.FC = () => {
   // Initialize filters from URL parameters
   useEffect(() => {
     const productCode = searchParams.get('productCode');
-    const status = searchParams.get('status');
+    const state = searchParams.get('state');
     
     if (productCode) {
       setProductFilter(productCode);
@@ -89,8 +89,8 @@ const TransportBoxList: React.FC = () => {
       setSelectedProduct(`${productCode} - Loading...`);
     }
     
-    if (status) {
-      setStateFilter(status);
+    if (state) {
+      setStateFilter(state);
     }
   }, [searchParams]);
 
@@ -134,7 +134,7 @@ const TransportBoxList: React.FC = () => {
     setCodeInput("");
     setSelectedProduct(null);
     setCodeFilter("");
-    setStateFilter("ACTIVE");
+    setStateFilter("");
     setProductFilter("");
     setSkip(0);
   };

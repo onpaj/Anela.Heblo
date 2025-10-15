@@ -53,7 +53,11 @@ public partial class Program
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);
 
         // Controllers and API documentation
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options =>
+            {
+                // Register URL mapping model binder provider
+                options.ModelBinderProviders.Insert(0, new Anela.Heblo.API.Infrastructure.UrlMappingModelBinderProvider());
+            })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
