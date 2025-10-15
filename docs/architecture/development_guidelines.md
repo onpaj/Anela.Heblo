@@ -37,6 +37,7 @@ public class OrderDto { } // Never in API or Xcc!
 | **Business logic in Controller class** | Business logic should be in MediatR handlers |
 | **Cross-module database joins** | Breaks module independence |
 | **Shared repositories across modules** | Violates module isolation |
+| **Backend constructing frontend URLs** | Violates separation of concerns, couples backend to frontend routing |
 
 ---
 
@@ -52,6 +53,11 @@ public class OrderDto { } // Never in API or Xcc!
 - **Vertical slices**: Keep all layers of a feature together
 - **No layer-based folders**: Don't organize by Controllers/, Services/, Repositories/
 - **Feature cohesion**: All code for a feature in one place
+
+### Frontend-Backend Separation
+- **Backend provides semantic data**: Return filter parameters, not constructed URLs
+- **Frontend owns routing**: URL construction happens in frontend based on its routing structure
+- **Backward compatibility**: Support both new filter-based and legacy URL approaches during transition
 
 ### Testing
 - Unit tests for domain logic
