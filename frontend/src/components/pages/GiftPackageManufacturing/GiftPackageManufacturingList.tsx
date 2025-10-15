@@ -17,6 +17,7 @@ import { StockSeverity } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import GiftPackageManufacturingFilters from "./GiftPackageManufacturingFilters";
 import GiftPackageManufacturingSummary from "./GiftPackageManufacturingSummary";
+import RunningJobIndicator from "./RunningJobIndicator";
 
 // Filter types
 interface GiftPackageFilters {
@@ -651,6 +652,10 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                             <div className="text-sm text-gray-900 truncate">
                               {pkg.name}
                             </div>
+                            <RunningJobIndicator 
+                              giftPackageCode={pkg.code}
+                              className="flex-shrink-0"
+                            />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

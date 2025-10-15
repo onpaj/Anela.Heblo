@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
-import { useCreateGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
-import { CreateGiftPackageManufactureRequest } from "../../../api/generated/api-client";
+import JobStatusTracker from "./JobStatusTracker";
+import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
+import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest } from "../../../api/generated/api-client";
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -21,8 +22,12 @@ const GiftPackageManufacturing: React.FC = () => {
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
   
-  // Manufacturing API hook
+  // State for tracking active manufacturing jobs
+  const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
+  
+  // Manufacturing API hooks
   const createManufactureMutation = useCreateGiftPackageManufacture();
+  const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
 
   // Manufacturing modal handlers
   const handlePackageClick = (pkg: GiftPackage) => {
@@ -75,8 +80,59 @@ const GiftPackageManufacturing: React.FC = () => {
     }
   };
 
+  const handleEnqueueManufacture = async (quantity: number) => {
+    if (!selectedPackage) return;
+    
+    try {
+      const request = new EnqueueGiftPackageManufactureRequest({
+        giftPackageCode: selectedPackage.code,
+        quantity: quantity,
+        allowStockOverride: false
+      });
+      
+      const response = await enqueueManufactureMutation.mutateAsync(request);
+      console.log(`Výroba ${quantity}x ${selectedPackage.name} zařazena do fronty. Job ID: ${response.jobId}`);
+      
+      // Add job ID to active jobs for tracking
+      if (response.jobId) {
+        setActiveJobIds(prev => [...prev, response.jobId!]);
+      }
+    } catch (error) {
+      console.error('Enqueue manufacturing error:', error);
+      throw error;
+    }
+  };
+
+  // Handler to remove completed jobs from tracking
+  const handleJobCompleted = useCallback((jobId: string) => {
+    console.log(`[GiftPackageManufacturing] Removing job ${jobId} from active jobs`);
+    setActiveJobIds(prev => {
+      const newIds = prev.filter(id => id !== jobId);
+      console.log(`[GiftPackageManufacturing] Active jobs before: ${prev.length}, after: ${newIds.length}`);
+      return newIds;
+    });
+  }, []);
+
   return (
     <>
+      {/* Active Jobs Tracking */}
+      {activeJobIds.length > 0 && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">
+            Aktivní výrobní úlohy ({activeJobIds.length})
+          </h3>
+          <div className="space-y-2">
+            {activeJobIds.map(jobId => (
+              <JobStatusTracker 
+                key={jobId} 
+                jobId={jobId} 
+                onJobCompleted={() => handleJobCompleted(jobId)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       <GiftPackageManufacturingList
         onPackageClick={handlePackageClick}
         onCatalogDetailClick={handleCatalogDetailClick}
@@ -90,6 +146,7 @@ const GiftPackageManufacturing: React.FC = () => {
         isOpen={isManufactureModalOpen}
         onClose={handleCloseManufactureModal}
         onManufacture={handleManufacture}
+        onEnqueueManufacture={handleEnqueueManufacture}
         salesCoefficient={salesCoefficient}
         fromDate={dateFilters.fromDate}
         toDate={dateFilters.toDate}

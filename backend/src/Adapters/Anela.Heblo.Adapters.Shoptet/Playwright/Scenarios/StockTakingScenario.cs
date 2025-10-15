@@ -64,9 +64,21 @@ public class StockTakingScenario
         // Výpočet a vyplnění nového množství
         await freeLocator.FillAsync(setAmount.ToString());
 
-        // Uložení změn
-        await page.GetByTestId("buttonSaveAndStay").ClickAsync();
-        _logger.LogInformation("InventoryAlign: {ProductCode} -> {TargetAmount} ({FreeAmount} free / {ReservedAmount} reserved -> {SetAmount})", request.ProductCode, request.TargetAmount, freeAmount, reservedAmount, setAmount);
+        if (!_options.DryRun)
+        {
+            // Uložení změn
+            await page.GetByTestId("buttonSaveAndStay").ClickAsync();
+            _logger.LogInformation(
+                "InventoryAlign: {ProductCode} -> {TargetAmount} ({FreeAmount} free / {ReservedAmount} reserved -> {SetAmount})",
+                request.ProductCode, request.TargetAmount, freeAmount, reservedAmount, setAmount);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "DRY RUN: InventoryAlign: {ProductCode} -> {TargetAmount} ({FreeAmount} free / {ReservedAmount} reserved -> {SetAmount})",
+                request.ProductCode, request.TargetAmount, freeAmount, reservedAmount, setAmount);
+        }
+        
 
         // Zavření prohlížeče
         await browser.CloseAsync();

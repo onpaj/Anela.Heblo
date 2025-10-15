@@ -10,4 +10,6 @@ public class PlaywrightSourceOptions
     public string PdfTmpFolder { get; set; }
 
     public bool Headless { get; set; } = true;
+
+    public bool DryRun { get; set; } = false;
 }

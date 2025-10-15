@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services;
 using AutoMapper;
+using System.ComponentModel;
 
 namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 
@@ -173,6 +174,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return giftPackage;
     }
 
+    [DisplayName("GiftPackageManufacture-{0}-{1}")]
     public async Task<GiftPackageManufactureDto> CreateManufactureAsync(
         string giftPackageCode,
         int quantity,
@@ -216,16 +218,18 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
     }
 
-    public Task<string> EnqueueManufactureAsync(
+    public async Task<string> EnqueueManufactureAsync(
         string giftPackageCode,
         int quantity,
         bool allowStockOverride = false,
         CancellationToken cancellationToken = default)
     {
+        var displayName = $"GiftPackageManufacture-{giftPackageCode}-{quantity}";
+        
         var jobId = _backgroundWorker.Enqueue<IGiftPackageManufactureService>(
             service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, cancellationToken));
 
-        return Task.FromResult(jobId);
+        return jobId;
     }
 
     private static StockSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
