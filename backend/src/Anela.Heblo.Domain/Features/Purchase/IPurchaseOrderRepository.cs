@@ -22,4 +22,6 @@ public interface IPurchaseOrderRepository : IRepository<PurchaseOrder, int>
     Task<bool> OrderNumberExistsAsync(string orderNumber, CancellationToken cancellationToken = default);
 
     Task<Dictionary<string, decimal>> GetOrderedQuantitiesAsync(CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<PurchaseOrder>> GetByStatusAsync(PurchaseOrderStatus status, CancellationToken cancellationToken = default);
 }

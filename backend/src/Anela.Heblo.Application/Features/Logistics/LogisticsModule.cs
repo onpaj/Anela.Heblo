@@ -24,6 +24,7 @@ public static class LogisticsModule
         services.RegisterTile<InTransitBoxesTile>();
         services.RegisterTile<ReceivedBoxesTile>();
         services.RegisterTile<ErrorBoxesTile>();
+        services.RegisterTile<CriticalGiftPackagesTile>();
 
         return services;
     }

@@ -6,8 +6,9 @@ import { ProductionTile } from './ProductionTile';
 import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
 import { ManualActionRequiredTile } from './ManualActionRequiredTile';
+import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
 import { DefaultTile } from './DefaultTile';
-import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker } from 'lucide-react';
+import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
 interface TileContentProps {
   tile: DashboardTileType;
@@ -28,6 +29,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
     // Manufacture tiles
     case 'manualactionrequired':
       return <ManualActionRequiredTile data={tile.data} />;
+    // Purchase tiles
+    case 'purchaseordersintransit':
+      return <PurchaseOrdersInTransitTile data={tile.data} />;
     // Transport tiles
     case 'intransitboxes':
       return <CountTile data={tile.data} icon={<Truck className="h-10 w-10" />} iconColor="text-blue-600" />;
@@ -49,6 +53,12 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <InventorySummaryTile data={tile.data} />;
     case 'materialinventorysummary':
       return <InventorySummaryTile data={tile.data} />;
+    // Purchase efficiency tiles
+    case 'lowstockefficiency':
+      return <CountTile data={tile.data} icon={<AlertTriangle className="h-10 w-10" />} iconColor="text-orange-600" />;
+    // Gift package tiles
+    case 'criticalgiftpackages':
+      return <CountTile data={tile.data} icon={<Gift className="h-10 w-10" />} iconColor="text-red-600" />;
     default:
       return <DefaultTile data={tile.data} />;
   }
