@@ -18,16 +18,16 @@ public class SimpleFileStorageTest
     }
 
     [Fact]
-    public void MockBlobStorageService_AddBlob_ShouldIncrementCount()
+    public async Task MockBlobStorageService_AddBlob_ShouldIncrementCount()
     {
         // Arrange
         var mockService = new MockBlobStorageService();
         var containerName = "test-container";
 
         // Act
-        var result = mockService.DownloadFromUrlAsync(
+        var result = await mockService.DownloadFromUrlAsync(
             "https://example.com/test.pdf",
-            containerName).Result;
+            containerName);
 
         // Assert
         Assert.NotNull(result);

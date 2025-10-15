@@ -94,7 +94,6 @@ public class GetProductUsageHandlerTests
 
         // Handler scaling logic: scalingFactor = MMQ / BatchSize = 5000 / 2500 = 2.0
         // template.Amount = OriginalAmount * scalingFactor = 2500 * 2.0 = 5000
-        var expectedScalingFactor = 2.0;
 
         template.Amount.Should().Be(5000); // 2500 * 2.0
         template.OriginalAmount.Should().Be(2500); // Set from original Amount
@@ -127,7 +126,6 @@ public class GetProductUsageHandlerTests
 
         // Handler scaling logic: scalingFactor = MMQ / BatchSize = 1250 / 2500 = 0.5
         // template.Amount = OriginalAmount * scalingFactor = 2500 * 0.5 = 1250
-        var expectedScalingFactor = 0.5;
 
         template.Amount.Should().Be(1250); // 2500 * 0.5
         template.OriginalAmount.Should().Be(2500); // Set from original Amount

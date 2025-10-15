@@ -150,11 +150,14 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
     public async Task<Dictionary<string, decimal>> GetPlannedQuantitiesAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.ManufactureOrders
-            .Where(order => order.State != ManufactureOrderState.Completed && order.State != ManufactureOrderState.Cancelled && order.State != ManufactureOrderState.Draft)
-            .Include(order => order.Products)
-            .SelectMany(order => order.Products)
-            .GroupBy(product => product.ProductCode)
-            .ToDictionaryAsync(group => group.Key, group => group.Sum(product => product.PlannedQuantity), cancellationToken);
+        return await (from order in _context.ManufactureOrders
+                     where order.State != ManufactureOrderState.Completed && 
+                           order.State != ManufactureOrderState.Cancelled && 
+                           order.State != ManufactureOrderState.Draft
+                     from product in _context.ManufactureOrderProducts
+                     where product.ManufactureOrderId == order.Id
+                     group product by product.ProductCode into grouped
+                     select new { ProductCode = grouped.Key, TotalQuantity = grouped.Sum(p => p.PlannedQuantity) })
+            .ToDictionaryAsync(x => x.ProductCode, x => x.TotalQuantity, cancellationToken);
     }
 }

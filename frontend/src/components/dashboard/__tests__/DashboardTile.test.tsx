@@ -150,6 +150,7 @@ describe('DashboardTile', () => {
     renderWithDndContext(<DashboardTile tile={mockTile} />);
 
     const tileElement = screen.getByTestId('dashboard-tile-test-tile-123');
+    // Updated to match actual implementation: p-4 flex-1
     const contentWrapper = tileElement.querySelector('.p-4.flex-1');
     expect(contentWrapper).toBeInTheDocument();
   });

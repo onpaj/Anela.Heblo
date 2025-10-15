@@ -129,7 +129,8 @@ public class SafeMarginCalculatorTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Margin.Value.Should().BeApproximately(expectedMargin, 0.01m); // Allow small rounding differences
+        result.Margin.Should().NotBeNull();
+        result.Margin!.Value.Should().BeApproximately(expectedMargin, 0.01m); // Allow small rounding differences
         result.ErrorMessage.Should().BeNull();
         result.Exception.Should().BeNull();
     }

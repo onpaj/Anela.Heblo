@@ -72,6 +72,44 @@ return new
 };
 ```
 
+#### Drill-Down Navigation Response
+
+**CRITICAL RULE**: Backend MUST NOT construct frontend URLs. Instead, return semantic filter data that the frontend can use to construct appropriate URLs based on its routing structure.
+
+```csharp
+// ❌ WRONG - Backend constructing frontend URLs
+return new
+{
+    status = "success",
+    data = actualData,
+    drillDown = new
+    {
+        url = "/logistics/transport-boxes?state=InTransit", // Frontend URL in backend!
+        enabled = true,
+        tooltip = "Zobrazit všechny boxy v přepravě"
+    }
+};
+
+// ✅ CORRECT - Semantic filter data
+return new
+{
+    status = "success",
+    data = actualData,
+    drillDown = new
+    {
+        filters = new { state = "InTransit" }, // Semantic data
+        enabled = true,
+        tooltip = "Zobrazit všechny boxy v přepravě"
+    }
+};
+```
+
+**Rationale:**
+- **Separation of Concerns**: Backend shouldn't know about frontend routing
+- **Maintainability**: Frontend route changes don't require backend updates
+- **Clean Architecture**: Application layer remains agnostic of presentation layer
+- **Flexibility**: Same backend can support multiple frontend implementations
+
 #### Empty State Response
 ```csharp
 return new
@@ -84,7 +122,48 @@ return new
 
 ## Frontend Implementation
 
-### 1. Tile Content Components
+### 1. Drill-Down Navigation Handling
+
+The frontend is responsible for constructing URLs from semantic filter data provided by the backend. Use the utilities in `frontend/src/utils/drillDownNavigation.ts`:
+
+```typescript
+import { 
+  handleTileClick, 
+  isTileClickable, 
+  getTileTooltip,
+  TileDataWithDrillDown 
+} from '../../../utils/drillDownNavigation';
+
+// In your tile component
+const MyTileContent: React.FC<{ data: TileDataWithDrillDown }> = ({ data }) => {
+  const navigate = useNavigate();
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable) {
+      handleTileClick(data, navigate); // Automatically constructs URL from filters
+    }
+  };
+
+  return (
+    <div 
+      className={isClickable ? 'cursor-pointer hover:bg-gray-50' : ''}
+      onClick={handleClick}
+      title={tooltip}
+    >
+      {/* Tile content */}
+    </div>
+  );
+};
+```
+
+**URL Construction Logic:**
+- **Filter-based**: Preferred approach where backend provides `drillDown.filters` object
+- **Legacy URL**: Fallback support for existing `drillDown.url` properties
+- **Feature mapping**: Each feature (transport, purchase, etc.) has its own URL construction logic
+
+### 2. Tile Content Components
 
 Create tile-specific content components in `frontend/src/components/dashboard/tiles/content/`:
 
