@@ -35,9 +35,12 @@ public class PurchaseOrdersInTransitTile : ITile
 
         var result = new
         {
-            count = inTransitOrders.Count(),
-            totalAmount = totalAmount,
-            formattedAmount = formattedAmount
+            data = new
+            {
+                count = inTransitOrders.Count(),
+                totalAmount = totalAmount,
+                formattedAmount = formattedAmount
+            },
         };
 
         return result;
