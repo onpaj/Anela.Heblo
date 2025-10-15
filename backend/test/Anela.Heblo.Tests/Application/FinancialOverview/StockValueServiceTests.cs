@@ -1,16 +1,11 @@
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Price;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Application.FinancialOverview;
 

@@ -19,7 +19,7 @@ public class UrlMappingModelBinderTests
     private ModelBindingContext CreateBindingContext<T>(Dictionary<string, string> queryParams)
     {
         var httpContext = new DefaultHttpContext();
-        
+
         // Set up query parameters
         var queryCollection = new QueryCollection(queryParams.ToDictionary(
             kvp => kvp.Key,
@@ -28,7 +28,7 @@ public class UrlMappingModelBinderTests
         httpContext.Request.Query = queryCollection;
 
         var modelMetadata = new EmptyModelMetadataProvider().GetMetadataForType(typeof(T));
-        
+
         var bindingContext = new DefaultModelBindingContext
         {
             ModelName = "request",

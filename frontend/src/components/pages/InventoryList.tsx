@@ -364,7 +364,7 @@ const InventoryList: React.FC = () => {
                 const available = Math.round((item.stock?.eshop || 0) * 100) / 100;
                 const transport = Math.round((item.stock?.transport || 0) * 100) / 100;
                 const reserve = Math.round((item.stock?.reserve || 0) * 100) / 100;
-                const total = Math.round((item.stock?.available || 0) * 100) / 100;
+                const total = Math.round(((item.stock?.available || 0) + (item.stock?.reserve || 0)) * 100) / 100;
 
                 return (
                   <tr
