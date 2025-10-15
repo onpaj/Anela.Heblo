@@ -361,10 +361,10 @@ const InventoryList: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => {
-                const available = Math.round((item.stock?.available || 0) * 100) / 100;
+                const available = Math.round((item.stock?.eshop || 0) * 100) / 100;
                 const transport = Math.round((item.stock?.transport || 0) * 100) / 100;
                 const reserve = Math.round((item.stock?.reserve || 0) * 100) / 100;
-                const total = Math.round((available + transport + reserve) * 100) / 100;
+                const total = Math.round((item.stock?.available || 0) * 100) / 100;
 
                 return (
                   <tr

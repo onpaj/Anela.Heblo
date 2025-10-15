@@ -135,4 +135,13 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         // No-op for in-memory implementation
         return await Task.FromResult(1);
     }
+
+    public async Task<IEnumerable<PurchaseOrder>> GetByStatusAsync(PurchaseOrderStatus status, CancellationToken cancellationToken = default)
+    {
+        var orders = _orders.Values
+            .Where(order => order.Status == status)
+            .ToList();
+
+        return await Task.FromResult(orders);
+    }
 }

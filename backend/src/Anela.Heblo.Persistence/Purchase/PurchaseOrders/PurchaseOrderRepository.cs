@@ -101,4 +101,12 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
             .GroupBy(line => line.MaterialId)
             .ToDictionaryAsync(group => group.Key, group => group.Sum(line => line.Quantity), cancellationToken);
     }
+
+    public async Task<IEnumerable<PurchaseOrder>> GetByStatusAsync(PurchaseOrderStatus status, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(order => order.Status == status)
+            .Include(order => order.Lines)
+            .ToListAsync(cancellationToken);
+    }
 }
