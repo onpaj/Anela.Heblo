@@ -90,11 +90,11 @@ public class StockUpScenario
             await page.FillAsync("input[name='stockingSearch']", product.ProductCode);
             await page.PressAsync("input[name='stockingSearch']", "Enter");
             await page.WaitForSelectorAsync(".cashdesk-search-result",
-                new PageWaitForSelectorOptions { Timeout = 10000 });
+                new PageWaitForSelectorOptions { Timeout = 60000 });
 
             // Wait for products to be actually loaded and clickable
             await page.WaitForSelectorAsync(".cashdesk-products-listing > .product",
-                new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 5000 });
+                new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 60000 });
             await page.WaitForTimeoutAsync(500); // Additional wait for products to stabilize
 
             // Use locator for more robust element handling
@@ -103,7 +103,7 @@ public class StockUpScenario
             await productLocator.ClickAsync();
 
             // Wait for the quantity input field to be available and attached
-            await page.WaitForSelectorAsync(".stock-amount", new PageWaitForSelectorOptions { State = WaitForSelectorState.Attached, Timeout = 5000 });
+            await page.WaitForSelectorAsync(".stock-amount", new PageWaitForSelectorOptions { State = WaitForSelectorState.Attached, Timeout = 60000 });
 
             // Wait for any DOM mutations to settle
             await page.WaitForTimeoutAsync(500);
@@ -121,7 +121,7 @@ public class StockUpScenario
                     await quantityInput.WaitForAsync(new LocatorWaitForOptions
                     {
                         State = WaitForSelectorState.Attached,
-                        Timeout = 5000
+                        Timeout = 60000
                     });
 
                     // Scroll to the quantity input to make sure it's visible

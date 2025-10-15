@@ -14,6 +14,7 @@ interface GiftPackageManufacturingDetailProps {
   isOpen: boolean;
   onClose: () => void;
   onManufacture: (quantity: number) => Promise<void>;
+  onEnqueueManufacture: (quantity: number) => Promise<void>;
   salesCoefficient?: number;
   fromDate?: Date;
   toDate?: Date;
@@ -24,6 +25,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   isOpen,
   onClose,
   onManufacture,
+  onEnqueueManufacture,
   salesCoefficient,
   fromDate,
   toDate,
@@ -86,6 +88,17 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
       onClose();
     } catch (error) {
       console.error('Manufacturing error:', error);
+    }
+  };
+
+  const handleEnqueueManufacture = async () => {
+    if (!selectedPackage) return;
+    
+    try {
+      await onEnqueueManufacture(quantity);
+      onClose();
+    } catch (error) {
+      console.error('Enqueue manufacturing error:', error);
     }
   };
 
@@ -345,19 +358,31 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 </div>
               )}
 
-              {/* Manufacturing Button - Touch Friendly */}
-              <button
-                onClick={handleManufacture}
-                disabled={!validationResults.isValid}
-                className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
-                  validationResults.isValid
-                    ? 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                    : 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                }`}
-              >
-                <Package className="h-5 w-5 mr-2" />
-                Vyrobit ({quantity} ks)
-              </button>
+              {/* Manufacturing Buttons - Touch Friendly */}
+              <div className="space-y-3">
+                {/* Synchronous Manufacturing Button */}
+                <button
+                  onClick={handleManufacture}
+                  disabled={!validationResults.isValid}
+                  className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
+                    validationResults.isValid
+                      ? 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                      : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                  }`}
+                >
+                  <Package className="h-5 w-5 mr-2" />
+                  Vyrobit okamžitě ({quantity} ks)
+                </button>
+
+                {/* Asynchronous Manufacturing Button */}
+                <button
+                  onClick={handleEnqueueManufacture}
+                  className="w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation text-orange-700 bg-orange-100 hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Zařadit do fronty ({quantity} ks)
+                </button>
+              </div>
             </div>
           </div>
         </div>

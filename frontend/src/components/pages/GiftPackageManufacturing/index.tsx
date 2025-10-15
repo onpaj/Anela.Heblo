@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
-import { useCreateGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
-import { CreateGiftPackageManufactureRequest } from "../../../api/generated/api-client";
+import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
+import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest } from "../../../api/generated/api-client";
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -21,8 +21,9 @@ const GiftPackageManufacturing: React.FC = () => {
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
   
-  // Manufacturing API hook
+  // Manufacturing API hooks
   const createManufactureMutation = useCreateGiftPackageManufacture();
+  const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
 
   // Manufacturing modal handlers
   const handlePackageClick = (pkg: GiftPackage) => {
@@ -75,6 +76,24 @@ const GiftPackageManufacturing: React.FC = () => {
     }
   };
 
+  const handleEnqueueManufacture = async (quantity: number) => {
+    if (!selectedPackage) return;
+    
+    try {
+      const request = new EnqueueGiftPackageManufactureRequest({
+        giftPackageCode: selectedPackage.code,
+        quantity: quantity,
+        allowStockOverride: false
+      });
+      
+      const response = await enqueueManufactureMutation.mutateAsync(request);
+      console.log(`Výroba ${quantity}x ${selectedPackage.name} zařazena do fronty. Job ID: ${response.jobId}`);
+    } catch (error) {
+      console.error('Enqueue manufacturing error:', error);
+      throw error;
+    }
+  };
+
   return (
     <>
       <GiftPackageManufacturingList
@@ -90,6 +109,7 @@ const GiftPackageManufacturing: React.FC = () => {
         isOpen={isManufactureModalOpen}
         onClose={handleCloseManufactureModal}
         onManufacture={handleManufacture}
+        onEnqueueManufacture={handleEnqueueManufacture}
         salesCoefficient={salesCoefficient}
         fromDate={dateFilters.fromDate}
         toDate={dateFilters.toDate}
