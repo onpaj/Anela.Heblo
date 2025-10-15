@@ -135,11 +135,7 @@ export const useGiftPackageManufactureJobStatus = (jobId?: string) => {
       return await client.logistics_GetGiftPackageManufactureJobStatus(jobId);
     },
     enabled: !!jobId,
-    refetchInterval: (data) => {
-      // Poll every 2 seconds if job is still running
-      const isRunning = data?.jobStatus?.isRunning;
-      return isRunning ? 2000 : false;
-    },
+    refetchInterval: 2000, // Poll every 2 seconds
     staleTime: 0, // Always fetch fresh data for job status
     gcTime: 30 * 1000, // Keep in cache for 30 seconds
   });

@@ -12,7 +12,7 @@ import {
   HelpCircle,
   Info,
 } from "lucide-react";
-import { useAvailableGiftPackages, useRunningJobsForGiftPackage } from "../../../api/hooks/useGiftPackageManufacturing";
+import { useAvailableGiftPackages } from "../../../api/hooks/useGiftPackageManufacturing";
 import { StockSeverity } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import GiftPackageManufacturingFilters from "./GiftPackageManufacturingFilters";

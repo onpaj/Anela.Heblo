@@ -4,6 +4,7 @@ public class GiftPackageManufactureJobStatusDto
 {
     public string JobId { get; set; } = null!;
     public string Status { get; set; } = null!;
+    public string? DisplayName { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }

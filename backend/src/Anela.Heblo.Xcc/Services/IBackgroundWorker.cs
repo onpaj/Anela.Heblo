@@ -10,4 +10,8 @@ public interface IBackgroundWorker
     string Schedule<T>(Expression<Action<T>> methodCall, TimeSpan delay);
     string Schedule<T>(Expression<Func<T, Task>> methodCall, DateTimeOffset enqueueAt);
     string Schedule<T>(Expression<Action<T>> methodCall, DateTimeOffset enqueueAt);
+    
+    IList<BackgroundJobInfo> GetPendingJobs();
+    IList<BackgroundJobInfo> GetRunningJobs();
+    BackgroundJobInfo? GetJobById(string jobId);
 }

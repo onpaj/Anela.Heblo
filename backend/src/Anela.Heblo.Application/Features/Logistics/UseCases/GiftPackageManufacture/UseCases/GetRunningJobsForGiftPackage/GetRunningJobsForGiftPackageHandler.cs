@@ -1,72 +1,86 @@
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
-using Hangfire;
-using Hangfire.Storage;
-using Hangfire.Common;
+using Anela.Heblo.Xcc.Services;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetRunningJobsForGiftPackage;
 
 public class GetRunningJobsForGiftPackageHandler : IRequestHandler<GetRunningJobsForGiftPackageRequest, GetRunningJobsForGiftPackageResponse>
 {
-    public async Task<GetRunningJobsForGiftPackageResponse> Handle(GetRunningJobsForGiftPackageRequest request, CancellationToken cancellationToken)
+    private readonly IBackgroundWorker _backgroundWorker;
+
+    public GetRunningJobsForGiftPackageHandler(IBackgroundWorker backgroundWorker)
     {
-        using var connection = JobStorage.Current.GetConnection();
-        
+        _backgroundWorker = backgroundWorker;
+    }
+
+    public Task<GetRunningJobsForGiftPackageResponse> Handle(GetRunningJobsForGiftPackageRequest request, CancellationToken cancellationToken)
+    {
         var runningJobs = new List<GiftPackageManufactureJobStatusDto>();
 
-        // Get enqueued jobs
-        var enqueuedJobs = connection.GetEnqueuedJobs("default", 0, 1000);
-        foreach (var job in enqueuedJobs)
+        try
         {
-            if (IsGiftPackageManufactureJob(job.Value, request.GiftPackageCode))
+            // Get all running jobs from Hangfire
+            var hangfireRunningJobs = _backgroundWorker.GetRunningJobs();
+            
+            // Filter for gift package manufacturing jobs
+            var giftPackageJobs = hangfireRunningJobs
+                .Where(job => IsGiftPackageManufacturingJob(job.JobName))
+                .Select(job => new GiftPackageManufactureJobStatusDto
+                {
+                    JobId = job.Id,
+                    Status = job.State,
+                    DisplayName = job.JobName,
+                    CreatedAt = job.CreatedAt,
+                    StartedAt = job.StartedAt
+                })
+                .ToList();
+
+            runningJobs.AddRange(giftPackageJobs);
+
+            // Also check pending jobs (Enqueued/Scheduled)
+            var hangfirePendingJobs = _backgroundWorker.GetPendingJobs();
+            var pendingGiftPackageJobs = hangfirePendingJobs
+                .Where(job => IsGiftPackageManufacturingJob(job.JobName))
+                .Select(job => new GiftPackageManufactureJobStatusDto
+                {
+                    JobId = job.Id,
+                    Status = job.State,
+                    DisplayName = job.JobName,
+                    CreatedAt = job.CreatedAt,
+                    StartedAt = job.StartedAt
+                })
+                .ToList();
+
+            runningJobs.AddRange(pendingGiftPackageJobs);
+
+            // Filter by specific gift package code if provided
+            if (!string.IsNullOrEmpty(request.GiftPackageCode))
             {
-                runningJobs.Add(CreateJobStatusDto(job.Key, job.Value, connection));
+                runningJobs = runningJobs
+                    .Where(job => job.DisplayName?.Contains(request.GiftPackageCode, StringComparison.OrdinalIgnoreCase) == true)
+                    .ToList();
             }
         }
-
-        // Get processing jobs
-        var processingJobs = connection.GetProcessingJobs(0, 1000);
-        foreach (var job in processingJobs)
+        catch (Exception)
         {
-            if (IsGiftPackageManufactureJob(job.Value, request.GiftPackageCode))
-            {
-                runningJobs.Add(CreateJobStatusDto(job.Key, job.Value, connection));
-            }
+            // If Hangfire monitoring fails, return empty list gracefully
+            runningJobs = new List<GiftPackageManufactureJobStatusDto>();
         }
 
-        return new GetRunningJobsForGiftPackageResponse
+        return Task.FromResult(new GetRunningJobsForGiftPackageResponse
         {
-            IsSuccess = true,
+            Success = true,
             RunningJobs = runningJobs
-        };
+        });
     }
 
-    private static bool IsGiftPackageManufactureJob(JobDto job, string giftPackageCode)
+    private static bool IsGiftPackageManufacturingJob(string jobName)
     {
-        // Check if this is a CreateManufactureAsync call for the specific gift package
-        if (job.Job?.Method?.Name == "CreateManufactureAsync")
-        {
-            var arguments = job.Job.Args;
-            if (arguments?.Count > 0 && arguments[0]?.ToString() == giftPackageCode)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+        if (string.IsNullOrEmpty(jobName))
+            return false;
 
-    private static GiftPackageManufactureJobStatusDto CreateJobStatusDto(string jobId, JobDto jobData, IStorageConnection connection)
-    {
-        var history = connection.GetStateHistory(jobId);
-        var createdState = history.FirstOrDefault(x => x.Name == "Enqueued");
-        var processingState = history.FirstOrDefault(x => x.Name == "Processing");
-
-        return new GiftPackageManufactureJobStatusDto
-        {
-            JobId = jobId,
-            Status = jobData.State,
-            CreatedAt = createdState?.CreatedAt,
-            StartedAt = processingState?.CreatedAt
-        };
+        // Check if the job name contains gift package manufacturing service and method
+        return jobName.Contains("GiftPackageManufactureService", StringComparison.OrdinalIgnoreCase) &&
+               jobName.Contains("CreateManufactureAsync", StringComparison.OrdinalIgnoreCase);
     }
 }

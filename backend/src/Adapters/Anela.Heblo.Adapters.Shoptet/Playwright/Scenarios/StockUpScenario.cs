@@ -148,7 +148,14 @@ public class StockUpScenario
             await page.WaitForTimeoutAsync(500);
         }
 
-        await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
+        if (!_options.DryRun)
+        {
+            await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
+        }
+        else
+        {
+            _logger.LogInformation("DRY RUN: StockUp");
+        }
 
         return new StockUpRecord();
     }

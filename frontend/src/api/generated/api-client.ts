@@ -1228,8 +1228,10 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    dashboard_GetTileData(): Promise<DashboardTileDto[]> {
-        let url_ = this.baseUrl + "/api/Dashboard/data";
+    dashboard_GetTileData(tileParameters: { [key: string]: string; } | null | undefined): Promise<DashboardTileDto[]> {
+        let url_ = this.baseUrl + "/api/Dashboard/data?";
+        if (tileParameters !== undefined && tileParameters !== null)
+            url_ += "tileParameters=" + encodeURIComponent("" + tileParameters) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2294,6 +2296,80 @@ export class ApiClient {
             });
         }
         return Promise.resolve<EnqueueGiftPackageManufactureResponse>(null as any);
+    }
+
+    logistics_GetGiftPackageManufactureJobStatus(jobId: string): Promise<GetGiftPackageManufactureJobStatusResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture/job-status/{jobId}";
+        if (jobId === undefined || jobId === null)
+            throw new Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_GetGiftPackageManufactureJobStatus(_response);
+        });
+    }
+
+    protected processLogistics_GetGiftPackageManufactureJobStatus(response: Response): Promise<GetGiftPackageManufactureJobStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGiftPackageManufactureJobStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGiftPackageManufactureJobStatusResponse>(null as any);
+    }
+
+    logistics_GetRunningJobsForGiftPackage(giftPackageCode: string): Promise<GetRunningJobsForGiftPackageResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/{giftPackageCode}/running-jobs";
+        if (giftPackageCode === undefined || giftPackageCode === null)
+            throw new Error("The parameter 'giftPackageCode' must be defined.");
+        url_ = url_.replace("{giftPackageCode}", encodeURIComponent("" + giftPackageCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_GetRunningJobsForGiftPackage(_response);
+        });
+    }
+
+    protected processLogistics_GetRunningJobsForGiftPackage(response: Response): Promise<GetRunningJobsForGiftPackageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRunningJobsForGiftPackageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRunningJobsForGiftPackageResponse>(null as any);
     }
 
     logistics_GetManufactureLog(count: number | undefined): Promise<GetManufactureLogResponse> {
@@ -8918,6 +8994,148 @@ export interface IEnqueueGiftPackageManufactureRequest {
     giftPackageCode?: string;
     quantity?: number;
     allowStockOverride?: boolean;
+}
+
+export class GetGiftPackageManufactureJobStatusResponse extends BaseResponse implements IGetGiftPackageManufactureJobStatusResponse {
+    jobStatus?: GiftPackageManufactureJobStatusDto;
+
+    constructor(data?: IGetGiftPackageManufactureJobStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobStatus = _data["jobStatus"] ? GiftPackageManufactureJobStatusDto.fromJS(_data["jobStatus"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetGiftPackageManufactureJobStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGiftPackageManufactureJobStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobStatus"] = this.jobStatus ? this.jobStatus.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGiftPackageManufactureJobStatusResponse extends IBaseResponse {
+    jobStatus?: GiftPackageManufactureJobStatusDto;
+}
+
+export class GiftPackageManufactureJobStatusDto implements IGiftPackageManufactureJobStatusDto {
+    jobId?: string;
+    status?: string;
+    displayName?: string | undefined;
+    createdAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    completedAt?: Date | undefined;
+    errorMessage?: string | undefined;
+    isRunning?: boolean;
+
+    constructor(data?: IGiftPackageManufactureJobStatusDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.jobId = _data["jobId"];
+            this.status = _data["status"];
+            this.displayName = _data["displayName"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+            this.isRunning = _data["isRunning"];
+        }
+    }
+
+    static fromJS(data: any): GiftPackageManufactureJobStatusDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageManufactureJobStatusDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        data["status"] = this.status;
+        data["displayName"] = this.displayName;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        data["isRunning"] = this.isRunning;
+        return data;
+    }
+}
+
+export interface IGiftPackageManufactureJobStatusDto {
+    jobId?: string;
+    status?: string;
+    displayName?: string | undefined;
+    createdAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    completedAt?: Date | undefined;
+    errorMessage?: string | undefined;
+    isRunning?: boolean;
+}
+
+export class GetRunningJobsForGiftPackageResponse extends BaseResponse implements IGetRunningJobsForGiftPackageResponse {
+    runningJobs?: GiftPackageManufactureJobStatusDto[];
+    hasRunningJobs?: boolean;
+
+    constructor(data?: IGetRunningJobsForGiftPackageResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["runningJobs"])) {
+                this.runningJobs = [] as any;
+                for (let item of _data["runningJobs"])
+                    this.runningJobs!.push(GiftPackageManufactureJobStatusDto.fromJS(item));
+            }
+            this.hasRunningJobs = _data["hasRunningJobs"];
+        }
+    }
+
+    static override fromJS(data: any): GetRunningJobsForGiftPackageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRunningJobsForGiftPackageResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.runningJobs)) {
+            data["runningJobs"] = [];
+            for (let item of this.runningJobs)
+                data["runningJobs"].push(item.toJSON());
+        }
+        data["hasRunningJobs"] = this.hasRunningJobs;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRunningJobsForGiftPackageResponse extends IBaseResponse {
+    runningJobs?: GiftPackageManufactureJobStatusDto[];
+    hasRunningJobs?: boolean;
 }
 
 export class GetManufactureLogResponse extends BaseResponse implements IGetManufactureLogResponse {
