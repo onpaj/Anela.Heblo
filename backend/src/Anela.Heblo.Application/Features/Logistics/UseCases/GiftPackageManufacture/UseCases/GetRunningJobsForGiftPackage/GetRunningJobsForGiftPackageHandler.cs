@@ -21,7 +21,7 @@ public class GetRunningJobsForGiftPackageHandler : IRequestHandler<GetRunningJob
         {
             // Get all running jobs from Hangfire
             var hangfireRunningJobs = _backgroundWorker.GetRunningJobs();
-            
+
             // Filter for gift package manufacturing jobs
             var giftPackageJobs = hangfireRunningJobs
                 .Where(job => IsGiftPackageManufacturingJob(job.JobName))

@@ -20,6 +20,7 @@ import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
+import TransportBoxReceive from "./components/pages/TransportBoxReceive";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
@@ -359,6 +360,10 @@ function App() {
                         <Route
                           path="/logistics/transport-boxes"
                           element={<TransportBoxList />}
+                        />
+                        <Route
+                          path="/logistics/receive-boxes"
+                          element={<TransportBoxReceive />}
                         />
                         <Route
                           path="/logistics/gift-package-manufacturing"

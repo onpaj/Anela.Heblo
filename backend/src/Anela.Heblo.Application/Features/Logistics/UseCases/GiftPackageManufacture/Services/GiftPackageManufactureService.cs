@@ -225,7 +225,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         CancellationToken cancellationToken = default)
     {
         var displayName = $"GiftPackageManufacture-{giftPackageCode}-{quantity}";
-        
+
         var jobId = _backgroundWorker.Enqueue<IGiftPackageManufactureService>(
             service => service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, cancellationToken));
 

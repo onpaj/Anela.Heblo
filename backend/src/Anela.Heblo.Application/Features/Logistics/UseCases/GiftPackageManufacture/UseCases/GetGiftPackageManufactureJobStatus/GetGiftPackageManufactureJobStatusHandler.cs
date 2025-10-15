@@ -13,14 +13,14 @@ public class GetGiftPackageManufactureJobStatusHandler : IRequestHandler<GetGift
     {
         _backgroundWorker = backgroundWorker;
     }
-    
+
     public Task<GetGiftPackageManufactureJobStatusResponse> Handle(GetGiftPackageManufactureJobStatusRequest request, CancellationToken cancellationToken)
     {
         try
         {
             // Get real job data from Hangfire
             var jobInfo = _backgroundWorker.GetJobById(request.JobId);
-            
+
             if (jobInfo == null)
             {
                 var errorResponse = new GetGiftPackageManufactureJobStatusResponse
@@ -45,18 +45,18 @@ public class GetGiftPackageManufactureJobStatusHandler : IRequestHandler<GetGift
             // Determine completion time for finished jobs
             DateTime? completedAt = null;
             string? errorMessage = null;
-            
+
             if (jobInfo.State == "Succeeded" || jobInfo.State == "Failed")
             {
                 // For completed jobs, estimate completion time (in real scenario, this would come from Hangfire history)
                 completedAt = jobInfo.StartedAt?.AddMinutes(1) ?? jobInfo.CreatedAt?.AddMinutes(2);
-                
+
                 if (jobInfo.State == "Failed")
                 {
                     errorMessage = "Job execution failed. Please check logs for details.";
                 }
             }
-            
+
             var jobStatus = new GiftPackageManufactureJobStatusDto
             {
                 JobId = jobInfo.Id,

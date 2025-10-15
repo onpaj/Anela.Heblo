@@ -23,7 +23,7 @@ public class GetRunningJobsForGiftPackageHandlerTests
     {
         // Arrange
         var request = new GetRunningJobsForGiftPackageRequest { GiftPackageCode = "GIFT001" };
-        
+
         var runningJobs = new List<BackgroundJobInfo>
         {
             new()
@@ -37,7 +37,7 @@ public class GetRunningJobsForGiftPackageHandlerTests
             },
             new()
             {
-                Id = "running-2", 
+                Id = "running-2",
                 JobName = "OtherService.DoSomething()",
                 State = "Processing",
                 CreatedAt = DateTime.UtcNow.AddMinutes(-3),
@@ -92,7 +92,7 @@ public class GetRunningJobsForGiftPackageHandlerTests
             {
                 Id = "running-2",
                 JobName = "GiftPackageManufactureService.CreateManufactureAsync(\"GIFT002\", 3, false, <CancellationToken>)",
-                State = "Processing", 
+                State = "Processing",
                 CreatedAt = DateTime.UtcNow.AddMinutes(-3),
                 StartedAt = DateTime.UtcNow.AddMinutes(-1)
             },
@@ -300,7 +300,7 @@ public class GetRunningJobsForGiftPackageHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.RunningJobs.Should().HaveCount(1);
-        
+
         var jobDto = result.RunningJobs[0];
         jobDto.JobId.Should().Be("test-job-id");
         jobDto.Status.Should().Be("Processing");

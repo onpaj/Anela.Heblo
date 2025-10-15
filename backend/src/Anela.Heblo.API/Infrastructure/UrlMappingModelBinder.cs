@@ -36,7 +36,7 @@ public class UrlMappingModelBinder : IModelBinder
         foreach (var property in properties)
         {
             // Try to find query parameter (case-insensitive)
-            var queryKey = queryParams.Keys.FirstOrDefault(k => 
+            var queryKey = queryParams.Keys.FirstOrDefault(k =>
                 string.Equals(k, property.Name, StringComparison.OrdinalIgnoreCase));
 
             if (queryKey != null && queryParams.TryGetValue(queryKey, out var values))
@@ -56,7 +56,7 @@ public class UrlMappingModelBinder : IModelBinder
         // Set the model and mark binding as successful
         bindingContext.Model = model;
         bindingContext.Result = ModelBindingResult.Success(model);
-        
+
         return Task.CompletedTask;
     }
 
