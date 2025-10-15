@@ -360,9 +360,9 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
               {/* Manufacturing Buttons - Touch Friendly */}
               <div className="space-y-3">
-                {/* Synchronous Manufacturing Button */}
+                {/* Asynchronous Manufacturing Button */}
                 <button
-                  onClick={handleManufacture}
+                  onClick={handleEnqueueManufacture}
                   disabled={!validationResults.isValid}
                   className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
                     validationResults.isValid
@@ -370,17 +370,8 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                       : 'text-gray-400 bg-gray-200 cursor-not-allowed'
                   }`}
                 >
-                  <Package className="h-5 w-5 mr-2" />
-                  Vyrobit okamžitě ({quantity} ks)
-                </button>
-
-                {/* Asynchronous Manufacturing Button */}
-                <button
-                  onClick={handleEnqueueManufacture}
-                  className="w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation text-orange-700 bg-orange-100 hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                >
                   <RefreshCw className="h-5 w-5 mr-2" />
-                  Zařadit do fronty ({quantity} ks)
+                  Zadat k výrobě ({quantity} ks)
                 </button>
               </div>
             </div>

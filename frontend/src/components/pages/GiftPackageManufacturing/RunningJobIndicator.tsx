@@ -20,9 +20,9 @@ const RunningJobIndicator: React.FC<RunningJobIndicatorProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      <div 
+      <div
         className="w-2 h-2 bg-red-500 rounded-full animate-pulse"
-        title={`${runningJobsCount} běžící výroba${runningJobsCount > 1 ? 'y' : ''}`}
+        title={`${runningJobsCount} běžící výrob${runningJobsCount === 1 ? 'a' : 'y'}`}
       />
       {runningJobsCount > 1 && (
         <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-3 h-3 flex items-center justify-center font-bold">

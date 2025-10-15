@@ -148,9 +148,9 @@ describe('DashboardTile', () => {
 
   it('should include padding for tile content', () => {
     renderWithDndContext(<DashboardTile tile={mockTile} />);
-    
+
     const tileElement = screen.getByTestId('dashboard-tile-test-tile-123');
-    const contentWrapper = tileElement.querySelector('.p-4.h-full');
+    const contentWrapper = tileElement.querySelector('.p-4.flex-1');
     expect(contentWrapper).toBeInTheDocument();
   });
 });
