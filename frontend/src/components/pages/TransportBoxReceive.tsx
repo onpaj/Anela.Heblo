@@ -25,7 +25,7 @@ const TransportBoxReceive: React.FC = () => {
   const [isReceiving, setIsReceiving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const { addToast } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const { getByCode, receive } = useTransportBoxReceive();
 
   // Auto-focus input field on component mount and after operations
@@ -44,7 +44,7 @@ const TransportBoxReceive: React.FC = () => {
     e.preventDefault();
     
     if (!boxCode.trim()) {
-      addToast('Zadejte kód boxu', 'error');
+      showError('Chyba', 'Zadejte kód boxu');
       return;
     }
 
@@ -63,14 +63,14 @@ const TransportBoxReceive: React.FC = () => {
           lastStateChanged: response.transportBox.lastStateChanged,
           items: response.transportBox.items
         });
-        addToast('Box nalezen a připraven k příjmu', 'success');
+        showSuccess('Úspěch', 'Box nalezen a připraven k příjmu');
       } else {
-        addToast(response.errorMessage || 'Chyba při načítání boxu', 'error');
+        showError('Chyba', response.errorMessage || 'Chyba při načítání boxu');
         setBoxDetails(null);
       }
     } catch (error) {
       console.error('Error loading box:', error);
-      addToast('Chyba při načítání boxu', 'error');
+      showError('Chyba', 'Chyba při načítání boxu');
       setBoxDetails(null);
     } finally {
       setIsLoading(false);
@@ -86,14 +86,14 @@ const TransportBoxReceive: React.FC = () => {
       const response = await receive(boxDetails.id, 'Warehouse User'); // TODO: Get actual user
       
       if (response.success) {
-        addToast(`Box ${boxDetails.code} úspěšně přijat`, 'success');
+        showSuccess('Úspěch', `Box ${boxDetails.code} úspěšně přijat`);
         resetForm();
       } else {
-        addToast(response.errorMessage || 'Chyba při příjmu boxu', 'error');
+        showError('Chyba', response.errorMessage || 'Chyba při příjmu boxu');
       }
     } catch (error) {
       console.error('Error receiving box:', error);
-      addToast('Chyba při příjmu boxu', 'error');
+      showError('Chyba', 'Chyba při příjmu boxu');
     } finally {
       setIsReceiving(false);
     }
@@ -101,7 +101,7 @@ const TransportBoxReceive: React.FC = () => {
 
   const handleCancel = () => {
     resetForm();
-    addToast('Operace zrušena', 'info');
+    showInfo('Info', 'Operace zrušena');
   };
 
   const getStateBadgeColor = (state: string) => {
