@@ -50,7 +50,7 @@ describe('TransportBoxReceive', () => {
 
     expect(screen.getByText('Příjem transportních boxů')).toBeInTheDocument();
     expect(screen.getByText('Naskenujte kód boxu pro příjem zásilky do skladu')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Naskenujte nebo zadejte kód boxu (např. B001)')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Naskenujte kód boxu (např. B001)')).toBeInTheDocument();
   });
 
   it('handles barcode input correctly', () => {
@@ -60,8 +60,8 @@ describe('TransportBoxReceive', () => {
       </TestWrapper>
     );
 
-    const input = screen.getByPlaceholderText('Naskenujte nebo zadejte kód boxu (např. B001)');
-    
+    const input = screen.getByPlaceholderText('Naskenujte kód boxu (např. B001)');
+
     // Test input handling
     fireEvent.change(input, { target: { value: 'b001' } });
     expect(input).toHaveValue('B001'); // Should be uppercased
@@ -74,13 +74,13 @@ describe('TransportBoxReceive', () => {
       </TestWrapper>
     );
 
-    const scanButton = screen.getByText('Načíst box');
-    
+    const scanButton = screen.getByText('Načíst');
+
     // Button should be disabled when input is empty
     expect(scanButton).toBeDisabled();
-    
+
     // Typing should enable the button
-    const input = screen.getByPlaceholderText('Naskenujte nebo zadejte kód boxu (např. B001)');
+    const input = screen.getByPlaceholderText('Naskenujte kód boxu (např. B001)');
     fireEvent.change(input, { target: { value: 'B001' } });
     expect(scanButton).not.toBeDisabled();
   });

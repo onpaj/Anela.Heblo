@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -95,6 +96,12 @@ public class GetTransportBoxByCodeHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
             .ReturnsAsync(box);
 
+        // Mock catalog repository for the product in the box
+        var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => catalogItem);
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -105,6 +112,8 @@ public class GetTransportBoxByCodeHandlerTests
         result.TransportBox!.Code.Should().Be("B001");
         result.TransportBox.State.Should().Be(state.ToString());
         result.TransportBox.Items.Should().HaveCount(1);
+        result.TransportBox.Items[0].ImageUrl.Should().Be("https://example.com/image.jpg");
+        result.TransportBox.Items[0].OnStock.Should().Be(10.5m);
     }
 
     [Fact]
@@ -194,5 +203,19 @@ public class GetTransportBoxByCodeHandlerTests
         }
 
         return box;
+    }
+
+    private CatalogAggregate CreateTestCatalogItem(string productCode, string productName, string imageUrl, decimal eshopStock)
+    {
+        return new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ProductName = productName,
+            Image = imageUrl,
+            Stock = new StockData
+            {
+                Eshop = eshopStock
+            }
+        };
     }
 }
