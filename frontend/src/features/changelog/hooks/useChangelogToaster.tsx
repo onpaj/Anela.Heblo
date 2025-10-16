@@ -14,10 +14,6 @@ import {
   markVersionAsSeen
 } from '../utils/version-tracking';
 
-/**
- * Default auto-hide timeout (10 seconds)
- */
-const DEFAULT_AUTO_HIDE_TIMEOUT = 10000;
 
 /**
  * Hook for managing changelog toaster state and behavior
@@ -40,27 +36,6 @@ export function useChangelogToaster(): UseChangelogToasterReturn {
     }
   }, []);
 
-  /**
-   * Start auto-hide countdown
-   */
-  const startAutoHide = useCallback(() => {
-    clearAutoHideTimeout();
-    
-    setToaster(prev => ({
-      ...prev,
-      isAutoHiding: true,
-    }));
-
-    autoHideTimeoutRef.current = setTimeout(() => {
-      setToaster(prev => ({
-        ...prev,
-        isVisible: false,
-        isAutoHiding: false,
-        version: undefined,
-        changes: undefined,
-      }));
-    }, DEFAULT_AUTO_HIDE_TIMEOUT);
-  }, [clearAutoHideTimeout]);
 
   /**
    * Show toaster for new version

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -11,14 +12,16 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class GetTransportBoxByCodeHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ILogger<GetTransportBoxByCodeHandler>> _loggerMock;
     private readonly GetTransportBoxByCodeHandler _handler;
 
     public GetTransportBoxByCodeHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _loggerMock = new Mock<ILogger<GetTransportBoxByCodeHandler>>();
-        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object);
+        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]

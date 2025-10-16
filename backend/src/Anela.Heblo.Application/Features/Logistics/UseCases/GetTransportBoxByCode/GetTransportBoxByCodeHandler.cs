@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,13 +11,16 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
 {
     private readonly ILogger<GetTransportBoxByCodeHandler> _logger;
     private readonly ITransportBoxRepository _repository;
+    private readonly ICatalogRepository _catalogRepository;
 
     public GetTransportBoxByCodeHandler(
         ILogger<GetTransportBoxByCodeHandler> logger,
-        ITransportBoxRepository repository)
+        ITransportBoxRepository repository,
+        ICatalogRepository catalogRepository)
     {
         _logger = logger;
         _repository = repository;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<GetTransportBoxByCodeResponse> Handle(GetTransportBoxByCodeRequest request, CancellationToken cancellationToken)
@@ -62,6 +66,36 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "BoxCode", request.BoxCode } });
         }
 
+        // Fetch product images from catalog for all items
+        var itemDtos = new List<TransportBoxItemDto>();
+        foreach (var item in detailedBox.Items)
+        {
+            string? imageUrl = null;
+            decimal onStock = 0;
+            try
+            {
+                var catalogItem = (await _catalogRepository.GetByIdAsync(item.ProductCode, cancellationToken))!;
+                imageUrl = catalogItem.Image;
+                onStock = catalogItem.Stock.Eshop;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load catalog image for product {ProductCode}", item.ProductCode);
+            }
+
+            itemDtos.Add(new TransportBoxItemDto
+            {
+                Id = item.Id,
+                ProductCode = item.ProductCode,
+                ProductName = item.ProductName,
+                Amount = item.Amount,
+                ImageUrl = imageUrl,
+                OnStock = onStock,
+                DateAdded = item.DateAdded,
+                UserAdded = item.UserAdded
+            });
+        }
+
         var dto = new TransportBoxDto
         {
             Id = detailedBox.Id,
@@ -74,15 +108,7 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
             IsInTransit = detailedBox.IsInTransit,
             IsInReserve = detailedBox.IsInReserve,
             ItemCount = detailedBox.Items.Count,
-            Items = detailedBox.Items.Select(item => new TransportBoxItemDto
-            {
-                Id = item.Id,
-                ProductCode = item.ProductCode,
-                ProductName = item.ProductName,
-                Amount = item.Amount,
-                DateAdded = item.DateAdded,
-                UserAdded = item.UserAdded
-            }).ToList(),
+            Items = itemDtos,
             StateLog = detailedBox.StateLog.Select(log => new TransportBoxStateLogDto
             {
                 Id = log.Id,

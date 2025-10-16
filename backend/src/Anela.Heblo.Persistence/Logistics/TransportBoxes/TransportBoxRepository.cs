@@ -120,6 +120,8 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
         var transportBox = await DbSet
             .Include(x => x.Items)
             .Include(x => x.StateLog)
+            .OrderBy(o => o.State == TransportBoxState.Closed ? 1 : 0)
+            .ThenByDescending(o => o.Id)
             .FirstOrDefaultAsync(x => x.Code == upperBoxCode);
 
         _logger.LogDebug("Retrieved transport box by code {BoxCode}: {Found}",
