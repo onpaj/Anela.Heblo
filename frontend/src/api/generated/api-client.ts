@@ -4169,6 +4169,84 @@ export class ApiClient {
         }
         return Promise.resolve<UpdateTransportBoxDescriptionResponse>(null as any);
     }
+
+    transportBox_GetTransportBoxByCode(boxCode: string): Promise<GetTransportBoxByCodeResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/by-code/{boxCode}";
+        if (boxCode === undefined || boxCode === null)
+            throw new Error("The parameter 'boxCode' must be defined.");
+        url_ = url_.replace("{boxCode}", encodeURIComponent("" + boxCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_GetTransportBoxByCode(_response);
+        });
+    }
+
+    protected processTransportBox_GetTransportBoxByCode(response: Response): Promise<GetTransportBoxByCodeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTransportBoxByCodeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTransportBoxByCodeResponse>(null as any);
+    }
+
+    transportBox_ReceiveTransportBox(id: number, request: ReceiveTransportBoxRequest): Promise<ReceiveTransportBoxResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/receive";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_ReceiveTransportBox(_response);
+        });
+    }
+
+    protected processTransportBox_ReceiveTransportBox(response: Response): Promise<ReceiveTransportBoxResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReceiveTransportBoxResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReceiveTransportBoxResponse>(null as any);
+    }
 }
 
 export abstract class BaseResponse implements IBaseResponse {
@@ -14451,6 +14529,7 @@ export class TransportBoxDto implements ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
     creatorId?: string | undefined;
@@ -14480,6 +14559,7 @@ export class TransportBoxDto implements ITransportBoxDto {
             this.location = _data["location"];
             this.isInTransit = _data["isInTransit"];
             this.isInReserve = _data["isInReserve"];
+            this.isReceivable = _data["isReceivable"];
             this.itemCount = _data["itemCount"];
             this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
             this.creatorId = _data["creatorId"];
@@ -14521,6 +14601,7 @@ export class TransportBoxDto implements ITransportBoxDto {
         data["location"] = this.location;
         data["isInTransit"] = this.isInTransit;
         data["isInReserve"] = this.isInReserve;
+        data["isReceivable"] = this.isReceivable;
         data["itemCount"] = this.itemCount;
         data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
         data["creatorId"] = this.creatorId;
@@ -14555,6 +14636,7 @@ export interface ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
     creatorId?: string | undefined;
@@ -14570,8 +14652,10 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
     productCode?: string;
     productName?: string;
     amount?: number;
+    imageUrl?: string | undefined;
     dateAdded?: Date;
     userAdded?: string;
+    onStock?: number;
 
     constructor(data?: ITransportBoxItemDto) {
         if (data) {
@@ -14588,8 +14672,10 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.amount = _data["amount"];
+            this.imageUrl = _data["imageUrl"];
             this.dateAdded = _data["dateAdded"] ? new Date(_data["dateAdded"].toString()) : <any>undefined;
             this.userAdded = _data["userAdded"];
+            this.onStock = _data["onStock"];
         }
     }
 
@@ -14606,8 +14692,10 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["amount"] = this.amount;
+        data["imageUrl"] = this.imageUrl;
         data["dateAdded"] = this.dateAdded ? this.dateAdded.toISOString() : <any>undefined;
         data["userAdded"] = this.userAdded;
+        data["onStock"] = this.onStock;
         return data;
     }
 }
@@ -14617,8 +14705,10 @@ export interface ITransportBoxItemDto {
     productCode?: string;
     productName?: string;
     amount?: number;
+    imageUrl?: string | undefined;
     dateAdded?: Date;
     userAdded?: string;
+    onStock?: number;
 }
 
 export class TransportBoxStateLogDto implements ITransportBoxStateLogDto {
@@ -15162,6 +15252,116 @@ export class UpdateTransportBoxDescriptionRequest implements IUpdateTransportBox
 export interface IUpdateTransportBoxDescriptionRequest {
     boxId?: number;
     description?: string | undefined;
+}
+
+export class GetTransportBoxByCodeResponse extends BaseResponse implements IGetTransportBoxByCodeResponse {
+    transportBox?: TransportBoxDto | undefined;
+
+    constructor(data?: IGetTransportBoxByCodeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetTransportBoxByCodeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTransportBoxByCodeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetTransportBoxByCodeResponse extends IBaseResponse {
+    transportBox?: TransportBoxDto | undefined;
+}
+
+export class ReceiveTransportBoxResponse extends BaseResponse implements IReceiveTransportBoxResponse {
+    boxId?: number;
+    boxCode?: string | undefined;
+
+    constructor(data?: IReceiveTransportBoxResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.boxCode = _data["boxCode"];
+        }
+    }
+
+    static override fromJS(data: any): ReceiveTransportBoxResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReceiveTransportBoxResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["boxCode"] = this.boxCode;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReceiveTransportBoxResponse extends IBaseResponse {
+    boxId?: number;
+    boxCode?: string | undefined;
+}
+
+export class ReceiveTransportBoxRequest implements IReceiveTransportBoxRequest {
+    boxId?: number;
+    userName?: string;
+
+    constructor(data?: IReceiveTransportBoxRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxId = _data["boxId"];
+            this.userName = _data["userName"];
+        }
+    }
+
+    static fromJS(data: any): ReceiveTransportBoxRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReceiveTransportBoxRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxId"] = this.boxId;
+        data["userName"] = this.userName;
+        return data;
+    }
+}
+
+export interface IReceiveTransportBoxRequest {
+    boxId?: number;
+    userName?: string;
 }
 
 function formatDate(d: Date) {

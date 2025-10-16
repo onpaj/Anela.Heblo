@@ -19,7 +19,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { 
-  ChangelogEntry as ChangelogEntryType, 
   ChangelogEntryProps, 
   ChangeTypeCz,
   mapChangeTypeToCzech 

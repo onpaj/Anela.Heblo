@@ -11,6 +11,7 @@ public class TransportBoxDto
     public string? Location { get; set; }
     public bool IsInTransit { get; set; }
     public bool IsInReserve { get; set; }
+    public bool IsReceivable { get; set; }
     public int ItemCount { get; set; }
     // Audit fields
     public DateTime CreationTime { get; set; }
