@@ -21,7 +21,7 @@ public class UrlMappingModelBinderProvider : IModelBinderProvider
             // Check if this parameter has the UrlMappedQueryAttribute
             // We can check the metadata for the parameter attributes
             var parameterDescriptor = context.Metadata as Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DefaultModelMetadata;
-            
+
             if (parameterDescriptor?.Attributes?.Attributes != null)
             {
                 var hasUrlMappedQueryAttribute = parameterDescriptor.Attributes.Attributes
@@ -47,7 +47,7 @@ public class UrlMappingModelBinderProvider : IModelBinderProvider
     {
         // Consider nullable types
         var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
-        
+
         return underlyingType.IsPrimitive ||
                underlyingType.IsEnum ||
                underlyingType == typeof(string) ||

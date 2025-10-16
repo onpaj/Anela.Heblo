@@ -26,21 +26,33 @@ public class PurchaseOrdersInTransitTile : ITile
     {
         // Get all purchase orders in transit status
         var inTransitOrders = await _purchaseOrderRepository.GetByStatusAsync(PurchaseOrderStatus.InTransit, cancellationToken);
-        
+
         // Calculate total amount
         var totalAmount = inTransitOrders.Sum(order => order.TotalAmount);
-        
+
         // Format amount in thousands with 'k' suffix
         var formattedAmount = FormatAmountInThousands(totalAmount);
 
         var result = new
         {
+            status = "success",
             data = new
             {
                 count = inTransitOrders.Count(),
                 totalAmount = totalAmount,
                 formattedAmount = formattedAmount
             },
+            metadata = new
+            {
+                lastUpdated = DateTime.UtcNow,
+                source = "PurchaseOrderRepository"
+            },
+            drillDown = new
+            {
+                filters = new { state = "InTransit" },
+                enabled = true,
+                tooltip = "Zobrazit všechny objednávky v přepravě"
+            }
         };
 
         return result;
@@ -52,7 +64,7 @@ public class PurchaseOrdersInTransitTile : ITile
             return "0";
 
         var amountInThousands = amount / 1000m;
-        
+
         // Round to 1 decimal place if needed, otherwise show as integer
         if (amountInThousands % 1 == 0)
             return $"{(int)amountInThousands}k";

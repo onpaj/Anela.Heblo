@@ -9,7 +9,7 @@ public static class DashboardModule
     public static IServiceCollection AddDashboardModule(this IServiceCollection services)
     {
         // MediatR handlers are automatically registered by the ApplicationModule
-        
+
         // Register dashboard tiles
         services.RegisterTile<PurchaseOrdersInTransitTile>();
 

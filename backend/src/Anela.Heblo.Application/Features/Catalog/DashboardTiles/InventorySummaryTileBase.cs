@@ -63,6 +63,17 @@ public abstract class InventorySummaryTileBase : ITile
                     never,       // never inventoried
                     total = filteredItems.Count(),
                     date = now
+                },
+                metadata = new
+                {
+                    lastUpdated = now,
+                    source = "CatalogRepository"
+                },
+                drillDown = new
+                {
+                    filters = GenerateDrillDownFilters(),
+                    enabled = true,
+                    tooltip = $"Zobrazit všechny položky inventury"
                 }
             };
         }
@@ -75,4 +86,6 @@ public abstract class InventorySummaryTileBase : ITile
             };
         }
     }
+
+    protected abstract object GenerateDrillDownFilters();
 }

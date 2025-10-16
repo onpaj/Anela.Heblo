@@ -31,17 +31,46 @@ public abstract class UpcomingProductionTile : ITile
 
         return new
         {
-            TotalOrders = orders.Count(),
-            Products = orders.Take(5).Select(o =>
-                    new
-                    {
-                        o.SemiProduct.ProductName,
-                        SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
-                        ProductsCompleted = o.State == ManufactureOrderState.Completed,
-                        o.ResponsiblePerson,
-                        o.SemiProduct.ActualQuantity
-                    }
-            ).ToArray()
+            status = "success",
+            data = new
+            {
+                TotalOrders = orders.Count(),
+                Products = orders.Take(5).Select(o =>
+                        new
+                        {
+                            o.SemiProduct.ProductName,
+                            SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
+                            ProductsCompleted = o.State == ManufactureOrderState.Completed,
+                            o.ResponsiblePerson,
+                            o.SemiProduct.ActualQuantity
+                        }
+                ).ToArray()
+            },
+            metadata = new
+            {
+                lastUpdated = DateTime.UtcNow,
+                source = "ManufactureOrderRepository"
+            },
+            drillDown = new
+            {
+                filters = GenerateDrillDownFilters(),
+                enabled = true,
+                tooltip = $"Zobrazit všechny výrobní příkazy na {ReferenceDate:dd.MM.yyyy}"
+            }
         };
+    }
+
+    protected virtual object GenerateDrillDownFilters()
+    {
+        var dateString = ReferenceDate.ToString("yyyy-MM-dd");
+        if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today))
+        {
+            return new { date = "today" };
+        }
+        if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
+        {
+            return new { date = "tomorrow" };
+        }
+        return new { date = dateString };
     }
 }
