@@ -11,6 +11,8 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxes;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxSummary;
 using Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 using Anela.Heblo.Application.Features.Logistics.UseCases.UpdateTransportBoxDescription;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
+using Anela.Heblo.Application.Features.Logistics.UseCases.ReceiveTransportBox;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -161,6 +163,45 @@ public class TransportBoxController : ControllerBase
     public async Task<ActionResult<UpdateTransportBoxDescriptionResponse>> UpdateTransportBoxDescription(
         int id,
         [FromBody] UpdateTransportBoxDescriptionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        request.BoxId = id; // Ensure consistency
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get transport box by code for receiving interface (barcode scanning)
+    /// </summary>
+    [HttpGet("by-code/{boxCode}")]
+    public async Task<ActionResult<GetTransportBoxByCodeResponse>> GetTransportBoxByCode(
+        string boxCode,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetTransportBoxByCodeRequest { BoxCode = boxCode };
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Receive transport box (confirm receipt from Reserve or InTransit state)
+    /// </summary>
+    [HttpPost("{id:int}/receive")]
+    public async Task<ActionResult<ReceiveTransportBoxResponse>> ReceiveTransportBox(
+        int id,
+        [FromBody] ReceiveTransportBoxRequest request,
         CancellationToken cancellationToken = default)
     {
         request.BoxId = id; // Ensure consistency

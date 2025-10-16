@@ -162,7 +162,7 @@ public class GetGiftPackageManufactureJobStatusHandlerTests
         result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
         result.Params.Should().ContainKey("JobId");
         result.Params["JobId"].Should().Be("non-existent-job");
-        
+
         result.JobStatus.Should().NotBeNull();
         result.JobStatus.JobId.Should().Be("non-existent-job");
         result.JobStatus.Status.Should().Be("NotFound");
@@ -187,7 +187,7 @@ public class GetGiftPackageManufactureJobStatusHandlerTests
         result.ErrorCode.Should().Be(ErrorCodes.Exception);
         result.Params.Should().ContainKey("ErrorMessage");
         result.Params["ErrorMessage"].Should().Be("Hangfire monitoring unavailable");
-        
+
         result.JobStatus.Should().NotBeNull();
         result.JobStatus.JobId.Should().Be("error-job");
         result.JobStatus.Status.Should().Be("Error");

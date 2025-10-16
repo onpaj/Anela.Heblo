@@ -74,7 +74,7 @@ public abstract class TransportBoxBaseTile : ITile
         {
             return new { state = FilterStates[0].ToString() };
         }
-        
+
         // Multiple states - use ACTIVE for "active" boxes or first state
         if (FilterStates.Length > 1)
         {
@@ -84,7 +84,7 @@ public abstract class TransportBoxBaseTile : ITile
             {
                 return new { state = "ACTIVE" };
             }
-            
+
             // Default to first state
             return new { state = FilterStates[0].ToString() };
         }

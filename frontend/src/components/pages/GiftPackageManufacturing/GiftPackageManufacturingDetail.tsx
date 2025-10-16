@@ -80,16 +80,6 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
     }
   }, [selectedPackage]);
 
-  const handleManufacture = async () => {
-    if (!selectedPackage || !validationResults.isValid) return;
-    
-    try {
-      await onManufacture(quantity);
-      onClose();
-    } catch (error) {
-      console.error('Manufacturing error:', error);
-    }
-  };
 
   const handleEnqueueManufacture = async () => {
     if (!selectedPackage) return;

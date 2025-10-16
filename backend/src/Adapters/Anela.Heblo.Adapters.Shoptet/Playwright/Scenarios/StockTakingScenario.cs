@@ -78,7 +78,7 @@ public class StockTakingScenario
                 "DRY RUN: InventoryAlign: {ProductCode} -> {TargetAmount} ({FreeAmount} free / {ReservedAmount} reserved -> {SetAmount})",
                 request.ProductCode, request.TargetAmount, freeAmount, reservedAmount, setAmount);
         }
-        
+
 
         // Zavření prohlížeče
         await browser.CloseAsync();

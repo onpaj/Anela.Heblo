@@ -10,6 +10,9 @@ import {
   useDisableTile
 } from '../useDashboard';
 
+// Import the mocked client module
+import * as clientModule from '../../client';
+
 // Mock the API client
 const mockFetch = jest.fn();
 const mockApiClient = {
@@ -39,9 +42,6 @@ const createWrapper = () => {
     </QueryClientProvider>
   );
 };
-
-// Import the mocked client module
-import * as clientModule from '../../client';
 
 describe('useDashboard hooks', () => {
   beforeEach(() => {
