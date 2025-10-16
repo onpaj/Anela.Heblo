@@ -37,6 +37,19 @@ const resources = {
         },
         scheduleUpdatedSuccessfully: "Rozpis výroby byl úspěšně aktualizován"
       },
+      transport: {
+        states: {
+          New: "Nový",
+          Opened: "Otevřený",
+          InTransit: "V přepravě",
+          Received: "Přijatý",
+          InSwap: "Ve výměně",
+          Stocked: "Naskladněný",
+          Closed: "Uzavřený",
+          Error: "Chyba",
+          Reserve: "V rezervě"
+        }
+      },
       dashboard: {
         tileCategories: {
           Manufacture: "Výroba",
@@ -209,6 +222,19 @@ const resources = {
           ResponsiblePersonAssigned: "Responsible Person Assigned",
           NoteAdded: "Note Added",
           OrderCreated: "Order Created"
+        }
+      },
+      transport: {
+        states: {
+          New: "New",
+          Opened: "Opened",
+          InTransit: "In Transit",
+          Received: "Received",
+          InSwap: "In Swap",
+          Stocked: "Stocked",
+          Closed: "Closed",
+          Error: "Error",
+          Reserve: "In Reserve"
         }
       },
       dashboard: {

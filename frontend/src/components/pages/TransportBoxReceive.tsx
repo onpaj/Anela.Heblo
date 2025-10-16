@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Package, Scan, Check, X, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../contexts/ToastContext';
 import { useTransportBoxReceive } from '../../api/hooks/useTransportBoxReceive';
 import { TransportBoxDto } from '../../api/generated/api-client';
@@ -10,7 +11,8 @@ const TransportBoxReceive: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isReceiving, setIsReceiving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
+  const { t } = useTranslation();
   const { showSuccess, showError } = useToast();
   const { getByCode, receive } = useTransportBoxReceive();
 
@@ -96,16 +98,7 @@ const TransportBoxReceive: React.FC = () => {
   };
 
   const getStateLabel = (state: string) => {
-    switch (state) {
-      case 'InTransit':
-        return 'V přepravě';
-      case 'Reserve':
-        return 'V rezervě';
-      case 'Received':
-        return 'Přijatý';
-      default:
-        return state;
-    }
+    return t(`transport.states.${state}`, state);
   };
 
   return (
