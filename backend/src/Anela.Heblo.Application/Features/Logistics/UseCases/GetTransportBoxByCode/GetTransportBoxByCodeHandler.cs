@@ -30,7 +30,8 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "Field", "BoxCode" } });
         }
 
-        var transportBox = await _repository.GetByCodeAsync(request.BoxCode.ToUpper());
+        var normalizedBoxCode = request.BoxCode.Trim().ToUpper();
+        var transportBox = await _repository.GetByCodeAsync(normalizedBoxCode);
 
         if (transportBox == null)
         {
