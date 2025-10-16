@@ -45,16 +45,11 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
         }
 
         // Check if box is in a receivable state (Reserve or InTransit)
-        if (transportBox.State != TransportBoxState.Reserve && transportBox.State != TransportBoxState.InTransit)
+        var isReceivable = transportBox.State == TransportBoxState.Reserve || transportBox.State == TransportBoxState.InTransit;
+        if (!isReceivable)
         {
-            _logger.LogWarning("Transport box {BoxCode} is in state {State}, cannot be received",
+            _logger.LogInformation("Transport box {BoxCode} is in state {State}, not receivable but will load details",
                 request.BoxCode, transportBox.State);
-            return new GetTransportBoxByCodeResponse(ErrorCodes.TransportBoxStateChangeError,
-                new Dictionary<string, string>
-                {
-                    { "BoxCode", request.BoxCode },
-                    { "CurrentState", GetStateLabel(transportBox.State) }
-                });
         }
 
         // Load full details including items
@@ -107,6 +102,7 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
             Location = detailedBox.Location,
             IsInTransit = detailedBox.IsInTransit,
             IsInReserve = detailedBox.IsInReserve,
+            IsReceivable = isReceivable,
             ItemCount = detailedBox.Items.Count,
             Items = itemDtos,
             StateLog = detailedBox.StateLog.Select(log => new TransportBoxStateLogDto

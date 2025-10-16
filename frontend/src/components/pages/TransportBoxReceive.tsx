@@ -181,6 +181,28 @@ const TransportBoxReceive: React.FC = () => {
             </span>
           </div>
 
+          {/* Alert when box is not receivable */}
+          {boxDetails.isReceivable === false && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <X className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Box nelze přijmout
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>
+                      Box je ve stavu "{getStateLabel(boxDetails.state || '')}" a nemůže být přijat. 
+                      Pro příjem musí být box ve stavu "V přepravě" nebo "V rezervě".
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {boxDetails.location && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-500">Umístění</label>
@@ -268,24 +290,35 @@ const TransportBoxReceive: React.FC = () => {
                 Storno
               </button>
 
-              <button
-                type="button"
-                onClick={handleReceive}
-                disabled={isReceiving}
-                className="flex-1 flex justify-center py-4 px-6 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed active:bg-green-800 min-h-[56px]"
-              >
-                {isReceiving ? (
-                  <>
-                    <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                    Přijímání...
-                  </>
-                ) : (
-                  <>
-                    <Check className="-ml-1 mr-2 h-5 w-5" />
-                    Potvrdit příjem
-                  </>
-                )}
-              </button>
+              {boxDetails.isReceivable !== false ? (
+                <button
+                  type="button"
+                  onClick={handleReceive}
+                  disabled={isReceiving}
+                  className="flex-1 flex justify-center py-4 px-6 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed active:bg-green-800 min-h-[56px]"
+                >
+                  {isReceiving ? (
+                    <>
+                      <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
+                      Přijímání...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="-ml-1 mr-2 h-5 w-5" />
+                      Potvrdit příjem
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 flex justify-center py-4 px-6 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-500 bg-gray-100 cursor-not-allowed min-h-[56px]"
+                >
+                  <X className="-ml-1 mr-2 h-5 w-5" />
+                  Nelze přijmout
+                </button>
+              )}
             </div>
           </div>
         </div>

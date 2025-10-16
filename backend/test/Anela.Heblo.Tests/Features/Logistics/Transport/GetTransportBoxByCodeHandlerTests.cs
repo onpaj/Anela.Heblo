@@ -60,23 +60,37 @@ public class GetTransportBoxByCodeHandlerTests
     }
 
     [Fact]
-    public async Task Handle_BoxInInvalidState_ReturnsFailureResponse()
+    public async Task Handle_BoxInInvalidState_ReturnsSuccessResponseWithNotReceivable()
     {
         // Arrange
         var request = new GetTransportBoxByCodeRequest { BoxCode = "B001" };
-        var box = CreateTestBox(TransportBoxState.Opened, "B001");
+        var box = CreateTestBoxWithItems(TransportBoxState.Opened, "B001");
 
         _repositoryMock
             .Setup(x => x.GetByCodeAsync("B001"))
             .ReturnsAsync(box);
 
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
+            .ReturnsAsync(box);
+
+        // Mock catalog repository for the product in the box
+        var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => catalogItem);
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxStateChangeError);
-        result.TransportBox.Should().BeNull();
+        result.Success.Should().BeTrue();
+        result.ErrorCode.Should().BeNull();
+        result.TransportBox.Should().NotBeNull();
+        result.TransportBox!.Code.Should().Be("B001");
+        result.TransportBox.State.Should().Be(TransportBoxState.Opened.ToString());
+        result.TransportBox.IsReceivable.Should().BeFalse(); // Box is not in receivable state
+        result.TransportBox.Items.Should().HaveCount(1);
     }
 
     [Theory]
@@ -111,6 +125,7 @@ public class GetTransportBoxByCodeHandlerTests
         result.TransportBox.Should().NotBeNull();
         result.TransportBox!.Code.Should().Be("B001");
         result.TransportBox.State.Should().Be(state.ToString());
+        result.TransportBox.IsReceivable.Should().BeTrue(); // Box is in receivable state
         result.TransportBox.Items.Should().HaveCount(1);
         result.TransportBox.Items[0].ImageUrl.Should().Be("https://example.com/image.jpg");
         result.TransportBox.Items[0].OnStock.Should().Be(10.5m);

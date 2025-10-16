@@ -14529,6 +14529,7 @@ export class TransportBoxDto implements ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
     creatorId?: string | undefined;
@@ -14558,6 +14559,7 @@ export class TransportBoxDto implements ITransportBoxDto {
             this.location = _data["location"];
             this.isInTransit = _data["isInTransit"];
             this.isInReserve = _data["isInReserve"];
+            this.isReceivable = _data["isReceivable"];
             this.itemCount = _data["itemCount"];
             this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
             this.creatorId = _data["creatorId"];
@@ -14599,6 +14601,7 @@ export class TransportBoxDto implements ITransportBoxDto {
         data["location"] = this.location;
         data["isInTransit"] = this.isInTransit;
         data["isInReserve"] = this.isInReserve;
+        data["isReceivable"] = this.isReceivable;
         data["itemCount"] = this.itemCount;
         data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
         data["creatorId"] = this.creatorId;
@@ -14633,6 +14636,7 @@ export interface ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
     creatorId?: string | undefined;
