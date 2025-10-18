@@ -69,6 +69,12 @@ public class InvoiceImportStatisticsTile : ITile
                     lastUpdated = DateTime.UtcNow,
                     source = "AnalyticsRepository",
                     targetDate = targetDate.ToString("yyyy-MM-dd")
+                },
+                drillDown = new
+                {
+                    filters = new { },
+                    enabled = true,
+                    tooltip = "Zobrazit statistiky importu faktur"
                 }
             };
         }

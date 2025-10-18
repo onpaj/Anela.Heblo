@@ -40,9 +40,24 @@ public class BackgroundTaskStatusTile : ITile
 
         var result = new
         {
-            Completed = completed,
-            Total = registeredTasks.Count,
-            Status = $"{completed}/{registeredTasks.Count}"
+            status = "success",
+            data = new
+            {
+                Completed = completed,
+                Total = registeredTasks.Count,
+                Status = $"{completed}/{registeredTasks.Count}"
+            },
+            metadata = new
+            {
+                lastUpdated = DateTime.UtcNow,
+                source = "BackgroundRefreshTaskRegistry"
+            },
+            drillDown = new
+            {
+                filters = new { },
+                enabled = true,
+                tooltip = "Zobrazit stav všech background úloh"
+            }
         };
 
         return Task.FromResult((object)result);

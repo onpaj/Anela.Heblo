@@ -16,4 +16,9 @@ public class ProductInventorySummaryTile : InventorySummaryTileBase
     public override string Title => "Produkty podle stáří inventury";
     public override string Description => "Přehled produktů podle doby od poslední inventury";
     protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Product || c.Type == ProductType.Goods;
+
+    protected override object GenerateDrillDownFilters()
+    {
+        return new { type = "Product" };
+    }
 }

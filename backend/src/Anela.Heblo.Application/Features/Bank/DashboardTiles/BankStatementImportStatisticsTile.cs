@@ -68,6 +68,12 @@ public class BankStatementImportStatisticsTile : ITile
                     lastUpdated = DateTime.UtcNow,
                     source = "BankStatementImportRepository",
                     targetDate = targetDate.ToString("yyyy-MM-dd")
+                },
+                drillDown = new
+                {
+                    filters = new { },
+                    enabled = true,
+                    tooltip = "Zobrazit bankovní výpisy"
                 }
             };
         }

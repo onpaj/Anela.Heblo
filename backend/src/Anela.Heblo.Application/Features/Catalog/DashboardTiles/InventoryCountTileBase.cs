@@ -50,6 +50,17 @@ public abstract class InventoryCountTileBase : ITile
                 {
                     count,
                     date = _timeProvider.GetUtcNow().DateTime
+                },
+                metadata = new
+                {
+                    lastUpdated = _timeProvider.GetUtcNow().DateTime,
+                    source = "CatalogRepository"
+                },
+                drillDown = new
+                {
+                    filters = GenerateDrillDownFilters(),
+                    enabled = true,
+                    tooltip = $"Zobrazit všechny položky inventovány za posledních {DaysOffset} dní"
                 }
             };
         }
@@ -62,4 +73,6 @@ public abstract class InventoryCountTileBase : ITile
             };
         }
     }
+
+    protected abstract object GenerateDrillDownFilters();
 }

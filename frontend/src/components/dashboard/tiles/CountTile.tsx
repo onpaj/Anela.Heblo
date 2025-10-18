@@ -11,9 +11,11 @@ interface CountTileProps {
   data: TileDataWithDrillDown;
   icon: React.ReactNode;
   iconColor?: string;
+  tileCategory?: string;
+  tileTitle?: string;
 }
 
-export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 'text-indigo-600' }) => {
+export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 'text-indigo-600', tileCategory, tileTitle }) => {
   const navigate = useNavigate();
   
   const isClickable = isTileClickable(data);
@@ -21,7 +23,7 @@ export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 't
 
   const handleClick = () => {
     if (isClickable) {
-      handleTileClick(data, navigate);
+      handleTileClick(data, navigate, tileCategory, tileTitle);
     }
   };
 
