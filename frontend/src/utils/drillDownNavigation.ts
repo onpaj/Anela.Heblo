@@ -37,10 +37,60 @@ const constructTransportBoxUrl = (filters: Record<string, any>): string => {
 };
 
 /**
- * Maps filter data to appropriate URLs based on feature
+ * Maps filter data to appropriate URLs based on tile category and filter content
  */
-const constructUrlFromFilters = (filters: Record<string, any>): string => {
-  // For now, we only have transport boxes. Add more feature mappings as needed.
+const constructUrlFromFilters = (filters: Record<string, any>, tileCategory?: string, tileTitle?: string): string => {
+  // Transport boxes - logistics category with state filter
+  if (filters.state && (tileCategory === 'Warehouse' || tileTitle?.includes('Boxy'))) {
+    return constructTransportBoxUrl(filters);
+  }
+  
+  // Manufacturing inventory
+  if (filters.type === 'Material' && tileCategory === 'Warehouse') {
+    return createFilteredUrl('/manufacturing/inventory', filters);
+  }
+  
+  // Logistics inventory (products)
+  if (filters.type === 'Product' && tileCategory === 'Warehouse') {
+    return createFilteredUrl('/logistics/inventory', filters);
+  }
+  
+  // Manufacturing orders
+  if (tileCategory === 'Manufacture') {
+    return createFilteredUrl('/manufacturing/orders', filters);
+  }
+  
+  // Purchase orders
+  if (filters.state === 'InTransit' && tileCategory === 'Purchase') {
+    return createFilteredUrl('/purchase/orders', filters);
+  }
+  
+  // Purchase stock analysis  
+  if (filters.filter === 'kriticke' && tileCategory === 'Purchase') {
+    return createFilteredUrl('/purchase/stock-analysis', filters);
+  }
+  
+  // Gift package manufacturing
+  if (filters.filter === 'Kriticke' && tileTitle?.includes('balíčky')) {
+    return createFilteredUrl('/logistics/gift-package-manufacturing', filters);
+  }
+  
+  // Analytics - invoice import statistics
+  if (tileCategory === 'Finance' && tileTitle?.includes('Faktury')) {
+    return '/automation/invoice-import-statistics';
+  }
+  
+  // Analytics - bank statements
+  if (tileCategory === 'Finance' && tileTitle?.includes('Bankovní')) {
+    return '/finance/bank-statements';
+  }
+  
+  // System - background tasks
+  if (tileCategory === 'System') {
+    return '/automation/background-tasks';
+  }
+  
+  // Default fallback to transport boxes for backward compatibility
   return constructTransportBoxUrl(filters);
 };
 
@@ -49,7 +99,9 @@ const constructUrlFromFilters = (filters: Record<string, any>): string => {
  */
 export const handleTileClick = (
   tileData: TileDataWithDrillDown,
-  navigate: NavigateFunction
+  navigate: NavigateFunction,
+  tileCategory?: string,
+  tileTitle?: string
 ): void => {
   if (!tileData.drillDown?.enabled) {
     return;
@@ -59,7 +111,7 @@ export const handleTileClick = (
 
   // Prefer new filter-based approach
   if (tileData.drillDown.filters) {
-    targetUrl = constructUrlFromFilters(tileData.drillDown.filters);
+    targetUrl = constructUrlFromFilters(tileData.drillDown.filters, tileCategory, tileTitle);
   }
   // Fall back to legacy URL approach for backward compatibility
   else if (tileData.drillDown.url) {

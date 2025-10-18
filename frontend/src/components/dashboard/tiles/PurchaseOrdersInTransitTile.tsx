@@ -1,8 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Truck } from 'lucide-react';
+import { 
+  handleTileClick, 
+  isTileClickable, 
+  getTileTooltip, 
+  TileDataWithDrillDown 
+} from '../../../utils/drillDownNavigation';
 
 interface PurchaseOrdersInTransitTileProps {
-  data: {
+  data: TileDataWithDrillDown & {
     status?: string;
     data?: {
       count?: number;
@@ -11,9 +18,22 @@ interface PurchaseOrdersInTransitTileProps {
     };
     error?: string;
   };
+  tileCategory?: string;
+  tileTitle?: string;
 }
 
-export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTileProps> = ({ data }) => {
+export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTileProps> = ({ data, tileCategory, tileTitle }) => {
+  const navigate = useNavigate();
+  
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable) {
+      handleTileClick(data, navigate, tileCategory, tileTitle);
+    }
+  };
+
   // Error state
   if (data.status === 'error') {
     return (
@@ -31,7 +51,14 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
   const count = data.data?.count ?? 0;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div 
+      className={`
+        flex flex-col items-center justify-center h-full
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+      `}
+      onClick={handleClick}
+      title={tooltip}
+    >
       <div className="mb-2 text-orange-600">
         <Truck className="h-10 w-10" />
       </div>
@@ -41,6 +68,11 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
       <div className="text-sm text-gray-500">
         {count} objednávek
       </div>
+      {isClickable && (
+        <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          Klikněte pro detail
+        </div>
+      )}
     </div>
   );
 };
