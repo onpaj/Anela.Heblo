@@ -103,8 +103,7 @@ public class UpdateManufactureOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         updatedOrder.Should().NotBeNull();
-        updatedOrder!.SemiProductPlannedDate.Should().Be(request.SemiProductPlannedDate);
-        updatedOrder.ProductPlannedDate.Should().Be(request.ProductPlannedDate);
+        updatedOrder!.PlannedDate.Should().Be(request.PlannedDate);
         updatedOrder.ResponsiblePerson.Should().Be(request.ResponsiblePerson);
     }
 
@@ -338,8 +337,7 @@ public class UpdateManufactureOrderHandlerTests
         return new UpdateManufactureOrderRequest
         {
             Id = ValidOrderId,
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(20)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
             ResponsiblePerson = ValidResponsiblePerson,
             Products = new List<UpdateManufactureOrderProductRequest>
             {
@@ -362,8 +360,7 @@ public class UpdateManufactureOrderHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             CreatedByUser = "Original User",
             ResponsiblePerson = "Original Person",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow.AddDays(-1),
             StateChangedByUser = "Original User"

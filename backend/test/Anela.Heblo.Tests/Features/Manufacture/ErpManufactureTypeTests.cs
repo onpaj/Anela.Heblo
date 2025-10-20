@@ -20,6 +20,6 @@ public class ErpManufactureTypeTests
     public void ErpManufactureType_AllValuesShouldBeValid(ErpManufactureType type)
     {
         // Arrange & Act & Assert
-        type.Should().BeOfType<ErpManufactureType>();
+        Enum.IsDefined(typeof(ErpManufactureType), type).Should().BeTrue();
     }
 }

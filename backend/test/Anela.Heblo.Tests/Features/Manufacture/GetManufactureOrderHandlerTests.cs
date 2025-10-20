@@ -174,8 +174,7 @@ public class GetManufactureOrderHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-2),
             CreatedByUser = "Test User",
             ResponsiblePerson = "John Doe",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(14)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow.AddDays(-2),
             StateChangedByUser = "Test User"
@@ -221,8 +220,7 @@ public class GetManufactureOrderHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-2),
             CreatedByUser = "Test User",
             ResponsiblePerson = "John Doe",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(14)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow.AddDays(-2),
             StateChangedByUser = "Test User"
