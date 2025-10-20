@@ -36,12 +36,12 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(x => x.SemiProductPlannedDate >= dateFrom.Value || x.ProductPlannedDate >= dateFrom.Value);
+            query = query.Where(x => x.PlannedDate >= dateFrom.Value);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(x => x.SemiProductPlannedDate <= dateTo.Value || x.ProductPlannedDate <= dateTo.Value);
+            query = query.Where(x => x.PlannedDate <= dateTo.Value);
         }
 
         if (!string.IsNullOrEmpty(responsiblePerson))
@@ -142,9 +142,8 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes)
-            .Where(x => (x.SemiProductPlannedDate >= startDate && x.SemiProductPlannedDate <= endDate))
-            .OrderBy(x => x.SemiProductPlannedDate)
-            .ThenBy(x => x.ProductPlannedDate)
+            .Where(x => (x.PlannedDate >= startDate && x.PlannedDate <= endDate))
+            .OrderBy(x => x.PlannedDate)
             .ToListAsync(cancellationToken);
     }
 

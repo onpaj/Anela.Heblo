@@ -10,7 +10,7 @@ public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
     [Required] public string ManufactureOrderNumber { get; set; } = null!;
 
     [Required] public string ManufactureInternalNumber { get; set; } = null!;
-    public ManufactureType ManufactureType { get; set; }
+    public ErpManufactureType ManufactureType { get; set; }
     public DateTime Date { get; set; }
     public string? CreatedBy { get; set; }
     public List<SubmitManufactureRequestItem> Items { get; set; } = [];

@@ -45,8 +45,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             CreatedDate = DateTime.UtcNow,
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
-            SemiProductPlannedDate = request.SemiProductPlannedDate,
-            ProductPlannedDate = request.ProductPlannedDate,
+            PlannedDate = request.PlannedDate,
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow,
             StateChangedByUser = currentUser.Name
