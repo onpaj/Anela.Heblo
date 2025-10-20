@@ -68,7 +68,7 @@ public class CriticalGiftPackagesTile : ITile
                 },
                 drillDown = new
                 {
-                    filters = new { filter = "Kriticke" },
+                    filters = new { severity = "Critical" },
                     enabled = true,
                     tooltip = "Zobrazit všechny kritické balíčky"
                 }

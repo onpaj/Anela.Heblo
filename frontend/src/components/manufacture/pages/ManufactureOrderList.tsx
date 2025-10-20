@@ -10,7 +10,7 @@ import {
   useManufactureOrdersQuery,
   GetManufactureOrdersRequest,
 } from "../../../api/hooks/useManufactureOrders";
-import { ManufactureOrderDto } from "../../../api/generated/api-client";
+import { ManufactureOrderDto, ManufactureOrderState } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import LoadingState from "../../common/LoadingState";
 import ErrorState from "../../common/ErrorState";
@@ -23,16 +23,32 @@ import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
 const ManufactureOrderList: React.FC = () => {
   const [searchParams] = useSearchParams();
   
-  // Filter state - managed by the filters component
-  const [filters, setFilters] = useState<GetManufactureOrdersRequest>({
-    orderNumber: null,
-    state: null,
-    dateFrom: null,
-    dateTo: null,
-    responsiblePerson: null,
-    productCode: null,
-    erpDocumentNumber: null,
-    manualActionRequired: null,
+  // Filter state - managed by the filters component, initialize from URL params
+  const [filters, setFilters] = useState<GetManufactureOrdersRequest>(() => {
+    const manualActionRequiredParam = searchParams.get('manualActionRequired');
+    const stateParam = searchParams.get('state');
+    const dateFromParam = searchParams.get('dateFrom');
+    const dateToParam = searchParams.get('dateTo');
+    
+    // Convert string state parameter to enum value
+    const stateEnum = stateParam && Object.values(ManufactureOrderState).includes(stateParam as ManufactureOrderState) 
+      ? stateParam as ManufactureOrderState 
+      : null;
+    
+    // Convert string date parameters to Date objects
+    const dateFromValue = dateFromParam ? new Date(dateFromParam) : null;
+    const dateToValue = dateToParam ? new Date(dateToParam) : null;
+    
+    return {
+      orderNumber: searchParams.get('orderNumber') || null,
+      state: stateEnum,
+      dateFrom: dateFromValue,
+      dateTo: dateToValue,
+      responsiblePerson: searchParams.get('responsiblePerson') || null,
+      productCode: searchParams.get('productCode') || null,
+      erpDocumentNumber: searchParams.get('erpDocumentNumber') || null,
+      manualActionRequired: manualActionRequiredParam === 'true' ? true : manualActionRequiredParam === 'false' ? false : null,
+    };
   });
 
   // Modal states

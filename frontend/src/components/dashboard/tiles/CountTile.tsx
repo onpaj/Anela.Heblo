@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  handleTileClick, 
+  createFilteredUrl,
   isTileClickable, 
   getTileTooltip, 
   TileDataWithDrillDown 
-} from '../../../utils/drillDownNavigation';
+} from '../../../utils/urlUtils';
 
 interface CountTileProps {
   data: TileDataWithDrillDown;
@@ -13,17 +13,19 @@ interface CountTileProps {
   iconColor?: string;
   tileCategory?: string;
   tileTitle?: string;
+  targetUrl?: string; // Base URL that this tile should navigate to
 }
 
-export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 'text-indigo-600', tileCategory, tileTitle }) => {
+export const CountTile: React.FC<CountTileProps> = ({ data, icon, iconColor = 'text-indigo-600', tileCategory, tileTitle, targetUrl }) => {
   const navigate = useNavigate();
   
   const isClickable = isTileClickable(data);
   const tooltip = getTileTooltip(data);
 
   const handleClick = () => {
-    if (isClickable) {
-      handleTileClick(data, navigate, tileCategory, tileTitle);
+    if (isClickable && targetUrl && data.drillDown?.filters) {
+      const url = createFilteredUrl(targetUrl, data.drillDown.filters);
+      navigate(url);
     }
   };
 

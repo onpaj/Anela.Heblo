@@ -12,6 +12,7 @@ import {
   Calendar,
   Check,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import {
   usePurchaseOrdersQuery,
   GetPurchaseOrdersRequest,
@@ -34,16 +35,22 @@ const statusColors: Record<string, string> = {
 };
 
 const PurchaseOrderList: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  
+  // Initialize from URL parameters
+  const stateParam = searchParams.get('state');
+  const initialStatus = stateParam === 'InTransit' ? 'InTransit' : 'ActiveOnly';
+  
   // Filter states - separate input values from applied filters
-  const [searchTermInput, setSearchTermInput] = useState("");
-  const [statusInput, setStatusInput] = useState("ActiveOnly"); // Default to 'ActiveOnly'
-  const [fromDateInput, setFromDateInput] = useState("");
-  const [toDateInput, setToDateInput] = useState("");
+  const [searchTermInput, setSearchTermInput] = useState(searchParams.get('searchTerm') || "");
+  const [statusInput, setStatusInput] = useState(initialStatus);
+  const [fromDateInput, setFromDateInput] = useState(searchParams.get('fromDate') || "");
+  const [toDateInput, setToDateInput] = useState(searchParams.get('toDate') || "");
 
-  const [searchTermFilter, setSearchTermFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ActiveOnly"); // Default to 'ActiveOnly'
-  const [fromDateFilter, setFromDateFilter] = useState("");
-  const [toDateFilter, setToDateFilter] = useState("");
+  const [searchTermFilter, setSearchTermFilter] = useState(searchParams.get('searchTerm') || "");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [fromDateFilter, setFromDateFilter] = useState(searchParams.get('fromDate') || "");
+  const [toDateFilter, setToDateFilter] = useState(searchParams.get('toDate') || "");
 
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);

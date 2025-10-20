@@ -31,6 +31,7 @@ export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> =
       iconColor={iconColor}
       tileCategory={tileCategory}
       tileTitle={tileTitle}
+      targetUrl="/manufacturing/orders"
     />
   );
 };

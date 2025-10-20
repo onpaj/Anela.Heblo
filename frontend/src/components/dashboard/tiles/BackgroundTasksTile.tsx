@@ -1,7 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  createFilteredUrl,
+  isTileClickable, 
+  getTileTooltip, 
+  TileDataWithDrillDown 
+} from '../../../utils/urlUtils';
 
 interface BackgroundTasksTileProps {
-  data: {
+  data: TileDataWithDrillDown & {
     completed?: number;
     total?: number;
     status?: string;
@@ -9,10 +16,29 @@ interface BackgroundTasksTileProps {
 }
 
 export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }) => {
+  const navigate = useNavigate();
   const { completed = 0, total = 0, status = '0/0' } = data;
+  
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable && data.drillDown?.filters !== undefined) {
+      // Background tasks should navigate to automation/background-tasks page
+      const url = createFilteredUrl('/automation/background-tasks', data.drillDown.filters);
+      navigate(url);
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div 
+      className={`
+        flex flex-col items-center justify-center
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+      `}
+      onClick={handleClick}
+      title={tooltip}
+    >
       <div className="text-3xl font-bold text-blue-600 mb-2">
         {status}
       </div>

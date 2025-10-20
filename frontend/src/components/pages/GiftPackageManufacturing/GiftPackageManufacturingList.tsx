@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Info,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useAvailableGiftPackages } from "../../../api/hooks/useGiftPackageManufacturing";
 import { StockSeverity } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
@@ -79,21 +80,33 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   onSalesCoefficientChange,
   onDateFilterChange,
 }) => {
-  // State for filters
-  const [filters, setFilters] = useState<GiftPackageFilters>({
-    fromDate: new Date(
-      new Date().getFullYear() - 1,
-      new Date().getMonth(),
-      new Date().getDate(),
-    ),
-    toDate: new Date(),
-    searchTerm: "",
-    severity: "All",
-    pageNumber: 1,
-    pageSize: 20,
-    sortBy: GiftPackageSortBy.Severity,
-    sortDescending: false,
-    salesCoefficient: 1.3,
+  const [searchParams] = useSearchParams();
+  
+  // State for filters - initialize from URL parameters
+  const [filters, setFilters] = useState<GiftPackageFilters>(() => {
+    const severityParam = searchParams.get('severity');
+    
+    // Map URL parameter directly to StockSeverity enum or "All"
+    let severityValue: StockSeverity | "All" = "All";
+    if (severityParam && Object.values(StockSeverity).includes(severityParam as StockSeverity)) {
+      severityValue = severityParam as StockSeverity;
+    }
+    
+    return {
+      fromDate: new Date(
+        new Date().getFullYear() - 1,
+        new Date().getMonth(),
+        new Date().getDate(),
+      ),
+      toDate: new Date(),
+      searchTerm: searchParams.get('searchTerm') || "",
+      severity: severityValue,
+      pageNumber: 1,
+      pageSize: 20,
+      sortBy: GiftPackageSortBy.Severity,
+      sortDescending: false,
+      salesCoefficient: 1.3,
+    };
   });
 
   // State for collapsible sections

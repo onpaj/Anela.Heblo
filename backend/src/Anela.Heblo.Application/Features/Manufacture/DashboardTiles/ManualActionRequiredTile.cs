@@ -46,7 +46,7 @@ public class ManualActionRequiredTile : ITile
             },
             drillDown = new
             {
-                filters = new { manualActionRequired = "true" },
+                filters = new { manualActionRequired = "true", view = "grid" },
                 enabled = true,
                 tooltip = "Zobrazit všechny výrobní příkazy vyžadující manuální zásah"
             }

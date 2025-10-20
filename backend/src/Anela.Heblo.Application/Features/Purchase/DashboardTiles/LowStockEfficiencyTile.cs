@@ -68,7 +68,7 @@ public class LowStockEfficiencyTile : ITile
                 },
                 drillDown = new
                 {
-                    filters = new { filter = "kriticke" },
+                    filters = new { StockStatus = StockStatusFilter.Critical.ToString() },
                     enabled = true,
                     tooltip = "Zobrazit všechny materiály s kritickou zásobou"
                 }

@@ -2,11 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck } from 'lucide-react';
 import { 
-  handleTileClick, 
+  createFilteredUrl,
   isTileClickable, 
   getTileTooltip, 
   TileDataWithDrillDown 
-} from '../../../utils/drillDownNavigation';
+} from '../../../utils/urlUtils';
 
 interface PurchaseOrdersInTransitTileProps {
   data: TileDataWithDrillDown & {
@@ -29,8 +29,10 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
   const tooltip = getTileTooltip(data);
 
   const handleClick = () => {
-    if (isClickable) {
-      handleTileClick(data, navigate, tileCategory, tileTitle);
+    if (isClickable && data.drillDown?.filters) {
+      // Purchase orders in transit should navigate to purchase orders page with state filter
+      const url = createFilteredUrl('/purchase/orders', data.drillDown.filters);
+      navigate(url);
     }
   };
 
