@@ -432,24 +432,17 @@ const BatchPlanningCalculator: React.FC = () => {
       return;
     }
 
-    // Use prefilled manufacturing date if available, otherwise default to tomorrow
-    let semiProductDate: Date;
-    let productDate: Date;
+    // Use prefilled manufacturing date if available, otherwise default to today
+    let plannedDate: Date;
     
     if (prefilledManufacturingDate) {
       // Use the date selected in the calendar
-      semiProductDate = new Date(prefilledManufacturingDate);
-      // Product date is one day after the selected date
-      productDate = new Date(prefilledManufacturingDate);
-      productDate.setDate(productDate.getDate() + 1);
-      console.log('Using prefilled dates:', { semiProductDate, productDate });
+      plannedDate = new Date(prefilledManufacturingDate);
+      console.log('Using prefilled date:', { plannedDate });
     } else {
-      // Default dates (tomorrow and day after tomorrow)
-      semiProductDate = new Date();
-      semiProductDate.setDate(semiProductDate.getDate());
-      productDate = new Date();
-      productDate.setDate(productDate.getDate());
-      console.log('Using default dates:', { semiProductDate, productDate });
+      // Default to today
+      plannedDate = new Date();
+      console.log('Using default date:', { plannedDate });
     }
 
     try {
@@ -479,8 +472,7 @@ const BatchPlanningCalculator: React.FC = () => {
           productName: p.productName,
           plannedQuantity: p.plannedQuantity
         })),
-        semiProductPlannedDate: semiProductDate,
-        productPlannedDate: productDate,
+        plannedDate: plannedDate,
         responsiblePerson: undefined
       });
 
@@ -488,7 +480,7 @@ const BatchPlanningCalculator: React.FC = () => {
       
       if (orderResponse.success && orderResponse.id) {
         // Store the order date for navigation
-        setCreatedOrderDate(semiProductDate);
+        setCreatedOrderDate(plannedDate);
         
         // Invalidate calendar queries to refresh calendar data
         queryClient.invalidateQueries({ 
@@ -496,7 +488,7 @@ const BatchPlanningCalculator: React.FC = () => {
           refetchType: 'active' // Only refetch queries that are currently active
         });
         
-        console.log('Calendar queries invalidated for order created on:', semiProductDate);
+        console.log('Calendar queries invalidated for order created on:', plannedDate);
         
         // Open the manufacture order detail modal
         setCreatedOrderId(orderResponse.id);

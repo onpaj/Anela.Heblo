@@ -18,8 +18,7 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
   batchResult,
   isLoading = false,
 }) => {
-  const [semiProductDate, setSemiProductDate] = useState<string>("");
-  const [productDate, setProductDate] = useState<string>("");
+  const [plannedDate, setPlannedDate] = useState<string>("");
   const [responsiblePerson, setResponsiblePerson] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -27,21 +26,8 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
     e.preventDefault();
     setError("");
 
-    if (!semiProductDate) {
-      setError("Datum výroby polotovaru je povinný");
-      return;
-    }
-
-    if (!productDate) {
-      setError("Datum výroby produktu je povinný");
-      return;
-    }
-
-    const semiProductDateObj = new Date(semiProductDate);
-    const productDateObj = new Date(productDate);
-
-    if (productDateObj <= semiProductDateObj) {
-      setError("Datum výroby produktu musí být později než datum výroby polotovaru");
+    if (!plannedDate) {
+      setError("Plánované datum výroby je povinné");
       return;
     }
 
@@ -60,16 +46,14 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
         newBatchSize: batchResult.newBatchSize!,
         scaleFactor: batchResult.scaleFactor!,
         products: products,
-        semiProductPlannedDate: semiProductDate as any, // Will be converted to DateOnly on backend
-        productPlannedDate: productDate as any, // Will be converted to DateOnly on backend
+        plannedDate: plannedDate as any, // Will be converted to DateOnly on backend
         responsiblePerson: responsiblePerson || undefined
       });
 
       await onSubmit(request);
       
       // Reset form
-      setSemiProductDate("");
-      setProductDate("");
+      setPlannedDate("");
       setResponsiblePerson("");
       setError("");
     } catch (err) {
@@ -135,43 +119,23 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
               </div>
             )}
 
-            {/* Planning Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar className="h-4 w-4 inline mr-1" />
-                  Plánovaný datum výroby polotovaru *
-                </label>
-                <input
-                  type="date"
-                  value={semiProductDate}
-                  onChange={(e) => setSemiProductDate(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Kdy plánujete dokončit výrobu polotovaru
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar className="h-4 w-4 inline mr-1" />
-                  Plánovaný datum výroby produktu *
-                </label>
-                <input
-                  type="date"
-                  value={productDate}
-                  onChange={(e) => setProductDate(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Kdy plánujete dokončit finální produkty
-                </p>
-              </div>
+            {/* Planning Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="h-4 w-4 inline mr-1" />
+                Plánované datum výroby *
+              </label>
+              <input
+                type="date"
+                value={plannedDate}
+                onChange={(e) => setPlannedDate(e.target.value)}
+                required
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Kdy plánujete dokončit výrobu
+              </p>
             </div>
 
             {/* Responsible Person */}
@@ -224,7 +188,7 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={isLoading || !semiProductDate || !productDate}
+            disabled={isLoading || !plannedDate}
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 flex items-center gap-2"
           >
             {isLoading ? (
