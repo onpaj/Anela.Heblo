@@ -11,9 +11,11 @@ interface ManualActionRequiredTileProps {
     };
     error?: string;
   };
+  tileCategory?: string;
+  tileTitle?: string;
 }
 
-export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> = ({ data }) => {
+export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> = ({ data, tileCategory, tileTitle }) => {
   // Extract count from data
   const count = data.data?.count ?? 0;
   
@@ -27,6 +29,9 @@ export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> =
       data={data}
       icon={<AlertTriangle className="h-8 w-8" />}
       iconColor={iconColor}
+      tileCategory={tileCategory}
+      tileTitle={tileTitle}
+      targetUrl="/manufacturing/orders"
     />
   );
 };

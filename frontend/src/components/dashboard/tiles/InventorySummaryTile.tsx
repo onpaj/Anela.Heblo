@@ -1,7 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  createFilteredUrl,
+  isTileClickable, 
+  getTileTooltip, 
+  TileDataWithDrillDown 
+} from '../../../utils/urlUtils';
 
 interface InventorySummaryTileProps {
-  data: {
+  data: TileDataWithDrillDown & {
     status?: string;
     data?: {
       recent?: number;    // < 120 days
@@ -13,9 +20,21 @@ interface InventorySummaryTileProps {
     };
     error?: string;
   };
+  targetUrl?: string; // Base URL for navigation
 }
 
-export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data }) => {
+export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data, targetUrl }) => {
+  const navigate = useNavigate();
+  
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable && targetUrl && data.drillDown?.filters) {
+      const url = createFilteredUrl(targetUrl, data.drillDown.filters);
+      navigate(url);
+    }
+  };
   // Error state
   if (data.status === 'error') {
     return (
@@ -74,7 +93,14 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
   }
 
   return (
-    <div className="flex items-start gap-2 h-full pt-2">
+    <div 
+      className={`
+        flex items-start gap-2 h-full pt-2
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+      `}
+      onClick={handleClick}
+      title={tooltip}
+    >
       {/* Pie Chart */}
       <div className="flex-shrink-0">
         <svg width="120" height="120" viewBox="0 0 100 100">

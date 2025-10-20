@@ -16,4 +16,9 @@ public class MaterialInventorySummaryTile : InventorySummaryTileBase
     public override string Title => "Materiály podle stáří inventury";
     public override string Description => "Přehled materiálů podle doby od poslední inventury";
     protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Material;
+
+    protected override object GenerateDrillDownFilters()
+    {
+        return new { type = "Material" };
+    }
 }

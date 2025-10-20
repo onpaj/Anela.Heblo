@@ -33,8 +33,23 @@ public class ManualActionRequiredTile : ITile
 
         return new
         {
-            count,
-            date = _timeProvider.GetUtcNow().DateTime
+            status = "success",
+            data = new
+            {
+                count,
+                date = _timeProvider.GetUtcNow().DateTime
+            },
+            metadata = new
+            {
+                lastUpdated = _timeProvider.GetUtcNow().DateTime,
+                source = "ManufactureOrderRepository"
+            },
+            drillDown = new
+            {
+                filters = new { manualActionRequired = "true", view = "grid" },
+                enabled = true,
+                tooltip = "Zobrazit všechny výrobní příkazy vyžadující manuální zásah"
+            }
         };
     }
 }

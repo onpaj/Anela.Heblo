@@ -60,6 +60,17 @@ public class CriticalGiftPackagesTile : ITile
                 {
                     count = criticalCount,
                     date = _timeProvider.GetUtcNow().DateTime
+                },
+                metadata = new
+                {
+                    lastUpdated = _timeProvider.GetUtcNow().DateTime,
+                    source = "GiftPackageManufacture"
+                },
+                drillDown = new
+                {
+                    filters = new { severity = "Critical" },
+                    enabled = true,
+                    tooltip = "Zobrazit všechny kritické balíčky"
                 }
             };
         }

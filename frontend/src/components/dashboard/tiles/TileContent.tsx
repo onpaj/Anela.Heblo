@@ -28,37 +28,37 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <ProductionTile data={tile.data} title={tile.title || 'Zítra'} />;
     // Manufacture tiles
     case 'manualactionrequired':
-      return <ManualActionRequiredTile data={tile.data} />;
+      return <ManualActionRequiredTile data={tile.data} tileCategory={tile.category} tileTitle={tile.title} />;
     // Purchase tiles
     case 'purchaseordersintransit':
-      return <PurchaseOrdersInTransitTile data={tile.data} />;
+      return <PurchaseOrdersInTransitTile data={tile.data} tileCategory={tile.category} tileTitle={tile.title} />;
     // Transport tiles
     case 'intransitboxes':
-      return <CountTile data={tile.data} icon={<Truck className="h-10 w-10" />} iconColor="text-blue-600" />;
+      return <CountTile data={tile.data} icon={<Truck className="h-10 w-10" />} iconColor="text-blue-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/transport-boxes" />;
     case 'receivedboxes':
-      return <CountTile data={tile.data} icon={<PackageCheck className="h-10 w-10" />} iconColor="text-green-600" />;
+      return <CountTile data={tile.data} icon={<PackageCheck className="h-10 w-10" />} iconColor="text-green-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/transport-boxes" />;
     case 'errorboxes':
-      return <CountTile data={tile.data} icon={<Package className="h-10 w-10" />} iconColor="text-indigo-600" />;
+      return <CountTile data={tile.data} icon={<Package className="h-10 w-10" />} iconColor="text-indigo-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/transport-boxes" />;
     // Statistics tiles
     case 'invoiceimportstatistics':
-      return <CountTile data={tile.data} icon={<FileText className="h-10 w-10" />} iconColor="text-amber-600" />;
+      return <CountTile data={tile.data} icon={<FileText className="h-10 w-10" />} iconColor="text-amber-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/automation/invoice-import-statistics" />;
     case 'bankstatementimportstatistics':
-      return <CountTile data={tile.data} icon={<Landmark className="h-10 w-10" />} iconColor="text-emerald-600" />;
+      return <CountTile data={tile.data} icon={<Landmark className="h-10 w-10" />} iconColor="text-emerald-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/finance/bank-statements" />;
     // Inventory tiles
     case 'productinventorycount':
-      return <CountTile data={tile.data} icon={<ClipboardList className="h-10 w-10" />} iconColor="text-purple-600" />;
+      return <CountTile data={tile.data} icon={<ClipboardList className="h-10 w-10" />} iconColor="text-purple-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/inventory" />;
     case 'materialinventorycount':
-      return <CountTile data={tile.data} icon={<Beaker className="h-10 w-10" />} iconColor="text-teal-600" />;
+      return <CountTile data={tile.data} icon={<Beaker className="h-10 w-10" />} iconColor="text-teal-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/manufacturing/inventory" />;
     case 'productinventorysummary':
-      return <InventorySummaryTile data={tile.data} />;
+      return <InventorySummaryTile data={tile.data} targetUrl="/logistics/inventory" />;
     case 'materialinventorysummary':
-      return <InventorySummaryTile data={tile.data} />;
+      return <InventorySummaryTile data={tile.data} targetUrl="/manufacturing/inventory" />;
     // Purchase efficiency tiles
     case 'lowstockefficiency':
-      return <CountTile data={tile.data} icon={<AlertTriangle className="h-10 w-10" />} iconColor="text-orange-600" />;
+      return <CountTile data={tile.data} icon={<AlertTriangle className="h-10 w-10" />} iconColor="text-orange-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/purchase/stock-analysis" />;
     // Gift package tiles
     case 'criticalgiftpackages':
-      return <CountTile data={tile.data} icon={<Gift className="h-10 w-10" />} iconColor="text-red-600" />;
+      return <CountTile data={tile.data} icon={<Gift className="h-10 w-10" />} iconColor="text-red-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/gift-package-manufacturing" />;
     default:
       return <DefaultTile data={tile.data} />;
   }

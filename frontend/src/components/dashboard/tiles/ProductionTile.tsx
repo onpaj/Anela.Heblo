@@ -1,8 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PackageCheck, Check } from 'lucide-react';
+import { 
+  createFilteredUrl,
+  isTileClickable, 
+  getTileTooltip, 
+  TileDataWithDrillDown 
+} from '../../../utils/urlUtils';
 
 interface ProductionTileProps {
-  data: {
+  data: TileDataWithDrillDown & {
     totalOrders?: number;
     products?: Array<{
       productName: string;
@@ -16,12 +23,31 @@ interface ProductionTileProps {
 }
 
 export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) => {
+  const navigate = useNavigate();
   const { totalOrders = 0, products = [] } = data;
+  
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable && data.drillDown?.filters) {
+      // Production tiles should navigate to manufacturing orders page with date filter
+      const url = createFilteredUrl('/manufacturing/orders', data.drillDown.filters);
+      navigate(url);
+    }
+  };
 
   // Empty state when no production is scheduled
   if (totalOrders === 0 || products.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center">
+      <div 
+        className={`
+          h-full flex flex-col items-center justify-center text-center
+          ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+        `}
+        onClick={handleClick}
+        title={tooltip}
+      >
         <PackageCheck className="h-12 w-12 text-gray-300 mb-3" />
         <p className="text-sm font-medium text-gray-500 mb-1">
           Žádná výroba
@@ -34,7 +60,14 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
   }
 
   return (
-    <div className="h-full">
+    <div 
+      className={`
+        h-full
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+      `}
+      onClick={handleClick}
+      title={tooltip}
+    >
       <div className="space-y-3 max-h-24 overflow-y-auto">
         {products.slice(0, 3).map((product, index) => (
           <div key={index} className="flex justify-between items-center gap-2">

@@ -18,4 +18,9 @@ public class ProductInventoryCountTile : InventoryCountTileBase
     public override string Title => "Produkty inventarizované (30dní)";
     public override string Description => "Počet produktů inventarizovaných za posledních 30 dní";
     protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Product || c.Type == ProductType.Goods;
+
+    protected override object GenerateDrillDownFilters()
+    {
+        return new { type = "Product", inventoried = "true", days = "30" };
+    }
 }

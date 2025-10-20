@@ -14,6 +14,7 @@ import {
   ChevronDown,
   HelpCircle,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import {
   usePurchaseStockAnalysisQuery,
   GetPurchaseStockAnalysisRequest,
@@ -27,21 +28,33 @@ import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 const PurchaseStockAnalysis: React.FC = () => {
-  // State for filters
-  const [filters, setFilters] = useState<GetPurchaseStockAnalysisRequest>({
-    fromDate: new Date(
-      new Date().getFullYear() - 1,
-      new Date().getMonth(),
-      new Date().getDate(),
-    ),
-    toDate: new Date(),
-    stockStatus: StockStatusFilter.All,
-    onlyConfigured: true,
-    searchTerm: "",
-    pageNumber: 1,
-    pageSize: 20,
-    sortBy: StockAnalysisSortBy.StockEfficiency,
-    sortDescending: false,
+  const [searchParams] = useSearchParams();
+  
+  // State for filters - initialize from URL parameters
+  const [filters, setFilters] = useState<GetPurchaseStockAnalysisRequest>(() => {
+    const stockStatusParam = searchParams.get('StockStatus');
+    
+    // Map URL parameter to enum value
+    let stockStatus = StockStatusFilter.All;
+    if (stockStatusParam && Object.values(StockStatusFilter).includes(stockStatusParam as StockStatusFilter)) {
+      stockStatus = stockStatusParam as StockStatusFilter;
+    }
+    
+    return {
+      fromDate: new Date(
+        new Date().getFullYear() - 1,
+        new Date().getMonth(),
+        new Date().getDate(),
+      ),
+      toDate: new Date(),
+      stockStatus: stockStatus,
+      onlyConfigured: true,
+      searchTerm: searchParams.get('searchTerm') || "",
+      pageNumber: 1,
+      pageSize: 20,
+      sortBy: StockAnalysisSortBy.StockEfficiency,
+      sortDescending: false,
+    };
   });
 
   // State for product detail modal

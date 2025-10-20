@@ -60,6 +60,17 @@ public class LowStockEfficiencyTile : ITile
                 {
                     count = lowEfficiencyCount,
                     date = _timeProvider.GetUtcNow().DateTime
+                },
+                metadata = new
+                {
+                    lastUpdated = _timeProvider.GetUtcNow().DateTime,
+                    source = "PurchaseStockAnalysis"
+                },
+                drillDown = new
+                {
+                    filters = new { StockStatus = StockStatusFilter.Critical.ToString() },
+                    enabled = true,
+                    tooltip = "Zobrazit všechny materiály s kritickou zásobou"
                 }
             };
         }

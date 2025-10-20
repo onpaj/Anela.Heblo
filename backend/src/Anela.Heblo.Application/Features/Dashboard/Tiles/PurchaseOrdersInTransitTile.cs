@@ -35,12 +35,24 @@ public class PurchaseOrdersInTransitTile : ITile
 
         var result = new
         {
+            status = "success",
             data = new
             {
                 count = inTransitOrders.Count(),
                 totalAmount = totalAmount,
                 formattedAmount = formattedAmount
             },
+            metadata = new
+            {
+                lastUpdated = DateTime.UtcNow,
+                source = "PurchaseOrderRepository"
+            },
+            drillDown = new
+            {
+                filters = new { state = "InTransit" },
+                enabled = true,
+                tooltip = "Zobrazit všechny objednávky v přepravě"
+            }
         };
 
         return result;
