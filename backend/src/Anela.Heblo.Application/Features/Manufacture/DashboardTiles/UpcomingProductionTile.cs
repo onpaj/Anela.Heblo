@@ -65,11 +65,11 @@ public abstract class UpcomingProductionTile : ITile
         var dateString = ReferenceDate.ToString("yyyy-MM-dd");
         if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today))
         {
-            return new { date = "today", view = "grid" };
+            return new { date = dateString, view = "weekly" };
         }
         if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
         {
-            return new { date = "tomorrow", view = "grid" };
+            return new { date = dateString, view = "weekly" };
         }
         return new { date = dateString, view = "grid" };
     }

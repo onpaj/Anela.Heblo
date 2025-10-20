@@ -9,15 +9,24 @@ import {
 
 interface BackgroundTasksTileProps {
   data: TileDataWithDrillDown & {
-    completed?: number;
-    total?: number;
-    status?: string;
+    data?: {
+      Completed?: number;
+      Total?: number;
+      completed?: number;  // camelCase fallback
+      total?: number;      // camelCase fallback
+    };
   };
 }
 
 export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }) => {
   const navigate = useNavigate();
-  const { completed = 0, total = 0, status = '0/0' } = data;
+  // Try both PascalCase and camelCase versions due to JSON serialization
+  const tileData = data.data || {};
+  const completed = tileData.Completed ?? tileData.completed ?? 0;
+  const total = tileData.Total ?? tileData.total ?? 0;
+  
+  // Debug: log the actual data structure
+  console.log('BackgroundTasksTile data:', { data, tileData, completed, total });
   
   const isClickable = isTileClickable(data);
   const tooltip = getTileTooltip(data);
@@ -40,7 +49,7 @@ export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }
       title={tooltip}
     >
       <div className="text-3xl font-bold text-blue-600 mb-2">
-        {status}
+        {completed}/{total}
       </div>
       <div className="text-sm text-gray-600 text-center">
         Background úlohy
