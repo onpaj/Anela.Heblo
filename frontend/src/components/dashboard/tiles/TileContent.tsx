@@ -7,6 +7,7 @@ import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
 import { ManualActionRequiredTile } from './ManualActionRequiredTile';
 import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
+import { LowStockAlertTile } from './LowStockAlertTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
@@ -59,6 +60,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
     // Gift package tiles
     case 'criticalgiftpackages':
       return <CountTile data={tile.data} icon={<Gift className="h-10 w-10" />} iconColor="text-red-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/gift-package-manufacturing" />;
+    // Low stock alert tile
+    case 'lowstockalert':
+      return <LowStockAlertTile data={tile.data} />;
     default:
       return <DefaultTile data={tile.data} />;
   }
