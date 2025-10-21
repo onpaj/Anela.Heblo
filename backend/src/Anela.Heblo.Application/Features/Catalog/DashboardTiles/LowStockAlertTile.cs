@@ -1,5 +1,8 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 
@@ -8,18 +11,18 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// </summary>
 public class LowStockAlertTile : ITile
 {
-    private const int SalesHistoryDays = 365;
-    private const double SafetyMultiplier = 1.3;
-    
     private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
+    private readonly DataSourceOptions _dataSourceOptions;
 
     public LowStockAlertTile(
         ICatalogRepository catalogRepository,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IOptions<DataSourceOptions> dataSourceOptions)
     {
         _catalogRepository = catalogRepository;
         _timeProvider = timeProvider;
+        _dataSourceOptions = dataSourceOptions.Value;
     }
 
     public string Title => "K přeskladnění (S/R/T)";
@@ -37,7 +40,7 @@ public class LowStockAlertTile : ITile
         {
             var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
             var now = _timeProvider.GetUtcNow().DateTime;
-            var oneYearAgo = now.AddDays(-SalesHistoryDays);
+            var saleHistoryStartDate = now.AddDays(-_dataSourceOptions.SalesHistoryDays);
 
             // Filter products (Product and Goods types only)
             var products = catalogItems
@@ -50,7 +53,7 @@ public class LowStockAlertTile : ITile
             {
                 // Calculate average daily sales from last year
                 var salesHistory = product.SalesHistory
-                    .Where(s => s.Date >= oneYearAgo && s.Date <= now)
+                    .Where(s => s.Date >= saleHistoryStartDate && s.Date <= now)
                     .ToList();
 
                 decimal safetyThreshold;
@@ -67,8 +70,8 @@ public class LowStockAlertTile : ITile
                 else
                 {
                     var totalSales = salesHistory.Sum(s => s.AmountTotal);
-                    averageDailySales = totalSales / SalesHistoryDays;
-                    safetyThreshold = (decimal)(averageDailySales * SafetyMultiplier);
+                    averageDailySales = totalSales / _dataSourceOptions.SalesHistoryDays;
+                    safetyThreshold = (decimal)(averageDailySales * _dataSourceOptions.ResupplyThresholdMultiplier);
                     // Include if has reserve stock AND low eshop stock
                     includeProduct = product.Stock.Reserve > 0 && product.Stock.Eshop <= safetyThreshold;
                 }
@@ -111,8 +114,7 @@ public class LowStockAlertTile : ITile
                 },
                 drillDown = new
                 {
-                    url = "/logistics/inventory",
-                    filters = new { sort = "eshop_stock_asc", lowStock = "true" },
+                    filters = new { sortBy = "eshop", sortDescending = false, type = "Product" },
                     enabled = true,
                     tooltip = "Zobrazit inventuru produktů s nízkou zásobou"
                 }
@@ -127,15 +129,4 @@ public class LowStockAlertTile : ITile
             };
         }
     }
-}
-
-public class LowStockProductData
-{
-    public string ProductCode { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public decimal EshopStock { get; set; }
-    public decimal ReserveStock { get; set; }
-    public decimal TransportStock { get; set; }
-    public decimal AverageDailySales { get; set; }
-    public decimal DaysOfStockRemaining { get; set; }
 }

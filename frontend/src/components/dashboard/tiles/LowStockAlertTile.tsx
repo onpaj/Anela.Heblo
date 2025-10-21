@@ -102,7 +102,7 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
       {/* Compact products list */}
       <div className="flex-1 overflow-auto">
         <div className="space-y-1">
-          {products.slice(0, 5).map((product) => (
+          {products.slice(0, 2).map((product) => (
             <div
               key={product.productCode}
               className="p-2 hover:bg-gray-50 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
@@ -124,14 +124,14 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
               </div>
             </div>
           ))}
-          {totalCount > 5 && (
+          {totalCount > 2 && (
             <div className="text-center pt-1">
               <button
                 onClick={handleClick}
                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
                 title={tooltip}
               >
-                +{totalCount - 5} dalších
+                +{totalCount - 2} dalších
               </button>
             </div>
           )}
