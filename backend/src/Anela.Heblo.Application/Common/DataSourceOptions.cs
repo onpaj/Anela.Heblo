@@ -9,4 +9,7 @@ public class DataSourceOptions
     public int ManufactureHistoryDays { get; set; } = 400;
 
     public int ManufactureCostHistoryDays { get; set; } = 400;
+    
+    // Low stock alert tile configuration
+    public double ResupplyThresholdMultiplier { get; set; } = 1.3;
 }

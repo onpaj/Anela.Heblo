@@ -102,6 +102,7 @@ public static class CatalogModule
         services.RegisterTile<MaterialInventoryCountTile>();
         services.RegisterTile<ProductInventorySummaryTile>();
         services.RegisterTile<MaterialInventorySummaryTile>();
+        services.RegisterTile<LowStockAlertTile>();
 
         return services;
     }
