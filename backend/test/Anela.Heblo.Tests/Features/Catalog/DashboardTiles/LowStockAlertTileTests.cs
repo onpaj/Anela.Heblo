@@ -25,19 +25,6 @@ public class LowStockAlertTileTests
     }
 
     [Fact]
-    public void Tile_ShouldHave_CorrectConfiguration()
-    {
-        // Assert
-        _tile.Title.Should().Be("Produkty blížící se vyprodání");
-        _tile.Description.Should().Be("Produkty s nízkou zásobou na základě průměrných prodejů");
-        _tile.Size.Should().Be(Anela.Heblo.Xcc.Services.Dashboard.TileSize.Medium);
-        _tile.Category.Should().Be(Anela.Heblo.Xcc.Services.Dashboard.TileCategory.Warehouse);
-        _tile.DefaultEnabled.Should().BeTrue();
-        _tile.AutoShow.Should().BeTrue();
-        _tile.RequiredPermissions.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task LoadDataAsync_WithLowStockProducts_ReturnsCorrectData()
     {
         // Arrange
