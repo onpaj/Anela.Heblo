@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -38,6 +38,7 @@ const productTypeLabels: Record<ProductType, string> = {
 
 const InventoryList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");
@@ -134,6 +135,47 @@ const InventoryList: React.FC = () => {
     setPageSize(newPageSize);
     setPageNumber(1);
   };
+
+  // Process URL parameters on component mount
+  useEffect(() => {
+    const search = searchParams.get('search');
+    const sortBy = searchParams.get('sortBy');
+    const sortDescending = searchParams.get('sortDescending');
+    const sort = searchParams.get('sort'); // Legacy format like "eshop_stock_asc"
+    const type = searchParams.get('type');
+
+    if (search) {
+      setProductCodeInput(search);
+      setProductCodeFilter(search);
+    }
+
+    if (sortBy) {
+      setSortBy(sortBy);
+    }
+
+    if (sortDescending !== null) {
+      setSortDescending(sortDescending === 'true');
+    }
+
+    // Handle legacy sort format like "eshop_stock_asc"
+    if (sort && !sortBy) {
+      if (sort === 'eshop_stock_asc') {
+        setSortBy('eshop');
+        setSortDescending(false);
+      } else if (sort === 'eshop_stock_desc') {
+        setSortBy('eshop');
+        setSortDescending(true);
+      }
+      // Add more legacy formats as needed
+    }
+
+    if (type) {
+      const productType = type as ProductType;
+      if (Object.values(ProductType).includes(productType)) {
+        setProductTypeFilter(productType);
+      }
+    }
+  }, [searchParams]);
 
   // Reset pagination when type filter changes
   React.useEffect(() => {

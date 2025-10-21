@@ -64,6 +64,7 @@ public class ReceiveTransportBoxHandler : IRequestHandler<ReceiveTransportBoxReq
 
             // Save the changes
             await _repository.UpdateAsync(transportBox);
+            await _repository.SaveChangesAsync();
 
             _logger.LogInformation("Successfully received transport box {BoxId} ({BoxCode}) by user {UserName}",
                 transportBox.Id, transportBox.Code, request.UserName);
