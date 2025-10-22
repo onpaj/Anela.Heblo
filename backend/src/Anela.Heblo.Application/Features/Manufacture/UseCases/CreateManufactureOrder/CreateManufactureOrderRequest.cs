@@ -23,10 +23,7 @@ public class CreateManufactureOrderRequest : IRequest<CreateManufactureOrderResp
     public List<CreateManufactureOrderProductRequest> Products { get; set; } = new();
 
     [Required]
-    public DateOnly SemiProductPlannedDate { get; set; }
-
-    [Required]
-    public DateOnly ProductPlannedDate { get; set; }
+    public DateOnly PlannedDate { get; set; }
 
     public string? ResponsiblePerson { get; set; }
 }

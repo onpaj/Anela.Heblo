@@ -9995,8 +9995,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10027,8 +10026,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.manualActionRequired = _data["manualActionRequired"];
@@ -10067,8 +10065,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -10100,8 +10097,7 @@ export interface IManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10368,8 +10364,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
     newBatchSize!: number;
     scaleFactor!: number;
     products?: CreateManufactureOrderProductRequest[];
-    semiProductPlannedDate!: Date;
-    productPlannedDate!: Date;
+    plannedDate!: Date;
     responsiblePerson?: string | undefined;
 
     constructor(data?: ICreateManufactureOrderRequest) {
@@ -10393,8 +10388,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
                 for (let item of _data["products"])
                     this.products!.push(CreateManufactureOrderProductRequest.fromJS(item));
             }
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
         }
     }
@@ -10418,8 +10412,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
             for (let item of this.products)
                 data["products"].push(item.toJSON());
         }
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
         return data;
     }
@@ -10432,8 +10425,7 @@ export interface ICreateManufactureOrderRequest {
     newBatchSize: number;
     scaleFactor: number;
     products?: CreateManufactureOrderProductRequest[];
-    semiProductPlannedDate: Date;
-    productPlannedDate: Date;
+    plannedDate: Date;
     responsiblePerson?: string | undefined;
 }
 
@@ -10520,12 +10512,11 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 
@@ -10545,8 +10536,7 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.stateChangedByUser = _data["stateChangedByUser"];
@@ -10578,8 +10568,7 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["stateChangedByUser"] = this.stateChangedByUser;
@@ -10604,12 +10593,11 @@ export interface IUpdateManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 }
@@ -10780,8 +10768,7 @@ export interface IUpdateManufactureOrderNoteDto {
 
 export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderRequest {
     id!: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
@@ -10803,8 +10790,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
@@ -10830,8 +10816,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
@@ -10850,8 +10835,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
 
 export interface IUpdateManufactureOrderRequest {
     id: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
@@ -11753,8 +11737,7 @@ export interface IUpdateManufactureOrderScheduleResponse extends IBaseResponse {
 
 export class UpdateManufactureOrderScheduleRequest implements IUpdateManufactureOrderScheduleRequest {
     id!: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     changeReason?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderScheduleRequest) {
@@ -11769,8 +11752,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.changeReason = _data["changeReason"];
         }
     }
@@ -11785,8 +11767,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["changeReason"] = this.changeReason;
         return data;
     }
@@ -11794,8 +11775,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
 
 export interface IUpdateManufactureOrderScheduleRequest {
     id: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     changeReason?: string | undefined;
 }
 

@@ -70,8 +70,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   // Editable fields state
   const [editableResponsiblePerson, setEditableResponsiblePerson] = useState("");
-  const [editableSemiProductDate, setEditableSemiProductDate] = useState("");
-  const [editableProductDate, setEditableProductDate] = useState("");
+  const [editablePlannedDate, setEditablePlannedDate] = useState("");
   const [editableSemiProductQuantity, setEditableSemiProductQuantity] = useState("");
   const [editableProductQuantities, setEditableProductQuantities] = useState<Record<number, string>>({});
   const [editableLotNumber, setEditableLotNumber] = useState("");
@@ -119,15 +118,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   };
 
   const getOrderPlannedDate = (order: any): Date => {
-    if (order.semiProductPlannedDate) {
-      return order.semiProductPlannedDate instanceof Date 
-        ? order.semiProductPlannedDate 
-        : new Date(order.semiProductPlannedDate);
-    }
-    if (order.productPlannedDate) {
-      return order.productPlannedDate instanceof Date 
-        ? order.productPlannedDate 
-        : new Date(order.productPlannedDate);
+    if (order.plannedDate) {
+      return order.plannedDate instanceof Date 
+        ? order.plannedDate 
+        : new Date(order.plannedDate);
     }
     return new Date();
   };
@@ -168,16 +162,15 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       onClose();
     } else {
       if (order) {
-        const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
-        const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
-        const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+        const updatedPlannedDate = editablePlannedDate ? new Date(editablePlannedDate) : null;
+        const orderDate = updatedPlannedDate || getOrderPlannedDate(order);
         const dateString = orderDate.toISOString().split('T')[0];
         navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
       } else {
         navigate("/manufacturing/orders");
       }
     }
-  }, [onClose, navigate, queryClient, order, editableSemiProductDate, editableProductDate]);
+  }, [onClose, navigate, queryClient, order, editablePlannedDate]);
 
   const handleExpandNote = (noteText: string) => {
     setExpandedNoteContent(noteText);
@@ -263,11 +256,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
       setEditableResponsiblePerson(order.responsiblePerson || "");
 
-      const semiProductDateFromServer = order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate).toISOString().split('T')[0] : "";
-      setEditableSemiProductDate(semiProductDateFromServer);
-      setInitialSemiProductDate(semiProductDateFromServer); // Track initial date from server
-
-      setEditableProductDate(order.productPlannedDate ? new Date(order.productPlannedDate).toISOString().split('T')[0] : "");
+      const plannedDateFromServer = order.plannedDate ? new Date(order.plannedDate).toISOString().split('T')[0] : "";
+      setEditablePlannedDate(plannedDateFromServer);
+      setInitialSemiProductDate(plannedDateFromServer); // Track initial date from server
 
       const semiProductQuantity = fieldsCanBeEdited
         ? order.semiProduct?.plannedQuantity?.toString() || ""
@@ -297,12 +288,12 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   // Only in Draft state - in Planned state, user can edit manually without auto-recalculation
   // Auto-recalculate when user actively changes the date (not on initial load)
   React.useEffect(() => {
-    if (editableSemiProductDate && order?.state === ManufactureOrderState.Draft) {
+    if (editablePlannedDate && order?.state === ManufactureOrderState.Draft) {
       // Check if the date was actually changed by the user (not just loaded from server)
-      const hasUserChangedDate = editableSemiProductDate !== initialSemiProductDate;
+      const hasUserChangedDate = editablePlannedDate !== initialSemiProductDate;
 
       if (hasUserChangedDate) {
-        const semiProductDate = new Date(editableSemiProductDate);
+        const semiProductDate = new Date(editablePlannedDate);
 
         // Auto-calculate lot number
         const year = semiProductDate.getFullYear();
@@ -321,7 +312,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         setEditableExpirationDate(newExpirationDateString);
       }
     }
-  }, [editableSemiProductDate, order?.semiProduct?.expirationMonths, order?.state, initialSemiProductDate]);
+  }, [editablePlannedDate, order?.semiProduct?.expirationMonths, order?.state, initialSemiProductDate]);
 
   // Keyboard event listener for Esc key
   React.useEffect(() => {
@@ -365,8 +356,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
       const request = new UpdateManufactureOrderRequest({
         id: orderId,
-        semiProductPlannedDate: editableSemiProductDate ? new Date(editableSemiProductDate) : (order.semiProductPlannedDate ? new Date(order.semiProductPlannedDate) : new Date()),
-        productPlannedDate: editableProductDate ? new Date(editableProductDate) : (order.productPlannedDate ? new Date(order.productPlannedDate) : new Date()),
+        plannedDate: editablePlannedDate ? new Date(editablePlannedDate) : (order.plannedDate ? new Date(order.plannedDate) : new Date()),
         responsiblePerson: editableResponsiblePerson || undefined,
         erpOrderNumberSemiproduct: editableErpOrderNumberSemiproduct || undefined,
         erpOrderNumberProduct: editableErpOrderNumberProduct || undefined,
@@ -386,9 +376,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       if (onClose) {
         onClose();
       } else {
-        const updatedSemiProductDate = editableSemiProductDate ? new Date(editableSemiProductDate) : null;
-        const updatedProductDate = editableProductDate ? new Date(editableProductDate) : null;
-        const orderDate = updatedSemiProductDate || updatedProductDate || getOrderPlannedDate(order);
+        const updatedPlannedDate = editablePlannedDate ? new Date(editablePlannedDate) : null;
+        const orderDate = updatedPlannedDate || getOrderPlannedDate(order);
         const dateString = orderDate.toISOString().split('T')[0];
         navigate(`/manufacturing/orders?view=weekly&date=${dateString}`);
       }
@@ -579,7 +568,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       editableErpOrderNumberSemiproduct={editableErpOrderNumberSemiproduct}
                       editableErpOrderNumberProduct={editableErpOrderNumberProduct}
                       editableErpDiscardResidueDocumentNumber={editableErpDiscardResidueDocumentNumber}
-                      editableSemiProductDate={editableSemiProductDate}
+                      editablePlannedDate={editablePlannedDate}
                       editableLotNumber={editableLotNumber}
                       editableExpirationDate={editableExpirationDate}
                       editableManualActionRequired={editableManualActionRequired}
@@ -587,7 +576,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       onErpOrderNumberSemiproductChange={setEditableErpOrderNumberSemiproduct}
                       onErpOrderNumberProductChange={setEditableErpOrderNumberProduct}
                       onErpDiscardResidueDocumentNumberChange={setEditableErpDiscardResidueDocumentNumber}
-                      onSemiProductDateChange={setEditableSemiProductDate}
+                      onPlannedDateChange={setEditablePlannedDate}
                       onLotNumberChange={setEditableLotNumber}
                       onExpirationDateChange={setEditableExpirationDate}
                       onManualActionRequiredChange={setEditableManualActionRequired}

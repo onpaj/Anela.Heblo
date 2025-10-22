@@ -82,8 +82,7 @@ public class ManufactureOrderControllerTests
                     CreatedDate = DateTime.UtcNow,
                     CreatedByUser = "test@anela.cz",
                     ResponsiblePerson = "test@anela.cz",
-                    SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
-                    ProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(14)),
+                    PlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
                     State = ManufactureOrderState.Planned,
                     StateChangedAt = DateTime.UtcNow,
                     StateChangedByUser = "test@anela.cz",
@@ -256,8 +255,7 @@ public class ManufactureOrderControllerTests
             OriginalBatchSize = 100.0,
             NewBatchSize = 200.0,
             ScaleFactor = 2.0,
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(14)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
             ResponsiblePerson = "test@anela.cz",
             Products = new List<CreateManufactureOrderProductRequest>
             {
@@ -325,8 +323,7 @@ public class ManufactureOrderControllerTests
         {
             Id = orderId,
             ResponsiblePerson = "updated@anela.cz",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(20))
+            PlannedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10))
         };
 
         var expectedResponse = new UpdateManufactureOrderResponse

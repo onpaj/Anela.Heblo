@@ -8,9 +8,11 @@ public class ManufactureOrder
     public string CreatedByUser { get; set; } = null!; // User display name
     public string? ResponsiblePerson { get; set; } // User display name
 
-    // Planning dates
-    public DateOnly SemiProductPlannedDate { get; set; }
-    public DateOnly ProductPlannedDate { get; set; }
+    // Manufacturing workflow type
+    public ManufactureType ManufactureType { get; set; } = ManufactureType.MultiPhase;
+
+    // Planning date (unified for both single-phase and multi-phase)
+    public DateOnly PlannedDate { get; set; }
 
     // State management
     public ManufactureOrderState State { get; set; }
@@ -18,7 +20,7 @@ public class ManufactureOrder
     public string StateChangedByUser { get; set; } = null!;
 
     // Collections
-    public ManufactureOrderSemiProduct SemiProduct { get; set; } = null!;
+    public ManufactureOrderSemiProduct? SemiProduct { get; set; } = null!;
     public List<ManufactureOrderProduct> Products { get; set; } = new();
     public List<ManufactureOrderNote> Notes { get; set; } = new();
     public bool ManualActionRequired { get; set; } = false;

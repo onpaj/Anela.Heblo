@@ -121,12 +121,11 @@ public class UpdateManufactureOrderScheduleHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithSemiProductDateAfterProductDate_ShouldReturnValidationError()
+    public async Task Handle_WithValidFuturePlannedDate_ShouldUpdateSuccessfully()
     {
         // Arrange
         var request = CreateValidRequest();
-        request.SemiProductPlannedDate = ValidProductDate.AddDays(5); // After product date
-        request.ProductPlannedDate = ValidProductDate;
+        request.PlannedDate = ValidProductDate.AddDays(5); // Future date should be valid
 
         var existingOrder = CreateExistingOrder();
 
@@ -134,14 +133,17 @@ public class UpdateManufactureOrderScheduleHandlerTests
             .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingOrder);
 
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => order);
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidScheduleDateOrder);
-        result.Message.Should().Contain("Semi-product date cannot be after product date");
+        result.Success.Should().BeTrue();
+        result.Message.Should().Contain("Schedule updated successfully");
     }
 
     [Fact]
@@ -149,8 +151,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
     {
         // Arrange
         var request = CreateValidRequest();
-        request.SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Past date
-        request.ProductPlannedDate = ValidProductDate;
+        request.PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Past date
 
         var existingOrder = CreateExistingOrder();
 
@@ -165,7 +166,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.CannotScheduleInPast);
-        result.Message.Should().Contain("Cannot schedule semi-product manufacturing in the past");
+        result.Message.Should().Contain("Cannot schedule manufacturing in the past");
     }
 
     [Fact]
@@ -173,8 +174,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
     {
         // Arrange
         var request = CreateValidRequest();
-        request.SemiProductPlannedDate = null; // Only test product date validation
-        request.ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Past date
+        request.PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Past date
 
         var existingOrder = CreateExistingOrder();
 
@@ -189,7 +189,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.CannotScheduleInPast);
-        result.Message.Should().Contain("Cannot schedule product manufacturing in the past");
+        result.Message.Should().Contain("Cannot schedule manufacturing in the past");
     }
 
     [Fact]
@@ -217,8 +217,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
 
         // Assert
         updatedOrder.Should().NotBeNull();
-        updatedOrder!.SemiProductPlannedDate.Should().Be(request.SemiProductPlannedDate);
-        updatedOrder.ProductPlannedDate.Should().Be(request.ProductPlannedDate);
+        updatedOrder!.PlannedDate.Should().Be(request.PlannedDate);
     }
 
 
@@ -227,8 +226,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
     {
         // Arrange
         var request = CreateValidRequest();
-        request.SemiProductPlannedDate = null;
-        request.ProductPlannedDate = null;
+        request.PlannedDate = null;
 
         var existingOrder = CreateExistingOrder();
 
@@ -253,8 +251,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         var request = new UpdateManufactureOrderScheduleRequest
         {
             Id = ValidOrderId,
-            SemiProductPlannedDate = existingOrder.SemiProductPlannedDate,
-            ProductPlannedDate = existingOrder.ProductPlannedDate,
+            PlannedDate = existingOrder.PlannedDate,
             ChangeReason = "Test change"
         };
 
@@ -345,8 +342,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         return new UpdateManufactureOrderScheduleRequest
         {
             Id = ValidOrderId,
-            SemiProductPlannedDate = ValidSemiProductDate,
-            ProductPlannedDate = ValidProductDate,
+            PlannedDate = ValidSemiProductDate,
             ChangeReason = "Test schedule update"
         };
     }
@@ -360,8 +356,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             CreatedByUser = "Original User",
             ResponsiblePerson = "Test User",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow.AddDays(-1),
             StateChangedByUser = "Original User",

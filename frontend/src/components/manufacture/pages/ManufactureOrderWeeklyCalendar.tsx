@@ -377,13 +377,10 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       return;
     }
 
-    // Update both semi-product and product planned dates to the new date
-    // This is a simplified approach - in a more complex system you might want to 
-    // let the user choose which date to update or maintain the offset between them
+    // Update the planned date to the new target date
     updateScheduleMutation.mutate({
       id: draggedEvent.id,
-      semiProductPlannedDate: targetDate,
-      productPlannedDate: targetDate,
+      plannedDate: targetDate,
       changeReason: `Moved from ${originalDate.toLocaleDateString('cs-CZ')} to ${targetDate.toLocaleDateString('cs-CZ')} via drag & drop`
     }, {
       onSuccess: () => {

@@ -17,7 +17,7 @@ interface BasicInfoSectionProps {
   editableErpOrderNumberSemiproduct: string;
   editableErpOrderNumberProduct: string;
   editableErpDiscardResidueDocumentNumber: string;
-  editableSemiProductDate: string;
+  editablePlannedDate: string;
   editableLotNumber: string;
   editableExpirationDate: string;
   editableManualActionRequired: boolean;
@@ -25,7 +25,7 @@ interface BasicInfoSectionProps {
   onErpOrderNumberSemiproductChange: (value: string) => void;
   onErpOrderNumberProductChange: (value: string) => void;
   onErpDiscardResidueDocumentNumberChange: (value: string) => void;
-  onSemiProductDateChange: (value: string) => void;
+  onPlannedDateChange: (value: string) => void;
   onLotNumberChange: (value: string) => void;
   onExpirationDateChange: (value: string) => void;
   onManualActionRequiredChange: (value: boolean) => void;
@@ -44,7 +44,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   editableErpOrderNumberSemiproduct,
   editableErpOrderNumberProduct,
   editableErpDiscardResidueDocumentNumber,
-  editableSemiProductDate,
+  editablePlannedDate,
   editableLotNumber,
   editableExpirationDate,
   editableManualActionRequired,
@@ -52,7 +52,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   onErpOrderNumberSemiproductChange,
   onErpOrderNumberProductChange,
   onErpDiscardResidueDocumentNumberChange,
-  onSemiProductDateChange,
+  onPlannedDateChange,
   onLotNumberChange,
   onExpirationDateChange,
   onManualActionRequiredChange,
@@ -198,13 +198,13 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             {canEditFields ? (
               <input
                 type="date"
-                value={editableSemiProductDate}
-                onChange={(e) => onSemiProductDateChange(e.target.value)}
+                value={editablePlannedDate}
+                onChange={(e) => onPlannedDateChange(e.target.value)}
                 className="text-sm border border-gray-300 rounded px-2 py-1"
               />
             ) : (
               <span className="text-sm text-gray-900">
-                {order.semiProductPlannedDate ? formatDate(order.semiProductPlannedDate) : "-"}
+                {order.plannedDate ? formatDate(order.plannedDate) : "-"}
               </span>
             )}
           </div>

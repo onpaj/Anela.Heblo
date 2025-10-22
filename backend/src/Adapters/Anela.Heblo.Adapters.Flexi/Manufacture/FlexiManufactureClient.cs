@@ -50,8 +50,8 @@ public class FlexiManufactureClient : IManufactureClient
             {
                 DepartmentCode = "C",
                 OrderInternalNumber = request.ManufactureInternalNumber,
-                DocumentType = request.ManufactureType == ManufactureType.SemiProduct ? DocumentTypeSemiProduct : DocumentTypeProduct,
-                WarehouseDocumentType = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
+                DocumentType = request.ManufactureType == ErpManufactureType.SemiProduct ? DocumentTypeSemiProduct : DocumentTypeProduct,
+                WarehouseDocumentType = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
                 DateCreated = request.Date,
                 DateVat = request.Date,
                 CreatedBy = request.CreatedBy,
@@ -105,7 +105,7 @@ public class FlexiManufactureClient : IManufactureClient
                         ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     }).ToList(),
                     WarehouseDocumentType = createOrder.WarehouseDocumentType,
-                    WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
+                    WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
                 }
             };
 
@@ -293,7 +293,7 @@ public class FlexiManufactureClient : IManufactureClient
             Amount = (double)item.Amount,
             LotNumber = request.LotNumber,
             ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            WarehouseCode = request.ManufactureType == ManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
+            WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
         };
     }
 }

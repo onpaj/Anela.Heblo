@@ -2,6 +2,6 @@ namespace Anela.Heblo.Domain.Features.Manufacture;
 
 public enum ManufactureType
 {
-    SemiProduct,
-    Product
+    MultiPhase = 0,   // Default for backward compatibility
+    SinglePhase = 1
 }

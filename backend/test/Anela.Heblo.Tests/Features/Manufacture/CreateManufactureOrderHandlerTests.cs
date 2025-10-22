@@ -105,8 +105,7 @@ public class CreateManufactureOrderHandlerTests
         capturedOrder!.OrderNumber.Should().Be(GeneratedOrderNumber);
         capturedOrder.CreatedByUser.Should().Be("Test User");
         capturedOrder.ResponsiblePerson.Should().Be(ValidResponsiblePerson);
-        capturedOrder.SemiProductPlannedDate.Should().Be(request.SemiProductPlannedDate);
-        capturedOrder.ProductPlannedDate.Should().Be(request.ProductPlannedDate);
+        capturedOrder.PlannedDate.Should().Be(request.PlannedDate);
         capturedOrder.State.Should().Be(ManufactureOrderState.Draft);
         capturedOrder.StateChangedByUser.Should().Be("Test User");
     }
@@ -424,8 +423,7 @@ public class CreateManufactureOrderHandlerTests
             OriginalBatchSize = ValidOriginalBatchSize,
             NewBatchSize = ValidNewBatchSize,
             ScaleFactor = ValidScaleFactor,
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(14)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
             ResponsiblePerson = ValidResponsiblePerson,
             Products = new List<CreateManufactureOrderProductRequest>
             {

@@ -9,14 +9,9 @@ public class UpdateManufactureOrderScheduleRequest : IRequest<UpdateManufactureO
     public int Id { get; set; }
 
     /// <summary>
-    /// New scheduled date for semi-product manufacturing
+    /// New scheduled date for manufacturing (unified for both single-phase and multi-phase)
     /// </summary>
-    public DateOnly? SemiProductPlannedDate { get; set; }
-
-    /// <summary>
-    /// New scheduled date for product manufacturing  
-    /// </summary>
-    public DateOnly? ProductPlannedDate { get; set; }
+    public DateOnly? PlannedDate { get; set; }
 
     /// <summary>
     /// Reason for the schedule change (for audit trail)
