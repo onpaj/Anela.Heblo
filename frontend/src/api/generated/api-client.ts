@@ -7966,7 +7966,9 @@ export class JournalEntryDto implements IJournalEntryDto {
     createdAt?: Date;
     modifiedAt?: Date;
     createdByUserId?: string;
+    createdByUsername?: string | undefined;
     modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
     contentPreview?: string | undefined;
@@ -7990,7 +7992,9 @@ export class JournalEntryDto implements IJournalEntryDto {
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
             this.createdByUserId = _data["createdByUserId"];
+            this.createdByUsername = _data["createdByUsername"];
             this.modifiedByUserId = _data["modifiedByUserId"];
+            this.modifiedByUsername = _data["modifiedByUsername"];
             if (Array.isArray(_data["associatedProducts"])) {
                 this.associatedProducts = [] as any;
                 for (let item of _data["associatedProducts"])
@@ -8026,7 +8030,9 @@ export class JournalEntryDto implements IJournalEntryDto {
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
         data["createdByUserId"] = this.createdByUserId;
+        data["createdByUsername"] = this.createdByUsername;
         data["modifiedByUserId"] = this.modifiedByUserId;
+        data["modifiedByUsername"] = this.modifiedByUsername;
         if (Array.isArray(this.associatedProducts)) {
             data["associatedProducts"] = [];
             for (let item of this.associatedProducts)
@@ -8055,7 +8061,9 @@ export interface IJournalEntryDto {
     createdAt?: Date;
     modifiedAt?: Date;
     createdByUserId?: string;
+    createdByUsername?: string | undefined;
     modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
     contentPreview?: string | undefined;
