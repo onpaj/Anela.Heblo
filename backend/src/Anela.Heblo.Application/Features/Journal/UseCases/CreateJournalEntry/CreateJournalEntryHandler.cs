@@ -46,7 +46,8 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.CreateJournalEntry
                 EntryDate = request.EntryDate.Date,
                 CreatedAt = now,
                 ModifiedAt = now,
-                CreatedByUserId = userId
+                CreatedByUserId = userId,
+                CreatedByUsername = currentUser.Name ?? "Unknown User"
             };
 
             // Associate products (can be full product codes or prefixes/families)
