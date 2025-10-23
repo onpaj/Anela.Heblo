@@ -56,6 +56,7 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
             entry.EntryDate = request.EntryDate.Date;
             entry.ModifiedAt = now;
             entry.ModifiedByUserId = currentUser.Id;
+            entry.ModifiedByUsername = currentUser.Name ?? "Unknown User";
 
             // Update product associations (both products and families)
             entry.ProductAssociations.Clear();

@@ -24,12 +24,12 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         }
 
-        public async Task DeleteSoftAsync(int id, string userId, CancellationToken cancellationToken = default)
+        public async Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default)
         {
             var entry = await GetByIdAsync(id, cancellationToken);
             if (entry != null)
             {
-                entry.SoftDelete(userId);
+                entry.SoftDelete(userId, username);
                 await UpdateAsync(entry, cancellationToken);
                 await SaveChangesAsync(cancellationToken);
             }

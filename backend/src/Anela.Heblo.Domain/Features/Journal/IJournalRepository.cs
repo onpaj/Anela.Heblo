@@ -4,7 +4,7 @@ namespace Anela.Heblo.Domain.Features.Journal
 {
     public interface IJournalRepository : IRepository<JournalEntry, int>
     {
-        Task DeleteSoftAsync(int id, string userId, CancellationToken cancellationToken = default);
+        Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default);
 
         Task<PagedResult<JournalEntry>> GetEntriesAsync(
             JournalQueryCriteria criteria,
