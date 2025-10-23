@@ -38,7 +38,9 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.GetJournalEntry
                     CreatedAt = entry.CreatedAt,
                     ModifiedAt = entry.ModifiedAt,
                     CreatedByUserId = entry.CreatedByUserId,
+                    CreatedByUsername = entry.CreatedByUsername,
                     ModifiedByUserId = entry.ModifiedByUserId,
+                    ModifiedByUsername = entry.ModifiedByUsername,
                     AssociatedProducts = entry.ProductAssociations
                         .Select(pa => pa.ProductCodePrefix)
                         .Distinct()

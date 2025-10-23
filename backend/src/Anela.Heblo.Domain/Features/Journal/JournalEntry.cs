@@ -31,12 +31,21 @@ namespace Anela.Heblo.Domain.Features.Journal
         public string CreatedByUserId { get; set; } = null!;
 
         [MaxLength(100)]
+        public string? CreatedByUsername { get; set; }
+
+        [MaxLength(100)]
         public string? ModifiedByUserId { get; set; }
+
+        [MaxLength(100)]
+        public string? ModifiedByUsername { get; set; }
 
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         [MaxLength(100)]
         public string? DeletedByUserId { get; set; }
+
+        [MaxLength(100)]
+        public string? DeletedByUsername { get; set; }
 
         // Navigation properties
         public virtual ICollection<JournalEntryProduct> ProductAssociations { get; set; } = new List<JournalEntryProduct>();
@@ -70,13 +79,15 @@ namespace Anela.Heblo.Domain.Features.Journal
             });
         }
 
-        public void SoftDelete(string userId)
+        public void SoftDelete(string userId, string username)
         {
             IsDeleted = true;
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = userId;
+            DeletedByUsername = username;
             ModifiedAt = DateTime.UtcNow;
             ModifiedByUserId = userId;
+            ModifiedByUsername = username;
         }
 
         public bool IsAssociatedWithProduct(string productCode)
