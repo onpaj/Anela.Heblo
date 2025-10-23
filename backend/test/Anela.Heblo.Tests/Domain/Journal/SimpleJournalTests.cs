@@ -77,7 +77,7 @@ public class SimpleJournalTests
         };
 
         // Act
-        entry.SoftDelete("admin");
+        entry.SoftDelete("admin", "Admin User");
 
         // Assert
         entry.IsDeleted.Should().BeTrue();
