@@ -3251,6 +3251,44 @@ export class ApiClient {
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
     }
 
+    orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
+        let url_ = this.baseUrl + "/api/OrgChart";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOrgChart_GetOrganizationStructure(_response);
+        });
+    }
+
+    protected processOrgChart_GetOrganizationStructure(response: Response): Promise<OrgChartResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = OrgChartResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<OrgChartResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -12561,6 +12599,215 @@ export enum ManufacturingStockSortBy {
     MinimumStock = "MinimumStock",
     OverstockPercentage = "OverstockPercentage",
     BatchSize = "BatchSize",
+}
+
+export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
+    organization?: OrganizationDto;
+
+    constructor(data?: IOrgChartResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.organization = _data["organization"] ? OrganizationDto.fromJS(_data["organization"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): OrgChartResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new OrgChartResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["organization"] = this.organization ? this.organization.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IOrgChartResponse extends IBaseResponse {
+    organization?: OrganizationDto;
+}
+
+export class OrganizationDto implements IOrganizationDto {
+    name?: string;
+    positions?: PositionDto[];
+
+    constructor(data?: IOrganizationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            if (Array.isArray(_data["positions"])) {
+                this.positions = [] as any;
+                for (let item of _data["positions"])
+                    this.positions!.push(PositionDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): OrganizationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new OrganizationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        if (Array.isArray(this.positions)) {
+            data["positions"] = [];
+            for (let item of this.positions)
+                data["positions"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IOrganizationDto {
+    name?: string;
+    positions?: PositionDto[];
+}
+
+export class PositionDto implements IPositionDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    level?: number | undefined;
+    parentPositionId?: string | undefined;
+    department?: string;
+    employees?: EmployeeDto[];
+    url?: string | undefined;
+
+    constructor(data?: IPositionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.level = _data["level"];
+            this.parentPositionId = _data["parentPositionId"];
+            this.department = _data["department"];
+            if (Array.isArray(_data["employees"])) {
+                this.employees = [] as any;
+                for (let item of _data["employees"])
+                    this.employees!.push(EmployeeDto.fromJS(item));
+            }
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): PositionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PositionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["level"] = this.level;
+        data["parentPositionId"] = this.parentPositionId;
+        data["department"] = this.department;
+        if (Array.isArray(this.employees)) {
+            data["employees"] = [];
+            for (let item of this.employees)
+                data["employees"].push(item.toJSON());
+        }
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IPositionDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    level?: number | undefined;
+    parentPositionId?: string | undefined;
+    department?: string;
+    employees?: EmployeeDto[];
+    url?: string | undefined;
+}
+
+export class EmployeeDto implements IEmployeeDto {
+    id?: string;
+    name?: string;
+    email?: string;
+    startDate?: string;
+    isPrimary?: boolean;
+    url?: string | undefined;
+
+    constructor(data?: IEmployeeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.email = _data["email"];
+            this.startDate = _data["startDate"];
+            this.isPrimary = _data["isPrimary"];
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): EmployeeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EmployeeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["email"] = this.email;
+        data["startDate"] = this.startDate;
+        data["isPrimary"] = this.isPrimary;
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IEmployeeDto {
+    id?: string;
+    name?: string;
+    email?: string;
+    startDate?: string;
+    isPrimary?: boolean;
+    url?: string | undefined;
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
