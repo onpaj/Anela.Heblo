@@ -51,6 +51,7 @@ public static class CatalogModule
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
+        services.AddTransient<ICatalogStockTakingService, CatalogStockTakingService>();
 
         // Configure feature flags from configuration
         services.Configure<CatalogFeatureFlags>(options =>
