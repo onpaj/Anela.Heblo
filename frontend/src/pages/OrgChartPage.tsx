@@ -486,7 +486,7 @@ const OrgChartPage: React.FC = () => {
       </div>
 
       {/* Orgchart - Scrollable with wide layout */}
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white mb-2">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white mb-8">
         <div
           className="p-10 min-w-max relative origin-top-left transition-transform duration-200"
           ref={containerRef}
