@@ -4,7 +4,8 @@ public enum ManufactureOrderState
 {
     Draft = 1,
     Planned = 2,
-    SemiProductManufactured = 3,
-    Completed = 4,
-    Cancelled = 5
+    InProduction = 3,
+    SemiProductManufactured = 4,
+    Completed = 5,
+    Cancelled = 6
 }

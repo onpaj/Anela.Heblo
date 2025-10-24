@@ -261,4 +261,83 @@ public class BatchPlanningService : IBatchPlanningService
         var validCoverages = items.Where(x => x.FutureDaysCoverage < double.MaxValue).Select(x => x.FutureDaysCoverage).ToList();
         return validCoverages.Count > 0 ? validCoverages.Average() : 0;
     }
+
+    public async Task<SinglePhaseBatchResult> CalculateSinglePhaseBatchAsync(string productCode, double targetQuantity, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // 1. Get product info
+            var product = await _catalogRepository.GetByIdAsync(productCode, cancellationToken);
+            if (product == null)
+            {
+                return SinglePhaseBatchResult.Failed($"Product with code '{productCode}' not found.");
+            }
+
+            // 2. Get direct ingredients for this product (bypassing semi-products)
+            var directIngredients = await GetDirectIngredientsAsync(productCode, cancellationToken);
+            if (directIngredients.Count == 0)
+            {
+                return SinglePhaseBatchResult.Failed($"No direct ingredients found for product '{productCode}'.");
+            }
+
+            // 3. Calculate scale factor based on minimal manufacture quantity
+            var standardBatchSize = product.MinimalManufactureQuantity > 0 ? product.MinimalManufactureQuantity : 1.0;
+            var scaleFactor = targetQuantity / standardBatchSize;
+
+            // 4. Calculate material requirements
+            var materialRequirements = directIngredients.Select(ingredient => new MaterialRequirement
+            {
+                MaterialCode = ingredient.MaterialCode,
+                MaterialName = ingredient.MaterialName,
+                RequiredQuantity = ingredient.Quantity * scaleFactor,
+                Unit = ingredient.Unit
+            }).ToList();
+
+            // 5. Calculate expected output
+            var productOutputs = new List<ProductionOutput>
+            {
+                new()
+                {
+                    ProductCode = productCode,
+                    ProductName = product.ProductName,
+                    ExpectedQuantity = targetQuantity,
+                    Unit = "ks" // Default unit, could be enhanced to lookup from product properties
+                }
+            };
+
+            return new SinglePhaseBatchResult
+            {
+                ManufactureType = ManufactureType.SinglePhase,
+                MaterialRequirements = materialRequirements,
+                ProductOutputs = productOutputs,
+                ScaleFactor = scaleFactor,
+                Success = true
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating single-phase batch for product {ProductCode}", productCode);
+            return SinglePhaseBatchResult.Failed($"Error calculating batch: {ex.Message}");
+        }
+    }
+
+    private async Task<List<DirectIngredient>> GetDirectIngredientsAsync(string productCode, CancellationToken cancellationToken)
+    {
+        // This is a simplified implementation. In a real system, this would:
+        // 1. Query the recipe/BOM system to get direct materials for the product
+        // 2. Look up material master data for names, units, etc.
+        // 3. Handle complex recipe structures
+
+        // For now, return a mock implementation
+        // TODO: Implement actual recipe/ingredient lookup logic
+        return new List<DirectIngredient>();
+    }
+
+    private class DirectIngredient
+    {
+        public string MaterialCode { get; set; } = null!;
+        public string MaterialName { get; set; } = null!;
+        public double Quantity { get; set; }
+        public string Unit { get; set; } = null!;
+    }
 }

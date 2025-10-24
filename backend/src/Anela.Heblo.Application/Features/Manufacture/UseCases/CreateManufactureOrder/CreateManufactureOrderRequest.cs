@@ -1,5 +1,6 @@
 using MediatR;
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 
@@ -26,6 +27,8 @@ public class CreateManufactureOrderRequest : IRequest<CreateManufactureOrderResp
     public DateOnly PlannedDate { get; set; }
 
     public string? ResponsiblePerson { get; set; }
+
+    public ManufactureType ManufactureType { get; set; } = ManufactureType.MultiPhase;
 }
 
 public class CreateManufactureOrderProductRequest

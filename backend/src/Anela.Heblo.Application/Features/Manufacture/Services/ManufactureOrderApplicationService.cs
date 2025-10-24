@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.ConfirmSinglePhaseProduction;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -289,6 +291,80 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
         var updateResult = await _mediator.Send(updateRequest, cancellationToken);
         return updateResult;
+    }
+
+    public async Task<ConfirmSinglePhaseProductionResult> ConfirmSinglePhaseProductionAsync(
+        int orderId,
+        Dictionary<int, decimal> productActualQuantities,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting single-phase production confirmation for order {OrderId} with {ProductCount} products",
+                orderId, productActualQuantities.Count);
+
+            var currentUser = _currentUserService.GetCurrentUser();
+
+            var request = new ConfirmSinglePhaseProductionRequest
+            {
+                OrderId = orderId,
+                ProductActualQuantities = productActualQuantities,
+                UserId = currentUser.Name,
+                ChangeReason = changeReason
+            };
+
+            var response = await _mediator.Send(request, cancellationToken);
+
+            if (!response.Success)
+            {
+                _logger.LogError("Failed to confirm single-phase production for order {OrderId}: {ErrorMessage}",
+                    orderId, response.ErrorMessage);
+                return ConfirmSinglePhaseProductionResult.Failed(response.ErrorMessage!);
+            }
+
+            _logger.LogInformation("Successfully confirmed single-phase production for order {OrderId}", orderId);
+            return ConfirmSinglePhaseProductionResult.Successful(response.OrderId, response.CompletedAt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error confirming single-phase production for order {OrderId}", orderId);
+            return ConfirmSinglePhaseProductionResult.Failed("Došlo k neočekávané chybě při potvrzení jednoduché výroby");
+        }
+    }
+
+    private bool IsValidStateTransition(ManufactureOrderState currentState, ManufactureOrderState newState, ManufactureType manufactureType)
+    {
+        return manufactureType switch
+        {
+            ManufactureType.SinglePhase => ValidateSinglePhaseTransition(currentState, newState),
+            ManufactureType.MultiPhase => ValidateMultiPhaseTransition(currentState, newState),
+            _ => false
+        };
+    }
+
+    private bool ValidateSinglePhaseTransition(ManufactureOrderState current, ManufactureOrderState target)
+    {
+        return (current, target) switch
+        {
+            (ManufactureOrderState.Draft, ManufactureOrderState.Planned) => true,
+            (ManufactureOrderState.Planned, ManufactureOrderState.InProduction) => true,
+            (ManufactureOrderState.InProduction, ManufactureOrderState.Completed) => true,
+            (_, ManufactureOrderState.Cancelled) => true,
+            _ => false
+        };
+    }
+
+    private bool ValidateMultiPhaseTransition(ManufactureOrderState current, ManufactureOrderState target)
+    {
+        return (current, target) switch
+        {
+            (ManufactureOrderState.Draft, ManufactureOrderState.Planned) => true,
+            (ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured) => true,
+            (ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed) => true,
+            (_, ManufactureOrderState.Cancelled) => true,
+            _ => false
+        };
     }
 
 }
