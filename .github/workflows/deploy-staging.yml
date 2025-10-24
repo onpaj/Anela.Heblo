@@ -17,6 +17,11 @@ on:
       - completed
     branches: [main]
 
+# Cancel previous staging deployments
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: onpaj/heblo

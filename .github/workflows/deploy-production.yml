@@ -12,6 +12,11 @@ on:
         default: false
         type: boolean
 
+# Cancel previous production deployments
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
 permissions:
   contents: write
   packages: write
