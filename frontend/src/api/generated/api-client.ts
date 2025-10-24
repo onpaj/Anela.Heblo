@@ -7401,42 +7401,39 @@ export interface IRecalculateProductWeightRequest {
     productCode?: string | undefined;
 }
 
-export class EnqueueStockTakingResponse implements IEnqueueStockTakingResponse {
+export class EnqueueStockTakingResponse extends BaseResponse implements IEnqueueStockTakingResponse {
     jobId?: string;
     message?: string;
 
     constructor(data?: IEnqueueStockTakingResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.jobId = _data["jobId"];
             this.message = _data["message"];
         }
     }
 
-    static fromJS(data: any): EnqueueStockTakingResponse {
+    static override fromJS(data: any): EnqueueStockTakingResponse {
         data = typeof data === 'object' ? data : {};
         let result = new EnqueueStockTakingResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["jobId"] = this.jobId;
         data["message"] = this.message;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IEnqueueStockTakingResponse {
+export interface IEnqueueStockTakingResponse extends IBaseResponse {
     jobId?: string;
     message?: string;
 }
@@ -7485,7 +7482,7 @@ export interface IEnqueueStockTakingRequest {
     softStockTaking?: boolean;
 }
 
-export class GetStockTakingJobStatusResponse implements IGetStockTakingJobStatusResponse {
+export class GetStockTakingJobStatusResponse extends BaseResponse implements IGetStockTakingJobStatusResponse {
     jobId?: string;
     status?: string;
     isCompleted?: boolean;
@@ -7495,15 +7492,11 @@ export class GetStockTakingJobStatusResponse implements IGetStockTakingJobStatus
     result?: StockTakingResultDto | undefined;
 
     constructor(data?: IGetStockTakingJobStatusResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.jobId = _data["jobId"];
             this.status = _data["status"];
@@ -7515,14 +7508,14 @@ export class GetStockTakingJobStatusResponse implements IGetStockTakingJobStatus
         }
     }
 
-    static fromJS(data: any): GetStockTakingJobStatusResponse {
+    static override fromJS(data: any): GetStockTakingJobStatusResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetStockTakingJobStatusResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["jobId"] = this.jobId;
         data["status"] = this.status;
@@ -7531,11 +7524,12 @@ export class GetStockTakingJobStatusResponse implements IGetStockTakingJobStatus
         data["isFailed"] = this.isFailed;
         data["errorMessage"] = this.errorMessage;
         data["result"] = this.result ? this.result.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetStockTakingJobStatusResponse {
+export interface IGetStockTakingJobStatusResponse extends IBaseResponse {
     jobId?: string;
     status?: string;
     isCompleted?: boolean;
@@ -12906,39 +12900,36 @@ export enum ManufacturingStockSortBy {
     BatchSize = "BatchSize",
 }
 
-export class OrgChartResponse implements IOrgChartResponse {
+export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
     organization?: OrganizationDto;
 
     constructor(data?: IOrgChartResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.organization = _data["organization"] ? OrganizationDto.fromJS(_data["organization"]) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): OrgChartResponse {
+    static override fromJS(data: any): OrgChartResponse {
         data = typeof data === 'object' ? data : {};
         let result = new OrgChartResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["organization"] = this.organization ? this.organization.toJSON() : <any>undefined;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IOrgChartResponse {
+export interface IOrgChartResponse extends IBaseResponse {
     organization?: OrganizationDto;
 }
 
