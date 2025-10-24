@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -18,6 +18,7 @@ import {
 import { useInventoryQuery } from "../../api/hooks/useInventory";
 import CatalogDetail from "./CatalogDetail";
 import InventoryModal from "../inventory/InventoryModal";
+import StockTakingJobStatusTracker from "../inventory/StockTakingJobStatusTracker";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 // Filter for inventory - only show finished goods that can be sold
@@ -63,6 +64,9 @@ const InventoryList: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<CatalogItemDto | null>(null);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+  // Stock taking job tracking
+  const [activeStockTakingJobs, setActiveStockTakingJobs] = useState<Array<{jobId: string, productCode: string}>>([]);
 
   // Use custom inventory hook that properly handles "all types" filtering
   const {
@@ -205,6 +209,22 @@ const InventoryList: React.FC = () => {
     setSelectedInventoryItem(null);
   };
 
+  // Handler for when stock taking job is enqueued
+  const handleStockTakingJobEnqueued = useCallback((jobId: string, productCode: string) => {
+    console.log(`[InventoryList] Adding stock taking job ${jobId} for product ${productCode}`);
+    setActiveStockTakingJobs(prev => [...prev, { jobId, productCode }]);
+  }, []);
+
+  // Handler to remove completed jobs from tracking
+  const handleStockTakingJobCompleted = useCallback((jobId: string) => {
+    console.log(`[InventoryList] Removing stock taking job ${jobId} from active jobs`);
+    setActiveStockTakingJobs(prev => {
+      const newJobs = prev.filter(job => job.jobId !== jobId);
+      console.log(`[InventoryList] Active stock taking jobs before: ${prev.length}, after: ${newJobs.length}`);
+      return newJobs;
+    });
+  }, []);
+
   // Handler for clicking transport quantity badge
   const handleTransportClick = (event: React.MouseEvent, productCode: string | undefined) => {
     event.stopPropagation(); // Prevent row click from triggering
@@ -286,6 +306,25 @@ const InventoryList: React.FC = () => {
           <h1 className="text-lg font-semibold text-gray-900">Zásoby produktů</h1>
         </div>
       </div>
+
+      {/* Active Stock Taking Jobs Tracking */}
+      {activeStockTakingJobs.length > 0 && (
+        <div className="flex-shrink-0 mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">
+            Aktivní inventarizace ({activeStockTakingJobs.length})
+          </h3>
+          <div className="space-y-2">
+            {activeStockTakingJobs.map(job => (
+              <StockTakingJobStatusTracker 
+                key={job.jobId} 
+                jobId={job.jobId} 
+                productCode={job.productCode}
+                onJobCompleted={() => handleStockTakingJobCompleted(job.jobId)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters - Fixed */}
       <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
@@ -614,6 +653,7 @@ const InventoryList: React.FC = () => {
         item={selectedInventoryItem}
         isOpen={isInventoryModalOpen}
         onClose={handleCloseInventory}
+        onJobEnqueued={handleStockTakingJobEnqueued}
       />
     </div>
   );
