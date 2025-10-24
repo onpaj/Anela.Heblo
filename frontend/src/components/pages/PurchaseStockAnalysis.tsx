@@ -13,6 +13,8 @@ import {
   ChevronUp,
   ChevronDown,
   HelpCircle,
+  Plus,
+  Check,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -26,6 +28,8 @@ import {
 import { StockSeverity } from "../../api/generated/api-client";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListContext";
+import PurchasePlanningListPanel from "../common/PurchasePlanningListPanel";
 
 const PurchaseStockAnalysis: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -69,6 +73,9 @@ const PurchaseStockAnalysis: React.FC = () => {
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
     usePurchaseStockAnalysisQuery(filters);
+
+  // Purchase planning list functionality
+  const { addItem: addToPurchasePlanningList, removeItem: removeFromPurchasePlanningList, items: purchasePlanningListItems } = usePurchasePlanningList();
 
   // Memoized data for performance
   const tableData = useMemo(() => data?.items || [], [data?.items]);
@@ -187,6 +194,30 @@ const PurchaseStockAnalysis: React.FC = () => {
     return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
   };
 
+  // Purchase planning list functionality
+  const isInPurchasePlanningList = (productCode?: string) => {
+    if (!productCode) return false;
+    return purchasePlanningListItems.some(item => item.productCode === productCode);
+  };
+
+  const handleTogglePurchasePlanningList = (item: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation(); // Prevent row click
+    }
+    
+    if (!item.productCode) return; // Exit if no product code
+    
+    if (isInPurchasePlanningList(item.productCode)) {
+      removeFromPurchasePlanningList(item.productCode);
+    } else {
+      addToPurchasePlanningList({ 
+        code: item.productCode, 
+        name: item.productName || "Neznámý produkt",
+        supplier: item.supplier || "Neznámý dodavatel"
+      });
+    }
+  };
+
   // Sortable header component
   const SortableHeader: React.FC<{
     column: StockAnalysisSortBy;
@@ -250,6 +281,13 @@ const PurchaseStockAnalysis: React.FC = () => {
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
     setSelectedProductCode(null);
+  };
+
+  // Handle clicking on purchase planning panel item
+  const handlePurchasePlanningItemClick = (item: { productCode: string; productName: string; supplier: string }) => {
+    // Navigate to purchase order list page where user can create new orders
+    // The purchase planning list will be available there for manual addition
+    window.location.href = "/purchase/orders";
   };
 
   // Get color strip for product based on severity (only when not filtering by status)
@@ -748,6 +786,12 @@ const PurchaseStockAnalysis: React.FC = () => {
                   >
                     Produkt
                   </SortableHeader>
+                  <th
+                    scope="col"
+                    className="px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
+                    style={{ minWidth: "60px", width: "5%" }}
+                  >
+                  </th>
                   <SortableHeader
                     column={StockAnalysisSortBy.AvailableStock}
                     className="text-right"
@@ -817,6 +861,32 @@ const PurchaseStockAnalysis: React.FC = () => {
                           </div>
                         </div>
                       </div>
+                    </td>
+
+                    {/* Purchase Planning List Button */}
+                    <td
+                      className="px-2 py-4 whitespace-nowrap text-center"
+                      style={{ minWidth: "60px", width: "5%" }}
+                    >
+                      <button
+                        onClick={(e) => handleTogglePurchasePlanningList(item, e)}
+                        className={`p-1 rounded transition-colors ${
+                          isInPurchasePlanningList(item.productCode)
+                            ? "text-green-600 hover:text-red-600 hover:bg-red-50"
+                            : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                        }`}
+                        title={
+                          isInPurchasePlanningList(item.productCode)
+                            ? "Odebrat ze seznamu k objednání"
+                            : "Přidat do seznamu k objednání"
+                        }
+                      >
+                        {isInPurchasePlanningList(item.productCode) ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </button>
                     </td>
 
                     {/* Available Stock (Skladem) */}
@@ -1009,6 +1079,12 @@ const PurchaseStockAnalysis: React.FC = () => {
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetail}
         defaultTab="history"
+      />
+
+      {/* Purchase Planning List Panel */}
+      <PurchasePlanningListPanel
+        isVisible={false}
+        onItemClick={handlePurchasePlanningItemClick}
       />
     </div>
   );
