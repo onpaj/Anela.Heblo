@@ -29,6 +29,7 @@ import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrde
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
 import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
+import OrgChartPage from "./pages/OrgChartPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -383,6 +384,7 @@ function App() {
                           path="/automation/background-tasks"
                           element={<BackgroundTasks />}
                         />
+                        <Route path="/orgchart" element={<OrgChartPage />} />
                       </Routes>
                     </Layout>
                   </AuthGuard>

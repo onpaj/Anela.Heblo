@@ -60,7 +60,7 @@ public class LowStockAlertTile : ITile
                 double averageDailySales;
 
                 bool includeProduct;
-                
+
                 if (!salesHistory.Any())
                 {
                     // No sales history - include if has reserve stock
@@ -79,8 +79,8 @@ public class LowStockAlertTile : ITile
                 // Check if product should be included
                 if (includeProduct)
                 {
-                    var daysOfStockRemaining = averageDailySales > 0 
-                        ? (double)product.Stock.Eshop / averageDailySales 
+                    var daysOfStockRemaining = averageDailySales > 0
+                        ? (double)product.Stock.Eshop / averageDailySales
                         : double.PositiveInfinity; // Infinite days if no sales
 
                     lowStockProducts.Add(new LowStockProductData
