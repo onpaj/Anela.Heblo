@@ -13,7 +13,7 @@ public class OrgChartResponse : BaseResponse
     public OrganizationDto Organization { get; set; } = new();
 
     public OrgChartResponse() : base() { }
-    
-    public OrgChartResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+
+    public OrgChartResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }

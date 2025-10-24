@@ -318,16 +318,16 @@ public class CatalogRepository : ICatalogRepository
         {
             products = CachedErpStockData
                 .Select(s => new CatalogAggregate()
-            {
-                ProductCode = s.ProductCode
-            }).ToList();
+                {
+                    ProductCode = s.ProductCode
+                }).ToList();
         }
         else
         {
             products = CatalogData;
         }
-        
-        
+
+
         // First populate all other data for products
         var attributesMap = CachedCatalogAttributesData.ToDictionary(k => k.ProductCode, v => v);
         var eshopProductsMap = CachedEshopStockData.ToDictionary(k => k.Code, v => v);
@@ -367,7 +367,7 @@ public class CatalogRepository : ICatalogRepository
                 product.SupplierCode = erpProduct.SupplierCode;
                 product.SupplierName = erpProduct.SupplierName;
             }
-            
+
             product.SalesHistory = CachedSalesData.Where(w => w.ProductCode == product.ProductCode).ToList();
 
             if (attributesMap.TryGetValue(product.ProductCode, out var attributes))
@@ -415,7 +415,7 @@ public class CatalogRepository : ICatalogRepository
                 product.AtypicalShipping = eshopProduct.AtypicalShipping;
             }
 
-            
+
 
             if (consumedMap.TryGetValue(product.ProductCode, out var consumed))
             {

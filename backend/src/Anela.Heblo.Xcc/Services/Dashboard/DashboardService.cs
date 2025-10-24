@@ -26,7 +26,7 @@ public class DashboardService : IDashboardService
     {
         var userLock = GetUserLock(userId);
         await userLock.WaitAsync();
-        
+
         try
         {
             var settings = await _settingsRepository.GetByUserIdAsync(userId);
@@ -101,7 +101,7 @@ public class DashboardService : IDashboardService
     {
         var userLock = GetUserLock(userId);
         await userLock.WaitAsync();
-        
+
         try
         {
             settings.UserId = userId;

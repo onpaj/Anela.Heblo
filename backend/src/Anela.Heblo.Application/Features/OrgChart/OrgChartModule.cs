@@ -20,6 +20,8 @@ public static class OrgChartModule
         // Register HTTP client for fetching organization data
         services.AddHttpClient<IOrgChartService, OrgChartService>();
 
+        // MediatR handlers are automatically registered by AddMediatR scan
+
         return services;
     }
 }

@@ -26,18 +26,18 @@ public class LowStockAlertTileTests
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _timeProviderMock = new Mock<TimeProvider>();
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(_fixedDateTime);
-        
-        _dataSourceOptions = new DataSourceOptions 
-        { 
+
+        _dataSourceOptions = new DataSourceOptions
+        {
             SalesHistoryDays = 365,
-            ResupplyThresholdMultiplier = 1.3 
+            ResupplyThresholdMultiplier = 1.3
         };
         _dataSourceOptionsMock = new Mock<IOptions<DataSourceOptions>>();
         _dataSourceOptionsMock.Setup(x => x.Value).Returns(_dataSourceOptions);
-        
+
         _tile = new LowStockAlertTile(_catalogRepositoryMock.Object, _timeProviderMock.Object, _dataSourceOptionsMock.Object);
     }
-    
+
     [Fact]
     public async Task LoadDataAsync_WithProductsHavingReserveStock_ReturnsCorrectData()
     {
@@ -63,18 +63,18 @@ public class LowStockAlertTileTests
 
         // Assert
         result.Should().NotBeNull();
-        
+
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         doc.RootElement.GetProperty("status").GetString().Should().Be("success");
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().NotBeNull();
         products_result.Should().HaveCount(1); // Only PROD001 should be included
-        
+
         var product = products_result.First();
         product.ProductCode.Should().Be("PROD001");
         product.ProductName.Should().Be("Test Product 1");
@@ -105,12 +105,12 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         doc.RootElement.GetProperty("status").GetString().Should().Be("success");
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().NotBeNull();
         products_result.Should().BeEmpty();
     }
@@ -137,10 +137,10 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().HaveCount(2); // Only Product and Goods types
         products_result.Should().Contain(p => p.ProductCode == "PROD001");
         products_result.Should().Contain(p => p.ProductCode == "GOODS001");
@@ -169,10 +169,10 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().HaveCount(3);
         products_result[0].ProductCode.Should().Be("PROD002"); // Lowest stock (5)
         products_result[1].ProductCode.Should().Be("PROD001"); // Middle stock (10)
@@ -200,21 +200,21 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().HaveCount(2); // Only products with reserve stock
-        
+
         var noHistoryProduct = products_result.First(p => p.ProductCode == "PROD001");
         noHistoryProduct.AverageDailySales.Should().Be(0);
         noHistoryProduct.DaysOfStockRemaining.Should().Be(decimal.MaxValue);
         noHistoryProduct.ReserveStock.Should().Be(10);
-        
+
         var withHistoryProduct = products_result.First(p => p.ProductCode == "PROD003");
         withHistoryProduct.AverageDailySales.Should().Be(3); // 1095/365 = 3
         withHistoryProduct.ReserveStock.Should().Be(8);
-        
+
         products_result.Should().NotContain(p => p.ProductCode == "PROD002"); // No reserve stock
     }
 
@@ -237,12 +237,12 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         var productsJson = doc.RootElement.GetProperty("data").GetProperty("products").GetRawText();
         var products_result = JsonSerializer.Deserialize<List<LowStockProductData>>(productsJson);
-        
+
         products_result.Should().HaveCount(1);
-        
+
         var product = products_result.First();
         product.ProductCode.Should().Be("PROD001");
         product.ProductName.Should().Be("Test Product");
@@ -265,7 +265,7 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         doc.RootElement.GetProperty("status").GetString().Should().Be("error");
         doc.RootElement.GetProperty("error").GetString().Should().Be("Database error");
     }
@@ -289,12 +289,12 @@ public class LowStockAlertTileTests
         // Assert
         var json = JsonSerializer.Serialize(result);
         using var doc = JsonDocument.Parse(json);
-        
+
         // Verify drill-down configuration
         var drillDown = doc.RootElement.GetProperty("drillDown");
         drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
         drillDown.GetProperty("tooltip").GetString().Should().Be("Zobrazit inventuru produktů s nízkou zásobou");
-        
+
         var filters = drillDown.GetProperty("filters");
         filters.GetProperty("sortBy").GetString().Should().Be("eshop");
         filters.GetProperty("sortDescending").GetBoolean().Should().BeFalse();
@@ -325,7 +325,7 @@ public class LowStockAlertTileTests
     {
         var salesHistory = new List<CatalogSaleRecord>();
         var startDate = _fixedDateTime.AddDays(-365);
-        
+
         // Distribute sales evenly across the year
         for (int i = 0; i < 365; i++)
         {

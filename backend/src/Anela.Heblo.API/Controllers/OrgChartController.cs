@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.OrgChart.Contracts;
-using Anela.Heblo.Application.Features.OrgChart.Services;
+using Anela.Heblo.Application.Features.OrgChart.UseCases.GetOrganizationStructure;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,14 +14,14 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 public class OrgChartController : ControllerBase
 {
-    private readonly IOrgChartService _orgChartService;
+    private readonly IMediator _mediator;
     private readonly ILogger<OrgChartController> _logger;
 
     public OrgChartController(
-        IOrgChartService orgChartService,
+        IMediator mediator,
         ILogger<OrgChartController> logger)
     {
-        _orgChartService = orgChartService;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -39,7 +40,8 @@ public class OrgChartController : ControllerBase
         try
         {
             _logger.LogInformation("Fetching organizational structure");
-            var result = await _orgChartService.GetOrganizationStructureAsync(cancellationToken);
+            var request = new GetOrganizationStructureRequest();
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)

@@ -22,7 +22,7 @@ namespace Anela.Heblo.Persistence.Migrations
             migrationBuilder.AddColumn<DateOnly>(
                 name: "PlannedDate",
                 table: "ManufactureOrders",
-                type: "date", 
+                type: "date",
                 nullable: false,
                 defaultValue: new DateOnly(1900, 1, 1));
 
