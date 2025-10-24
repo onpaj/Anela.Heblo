@@ -317,8 +317,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         selectedMaterial: material,
         materialId: material?.productCode || `temp-${Date.now()}`,
         materialName: material?.productName || "",
-        unitPrice:
-          material?.lastPurchasePrice || newLines[index].unitPrice || 0,
+        unitPrice: material?.lastPurchasePrice
+          ? roundUnitPrice(material.lastPurchasePrice)
+          : newLines[index].unitPrice || 0,
       });
 
       // Recalculate line total with proper rounding
