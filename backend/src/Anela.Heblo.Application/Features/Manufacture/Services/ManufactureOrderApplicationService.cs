@@ -53,7 +53,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             }
 
             // Step 2: Create manufacture via external client
-            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ManufactureType.SemiProduct, cancellationToken);
+            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.SemiProduct, cancellationToken);
 
             // Step 3: Change state to SemiProductManufactured
             var result = await UpdateOrderStatus(
@@ -110,7 +110,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
             string? orderNote = null;
             // Step 2: Create manufacture via external client
-            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ManufactureType.Product, cancellationToken);
+            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.Product, cancellationToken);
             if (!submitManufactureResult.Success)
                 orderNote = submitManufactureResult.FullError();
 
@@ -219,13 +219,13 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         return statusResult;
     }
 
-    private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(int orderId, UpdateManufactureOrderDto order, ManufactureType type, CancellationToken cancellationToken)
+    private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(int orderId, UpdateManufactureOrderDto order, ErpManufactureType type, CancellationToken cancellationToken)
     {
         string manufactureName;
         List<SubmitManufactureRequestItem> items;
         var semiProduct = order!.SemiProduct;
 
-        if (type == ManufactureType.Product)
+        if (type == ErpManufactureType.Product)
         {
             manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)} {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
             items = order!.Products.Select(p => new SubmitManufactureRequestItem()

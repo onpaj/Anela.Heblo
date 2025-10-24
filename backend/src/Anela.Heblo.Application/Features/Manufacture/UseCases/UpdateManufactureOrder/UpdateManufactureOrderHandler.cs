@@ -37,11 +37,8 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             }
 
             // Update basic properties only if provided
-            if (request.SemiProductPlannedDate.HasValue)
-                order.SemiProductPlannedDate = request.SemiProductPlannedDate.Value;
-
-            if (request.ProductPlannedDate.HasValue)
-                order.ProductPlannedDate = request.ProductPlannedDate.Value;
+            if (request.PlannedDate.HasValue)
+                order.PlannedDate = request.PlannedDate.Value;
 
             if (request.ResponsiblePerson != null)
                 order.ResponsiblePerson = request.ResponsiblePerson;
@@ -173,12 +170,11 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             CreatedDate = order.CreatedDate,
             CreatedByUser = order.CreatedByUser,
             ResponsiblePerson = order.ResponsiblePerson,
-            SemiProductPlannedDate = order.SemiProductPlannedDate,
-            ProductPlannedDate = order.ProductPlannedDate,
+            PlannedDate = order.PlannedDate,
             State = order.State.ToString(),
             StateChangedAt = order.StateChangedAt,
             StateChangedByUser = order.StateChangedByUser,
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = order.SemiProduct != null ? new UpdateManufactureOrderSemiProductDto
             {
                 Id = order.SemiProduct.Id,
                 ProductCode = order.SemiProduct.ProductCode,
@@ -187,7 +183,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 ActualQuantity = order.SemiProduct.ActualQuantity,
                 LotNumber = order.SemiProduct.LotNumber,
                 ExpirationDate = order.SemiProduct.ExpirationDate
-            },
+            } : null,
             Products = order.Products.Select(p => new UpdateManufactureOrderProductDto
             {
                 Id = p.Id,

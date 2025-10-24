@@ -228,10 +228,18 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("CreatedByUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp");
 
                     b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DeletedByUsername")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -245,6 +253,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("timestamp");
 
                     b.Property<string>("ModifiedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ModifiedByUsername")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -589,20 +601,20 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<bool>("ManualActionRequired")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("ManufactureType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<DateOnly>("ProductPlannedDate")
+                    b.Property<DateOnly>("PlannedDate")
                         .HasColumnType("date");
 
                     b.Property<string>("ResponsiblePerson")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateOnly>("SemiProductPlannedDate")
-                        .HasColumnType("date");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -1075,8 +1087,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
                         .WithOne("SemiProduct")
                         .HasForeignKey("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderSemiProduct", "ManufactureOrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("ManufactureOrder");
                 });
@@ -1141,8 +1152,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.Navigation("Products");
 
-                    b.Navigation("SemiProduct")
-                        .IsRequired();
+                    b.Navigation("SemiProduct");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

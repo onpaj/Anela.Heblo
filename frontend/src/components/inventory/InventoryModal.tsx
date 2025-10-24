@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { X, Package, Minus, Plus, Loader2, AlertCircle, CheckCircle, History } from "lucide-react";
+import { X, Package, Minus, Plus, Loader2, AlertCircle, History } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
-import { useSubmitStockTaking, useStockTakingHistory } from "../../api/hooks/useStockTaking";
+import { useEnqueueStockTaking, useStockTakingHistory } from "../../api/hooks/useStockTaking";
 import { useToast } from "../../contexts/ToastContext";
 
 interface InventoryModalProps {
   item: CatalogItemDto | null;
   isOpen: boolean;
   onClose: () => void;
+  onJobEnqueued?: (jobId: string, productCode: string) => void;
 }
 
 const InventoryModal: React.FC<InventoryModalProps> = ({
   item,
   isOpen,
   onClose,
+  onJobEnqueued,
 }) => {
   const [newQuantity, setNewQuantity] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'inventory' | 'history'>('inventory');
   
-  // Stock taking mutation hook
-  const submitStockTaking = useSubmitStockTaking();
-  const { showSuccess } = useToast();
+  // Async stock taking mutation hook
+  const enqueueStockTaking = useEnqueueStockTaking();
+  const { showInfo } = useToast();
 
   // Fetch detailed data when modal is open and item is selected
   const {
@@ -34,6 +36,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
   // Use detailed item data if available, fallback to prop item
   const effectiveItem = detailData?.item || item;
+
 
   // Stock taking history hook - enabled only when item is available
   const {
@@ -57,9 +60,9 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
   // Reset mutation state when modal opens
   useEffect(() => {
     if (isOpen) {
-      submitStockTaking.reset();
+      enqueueStockTaking.reset();
     }
-  }, [isOpen, submitStockTaking]);
+  }, [isOpen, enqueueStockTaking]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -91,28 +94,29 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
     const isSoftStockTaking = newQuantity === currentStock;
     
     try {
-      await submitStockTaking.mutateAsync({
+      const response = await enqueueStockTaking.mutateAsync({
         productCode: effectiveItem.productCode,
         targetAmount: newQuantity,
         softStockTaking: isSoftStockTaking,
       });
       
-      // Show success toaster only if stock actually changed
-      if (!isSoftStockTaking) {
-        const difference = newQuantity - currentStock;
-        const differenceText = difference > 0 ? `+${difference.toFixed(2)}` : difference.toFixed(2);
-        
-        showSuccess(
-          "Inventarizace dokončena",
-          `Množství produktu ${effectiveItem.productCode} bylo aktualizováno (${differenceText})`,
-          { duration: 5000 }
-        );
+      // Show info message about async processing
+      showInfo(
+        "Inventarizace zahájena",
+        `Inventarizace produktu ${effectiveItem.productCode} byla zařazena do fronty a bude zpracována na pozadí.`,
+        { duration: 3000 }
+      );
+      
+      // Close modal immediately after enqueuing
+      onClose();
+      
+      // Notify parent about new job (if callback provided)
+      if (response.jobId && onJobEnqueued) {
+        onJobEnqueued(response.jobId, effectiveItem.productCode);
       }
       
-      // Close modal on success
-      onClose();
     } catch (error) {
-      console.error("Stock taking failed:", error);
+      console.error("Stock taking enqueue failed:", error);
       // Error is handled by the mutation hook
     }
   };
@@ -309,13 +313,13 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                     <div className="pt-6">
                       <button
                         onClick={handleInventorize}
-                        disabled={submitStockTaking.isPending || !effectiveItem?.productCode}
+                        disabled={enqueueStockTaking.isPending || !effectiveItem?.productCode}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
                       >
-                        {submitStockTaking.isPending ? (
+                        {enqueueStockTaking.isPending ? (
                           <>
                             <Loader2 className="h-5 w-5 animate-spin" />
-                            <span>Inventarizuji...</span>
+                            <span>Zařazuji do fronty...</span>
                           </>
                         ) : (
                           <span>Zinventarizovat</span>
@@ -323,27 +327,17 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                       </button>
                     </div>
 
-                    {/* Error Message */}
-                    {submitStockTaking.error && (
+                    {/* Error Messages */}
+                    {enqueueStockTaking.error && (
                       <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2">
                         <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <div className="text-sm font-medium text-red-800">
-                            Chyba při inventarizaci
+                            Chyba při zařazování inventarizace
                           </div>
                           <div className="text-sm text-red-700 mt-1">
-                            {submitStockTaking.error?.message || "Došlo k neočekávané chybě"}
+                            {enqueueStockTaking.error?.message || "Došlo k neočekávané chybě"}
                           </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Success Message */}
-                    {submitStockTaking.isSuccess && (
-                      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div className="text-sm font-medium text-green-800">
-                          Inventarizace byla úspěšně dokončena
                         </div>
                       </div>
                     )}

@@ -29,10 +29,12 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .HasMaxLength(100)
             .IsRequired(false);
 
-        builder.Property(x => x.SemiProductPlannedDate)
+        // Configure ManufactureType enum
+        builder.Property(e => e.ManufactureType)
+            .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(x => x.ProductPlannedDate)
+        builder.Property(x => x.PlannedDate)
             .IsRequired();
 
         builder.Property(x => x.State)
@@ -89,6 +91,7 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
         builder.HasOne(x => x.SemiProduct)
             .WithOne(x => x.ManufactureOrder)
             .HasForeignKey<ManufactureOrderSemiProduct>(x => x.ManufactureOrderId)
+            .IsRequired(false) // Changed from true to false
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.Products)

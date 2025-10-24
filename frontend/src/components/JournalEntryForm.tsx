@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -23,7 +23,7 @@ import {
   catalogItemToProductCode,
   PRODUCT_TYPE_FILTERS,
 } from "./common/CatalogAutocompleteAdapters";
-import type { JournalEntryDto } from "../api/generated/api-client";
+import type { JournalEntryDto, GetJournalEntryResponse } from "../api/generated/api-client";
 import {
   CreateJournalEntryRequest,
   UpdateJournalEntryRequest,
@@ -31,7 +31,7 @@ import {
 } from "../api/generated/api-client";
 
 interface JournalEntryFormProps {
-  entry?: JournalEntryDto;
+  entry?: GetJournalEntryResponse;
   onSave?: (entry: JournalEntryDto) => void;
   onCancel?: () => void;
   onDelete?: () => void;
@@ -52,18 +52,18 @@ export default function JournalEntryForm({
   const { data: tagsData } = useJournalTags();
 
   // Form state
-  const [title, setTitle] = useState(entry?.title || "");
-  const [content, setContent] = useState(entry?.content || "");
+  const [title, setTitle] = useState(entry?.entry?.title || "");
+  const [content, setContent] = useState(entry?.entry?.content || "");
   const [entryDate, setEntryDate] = useState(
-    entry?.entryDate
-      ? format(new Date(entry.entryDate), "yyyy-MM-dd")
+    entry?.entry?.entryDate
+      ? format(new Date(entry.entry.entryDate), "yyyy-MM-dd")
       : format(new Date(), "yyyy-MM-dd"),
   );
   const [selectedTags, setSelectedTags] = useState<number[]>(
-    entry?.tags?.map((tag) => tag.id!).filter((id) => id !== undefined) || [],
+    entry?.entry?.tags?.map((tag) => tag.id!).filter((id) => id !== undefined) || [],
   );
   const [associatedProducts, setAssociatedProducts] = useState<string[]>(
-    entry?.associatedProducts || [],
+    entry?.entry?.associatedProducts || [],
   );
   const [currentProduct, setCurrentProduct] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
@@ -78,6 +78,40 @@ export default function JournalEntryForm({
     createMutation.isPending ||
     updateMutation.isPending ||
     createTagMutation.isPending;
+
+  // Update form state when entry prop changes (for edit mode)
+  useEffect(() => {
+    console.log("🐛 JournalEntryForm useEffect - entry:", entry, "isEdit:", isEdit);
+    if (entry?.entry) {
+      const entryData = entry.entry;
+      console.log("🐛 Updating form with entry data:", {
+        title: entryData.title,
+        content: entryData.content,
+        entryDate: entryData.entryDate,
+        tags: entryData.tags,
+        products: entryData.associatedProducts
+      });
+      setTitle(entryData.title || "");
+      setContent(entryData.content || "");
+      setEntryDate(
+        entryData.entryDate
+          ? format(new Date(entryData.entryDate), "yyyy-MM-dd")
+          : format(new Date(), "yyyy-MM-dd"),
+      );
+      setSelectedTags(
+        entryData.tags?.map((tag) => tag.id!).filter((id) => id !== undefined) || [],
+      );
+      setAssociatedProducts(entryData.associatedProducts || []);
+    } else if (!isEdit) {
+      console.log("🐛 Resetting form for new entry");
+      // Reset form for new entries
+      setTitle("");
+      setContent("");
+      setEntryDate(format(new Date(), "yyyy-MM-dd"));
+      setSelectedTags([]);
+      setAssociatedProducts([]);
+    }
+  }, [entry, isEdit]);
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -102,9 +136,9 @@ export default function JournalEntryForm({
     if (!validateForm()) return;
 
     try {
-      if (isEdit && entry) {
+      if (isEdit && entry?.entry) {
         const updateRequest = new UpdateJournalEntryRequest({
-          id: entry.id,
+          id: entry.entry.id,
           title: title.trim(),
           content: content.trim(),
           entryDate: new Date(entryDate),
@@ -113,7 +147,7 @@ export default function JournalEntryForm({
         });
 
         const result = await updateMutation.mutateAsync({
-          id: entry.id!,
+          id: entry.entry.id!,
           request: updateRequest,
         });
 

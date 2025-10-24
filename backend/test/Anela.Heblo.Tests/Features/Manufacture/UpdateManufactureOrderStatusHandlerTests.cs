@@ -294,8 +294,7 @@ public class UpdateManufactureOrderStatusHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             CreatedByUser = "Original User",
             ResponsiblePerson = "Test Person",
-            SemiProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            ProductPlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(14)),
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
             State = state,
             StateChangedAt = DateTime.UtcNow.AddDays(-1),
             StateChangedByUser = "Original User"

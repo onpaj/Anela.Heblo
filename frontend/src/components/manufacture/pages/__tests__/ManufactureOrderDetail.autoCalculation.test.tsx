@@ -101,8 +101,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Draft,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -144,8 +143,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Planned,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -188,8 +186,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Draft,
-        semiProductPlannedDate: new Date("2024-01-15"), // Week 3, 2024-01
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"), // Week 3, 2024-01
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -239,8 +236,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Draft,
-        semiProductPlannedDate: new Date("2024-12-25"), // Week 52, December 2024
-        productPlannedDate: new Date("2024-12-30"),
+        plannedDate: new Date("2024-12-25"), // Week 52, December 2024
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -285,8 +281,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Draft,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -333,8 +328,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Draft,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -385,8 +379,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Planned,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",
@@ -434,8 +427,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         id: 1,
         orderNumber: "VZ-2024-001",
         state: ManufactureOrderState.Planned,
-        semiProductPlannedDate: new Date("2024-01-15"),
-        productPlannedDate: new Date("2024-01-20"),
+        plannedDate: new Date("2024-01-15"),
         responsiblePerson: "Test User",
         semiProduct: {
           productCode: "SP-001",

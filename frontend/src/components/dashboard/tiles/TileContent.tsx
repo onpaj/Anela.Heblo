@@ -7,6 +7,7 @@ import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
 import { ManualActionRequiredTile } from './ManualActionRequiredTile';
 import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
+import { LowStockAlertTile } from './LowStockAlertTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
@@ -51,7 +52,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <CountTile data={tile.data} icon={<Beaker className="h-10 w-10" />} iconColor="text-teal-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/manufacturing/inventory" />;
     case 'productinventorysummary':
       return <InventorySummaryTile data={tile.data} targetUrl="/logistics/inventory" />;
-    case 'materialinventorysummary':
+    case 'materialwithexpirationinventorysummary':
+      return <InventorySummaryTile data={tile.data} targetUrl="/manufacturing/inventory" />;
+    case 'materialwithoutexpirationinventorysummary':
       return <InventorySummaryTile data={tile.data} targetUrl="/manufacturing/inventory" />;
     // Purchase efficiency tiles
     case 'lowstockefficiency':
@@ -59,6 +62,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
     // Gift package tiles
     case 'criticalgiftpackages':
       return <CountTile data={tile.data} icon={<Gift className="h-10 w-10" />} iconColor="text-red-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/logistics/gift-package-manufacturing" />;
+    // Low stock alert tile
+    case 'lowstockalert':
+      return <LowStockAlertTile data={tile.data} />;
     default:
       return <DefaultTile data={tile.data} />;
   }

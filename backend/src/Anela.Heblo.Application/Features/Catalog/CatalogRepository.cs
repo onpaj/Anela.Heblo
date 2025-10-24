@@ -313,29 +313,25 @@ public class CatalogRepository : ICatalogRepository
 
     private List<CatalogAggregate> Merge()
     {
-        var products = CachedErpStockData.Select(s => new CatalogAggregate()
+        List<CatalogAggregate> products = new List<CatalogAggregate>();
+        if (!CatalogData.Any())
         {
-            ProductCode = s.ProductCode,
-            ProductName = s.ProductName,
-            ErpId = s.ProductId,
-            Stock = new StockData()
-            {
-                Erp = s.Stock
-            },
-            Type = GetProductType(s),
-            MinimalOrderQuantity = s.MOQ,
-            HasLots = s.HasLots,
-            HasExpiration = s.HasExpiration,
-            Volume = s.Volume,
-            NetWeight = s.Weight,
-            Note = s.Note,
-            SupplierCode = s.SupplierCode,
-            SupplierName = s.SupplierName,
-        }).ToList();
+            products = CachedErpStockData
+                .Select(s => new CatalogAggregate()
+                {
+                    ProductCode = s.ProductCode
+                }).ToList();
+        }
+        else
+        {
+            products = CatalogData;
+        }
+
 
         // First populate all other data for products
         var attributesMap = CachedCatalogAttributesData.ToDictionary(k => k.ProductCode, v => v);
         var eshopProductsMap = CachedEshopStockData.ToDictionary(k => k.Code, v => v);
+        var erpProductsMap = CachedErpStockData.ToDictionary(k => k.ProductCode, v => v);
         var consumedMap = CachedConsumedData
             .GroupBy(p => p.ProductCode)
             .ToDictionary(k => k.Key, v => v.ToList());
@@ -356,6 +352,22 @@ public class CatalogRepository : ICatalogRepository
 
         foreach (var product in products)
         {
+            if (erpProductsMap.TryGetValue(product.ProductCode, out var erpProduct))
+            {
+                product.ProductName = erpProduct.ProductName;
+                product.ErpId = erpProduct.ProductId;
+                product.Stock.Erp = erpProduct.Stock;
+                product.Type = GetProductType(erpProduct);
+                product.MinimalOrderQuantity = erpProduct.MOQ;
+                product.HasLots = erpProduct.HasLots;
+                product.HasExpiration = erpProduct.HasExpiration;
+                product.Volume = erpProduct.Volume;
+                product.NetWeight = erpProduct.Weight;
+                product.Note = erpProduct.Note;
+                product.SupplierCode = erpProduct.SupplierCode;
+                product.SupplierName = erpProduct.SupplierName;
+            }
+
             product.SalesHistory = CachedSalesData.Where(w => w.ProductCode == product.ProductCode).ToList();
 
             if (attributesMap.TryGetValue(product.ProductCode, out var attributes))
@@ -402,6 +414,8 @@ public class CatalogRepository : ICatalogRepository
                 product.Depth = eshopProduct.Depth;
                 product.AtypicalShipping = eshopProduct.AtypicalShipping;
             }
+
+
 
             if (consumedMap.TryGetValue(product.ProductCode, out var consumed))
             {

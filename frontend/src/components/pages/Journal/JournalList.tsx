@@ -286,7 +286,7 @@ const JournalList: React.FC = () => {
                 <tr>
                   <SortableHeader column="title">Název</SortableHeader>
                   <SortableHeader column="entryDate">Datum</SortableHeader>
-                  <SortableHeader column="createdByUserId">
+                  <SortableHeader column="createdByUsername">
                     Autor
                   </SortableHeader>
                   <th
@@ -328,7 +328,7 @@ const JournalList: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="max-w-32 truncate">
-                        {entry.createdByUserId}
+                        {entry.createdByUsername || entry.createdByUserId}
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-700">

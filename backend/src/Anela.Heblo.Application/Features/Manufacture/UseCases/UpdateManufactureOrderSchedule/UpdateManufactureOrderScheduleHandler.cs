@@ -43,23 +43,15 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
                 return validationResponse;
             }
 
-            // Update the schedule dates
+            // Update the schedule date
             bool hasChanges = false;
 
-            if (request.SemiProductPlannedDate.HasValue && request.SemiProductPlannedDate != existingOrder.SemiProductPlannedDate)
+            if (request.PlannedDate.HasValue && request.PlannedDate != existingOrder.PlannedDate)
             {
-                existingOrder.SemiProductPlannedDate = request.SemiProductPlannedDate.Value;
+                existingOrder.PlannedDate = request.PlannedDate.Value;
                 hasChanges = true;
-                _logger.LogInformation("Updated semi-product planned date for order {OrderId} to {NewDate}",
-                    request.Id, request.SemiProductPlannedDate.Value);
-            }
-
-            if (request.ProductPlannedDate.HasValue && request.ProductPlannedDate != existingOrder.ProductPlannedDate)
-            {
-                existingOrder.ProductPlannedDate = request.ProductPlannedDate.Value;
-                hasChanges = true;
-                _logger.LogInformation("Updated product planned date for order {OrderId} to {NewDate}",
-                    request.Id, request.ProductPlannedDate.Value);
+                _logger.LogInformation("Updated planned date for order {OrderId} to {NewDate}",
+                    request.Id, request.PlannedDate.Value);
             }
 
             if (!hasChanges)
@@ -104,26 +96,12 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             return new UpdateManufactureOrderScheduleResponse(ErrorCodes.CannotUpdateCompletedOrder, "Cannot update schedule for completed orders");
         }
 
-        // Semi-product date should be before or equal to product date
-        if (request.SemiProductPlannedDate.HasValue && request.ProductPlannedDate.HasValue)
-        {
-            if (request.SemiProductPlannedDate.Value > request.ProductPlannedDate.Value)
-            {
-                return new UpdateManufactureOrderScheduleResponse(ErrorCodes.InvalidScheduleDateOrder, "Semi-product date cannot be after product date");
-            }
-        }
-
         // Don't allow scheduling in the past (with some tolerance for today)
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        if (request.SemiProductPlannedDate.HasValue && request.SemiProductPlannedDate.Value < today)
+        if (request.PlannedDate.HasValue && request.PlannedDate.Value < today)
         {
-            return new UpdateManufactureOrderScheduleResponse(ErrorCodes.CannotScheduleInPast, "Cannot schedule semi-product manufacturing in the past");
-        }
-
-        if (request.ProductPlannedDate.HasValue && request.ProductPlannedDate.Value < today)
-        {
-            return new UpdateManufactureOrderScheduleResponse(ErrorCodes.CannotScheduleInPast, "Cannot schedule product manufacturing in the past");
+            return new UpdateManufactureOrderScheduleResponse(ErrorCodes.CannotScheduleInPast, "Cannot schedule manufacturing in the past");
         }
 
         // All validations passed

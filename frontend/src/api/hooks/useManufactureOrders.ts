@@ -343,8 +343,7 @@ export const useUpdateManufactureOrderSchedule = () => {
   return useMutation({
     mutationFn: async (request: { 
       id: number, 
-      semiProductPlannedDate?: Date, 
-      productPlannedDate?: Date, 
+      plannedDate?: Date, 
       changeReason?: string 
     }): Promise<UpdateManufactureOrderScheduleResponse> => {
       const apiClient = getManufactureOrdersClient();
@@ -352,8 +351,7 @@ export const useUpdateManufactureOrderSchedule = () => {
       // Create proper request instance
       const scheduleRequest = new UpdateManufactureOrderScheduleRequest({
         id: request.id,
-        semiProductPlannedDate: request.semiProductPlannedDate,
-        productPlannedDate: request.productPlannedDate,
+        plannedDate: request.plannedDate,
         changeReason: request.changeReason || "Schedule updated via drag & drop"
       });
       

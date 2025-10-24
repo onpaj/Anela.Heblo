@@ -7,12 +7,11 @@ public class UpdateManufactureOrderDto
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
-    public DateOnly SemiProductPlannedDate { get; set; }
-    public DateOnly ProductPlannedDate { get; set; }
+    public DateOnly PlannedDate { get; set; }
     public string State { get; set; } = null!;
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;
-    public UpdateManufactureOrderSemiProductDto SemiProduct { get; set; } = null!;
+    public UpdateManufactureOrderSemiProductDto? SemiProduct { get; set; }
     public List<UpdateManufactureOrderProductDto> Products { get; set; } = new();
     public List<UpdateManufactureOrderNoteDto> Notes { get; set; } = new();
 }

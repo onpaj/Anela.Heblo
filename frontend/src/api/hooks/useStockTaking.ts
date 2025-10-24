@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { SubmitStockTakingRequest, SubmitStockTakingResponse, GetStockTakingHistoryResponse } from "../generated/api-client";
+import { SubmitStockTakingRequest, SubmitStockTakingResponse, GetStockTakingHistoryResponse, EnqueueStockTakingRequest, EnqueueStockTakingResponse, GetStockTakingJobStatusResponse } from "../generated/api-client";
 
 export interface StockTakingSubmitRequest {
   productCode: string;
@@ -14,6 +14,12 @@ export interface StockTakingHistoryRequest {
   pageSize?: number;
   sortBy?: string;
   sortDescending?: boolean;
+}
+
+export interface AsyncStockTakingRequest {
+  productCode: string;
+  targetAmount: number;
+  softStockTaking?: boolean;
 }
 
 // API function to submit stock taking
@@ -101,5 +107,132 @@ export const useStockTakingHistory = (request: StockTakingHistoryRequest) => {
     enabled: !!request.productCode, // Only run query when productCode is available
     staleTime: 5 * 60 * 1000, // 5 minutes - history doesn't change frequently
     gcTime: 10 * 60 * 1000, // 10 minutes cache time
+  });
+};
+
+// API function to enqueue async stock taking
+const enqueueStockTaking = async (request: AsyncStockTakingRequest): Promise<EnqueueStockTakingResponse> => {
+  const apiClient = getAuthenticatedApiClient();
+  
+  const enqueueRequest = new EnqueueStockTakingRequest({
+    productCode: request.productCode,
+    targetAmount: request.targetAmount,
+    softStockTaking: request.softStockTaking ?? false, // Default to false for async
+  });
+
+  return await apiClient.catalog_EnqueueStockTaking(enqueueRequest);
+};
+
+// API function to get stock taking job status
+const getStockTakingJobStatus = async (jobId: string): Promise<GetStockTakingJobStatusResponse> => {
+  const apiClient = getAuthenticatedApiClient();
+  return await apiClient.catalog_GetStockTakingJobStatus(jobId);
+};
+
+// React Query mutation hook for async stock taking submission
+export const useEnqueueStockTaking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: enqueueStockTaking,
+    onSuccess: (data, variables) => {
+      // Optimistically update catalog detail cache immediately (before job completion)
+      if (!variables.softStockTaking) {
+        // Update catalog detail cache
+        queryClient.setQueryData(
+          [...QUERY_KEYS.catalog, "detail", variables.productCode, 1],
+          (oldData: any) => {
+            if (oldData?.item?.stock) {
+              return {
+                ...oldData,
+                item: {
+                  ...oldData.item,
+                  stock: {
+                    ...oldData.item.stock,
+                    available: variables.targetAmount,
+                    eshop: variables.targetAmount // Update eshop stock for inventory list
+                  }
+                }
+              };
+            }
+            return oldData;
+          }
+        );
+
+        // Update inventory list cache optimistically
+        queryClient.setQueriesData(
+          { queryKey: [...QUERY_KEYS.catalog, "inventory"] },
+          (oldData: any) => {
+            if (oldData?.items) {
+              return {
+                ...oldData,
+                items: oldData.items.map((item: any) => {
+                  if (item.productCode === variables.productCode) {
+                    return {
+                      ...item,
+                      stock: {
+                        ...item.stock,
+                        available: variables.targetAmount,
+                        eshop: variables.targetAmount
+                      }
+                    };
+                  }
+                  return item;
+                })
+              };
+            }
+            return oldData;
+          }
+        );
+      }
+      
+      // Invalidate related queries to refresh data after job completion
+      queryClient.invalidateQueries({ 
+        queryKey: [...QUERY_KEYS.catalog] 
+      });
+      
+      // Specifically invalidate catalog detail for the updated product
+      queryClient.invalidateQueries({ 
+        queryKey: [...QUERY_KEYS.catalog, "detail", variables.productCode] 
+      });
+      
+      // Invalidate inventory queries
+      queryClient.invalidateQueries({ 
+        queryKey: [...QUERY_KEYS.catalog, "inventory"] 
+      });
+    },
+    onError: (error, variables) => {
+      console.error("Async stock taking enqueue failed:", error, "for product:", variables.productCode);
+    },
+  });
+};
+
+// React Query hook for stock taking job status polling
+export const useStockTakingJobStatus = (jobId: string | null, options?: { 
+  enabled?: boolean;
+  refetchInterval?: number;
+}) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.stockTaking, "job-status", jobId],
+    queryFn: () => getStockTakingJobStatus(jobId!),
+    enabled: !!jobId && (options?.enabled ?? true),
+    refetchInterval: (query) => {
+      // Stop polling when job is completed (succeeded or failed)
+      if (query.state.data?.isCompleted) {
+        return false;
+      }
+      // Poll every 2 seconds while job is running
+      return options?.refetchInterval ?? 2000;
+    },
+    retry: (failureCount, error) => {
+      // Don't retry if job not found (404)
+      if (error && 'status' in error && error.status === 404) {
+        return false;
+      }
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
+    },
+    staleTime: 0, // Always fetch fresh status
+    gcTime: 5 * 60 * 1000, // 5 minutes cache time for completed jobs
   });
 };

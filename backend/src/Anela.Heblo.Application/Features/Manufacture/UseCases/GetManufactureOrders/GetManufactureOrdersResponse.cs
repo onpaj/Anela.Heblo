@@ -22,8 +22,7 @@ public class ManufactureOrderDto
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
 
-    public DateOnly SemiProductPlannedDate { get; set; }
-    public DateOnly ProductPlannedDate { get; set; }
+    public DateOnly PlannedDate { get; set; }
 
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }

@@ -1077,6 +1077,95 @@ export class ApiClient {
         return Promise.resolve<RecalculateProductWeightResponse>(null as any);
     }
 
+    catalog_EnqueueStockTaking(request: EnqueueStockTakingRequest): Promise<EnqueueStockTakingResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/stock-taking/enqueue";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_EnqueueStockTaking(_response);
+        });
+    }
+
+    protected processCatalog_EnqueueStockTaking(response: Response): Promise<EnqueueStockTakingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            let result202: any = null;
+            let resultData202 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result202 = EnqueueStockTakingResponse.fromJS(resultData202);
+            return result202;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EnqueueStockTakingResponse>(null as any);
+    }
+
+    catalog_GetStockTakingJobStatus(jobId: string): Promise<GetStockTakingJobStatusResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/stock-taking/job-status/{jobId}";
+        if (jobId === undefined || jobId === null)
+            throw new Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetStockTakingJobStatus(_response);
+        });
+    }
+
+    protected processCatalog_GetStockTakingJobStatus(response: Response): Promise<GetStockTakingJobStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetStockTakingJobStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetStockTakingJobStatusResponse>(null as any);
+    }
+
     configuration_GetConfiguration(): Promise<GetConfigurationResponse> {
         let url_ = this.baseUrl + "/api/Configuration";
         url_ = url_.replace(/[?&]$/, "");
@@ -3249,6 +3338,44 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
+    }
+
+    orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
+        let url_ = this.baseUrl + "/api/OrgChart";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOrgChart_GetOrganizationStructure(_response);
+        });
+    }
+
+    protected processOrgChart_GetOrganizationStructure(response: Response): Promise<OrgChartResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = OrgChartResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<OrgChartResponse>(null as any);
     }
 
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
@@ -7274,6 +7401,208 @@ export interface IRecalculateProductWeightRequest {
     productCode?: string | undefined;
 }
 
+export class EnqueueStockTakingResponse extends BaseResponse implements IEnqueueStockTakingResponse {
+    jobId?: string;
+    message?: string;
+
+    constructor(data?: IEnqueueStockTakingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): EnqueueStockTakingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnqueueStockTakingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEnqueueStockTakingResponse extends IBaseResponse {
+    jobId?: string;
+    message?: string;
+}
+
+export class EnqueueStockTakingRequest implements IEnqueueStockTakingRequest {
+    productCode?: string;
+    targetAmount?: number;
+    softStockTaking?: boolean;
+
+    constructor(data?: IEnqueueStockTakingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.targetAmount = _data["targetAmount"];
+            this.softStockTaking = _data["softStockTaking"];
+        }
+    }
+
+    static fromJS(data: any): EnqueueStockTakingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnqueueStockTakingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["targetAmount"] = this.targetAmount;
+        data["softStockTaking"] = this.softStockTaking;
+        return data;
+    }
+}
+
+export interface IEnqueueStockTakingRequest {
+    productCode?: string;
+    targetAmount?: number;
+    softStockTaking?: boolean;
+}
+
+export class GetStockTakingJobStatusResponse extends BaseResponse implements IGetStockTakingJobStatusResponse {
+    jobId?: string;
+    status?: string;
+    isCompleted?: boolean;
+    isSucceeded?: boolean;
+    isFailed?: boolean;
+    errorMessage?: string | undefined;
+    result?: StockTakingResultDto | undefined;
+
+    constructor(data?: IGetStockTakingJobStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+            this.status = _data["status"];
+            this.isCompleted = _data["isCompleted"];
+            this.isSucceeded = _data["isSucceeded"];
+            this.isFailed = _data["isFailed"];
+            this.errorMessage = _data["errorMessage"];
+            this.result = _data["result"] ? StockTakingResultDto.fromJS(_data["result"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetStockTakingJobStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetStockTakingJobStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        data["status"] = this.status;
+        data["isCompleted"] = this.isCompleted;
+        data["isSucceeded"] = this.isSucceeded;
+        data["isFailed"] = this.isFailed;
+        data["errorMessage"] = this.errorMessage;
+        data["result"] = this.result ? this.result.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetStockTakingJobStatusResponse extends IBaseResponse {
+    jobId?: string;
+    status?: string;
+    isCompleted?: boolean;
+    isSucceeded?: boolean;
+    isFailed?: boolean;
+    errorMessage?: string | undefined;
+    result?: StockTakingResultDto | undefined;
+}
+
+export class StockTakingResultDto implements IStockTakingResultDto {
+    id?: string;
+    type?: string;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string;
+    error?: string;
+
+    constructor(data?: IStockTakingResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+        }
+    }
+
+    static fromJS(data: any): StockTakingResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockTakingResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        return data;
+    }
+}
+
+export interface IStockTakingResultDto {
+    id?: string;
+    type?: string;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string;
+    error?: string;
+}
+
 export class GetConfigurationResponse extends BaseResponse implements IGetConfigurationResponse {
     version?: string;
     environment?: string;
@@ -7966,7 +8295,9 @@ export class JournalEntryDto implements IJournalEntryDto {
     createdAt?: Date;
     modifiedAt?: Date;
     createdByUserId?: string;
+    createdByUsername?: string | undefined;
     modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
     contentPreview?: string | undefined;
@@ -7990,7 +8321,9 @@ export class JournalEntryDto implements IJournalEntryDto {
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
             this.createdByUserId = _data["createdByUserId"];
+            this.createdByUsername = _data["createdByUsername"];
             this.modifiedByUserId = _data["modifiedByUserId"];
+            this.modifiedByUsername = _data["modifiedByUsername"];
             if (Array.isArray(_data["associatedProducts"])) {
                 this.associatedProducts = [] as any;
                 for (let item of _data["associatedProducts"])
@@ -8026,7 +8359,9 @@ export class JournalEntryDto implements IJournalEntryDto {
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
         data["createdByUserId"] = this.createdByUserId;
+        data["createdByUsername"] = this.createdByUsername;
         data["modifiedByUserId"] = this.modifiedByUserId;
+        data["modifiedByUsername"] = this.modifiedByUsername;
         if (Array.isArray(this.associatedProducts)) {
             data["associatedProducts"] = [];
             for (let item of this.associatedProducts)
@@ -8055,7 +8390,9 @@ export interface IJournalEntryDto {
     createdAt?: Date;
     modifiedAt?: Date;
     createdByUserId?: string;
+    createdByUsername?: string | undefined;
     modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
     contentPreview?: string | undefined;
@@ -9995,8 +10332,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10027,8 +10363,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.manualActionRequired = _data["manualActionRequired"];
@@ -10067,8 +10402,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -10100,8 +10434,7 @@ export interface IManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10368,8 +10701,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
     newBatchSize!: number;
     scaleFactor!: number;
     products?: CreateManufactureOrderProductRequest[];
-    semiProductPlannedDate!: Date;
-    productPlannedDate!: Date;
+    plannedDate!: Date;
     responsiblePerson?: string | undefined;
 
     constructor(data?: ICreateManufactureOrderRequest) {
@@ -10393,8 +10725,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
                 for (let item of _data["products"])
                     this.products!.push(CreateManufactureOrderProductRequest.fromJS(item));
             }
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
         }
     }
@@ -10418,8 +10749,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
             for (let item of this.products)
                 data["products"].push(item.toJSON());
         }
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
         return data;
     }
@@ -10432,8 +10762,7 @@ export interface ICreateManufactureOrderRequest {
     newBatchSize: number;
     scaleFactor: number;
     products?: CreateManufactureOrderProductRequest[];
-    semiProductPlannedDate: Date;
-    productPlannedDate: Date;
+    plannedDate: Date;
     responsiblePerson?: string | undefined;
 }
 
@@ -10520,12 +10849,11 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 
@@ -10545,8 +10873,7 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.stateChangedByUser = _data["stateChangedByUser"];
@@ -10578,8 +10905,7 @@ export class UpdateManufactureOrderDto implements IUpdateManufactureOrderDto {
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["stateChangedByUser"] = this.stateChangedByUser;
@@ -10604,12 +10930,11 @@ export interface IUpdateManufactureOrderDto {
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
-    semiProductPlannedDate?: Date;
-    productPlannedDate?: Date;
+    plannedDate?: Date;
     state?: string;
     stateChangedAt?: Date;
     stateChangedByUser?: string;
-    semiProduct?: UpdateManufactureOrderSemiProductDto;
+    semiProduct?: UpdateManufactureOrderSemiProductDto | undefined;
     products?: UpdateManufactureOrderProductDto[];
     notes?: UpdateManufactureOrderNoteDto[];
 }
@@ -10780,8 +11105,7 @@ export interface IUpdateManufactureOrderNoteDto {
 
 export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderRequest {
     id!: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
@@ -10803,8 +11127,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
             this.erpOrderNumberSemiproduct = _data["erpOrderNumberSemiproduct"];
             this.erpOrderNumberProduct = _data["erpOrderNumberProduct"];
@@ -10830,8 +11153,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
         data["erpOrderNumberSemiproduct"] = this.erpOrderNumberSemiproduct;
         data["erpOrderNumberProduct"] = this.erpOrderNumberProduct;
@@ -10850,8 +11172,7 @@ export class UpdateManufactureOrderRequest implements IUpdateManufactureOrderReq
 
 export interface IUpdateManufactureOrderRequest {
     id: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     responsiblePerson?: string | undefined;
     erpOrderNumberSemiproduct?: string | undefined;
     erpOrderNumberProduct?: string | undefined;
@@ -11753,8 +12074,7 @@ export interface IUpdateManufactureOrderScheduleResponse extends IBaseResponse {
 
 export class UpdateManufactureOrderScheduleRequest implements IUpdateManufactureOrderScheduleRequest {
     id!: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     changeReason?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderScheduleRequest) {
@@ -11769,8 +12089,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.semiProductPlannedDate = _data["semiProductPlannedDate"] ? new Date(_data["semiProductPlannedDate"].toString()) : <any>undefined;
-            this.productPlannedDate = _data["productPlannedDate"] ? new Date(_data["productPlannedDate"].toString()) : <any>undefined;
+            this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.changeReason = _data["changeReason"];
         }
     }
@@ -11785,8 +12104,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["semiProductPlannedDate"] = this.semiProductPlannedDate ? formatDate(this.semiProductPlannedDate) : <any>undefined;
-        data["productPlannedDate"] = this.productPlannedDate ? formatDate(this.productPlannedDate) : <any>undefined;
+        data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["changeReason"] = this.changeReason;
         return data;
     }
@@ -11794,8 +12112,7 @@ export class UpdateManufactureOrderScheduleRequest implements IUpdateManufacture
 
 export interface IUpdateManufactureOrderScheduleRequest {
     id: number;
-    semiProductPlannedDate?: Date | undefined;
-    productPlannedDate?: Date | undefined;
+    plannedDate?: Date | undefined;
     changeReason?: string | undefined;
 }
 
@@ -12581,6 +12898,215 @@ export enum ManufacturingStockSortBy {
     MinimumStock = "MinimumStock",
     OverstockPercentage = "OverstockPercentage",
     BatchSize = "BatchSize",
+}
+
+export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
+    organization?: OrganizationDto;
+
+    constructor(data?: IOrgChartResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.organization = _data["organization"] ? OrganizationDto.fromJS(_data["organization"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): OrgChartResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new OrgChartResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["organization"] = this.organization ? this.organization.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IOrgChartResponse extends IBaseResponse {
+    organization?: OrganizationDto;
+}
+
+export class OrganizationDto implements IOrganizationDto {
+    name?: string;
+    positions?: PositionDto[];
+
+    constructor(data?: IOrganizationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            if (Array.isArray(_data["positions"])) {
+                this.positions = [] as any;
+                for (let item of _data["positions"])
+                    this.positions!.push(PositionDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): OrganizationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new OrganizationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        if (Array.isArray(this.positions)) {
+            data["positions"] = [];
+            for (let item of this.positions)
+                data["positions"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IOrganizationDto {
+    name?: string;
+    positions?: PositionDto[];
+}
+
+export class PositionDto implements IPositionDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    level?: number | undefined;
+    parentPositionId?: string | undefined;
+    department?: string;
+    employees?: EmployeeDto[];
+    url?: string | undefined;
+
+    constructor(data?: IPositionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.level = _data["level"];
+            this.parentPositionId = _data["parentPositionId"];
+            this.department = _data["department"];
+            if (Array.isArray(_data["employees"])) {
+                this.employees = [] as any;
+                for (let item of _data["employees"])
+                    this.employees!.push(EmployeeDto.fromJS(item));
+            }
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): PositionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PositionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["level"] = this.level;
+        data["parentPositionId"] = this.parentPositionId;
+        data["department"] = this.department;
+        if (Array.isArray(this.employees)) {
+            data["employees"] = [];
+            for (let item of this.employees)
+                data["employees"].push(item.toJSON());
+        }
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IPositionDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    level?: number | undefined;
+    parentPositionId?: string | undefined;
+    department?: string;
+    employees?: EmployeeDto[];
+    url?: string | undefined;
+}
+
+export class EmployeeDto implements IEmployeeDto {
+    id?: string;
+    name?: string;
+    email?: string;
+    startDate?: string;
+    isPrimary?: boolean;
+    url?: string | undefined;
+
+    constructor(data?: IEmployeeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.email = _data["email"];
+            this.startDate = _data["startDate"];
+            this.isPrimary = _data["isPrimary"];
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): EmployeeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EmployeeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["email"] = this.email;
+        data["startDate"] = this.startDate;
+        data["isPrimary"] = this.isPrimary;
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IEmployeeDto {
+    id?: string;
+    name?: string;
+    email?: string;
+    startDate?: string;
+    isPrimary?: boolean;
+    url?: string | undefined;
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {

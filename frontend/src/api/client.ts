@@ -385,6 +385,7 @@ export const QUERY_KEYS = {
   bankStatements: ["bank-statements"] as const,
   backgroundRefresh: ["background-refresh"] as const,
   dashboard: ["dashboard"] as const,
+  orgChart: ["orgChart"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

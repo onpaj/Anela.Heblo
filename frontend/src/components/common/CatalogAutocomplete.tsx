@@ -48,6 +48,7 @@ interface CatalogSelectOption {
   productCode?: string;
   productName?: string;
   type?: ProductType;
+  data?: CatalogItemDto; // Complete catalog item data for preserving all fields
 }
 
 export function CatalogAutocomplete<T = CatalogItemDto>({
@@ -75,6 +76,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     productCode: item.productCode,
     productName: item.productName,
     type: item.type,
+    data: item, // Store complete catalog item data
   });
 
   // Convert current value to select option
@@ -146,8 +148,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       return;
     }
 
-    // Convert back to the expected format using constructor
-    const catalogItem = new CatalogItemDto({
+    // Use complete catalog item data if available, otherwise create new instance
+    const catalogItem = selectedOption.data || new CatalogItemDto({
       productCode: selectedOption.productCode,
       productName: selectedOption.productName,
       type: selectedOption.type,
@@ -283,8 +285,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
 
   // Custom Option component with icon
   const CustomOption = (props: OptionProps<CatalogSelectOption>) => {
-    // Convert CatalogSelectOption back to CatalogItemDto for renderItem
-    const catalogItem = new CatalogItemDto({
+    // Use complete catalog item data if available, otherwise create new instance
+    const catalogItem = props.data.data || new CatalogItemDto({
       productCode: props.data.productCode,
       productName: props.data.productName,
       type: props.data.type,

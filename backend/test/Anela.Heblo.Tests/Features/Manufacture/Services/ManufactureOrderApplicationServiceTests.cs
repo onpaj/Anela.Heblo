@@ -79,7 +79,7 @@ public class ManufactureOrderApplicationServiceTests
             result.Message.Should().Contain($"skutečným množstvím {ValidQuantity}");
 
             VerifyUpdateOrderCall();
-            VerifySubmitManufactureCall(ManufactureType.SemiProduct);
+            VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
             VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, "ERP_ORDER_123", null, null, false);
         }
         catch (Exception ex)
@@ -107,7 +107,7 @@ public class ManufactureOrderApplicationServiceTests
         result.Message.Should().Contain($"skutečným množstvím {ValidQuantity}");
 
         VerifyUpdateOrderCall();
-        VerifySubmitManufactureCall(ManufactureType.SemiProduct);
+        VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
         VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, null, null, null, true);
     }
 
@@ -152,7 +152,7 @@ public class ManufactureOrderApplicationServiceTests
         result.Message.Should().Contain("Chyba při změně stavu");
 
         VerifyUpdateOrderCall();
-        VerifySubmitManufactureCall(ManufactureType.SemiProduct);
+        VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
         VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, "ERP_ORDER_123", null, null, false);
     }
 
@@ -199,7 +199,7 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ManufactureType.Product);
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyDiscardResidueCall();
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", "DISCARD_REF_789", false);
     }
@@ -224,7 +224,7 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ManufactureType.Product);
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyNoDiscardResidueCall(); // Discard not called when manufacture fails
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true);
     }
@@ -250,7 +250,7 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ManufactureType.Product);
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyDiscardResidueCall();
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, true);
     }
@@ -275,7 +275,7 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ManufactureType.Product);
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyNoDiscardResidueCall();
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true);
     }
@@ -325,7 +325,7 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().Contain("Chyba při změně stavu");
 
         VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ManufactureType.Product);
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyDiscardResidueCall();
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", "DISCARD_REF_789", false);
     }
@@ -481,7 +481,7 @@ public class ManufactureOrderApplicationServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private void VerifySubmitManufactureCall(ManufactureType expectedType)
+    private void VerifySubmitManufactureCall(ErpManufactureType expectedType)
     {
         _mediatorMock.Verify(x => x.Send(
             It.Is<SubmitManufactureRequest>(r => r.ManufactureType == expectedType),

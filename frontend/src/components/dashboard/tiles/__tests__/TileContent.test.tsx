@@ -178,11 +178,20 @@ describe('TileContent', () => {
     expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
   });
 
-  it('should render InventorySummaryTile for materialinventorysummary', () => {
+  it('should render InventorySummaryTile for materialwithexpirationinventorysummary', () => {
     const data = { total: 500, available: 400, reserved: 100 };
-    const tile = createMockTile('materialinventorysummary', data);
+    const tile = createMockTile('materialwithexpirationinventorysummary', data);
     render(<TileContent tile={tile} />);
-    
+
+    expect(screen.getByTestId('inventory-summary-tile')).toBeInTheDocument();
+    expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
+  });
+
+  it('should render InventorySummaryTile for materialwithoutexpirationinventorysummary', () => {
+    const data = { total: 300, available: 250, reserved: 50 };
+    const tile = createMockTile('materialwithoutexpirationinventorysummary', data);
+    render(<TileContent tile={tile} />);
+
     expect(screen.getByTestId('inventory-summary-tile')).toBeInTheDocument();
     expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
   });

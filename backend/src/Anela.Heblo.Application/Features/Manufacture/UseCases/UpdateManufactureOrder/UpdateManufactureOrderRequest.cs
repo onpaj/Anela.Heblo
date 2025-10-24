@@ -8,9 +8,7 @@ public class UpdateManufactureOrderRequest : IRequest<UpdateManufactureOrderResp
     [Required]
     public int Id { get; set; }
 
-    public DateOnly? SemiProductPlannedDate { get; set; }
-
-    public DateOnly? ProductPlannedDate { get; set; }
+    public DateOnly? PlannedDate { get; set; }
 
     public string? ResponsiblePerson { get; set; }
 

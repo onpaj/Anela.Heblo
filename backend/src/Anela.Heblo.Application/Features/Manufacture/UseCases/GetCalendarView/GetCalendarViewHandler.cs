@@ -35,16 +35,16 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
 
             foreach (var order in orders)
             {
-                // Add semi-product event if date is within range
-                if (order.SemiProductPlannedDate >= DateOnly.FromDateTime(request.StartDate) &&
-                    order.SemiProductPlannedDate <= DateOnly.FromDateTime(request.EndDate))
+                // Add production event if date is within range
+                if (order.PlannedDate >= DateOnly.FromDateTime(request.StartDate) &&
+                    order.PlannedDate <= DateOnly.FromDateTime(request.EndDate))
                 {
                     events.Add(new CalendarEventDto
                     {
                         Id = order.Id,
                         OrderNumber = order.OrderNumber,
                         Title = $"{order.SemiProduct?.ProductName?.Replace(" - meziprodukt", "") ?? order.OrderNumber}",
-                        Date = order.SemiProductPlannedDate.ToDateTime(TimeOnly.MinValue),
+                        Date = order.PlannedDate.ToDateTime(TimeOnly.MinValue),
                         State = order.State,
                         ResponsiblePerson = order.ResponsiblePerson,
                         ManualActionRequired = order.ManualActionRequired,
