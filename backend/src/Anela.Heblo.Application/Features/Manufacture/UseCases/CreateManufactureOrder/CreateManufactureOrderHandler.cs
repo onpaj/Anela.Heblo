@@ -46,6 +46,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
             PlannedDate = request.PlannedDate,
+            ManufactureType = request.ManufactureType,
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow,
             StateChangedByUser = currentUser.Name
@@ -60,19 +61,22 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, semiproduct.Properties.ExpirationMonths);
         var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
 
-        // Create the semi-product entry (the main product being manufactured)
-        var semiProduct = new ManufactureOrderSemiProduct
+        // Create the semi-product entry only for multi-phase manufacturing
+        if (request.ManufactureType == ManufactureType.MultiPhase)
         {
-            ProductCode = request.ProductCode,
-            ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
-            PlannedQuantity = (decimal)request.NewBatchSize,
-            ActualQuantity = (decimal)request.NewBatchSize,
-            BatchMultiplier = (decimal)request.ScaleFactor,
-            ExpirationMonths = semiproduct.Properties.ExpirationMonths,
-            ExpirationDate = expirationDate,
-            LotNumber = lotNumber,
-        };
-        order.SemiProduct = semiProduct;
+            var semiProduct = new ManufactureOrderSemiProduct
+            {
+                ProductCode = request.ProductCode,
+                ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
+                PlannedQuantity = (decimal)request.NewBatchSize,
+                ActualQuantity = (decimal)request.NewBatchSize,
+                BatchMultiplier = (decimal)request.ScaleFactor,
+                ExpirationMonths = semiproduct.Properties.ExpirationMonths,
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
+            };
+            order.SemiProduct = semiProduct;
+        }
 
         // Create final products from the request 
         foreach (var productRequest in request.Products)
@@ -81,7 +85,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             {
                 ProductCode = productRequest.ProductCode,
                 ProductName = productRequest.ProductName,
-                SemiProductCode = request.ProductCode, // Link to the semiproduct being manufactured
+                SemiProductCode = request.ManufactureType == ManufactureType.MultiPhase ? request.ProductCode : null,
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
                 ActualQuantity = (decimal)productRequest.PlannedQuantity,
                 ExpirationDate = expirationDate,
