@@ -40,6 +40,7 @@ import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { PlanningListProvider } from "./contexts/PlanningListContext";
+import { PurchasePlanningListProvider } from "./contexts/PurchasePlanningListContext";
 import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
@@ -279,6 +280,7 @@ function App() {
         <ToastProvider>
           <ChangelogProvider>
             <PlanningListProvider>
+              <PurchasePlanningListProvider>
             <AppInitializer>
             <div className="App min-h-screen" data-testid="app">
               <MsalProvider instance={msalInstance}>
@@ -393,7 +395,8 @@ function App() {
               <ChangelogModalContainer />
             </div>
           </AppInitializer>
-          </PlanningListProvider>
+              </PurchasePlanningListProvider>
+            </PlanningListProvider>
           </ChangelogProvider>
         </ToastProvider>
       </LoadingProvider>

@@ -7,6 +7,7 @@ import {
   usePurchaseStockAnalysisQuery,
 } from "../../../api/hooks/usePurchaseStockAnalysis";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
+import { PurchasePlanningListProvider } from "../../../contexts/PurchasePlanningListContext";
 
 // Mock the entire module properly
 jest.mock("../../../api/hooks/usePurchaseStockAnalysis", () => {
@@ -36,7 +37,9 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TestRouterWrapper>{children}</TestRouterWrapper>
+      <PurchasePlanningListProvider>
+        <TestRouterWrapper>{children}</TestRouterWrapper>
+      </PurchasePlanningListProvider>
     </QueryClientProvider>
   );
 };

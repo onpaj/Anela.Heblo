@@ -20,6 +20,15 @@ jest.mock('../../../api/hooks/useStockTaking', () => ({
     isSuccess: false,
     reset: jest.fn(),
   }),
+  useEnqueueStockTaking: () => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn(),
+    isPending: false,
+    isError: false,
+    error: null,
+    isSuccess: false,
+    reset: jest.fn(),
+  }),
   useStockTakingHistory: () => ({
     data: null,
     isLoading: false,

@@ -8,6 +8,8 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.EnqueueStockTaking;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingJobStatus;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -168,6 +170,26 @@ public class CatalogController : BaseApiController
         var request = new RecalculateProductWeightRequest { ProductCode = productCode };
         var response = await _mediator.Send(request);
         return HandleResponse(response);
+    }
+
+    [HttpPost("stock-taking/enqueue")]
+    [ProducesResponseType(typeof(EnqueueStockTakingResponse), 202)]
+    [ProducesResponseType(400)]
+    public async Task<ActionResult<EnqueueStockTakingResponse>> EnqueueStockTaking(
+        [FromBody] EnqueueStockTakingRequest request)
+    {
+        var response = await _mediator.Send(request);
+        return Accepted(response);
+    }
+
+    [HttpGet("stock-taking/job-status/{jobId}")]
+    [ProducesResponseType(typeof(GetStockTakingJobStatusResponse), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<GetStockTakingJobStatusResponse>> GetStockTakingJobStatus(string jobId)
+    {
+        var request = new GetStockTakingJobStatusRequest { JobId = jobId };
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
 }
