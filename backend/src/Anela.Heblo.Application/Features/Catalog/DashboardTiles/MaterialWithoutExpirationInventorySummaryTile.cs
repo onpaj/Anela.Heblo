@@ -6,16 +6,16 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// Dashboard tile showing summary of materials by inventory age.
 /// Shows counts for: < 120 days, 120-250 days, > 250 days since last stock taking.
 /// </summary>
-public class MaterialInventorySummaryTile : InventorySummaryTileBase
+public class MaterialWithoutExpirationInventorySummaryTile : InventorySummaryTileBase
 {
-    public MaterialInventorySummaryTile(ICatalogRepository catalogRepository)
+    public MaterialWithoutExpirationInventorySummaryTile(ICatalogRepository catalogRepository)
         : base(catalogRepository)
     {
     }
 
-    public override string Title => "Materiály podle stáří inventury";
+    public override string Title => "Inventury obalů a etiket";
     public override string Description => "Přehled materiálů podle doby od poslední inventury";
-    protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Material;
+    protected override Func<CatalogAggregate, bool> ItemFilter => c => c.Type == ProductType.Material && !c.HasExpiration;
 
     protected override object GenerateDrillDownFilters()
     {
