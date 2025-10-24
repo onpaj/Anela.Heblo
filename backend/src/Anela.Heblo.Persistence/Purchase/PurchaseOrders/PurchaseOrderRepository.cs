@@ -95,7 +95,7 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
     public async Task<Dictionary<string, decimal>> GetOrderedQuantitiesAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Where(order => order.Status == PurchaseOrderStatus.Draft || order.Status == PurchaseOrderStatus.InTransit)
+            .Where(order => order.Status == PurchaseOrderStatus.Draft || order.Status == PurchaseOrderStatus.InTransit || !order.InvoiceAcquired)
             .Include(order => order.Lines)
             .SelectMany(order => order.Lines)
             .GroupBy(line => line.MaterialId)
