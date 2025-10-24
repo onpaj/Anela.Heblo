@@ -38,10 +38,10 @@ public class ManufactureSeverityCalculator : IManufactureSeverityCalculator
         }
 
         // Orange - Below minimum stock (Major) - only for products with minStockSetup > 0
-        if (catalogItem.Properties.StockMinSetup > 0 && catalogItem.Stock.Available < catalogItem.Properties.StockMinSetup)
+        if (catalogItem.Properties.StockMinSetup > 0 && catalogItem.Stock.Total < catalogItem.Properties.StockMinSetup)
         {
             _logger.LogDebug("Item {Code} marked as Major: current stock {Current} < min stock setup {Min}",
-                catalogItem.ProductCode, catalogItem.Stock.Available, catalogItem.Properties.StockMinSetup);
+                catalogItem.ProductCode, catalogItem.Stock.Total, catalogItem.Properties.StockMinSetup);
             return ManufacturingStockSeverity.Major;
         }
 
