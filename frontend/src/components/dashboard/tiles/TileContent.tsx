@@ -52,7 +52,9 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <CountTile data={tile.data} icon={<Beaker className="h-10 w-10" />} iconColor="text-teal-600" tileCategory={tile.category} tileTitle={tile.title} targetUrl="/manufacturing/inventory" />;
     case 'productinventorysummary':
       return <InventorySummaryTile data={tile.data} targetUrl="/logistics/inventory" />;
-    case 'materialinventorysummary':
+    case 'materialwithexpirationinventorysummary':
+      return <InventorySummaryTile data={tile.data} targetUrl="/manufacturing/inventory" />;
+    case 'materialwithoutexpirationinventorysummary':
       return <InventorySummaryTile data={tile.data} targetUrl="/manufacturing/inventory" />;
     // Purchase efficiency tiles
     case 'lowstockefficiency':
