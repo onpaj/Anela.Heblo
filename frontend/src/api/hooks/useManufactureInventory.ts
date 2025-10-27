@@ -48,7 +48,7 @@ const fetchManufactureInventoryList = async (
 
   // Call the catalog API with the material filter
   const result = await apiClient.catalog_GetCatalogList(
-    targetType,
+    [targetType],
     params.pageNumber,
     params.pageSize,
     params.sortBy || undefined,
@@ -56,7 +56,6 @@ const fetchManufactureInventoryList = async (
     params.productName || undefined,
     params.productCode || undefined,
     undefined, // searchTerm
-    false // withBoMOnly - show all materials in manufacture inventory
   );
 
   return {

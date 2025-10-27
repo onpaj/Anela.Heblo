@@ -141,7 +141,7 @@ const BatchPlanningCalculator: React.FC = () => {
         
         // Trigger the API call directly
         const requestData: any = {
-          semiproductCode: productCode,
+          productCode: productCode,
           controlMode: BatchPlanControlMode.TotalWeight,
           fromDate: fromDate,
           toDate: toDate,
@@ -180,7 +180,7 @@ const BatchPlanningCalculator: React.FC = () => {
       
       // Trigger batch planning calculation with default values
       const requestData: any = {
-        semiproductCode: selectedSemiproduct.productCode,
+        productCode: selectedSemiproduct.productCode,
         controlMode: BatchPlanControlMode.MmqMultiplier,
         fromDate: fromDate,
         toDate: toDate,
@@ -288,7 +288,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
   const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
     const requestData: any = {
-      semiproductCode: semiproductCode,
+      productCode: semiproductCode,
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
@@ -324,7 +324,7 @@ const BatchPlanningCalculator: React.FC = () => {
     );
 
     const requestData: any = {
-      semiproductCode: semiproductCode,
+      productCode: semiproductCode,
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
@@ -365,7 +365,7 @@ const BatchPlanningCalculator: React.FC = () => {
     // Auto-trigger calculation immediately after product selection
     if (product?.productCode) {
       const requestData: any = {
-        semiproductCode: product.productCode,
+        productCode: product.productCode,
         controlMode: BatchPlanControlMode.MmqMultiplier,
         fromDate: fromDate,
         toDate: toDate,

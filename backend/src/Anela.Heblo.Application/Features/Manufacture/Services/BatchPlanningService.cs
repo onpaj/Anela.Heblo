@@ -305,11 +305,11 @@ public class BatchPlanningService : IBatchPlanningService
 
     private async Task<CalculateBatchPlanResponse> CalculateSinglePhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
-        // For single-phase manufacturing, the request.SemiproductCode is actually the product code
-        var product = await _catalogRepository.GetByIdAsync(request.SemiproductCode, cancellationToken);
+        // For single-phase manufacturing, the request.ProductCode is actually the product code
+        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product == null)
         {
-            throw new ArgumentException($"Product with code '{request.SemiproductCode}' not found.");
+            throw new ArgumentException($"Product with code '{request.ProductCode}' not found.");
         }
 
         // Create batch plan item using common helper
@@ -350,19 +350,19 @@ public class BatchPlanningService : IBatchPlanningService
     private async Task<CalculateBatchPlanResponse> CalculateMultiPhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
         // 1. Get semiproduct info
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.SemiproductCode, cancellationToken);
+        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
         {
-            throw new ArgumentException($"Semiproduct with code '{request.SemiproductCode}' not found.");
+            throw new ArgumentException($"Semiproduct with code '{request.ProductCode}' not found.");
         }
 
         var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
 
         // 2. Find all products that use this semiproduct
-        var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.SemiproductCode, cancellationToken);
+        var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.ProductCode, cancellationToken);
         if (productTemplates.Count == 0)
         {
-            throw new ArgumentException($"No products found that use semiproduct '{request.SemiproductCode}'.");
+            throw new ArgumentException($"No products found that use semiproduct '{request.ProductCode}'.");
         }
 
         // 3. For each product, get catalog data and create batch plan items

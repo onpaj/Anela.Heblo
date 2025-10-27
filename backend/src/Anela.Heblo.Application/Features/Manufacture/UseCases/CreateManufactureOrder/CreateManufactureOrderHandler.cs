@@ -61,7 +61,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, semiproduct.Properties.ExpirationMonths);
         var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
 
-        // Create the semi-product entry only for multi-phase manufacturing
+        // Create the semi-product entry
         if (request.ManufactureType == ManufactureType.MultiPhase)
         {
             var semiProduct = new ManufactureOrderSemiProduct
@@ -77,6 +77,27 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             };
             order.SemiProduct = semiProduct;
         }
+        else if (request.ManufactureType == ManufactureType.SinglePhase)
+        {
+            // For single-phase, the product is its own semi-product
+            // Use the first product in the request as the representative semi-product
+            var firstProduct = request.Products.FirstOrDefault();
+            if (firstProduct != null)
+            {
+                var semiProduct = new ManufactureOrderSemiProduct
+                {
+                    ProductCode = firstProduct.ProductCode,
+                    ProductName = _productNameFormatter.ShortProductName(firstProduct.ProductName),
+                    PlannedQuantity = (decimal)firstProduct.PlannedQuantity,
+                    ActualQuantity = (decimal)firstProduct.PlannedQuantity,
+                    BatchMultiplier = (decimal)request.ScaleFactor,
+                    ExpirationMonths = semiproduct.Properties.ExpirationMonths,
+                    ExpirationDate = expirationDate,
+                    LotNumber = lotNumber,
+                };
+                order.SemiProduct = semiProduct;
+            }
+        }
 
         // Create final products from the request 
         foreach (var productRequest in request.Products)
@@ -85,7 +106,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             {
                 ProductCode = productRequest.ProductCode,
                 ProductName = productRequest.ProductName,
-                SemiProductCode = request.ManufactureType == ManufactureType.MultiPhase ? request.ProductCode : null,
+                SemiProductCode = request.ManufactureType == ManufactureType.MultiPhase ? request.ProductCode : productRequest.ProductCode,
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
                 ActualQuantity = (decimal)productRequest.PlannedQuantity,
                 ExpirationDate = expirationDate,

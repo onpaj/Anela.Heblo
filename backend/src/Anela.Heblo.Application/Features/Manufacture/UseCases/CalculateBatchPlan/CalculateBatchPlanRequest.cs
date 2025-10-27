@@ -7,7 +7,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPl
 public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
 {
     [Required]
-    public string SemiproductCode { get; set; } = null!;
+    public string ProductCode { get; set; } = null!;
 
     // Time period selection (same as Purchase Analysis)
     public DateTime? FromDate { get; set; }

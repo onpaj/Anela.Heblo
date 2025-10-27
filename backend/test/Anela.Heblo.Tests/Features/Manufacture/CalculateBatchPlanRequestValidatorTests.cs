@@ -20,7 +20,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.5
         };
@@ -41,7 +41,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = semiproductCode,
+            ProductCode = semiproductCode,
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0
         };
@@ -50,7 +50,7 @@ public class CalculateBatchPlanRequestValidatorTests
         var result = _validator.TestValidate(request);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.SemiproductCode);
+        result.ShouldHaveValidationErrorFor(x => x.ProductCode);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = null
         };
@@ -79,7 +79,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = multiplier
         };
@@ -97,7 +97,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.TotalWeight,
             TotalWeightToUse = null
         };
@@ -117,7 +117,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.TotalWeight,
             TotalWeightToUse = weight
         };
@@ -135,7 +135,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.TargetDaysCoverage,
             TargetDaysCoverage = null
         };
@@ -155,7 +155,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.TargetDaysCoverage,
             TargetDaysCoverage = coverage
         };
@@ -173,7 +173,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0,
             FromDate = DateTime.Now.AddDays(1),
@@ -193,7 +193,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0,
             ProductConstraints = new List<ProductSizeConstraint>
@@ -215,7 +215,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0,
             ProductConstraints = new List<ProductSizeConstraint>
@@ -237,7 +237,7 @@ public class CalculateBatchPlanRequestValidatorTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0,
             ProductConstraints = new List<ProductSizeConstraint>

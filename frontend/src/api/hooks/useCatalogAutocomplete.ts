@@ -28,7 +28,6 @@ export function useCatalogAutocomplete(
       const response = await apiClient.catalog_GetProductsForAutocomplete(
         searchTerm,
         limit,
-        withBomOnly,
         productTypes,
       );
 

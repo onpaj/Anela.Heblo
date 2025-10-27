@@ -22,16 +22,16 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
         // Can calculate even for product
-        var product = await _catalogRepository.GetByIdAsync(request.SemiproductCode, cancellationToken);
+        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product?.Type == ProductType.Product)
         {
-            var manufactureTemplate = await _manufactureRepository.GetManufactureTemplateAsync(request.SemiproductCode, cancellationToken);
+            var manufactureTemplate = await _manufactureRepository.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
             request.ManufactureType = manufactureTemplate.ManufactureType;
             if(request.ManufactureType == ManufactureType.MultiPhase)
             {
                 // For multi-phase, transform to semiproduct code as before
-                request.SemiproductCode = manufactureTemplate.Ingredients
-                    .FirstOrDefault(w => w.ProductType == ProductType.SemiProduct)?.ProductCode ?? request.SemiproductCode;
+                request.ProductCode = manufactureTemplate.Ingredients
+                    .FirstOrDefault(w => w.ProductType == ProductType.SemiProduct)?.ProductCode ?? request.ProductCode;
             }
         }
         

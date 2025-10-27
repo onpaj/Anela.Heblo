@@ -583,10 +583,10 @@ export class ApiClient {
         return Promise.resolve<RefreshTaskStatusDto>(null as any);
     }
 
-    catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined, withBoMOnly: boolean | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
-        if (type !== undefined && type !== null)
-            url_ += "Type=" + encodeURIComponent("" + type) + "&";
+        if (productTypes !== undefined && productTypes !== null)
+            productTypes && productTypes.forEach(item => { url_ += "ProductTypes=" + encodeURIComponent("" + item) + "&"; });
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)
@@ -607,10 +607,6 @@ export class ApiClient {
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
-        if (withBoMOnly === null)
-            throw new Error("The parameter 'withBoMOnly' cannot be null.");
-        else if (withBoMOnly !== undefined)
-            url_ += "WithBoMOnly=" + encodeURIComponent("" + withBoMOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -724,7 +720,7 @@ export class ApiClient {
         return Promise.resolve<GetMaterialsForPurchaseResponse>(null as any);
     }
 
-    catalog_GetProductsForAutocomplete(searchTerm: string | null | undefined, limit: number | undefined, withBomOnly: boolean | undefined, productTypes: ProductType[] | null | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetProductsForAutocomplete(searchTerm: string | null | undefined, limit: number | undefined, productTypes: ProductType[] | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog/autocomplete?";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "searchTerm=" + encodeURIComponent("" + searchTerm) + "&";
@@ -732,10 +728,6 @@ export class ApiClient {
             throw new Error("The parameter 'limit' cannot be null.");
         else if (limit !== undefined)
             url_ += "limit=" + encodeURIComponent("" + limit) + "&";
-        if (withBomOnly === null)
-            throw new Error("The parameter 'withBomOnly' cannot be null.");
-        else if (withBomOnly !== undefined)
-            url_ += "withBomOnly=" + encodeURIComponent("" + withBomOnly) + "&";
         if (productTypes !== undefined && productTypes !== null)
             productTypes && productTypes.forEach(item => { url_ += "productTypes=" + encodeURIComponent("" + item) + "&"; });
         url_ = url_.replace(/[?&]$/, "");
@@ -7151,6 +7143,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
     originalAmount?: number;
     ingredients?: Ingredient[];
     batchSize?: number;
+    manufactureType?: ManufactureType;
 
     constructor(data?: IManufactureTemplate) {
         if (data) {
@@ -7174,6 +7167,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
                     this.ingredients!.push(Ingredient.fromJS(item));
             }
             this.batchSize = _data["batchSize"];
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -7197,6 +7191,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
                 data["ingredients"].push(item.toJSON());
         }
         data["batchSize"] = this.batchSize;
+        data["manufactureType"] = this.manufactureType;
         return data;
     }
 }
@@ -7209,6 +7204,7 @@ export interface IManufactureTemplate {
     originalAmount?: number;
     ingredients?: Ingredient[];
     batchSize?: number;
+    manufactureType?: ManufactureType;
 }
 
 export class Ingredient implements IIngredient {
@@ -7218,6 +7214,7 @@ export class Ingredient implements IIngredient {
     amount?: number;
     originalAmount?: number;
     price?: number;
+    productType?: ProductType;
 
     constructor(data?: IIngredient) {
         if (data) {
@@ -7236,6 +7233,7 @@ export class Ingredient implements IIngredient {
             this.amount = _data["amount"];
             this.originalAmount = _data["originalAmount"];
             this.price = _data["price"];
+            this.productType = _data["productType"];
         }
     }
 
@@ -7254,6 +7252,7 @@ export class Ingredient implements IIngredient {
         data["amount"] = this.amount;
         data["originalAmount"] = this.originalAmount;
         data["price"] = this.price;
+        data["productType"] = this.productType;
         return data;
     }
 }
@@ -7265,6 +7264,13 @@ export interface IIngredient {
     amount?: number;
     originalAmount?: number;
     price?: number;
+    productType?: ProductType;
+}
+
+export enum ManufactureType {
+    MultiPhase = "MultiPhase",
+    SinglePhase = "SinglePhase",
+    Unavailable = "Unavailable",
 }
 
 export class GetWarehouseStatisticsResponse extends BaseResponse implements IGetWarehouseStatisticsResponse {
@@ -9885,16 +9891,13 @@ export interface ICalculateBatchByIngredientRequest {
 }
 
 export class CalculateBatchPlanResponse extends BaseResponse implements ICalculateBatchPlanResponse {
-    manufactureType?: ManufactureType;
-    semiproduct?: SemiproductInfoDto | undefined;
+    semiproduct?: SemiproductInfoDto;
     productSizes?: BatchPlanItemDto[];
-    summary?: BatchPlanSummaryDto | undefined;
-    targetDaysCoverage?: number | undefined;
-    totalVolumeUsed?: number | undefined;
-    totalVolumeAvailable?: number | undefined;
-    materialRequirements?: MaterialRequirementDto[];
-    productOutputs?: ProductionOutputDto[];
-    scaleFactor?: number | undefined;
+    summary?: BatchPlanSummaryDto;
+    targetDaysCoverage?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+    manufactureType?: ManufactureType;
 
     constructor(data?: ICalculateBatchPlanResponse) {
         super(data);
@@ -9903,7 +9906,6 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
-            this.manufactureType = _data["manufactureType"];
             this.semiproduct = _data["semiproduct"] ? SemiproductInfoDto.fromJS(_data["semiproduct"]) : <any>undefined;
             if (Array.isArray(_data["productSizes"])) {
                 this.productSizes = [] as any;
@@ -9914,17 +9916,7 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
             this.targetDaysCoverage = _data["targetDaysCoverage"];
             this.totalVolumeUsed = _data["totalVolumeUsed"];
             this.totalVolumeAvailable = _data["totalVolumeAvailable"];
-            if (Array.isArray(_data["materialRequirements"])) {
-                this.materialRequirements = [] as any;
-                for (let item of _data["materialRequirements"])
-                    this.materialRequirements!.push(MaterialRequirementDto.fromJS(item));
-            }
-            if (Array.isArray(_data["productOutputs"])) {
-                this.productOutputs = [] as any;
-                for (let item of _data["productOutputs"])
-                    this.productOutputs!.push(ProductionOutputDto.fromJS(item));
-            }
-            this.scaleFactor = _data["scaleFactor"];
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -9937,7 +9929,6 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["manufactureType"] = this.manufactureType;
         data["semiproduct"] = this.semiproduct ? this.semiproduct.toJSON() : <any>undefined;
         if (Array.isArray(this.productSizes)) {
             data["productSizes"] = [];
@@ -9948,38 +9939,20 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
         data["targetDaysCoverage"] = this.targetDaysCoverage;
         data["totalVolumeUsed"] = this.totalVolumeUsed;
         data["totalVolumeAvailable"] = this.totalVolumeAvailable;
-        if (Array.isArray(this.materialRequirements)) {
-            data["materialRequirements"] = [];
-            for (let item of this.materialRequirements)
-                data["materialRequirements"].push(item.toJSON());
-        }
-        if (Array.isArray(this.productOutputs)) {
-            data["productOutputs"] = [];
-            for (let item of this.productOutputs)
-                data["productOutputs"].push(item.toJSON());
-        }
-        data["scaleFactor"] = this.scaleFactor;
+        data["manufactureType"] = this.manufactureType;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface ICalculateBatchPlanResponse extends IBaseResponse {
-    manufactureType?: ManufactureType;
-    semiproduct?: SemiproductInfoDto | undefined;
+    semiproduct?: SemiproductInfoDto;
     productSizes?: BatchPlanItemDto[];
-    summary?: BatchPlanSummaryDto | undefined;
-    targetDaysCoverage?: number | undefined;
-    totalVolumeUsed?: number | undefined;
-    totalVolumeAvailable?: number | undefined;
-    materialRequirements?: MaterialRequirementDto[];
-    productOutputs?: ProductionOutputDto[];
-    scaleFactor?: number | undefined;
-}
-
-export enum ManufactureType {
-    MultiPhase = "MultiPhase",
-    SinglePhase = "SinglePhase",
+    summary?: BatchPlanSummaryDto;
+    targetDaysCoverage?: number;
+    totalVolumeUsed?: number;
+    totalVolumeAvailable?: number;
+    manufactureType?: ManufactureType;
 }
 
 export class SemiproductInfoDto implements ISemiproductInfoDto {
@@ -10204,106 +10177,8 @@ export enum BatchPlanControlMode {
     TargetDaysCoverage = "TargetDaysCoverage",
 }
 
-export class MaterialRequirementDto implements IMaterialRequirementDto {
-    materialCode?: string;
-    materialName?: string;
-    requiredQuantity?: number;
-    unit?: string;
-
-    constructor(data?: IMaterialRequirementDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.materialCode = _data["materialCode"];
-            this.materialName = _data["materialName"];
-            this.requiredQuantity = _data["requiredQuantity"];
-            this.unit = _data["unit"];
-        }
-    }
-
-    static fromJS(data: any): MaterialRequirementDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new MaterialRequirementDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["materialCode"] = this.materialCode;
-        data["materialName"] = this.materialName;
-        data["requiredQuantity"] = this.requiredQuantity;
-        data["unit"] = this.unit;
-        return data;
-    }
-}
-
-export interface IMaterialRequirementDto {
-    materialCode?: string;
-    materialName?: string;
-    requiredQuantity?: number;
-    unit?: string;
-}
-
-export class ProductionOutputDto implements IProductionOutputDto {
-    productCode?: string;
-    productName?: string;
-    expectedQuantity?: number;
-    unit?: string;
-
-    constructor(data?: IProductionOutputDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.expectedQuantity = _data["expectedQuantity"];
-            this.unit = _data["unit"];
-        }
-    }
-
-    static fromJS(data: any): ProductionOutputDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new ProductionOutputDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["expectedQuantity"] = this.expectedQuantity;
-        data["unit"] = this.unit;
-        return data;
-    }
-}
-
-export interface IProductionOutputDto {
-    productCode?: string;
-    productName?: string;
-    expectedQuantity?: number;
-    unit?: string;
-}
-
 export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
-    semiproductCode!: string;
-    productCode?: string | undefined;
-    targetQuantity?: number | undefined;
+    productCode!: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
     salesMultiplier?: number | undefined;
@@ -10312,6 +10187,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     totalWeightToUse?: number | undefined;
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
+    manufactureType?: ManufactureType | undefined;
 
     constructor(data?: ICalculateBatchPlanRequest) {
         if (data) {
@@ -10324,9 +10200,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.semiproductCode = _data["semiproductCode"];
             this.productCode = _data["productCode"];
-            this.targetQuantity = _data["targetQuantity"];
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.salesMultiplier = _data["salesMultiplier"];
@@ -10339,6 +10213,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
                 for (let item of _data["productConstraints"])
                     this.productConstraints!.push(ProductSizeConstraint.fromJS(item));
             }
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -10351,9 +10226,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["semiproductCode"] = this.semiproductCode;
         data["productCode"] = this.productCode;
-        data["targetQuantity"] = this.targetQuantity;
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["salesMultiplier"] = this.salesMultiplier;
@@ -10366,14 +10239,13 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
             for (let item of this.productConstraints)
                 data["productConstraints"].push(item.toJSON());
         }
+        data["manufactureType"] = this.manufactureType;
         return data;
     }
 }
 
 export interface ICalculateBatchPlanRequest {
-    semiproductCode: string;
-    productCode?: string | undefined;
-    targetQuantity?: number | undefined;
+    productCode: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
     salesMultiplier?: number | undefined;
@@ -10382,6 +10254,7 @@ export interface ICalculateBatchPlanRequest {
     totalWeightToUse?: number | undefined;
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
+    manufactureType?: ManufactureType | undefined;
 }
 
 export class ProductSizeConstraint implements IProductSizeConstraint {

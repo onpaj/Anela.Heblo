@@ -35,7 +35,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
     }
 
     [Fact]
-    public async Task Handle_SinglePhaseManufacturing_ShouldNotCreateSemiProduct()
+    public async Task Handle_SinglePhaseManufacturing_ShouldCreateSemiProductFromMainProduct()
     {
         // Arrange
         var request = new CreateManufactureOrderRequest
@@ -75,6 +75,9 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEST001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogProduct);
 
+        _productNameFormatterMock.Setup(x => x.ShortProductName("Final Product"))
+            .Returns("Final Product");
+
         var createdOrder = new ManufactureOrder { Id = 1, OrderNumber = "MO-2023-001" };
         _repositoryMock.Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(createdOrder);
@@ -89,9 +92,11 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
 
         _repositoryMock.Verify(x => x.AddOrderAsync(It.Is<ManufactureOrder>(o =>
             o.ManufactureType == ManufactureType.SinglePhase &&
-            o.SemiProduct == null &&
+            o.SemiProduct != null &&
+            o.SemiProduct.ProductCode == "PROD001" &&
+            o.SemiProduct.ProductName == "Final Product" &&
             o.Products.Count == 1 &&
-            o.Products[0].SemiProductCode == null
+            o.Products[0].SemiProductCode == "PROD001"
         ), It.IsAny<CancellationToken>()), Times.Once);
     }
 

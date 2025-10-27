@@ -41,15 +41,14 @@ const fetchInventoryList = async (
     
     for (const inventoryType of INVENTORY_TYPES) {
       const result = await apiClient.catalog_GetCatalogList(
-        inventoryType,
+        [inventoryType],
         1, // pageNumber - get all pages for aggregation
         1000, // pageSize - large page size to get all items
         params.sortBy || undefined,
         params.sortDescending,
         params.productName || undefined,
         params.productCode || undefined,
-        undefined, // searchTerm
-        false // withBoMOnly - show all products in inventory
+        undefined // searchTerm
       );
       
       if (result.items) {
@@ -126,15 +125,14 @@ const fetchInventoryList = async (
   } else {
     // Single type - use generated API client
     const result = await apiClient.catalog_GetCatalogList(
-      params.type,
+      [params.type],
       params.pageNumber,
       params.pageSize,
       params.sortBy || undefined,
       params.sortDescending,
       params.productName || undefined,
       params.productCode || undefined,
-      undefined, // searchTerm
-      false // withBoMOnly - show all products in inventory
+      undefined // searchTerm
     );
 
     return {
