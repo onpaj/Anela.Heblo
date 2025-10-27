@@ -8,6 +8,7 @@ public class CalendarEventDto
     public string OrderNumber { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public DateTime Date { get; set; }
+    public ManufactureType ManufactureType { get; set; }
     public ManufactureOrderState State { get; set; }
     public string? ResponsiblePerson { get; set; }
     public bool ManualActionRequired { get; set; }

@@ -28,6 +28,7 @@ import {
   ConfirmSemiProductManufactureRequest,
   ConfirmProductCompletionRequest,
   ManufactureOrderState,
+  ManufactureType,
 } from "../../../api/generated/api-client";
 
 // Import our extracted components
@@ -179,6 +180,19 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   // State transitions logic
   const getStateTransitions = (currentState: ManufactureOrderState) => {
+    // For SinglePhase manufacturing, skip SemiProductManufactured state
+    if (order?.manufactureType === ManufactureType.SinglePhase) {
+      const singlePhaseTransitions = {
+        [ManufactureOrderState.Draft]: { next: ManufactureOrderState.Planned, previous: null },
+        [ManufactureOrderState.Planned]: { next: ManufactureOrderState.Completed, previous: ManufactureOrderState.Draft },
+        [ManufactureOrderState.SemiProductManufactured]: { next: ManufactureOrderState.Completed, previous: ManufactureOrderState.Planned }, // Should not be used in single-phase
+        [ManufactureOrderState.Completed]: { next: null, previous: ManufactureOrderState.Planned },
+        [ManufactureOrderState.Cancelled]: { next: null, previous: null },
+      };
+      return singlePhaseTransitions[currentState] || { next: null, previous: null };
+    }
+    
+    // Default MultiPhase transitions
     const transitions = {
       [ManufactureOrderState.Draft]: { next: ManufactureOrderState.Planned, previous: null },
       [ManufactureOrderState.Planned]: { next: ManufactureOrderState.SemiProductManufactured, previous: ManufactureOrderState.Draft },
@@ -218,6 +232,13 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const executeStateChange = async (newState: ManufactureOrderState) => {
     if (!order || !orderId) return;
 
+    // For SinglePhase manufacturing, go directly from Planned to Completed with confirmation modal
+    if (order?.manufactureType === ManufactureType.SinglePhase && order.state === ManufactureOrderState.Planned && newState === ManufactureOrderState.Completed) {
+      setShowProductCompletionModal(true);
+      return;
+    }
+
+    // For MultiPhase manufacturing, handle normal state transitions
     if (order.state === ManufactureOrderState.Planned && newState === ManufactureOrderState.SemiProductManufactured) {
       setShowQuantityConfirmModal(true);
       return;
@@ -590,12 +611,15 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                   </div>
 
                   <div className="flex flex-col space-y-4">
-                    <SemiProductSection
-                      order={order}
-                      canEditFields={canEditFields}
-                      editableSemiProductQuantity={editableSemiProductQuantity}
-                      onSemiProductQuantityChange={setEditableSemiProductQuantity}
-                    />
+                    {/* Hide SemiProduct section for SinglePhase manufacturing */}
+                    {order?.manufactureType !== ManufactureType.SinglePhase && (
+                      <SemiProductSection
+                        order={order}
+                        canEditFields={canEditFields}
+                        editableSemiProductQuantity={editableSemiProductQuantity}
+                        onSemiProductQuantityChange={setEditableSemiProductQuantity}
+                      />
+                    )}
                     
                     <ProductsDataGrid
                       order={order}

@@ -10355,6 +10355,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     createdByUser?: string;
     responsiblePerson?: string | undefined;
     plannedDate?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10386,6 +10387,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
             this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
+            this.manufactureType = _data["manufactureType"];
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.manualActionRequired = _data["manualActionRequired"];
@@ -10425,6 +10427,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
         data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
+        data["manufactureType"] = this.manufactureType;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -10457,6 +10460,7 @@ export interface IManufactureOrderDto {
     createdByUser?: string;
     responsiblePerson?: string | undefined;
     plannedDate?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -11669,6 +11673,7 @@ export class CalendarEventDto implements ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
@@ -11696,6 +11701,7 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.orderNumber = _data["orderNumber"];
             this.title = _data["title"];
             this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.manufactureType = _data["manufactureType"];
             this.state = _data["state"];
             this.responsiblePerson = _data["responsiblePerson"];
             this.manualActionRequired = _data["manualActionRequired"];
@@ -11727,6 +11733,7 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["orderNumber"] = this.orderNumber;
         data["title"] = this.title;
         data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["manufactureType"] = this.manufactureType;
         data["state"] = this.state;
         data["responsiblePerson"] = this.responsiblePerson;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -11751,6 +11758,7 @@ export interface ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
