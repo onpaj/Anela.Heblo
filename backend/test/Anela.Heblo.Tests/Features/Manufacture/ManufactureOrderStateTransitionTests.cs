@@ -7,11 +7,11 @@ public class ManufactureOrderStateTransitionTests
 {
     [Theory]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Planned, true)]
-    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, true)]
-    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed, true)]
+    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, false)] // SinglePhase: Cannot go to SemiProductManufactured
+    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed, false)] // SinglePhase: Never in SemiProductManufactured state
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Cancelled, true)]
     [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Cancelled, true)]
-    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled, true)]
+    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled, false)] // SinglePhase: Never in SemiProductManufactured state
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Completed, false)]
     [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Completed, true)] // Single-phase: Planned → Completed directly
@@ -78,7 +78,9 @@ public class ManufactureOrderStateTransitionTests
         {
             (ManufactureOrderState.Draft, ManufactureOrderState.Planned) => true,
             (ManufactureOrderState.Planned, ManufactureOrderState.Completed) => true, // Single-phase: Planned → Completed directly
-            (_, ManufactureOrderState.Cancelled) => true,
+            // SinglePhase can be cancelled from Draft and Planned states (not from final states)
+            (ManufactureOrderState.Draft, ManufactureOrderState.Cancelled) => true,
+            (ManufactureOrderState.Planned, ManufactureOrderState.Cancelled) => true,
             _ => false
         };
     }
@@ -90,7 +92,10 @@ public class ManufactureOrderStateTransitionTests
             (ManufactureOrderState.Draft, ManufactureOrderState.Planned) => true,
             (ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured) => true,
             (ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed) => true,
-            (_, ManufactureOrderState.Cancelled) => true,
+            // MultiPhase can be cancelled from Draft, Planned, and SemiProductManufactured states
+            (ManufactureOrderState.Draft, ManufactureOrderState.Cancelled) => true,
+            (ManufactureOrderState.Planned, ManufactureOrderState.Cancelled) => true,
+            (ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled) => true,
             _ => false
         };
     }

@@ -16,15 +16,20 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => mockUseNavigate(),
 }));
 
-// Mock the ManufactureOrderState enum first
+// Mock the ManufactureOrderState and ManufactureType enums first
 jest.mock("../../../api/generated/api-client", () => ({
   ...jest.requireActual("../../../api/generated/api-client"),
   ManufactureOrderState: {
     Draft: "Draft",
-    Planned: "Planned", 
+    Planned: "Planned",
     SemiProductManufactured: "SemiProductManufactured",
     Completed: "Completed",
     Cancelled: "Cancelled",
+  },
+  ManufactureType: {
+    MultiPhase: "MultiPhase",
+    SinglePhase: "SinglePhase",
+    Unavailable: "Unavailable",
   },
 }));
 
@@ -46,6 +51,11 @@ jest.mock("../../../api/hooks/useBatchPlanning", () => ({
     MmqMultiplier: "MmqMultiplier",
     TotalWeight: "TotalWeight",
     TargetDaysCoverage: "TargetDaysCoverage",
+  },
+  ManufactureType: {
+    MultiPhase: "MultiPhase",
+    SinglePhase: "SinglePhase",
+    Unavailable: "Unavailable",
   },
   CalculateBatchPlanRequest: jest.fn().mockImplementation((data) => data),
 }));
