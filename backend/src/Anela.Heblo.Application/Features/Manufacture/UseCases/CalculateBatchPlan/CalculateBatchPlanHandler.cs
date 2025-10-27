@@ -26,9 +26,15 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
         if (product?.Type == ProductType.Product)
         {
             var manufactureTemplate = await _manufactureRepository.GetManufactureTemplateAsync(request.SemiproductCode, cancellationToken);
-            request.SemiproductCode = manufactureTemplate.Ingredients
-                .FirstOrDefault(w => w.ProductCode.StartsWith(request.SemiproductCode.Left(6)))?.ProductCode ?? request.SemiproductCode;
+            request.ManufactureType = manufactureTemplate.ManufactureType;
+            if(request.ManufactureType == ManufactureType.MultiPhase)
+            {
+                // For multi-phase, transform to semiproduct code as before
+                request.SemiproductCode = manufactureTemplate.Ingredients
+                    .FirstOrDefault(w => w.ProductType == ProductType.SemiProduct)?.ProductCode ?? request.SemiproductCode;
+            }
         }
+        
         return await _batchPlanningService.CalculateBatchPlan(request, cancellationToken);
     }
 }

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 
@@ -10,6 +11,7 @@ public class CalculateBatchPlanResponse : BaseResponse
     public double TargetDaysCoverage { get; set; }
     public double TotalVolumeUsed { get; set; }
     public double TotalVolumeAvailable { get; set; }
+    public ManufactureType ManufactureType { get; set; }
 
     public CalculateBatchPlanResponse() : base() { }
 

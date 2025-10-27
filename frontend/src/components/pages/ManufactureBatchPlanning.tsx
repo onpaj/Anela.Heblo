@@ -10,6 +10,7 @@ import {
   CalculateBatchPlanRequest,
   BatchPlanControlMode,
   ProductSizeConstraint,
+  ManufactureType,
 } from "../../api/hooks/useBatchPlanning";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
@@ -474,7 +475,8 @@ const BatchPlanningCalculator: React.FC = () => {
           plannedQuantity: p.plannedQuantity
         })),
         plannedDate: plannedDate,
-        responsiblePerson: undefined
+        responsiblePerson: undefined,
+        manufactureType: response.manufactureType
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
@@ -798,15 +800,21 @@ const BatchPlanningCalculator: React.FC = () => {
                       <div>
                         <h3 className="text-lg font-medium text-gray-900 flex items-center">
                           <Package className="w-5 h-5 text-green-500 mr-2" />
-                          Velikosti produktů
+                          {response?.manufactureType === ManufactureType.SinglePhase ? 'Produkt' : 'Velikosti produktů'}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
-                          Produkty vyráběné z polotovaru {selectedSemiproduct.productName}
+                          {response?.manufactureType === ManufactureType.SinglePhase 
+                            ? `Jednofázová výroba produktu ${selectedSemiproduct.productName}`
+                            : `Produkty vyráběné z polotovaru ${selectedSemiproduct.productName}`
+                          }
                         </p>
                       </div>
                       
                       {/* Create Order Button */}
-                      {response?.success && response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0) && (
+                      {response?.success && (
+                        response?.manufactureType === ManufactureType.SinglePhase || 
+                        response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0)
+                      ) && (
                         <button
                           onClick={handleCreateOrder}
                           disabled={createOrderMutation.isPending || needsRecalculation}

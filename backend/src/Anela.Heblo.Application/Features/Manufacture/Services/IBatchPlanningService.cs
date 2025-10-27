@@ -6,11 +6,6 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public interface IBatchPlanningService
 {
     Task<CalculateBatchPlanResponse> CalculateBatchPlan(CalculateBatchPlanRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Calculate batch for single-phase manufacturing with direct material-to-product conversion
-    /// </summary>
-    Task<SinglePhaseBatchResult> CalculateSinglePhaseBatchAsync(string productCode, double targetQuantity, CancellationToken cancellationToken = default);
 }
 
 public class SinglePhaseBatchResult

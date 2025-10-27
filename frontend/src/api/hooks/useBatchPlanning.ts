@@ -7,7 +7,8 @@ import {
   CalculateBatchPlanResponse, 
   CalculateBatchPlanRequest,
   BatchPlanControlMode,
-  ProductSizeConstraint
+  ProductSizeConstraint,
+  ManufactureType
 } from "../generated/api-client";
 
 // Re-export types from generated API client for convenience
@@ -18,7 +19,8 @@ export {
   CalculateBatchPlanResponse, 
   CalculateBatchPlanRequest,
   BatchPlanControlMode,
-  ProductSizeConstraint
+  ProductSizeConstraint,
+  ManufactureType
 };
 
 export const useBatchPlanningMutation = () => {

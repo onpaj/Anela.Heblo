@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
+using Rem.FlexiBeeSDK.Model;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
@@ -43,6 +44,7 @@ public class FlexiManufactureRepository : IManufactureRepository
                     ProductCode = s.IngredientCode.RemoveCodePrefix(),
                     ProductName = s.IngredientFullName,
                     Amount = s.Amount,
+                    ProductType = ResolveProductType(s) 
                 };
             }).ToList(),
         };
@@ -53,6 +55,34 @@ public class FlexiManufactureRepository : IManufactureRepository
             template.ManufactureType = ManufactureType.SinglePhase;
 
         return template;
+    }
+
+    private ProductType ResolveProductType(BoMItemFlexiDto boMItemFlexiDto)
+    {
+        try
+        {
+            var productTypeId = boMItemFlexiDto.Ingredient?.FirstOrDefault()?.ProductTypeId;
+            
+            // Return UNDEFINED if no ProductTypeId is available
+            if (!productTypeId.HasValue)
+            {
+                return ProductType.UNDEFINED;
+            }
+            
+            // Check if the value is a valid ProductType enum value
+            if (Enum.IsDefined(typeof(ProductType), productTypeId.Value))
+            {
+                return (ProductType)productTypeId.Value;
+            }
+            
+            // Return UNDEFINED for unknown enum values
+            return ProductType.UNDEFINED;
+        }
+        catch
+        {
+            // Return UNDEFINED for any exceptions
+            return ProductType.UNDEFINED;
+        }
     }
 
     public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)

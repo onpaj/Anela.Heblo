@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
@@ -23,6 +24,9 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
 
     // Product size constraints
     public List<ProductSizeConstraint> ProductConstraints { get; set; } = new();
+    
+    // Manufacturing type - set internally by handler
+    public ManufactureType? ManufactureType { get; set; }
 }
 
 public enum BatchPlanControlMode
