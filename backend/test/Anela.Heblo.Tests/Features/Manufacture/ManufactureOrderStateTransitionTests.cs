@@ -7,15 +7,15 @@ public class ManufactureOrderStateTransitionTests
 {
     [Theory]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Planned, true)]
-    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.InProduction, true)]
-    [InlineData(ManufactureOrderState.InProduction, ManufactureOrderState.Completed, true)]
+    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, true)]
+    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed, true)]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Cancelled, true)]
     [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Cancelled, true)]
-    [InlineData(ManufactureOrderState.InProduction, ManufactureOrderState.Cancelled, true)]
-    [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.InProduction, false)]
+    [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled, true)]
+    [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Completed, false)]
-    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Completed, false)]
-    [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.InProduction, false)]
+    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Completed, true)] // Single-phase: Planned → Completed directly
+    [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureOrderState.Cancelled, ManufactureOrderState.Planned, false)]
     public void ValidateSinglePhaseTransition_ShouldReturnExpectedResult(
         ManufactureOrderState currentState,
@@ -38,8 +38,7 @@ public class ManufactureOrderStateTransitionTests
     [InlineData(ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled, true)]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Completed, false)]
-    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Completed, false)]
-    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.InProduction, false)]
+    [InlineData(ManufactureOrderState.Planned, ManufactureOrderState.Completed, false)] // Multi-phase cannot go directly from Planned to Completed
     [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureOrderState.Cancelled, ManufactureOrderState.Planned, false)]
     public void ValidateMultiPhaseTransition_ShouldReturnExpectedResult(
@@ -55,10 +54,10 @@ public class ManufactureOrderStateTransitionTests
     }
 
     [Theory]
-    [InlineData(ManufactureType.SinglePhase, ManufactureOrderState.Planned, ManufactureOrderState.InProduction, true)]
+    [InlineData(ManufactureType.SinglePhase, ManufactureOrderState.Planned, ManufactureOrderState.Completed, true)]
     [InlineData(ManufactureType.SinglePhase, ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, false)]
     [InlineData(ManufactureType.MultiPhase, ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, true)]
-    [InlineData(ManufactureType.MultiPhase, ManufactureOrderState.Planned, ManufactureOrderState.InProduction, false)]
+    [InlineData(ManufactureType.MultiPhase, ManufactureOrderState.Planned, ManufactureOrderState.Completed, false)]
     public void IsValidStateTransition_ShouldRespectManufactureType(
         ManufactureType manufactureType,
         ManufactureOrderState currentState,
@@ -78,8 +77,7 @@ public class ManufactureOrderStateTransitionTests
         return (current, target) switch
         {
             (ManufactureOrderState.Draft, ManufactureOrderState.Planned) => true,
-            (ManufactureOrderState.Planned, ManufactureOrderState.InProduction) => true,
-            (ManufactureOrderState.InProduction, ManufactureOrderState.Completed) => true,
+            (ManufactureOrderState.Planned, ManufactureOrderState.Completed) => true, // Single-phase: Planned → Completed directly
             (_, ManufactureOrderState.Cancelled) => true,
             _ => false
         };

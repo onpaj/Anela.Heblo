@@ -34,7 +34,7 @@ public class GetStockTakingJobStatusHandler : IRequestHandler<GetStockTakingJobS
         var isCompleted = job.State == "Succeeded" || job.State == "Failed";
         var isSucceeded = job.State == "Succeeded";
         var isFailed = job.State == "Failed";
-        
+
         string? errorMessage = null;
         if (isFailed)
         {

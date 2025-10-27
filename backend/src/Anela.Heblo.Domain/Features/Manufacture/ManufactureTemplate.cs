@@ -11,4 +11,5 @@ public class ManufactureTemplate
 
     public List<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
     public double BatchSize { get; set; }
+    public ManufactureType ManufactureType { get; set; }
 }

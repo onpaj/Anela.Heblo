@@ -48,7 +48,8 @@ const fetchInventoryList = async (
         params.sortDescending,
         params.productName || undefined,
         params.productCode || undefined,
-        undefined // searchTerm
+        undefined, // searchTerm
+        false // withBoMOnly - show all products in inventory
       );
       
       if (result.items) {
@@ -132,7 +133,8 @@ const fetchInventoryList = async (
       params.sortDescending,
       params.productName || undefined,
       params.productCode || undefined,
-      undefined // searchTerm
+      undefined, // searchTerm
+      false // withBoMOnly - show all products in inventory
     );
 
     return {

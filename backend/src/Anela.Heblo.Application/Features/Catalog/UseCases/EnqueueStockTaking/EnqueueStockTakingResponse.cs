@@ -8,7 +8,7 @@ public class EnqueueStockTakingResponse : BaseResponse
     public string Message { get; set; } = string.Empty;
 
     public EnqueueStockTakingResponse() : base() { }
-    
-    public EnqueueStockTakingResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+
+    public EnqueueStockTakingResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }

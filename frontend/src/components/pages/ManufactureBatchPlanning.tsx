@@ -76,7 +76,8 @@ const BatchPlanningCalculator: React.FC = () => {
   useCatalogAutocomplete(
     triggerSearch.length >= 2 ? triggerSearch : undefined,
     50,
-    [ProductType.SemiProduct]
+    [ProductType.SemiProduct,ProductType.Product],
+    true
   );
 
   // Get API response data
@@ -532,14 +533,15 @@ const BatchPlanningCalculator: React.FC = () => {
                   {/* Left: Product Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Polotovar <span className="text-red-500">*</span>
+                      Polotovar / Produkt <span className="text-red-500">*</span>
                     </label>
                     <div className="relative z-50">
                       <CatalogAutocomplete
                         value={selectedSemiproduct}
                         onSelect={handleSemiproductSelect}
-                        placeholder="Vyberte polotovar..."
-                        productTypes={[ProductType.SemiProduct]}
+                        placeholder="Vyberte polotovar nebo produkt..."
+                        productTypes={[ProductType.SemiProduct, ProductType.Product]}
+                        withBomOnly={true}
                         size="md"
                         clearable={true}
                       />

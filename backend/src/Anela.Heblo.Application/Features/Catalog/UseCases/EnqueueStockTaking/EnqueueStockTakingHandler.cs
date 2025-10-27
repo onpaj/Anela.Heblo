@@ -28,9 +28,9 @@ public class EnqueueStockTakingHandler : IRequestHandler<EnqueueStockTakingReque
         // This provides immediate feedback to users before the actual stock taking completes
         if (!request.SoftStockTaking)
         {
-            _logger.LogInformation("Performing optimistic eshop stock cache update for product {ProductCode} to {TargetAmount}", 
+            _logger.LogInformation("Performing optimistic eshop stock cache update for product {ProductCode} to {TargetAmount}",
                 request.ProductCode, request.TargetAmount);
-            
+
             try
             {
                 // Update product's EshopStock directly
@@ -38,7 +38,7 @@ public class EnqueueStockTakingHandler : IRequestHandler<EnqueueStockTakingReque
                 if (product?.Stock != null)
                 {
                     product.Stock.Eshop = request.TargetAmount;
-                    _logger.LogInformation("Successfully updated product eshop stock for {ProductCode} to {TargetAmount} (optimistic)", 
+                    _logger.LogInformation("Successfully updated product eshop stock for {ProductCode} to {TargetAmount} (optimistic)",
                         request.ProductCode, request.TargetAmount);
                 }
                 else

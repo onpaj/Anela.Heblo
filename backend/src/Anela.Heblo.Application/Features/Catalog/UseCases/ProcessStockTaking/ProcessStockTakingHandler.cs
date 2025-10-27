@@ -85,7 +85,7 @@ public class ProcessStockTakingHandler : IRequestHandler<ProcessStockTakingReque
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process stock taking for product code {ProductCode}", request.ProductCode);
-            
+
             var errorResult = new StockTakingResultDto
             {
                 Code = request.ProductCode,

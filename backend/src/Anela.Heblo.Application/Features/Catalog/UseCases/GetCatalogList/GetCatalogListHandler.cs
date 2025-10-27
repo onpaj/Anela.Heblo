@@ -23,10 +23,10 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         // Build filter expression
         Expression<Func<CatalogAggregate, bool>> filter = x => true;
 
-        if (request.Type.HasValue)
+        // Support for multiple product types (for batch planning)
+        if (request.ProductTypes != null && request.ProductTypes.Length > 0)
         {
-            var typeValue = request.Type.Value;
-            filter = filter.And(x => x.Type == typeValue);
+            filter = filter.And(x => request.ProductTypes.Contains(x.Type));
         }
 
         // Autocomplete search with OR logic (SearchTerm in ProductName OR ProductCode)
@@ -53,10 +53,9 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
 
         // Get all filtered items (repository doesn't support paging directly)
         var allItems = await _catalogRepository.FindAsync(filter, cancellationToken);
-
+        
         // Apply sorting
         var query = allItems.AsQueryable();
-
         query = request.SortBy?.ToLower() switch
         {
             "productcode" => request.SortDescending ? query.OrderByDescending(x => x.ProductCode) : query.OrderBy(x => x.ProductCode),

@@ -23,6 +23,7 @@ interface CatalogAutocompleteProps<T = CatalogItemDto> {
   searchMinLength?: number;
   limit?: number;
   productTypes?: ProductType[]; // Optional filtering by product types
+  withBomOnly?: boolean; // Filter only products with BOM
 
   // UI customization
   disabled?: boolean;
@@ -58,6 +59,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   searchMinLength = 2,
   limit = 50,
   productTypes,
+  withBomOnly,
   disabled = false,
   error,
   className = "",
@@ -121,6 +123,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       : undefined,
     limit,
     productTypes,
+    withBomOnly,
   );
 
   // Convert hook data to options

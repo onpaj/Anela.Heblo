@@ -35,15 +35,15 @@ public class StockTakingScenario
         await using var browser = await _browserFactory.CreateAsync(playwright);
 
         var page = await browser.NewPageAsync();
-        
+
         // Set increased timeouts for better reliability
         page.SetDefaultTimeout(120000); // 2 minutes default timeout
         page.SetDefaultNavigationTimeout(60000); // 1 minute for navigation
 
-        await page.GotoAsync(_options.ShopEntryUrl, new PageGotoOptions 
-        { 
+        await page.GotoAsync(_options.ShopEntryUrl, new PageGotoOptions
+        {
             WaitUntil = WaitUntilState.NetworkIdle,
-            Timeout = 60000 
+            Timeout = 60000
         });
 
         await page.ClickAsync("[placeholder='E-mail']");
@@ -54,10 +54,10 @@ public class StockTakingScenario
 
         _logger.LogDebug("Login successful");
 
-        await page.GotoAsync($"{_options.ShopEntryUrl}/skladove-zasoby/?f[code]={request.ProductCode}", new PageGotoOptions 
-        { 
+        await page.GotoAsync($"{_options.ShopEntryUrl}/skladove-zasoby/?f[code]={request.ProductCode}", new PageGotoOptions
+        {
             WaitUntil = WaitUntilState.NetworkIdle,
-            Timeout = 60000 
+            Timeout = 60000
         });
 
         // Získání hodnoty z polí

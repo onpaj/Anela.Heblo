@@ -6,6 +6,7 @@ export function useCatalogAutocomplete(
   searchTerm?: string,
   limit = 20,
   productTypes?: ProductType[],
+  withBomOnly?: boolean,
 ) {
   return useQuery({
     queryKey: [
@@ -14,6 +15,7 @@ export function useCatalogAutocomplete(
       searchTerm,
       limit,
       productTypes,
+      withBomOnly,
     ],
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) {
@@ -26,6 +28,7 @@ export function useCatalogAutocomplete(
       const response = await apiClient.catalog_GetProductsForAutocomplete(
         searchTerm,
         limit,
+        withBomOnly,
         productTypes,
       );
 

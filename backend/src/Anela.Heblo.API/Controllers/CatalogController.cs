@@ -64,17 +64,11 @@ public class CatalogController : BaseApiController
         {
             SearchTerm = searchTerm, // OR search in both ProductName and ProductCode
             PageSize = limit,
-            PageNumber = 1
+            PageNumber = 1,
+            ProductTypes = productTypes // Pass product type to the request
         };
 
         var response = await _mediator.Send(request);
-
-        // Filter by product types if specified
-        if (productTypes != null && productTypes.Length > 0)
-        {
-            response.Items = response.Items.Where(item => productTypes.Contains(item.Type)).ToList();
-            response.TotalCount = response.Items.Count;
-        }
 
         return Ok(response);
     }

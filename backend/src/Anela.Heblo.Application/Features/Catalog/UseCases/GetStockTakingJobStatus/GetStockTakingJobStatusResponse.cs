@@ -14,7 +14,7 @@ public class GetStockTakingJobStatusResponse : BaseResponse
     public StockTakingResultDto? Result { get; set; }
 
     public GetStockTakingJobStatusResponse() : base() { }
-    
-    public GetStockTakingJobStatusResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+
+    public GetStockTakingJobStatusResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }
