@@ -112,7 +112,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             ManufactureOrderState.Draft => toState is ManufactureOrderState.Planned or ManufactureOrderState.Cancelled,
             ManufactureOrderState.Planned => toState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Completed,
             ManufactureOrderState.SemiProductManufactured => toState is ManufactureOrderState.Planned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Completed => toState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled, // Allow going back from completed
+            ManufactureOrderState.Completed => toState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Planned, // Allow going back from completed
             ManufactureOrderState.Cancelled => false, // Cannot change from cancelled state
             _ => false
         };
