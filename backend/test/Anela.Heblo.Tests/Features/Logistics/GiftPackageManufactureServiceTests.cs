@@ -129,7 +129,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products
@@ -200,7 +200,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products
@@ -310,7 +310,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetParts(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products

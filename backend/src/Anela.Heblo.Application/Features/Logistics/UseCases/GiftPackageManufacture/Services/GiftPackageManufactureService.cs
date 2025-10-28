@@ -148,7 +148,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         };
 
         // Load BOM (Bill of Materials) from manufacture repository
-        var productParts = await _manufactureRepository.GetSetParts(giftPackageCode, cancellationToken);
+        var productParts = await _manufactureRepository.GetSetPartsAsync(giftPackageCode, cancellationToken);
 
         // Map ProductPart objects to GiftPackageIngredientDto with stock data
         var ingredients = new List<GiftPackageIngredientDto>();

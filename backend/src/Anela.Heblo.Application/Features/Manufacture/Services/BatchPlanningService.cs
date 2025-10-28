@@ -25,61 +25,16 @@ public class BatchPlanningService : IBatchPlanningService
         _logger = logger;
     }
 
-    public async Task<CalculateBatchPlanResponse> CalculateBatchPlan(CalculateBatchPlanRequest request, CancellationToken cancellationToken = default)
+    public async Task<CalculateBatchPlanResponse> CalculateBatchPlan(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
-        // 1. Get semiproduct info
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.SemiproductCode, cancellationToken);
-        if (semiproduct == null)
+        if (request.ManufactureType == ManufactureType.SinglePhase)
         {
-            throw new ArgumentException($"Semiproduct with code '{request.SemiproductCode}' not found.");
+            return await CalculateSinglePhaseBatchPlanInternal(request, cancellationToken);
         }
-
-        var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
-
-        // 2. Find all products that use this semiproduct
-        var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.SemiproductCode, cancellationToken);
-        if (productTemplates.Count == 0)
+        else
         {
-            throw new ArgumentException($"No products found that use semiproduct '{request.SemiproductCode}'.");
+            return await CalculateMultiPhaseBatchPlanInternal(request, cancellationToken);
         }
-
-        // 3. For each product, get catalog data (sales, stock, MMQ)
-        var batchPlanItems = new List<BatchPlanItemDto>();
-        foreach (var template in productTemplates)
-        {
-            var product = await _catalogRepository.GetByIdAsync(template.ProductCode, cancellationToken);
-            if (product == null)
-            {
-                _logger.LogWarning("Product {ProductCode} found in template but not in catalog", template.ProductCode);
-                continue;
-            }
-
-            var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate, request.SalesMultiplier ?? 1.0);
-            var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
-
-            var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == template.ProductCode);
-            var item = new BatchPlanItemDto
-            {
-                ProductCode = template.ProductCode,
-                ProductName = template.ProductName,
-                ProductSize = product.SizeCode ?? "",
-                CurrentStock = (double)product.Stock.Total,
-                DailySalesRate = dailySalesRate,
-                CurrentDaysCoverage = currentDaysCoverage,
-                WeightPerUnit = product.NetWeight ?? 0, // How much semiproduct this product consumes
-                IsFixed = constraint?.IsFixed ?? false,
-                UserFixedQuantity = constraint?.FixedQuantity,
-                WasOptimized = false,
-                OptimizationNote = ""
-            };
-
-            batchPlanItems.Add(item);
-        }
-
-        // 4. Apply optimization algorithm based on control mode
-        var response = ApplyOptimization(batchPlanItems, request, availableVolume, semiproduct);
-
-        return response;
     }
 
     private double CalculateDailySalesRate(CatalogAggregate product, DateTime? fromDate, DateTime? toDate, double salesMultiplier = 1.0)
@@ -139,6 +94,7 @@ public class BatchPlanningService : IBatchPlanningService
                 { "deficit", Math.Abs(remainingVolume).ToString("F2", System.Globalization.CultureInfo.InvariantCulture) }
             })
             {
+                ManufactureType = ManufactureType.MultiPhase,
                 Semiproduct = new SemiproductInfoDto
                 {
                     ProductCode = semiproduct.ProductCode,
@@ -171,6 +127,7 @@ public class BatchPlanningService : IBatchPlanningService
 
         return new CalculateBatchPlanResponse
         {
+            ManufactureType = ManufactureType.MultiPhase,
             Semiproduct = new SemiproductInfoDto
             {
                 ProductCode = semiproduct.ProductCode,
@@ -261,4 +218,172 @@ public class BatchPlanningService : IBatchPlanningService
         var validCoverages = items.Where(x => x.FutureDaysCoverage < double.MaxValue).Select(x => x.FutureDaysCoverage).ToList();
         return validCoverages.Count > 0 ? validCoverages.Average() : 0;
     }
+
+    private BatchPlanItemDto CreateBatchPlanItem(
+        CatalogAggregate product, 
+        CalculateBatchPlanRequest request, 
+        string? productName = null)
+    {
+        var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate, request.SalesMultiplier ?? 1.0);
+        var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
+        var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == product.ProductCode);
+
+        return new BatchPlanItemDto
+        {
+            ProductCode = product.ProductCode,
+            ProductName = productName ?? product.ProductName,
+            ProductSize = product.SizeCode ?? "",
+            CurrentStock = (double)product.Stock.Total,
+            DailySalesRate = dailySalesRate,
+            CurrentDaysCoverage = currentDaysCoverage,
+            WeightPerUnit = product.NetWeight ?? 0,
+            IsFixed = constraint?.IsFixed ?? false,
+            UserFixedQuantity = constraint?.FixedQuantity,
+            WasOptimized = false,
+            OptimizationNote = ""
+        };
+    }
+
+    private (double targetProduction, double availableVolume) CalculateTargetProductionAndVolume(
+        CatalogAggregate product, 
+        CalculateBatchPlanRequest request, 
+        double dailySalesRate)
+    {
+        double targetProduction = 0;
+        double availableVolume = 0;
+        
+        switch (request.ControlMode)
+        {
+            case BatchPlanControlMode.MmqMultiplier:
+                availableVolume = (request.MmqMultiplier ?? 1.0) * product.MinimalManufactureQuantity;
+                targetProduction = availableVolume / (product.NetWeight ?? 1);
+                break;
+            case BatchPlanControlMode.TotalWeight:
+                availableVolume = request.TotalWeightToUse ?? 0;
+                targetProduction = availableVolume / (product.NetWeight ?? 1);
+                break;
+            case BatchPlanControlMode.TargetDaysCoverage:
+                targetProduction = (request.TargetDaysCoverage ?? 30) * dailySalesRate;
+                availableVolume = targetProduction * (product.NetWeight ?? 1);
+                break;
+        }
+
+        return (targetProduction, availableVolume);
+    }
+
+    private (double targetProductionUnits, double totalWeight) CalculateSinglePhaseTargetProduction(
+        CatalogAggregate product, 
+        CalculateBatchPlanRequest request, 
+        double dailySalesRate)
+    {
+        double targetProductionUnits = 0;
+        double totalWeight = 0;
+        
+        switch (request.ControlMode)
+        {
+            case BatchPlanControlMode.MmqMultiplier:
+                // V single-phase je MMQ už v kusech produktu
+                targetProductionUnits = (request.MmqMultiplier ?? 1.0) * product.MinimalManufactureQuantity;
+                totalWeight = targetProductionUnits * (product.NetWeight ?? 1);
+                break;
+            case BatchPlanControlMode.TotalWeight:
+                // Zadáváme celkovou hmotnost, počítáme kusy
+                totalWeight = request.TotalWeightToUse ?? 0;
+                targetProductionUnits = totalWeight / (product.NetWeight ?? 1);
+                break;
+            case BatchPlanControlMode.TargetDaysCoverage:
+                // Počítáme kusy pro pokrytí dnů prodeje
+                targetProductionUnits = (request.TargetDaysCoverage ?? 30) * dailySalesRate;
+                totalWeight = targetProductionUnits * (product.NetWeight ?? 1);
+                break;
+        }
+
+        return (targetProductionUnits, totalWeight);
+    }
+
+    
+
+    private async Task<CalculateBatchPlanResponse> CalculateSinglePhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
+    {
+        // For single-phase manufacturing, the request.ProductCode is actually the product code
+        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        if (product == null)
+        {
+            throw new ArgumentException($"Product with code '{request.ProductCode}' not found.");
+        }
+
+        // Create batch plan item using common helper
+        var batchPlanItem = CreateBatchPlanItem(product, request);
+
+        // Calculate target production in units (not weight) for single-phase
+        var (targetProductionUnits, totalWeight) = CalculateSinglePhaseTargetProduction(product, request, batchPlanItem.DailySalesRate);
+
+        // Set production values - targetProductionUnits is already in pieces/units
+        batchPlanItem.RecommendedUnitsToProduceHumanReadable = (int)Math.Round(targetProductionUnits);
+        batchPlanItem.TotalVolumeRequired = totalWeight; // Total weight of produced units
+        batchPlanItem.FutureStock = batchPlanItem.CurrentStock + targetProductionUnits; // Stock in units
+        batchPlanItem.FutureDaysCoverage = batchPlanItem.DailySalesRate > 0 ? batchPlanItem.FutureStock / batchPlanItem.DailySalesRate : 0;
+        batchPlanItem.OptimizationNote = "Single-phase manufacturing";
+
+        var batchPlanItems = new List<BatchPlanItemDto> { batchPlanItem };
+        var summary = CalculateSummary(batchPlanItems, request, totalWeight);
+
+        return new CalculateBatchPlanResponse
+        {
+            Success = true,
+            ManufactureType = ManufactureType.SinglePhase,
+            Semiproduct = new SemiproductInfoDto
+            {
+                ProductCode = product.ProductCode,
+                ProductName = product.ProductName,
+                AvailableStock = (double)product.Stock.Total, // Stock in units
+                MinimalManufactureQuantity = product.MinimalManufactureQuantity // MMQ in units
+            },
+            ProductSizes = batchPlanItems,
+            Summary = summary,
+            TargetDaysCoverage = request.TargetDaysCoverage ?? 30,
+            TotalVolumeUsed = batchPlanItem.TotalVolumeRequired,
+            TotalVolumeAvailable = totalWeight
+        };
+    }
+
+    private async Task<CalculateBatchPlanResponse> CalculateMultiPhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
+    {
+        // 1. Get semiproduct info
+        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        if (semiproduct == null)
+        {
+            throw new ArgumentException($"Semiproduct with code '{request.ProductCode}' not found.");
+        }
+
+        var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
+
+        // 2. Find all products that use this semiproduct
+        var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.ProductCode, cancellationToken);
+        if (productTemplates.Count == 0)
+        {
+            throw new ArgumentException($"No products found that use semiproduct '{request.ProductCode}'.");
+        }
+
+        // 3. For each product, get catalog data and create batch plan items
+        var batchPlanItems = new List<BatchPlanItemDto>();
+        foreach (var template in productTemplates)
+        {
+            var product = await _catalogRepository.GetByIdAsync(template.ProductCode, cancellationToken);
+            if (product == null)
+            {
+                _logger.LogWarning("Product {ProductCode} found in template but not in catalog", template.ProductCode);
+                continue;
+            }
+
+            var item = CreateBatchPlanItem(product, request, template.ProductName);
+            batchPlanItems.Add(item);
+        }
+
+        // 4. Apply optimization algorithm based on control mode
+        var response = ApplyOptimization(batchPlanItems, request, availableVolume, semiproduct);
+
+        return response;
+    }
+
 }

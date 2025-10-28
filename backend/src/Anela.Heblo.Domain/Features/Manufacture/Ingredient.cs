@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Catalog;
+
 namespace Anela.Heblo.Domain.Features.Manufacture;
 
 public class Ingredient
@@ -8,4 +10,5 @@ public class Ingredient
     public double Amount { get; set; }
     public double OriginalAmount { get; set; }
     public decimal Price { get; set; }
+    public ProductType ProductType { get; set; }
 }

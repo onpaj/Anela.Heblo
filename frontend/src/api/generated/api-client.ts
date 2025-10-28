@@ -583,10 +583,10 @@ export class ApiClient {
         return Promise.resolve<RefreshTaskStatusDto>(null as any);
     }
 
-    catalog_GetCatalogList(type: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
-        if (type !== undefined && type !== null)
-            url_ += "Type=" + encodeURIComponent("" + type) + "&";
+        if (productTypes !== undefined && productTypes !== null)
+            productTypes && productTypes.forEach(item => { url_ += "ProductTypes=" + encodeURIComponent("" + item) + "&"; });
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)
@@ -7143,6 +7143,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
     originalAmount?: number;
     ingredients?: Ingredient[];
     batchSize?: number;
+    manufactureType?: ManufactureType;
 
     constructor(data?: IManufactureTemplate) {
         if (data) {
@@ -7166,6 +7167,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
                     this.ingredients!.push(Ingredient.fromJS(item));
             }
             this.batchSize = _data["batchSize"];
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -7189,6 +7191,7 @@ export class ManufactureTemplate implements IManufactureTemplate {
                 data["ingredients"].push(item.toJSON());
         }
         data["batchSize"] = this.batchSize;
+        data["manufactureType"] = this.manufactureType;
         return data;
     }
 }
@@ -7201,6 +7204,7 @@ export interface IManufactureTemplate {
     originalAmount?: number;
     ingredients?: Ingredient[];
     batchSize?: number;
+    manufactureType?: ManufactureType;
 }
 
 export class Ingredient implements IIngredient {
@@ -7210,6 +7214,7 @@ export class Ingredient implements IIngredient {
     amount?: number;
     originalAmount?: number;
     price?: number;
+    productType?: ProductType;
 
     constructor(data?: IIngredient) {
         if (data) {
@@ -7228,6 +7233,7 @@ export class Ingredient implements IIngredient {
             this.amount = _data["amount"];
             this.originalAmount = _data["originalAmount"];
             this.price = _data["price"];
+            this.productType = _data["productType"];
         }
     }
 
@@ -7246,6 +7252,7 @@ export class Ingredient implements IIngredient {
         data["amount"] = this.amount;
         data["originalAmount"] = this.originalAmount;
         data["price"] = this.price;
+        data["productType"] = this.productType;
         return data;
     }
 }
@@ -7257,6 +7264,13 @@ export interface IIngredient {
     amount?: number;
     originalAmount?: number;
     price?: number;
+    productType?: ProductType;
+}
+
+export enum ManufactureType {
+    MultiPhase = "MultiPhase",
+    SinglePhase = "SinglePhase",
+    Unavailable = "Unavailable",
 }
 
 export class GetWarehouseStatisticsResponse extends BaseResponse implements IGetWarehouseStatisticsResponse {
@@ -9883,6 +9897,7 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
     targetDaysCoverage?: number;
     totalVolumeUsed?: number;
     totalVolumeAvailable?: number;
+    manufactureType?: ManufactureType;
 
     constructor(data?: ICalculateBatchPlanResponse) {
         super(data);
@@ -9901,6 +9916,7 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
             this.targetDaysCoverage = _data["targetDaysCoverage"];
             this.totalVolumeUsed = _data["totalVolumeUsed"];
             this.totalVolumeAvailable = _data["totalVolumeAvailable"];
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -9923,6 +9939,7 @@ export class CalculateBatchPlanResponse extends BaseResponse implements ICalcula
         data["targetDaysCoverage"] = this.targetDaysCoverage;
         data["totalVolumeUsed"] = this.totalVolumeUsed;
         data["totalVolumeAvailable"] = this.totalVolumeAvailable;
+        data["manufactureType"] = this.manufactureType;
         super.toJSON(data);
         return data;
     }
@@ -9935,6 +9952,7 @@ export interface ICalculateBatchPlanResponse extends IBaseResponse {
     targetDaysCoverage?: number;
     totalVolumeUsed?: number;
     totalVolumeAvailable?: number;
+    manufactureType?: ManufactureType;
 }
 
 export class SemiproductInfoDto implements ISemiproductInfoDto {
@@ -10160,7 +10178,7 @@ export enum BatchPlanControlMode {
 }
 
 export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
-    semiproductCode!: string;
+    productCode!: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
     salesMultiplier?: number | undefined;
@@ -10169,6 +10187,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     totalWeightToUse?: number | undefined;
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
+    manufactureType?: ManufactureType | undefined;
 
     constructor(data?: ICalculateBatchPlanRequest) {
         if (data) {
@@ -10181,7 +10200,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.semiproductCode = _data["semiproductCode"];
+            this.productCode = _data["productCode"];
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.salesMultiplier = _data["salesMultiplier"];
@@ -10194,6 +10213,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
                 for (let item of _data["productConstraints"])
                     this.productConstraints!.push(ProductSizeConstraint.fromJS(item));
             }
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -10206,7 +10226,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["semiproductCode"] = this.semiproductCode;
+        data["productCode"] = this.productCode;
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["salesMultiplier"] = this.salesMultiplier;
@@ -10219,12 +10239,13 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
             for (let item of this.productConstraints)
                 data["productConstraints"].push(item.toJSON());
         }
+        data["manufactureType"] = this.manufactureType;
         return data;
     }
 }
 
 export interface ICalculateBatchPlanRequest {
-    semiproductCode: string;
+    productCode: string;
     fromDate?: Date | undefined;
     toDate?: Date | undefined;
     salesMultiplier?: number | undefined;
@@ -10233,6 +10254,7 @@ export interface ICalculateBatchPlanRequest {
     totalWeightToUse?: number | undefined;
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
+    manufactureType?: ManufactureType | undefined;
 }
 
 export class ProductSizeConstraint implements IProductSizeConstraint {
@@ -10333,6 +10355,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     createdByUser?: string;
     responsiblePerson?: string | undefined;
     plannedDate?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10364,6 +10387,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
             this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
+            this.manufactureType = _data["manufactureType"];
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.manualActionRequired = _data["manualActionRequired"];
@@ -10403,6 +10427,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
         data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
+        data["manufactureType"] = this.manufactureType;
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -10435,6 +10460,7 @@ export interface IManufactureOrderDto {
     createdByUser?: string;
     responsiblePerson?: string | undefined;
     plannedDate?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
@@ -10703,6 +10729,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
     products?: CreateManufactureOrderProductRequest[];
     plannedDate!: Date;
     responsiblePerson?: string | undefined;
+    manufactureType?: ManufactureType;
 
     constructor(data?: ICreateManufactureOrderRequest) {
         if (data) {
@@ -10727,6 +10754,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
             }
             this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
+            this.manufactureType = _data["manufactureType"];
         }
     }
 
@@ -10751,6 +10779,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
         }
         data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
+        data["manufactureType"] = this.manufactureType;
         return data;
     }
 }
@@ -10764,6 +10793,7 @@ export interface ICreateManufactureOrderRequest {
     products?: CreateManufactureOrderProductRequest[];
     plannedDate: Date;
     responsiblePerson?: string | undefined;
+    manufactureType?: ManufactureType;
 }
 
 export class CreateManufactureOrderProductRequest implements ICreateManufactureOrderProductRequest {
@@ -11643,6 +11673,7 @@ export class CalendarEventDto implements ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;
@@ -11670,6 +11701,7 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.orderNumber = _data["orderNumber"];
             this.title = _data["title"];
             this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.manufactureType = _data["manufactureType"];
             this.state = _data["state"];
             this.responsiblePerson = _data["responsiblePerson"];
             this.manualActionRequired = _data["manualActionRequired"];
@@ -11701,6 +11733,7 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["orderNumber"] = this.orderNumber;
         data["title"] = this.title;
         data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["manufactureType"] = this.manufactureType;
         data["state"] = this.state;
         data["responsiblePerson"] = this.responsiblePerson;
         data["manualActionRequired"] = this.manualActionRequired;
@@ -11725,6 +11758,7 @@ export interface ICalendarEventDto {
     orderNumber?: string;
     title?: string;
     date?: Date;
+    manufactureType?: ManufactureType;
     state?: ManufactureOrderState;
     responsiblePerson?: string | undefined;
     manualActionRequired?: boolean;

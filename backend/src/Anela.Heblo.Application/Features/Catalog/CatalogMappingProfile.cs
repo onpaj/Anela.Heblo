@@ -51,7 +51,7 @@ public class CatalogMappingProfile : Profile
 
         // Stock taking history mapping
         CreateMap<StockTakingRecord, StockTakingHistoryItemDto>();
-        
+
         // Stock taking result mapping
         CreateMap<StockTakingRecord, StockTakingResultDto>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id.ToString()))

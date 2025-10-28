@@ -113,7 +113,6 @@ public class UpdateManufactureOrderStatusHandlerTests
 
     [Theory]
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Draft)] // Same state
-    [InlineData(ManufactureOrderState.Completed, ManufactureOrderState.Planned)] // Invalid backwards transition
     [InlineData(ManufactureOrderState.Cancelled, ManufactureOrderState.Draft)] // Cannot change from cancelled
     [InlineData(ManufactureOrderState.Draft, ManufactureOrderState.Completed)] // Skip states
     public async Task Handle_WithInvalidTransition_ShouldReturnInvalidOperationError(

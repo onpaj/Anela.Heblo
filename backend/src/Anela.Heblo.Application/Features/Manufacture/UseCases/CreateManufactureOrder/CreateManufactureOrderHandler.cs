@@ -46,6 +46,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
             PlannedDate = request.PlannedDate,
+            ManufactureType = request.ManufactureType,
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow,
             StateChangedByUser = currentUser.Name
@@ -60,19 +61,43 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, semiproduct.Properties.ExpirationMonths);
         var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
 
-        // Create the semi-product entry (the main product being manufactured)
-        var semiProduct = new ManufactureOrderSemiProduct
+        // Create the semi-product entry
+        if (request.ManufactureType == ManufactureType.MultiPhase)
         {
-            ProductCode = request.ProductCode,
-            ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
-            PlannedQuantity = (decimal)request.NewBatchSize,
-            ActualQuantity = (decimal)request.NewBatchSize,
-            BatchMultiplier = (decimal)request.ScaleFactor,
-            ExpirationMonths = semiproduct.Properties.ExpirationMonths,
-            ExpirationDate = expirationDate,
-            LotNumber = lotNumber,
-        };
-        order.SemiProduct = semiProduct;
+            var semiProduct = new ManufactureOrderSemiProduct
+            {
+                ProductCode = request.ProductCode,
+                ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
+                PlannedQuantity = (decimal)request.NewBatchSize,
+                ActualQuantity = (decimal)request.NewBatchSize,
+                BatchMultiplier = (decimal)request.ScaleFactor,
+                ExpirationMonths = semiproduct.Properties.ExpirationMonths,
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
+            };
+            order.SemiProduct = semiProduct;
+        }
+        else if (request.ManufactureType == ManufactureType.SinglePhase)
+        {
+            // For single-phase, the product is its own semi-product
+            // Use the first product in the request as the representative semi-product
+            var firstProduct = request.Products.FirstOrDefault();
+            if (firstProduct != null)
+            {
+                var semiProduct = new ManufactureOrderSemiProduct
+                {
+                    ProductCode = firstProduct.ProductCode,
+                    ProductName = _productNameFormatter.ShortProductName(firstProduct.ProductName),
+                    PlannedQuantity = (decimal)firstProduct.PlannedQuantity,
+                    ActualQuantity = (decimal)firstProduct.PlannedQuantity,
+                    BatchMultiplier = (decimal)request.ScaleFactor,
+                    ExpirationMonths = semiproduct.Properties.ExpirationMonths,
+                    ExpirationDate = expirationDate,
+                    LotNumber = lotNumber,
+                };
+                order.SemiProduct = semiProduct;
+            }
+        }
 
         // Create final products from the request 
         foreach (var productRequest in request.Products)
@@ -81,7 +106,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             {
                 ProductCode = productRequest.ProductCode,
                 ProductName = productRequest.ProductName,
-                SemiProductCode = request.ProductCode, // Link to the semiproduct being manufactured
+                SemiProductCode = request.ManufactureType == ManufactureType.MultiPhase ? request.ProductCode : productRequest.ProductCode,
                 PlannedQuantity = (decimal)productRequest.PlannedQuantity,
                 ActualQuantity = (decimal)productRequest.PlannedQuantity,
                 ExpirationDate = expirationDate,

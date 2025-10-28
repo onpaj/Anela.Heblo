@@ -387,7 +387,7 @@ describe('useInventory - Complex Sorting Logic', () => {
 
       // Should call API with sorting parameters and return as-is (server-side sorting)
       expect(mockApiClient.catalog_GetCatalogList).toHaveBeenCalledWith(
-        1, // ProductType.Product
+        [1], // ProductType.Product (as array)
         1, // pageNumber
         20, // pageSize
         'lastInventoryDays', // sortBy

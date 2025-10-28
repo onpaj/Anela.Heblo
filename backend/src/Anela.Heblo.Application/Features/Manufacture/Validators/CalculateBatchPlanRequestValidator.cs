@@ -7,7 +7,7 @@ public class CalculateBatchPlanRequestValidator : AbstractValidator<CalculateBat
 {
     public CalculateBatchPlanRequestValidator()
     {
-        RuleFor(x => x.SemiproductCode)
+        RuleFor(x => x.ProductCode)
             .NotEmpty()
             .WithMessage("Semiproduct code is required.");
 

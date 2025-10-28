@@ -10,6 +10,7 @@ import {
   CalculateBatchPlanRequest,
   BatchPlanControlMode,
   ProductSizeConstraint,
+  ManufactureType,
 } from "../../api/hooks/useBatchPlanning";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
@@ -76,7 +77,8 @@ const BatchPlanningCalculator: React.FC = () => {
   useCatalogAutocomplete(
     triggerSearch.length >= 2 ? triggerSearch : undefined,
     50,
-    [ProductType.SemiProduct]
+    [ProductType.SemiProduct,ProductType.Product],
+    true
   );
 
   // Get API response data
@@ -139,7 +141,7 @@ const BatchPlanningCalculator: React.FC = () => {
         
         // Trigger the API call directly
         const requestData: any = {
-          semiproductCode: productCode,
+          productCode: productCode,
           controlMode: BatchPlanControlMode.TotalWeight,
           fromDate: fromDate,
           toDate: toDate,
@@ -178,7 +180,7 @@ const BatchPlanningCalculator: React.FC = () => {
       
       // Trigger batch planning calculation with default values
       const requestData: any = {
-        semiproductCode: selectedSemiproduct.productCode,
+        productCode: selectedSemiproduct.productCode,
         controlMode: BatchPlanControlMode.MmqMultiplier,
         fromDate: fromDate,
         toDate: toDate,
@@ -286,7 +288,7 @@ const BatchPlanningCalculator: React.FC = () => {
 
   const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
     const requestData: any = {
-      semiproductCode: semiproductCode,
+      productCode: semiproductCode,
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
@@ -322,7 +324,7 @@ const BatchPlanningCalculator: React.FC = () => {
     );
 
     const requestData: any = {
-      semiproductCode: semiproductCode,
+      productCode: semiproductCode,
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
@@ -363,7 +365,7 @@ const BatchPlanningCalculator: React.FC = () => {
     // Auto-trigger calculation immediately after product selection
     if (product?.productCode) {
       const requestData: any = {
-        semiproductCode: product.productCode,
+        productCode: product.productCode,
         controlMode: BatchPlanControlMode.MmqMultiplier,
         fromDate: fromDate,
         toDate: toDate,
@@ -473,7 +475,8 @@ const BatchPlanningCalculator: React.FC = () => {
           plannedQuantity: p.plannedQuantity
         })),
         plannedDate: plannedDate,
-        responsiblePerson: undefined
+        responsiblePerson: undefined,
+        manufactureType: response.manufactureType
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
@@ -532,14 +535,15 @@ const BatchPlanningCalculator: React.FC = () => {
                   {/* Left: Product Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Polotovar <span className="text-red-500">*</span>
+                      Polotovar / Produkt <span className="text-red-500">*</span>
                     </label>
                     <div className="relative z-50">
                       <CatalogAutocomplete
                         value={selectedSemiproduct}
                         onSelect={handleSemiproductSelect}
-                        placeholder="Vyberte polotovar..."
-                        productTypes={[ProductType.SemiProduct]}
+                        placeholder="Vyberte polotovar nebo produkt..."
+                        productTypes={[ProductType.SemiProduct, ProductType.Product]}
+                        withBomOnly={true}
                         size="md"
                         clearable={true}
                       />
@@ -796,15 +800,21 @@ const BatchPlanningCalculator: React.FC = () => {
                       <div>
                         <h3 className="text-lg font-medium text-gray-900 flex items-center">
                           <Package className="w-5 h-5 text-green-500 mr-2" />
-                          Velikosti produktů
+                          {response?.manufactureType === ManufactureType.SinglePhase ? 'Produkt' : 'Velikosti produktů'}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
-                          Produkty vyráběné z polotovaru {selectedSemiproduct.productName}
+                          {response?.manufactureType === ManufactureType.SinglePhase 
+                            ? `Jednofázová výroba produktu ${selectedSemiproduct.productName}`
+                            : `Produkty vyráběné z polotovaru ${selectedSemiproduct.productName}`
+                          }
                         </p>
                       </div>
                       
                       {/* Create Order Button */}
-                      {response?.success && response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0) && (
+                      {response?.success && (
+                        response?.manufactureType === ManufactureType.SinglePhase || 
+                        response.productSizes?.some(p => (p.recommendedUnitsToProduceHumanReadable || 0) > 0)
+                      ) && (
                         <button
                           onClick={handleCreateOrder}
                           disabled={createOrderMutation.isPending || needsRecalculation}

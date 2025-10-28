@@ -20,7 +20,7 @@ import {
   useUpdateManufactureOrderSchedule,
   CalendarEventDto,
 } from "../../../api/hooks/useManufactureOrders";
-import { ManufactureOrderState } from "../../../api/generated/api-client";
+import { ManufactureOrderState, ManufactureType } from "../../../api/generated/api-client";
 import { usePlanningList } from "../../../contexts/PlanningListContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -557,25 +557,31 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                 </div>
                               </div>
                               
-                              {/* ERP Status Indicators - Right aligned */}
+                              {/* ERP Status Indicators - Right aligned - Hide some for SinglePhase */}
                               <div className="flex items-center space-x-1 flex-shrink-0">
-                                <ErpStatusIndicator 
-                                  status={getErpDocumentStatus(event.erpOrderNumberSemiproduct, event.state, 'semiproduct')}
-                                  title={`ERP doklad meziproduktu: ${event.erpOrderNumberSemiproduct || 'čeká se'}`}
-                                />
+                                {/* Hide ERP doklad meziproduktu for SinglePhase */}
+                                {event.manufactureType !== ManufactureType.SinglePhase && (
+                                  <ErpStatusIndicator 
+                                    status={getErpDocumentStatus(event.erpOrderNumberSemiproduct, event.state, 'semiproduct')}
+                                    title={`ERP doklad meziproduktu: ${event.erpOrderNumberSemiproduct || 'čeká se'}`}
+                                  />
+                                )}
                                 <ErpStatusIndicator 
                                   status={getErpDocumentStatus(event.erpOrderNumberProduct, event.state, 'product')}
                                   title={`ERP doklad produktu: ${event.erpOrderNumberProduct || 'čeká se'}`}
                                 />
-                                <ErpStatusIndicator 
-                                  status={getErpDocumentStatus(event.erpDiscardResidueDocumentNumber, event.state, 'discard')}
-                                  title={`ERP výdejka přebytků: ${event.erpDiscardResidueDocumentNumber || 'čeká se'}`}
-                                />
+                                {/* Hide ERP výdejka přebytků for SinglePhase */}
+                                {event.manufactureType !== ManufactureType.SinglePhase && (
+                                  <ErpStatusIndicator 
+                                    status={getErpDocumentStatus(event.erpDiscardResidueDocumentNumber, event.state, 'discard')}
+                                    title={`ERP výdejka přebytků: ${event.erpDiscardResidueDocumentNumber || 'čeká se'}`}
+                                  />
+                                )}
                               </div>
                             </div>
 
-                            {/* Semi-product Information - Compact */}
-                            {event.semiProduct && (
+                            {/* Semi-product Information - Compact - Hide for SinglePhase */}
+                            {event.semiProduct && event.manufactureType !== ManufactureType.SinglePhase && (
                               <div className="mb-2 p-1.5 bg-white bg-opacity-50 rounded border">
                                 <div className="flex items-center justify-center space-x-2">
                                   <div className="flex items-center space-x-1">

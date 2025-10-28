@@ -138,13 +138,14 @@ public class CatalogControllerTests
         ProductType? type)
     {
         // Arrange
+        var productTypes = type.HasValue ? new[] { type.Value } : null;
         var request = new GetCatalogListRequest
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
             ProductName = productName,
             ProductCode = productCode,
-            Type = type
+            ProductTypes = productTypes
         };
 
         var expectedResponse = new GetCatalogListResponse
@@ -161,7 +162,8 @@ public class CatalogControllerTests
                 r.PageSize == pageSize &&
                 r.ProductName == productName &&
                 r.ProductCode == productCode &&
-                r.Type == type), It.IsAny<CancellationToken>()))
+                ((r.ProductTypes == null && productTypes == null) ||
+                 (r.ProductTypes != null && productTypes != null && r.ProductTypes.SequenceEqual(productTypes)))), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act

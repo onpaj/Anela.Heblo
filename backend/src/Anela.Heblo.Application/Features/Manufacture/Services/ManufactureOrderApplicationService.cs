@@ -227,7 +227,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
         if (type == ErpManufactureType.Product)
         {
-            manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)} {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+            manufactureName = CreateManufactureName(order, type);
             items = order!.Products.Select(p => new SubmitManufactureRequestItem()
             {
                 ProductCode = p.ProductCode,
@@ -237,7 +237,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
         else
         {
-            manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)}M {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+            manufactureName = CreateManufactureName(order, type);
             items = new List<SubmitManufactureRequestItem>()
             {
                 new()
@@ -273,6 +273,26 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         return submitManufactureResult;
     }
 
+    private string CreateManufactureName(UpdateManufactureOrderDto order, ErpManufactureType type)
+    {
+        string manufactureName;
+        if (type == ErpManufactureType.Product)
+        {
+            if (order.Products.All(p => p.ProductCode == order.SemiProduct.ProductCode)) // Singlephase manufacture
+            {
+                manufactureName = $"{order.SemiProduct.ProductCode}";    
+            }
+            else
+            {
+                manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)} {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+            }
+        }
+        else
+            manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)}M {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+        
+        return manufactureName.Length > 40 ? manufactureName.Substring(0, 40) : manufactureName;
+    }
+
 
     private async Task<UpdateManufactureOrderResponse> UpdateSemiProductQuantity(int orderId, decimal actualQuantity, CancellationToken cancellationToken)
     {
@@ -290,5 +310,4 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         var updateResult = await _mediator.Send(updateRequest, cancellationToken);
         return updateResult;
     }
-
 }

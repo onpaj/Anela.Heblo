@@ -28,7 +28,7 @@ public class CalculateBatchPlanHandlerTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "SEMI001",
+            ProductCode = "SEMI001",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0
         };
@@ -76,7 +76,7 @@ public class CalculateBatchPlanHandlerTests
         // Arrange
         var request = new CalculateBatchPlanRequest
         {
-            SemiproductCode = "INVALID",
+            ProductCode = "INVALID",
             ControlMode = BatchPlanControlMode.MmqMultiplier,
             MmqMultiplier = 1.0
         };

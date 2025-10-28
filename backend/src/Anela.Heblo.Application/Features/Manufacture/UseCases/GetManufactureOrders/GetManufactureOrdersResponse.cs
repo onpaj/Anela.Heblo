@@ -23,6 +23,8 @@ public class ManufactureOrderDto
     public string? ResponsiblePerson { get; set; }
 
     public DateOnly PlannedDate { get; set; }
+    
+    public ManufactureType ManufactureType { get; set; }
 
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }

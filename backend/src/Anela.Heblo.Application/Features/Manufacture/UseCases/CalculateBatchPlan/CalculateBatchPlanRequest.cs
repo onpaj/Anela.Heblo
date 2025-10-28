@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
@@ -6,7 +7,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPl
 public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
 {
     [Required]
-    public string SemiproductCode { get; set; } = null!;
+    public string ProductCode { get; set; } = null!;
 
     // Time period selection (same as Purchase Analysis)
     public DateTime? FromDate { get; set; }
@@ -23,6 +24,9 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
 
     // Product size constraints
     public List<ProductSizeConstraint> ProductConstraints { get; set; } = new();
+    
+    // Manufacturing type - set internally by handler
+    public ManufactureType? ManufactureType { get; set; }
 }
 
 public enum BatchPlanControlMode

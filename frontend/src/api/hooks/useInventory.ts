@@ -41,7 +41,7 @@ const fetchInventoryList = async (
     
     for (const inventoryType of INVENTORY_TYPES) {
       const result = await apiClient.catalog_GetCatalogList(
-        inventoryType,
+        [inventoryType],
         1, // pageNumber - get all pages for aggregation
         1000, // pageSize - large page size to get all items
         params.sortBy || undefined,
@@ -125,7 +125,7 @@ const fetchInventoryList = async (
   } else {
     // Single type - use generated API client
     const result = await apiClient.catalog_GetCatalogList(
-      params.type,
+      [params.type],
       params.pageNumber,
       params.pageSize,
       params.sortBy || undefined,
