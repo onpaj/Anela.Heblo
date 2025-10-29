@@ -38,11 +38,11 @@ public abstract class UpcomingProductionTile : ITile
                 Products = orders.Take(5).Select(o =>
                         new
                         {
-                            o.SemiProduct.ProductName,
+                            ProductName = o.SemiProduct?.ProductName ?? "N/A",
                             SemiProductCompleted = o.State is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed,
                             ProductsCompleted = o.State == ManufactureOrderState.Completed,
                             o.ResponsiblePerson,
-                            o.SemiProduct.ActualQuantity
+                            ActualQuantity = o.SemiProduct?.ActualQuantity ?? 0
                         }
                 ).ToArray()
             },

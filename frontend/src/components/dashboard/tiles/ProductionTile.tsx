@@ -8,23 +8,23 @@ import {
   TileDataWithDrillDown 
 } from '../../../utils/urlUtils';
 
+interface ProductionItem {
+  productName: string;
+  semiProductCompleted: boolean;
+  productsCompleted: boolean;
+  responsiblePerson: string;
+  actualQuantity: number;
+}
+
 interface ProductionTileProps {
-  data: TileDataWithDrillDown & {
-    totalOrders?: number;
-    products?: Array<{
-      productName: string;
-      semiProductCompleted: boolean;
-      productsCompleted: boolean;
-      responsiblePerson: string;
-      actualQuantity: number;
-    }>;
-  };
+  data: TileDataWithDrillDown;
   title: string;
 }
 
 export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) => {
   const navigate = useNavigate();
-  const { totalOrders = 0, products = [] } = data;
+  const totalOrders = data.data?.totalOrders ?? 0;
+  const products: ProductionItem[] = data.data?.products ?? [];
   
   const isClickable = isTileClickable(data);
   const tooltip = getTileTooltip(data);
