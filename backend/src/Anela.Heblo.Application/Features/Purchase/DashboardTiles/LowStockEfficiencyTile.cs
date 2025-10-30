@@ -51,7 +51,7 @@ public class LowStockEfficiencyTile : ITile
             }
 
             var lowEfficiencyCount = response.Items
-                .Count(item => item.StockEfficiencyPercentage < 20);
+                .Count(item => item.StockEfficiencyPercentage < 20 && item.IsConfigured);
 
             return new
             {
