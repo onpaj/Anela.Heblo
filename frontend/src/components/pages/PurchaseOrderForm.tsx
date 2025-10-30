@@ -338,51 +338,127 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   };
 
   // Handle adding material from purchase planning list
-  const handleAddFromPlanningList = (planningItem: { productCode: string; productName: string; supplier: string }) => {
-    // Create MaterialForPurchaseDto object from planning item
-    const material: MaterialForPurchaseDto = {
-      productCode: planningItem.productCode,
-      productName: planningItem.productName,
-      lastPurchasePrice: 0, // Default price, user will fill
-      currentStock: undefined,
-      minimalOrderQuantity: undefined,
-      location: undefined,
-      productType: undefined,
-    };
+  const handleAddFromPlanningList = async (planningItem: { productCode: string; productName: string; supplier: string }) => {
+    try {
+      // Fetch complete material data including price using same API call as useMaterialByProductCode hook
+      const apiClient = (await import("../../api/client")).getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+      searchParams.append("searchTerm", planningItem.productCode);
+      searchParams.append("limit", "50");
 
-    // Create a new line with the material from planning list
-    const newLine = createDefaultLine();
-    newLine.selectedMaterial = material;
-    newLine.materialId = planningItem.productCode;
-    newLine.materialName = planningItem.productName;
-    newLine.quantity = 1; // Default quantity
-    newLine.unitPrice = 0; // Will be filled by user
-    
-    setFormData((prev) => {
-      const newLines = [...prev.lines];
-      
-      // Check if first line is empty (no material selected)
-      const firstLine = newLines[0];
-      const isFirstLineEmpty = !firstLine?.selectedMaterial || 
-                               !firstLine.selectedMaterial.productCode ||
-                               firstLine.materialId?.startsWith('temp-');
-      
-      if (isFirstLineEmpty && newLines.length === 1) {
-        // Replace the empty first line
-        newLines[0] = newLine;
-      } else {
-        // Add as new line
-        newLines.push(newLine);
+      const relativeUrl = `/api/catalog/materials-for-purchase?${searchParams.toString()}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      return {
-        ...prev,
-        lines: newLines,
-      };
-    });
 
-    // Remove item from purchase planning list after adding to order
-    removeFromPurchasePlanningList(planningItem.productCode);
+      const data = await response.json();
+      
+      // Find exact match by productCode (same logic as useMaterialByProductCode)
+      const material = data.materials?.find(
+        (mat: MaterialForPurchaseDto) => mat.productCode === planningItem.productCode,
+      );
+
+      // If material not found, create fallback object
+      const materialToUse: MaterialForPurchaseDto = material || {
+        productCode: planningItem.productCode,
+        productName: planningItem.productName,
+        lastPurchasePrice: 0,
+        currentStock: undefined,
+        minimalOrderQuantity: undefined,
+        location: undefined,
+        productType: undefined,
+      };
+
+      // Create a new line with the material from planning list
+      const newLine = createDefaultLine();
+      newLine.selectedMaterial = materialToUse;
+      newLine.materialId = planningItem.productCode;
+      newLine.materialName = planningItem.productName;
+      newLine.quantity = 1; // Default quantity
+      newLine.unitPrice = materialToUse.lastPurchasePrice
+        ? roundUnitPrice(materialToUse.lastPurchasePrice)
+        : 0;
+      
+      // Calculate line total
+      newLine.lineTotal = calculateLineTotal(
+        newLine.quantity || 0,
+        newLine.unitPrice || 0,
+      );
+      
+      setFormData((prev) => {
+        const newLines = [...prev.lines];
+        
+        // Check if first line is empty (no material selected)
+        const firstLine = newLines[0];
+        const isFirstLineEmpty = !firstLine?.selectedMaterial || 
+                                 !firstLine.selectedMaterial.productCode ||
+                                 firstLine.materialId?.startsWith('temp-');
+        
+        if (isFirstLineEmpty && newLines.length === 1) {
+          // Replace the empty first line
+          newLines[0] = newLine;
+        } else {
+          // Add as new line
+          newLines.push(newLine);
+        }
+        
+        return {
+          ...prev,
+          lines: newLines,
+        };
+      });
+
+      // Remove item from purchase planning list after adding to order
+      removeFromPurchasePlanningList(planningItem.productCode);
+    } catch (error) {
+      console.error("Error fetching material data:", error);
+      
+      // Fallback to old behavior if API call fails
+      const material: MaterialForPurchaseDto = {
+        productCode: planningItem.productCode,
+        productName: planningItem.productName,
+        lastPurchasePrice: 0,
+        currentStock: undefined,
+        minimalOrderQuantity: undefined,
+        location: undefined,
+        productType: undefined,
+      };
+
+      const newLine = createDefaultLine();
+      newLine.selectedMaterial = material;
+      newLine.materialId = planningItem.productCode;
+      newLine.materialName = planningItem.productName;
+      newLine.quantity = 1;
+      newLine.unitPrice = 0;
+      
+      setFormData((prev) => {
+        const newLines = [...prev.lines];
+        
+        const firstLine = newLines[0];
+        const isFirstLineEmpty = !firstLine?.selectedMaterial || 
+                                 !firstLine.selectedMaterial.productCode ||
+                                 firstLine.materialId?.startsWith('temp-');
+        
+        if (isFirstLineEmpty && newLines.length === 1) {
+          newLines[0] = newLine;
+        } else {
+          newLines.push(newLine);
+        }
+        
+        return {
+          ...prev,
+          lines: newLines,
+        };
+      });
+
+      removeFromPurchasePlanningList(planningItem.productCode);
+    }
   };
 
   return (
