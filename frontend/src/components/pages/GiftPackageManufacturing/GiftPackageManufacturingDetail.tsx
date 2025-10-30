@@ -235,33 +235,8 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
                 <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">Prodeje/den</div>
-                  <div className="text-base font-bold text-gray-900">{selectedPackage.dailySales.toFixed(1)}</div>
-                  <div className="text-xs text-gray-500">ks</div>
-                </div>
-                <div className="bg-white rounded-md p-2 text-center border">
                   <div className="text-xs text-gray-500">Doporučeno</div>
                   <div className="text-base font-bold text-orange-600">{selectedPackage.suggestedQuantity}</div>
-                  <div className="text-xs text-gray-500">ks</div>
-                </div>
-                <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">NS%</div>
-                  <div className={`text-base font-bold ${
-                    selectedPackage.stockCoveragePercent >= 100 ? "text-green-600" : 
-                    selectedPackage.stockCoveragePercent >= 50 ? "text-orange-600" : "text-red-600"
-                  }`}>
-                    {selectedPackage.stockCoveragePercent.toFixed(0)}%
-                  </div>
-                  <div className="text-xs text-gray-500">pokrytí</div>
-                </div>
-                <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">NS optimál</div>
-                  <div className="text-base font-bold text-gray-900">{selectedPackage.overstockOptimal}</div>
-                  <div className="text-xs text-gray-500">dní</div>
-                </div>
-                <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">NS minimál</div>
-                  <div className="text-base font-bold text-gray-900">{selectedPackage.overstockMinimal}</div>
                   <div className="text-xs text-gray-500">ks</div>
                 </div>
               </div>
