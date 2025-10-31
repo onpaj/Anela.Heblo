@@ -6,7 +6,7 @@ public class ClassificationHistoryDto
 {
     public Guid Id { get; set; }
     
-    public string AbraInvoiceId { get; set; } = string.Empty;
+    public string InvoiceId { get; set; } = string.Empty;
     
     public Guid? ClassificationRuleId { get; set; }
     

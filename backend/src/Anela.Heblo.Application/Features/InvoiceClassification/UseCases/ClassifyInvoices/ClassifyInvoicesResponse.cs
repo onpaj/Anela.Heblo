@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 
-public class ClassifyInvoicesResponse
+public class ClassifyInvoicesResponse : BaseResponse
 {
     public int TotalInvoicesProcessed { get; set; }
     
