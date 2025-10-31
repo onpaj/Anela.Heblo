@@ -127,6 +127,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Zásoby materiálu",
           href: "/purchase/stock-analysis",
         },
+        {
+          id: "klasifikace-faktur",
+          name: "Klasifikace faktur",
+          href: "/purchase/invoice-classification",
+        },
       ],
     },
     {

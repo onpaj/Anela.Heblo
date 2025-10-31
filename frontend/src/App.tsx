@@ -30,6 +30,7 @@ import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOr
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
 import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import OrgChartPage from "./pages/OrgChartPage";
+import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -314,6 +315,10 @@ function App() {
                         <Route
                           path="/purchase/stock-analysis"
                           element={<PurchaseStockAnalysis />}
+                        />
+                        <Route
+                          path="/purchase/invoice-classification"
+                          element={<InvoiceClassificationPage />}
                         />
                         <Route
                           path="/manufacturing/stock-analysis"

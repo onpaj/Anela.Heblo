@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251031104021_FixInvoiceClassificationDateTimeHandling")]
+    partial class FixInvoiceClassificationDateTimeHandling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -255,10 +258,8 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("RuleTypeIdentifier")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp");
@@ -273,8 +274,8 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("Order")
                         .IsUnique();
 
-                    b.HasIndex("RuleTypeIdentifier", "Pattern")
-                        .HasDatabaseName("IX_ClassificationRules_RuleTypeIdentifier_Pattern");
+                    b.HasIndex("Type", "Pattern")
+                        .HasDatabaseName("IX_ClassificationRules_Type_Pattern");
 
                     b.ToTable("ClassificationRules", (string)null);
                 });

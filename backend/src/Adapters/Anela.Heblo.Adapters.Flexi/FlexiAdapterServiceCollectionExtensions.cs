@@ -1,4 +1,5 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.InvoiceClassification;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
@@ -17,6 +18,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,6 +75,10 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IBoMClient, BoMClient>();
 
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
+
+        // Invoice Classification clients
+        services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();
+        services.AddScoped<IInvoiceClassificationsClient, FlexiInvoiceClassificationsClient>();
 
         return services;
     }
