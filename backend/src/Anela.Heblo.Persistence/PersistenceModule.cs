@@ -1,4 +1,6 @@
+using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Persistence.Dashboard;
+using Anela.Heblo.Persistence.InvoiceClassification;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +45,10 @@ public static class PersistenceModule
 
         // Register repositories
         services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
+        
+        // Invoice Classification repositories
+        services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
+        services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();
 
         return services;
     }

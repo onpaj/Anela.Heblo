@@ -1,6 +1,7 @@
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
@@ -55,6 +56,10 @@ public class ApplicationDbContext : DbContext
     // Dashboard module
     public DbSet<UserDashboardSettings> UserDashboardSettings { get; set; } = null!;
     public DbSet<UserDashboardTile> UserDashboardTiles { get; set; } = null!;
+
+    // Invoice Classification module
+    public DbSet<ClassificationRule> ClassificationRules { get; set; } = null!;
+    public DbSet<ClassificationHistory> ClassificationHistory { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
