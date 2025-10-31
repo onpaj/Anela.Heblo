@@ -14,6 +14,8 @@ import {
   Truck,
   Bot,
   Newspaper,
+  Users,
+  ExternalLink,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -59,6 +61,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       .replace(":3000", ":5000")
       .replace(":3001", ":5001");
     window.open(`${baseUrl}/hangfire`, "_blank", "noopener,noreferrer");
+  };
+
+  // Function to open organization chart in new window
+  const openOrgChart = () => {
+    window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
   };
 
   // Navigation sections - only implemented pages
@@ -190,6 +197,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "statistiky-skladu",
           name: "Statistiky skladu",
           href: "/logistics/warehouse-statistics",
+        },
+      ],
+    },
+    {
+      id: "personalni",
+      name: "Personální",
+      icon: Users,
+      type: "section" as const,
+      items: [
+        {
+          id: "struktura",
+          name: "Struktura",
+          href: "#",
+          onClick: openOrgChart,
+          isExternal: true,
         },
       ],
     },
@@ -380,6 +402,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                               // If subItem has onClick, render as button
                               if ((subItem as any).onClick) {
+                                const isExternalLink = (subItem as any).isExternal;
                                 return (
                                   <button
                                     key={subItem.id}
@@ -388,7 +411,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                       (subItem as any).onClick();
                                     }}
                                     className={`
-                                      block w-full text-left px-3 py-2 text-sm rounded-md transition-colors duration-300
+                                      flex items-center justify-between w-full text-left px-3 py-2 text-sm rounded-md transition-colors duration-300
                                       ${
                                         isSubActive
                                           ? "bg-secondary-blue-pale text-primary-blue font-medium"
@@ -396,7 +419,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                       }
                                     `}
                                   >
-                                    {subItem.name}
+                                    <span>{subItem.name}</span>
+                                    {isExternalLink && (
+                                      <ExternalLink className="h-3 w-3 ml-2 flex-shrink-0" />
+                                    )}
                                   </button>
                                 );
                               }
