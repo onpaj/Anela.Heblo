@@ -1,0 +1,353 @@
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { cs } from 'date-fns/locale';
+import { useClassificationHistory, ClassificationHistoryItem } from '../../api/hooks/useInvoiceClassification';
+
+const ClassificationHistoryPage: React.FC = () => {
+  const { t } = useTranslation();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  const { data: historyData, isLoading, error } = useClassificationHistory(
+    page,
+    pageSize,
+    fromDate,
+    toDate,
+    invoiceNumber || undefined,
+    companyName || undefined
+  );
+
+  const getResultBadge = (result: ClassificationHistoryItem['result']) => {
+    switch (result) {
+      case 'Success':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            {t('invoiceClassification.history.success', 'Success')}
+          </span>
+        );
+      case 'ManualReviewRequired':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            {t('invoiceClassification.history.manualReview', 'Manual Review')}
+          </span>
+        );
+      case 'Error':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            {t('invoiceClassification.history.error', 'Error')}
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: cs });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatInvoiceDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    try {
+      return format(new Date(dateString), 'dd.MM.yyyy', { locale: cs });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const handleSearch = () => {
+    setPage(1); // Reset to first page when searching
+  };
+
+  const clearFilters = () => {
+    setFromDate(undefined);
+    setToDate(undefined);
+    setInvoiceNumber('');
+    setCompanyName('');
+    setPage(1);
+  };
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <AlertCircle className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                {t('invoiceClassification.history.error', 'Error loading classification history')}
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col p-6 space-y-6">
+
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label htmlFor="fromDate" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('invoiceClassification.history.fromDate', 'From Date')}
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="date"
+                id="fromDate"
+                value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setFromDate(e.target.value ? new Date(e.target.value) : undefined)}
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="toDate" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('invoiceClassification.history.toDate', 'To Date')}
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="date"
+                id="toDate"
+                value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setToDate(e.target.value ? new Date(e.target.value) : undefined)}
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('invoiceClassification.history.invoiceNumber', 'Invoice Number')}
+            </label>
+            <input
+              type="text"
+              id="invoiceNumber"
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+              placeholder={t('invoiceClassification.history.invoiceNumberPlaceholder', 'Search by invoice number...')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('invoiceClassification.history.companyName', 'Company Name')}
+            </label>
+            <input
+              type="text"
+              id="companyName"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder={t('invoiceClassification.history.companyNamePlaceholder', 'Search by company name...')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleSearch}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            {t('common.search', 'Search')}
+          </button>
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            {t('common.clear', 'Clear')}
+          </button>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col">
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
+          </div>
+        ) : historyData?.items.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">{t('invoiceClassification.history.noResults', 'No classification records found')}</p>
+          </div>
+        ) : (
+          <>
+            {/* Table */}
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.invoice', 'Invoice')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.company', 'Company')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.description', 'Description')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.rule', 'Rule')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.prescription', 'Prescription')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.result', 'Result')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.timestamp', 'Classified At')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {historyData?.items.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{item.invoiceNumber}</div>
+                        <div className="text-sm text-gray-500">{formatInvoiceDate(item.invoiceDate)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{item.companyName}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">{item.description}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{item.ruleName || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{item.accountingPrescription || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getResultBadge(item.result)}
+                        {item.errorMessage && (
+                          <div className="text-xs text-red-600 mt-1" title={item.errorMessage}>
+                            {item.errorMessage.length > 50 ? `${item.errorMessage.substring(0, 50)}...` : item.errorMessage}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatDate(item.timestamp)}</div>
+                        <div className="text-sm text-gray-500">{item.processedBy}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {historyData && historyData.totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t('common.previous', 'Previous')}
+                  </button>
+                  <button
+                    onClick={() => setPage(Math.min(historyData.totalPages, page + 1))}
+                    disabled={page === historyData.totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t('common.next', 'Next')}
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      {t('common.pagination.showing', 'Showing')}{' '}
+                      <span className="font-medium">{((page - 1) * pageSize) + 1}</span>
+                      {' '}{t('common.pagination.to', 'to')}{' '}
+                      <span className="font-medium">
+                        {Math.min(page * pageSize, historyData.totalCount)}
+                      </span>
+                      {' '}{t('common.pagination.of', 'of')}{' '}
+                      <span className="font-medium">{historyData.totalCount}</span>
+                      {' '}{t('common.pagination.results', 'results')}
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => setPage(Math.max(1, page - 1))}
+                        disabled={page === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      
+                      {/* Page numbers */}
+                      {[...Array(Math.min(5, historyData.totalPages))].map((_, i) => {
+                        const pageNum = Math.max(1, Math.min(
+                          historyData.totalPages - 4,
+                          Math.max(1, page - 2)
+                        )) + i;
+                        
+                        if (pageNum > historyData.totalPages) return null;
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              page === pageNum
+                                ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => setPage(Math.min(historyData.totalPages, page + 1))}
+                        disabled={page === historyData.totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Next</span>
+                        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ClassificationHistoryPage;

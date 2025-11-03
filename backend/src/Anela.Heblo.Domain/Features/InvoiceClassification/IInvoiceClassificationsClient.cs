@@ -2,7 +2,7 @@ namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 
 public interface IInvoiceClassificationsClient
 {
-    Task<List<AccountingPrescriptionDto>> GetValidAccountingPrescriptionsAsync();
+    Task<List<AccountingTemplateDto>> GetValidAccountingTemplatesAsync();
     
     Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingPrescription);
     

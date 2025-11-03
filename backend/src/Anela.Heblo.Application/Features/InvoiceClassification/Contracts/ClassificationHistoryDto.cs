@@ -8,6 +8,14 @@ public class ClassificationHistoryDto
     
     public string InvoiceId { get; set; } = string.Empty;
     
+    public string InvoiceNumber { get; set; } = string.Empty;
+    
+    public DateTime? InvoiceDate { get; set; }
+    
+    public string CompanyName { get; set; } = string.Empty;
+    
+    public string Description { get; set; } = string.Empty;
+    
     public Guid? ClassificationRuleId { get; set; }
     
     public string? RuleName { get; set; }

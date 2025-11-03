@@ -22,6 +22,37 @@ export interface ClassificationRuleType {
   description: string;
 }
 
+export interface AccountingTemplate {
+  code: string;
+  name: string;
+  description: string;
+  accountCode: string;
+}
+
+export interface ClassificationHistoryItem {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate?: string;
+  companyName: string;
+  description: string;
+  classificationRuleId?: string;
+  ruleName?: string;
+  result: 'Success' | 'ManualReviewRequired' | 'Error';
+  accountingPrescription?: string;
+  errorMessage?: string;
+  timestamp: string;
+  processedBy: string;
+}
+
+export interface ClassificationHistoryResponse {
+  items: ClassificationHistoryItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface CreateClassificationRuleRequest {
   name: string;
   ruleTypeIdentifier: string;
@@ -50,8 +81,9 @@ export interface ClassifyInvoicesResponse {
 const CLASSIFICATION_QUERY_KEYS = {
   rules: ['invoice-classification', 'rules'] as const,
   ruleTypes: ['invoice-classification', 'rule-types'] as const,
-  statistics: ['invoice-classification', 'statistics'] as const,
+  accountingTemplates: ['invoice-classification', 'accounting-templates'] as const,
   history: ['invoice-classification', 'history'] as const,
+  statistics: ['invoice-classification', 'statistics'] as const,
 } as const;
 
 export function useClassificationRules(includeInactive = false) {
@@ -214,6 +246,29 @@ export function useClassificationRuleTypes() {
   });
 }
 
+export function useAccountingTemplates() {
+  return useQuery({
+    queryKey: CLASSIFICATION_QUERY_KEYS.accountingTemplates,
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      const url = '/api/invoiceclassification/accounting-templates';
+      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch accounting templates: ${response.statusText}`);
+      }
+      
+      return await response.json() as AccountingTemplate[];
+    },
+  });
+}
+
 export function useClassifyInvoices() {
   return useMutation({
     mutationFn: async (manualTrigger: boolean = true) => {
@@ -233,6 +288,55 @@ export function useClassifyInvoices() {
       }
       
       return await response.json() as ClassifyInvoicesResponse;
+    },
+  });
+}
+
+export function useClassificationHistory(
+  page: number = 1,
+  pageSize: number = 20,
+  fromDate?: Date,
+  toDate?: Date,
+  invoiceNumber?: string,
+  companyName?: string
+) {
+  return useQuery({
+    queryKey: [...CLASSIFICATION_QUERY_KEYS.history, page, pageSize, fromDate, toDate, invoiceNumber, companyName],
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+      
+      if (fromDate) {
+        params.append('fromDate', fromDate.toISOString());
+      }
+      if (toDate) {
+        params.append('toDate', toDate.toISOString());
+      }
+      if (invoiceNumber) {
+        params.append('invoiceNumber', invoiceNumber);
+      }
+      if (companyName) {
+        params.append('companyName', companyName);
+      }
+      
+      const url = `/api/invoiceclassification/history?${params.toString()}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch classification history: ${response.statusText}`);
+      }
+      
+      return await response.json() as ClassificationHistoryResponse;
     },
   });
 }

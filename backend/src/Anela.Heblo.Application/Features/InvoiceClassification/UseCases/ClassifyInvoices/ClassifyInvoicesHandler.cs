@@ -61,7 +61,7 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
                     response.Errors++;
                     var errorMessage = $"Invoice {invoice.InvoiceNumber}: {ex.Message}";
                     errorMessages.Add(errorMessage);
-                    _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.Id);
+                    _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.InvoiceNumber);
                 }
             }
 

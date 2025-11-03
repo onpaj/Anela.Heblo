@@ -6,6 +6,14 @@ public class ClassificationHistory
     
     public string AbraInvoiceId { get; private set; } = string.Empty;
     
+    public string InvoiceNumber { get; private set; } = string.Empty;
+    
+    public DateTime? InvoiceDate { get; private set; }
+    
+    public string CompanyName { get; private set; } = string.Empty;
+    
+    public string Description { get; private set; } = string.Empty;
+    
     public Guid? ClassificationRuleId { get; private set; }
     
     public ClassificationRule? ClassificationRule { get; private set; }
@@ -26,6 +34,10 @@ public class ClassificationHistory
 
     public ClassificationHistory(
         string abraInvoiceId,
+        string invoiceNumber,
+        DateTime? invoiceDate,
+        string companyName,
+        string description,
         ClassificationResult result,
         string processedBy,
         Guid? classificationRuleId = null,
@@ -34,11 +46,15 @@ public class ClassificationHistory
     {
         Id = Guid.NewGuid();
         AbraInvoiceId = abraInvoiceId ?? throw new ArgumentNullException(nameof(abraInvoiceId));
+        InvoiceNumber = invoiceNumber ?? throw new ArgumentNullException(nameof(invoiceNumber));
+        InvoiceDate = invoiceDate;
+        CompanyName = companyName ?? throw new ArgumentNullException(nameof(companyName));
+        Description = description ?? throw new ArgumentNullException(nameof(description));
         ClassificationRuleId = classificationRuleId;
         Result = result;
         AccountingPrescription = accountingPrescription;
         ErrorMessage = errorMessage;
         ProcessedBy = processedBy ?? throw new ArgumentNullException(nameof(processedBy));
-        Timestamp = DateTime.UtcNow;
+        Timestamp = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
     }
 }

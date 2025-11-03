@@ -8,6 +8,6 @@ public class VatClassificationRule : IClassificationRule
 
     public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
     {
-        return string.Equals(invoice.CompanyIco?.Trim(), pattern?.Trim(), StringComparison.OrdinalIgnoreCase);
+        return string.Equals(invoice.CompanyVat?.Trim(), pattern?.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 }

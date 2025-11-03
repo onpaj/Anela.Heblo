@@ -16,6 +16,22 @@ public class ClassificationHistoryConfiguration : IEntityTypeConfiguration<Class
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(x => x.InvoiceNumber)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(x => x.InvoiceDate)
+            .IsRequired(false)
+            .HasColumnType("date");
+
+        builder.Property(x => x.CompanyName)
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder.Property(x => x.Description)
+            .HasMaxLength(1000)
+            .IsRequired();
+
         builder.Property(x => x.ClassificationRuleId)
             .IsRequired(false);
 
@@ -46,6 +62,12 @@ public class ClassificationHistoryConfiguration : IEntityTypeConfiguration<Class
 
         builder.HasIndex(x => x.AbraInvoiceId)
             .HasDatabaseName("IX_ClassificationHistory_AbraInvoiceId");
+
+        builder.HasIndex(x => x.InvoiceNumber)
+            .HasDatabaseName("IX_ClassificationHistory_InvoiceNumber");
+
+        builder.HasIndex(x => x.CompanyName)
+            .HasDatabaseName("IX_ClassificationHistory_CompanyName");
 
         builder.HasIndex(x => x.Timestamp)
             .HasDatabaseName("IX_ClassificationHistory_Timestamp");

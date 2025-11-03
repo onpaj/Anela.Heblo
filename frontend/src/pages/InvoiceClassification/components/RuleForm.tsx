@@ -6,6 +6,7 @@ import {
   CreateClassificationRuleRequest,
   UpdateClassificationRuleRequest,
   useClassificationRuleTypes,
+  useAccountingTemplates,
 } from '../../../api/hooks/useInvoiceClassification';
 
 interface RuleFormProps {
@@ -18,6 +19,7 @@ interface RuleFormProps {
 const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading }) => {
   const { t } = useTranslation();
   const { data: ruleTypes = [], isLoading: ruleTypesLoading } = useClassificationRuleTypes();
+  const { data: accountingTemplates = [], isLoading: accountingTemplatesLoading } = useAccountingTemplates();
   const [formData, setFormData] = useState({
     name: '',
     ruleTypeIdentifier: '',
@@ -184,17 +186,36 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
           <label htmlFor="accountingPrescription" className="block text-sm font-medium text-gray-700 mb-1">
             {t('invoiceClassification.form.prescription', 'Accounting Prescription')} <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
+          <select
             id="accountingPrescription"
             value={formData.accountingPrescription}
             onChange={(e) => handleInputChange('accountingPrescription', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder={t('invoiceClassification.form.prescriptionPlaceholder', 'e.g., 501/001')}
             required
-          />
+            disabled={accountingTemplatesLoading}
+          >
+            <option value="">
+              {accountingTemplatesLoading 
+                ? t('common.loading', 'Loading...') 
+                : t('invoiceClassification.form.selectPrescription', 'Select accounting prescription...')
+              }
+            </option>
+            {accountingTemplates.map(template => (
+              <option key={template.code} value={template.code}>
+                {template.code} - {template.name}
+              </option>
+            ))}
+          </select>
           <p className="mt-1 text-sm text-gray-500">
-            {t('invoiceClassification.form.prescriptionHelp', 'Enter the accounting code that should be applied to matching invoices')}
+            {formData.accountingPrescription && !accountingTemplatesLoading && accountingTemplates.length > 0 && (
+              (() => {
+                const selectedTemplate = accountingTemplates.find(t => t.code === formData.accountingPrescription);
+                return selectedTemplate ? `${selectedTemplate.description} (${selectedTemplate.accountCode})` : '';
+              })()
+            )}
+            {!formData.accountingPrescription && !accountingTemplatesLoading && (
+              t('invoiceClassification.form.prescriptionHelp', 'Select the accounting code that should be applied to matching invoices')
+            )}
           </p>
         </div>
 

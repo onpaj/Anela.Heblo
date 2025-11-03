@@ -13,7 +13,7 @@ public class ItemDescriptionClassificationRule : IClassificationRule
         if (string.IsNullOrWhiteSpace(pattern))
             return false;
 
-        return invoice.Items.Any(item => EvaluateItemDescription(item.Description, pattern));
+        return invoice.Items.Any(item => EvaluateItemDescription(item.Name, pattern));
     }
 
     private bool EvaluateItemDescription(string itemDescription, string pattern)

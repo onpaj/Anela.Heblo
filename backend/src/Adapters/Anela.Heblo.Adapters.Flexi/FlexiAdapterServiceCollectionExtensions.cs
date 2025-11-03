@@ -28,6 +28,7 @@ using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
+using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
 using Rem.FlexiBeeSDK.Client.DI;
 
 namespace Anela.Heblo.Adapters.Flexi;
@@ -75,6 +76,9 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IBoMClient, BoMClient>();
 
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
+
+        // FlexiBee SDK clients
+        
 
         // Invoice Classification clients
         services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();

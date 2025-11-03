@@ -6,6 +6,8 @@ using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.UpdateClas
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.DeleteClassificationRule;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ReorderClassificationRules;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetAccountingTemplates;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationHistory;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
 
@@ -80,5 +82,36 @@ public class InvoiceClassificationController : ControllerBase
         }).ToList();
 
         return Ok(ruleTypes);
+    }
+
+    [HttpGet("accounting-templates")]
+    public async Task<ActionResult<GetAccountingTemplatesResponse>> GetAccountingTemplates()
+    {
+        var request = new GetAccountingTemplatesRequest();
+        var response = await _mediator.Send(request);
+        return Ok(response.Templates);
+    }
+
+    [HttpGet("history")]
+    public async Task<ActionResult<GetClassificationHistoryResponse>> GetClassificationHistory(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? invoiceNumber = null,
+        [FromQuery] string? companyName = null)
+    {
+        var request = new GetClassificationHistoryRequest
+        {
+            Page = page,
+            PageSize = pageSize,
+            FromDate = fromDate,
+            ToDate = toDate,
+            InvoiceNumber = invoiceNumber,
+            CompanyName = companyName
+        };
+
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 }
