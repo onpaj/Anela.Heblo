@@ -1,12 +1,12 @@
 using Anela.Heblo.Application.Common;
-using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
 using Rem.FlexiBeeSDK.Model.Invoices;
-using AutoMapper;
 
-namespace Anela.Heblo.Adapters.Flexi.InvoiceClassification;
+namespace Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 
 public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
 {

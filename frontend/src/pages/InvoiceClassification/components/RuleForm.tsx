@@ -32,11 +32,11 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
   useEffect(() => {
     if (rule) {
       setFormData({
-        name: rule.name,
-        ruleTypeIdentifier: rule.ruleTypeIdentifier,
-        pattern: rule.pattern,
-        accountingTemplateCode: rule.accountingTemplateCode,
-        isActive: rule.isActive,
+        name: rule.name || '',
+        ruleTypeIdentifier: rule.ruleTypeIdentifier || '',
+        pattern: rule.pattern || '',
+        accountingTemplateCode: rule.accountingTemplateCode || '',
+        isActive: rule.isActive || false,
       });
     } else if (ruleTypes.length > 0) {
       // Find COMPANY_NAME rule type if it exists, otherwise use first one

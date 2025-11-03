@@ -58,20 +58,23 @@ const ClassificationHistoryPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (date?: Date | string) => {
+    if (!date) return '-';
     try {
-      return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: cs });
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return format(dateObj, 'dd.MM.yyyy HH:mm', { locale: cs });
     } catch {
-      return dateString;
+      return typeof date === 'string' ? date : '-';
     }
   };
 
-  const formatInvoiceDate = (dateString?: string) => {
-    if (!dateString) return '-';
+  const formatInvoiceDate = (date?: Date | string) => {
+    if (!date) return '-';
     try {
-      return format(new Date(dateString), 'dd.MM.yyyy', { locale: cs });
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return format(dateObj, 'dd.MM.yyyy', { locale: cs });
     } catch {
-      return dateString;
+      return typeof date === 'string' ? date : '-';
     }
   };
 
@@ -237,7 +240,7 @@ const ClassificationHistoryPage: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
             <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
           </div>
-        ) : historyData?.items.length === 0 ? (
+        ) : historyData?.items?.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-gray-500">{t('invoiceClassification.history.noResults', 'No classification records found')}</p>
           </div>
@@ -275,7 +278,7 @@ const ClassificationHistoryPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {historyData?.items.map((item) => (
+                  {historyData?.items?.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{item.invoiceNumber}</div>
@@ -308,7 +311,7 @@ const ClassificationHistoryPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => handleClassifyInvoice(item.invoiceId)}
+                            onClick={() => item.invoiceId && handleClassifyInvoice(item.invoiceId)}
                             disabled={classifyingInvoiceId === item.invoiceId}
                             className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={t('invoiceClassification.history.actions.classify', 'Classify this invoice')}
@@ -321,8 +324,9 @@ const ClassificationHistoryPage: React.FC = () => {
                             {t('invoiceClassification.history.actions.classify', 'Klasifikovat')}
                           </button>
                           <button
-                            onClick={() => handleCreateRule(item.companyName)}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                            onClick={() => item.companyName ? handleCreateRule(item.companyName) : undefined}
+                            disabled={!item.companyName}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={t('invoiceClassification.history.actions.createRule', 'Create rule for this company')}
                           >
                             <Plus className="w-3 h-3 mr-1" />
@@ -337,7 +341,7 @@ const ClassificationHistoryPage: React.FC = () => {
             </div>
 
             {/* Pagination */}
-            {historyData && historyData.totalPages > 1 && (
+            {historyData && historyData.totalPages && historyData.totalPages > 1 && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
@@ -348,8 +352,8 @@ const ClassificationHistoryPage: React.FC = () => {
                     {t('common.previous', 'Previous')}
                   </button>
                   <button
-                    onClick={() => setPage(Math.min(historyData.totalPages, page + 1))}
-                    disabled={page === historyData.totalPages}
+                    onClick={() => setPage(Math.min(historyData.totalPages || 1, page + 1))}
+                    disabled={page === (historyData.totalPages || 1)}
                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('common.next', 'Next')}
@@ -359,8 +363,8 @@ const ClassificationHistoryPage: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     <p className="text-xs text-gray-600">
                       {((page - 1) * pageSize) + 1}-
-                      {Math.min(page * pageSize, historyData.totalCount)}{' '}
-                      z {historyData.totalCount}
+                      {Math.min(page * pageSize, historyData.totalCount || 0)}{' '}
+                      z {historyData.totalCount || 0}
                     </p>
                     <div className="flex items-center space-x-1">
                       <span className="text-xs text-gray-600">Zobrazit:</span>
@@ -388,13 +392,14 @@ const ClassificationHistoryPage: React.FC = () => {
                       </button>
                       
                       {/* Page numbers */}
-                      {[...Array(Math.min(5, historyData.totalPages))].map((_, i) => {
+                      {[...Array(Math.min(5, historyData.totalPages || 1))].map((_, i) => {
+                        const totalPages = historyData.totalPages || 1;
                         const pageNum = Math.max(1, Math.min(
-                          historyData.totalPages - 4,
+                          totalPages - 4,
                           Math.max(1, page - 2)
                         )) + i;
                         
-                        if (pageNum > historyData.totalPages) return null;
+                        if (pageNum > totalPages) return null;
                         
                         return (
                           <button
@@ -412,8 +417,8 @@ const ClassificationHistoryPage: React.FC = () => {
                       })}
                       
                       <button
-                        onClick={() => setPage(Math.min(historyData.totalPages, page + 1))}
-                        disabled={page === historyData.totalPages}
+                        onClick={() => setPage(Math.min(historyData.totalPages || 1, page + 1))}
+                        disabled={page === (historyData.totalPages || 1)}
                         className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="sr-only">Next</span>

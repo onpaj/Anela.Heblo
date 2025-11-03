@@ -4,5 +4,6 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.Classi
 
 public class ClassifyInvoicesRequest : IRequest<ClassifyInvoicesResponse>
 {
+    public List<string>? InvoiceIds { get; set; }
     public bool ManualTrigger { get; set; } = false;
 }

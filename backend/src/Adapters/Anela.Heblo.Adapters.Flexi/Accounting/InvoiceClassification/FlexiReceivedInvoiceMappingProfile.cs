@@ -1,9 +1,8 @@
-using AutoMapper;
 using Anela.Heblo.Adapters.Flexi.Common;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Rem.FlexiBeeSDK.Model.Invoices;
 
-namespace Anela.Heblo.Adapters.Flexi.InvoiceClassification;
+namespace Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 
 public class FlexiReceivedInvoiceMappingProfile : BaseFlexiProfile
 {

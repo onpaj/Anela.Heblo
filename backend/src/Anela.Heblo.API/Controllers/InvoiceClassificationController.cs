@@ -8,7 +8,6 @@ using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ReorderCla
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetAccountingTemplates;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationHistory;
-using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifySingleInvoice;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetInvoiceDetails;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
@@ -118,9 +117,13 @@ public class InvoiceClassificationController : ControllerBase
     }
 
     [HttpPost("classify/{invoiceId}")]
-    public async Task<ActionResult<ClassifySingleInvoiceResponse>> ClassifySingleInvoice(string invoiceId)
+    public async Task<ActionResult<ClassifyInvoicesResponse>> ClassifySingleInvoice(string invoiceId)
     {
-        var request = new ClassifySingleInvoiceRequest { InvoiceId = invoiceId };
+        var request = new ClassifyInvoicesRequest 
+        { 
+            InvoiceIds = new List<string> { invoiceId },
+            ManualTrigger = true
+        };
         var response = await _mediator.Send(request);
         return Ok(response);
     }

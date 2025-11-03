@@ -1,5 +1,5 @@
-﻿using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
-using Anela.Heblo.Adapters.Flexi.InvoiceClassification;
+﻿using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
+using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Materials;
@@ -22,13 +22,6 @@ using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Rem.FlexiBeeSDK.Client.Clients.Contacts;
-using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
-using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
-using Rem.FlexiBeeSDK.Client.Clients.Products.StockTaking;
-using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
-using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
 using Rem.FlexiBeeSDK.Client.DI;
 
 namespace Anela.Heblo.Adapters.Flexi;
@@ -65,20 +58,13 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();
 
-        services.AddSingleton<ILotsClient, LotsClient>();
+        
         services.AddSingleton<Anela.Heblo.Domain.Features.Catalog.Lots.ILotsClient, FlexiLotsClient>();
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
-        services.AddSingleton<IStockTakingClient, StockTakingClient>();
-        services.AddSingleton<IStockTakingItemsClient, StockTakingItemsClient>();
-        services.AddSingleton<ILedgerService, LedgerService>();
-        services.AddScoped<IIssuedOrdersClient, IssuedOrdersClient>();
-        services.AddScoped<IManufactureClient, FlexiManufactureClient>();
-        services.AddScoped<IBoMClient, BoMClient>();
-
-        services.AddScoped<IProductWeightClient, FlexiProductClient>();
-
-        // FlexiBee SDK clients
         
+        services.AddSingleton<ILedgerService, LedgerService>();
+        services.AddScoped<IManufactureClient, FlexiManufactureClient>();
+        services.AddScoped<IProductWeightClient, FlexiProductClient>();
 
         // Invoice Classification clients
         services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();

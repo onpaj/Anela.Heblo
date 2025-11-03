@@ -60,9 +60,8 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
         if (!string.IsNullOrEmpty(invoiceNumber))
             query = query.Where(h => h.AbraInvoiceId.Contains(invoiceNumber));
 
-        // Note: CompanyName filtering would require joining with invoice data from ABRA
-        // Since we're enriching this data in the handler, we'll handle company name filtering there
-        // For now, we'll skip company name filtering in the database query
+        if (!string.IsNullOrEmpty(companyName))
+            query = query.Where(h => h.CompanyName.Contains(companyName));
 
         var totalCount = await query.CountAsync();
 

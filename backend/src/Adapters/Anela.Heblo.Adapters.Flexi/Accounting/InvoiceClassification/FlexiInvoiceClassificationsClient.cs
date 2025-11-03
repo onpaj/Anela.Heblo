@@ -1,8 +1,8 @@
-using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting;
 
-namespace Anela.Heblo.Adapters.Flexi.InvoiceClassification;
+namespace Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 
 public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
 {
@@ -29,6 +29,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
                 Description = s.Description,
                 Name = s.Name,
             })
+            .OrderBy(o => o.Code)
             .ToList();
     }
 
