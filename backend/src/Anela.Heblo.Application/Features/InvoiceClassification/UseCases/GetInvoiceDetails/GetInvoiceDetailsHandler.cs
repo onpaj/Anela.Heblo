@@ -24,7 +24,7 @@ public class GetInvoiceDetailsHandler : IRequestHandler<GetInvoiceDetailsRequest
             _logger.LogInformation("Getting details for invoice {InvoiceId}", request.InvoiceId);
 
             var invoice = await _invoicesClient.GetInvoiceByIdAsync(request.InvoiceId);
-            
+
             return new GetInvoiceDetailsResponse
             {
                 Invoice = invoice,

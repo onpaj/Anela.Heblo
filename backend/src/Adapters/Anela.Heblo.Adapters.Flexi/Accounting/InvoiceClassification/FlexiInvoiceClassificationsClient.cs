@@ -10,7 +10,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
     private readonly ILogger<FlexiInvoiceClassificationsClient> _logger;
 
     public FlexiInvoiceClassificationsClient(
-        IAccountingTemplateClient  accountingTemplateClient,
+        IAccountingTemplateClient accountingTemplateClient,
         ILogger<FlexiInvoiceClassificationsClient> logger)
     {
         _accountingTemplateClient = accountingTemplateClient;
@@ -22,7 +22,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
         var templates = await _accountingTemplateClient.GetAsync();
         return templates
             .Where(w => !w.Code.StartsWith("N-") && w.AccountCode.StartsWith("5"))
-            .Select(s =>  new AccountingTemplateDto
+            .Select(s => new AccountingTemplateDto
             {
                 AccountCode = s.AccountCode,
                 Code = s.Code,
@@ -41,12 +41,12 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
 
     public async Task<bool> MarkInvoiceForManualReviewAsync(string invoiceId, string reason)
     {
-        _logger.LogInformation("Marking invoice {InvoiceId} for manual review with reason: {Reason} - IMPLEMENTATION PLACEHOLDER", 
+        _logger.LogInformation("Marking invoice {InvoiceId} for manual review with reason: {Reason} - IMPLEMENTATION PLACEHOLDER",
             invoiceId, reason);
-        
+
         // TODO: Implement actual ABRA Flexi API integration
         await Task.Delay(150); // Simulate API call
-        
+
         // For now, always return success
         _logger.LogInformation("Successfully marked invoice {InvoiceId} for manual review", invoiceId);
         return true;

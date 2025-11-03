@@ -17,7 +17,7 @@ public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
     private readonly IMapper _mapper;
 
     public FlexiReceivedInvoicesClient(
-        IReceivedInvoiceClient  client,
+        IReceivedInvoiceClient client,
         IOptions<DataSourceOptions> dataSourceOptions,
         TimeProvider timeProvider,
         ILogger<FlexiReceivedInvoicesClient> logger,
@@ -43,6 +43,6 @@ public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
     public async Task<ReceivedInvoiceDto?> GetInvoiceByIdAsync(string invoiceId)
     {
         var found = await _client.GetAsync(invoiceId);
-        return _mapper.Map<ReceivedInvoiceDto>(found);;
+        return _mapper.Map<ReceivedInvoiceDto>(found); ;
     }
 }

@@ -67,7 +67,7 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
                 try
                 {
                     var result = await _classificationService.ClassifyInvoiceAsync(invoice);
-                    
+
                     switch (result.Result)
                     {
                         case ClassificationResult.Success:
@@ -105,7 +105,7 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
             }
 
             response.ErrorMessages = errorMessages;
-            
+
             _logger.LogInformation("Classification completed. Success: {Success}, Manual Review: {ManualReview}, Errors: {Errors}",
                 response.SuccessfulClassifications, response.ManualReviewRequired, response.Errors);
         }

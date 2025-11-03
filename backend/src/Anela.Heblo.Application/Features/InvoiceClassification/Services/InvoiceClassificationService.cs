@@ -32,20 +32,20 @@ public class InvoiceClassificationService : IInvoiceClassificationService
     public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoiceDto invoice)
     {
         var currentUser = _currentUserService.GetCurrentUser();
-        
+
         try
         {
             var rules = await _ruleRepository.GetActiveRulesOrderedAsync();
-            
+
             var matchedRule = _ruleEngine.FindMatchingRule(invoice, rules);
-            
+
             if (matchedRule == null)
             {
-                await RecordClassificationHistory(invoice, null, ClassificationResult.ManualReviewRequired, 
+                await RecordClassificationHistory(invoice, null, ClassificationResult.ManualReviewRequired,
                     null, "No matching rule found", currentUser.Name);
-                
+
                 await _classificationsClient.MarkInvoiceForManualReviewAsync(invoice.InvoiceNumber, "No matching classification rule");
-                
+
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.ManualReviewRequired
@@ -88,7 +88,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
                 null, errorMessage, currentUser.Name);
 
             _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.InvoiceNumber);
-            
+
             return new InvoiceClassificationResult
             {
                 Result = ClassificationResult.Error,
@@ -97,7 +97,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         }
     }
 
-    private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId, 
+    private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId,
         ClassificationResult result, string? accountingTemplateCode, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(

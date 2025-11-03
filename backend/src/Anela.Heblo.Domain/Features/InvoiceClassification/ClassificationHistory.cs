@@ -3,29 +3,29 @@ namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 public class ClassificationHistory
 {
     public Guid Id { get; private set; }
-    
+
     public string AbraInvoiceId { get; private set; } = string.Empty;
-    
+
     public string InvoiceNumber { get; private set; } = string.Empty;
-    
+
     public DateTime? InvoiceDate { get; private set; }
-    
+
     public string CompanyName { get; private set; } = string.Empty;
-    
+
     public string Description { get; private set; } = string.Empty;
-    
+
     public Guid? ClassificationRuleId { get; private set; }
-    
+
     public ClassificationRule? ClassificationRule { get; private set; }
-    
+
     public ClassificationResult Result { get; private set; }
-    
+
     public string? AccountingTemplateCode { get; private set; }
-    
+
     public string? ErrorMessage { get; private set; }
-    
+
     public DateTime Timestamp { get; private set; }
-    
+
     public string ProcessedBy { get; private set; } = string.Empty;
 
     protected ClassificationHistory()

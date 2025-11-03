@@ -11,14 +11,14 @@ public static class InvoiceClassificationModule
     {
         services.AddScoped<IInvoiceClassificationService, InvoiceClassificationService>();
         services.AddScoped<IRuleEvaluationEngine, RuleEvaluationEngine>();
-        
+
         // Register all classification rule implementations
         services.AddScoped<IClassificationRule, VatClassificationRule>();
         services.AddScoped<IClassificationRule, CompanyNameClassificationRule>();
         services.AddScoped<IClassificationRule, DescriptionClassificationRule>();
         services.AddScoped<IClassificationRule, ItemDescriptionClassificationRule>();
         services.AddScoped<IClassificationRule, AmountClassificationRule>();
-        
+
         return services;
     }
 }

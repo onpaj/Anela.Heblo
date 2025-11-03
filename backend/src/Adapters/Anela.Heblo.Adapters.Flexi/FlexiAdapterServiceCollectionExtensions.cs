@@ -59,10 +59,10 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();
 
-        
+
         services.AddSingleton<Anela.Heblo.Domain.Features.Catalog.Lots.ILotsClient, FlexiLotsClient>();
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
-        
+
         services.AddSingleton<ILedgerService, LedgerService>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();

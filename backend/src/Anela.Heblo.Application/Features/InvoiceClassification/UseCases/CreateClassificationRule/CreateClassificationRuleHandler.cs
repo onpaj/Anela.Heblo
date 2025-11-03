@@ -25,7 +25,7 @@ public class CreateClassificationRuleHandler : IRequestHandler<CreateClassificat
     {
         var currentUser = _currentUserService.GetCurrentUser();
         var now = DateTime.UtcNow;
-        
+
         var allRules = await _ruleRepository.GetAllAsync();
         var maxOrder = allRules.Count > 0 ? allRules.Max(r => r.Order) : 0;
 
@@ -36,7 +36,7 @@ public class CreateClassificationRuleHandler : IRequestHandler<CreateClassificat
             request.AccountingTemplateCode,
             currentUser.Name
         );
-        
+
         rule.SetOrder(maxOrder + 1);
 
         var createdRule = await _ruleRepository.AddAsync(rule);

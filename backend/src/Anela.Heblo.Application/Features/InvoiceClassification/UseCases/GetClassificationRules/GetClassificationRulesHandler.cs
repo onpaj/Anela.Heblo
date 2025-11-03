@@ -17,8 +17,8 @@ public class GetClassificationRulesHandler : IRequestHandler<GetClassificationRu
 
     public async Task<GetClassificationRulesResponse> Handle(GetClassificationRulesRequest request, CancellationToken cancellationToken)
     {
-        var rules = request.IncludeInactive 
-            ? await _ruleRepository.GetAllAsync() 
+        var rules = request.IncludeInactive
+            ? await _ruleRepository.GetAllAsync()
             : await _ruleRepository.GetActiveRulesOrderedAsync();
 
         return new GetClassificationRulesResponse

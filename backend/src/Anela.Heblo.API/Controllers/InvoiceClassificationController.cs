@@ -119,8 +119,8 @@ public class InvoiceClassificationController : ControllerBase
     [HttpPost("classify/{invoiceId}")]
     public async Task<ActionResult<ClassifyInvoicesResponse>> ClassifySingleInvoice(string invoiceId)
     {
-        var request = new ClassifyInvoicesRequest 
-        { 
+        var request = new ClassifyInvoicesRequest
+        {
             InvoiceIds = new List<string> { invoiceId },
             ManualTrigger = true
         };
@@ -133,12 +133,12 @@ public class InvoiceClassificationController : ControllerBase
     {
         var request = new GetInvoiceDetailsRequest { InvoiceId = invoiceId };
         var response = await _mediator.Send(request);
-        
+
         if (!response.Found)
         {
             return NotFound($"Invoice {invoiceId} not found");
         }
-        
+
         return Ok(response);
     }
 }

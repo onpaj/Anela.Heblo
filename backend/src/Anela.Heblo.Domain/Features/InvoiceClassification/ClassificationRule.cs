@@ -3,25 +3,25 @@ namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 public class ClassificationRule
 {
     public Guid Id { get; private set; }
-    
+
     public string Name { get; private set; } = string.Empty;
-    
+
     public string RuleTypeIdentifier { get; private set; } = string.Empty;
-    
+
     public string Pattern { get; private set; } = string.Empty;
-    
+
     public string AccountingTemplateCode { get; private set; } = string.Empty;
-    
+
     public int Order { get; private set; }
-    
+
     public bool IsActive { get; private set; } = true;
-    
+
     public DateTime CreatedAt { get; private set; }
-    
+
     public DateTime UpdatedAt { get; private set; }
-    
+
     public string CreatedBy { get; private set; } = string.Empty;
-    
+
     public string UpdatedBy { get; private set; } = string.Empty;
 
     protected ClassificationRule()

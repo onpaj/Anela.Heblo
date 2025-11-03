@@ -9,6 +9,6 @@ public class GetAccountingTemplatesResponse : BaseResponse
 
     public GetAccountingTemplatesResponse() : base() { }
 
-    public GetAccountingTemplatesResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public GetAccountingTemplatesResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }

@@ -280,7 +280,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         {
             if (order.Products.All(p => p.ProductCode == order.SemiProduct.ProductCode)) // Singlephase manufacture
             {
-                manufactureName = $"{order.SemiProduct.ProductCode}";    
+                manufactureName = $"{order.SemiProduct.ProductCode}";
             }
             else
             {
@@ -289,7 +289,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
         else
             manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)}M {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
-        
+
         return manufactureName.Length > 40 ? manufactureName.Substring(0, 40) : manufactureName;
     }
 

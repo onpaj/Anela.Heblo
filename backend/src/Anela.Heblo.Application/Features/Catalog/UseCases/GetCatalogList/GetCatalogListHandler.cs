@@ -53,7 +53,7 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
 
         // Get all filtered items (repository doesn't support paging directly)
         var allItems = await _catalogRepository.FindAsync(filter, cancellationToken);
-        
+
         // Apply sorting
         var query = allItems.AsQueryable();
         query = request.SortBy?.ToLower() switch

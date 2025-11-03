@@ -6,11 +6,11 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetInv
 public class GetInvoiceDetailsResponse : BaseResponse
 {
     public ReceivedInvoiceDto? Invoice { get; set; }
-    
+
     public bool Found { get; set; }
 
     public GetInvoiceDetailsResponse() : base() { }
 
-    public GetInvoiceDetailsResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public GetInvoiceDetailsResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
 }
