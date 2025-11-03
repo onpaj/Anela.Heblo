@@ -20,7 +20,7 @@ public class ClassificationHistory
     
     public ClassificationResult Result { get; private set; }
     
-    public string? AccountingPrescription { get; private set; }
+    public string? AccountingTemplateCode { get; private set; }
     
     public string? ErrorMessage { get; private set; }
     
@@ -41,7 +41,7 @@ public class ClassificationHistory
         ClassificationResult result,
         string processedBy,
         Guid? classificationRuleId = null,
-        string? accountingPrescription = null,
+        string? accountingTemplateCode = null,
         string? errorMessage = null)
     {
         Id = Guid.NewGuid();
@@ -52,7 +52,7 @@ public class ClassificationHistory
         Description = description ?? throw new ArgumentNullException(nameof(description));
         ClassificationRuleId = classificationRuleId;
         Result = result;
-        AccountingPrescription = accountingPrescription;
+        AccountingTemplateCode = accountingTemplateCode;
         ErrorMessage = errorMessage;
         ProcessedBy = processedBy ?? throw new ArgumentNullException(nameof(processedBy));
         Timestamp = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);

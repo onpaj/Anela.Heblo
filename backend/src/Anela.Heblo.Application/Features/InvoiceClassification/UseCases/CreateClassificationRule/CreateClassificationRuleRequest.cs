@@ -10,7 +10,7 @@ public class CreateClassificationRuleRequest : IRequest<CreateClassificationRule
     
     public string Pattern { get; set; } = string.Empty;
     
-    public string AccountingPrescription { get; set; } = string.Empty;
+    public string AccountingTemplateCode { get; set; } = string.Empty;
     
     public bool IsActive { get; set; } = true;
 }

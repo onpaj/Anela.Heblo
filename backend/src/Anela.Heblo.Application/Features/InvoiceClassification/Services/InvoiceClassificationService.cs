@@ -53,25 +53,25 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             }
 
             var success = await _classificationsClient.UpdateInvoiceClassificationAsync(
-                invoice.InvoiceNumber, matchedRule.AccountingPrescription);
+                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode);
 
             if (success)
             {
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Success,
-                    matchedRule.AccountingPrescription, null, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, null, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.Success,
                     RuleId = matchedRule.Id,
-                    AccountingPrescription = matchedRule.AccountingPrescription
+                    AccountingTemplateCode = matchedRule.AccountingTemplateCode
                 };
             }
             else
             {
                 var errorMessage = "Failed to update invoice classification in ABRA";
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Error,
-                    matchedRule.AccountingPrescription, errorMessage, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, errorMessage, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
@@ -98,7 +98,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
     }
 
     private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId, 
-        ClassificationResult result, string? accountingPrescription, string? errorMessage, string processedBy)
+        ClassificationResult result, string? accountingTemplateCode, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(
             invoice.InvoiceNumber, // AbraInvoiceId
@@ -109,7 +109,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             result,
             processedBy,
             ruleId,
-            accountingPrescription,
+            accountingTemplateCode,
             errorMessage
         );
 

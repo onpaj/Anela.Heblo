@@ -32,9 +32,9 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
             .ToList();
     }
 
-    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingPrescription)
+    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode)
     {
-        var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingPrescription, null);
+        var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingTemplateCode, null);
         return result.IsSuccess;
     }
 

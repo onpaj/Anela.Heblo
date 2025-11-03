@@ -22,7 +22,7 @@ public class ClassificationHistoryDto
     
     public ClassificationResult Result { get; set; }
     
-    public string? AccountingPrescription { get; set; }
+    public string? AccountingTemplateCode { get; set; }
     
     public string? ErrorMessage { get; set; }
     

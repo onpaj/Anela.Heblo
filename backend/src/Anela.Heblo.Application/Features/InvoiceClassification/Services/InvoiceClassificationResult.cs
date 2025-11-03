@@ -8,7 +8,7 @@ public class InvoiceClassificationResult
     
     public Guid? RuleId { get; set; }
     
-    public string? AccountingPrescription { get; set; }
+    public string? AccountingTemplateCode { get; set; }
     
     public string? ErrorMessage { get; set; }
 }

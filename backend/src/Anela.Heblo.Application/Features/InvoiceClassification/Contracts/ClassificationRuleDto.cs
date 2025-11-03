@@ -10,7 +10,7 @@ public class ClassificationRuleDto
     
     public string Pattern { get; set; } = string.Empty;
     
-    public string AccountingPrescription { get; set; } = string.Empty;
+    public string AccountingTemplateCode { get; set; } = string.Empty;
     
     public int Order { get; set; }
     

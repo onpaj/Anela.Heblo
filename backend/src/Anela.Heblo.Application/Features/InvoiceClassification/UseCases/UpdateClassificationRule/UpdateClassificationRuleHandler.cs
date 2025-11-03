@@ -35,7 +35,7 @@ public class UpdateClassificationRuleHandler : IRequestHandler<UpdateClassificat
             request.Name,
             request.RuleTypeIdentifier,
             request.Pattern,
-            request.AccountingPrescription,
+            request.AccountingTemplateCode,
             request.IsActive,
             currentUser.Name
         );

@@ -39,7 +39,7 @@ public class GetClassificationHistoryHandler : IRequestHandler<GetClassification
             ClassificationRuleId = history.ClassificationRuleId,
             RuleName = history.ClassificationRule?.Name,
             Result = history.Result,
-            AccountingPrescription = history.AccountingPrescription,
+            AccountingTemplateCode = history.AccountingTemplateCode,
             ErrorMessage = history.ErrorMessage,
             Timestamp = history.Timestamp,
             ProcessedBy = history.ProcessedBy

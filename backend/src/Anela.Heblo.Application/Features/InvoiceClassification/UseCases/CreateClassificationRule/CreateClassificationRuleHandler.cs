@@ -33,7 +33,7 @@ public class CreateClassificationRuleHandler : IRequestHandler<CreateClassificat
             request.Name,
             request.RuleTypeIdentifier,
             request.Pattern,
-            request.AccountingPrescription,
+            request.AccountingTemplateCode,
             currentUser.Name
         );
         
