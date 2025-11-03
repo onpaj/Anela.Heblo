@@ -1831,6 +1831,435 @@ export class ApiClient {
         return Promise.resolve<GetFinancialOverviewResponse>(null as any);
     }
 
+    invoiceClassification_GetRules(includeInactive: boolean | undefined): Promise<GetClassificationRulesResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rules?";
+        if (includeInactive === null)
+            throw new Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_GetRules(_response);
+        });
+    }
+
+    protected processInvoiceClassification_GetRules(response: Response): Promise<GetClassificationRulesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetClassificationRulesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetClassificationRulesResponse>(null as any);
+    }
+
+    invoiceClassification_CreateRule(request: CreateClassificationRuleRequest): Promise<CreateClassificationRuleResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_CreateRule(_response);
+        });
+    }
+
+    protected processInvoiceClassification_CreateRule(response: Response): Promise<CreateClassificationRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateClassificationRuleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateClassificationRuleResponse>(null as any);
+    }
+
+    invoiceClassification_ReorderRules(request: ReorderClassificationRulesRequest): Promise<ReorderClassificationRulesResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rules/reorder";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_ReorderRules(_response);
+        });
+    }
+
+    protected processInvoiceClassification_ReorderRules(response: Response): Promise<ReorderClassificationRulesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReorderClassificationRulesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReorderClassificationRulesResponse>(null as any);
+    }
+
+    invoiceClassification_UpdateRule(id: string, request: UpdateClassificationRuleRequest): Promise<UpdateClassificationRuleResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rules/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_UpdateRule(_response);
+        });
+    }
+
+    protected processInvoiceClassification_UpdateRule(response: Response): Promise<UpdateClassificationRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateClassificationRuleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateClassificationRuleResponse>(null as any);
+    }
+
+    invoiceClassification_DeleteRule(id: string): Promise<DeleteClassificationRuleResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rules/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_DeleteRule(_response);
+        });
+    }
+
+    protected processInvoiceClassification_DeleteRule(response: Response): Promise<DeleteClassificationRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteClassificationRuleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteClassificationRuleResponse>(null as any);
+    }
+
+    invoiceClassification_ClassifyInvoices(request: ClassifyInvoicesRequest): Promise<ClassifyInvoicesResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/classify";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_ClassifyInvoices(_response);
+        });
+    }
+
+    protected processInvoiceClassification_ClassifyInvoices(response: Response): Promise<ClassifyInvoicesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ClassifyInvoicesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClassifyInvoicesResponse>(null as any);
+    }
+
+    invoiceClassification_GetAvailableRuleTypes(): Promise<ClassificationRuleTypeDto[]> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/rule-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_GetAvailableRuleTypes(_response);
+        });
+    }
+
+    protected processInvoiceClassification_GetAvailableRuleTypes(response: Response): Promise<ClassificationRuleTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ClassificationRuleTypeDto.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClassificationRuleTypeDto[]>(null as any);
+    }
+
+    invoiceClassification_GetAccountingTemplates(): Promise<GetAccountingTemplatesResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/accounting-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_GetAccountingTemplates(_response);
+        });
+    }
+
+    protected processInvoiceClassification_GetAccountingTemplates(response: Response): Promise<GetAccountingTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAccountingTemplatesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAccountingTemplatesResponse>(null as any);
+    }
+
+    invoiceClassification_GetClassificationHistory(page: number | undefined, pageSize: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, invoiceNumber: string | null | undefined, companyName: string | null | undefined): Promise<GetClassificationHistoryResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/history?";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (invoiceNumber !== undefined && invoiceNumber !== null)
+            url_ += "invoiceNumber=" + encodeURIComponent("" + invoiceNumber) + "&";
+        if (companyName !== undefined && companyName !== null)
+            url_ += "companyName=" + encodeURIComponent("" + companyName) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_GetClassificationHistory(_response);
+        });
+    }
+
+    protected processInvoiceClassification_GetClassificationHistory(response: Response): Promise<GetClassificationHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetClassificationHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetClassificationHistoryResponse>(null as any);
+    }
+
+    invoiceClassification_ClassifySingleInvoice(invoiceId: string): Promise<ClassifySingleInvoiceResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/classify/{invoiceId}";
+        if (invoiceId === undefined || invoiceId === null)
+            throw new Error("The parameter 'invoiceId' must be defined.");
+        url_ = url_.replace("{invoiceId}", encodeURIComponent("" + invoiceId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_ClassifySingleInvoice(_response);
+        });
+    }
+
+    protected processInvoiceClassification_ClassifySingleInvoice(response: Response): Promise<ClassifySingleInvoiceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ClassifySingleInvoiceResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClassifySingleInvoiceResponse>(null as any);
+    }
+
+    invoiceClassification_GetInvoiceDetails(invoiceId: string): Promise<GetInvoiceDetailsResponse> {
+        let url_ = this.baseUrl + "/api/InvoiceClassification/invoice/{invoiceId}";
+        if (invoiceId === undefined || invoiceId === null)
+            throw new Error("The parameter 'invoiceId' must be defined.");
+        url_ = url_.replace("{invoiceId}", encodeURIComponent("" + invoiceId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoiceClassification_GetInvoiceDetails(_response);
+        });
+    }
+
+    protected processInvoiceClassification_GetInvoiceDetails(response: Response): Promise<GetInvoiceDetailsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetInvoiceDetailsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetInvoiceDetailsResponse>(null as any);
+    }
+
     journal_GetJournalEntries(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<GetJournalEntriesResponse> {
         let url_ = this.baseUrl + "/api/Journal?";
         if (pageNumber === null)
@@ -8234,6 +8663,1002 @@ export interface IStockSummaryDto {
     averageMonthlyStockChange?: number;
     totalBalanceWithStock?: number;
     averageMonthlyTotalBalance?: number;
+}
+
+export class GetClassificationRulesResponse extends BaseResponse implements IGetClassificationRulesResponse {
+    rules?: ClassificationRuleDto[];
+
+    constructor(data?: IGetClassificationRulesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rules"])) {
+                this.rules = [] as any;
+                for (let item of _data["rules"])
+                    this.rules!.push(ClassificationRuleDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetClassificationRulesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetClassificationRulesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rules)) {
+            data["rules"] = [];
+            for (let item of this.rules)
+                data["rules"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetClassificationRulesResponse extends IBaseResponse {
+    rules?: ClassificationRuleDto[];
+}
+
+export class ClassificationRuleDto implements IClassificationRuleDto {
+    id?: string;
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    order?: number;
+    isActive?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+    createdBy?: string;
+    updatedBy?: string;
+
+    constructor(data?: IClassificationRuleDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
+            this.pattern = _data["pattern"];
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.order = _data["order"];
+            this.isActive = _data["isActive"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): ClassificationRuleDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassificationRuleDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
+        data["pattern"] = this.pattern;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["order"] = this.order;
+        data["isActive"] = this.isActive;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IClassificationRuleDto {
+    id?: string;
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    order?: number;
+    isActive?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+    createdBy?: string;
+    updatedBy?: string;
+}
+
+export class CreateClassificationRuleResponse extends BaseResponse implements ICreateClassificationRuleResponse {
+    rule?: ClassificationRuleDto;
+
+    constructor(data?: ICreateClassificationRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.rule = _data["rule"] ? ClassificationRuleDto.fromJS(_data["rule"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateClassificationRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateClassificationRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rule"] = this.rule ? this.rule.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateClassificationRuleResponse extends IBaseResponse {
+    rule?: ClassificationRuleDto;
+}
+
+export class CreateClassificationRuleRequest implements ICreateClassificationRuleRequest {
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    isActive?: boolean;
+
+    constructor(data?: ICreateClassificationRuleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
+            this.pattern = _data["pattern"];
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.isActive = _data["isActive"];
+        }
+    }
+
+    static fromJS(data: any): CreateClassificationRuleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateClassificationRuleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
+        data["pattern"] = this.pattern;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["isActive"] = this.isActive;
+        return data;
+    }
+}
+
+export interface ICreateClassificationRuleRequest {
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    isActive?: boolean;
+}
+
+export class ReorderClassificationRulesResponse extends BaseResponse implements IReorderClassificationRulesResponse {
+
+    constructor(data?: IReorderClassificationRulesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ReorderClassificationRulesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReorderClassificationRulesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReorderClassificationRulesResponse extends IBaseResponse {
+}
+
+export class ReorderClassificationRulesRequest implements IReorderClassificationRulesRequest {
+    ruleIds?: string[];
+
+    constructor(data?: IReorderClassificationRulesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["ruleIds"])) {
+                this.ruleIds = [] as any;
+                for (let item of _data["ruleIds"])
+                    this.ruleIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ReorderClassificationRulesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReorderClassificationRulesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.ruleIds)) {
+            data["ruleIds"] = [];
+            for (let item of this.ruleIds)
+                data["ruleIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IReorderClassificationRulesRequest {
+    ruleIds?: string[];
+}
+
+export class UpdateClassificationRuleResponse extends BaseResponse implements IUpdateClassificationRuleResponse {
+    rule?: ClassificationRuleDto;
+
+    constructor(data?: IUpdateClassificationRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.rule = _data["rule"] ? ClassificationRuleDto.fromJS(_data["rule"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdateClassificationRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateClassificationRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rule"] = this.rule ? this.rule.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateClassificationRuleResponse extends IBaseResponse {
+    rule?: ClassificationRuleDto;
+}
+
+export class UpdateClassificationRuleRequest implements IUpdateClassificationRuleRequest {
+    id?: string;
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    isActive?: boolean;
+
+    constructor(data?: IUpdateClassificationRuleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
+            this.pattern = _data["pattern"];
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.isActive = _data["isActive"];
+        }
+    }
+
+    static fromJS(data: any): UpdateClassificationRuleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateClassificationRuleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
+        data["pattern"] = this.pattern;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["isActive"] = this.isActive;
+        return data;
+    }
+}
+
+export interface IUpdateClassificationRuleRequest {
+    id?: string;
+    name?: string;
+    ruleTypeIdentifier?: string;
+    pattern?: string;
+    accountingTemplateCode?: string;
+    isActive?: boolean;
+}
+
+export class DeleteClassificationRuleResponse extends BaseResponse implements IDeleteClassificationRuleResponse {
+
+    constructor(data?: IDeleteClassificationRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteClassificationRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteClassificationRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteClassificationRuleResponse extends IBaseResponse {
+}
+
+export class ClassifyInvoicesResponse extends BaseResponse implements IClassifyInvoicesResponse {
+    totalInvoicesProcessed?: number;
+    successfulClassifications?: number;
+    manualReviewRequired?: number;
+    errors?: number;
+    errorMessages?: string[];
+
+    constructor(data?: IClassifyInvoicesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.totalInvoicesProcessed = _data["totalInvoicesProcessed"];
+            this.successfulClassifications = _data["successfulClassifications"];
+            this.manualReviewRequired = _data["manualReviewRequired"];
+            this.errors = _data["errors"];
+            if (Array.isArray(_data["errorMessages"])) {
+                this.errorMessages = [] as any;
+                for (let item of _data["errorMessages"])
+                    this.errorMessages!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): ClassifyInvoicesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassifyInvoicesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalInvoicesProcessed"] = this.totalInvoicesProcessed;
+        data["successfulClassifications"] = this.successfulClassifications;
+        data["manualReviewRequired"] = this.manualReviewRequired;
+        data["errors"] = this.errors;
+        if (Array.isArray(this.errorMessages)) {
+            data["errorMessages"] = [];
+            for (let item of this.errorMessages)
+                data["errorMessages"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IClassifyInvoicesResponse extends IBaseResponse {
+    totalInvoicesProcessed?: number;
+    successfulClassifications?: number;
+    manualReviewRequired?: number;
+    errors?: number;
+    errorMessages?: string[];
+}
+
+export class ClassifyInvoicesRequest implements IClassifyInvoicesRequest {
+    manualTrigger?: boolean;
+
+    constructor(data?: IClassifyInvoicesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.manualTrigger = _data["manualTrigger"];
+        }
+    }
+
+    static fromJS(data: any): ClassifyInvoicesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassifyInvoicesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["manualTrigger"] = this.manualTrigger;
+        return data;
+    }
+}
+
+export interface IClassifyInvoicesRequest {
+    manualTrigger?: boolean;
+}
+
+export class ClassificationRuleTypeDto implements IClassificationRuleTypeDto {
+    identifier?: string;
+    displayName?: string;
+    description?: string;
+
+    constructor(data?: IClassificationRuleTypeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.identifier = _data["identifier"];
+            this.displayName = _data["displayName"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): ClassificationRuleTypeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassificationRuleTypeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["identifier"] = this.identifier;
+        data["displayName"] = this.displayName;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IClassificationRuleTypeDto {
+    identifier?: string;
+    displayName?: string;
+    description?: string;
+}
+
+export class GetAccountingTemplatesResponse implements IGetAccountingTemplatesResponse {
+    templates?: AccountingTemplateDto[];
+
+    constructor(data?: IGetAccountingTemplatesResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["templates"])) {
+                this.templates = [] as any;
+                for (let item of _data["templates"])
+                    this.templates!.push(AccountingTemplateDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GetAccountingTemplatesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAccountingTemplatesResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.templates)) {
+            data["templates"] = [];
+            for (let item of this.templates)
+                data["templates"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGetAccountingTemplatesResponse {
+    templates?: AccountingTemplateDto[];
+}
+
+export class AccountingTemplateDto implements IAccountingTemplateDto {
+    code?: string;
+    name?: string;
+    description?: string;
+    accountCode?: string;
+
+    constructor(data?: IAccountingTemplateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.accountCode = _data["accountCode"];
+        }
+    }
+
+    static fromJS(data: any): AccountingTemplateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AccountingTemplateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["accountCode"] = this.accountCode;
+        return data;
+    }
+}
+
+export interface IAccountingTemplateDto {
+    code?: string;
+    name?: string;
+    description?: string;
+    accountCode?: string;
+}
+
+export class GetClassificationHistoryResponse implements IGetClassificationHistoryResponse {
+    items?: ClassificationHistoryDto[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetClassificationHistoryResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ClassificationHistoryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static fromJS(data: any): GetClassificationHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetClassificationHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        return data;
+    }
+}
+
+export interface IGetClassificationHistoryResponse {
+    items?: ClassificationHistoryDto[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class ClassificationHistoryDto implements IClassificationHistoryDto {
+    id?: string;
+    invoiceId?: string;
+    invoiceNumber?: string;
+    invoiceDate?: Date | undefined;
+    companyName?: string;
+    description?: string;
+    classificationRuleId?: string | undefined;
+    ruleName?: string | undefined;
+    result?: ClassificationResult;
+    accountingTemplateCode?: string | undefined;
+    errorMessage?: string | undefined;
+    timestamp?: Date;
+    processedBy?: string;
+
+    constructor(data?: IClassificationHistoryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceId = _data["invoiceId"];
+            this.invoiceNumber = _data["invoiceNumber"];
+            this.invoiceDate = _data["invoiceDate"] ? new Date(_data["invoiceDate"].toString()) : <any>undefined;
+            this.companyName = _data["companyName"];
+            this.description = _data["description"];
+            this.classificationRuleId = _data["classificationRuleId"];
+            this.ruleName = _data["ruleName"];
+            this.result = _data["result"];
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.errorMessage = _data["errorMessage"];
+            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
+            this.processedBy = _data["processedBy"];
+        }
+    }
+
+    static fromJS(data: any): ClassificationHistoryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassificationHistoryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceId"] = this.invoiceId;
+        data["invoiceNumber"] = this.invoiceNumber;
+        data["invoiceDate"] = this.invoiceDate ? this.invoiceDate.toISOString() : <any>undefined;
+        data["companyName"] = this.companyName;
+        data["description"] = this.description;
+        data["classificationRuleId"] = this.classificationRuleId;
+        data["ruleName"] = this.ruleName;
+        data["result"] = this.result;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["errorMessage"] = this.errorMessage;
+        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
+        data["processedBy"] = this.processedBy;
+        return data;
+    }
+}
+
+export interface IClassificationHistoryDto {
+    id?: string;
+    invoiceId?: string;
+    invoiceNumber?: string;
+    invoiceDate?: Date | undefined;
+    companyName?: string;
+    description?: string;
+    classificationRuleId?: string | undefined;
+    ruleName?: string | undefined;
+    result?: ClassificationResult;
+    accountingTemplateCode?: string | undefined;
+    errorMessage?: string | undefined;
+    timestamp?: Date;
+    processedBy?: string;
+}
+
+export enum ClassificationResult {
+    Success = "Success",
+    ManualReviewRequired = "ManualReviewRequired",
+    Error = "Error",
+}
+
+export class ClassifySingleInvoiceResponse implements IClassifySingleInvoiceResponse {
+    success?: boolean;
+    result?: ClassificationResult;
+    appliedRule?: string | undefined;
+    accountingTemplateCode?: string | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IClassifySingleInvoiceResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.result = _data["result"];
+            this.appliedRule = _data["appliedRule"];
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): ClassifySingleInvoiceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClassifySingleInvoiceResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["result"] = this.result;
+        data["appliedRule"] = this.appliedRule;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IClassifySingleInvoiceResponse {
+    success?: boolean;
+    result?: ClassificationResult;
+    appliedRule?: string | undefined;
+    accountingTemplateCode?: string | undefined;
+    errorMessage?: string | undefined;
+}
+
+export class GetInvoiceDetailsResponse implements IGetInvoiceDetailsResponse {
+    invoice?: ReceivedInvoiceDto | undefined;
+    found?: boolean;
+
+    constructor(data?: IGetInvoiceDetailsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.invoice = _data["invoice"] ? ReceivedInvoiceDto.fromJS(_data["invoice"]) : <any>undefined;
+            this.found = _data["found"];
+        }
+    }
+
+    static fromJS(data: any): GetInvoiceDetailsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetInvoiceDetailsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["invoice"] = this.invoice ? this.invoice.toJSON() : <any>undefined;
+        data["found"] = this.found;
+        return data;
+    }
+}
+
+export interface IGetInvoiceDetailsResponse {
+    invoice?: ReceivedInvoiceDto | undefined;
+    found?: boolean;
+}
+
+export class ReceivedInvoiceDto implements IReceivedInvoiceDto {
+    invoiceNumber?: string;
+    companyName?: string;
+    companyVat?: string;
+    invoiceDate?: Date | undefined;
+    totalAmount?: number;
+    description?: string;
+    items?: ReceivedInvoiceItemDto[];
+    dueDate?: Date | undefined;
+    accountingTemplateCode?: string | undefined;
+    departmentCode?: string | undefined;
+    labels?: string[];
+
+    constructor(data?: IReceivedInvoiceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.invoiceNumber = _data["invoiceNumber"];
+            this.companyName = _data["companyName"];
+            this.companyVat = _data["companyVat"];
+            this.invoiceDate = _data["invoiceDate"] ? new Date(_data["invoiceDate"].toString()) : <any>undefined;
+            this.totalAmount = _data["totalAmount"];
+            this.description = _data["description"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ReceivedInvoiceItemDto.fromJS(item));
+            }
+            this.dueDate = _data["dueDate"] ? new Date(_data["dueDate"].toString()) : <any>undefined;
+            this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.departmentCode = _data["departmentCode"];
+            if (Array.isArray(_data["labels"])) {
+                this.labels = [] as any;
+                for (let item of _data["labels"])
+                    this.labels!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ReceivedInvoiceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReceivedInvoiceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["invoiceNumber"] = this.invoiceNumber;
+        data["companyName"] = this.companyName;
+        data["companyVat"] = this.companyVat;
+        data["invoiceDate"] = this.invoiceDate ? this.invoiceDate.toISOString() : <any>undefined;
+        data["totalAmount"] = this.totalAmount;
+        data["description"] = this.description;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["dueDate"] = this.dueDate ? this.dueDate.toISOString() : <any>undefined;
+        data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["departmentCode"] = this.departmentCode;
+        if (Array.isArray(this.labels)) {
+            data["labels"] = [];
+            for (let item of this.labels)
+                data["labels"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IReceivedInvoiceDto {
+    invoiceNumber?: string;
+    companyName?: string;
+    companyVat?: string;
+    invoiceDate?: Date | undefined;
+    totalAmount?: number;
+    description?: string;
+    items?: ReceivedInvoiceItemDto[];
+    dueDate?: Date | undefined;
+    accountingTemplateCode?: string | undefined;
+    departmentCode?: string | undefined;
+    labels?: string[];
+}
+
+export class ReceivedInvoiceItemDto implements IReceivedInvoiceItemDto {
+    code?: string;
+    name?: string;
+    amount?: number;
+
+    constructor(data?: IReceivedInvoiceItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.name = _data["name"];
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): ReceivedInvoiceItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReceivedInvoiceItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["name"] = this.name;
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IReceivedInvoiceItemDto {
+    code?: string;
+    name?: string;
+    amount?: number;
 }
 
 export class GetJournalEntriesResponse extends BaseResponse implements IGetJournalEntriesResponse {

@@ -7,7 +7,7 @@ export interface ClassificationRule {
   name: string;
   ruleTypeIdentifier: string;
   pattern: string;
-  accountingPrescription: string;
+  accountingTemplateCode: string;
   order: number;
   isActive: boolean;
   createdAt: string;
@@ -39,7 +39,7 @@ export interface ClassificationHistoryItem {
   classificationRuleId?: string;
   ruleName?: string;
   result: 'Success' | 'ManualReviewRequired' | 'Error';
-  accountingPrescription?: string;
+  accountingTemplateCode?: string;
   errorMessage?: string;
   timestamp: string;
   processedBy: string;
@@ -57,7 +57,7 @@ export interface CreateClassificationRuleRequest {
   name: string;
   ruleTypeIdentifier: string;
   pattern: string;
-  accountingPrescription: string;
+  accountingTemplateCode: string;
   isActive: boolean;
 }
 
@@ -66,7 +66,7 @@ export interface UpdateClassificationRuleRequest {
   name: string;
   ruleTypeIdentifier: string;
   pattern: string;
-  accountingPrescription: string;
+  accountingTemplateCode: string;
   isActive: boolean;
 }
 
@@ -338,5 +338,84 @@ export function useClassificationHistory(
       
       return await response.json() as ClassificationHistoryResponse;
     },
+  });
+}
+
+export interface ClassifySingleInvoiceResponse {
+  success: boolean;
+  result: 'Success' | 'ManualReviewRequired' | 'Error';
+  appliedRule?: string;
+  accountingTemplateCode?: string;
+  errorMessage?: string;
+}
+
+export interface InvoiceDetails {
+  invoiceNumber: string;
+  companyName: string;
+  companyVat: string;
+  invoiceDate?: string;
+  totalAmount: number;
+  description: string;
+  items: any[];
+  dueDate?: string;
+  accountingTemplateCode?: string;
+  departmentCode?: string;
+  labels: string[];
+}
+
+export interface GetInvoiceDetailsResponse {
+  invoice?: InvoiceDetails;
+  found: boolean;
+}
+
+export function useClassifySingleInvoice() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const apiClient = await getAuthenticatedApiClient();
+      const url = `/api/invoiceclassification/classify/${invoiceId}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to classify invoice: ${response.statusText}`);
+      }
+      
+      return await response.json() as ClassifySingleInvoiceResponse;
+    },
+    onSuccess: () => {
+      // Invalidate history to refresh the list
+      queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.history });
+    },
+  });
+}
+
+export function useInvoiceDetails(invoiceId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: [...CLASSIFICATION_QUERY_KEYS.history, 'invoice', invoiceId],
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      const url = `/api/invoiceclassification/invoice/${invoiceId}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch invoice details: ${response.statusText}`);
+      }
+      
+      return await response.json() as GetInvoiceDetailsResponse;
+    },
+    enabled: enabled && !!invoiceId,
   });
 }

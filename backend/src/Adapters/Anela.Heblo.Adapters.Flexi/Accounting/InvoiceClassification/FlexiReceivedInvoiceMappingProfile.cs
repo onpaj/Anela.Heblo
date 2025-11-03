@@ -22,17 +22,6 @@ public class FlexiReceivedInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.Labels.Split(",", StringSplitOptions.RemoveEmptyEntries)))
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
 
-        CreateMap<ReceivedInvoiceDetailFlexiDto, ReceivedInvoiceDto>()
-            .ForMember(dest => dest.InvoiceNumber, opt => opt.MapFrom(src => src.Code))
-            .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.CompanyName))
-            .ForMember(dest => dest.CompanyVat, opt => opt.MapFrom(src => src.CompanyId))
-            .ForMember(dest => dest.InvoiceDate, opt => opt.MapFrom(src => src.DateCreated))
-            .ForMember(dest => dest.DueDate, opt => opt.MapFrom(src => src.DateDue))
-            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-            .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => (decimal)src.SumTotal))
-            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
-
-
         
         CreateMap<ReceivedInvoiceItemFlexiDto, ReceivedInvoiceItemDto>()
             .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code))

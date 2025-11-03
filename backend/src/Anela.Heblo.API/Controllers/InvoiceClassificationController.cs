@@ -8,6 +8,8 @@ using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ReorderCla
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetAccountingTemplates;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationHistory;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifySingleInvoice;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetInvoiceDetails;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
 
@@ -112,6 +114,28 @@ public class InvoiceClassificationController : ControllerBase
         };
 
         var response = await _mediator.Send(request);
+        return Ok(response);
+    }
+
+    [HttpPost("classify/{invoiceId}")]
+    public async Task<ActionResult<ClassifySingleInvoiceResponse>> ClassifySingleInvoice(string invoiceId)
+    {
+        var request = new ClassifySingleInvoiceRequest { InvoiceId = invoiceId };
+        var response = await _mediator.Send(request);
+        return Ok(response);
+    }
+
+    [HttpGet("invoice/{invoiceId}")]
+    public async Task<ActionResult<GetInvoiceDetailsResponse>> GetInvoiceDetails(string invoiceId)
+    {
+        var request = new GetInvoiceDetailsRequest { InvoiceId = invoiceId };
+        var response = await _mediator.Send(request);
+        
+        if (!response.Found)
+        {
+            return NotFound($"Invoice {invoiceId} not found");
+        }
+        
         return Ok(response);
     }
 }

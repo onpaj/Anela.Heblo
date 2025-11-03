@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock, Play, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { useClassificationHistory, ClassificationHistoryItem } from '../../api/hooks/useInvoiceClassification';
+import { useClassificationHistory, ClassificationHistoryItem, useClassifySingleInvoice, useCreateClassificationRule, CreateClassificationRuleRequest } from '../../api/hooks/useInvoiceClassification';
+import RuleForm from './components/RuleForm';
 
 const ClassificationHistoryPage: React.FC = () => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(20);
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [classifyingInvoiceId, setClassifyingInvoiceId] = useState<string | null>(null);
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [prefillCompanyName, setPrefillCompanyName] = useState('');
 
   const { data: historyData, isLoading, error } = useClassificationHistory(
     page,
@@ -22,6 +26,9 @@ const ClassificationHistoryPage: React.FC = () => {
     invoiceNumber || undefined,
     companyName || undefined
   );
+
+  const classifySingleInvoiceMutation = useClassifySingleInvoice();
+  const createRuleMutation = useCreateClassificationRule();
 
   const getResultBadge = (result: ClassificationHistoryItem['result']) => {
     switch (result) {
@@ -72,12 +79,51 @@ const ClassificationHistoryPage: React.FC = () => {
     setPage(1); // Reset to first page when searching
   };
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page when changing page size
+  };
+
   const clearFilters = () => {
     setFromDate(undefined);
     setToDate(undefined);
     setInvoiceNumber('');
     setCompanyName('');
     setPage(1);
+  };
+
+  const handleClassifyInvoice = async (invoiceId: string) => {
+    try {
+      setClassifyingInvoiceId(invoiceId);
+      await classifySingleInvoiceMutation.mutateAsync(invoiceId);
+      // Success message could be added here
+    } catch (error) {
+      console.error('Error classifying invoice:', error);
+      // Error handling could be improved here
+    } finally {
+      setClassifyingInvoiceId(null);
+    }
+  };
+
+  const handleCreateRule = (companyName: string) => {
+    setPrefillCompanyName(companyName);
+    setShowRuleModal(true);
+  };
+
+  const handleRuleSubmit = async (data: CreateClassificationRuleRequest) => {
+    try {
+      await createRuleMutation.mutateAsync(data);
+      setShowRuleModal(false);
+      setPrefillCompanyName('');
+    } catch (error) {
+      console.error('Error creating rule:', error);
+      // Error handling could be improved here
+    }
+  };
+
+  const handleRuleCancel = () => {
+    setShowRuleModal(false);
+    setPrefillCompanyName('');
   };
 
   if (error) {
@@ -223,6 +269,9 @@ const ClassificationHistoryPage: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('invoiceClassification.history.timestamp', 'Classified At')}
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('invoiceClassification.history.actions', 'Actions')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -242,7 +291,7 @@ const ClassificationHistoryPage: React.FC = () => {
                         <div className="text-sm text-gray-900">{item.ruleName || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{item.accountingPrescription || '-'}</div>
+                        <div className="text-sm text-gray-900">{item.accountingTemplateCode || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getResultBadge(item.result)}
@@ -255,6 +304,31 @@ const ClassificationHistoryPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{formatDate(item.timestamp)}</div>
                         <div className="text-sm text-gray-500">{item.processedBy}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleClassifyInvoice(item.invoiceId)}
+                            disabled={classifyingInvoiceId === item.invoiceId}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={t('invoiceClassification.history.actions.classify', 'Classify this invoice')}
+                          >
+                            {classifyingInvoiceId === item.invoiceId ? (
+                              <div className="w-3 h-3 mr-1 animate-spin rounded-full border border-indigo-700 border-t-transparent"></div>
+                            ) : (
+                              <Play className="w-3 h-3 mr-1" />
+                            )}
+                            {t('invoiceClassification.history.actions.classify', 'Klasifikovat')}
+                          </button>
+                          <button
+                            onClick={() => handleCreateRule(item.companyName)}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                            title={t('invoiceClassification.history.actions.createRule', 'Create rule for this company')}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            {t('invoiceClassification.history.actions.createRule', 'Vytvor pravidlo')}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -282,18 +356,25 @@ const ClassificationHistoryPage: React.FC = () => {
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      {t('common.pagination.showing', 'Showing')}{' '}
-                      <span className="font-medium">{((page - 1) * pageSize) + 1}</span>
-                      {' '}{t('common.pagination.to', 'to')}{' '}
-                      <span className="font-medium">
-                        {Math.min(page * pageSize, historyData.totalCount)}
-                      </span>
-                      {' '}{t('common.pagination.of', 'of')}{' '}
-                      <span className="font-medium">{historyData.totalCount}</span>
-                      {' '}{t('common.pagination.results', 'results')}
+                  <div className="flex items-center space-x-3">
+                    <p className="text-xs text-gray-600">
+                      {((page - 1) * pageSize) + 1}-
+                      {Math.min(page * pageSize, historyData.totalCount)}{' '}
+                      z {historyData.totalCount}
                     </p>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-gray-600">Zobrazit:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
@@ -346,6 +427,23 @@ const ClassificationHistoryPage: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Rule Creation Modal */}
+      {showRuleModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <RuleForm
+                rule={null}
+                onSubmit={handleRuleSubmit}
+                onCancel={handleRuleCancel}
+                isLoading={createRuleMutation.isPending}
+                prefillCompanyName={prefillCompanyName}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, BarChart, Plus, Play } from 'lucide-react';
+import { Settings, BarChart, Plus, Play, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { 
   useClassificationRules, 
@@ -17,9 +17,11 @@ import RulesList from './components/RulesList';
 import RuleForm from './components/RuleForm';
 import ClassificationStats from './components/ClassificationStats';
 
+type TabType = 'invoices' | 'rules';
+
 const InvoiceClassificationPage: React.FC = () => {
   const { t } = useTranslation();
-  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('invoices');
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<ClassificationRule | null>(null);
@@ -107,7 +109,7 @@ const InvoiceClassificationPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header with buttons */}
+      {/* Header with title and action buttons */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
           <div>
@@ -133,14 +135,6 @@ const InvoiceClassificationPage: React.FC = () => {
             </button>
             
             <button
-              onClick={() => setShowRulesModal(true)}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              {t('invoiceClassification.rules', 'Rules')}
-            </button>
-            
-            <button
               onClick={() => setShowStatsModal(true)}
               className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
@@ -151,84 +145,104 @@ const InvoiceClassificationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main content - Classification History */}
-      <div className="flex-1 overflow-hidden">
-        <ClassificationHistoryPage />
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 px-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('invoices')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+              activeTab === 'invoices'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center">
+              <FileText className="w-4 h-4 mr-2" />
+              {t('invoiceClassification.tabs.invoices', 'Faktury')}
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+              activeTab === 'rules'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center">
+              <Settings className="w-4 h-4 mr-2" />
+              {t('invoiceClassification.tabs.rules', 'Pravidla')}
+            </div>
+          </button>
+        </nav>
       </div>
 
-      {/* Rules Modal */}
-      {showRulesModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowRulesModal(false)}></div>
-            
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {t('invoiceClassification.rulesManagement', 'Classification Rules Management')}
-                  </h3>
-                  <button
-                    onClick={() => setShowRulesModal(false)}
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                <div className="max-h-96 overflow-y-auto">
-                  {showForm && (
-                    <div className="mb-6">
-                      <RuleForm
-                        rule={editingRule}
-                        onSubmit={handleSubmitRule}
-                        onCancel={handleCancelForm}
-                        isLoading={createMutation.isPending || updateMutation.isPending}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="mb-4">
-                    <button
-                      onClick={() => setShowForm(true)}
-                      disabled={showForm}
-                      className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {t('invoiceClassification.addRule', 'Add Rule')}
-                    </button>
-                  </div>
-
-                  {isLoading ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                      <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
-                    </div>
-                  ) : error ? (
-                    <div className="text-center py-4 text-red-600">
-                      Error loading classification rules: {String(error)}
-                    </div>
-                  ) : (
-                    <RulesList
-                      rules={rules}
-                      onEdit={handleEditRule}
-                      onDelete={handleDeleteRule}
-                      onReorder={handleReorderRules}
-                      isReordering={reorderMutation.isPending}
-                      isDeleting={deleteMutation.isPending}
-                    />
-                  )}
-                </div>
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === 'invoices' && (
+          <ClassificationHistoryPage />
+        )}
+        
+        {activeTab === 'rules' && (
+          <div className="h-full flex flex-col p-6 space-y-6">
+            {/* Rules Tab Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {t('invoiceClassification.rulesManagement', 'Classification Rules Management')}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t('invoiceClassification.rulesDescription', 'Manage and configure invoice classification rules')}
+                </p>
               </div>
+              
+              <button
+                onClick={() => setShowForm(true)}
+                disabled={showForm}
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('invoiceClassification.addRule', 'Add Rule')}
+              </button>
+            </div>
+
+            {/* Rule Form */}
+            {showForm && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <RuleForm
+                  rule={editingRule}
+                  onSubmit={handleSubmitRule}
+                  onCancel={handleCancelForm}
+                  isLoading={createMutation.isPending || updateMutation.isPending}
+                />
+              </div>
+            )}
+            
+            {/* Rules List */}
+            <div className="flex-1 bg-white shadow rounded-lg overflow-hidden">
+              {isLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
+                </div>
+              ) : error ? (
+                <div className="p-8 text-center text-red-600">
+                  Error loading classification rules: {String(error)}
+                </div>
+              ) : (
+                <RulesList
+                  rules={rules}
+                  onEdit={handleEditRule}
+                  onDelete={handleDeleteRule}
+                  onReorder={handleReorderRules}
+                  isReordering={reorderMutation.isPending}
+                  isDeleting={deleteMutation.isPending}
+                />
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Statistics Modal */}
       {showStatsModal && (
