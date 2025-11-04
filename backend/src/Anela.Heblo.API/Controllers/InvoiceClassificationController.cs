@@ -90,7 +90,7 @@ public class InvoiceClassificationController : ControllerBase
     {
         var request = new GetAccountingTemplatesRequest();
         var response = await _mediator.Send(request);
-        return Ok(response.Templates);
+        return Ok(response);
     }
 
     [HttpGet("history")]

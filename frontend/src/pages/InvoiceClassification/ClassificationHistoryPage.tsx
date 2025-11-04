@@ -120,6 +120,9 @@ const ClassificationHistoryPage: React.FC = () => {
       setPrefillCompanyName('');
     } catch (error) {
       console.error('Error creating rule:', error);
+      // Close modal even on error to prevent UI issues
+      setShowRuleModal(false);
+      setPrefillCompanyName('');
       // Error handling could be improved here
     }
   };

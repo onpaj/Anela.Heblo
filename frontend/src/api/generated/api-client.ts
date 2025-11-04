@@ -2186,7 +2186,7 @@ export class ApiClient {
         return Promise.resolve<GetClassificationHistoryResponse>(null as any);
     }
 
-    invoiceClassification_ClassifySingleInvoice(invoiceId: string): Promise<ClassifySingleInvoiceResponse> {
+    invoiceClassification_ClassifySingleInvoice(invoiceId: string): Promise<ClassifyInvoicesResponse> {
         let url_ = this.baseUrl + "/api/InvoiceClassification/classify/{invoiceId}";
         if (invoiceId === undefined || invoiceId === null)
             throw new Error("The parameter 'invoiceId' must be defined.");
@@ -2205,14 +2205,14 @@ export class ApiClient {
         });
     }
 
-    protected processInvoiceClassification_ClassifySingleInvoice(response: Response): Promise<ClassifySingleInvoiceResponse> {
+    protected processInvoiceClassification_ClassifySingleInvoice(response: Response): Promise<ClassifyInvoicesResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ClassifySingleInvoiceResponse.fromJS(resultData200);
+            result200 = ClassifyInvoicesResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2220,7 +2220,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<ClassifySingleInvoiceResponse>(null as any);
+        return Promise.resolve<ClassifyInvoicesResponse>(null as any);
     }
 
     invoiceClassification_GetInvoiceDetails(invoiceId: string): Promise<GetInvoiceDetailsResponse> {
@@ -9112,6 +9112,7 @@ export interface IClassifyInvoicesResponse extends IBaseResponse {
 }
 
 export class ClassifyInvoicesRequest implements IClassifyInvoicesRequest {
+    invoiceIds?: string[] | undefined;
     manualTrigger?: boolean;
 
     constructor(data?: IClassifyInvoicesRequest) {
@@ -9125,6 +9126,11 @@ export class ClassifyInvoicesRequest implements IClassifyInvoicesRequest {
 
     init(_data?: any) {
         if (_data) {
+            if (Array.isArray(_data["invoiceIds"])) {
+                this.invoiceIds = [] as any;
+                for (let item of _data["invoiceIds"])
+                    this.invoiceIds!.push(item);
+            }
             this.manualTrigger = _data["manualTrigger"];
         }
     }
@@ -9138,12 +9144,18 @@ export class ClassifyInvoicesRequest implements IClassifyInvoicesRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.invoiceIds)) {
+            data["invoiceIds"] = [];
+            for (let item of this.invoiceIds)
+                data["invoiceIds"].push(item);
+        }
         data["manualTrigger"] = this.manualTrigger;
         return data;
     }
 }
 
 export interface IClassifyInvoicesRequest {
+    invoiceIds?: string[] | undefined;
     manualTrigger?: boolean;
 }
 
@@ -9191,19 +9203,15 @@ export interface IClassificationRuleTypeDto {
     description?: string;
 }
 
-export class GetAccountingTemplatesResponse implements IGetAccountingTemplatesResponse {
+export class GetAccountingTemplatesResponse extends BaseResponse implements IGetAccountingTemplatesResponse {
     templates?: AccountingTemplateDto[];
 
     constructor(data?: IGetAccountingTemplatesResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["templates"])) {
                 this.templates = [] as any;
@@ -9213,25 +9221,26 @@ export class GetAccountingTemplatesResponse implements IGetAccountingTemplatesRe
         }
     }
 
-    static fromJS(data: any): GetAccountingTemplatesResponse {
+    static override fromJS(data: any): GetAccountingTemplatesResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetAccountingTemplatesResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.templates)) {
             data["templates"] = [];
             for (let item of this.templates)
                 data["templates"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetAccountingTemplatesResponse {
+export interface IGetAccountingTemplatesResponse extends IBaseResponse {
     templates?: AccountingTemplateDto[];
 }
 
@@ -9283,7 +9292,7 @@ export interface IAccountingTemplateDto {
     accountCode?: string;
 }
 
-export class GetClassificationHistoryResponse implements IGetClassificationHistoryResponse {
+export class GetClassificationHistoryResponse extends BaseResponse implements IGetClassificationHistoryResponse {
     items?: ClassificationHistoryDto[];
     totalCount?: number;
     page?: number;
@@ -9291,15 +9300,11 @@ export class GetClassificationHistoryResponse implements IGetClassificationHisto
     totalPages?: number;
 
     constructor(data?: IGetClassificationHistoryResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -9313,14 +9318,14 @@ export class GetClassificationHistoryResponse implements IGetClassificationHisto
         }
     }
 
-    static fromJS(data: any): GetClassificationHistoryResponse {
+    static override fromJS(data: any): GetClassificationHistoryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetClassificationHistoryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -9331,11 +9336,12 @@ export class GetClassificationHistoryResponse implements IGetClassificationHisto
         data["page"] = this.page;
         data["pageSize"] = this.pageSize;
         data["totalPages"] = this.totalPages;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetClassificationHistoryResponse {
+export interface IGetClassificationHistoryResponse extends IBaseResponse {
     items?: ClassificationHistoryDto[];
     totalCount?: number;
     page?: number;
@@ -9433,94 +9439,39 @@ export enum ClassificationResult {
     Error = "Error",
 }
 
-export class ClassifySingleInvoiceResponse implements IClassifySingleInvoiceResponse {
-    success?: boolean;
-    result?: ClassificationResult;
-    appliedRule?: string | undefined;
-    accountingTemplateCode?: string | undefined;
-    errorMessage?: string | undefined;
-
-    constructor(data?: IClassifySingleInvoiceResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.success = _data["success"];
-            this.result = _data["result"];
-            this.appliedRule = _data["appliedRule"];
-            this.accountingTemplateCode = _data["accountingTemplateCode"];
-            this.errorMessage = _data["errorMessage"];
-        }
-    }
-
-    static fromJS(data: any): ClassifySingleInvoiceResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ClassifySingleInvoiceResponse();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["success"] = this.success;
-        data["result"] = this.result;
-        data["appliedRule"] = this.appliedRule;
-        data["accountingTemplateCode"] = this.accountingTemplateCode;
-        data["errorMessage"] = this.errorMessage;
-        return data;
-    }
-}
-
-export interface IClassifySingleInvoiceResponse {
-    success?: boolean;
-    result?: ClassificationResult;
-    appliedRule?: string | undefined;
-    accountingTemplateCode?: string | undefined;
-    errorMessage?: string | undefined;
-}
-
-export class GetInvoiceDetailsResponse implements IGetInvoiceDetailsResponse {
+export class GetInvoiceDetailsResponse extends BaseResponse implements IGetInvoiceDetailsResponse {
     invoice?: ReceivedInvoiceDto | undefined;
     found?: boolean;
 
     constructor(data?: IGetInvoiceDetailsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.invoice = _data["invoice"] ? ReceivedInvoiceDto.fromJS(_data["invoice"]) : <any>undefined;
             this.found = _data["found"];
         }
     }
 
-    static fromJS(data: any): GetInvoiceDetailsResponse {
+    static override fromJS(data: any): GetInvoiceDetailsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetInvoiceDetailsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["invoice"] = this.invoice ? this.invoice.toJSON() : <any>undefined;
         data["found"] = this.found;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetInvoiceDetailsResponse {
+export interface IGetInvoiceDetailsResponse extends IBaseResponse {
     invoice?: ReceivedInvoiceDto | undefined;
     found?: boolean;
 }
