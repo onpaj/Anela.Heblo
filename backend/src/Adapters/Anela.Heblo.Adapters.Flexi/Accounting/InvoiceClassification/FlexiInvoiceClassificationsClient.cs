@@ -1,19 +1,28 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting;
+using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
 
 namespace Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 
 public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
 {
     private readonly IAccountingTemplateClient _accountingTemplateClient;
+    private readonly IReceivedInvoiceClient _receivedInvoiceClient;
+    private readonly IOptions<DataSourceOptions> _options;
     private readonly ILogger<FlexiInvoiceClassificationsClient> _logger;
 
     public FlexiInvoiceClassificationsClient(
         IAccountingTemplateClient accountingTemplateClient,
+        IReceivedInvoiceClient receivedInvoiceClient,
+        IOptions<DataSourceOptions> options,
         ILogger<FlexiInvoiceClassificationsClient> logger)
     {
         _accountingTemplateClient = accountingTemplateClient;
+        _receivedInvoiceClient = receivedInvoiceClient;
+        _options = options;
         _logger = logger;
     }
 
@@ -36,19 +45,18 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
     public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode)
     {
         var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingTemplateCode, null);
+        if (result.IsSuccess)
+        {
+            await _receivedInvoiceClient.RemoveTagAsync(invoiceId, _options.Value.InvoiceClassificationTriggerLabel);
+        }
+        
         return result.IsSuccess;
     }
 
     public async Task<bool> MarkInvoiceForManualReviewAsync(string invoiceId, string reason)
     {
-        _logger.LogInformation("Marking invoice {InvoiceId} for manual review with reason: {Reason} - IMPLEMENTATION PLACEHOLDER",
-            invoiceId, reason);
-
-        // TODO: Implement actual ABRA Flexi API integration
-        await Task.Delay(150); // Simulate API call
-
-        // For now, always return success
-        _logger.LogInformation("Successfully marked invoice {InvoiceId} for manual review", invoiceId);
-        return true;
+        var result =
+            await _receivedInvoiceClient.AddTagAsync(invoiceId, _options.Value.InvoiceClassificationManualReviewLabel);
+        return result.IsSuccess;
     }
 }

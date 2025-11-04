@@ -14,4 +14,5 @@ public class DataSourceOptions
     public double ResupplyThresholdMultiplier { get; set; } = 1.3;
     public int InvoiceClassificationDaysBack { get; set; } = 30;
     public string InvoiceClassificationTriggerLabel { get; set; } = "KLASIFIKACE";
+    public string InvoiceClassificationManualReviewLabel { get; set; } = "MANUAL-KLASIF";
 }
