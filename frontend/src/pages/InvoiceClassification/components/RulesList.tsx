@@ -110,7 +110,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             </div>
             <div>
               <span className="font-medium">
-                {t('invoiceClassification.prescription', 'Prescription')}:
+                {t('invoiceClassification.prescription', 'Template')}:
               </span>{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
                 {rule.accountingTemplateCode}

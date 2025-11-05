@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock, Play, Plus } from 'lucide-react';
+import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock, Play, Plus, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { useClassificationHistory, ClassificationHistoryItem, useClassifySingleInvoice, useCreateClassificationRule, CreateClassificationRuleRequest } from '../../api/hooks/useInvoiceClassification';
@@ -18,7 +18,7 @@ const ClassificationHistoryPage: React.FC = () => {
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [prefillCompanyName, setPrefillCompanyName] = useState('');
 
-  const { data: historyData, isLoading, error } = useClassificationHistory(
+  const { data: historyData, isLoading, error, refetch } = useClassificationHistory(
     page,
     pageSize,
     fromDate,
@@ -80,6 +80,7 @@ const ClassificationHistoryPage: React.FC = () => {
 
   const handleSearch = () => {
     setPage(1); // Reset to first page when searching
+    refetch(); // Refresh data with current filters
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
@@ -93,7 +94,10 @@ const ClassificationHistoryPage: React.FC = () => {
     setInvoiceNumber('');
     setCompanyName('');
     setPage(1);
+    // Refetch data after clearing filters
+    setTimeout(() => refetch(), 0);
   };
+
 
   const handleClassifyInvoice = async (invoiceId: string) => {
     try {
@@ -156,83 +160,87 @@ const ClassificationHistoryPage: React.FC = () => {
     <div className="h-full flex flex-col p-6 space-y-6">
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div>
-            <label htmlFor="fromDate" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.history.fromDate', 'From Date')}
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="date"
-                id="fromDate"
-                value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setFromDate(e.target.value ? new Date(e.target.value) : undefined)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex items-center">
+              <Filter className="h-4 w-4 text-gray-400 mr-2" />
+              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  id="fromDate"
+                  value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setFromDate(e.target.value ? new Date(e.target.value) : undefined)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Od data..."
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  id="toDate"
+                  value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setToDate(e.target.value ? new Date(e.target.value) : undefined)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Do data..."
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  id="invoiceNumber"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Číslo faktury..."
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Název firmy..."
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label htmlFor="toDate" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.history.toDate', 'To Date')}
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="date"
-                id="toDate"
-                value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setToDate(e.target.value ? new Date(e.target.value) : undefined)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSearch}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"
+            >
+              Filtrovat
+            </button>
+            <button
+              onClick={clearFilters}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 text-sm"
+            >
+              Vymazat
+            </button>
           </div>
-
-          <div>
-            <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.history.invoiceNumber', 'Invoice Number')}
-            </label>
-            <input
-              type="text"
-              id="invoiceNumber"
-              value={invoiceNumber}
-              onChange={(e) => setInvoiceNumber(e.target.value)}
-              placeholder={t('invoiceClassification.history.invoiceNumberPlaceholder', 'Search by invoice number...')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.history.companyName', 'Company Name')}
-            </label>
-            <input
-              type="text"
-              id="companyName"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder={t('invoiceClassification.history.companyNamePlaceholder', 'Search by company name...')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={handleSearch}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Search className="w-4 h-4 mr-2" />
-            {t('common.search', 'Search')}
-          </button>
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            {t('common.clear', 'Clear')}
-          </button>
         </div>
       </div>
 
