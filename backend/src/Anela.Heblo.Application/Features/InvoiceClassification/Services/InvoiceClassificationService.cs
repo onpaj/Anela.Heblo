@@ -32,20 +32,20 @@ public class InvoiceClassificationService : IInvoiceClassificationService
     public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoiceDto invoice)
     {
         var currentUser = _currentUserService.GetCurrentUser();
-        
+
         try
         {
             var rules = await _ruleRepository.GetActiveRulesOrderedAsync();
-            
+
             var matchedRule = _ruleEngine.FindMatchingRule(invoice, rules);
-            
+
             if (matchedRule == null)
             {
-                await RecordClassificationHistory(invoice.Id, null, ClassificationResult.ManualReviewRequired, 
+                await RecordClassificationHistory(invoice, null, ClassificationResult.ManualReviewRequired,
                     null, "No matching rule found", currentUser.Name);
-                
-                await _classificationsClient.MarkInvoiceForManualReviewAsync(invoice.Id, "No matching classification rule");
-                
+
+                await _classificationsClient.MarkInvoiceForManualReviewAsync(invoice.InvoiceNumber, "No matching classification rule");
+
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.ManualReviewRequired
@@ -53,25 +53,25 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             }
 
             var success = await _classificationsClient.UpdateInvoiceClassificationAsync(
-                invoice.Id, matchedRule.AccountingPrescription);
+                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode);
 
             if (success)
             {
-                await RecordClassificationHistory(invoice.Id, matchedRule.Id, ClassificationResult.Success,
-                    matchedRule.AccountingPrescription, null, currentUser.Name);
+                await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Success,
+                    matchedRule.AccountingTemplateCode, null, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.Success,
                     RuleId = matchedRule.Id,
-                    AccountingPrescription = matchedRule.AccountingPrescription
+                    AccountingTemplateCode = matchedRule.AccountingTemplateCode
                 };
             }
             else
             {
                 var errorMessage = "Failed to update invoice classification in ABRA";
-                await RecordClassificationHistory(invoice.Id, matchedRule.Id, ClassificationResult.Error,
-                    matchedRule.AccountingPrescription, errorMessage, currentUser.Name);
+                await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Error,
+                    matchedRule.AccountingTemplateCode, errorMessage, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
@@ -84,11 +84,11 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         catch (Exception ex)
         {
             var errorMessage = $"Exception during classification: {ex.Message}";
-            await RecordClassificationHistory(invoice.Id, null, ClassificationResult.Error,
+            await RecordClassificationHistory(invoice, null, ClassificationResult.Error,
                 null, errorMessage, currentUser.Name);
 
-            _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.Id);
-            
+            _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.InvoiceNumber);
+
             return new InvoiceClassificationResult
             {
                 Result = ClassificationResult.Error,
@@ -97,15 +97,19 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         }
     }
 
-    private async Task RecordClassificationHistory(string invoiceId, Guid? ruleId, 
-        ClassificationResult result, string? accountingPrescription, string? errorMessage, string processedBy)
+    private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId,
+        ClassificationResult result, string? accountingTemplateCode, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(
-            invoiceId,
+            invoice.InvoiceNumber, // AbraInvoiceId
+            invoice.InvoiceNumber, // InvoiceNumber
+            invoice.InvoiceDate,   // InvoiceDate
+            invoice.CompanyName,   // CompanyName
+            invoice.Description,   // Description
             result,
             processedBy,
             ruleId,
-            accountingPrescription,
+            accountingTemplateCode,
             errorMessage
         );
 

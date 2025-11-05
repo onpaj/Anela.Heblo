@@ -180,16 +180,35 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("AccountingPrescription")
+                    b.Property<string>("AccountingTemplateCode")
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("AccountingTemplateCode");
 
                     b.Property<Guid?>("ClassificationRuleId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("InvoiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ProcessedBy")
                         .IsRequired()
@@ -209,6 +228,12 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("ClassificationRuleId");
 
+                    b.HasIndex("CompanyName")
+                        .HasDatabaseName("IX_ClassificationHistory_CompanyName");
+
+                    b.HasIndex("InvoiceNumber")
+                        .HasDatabaseName("IX_ClassificationHistory_InvoiceNumber");
+
                     b.HasIndex("Result")
                         .HasDatabaseName("IX_ClassificationHistory_Result");
 
@@ -224,10 +249,11 @@ namespace Anela.Heblo.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AccountingPrescription")
+                    b.Property<string>("AccountingTemplateCode")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("AccountingTemplateCode");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp");

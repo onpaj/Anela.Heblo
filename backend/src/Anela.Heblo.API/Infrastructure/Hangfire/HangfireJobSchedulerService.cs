@@ -65,6 +65,15 @@ public class HangfireJobSchedulerService : IHostedService
                 queue: QueueName
             );
 
+            // Invoice classification hourly
+            RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
+                "invoice-classification",
+                service => service.ClassifyInvoicesAsync(),
+                "0 * * * *", // Hourly at the top of each hour
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
         catch (Exception ex)

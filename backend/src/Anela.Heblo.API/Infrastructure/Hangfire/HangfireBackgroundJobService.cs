@@ -2,6 +2,7 @@ using System.Configuration;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 using Anela.Heblo.Domain.Features.Configuration;
 using Hangfire;
 using Anela.Heblo.Xcc.Telemetry;
@@ -167,6 +168,56 @@ public class HangfireBackgroundJobService
             _telemetryService.TrackException(ex, new Dictionary<string, string>
             {
                 ["Job"] = "ProductWeightRecalculation",
+                ["Timestamp"] = DateTime.UtcNow.ToString("O")
+            });
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Hourly invoice classification job (runs every hour)
+    /// </summary>
+    [Queue("heblo")]
+    public async Task ClassifyInvoicesAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Starting hourly invoice classification job at {Timestamp}", DateTime.UtcNow);
+
+            var request = new ClassifyInvoicesRequest
+            {
+                InvoiceIds = null, // Batch mode - process all unclassified invoices
+                ManualTrigger = false
+            };
+
+            var response = await _mediator.Send(request);
+
+            _logger.LogInformation("Invoice classification completed - Success: {SuccessCount}, Manual Review: {ManualReviewCount}, Errors: {ErrorCount}, Total: {TotalCount}",
+                response.SuccessfulClassifications, response.ManualReviewRequired, response.Errors, response.TotalInvoicesProcessed);
+
+            _telemetryService.TrackBusinessEvent("InvoiceClassification", new Dictionary<string, string>
+            {
+                ["Status"] = response.Errors == 0 ? "Success" : "PartialSuccess",
+                ["SuccessfulClassifications"] = response.SuccessfulClassifications.ToString(),
+                ["ManualReviewRequired"] = response.ManualReviewRequired.ToString(),
+                ["Errors"] = response.Errors.ToString(),
+                ["TotalInvoicesProcessed"] = response.TotalInvoicesProcessed.ToString(),
+                ["Timestamp"] = DateTime.UtcNow.ToString("O")
+            });
+
+            // Log errors if any
+            if (response.Errors > 0 && response.ErrorMessages != null && response.ErrorMessages.Count > 0)
+            {
+                _logger.LogWarning("Invoice classification completed with {ErrorCount} errors: {ErrorMessages}",
+                    response.Errors, string.Join("; ", response.ErrorMessages));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Invoice classification job failed at {Timestamp}", DateTime.UtcNow);
+            _telemetryService.TrackException(ex, new Dictionary<string, string>
+            {
+                ["Job"] = "InvoiceClassification",
                 ["Timestamp"] = DateTime.UtcNow.ToString("O")
             });
             throw;

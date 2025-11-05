@@ -48,7 +48,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: rule.id });
+  } = useSortable({ id: rule.id || `rule-${Math.random()}` });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -58,7 +58,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
 
   const getRuleTypeLabel = (ruleTypeIdentifier: string): string => {
     const ruleType = ruleTypes.find(rt => rt.identifier === ruleTypeIdentifier);
-    return ruleType ? ruleType.displayName : ruleTypeIdentifier;
+    return ruleType ? (ruleType.displayName || ruleTypeIdentifier) : ruleTypeIdentifier;
   };
 
   return (
@@ -98,7 +98,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
               <span className="font-medium">
                 {t('invoiceClassification.ruleType', 'Type')}:
               </span>{' '}
-              {getRuleTypeLabel(rule.ruleTypeIdentifier)}
+              {getRuleTypeLabel(rule.ruleTypeIdentifier || '')}
             </div>
             <div>
               <span className="font-medium">
@@ -110,10 +110,10 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             </div>
             <div>
               <span className="font-medium">
-                {t('invoiceClassification.prescription', 'Prescription')}:
+                {t('invoiceClassification.prescription', 'Template')}:
               </span>{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
-                {rule.accountingPrescription}
+                {rule.accountingTemplateCode}
               </code>
             </div>
           </div>
@@ -128,7 +128,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onDelete(rule.id)}
+            onClick={() => rule.id && onDelete(rule.id)}
             disabled={isDeleting}
             className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             title={t('invoiceClassification.delete', 'Delete')}
@@ -165,7 +165,7 @@ const RulesList: React.FC<RulesListProps> = ({
       const newIndex = rules.findIndex((rule) => rule.id === over.id);
 
       const newRules = arrayMove(rules, oldIndex, newIndex);
-      const reorderedIds = newRules.map(rule => rule.id);
+      const reorderedIds = newRules.map(rule => rule.id).filter(id => id !== undefined) as string[];
       onReorder(reorderedIds);
     }
   };
@@ -200,7 +200,7 @@ const RulesList: React.FC<RulesListProps> = ({
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={rules.map(rule => rule.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={rules.map(rule => rule.id || `rule-${Math.random()}`)} strategy={verticalListSortingStrategy}>
             {rules.map((rule) => (
               <SortableRuleItem
                 key={rule.id}

@@ -220,8 +220,8 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private BatchPlanItemDto CreateBatchPlanItem(
-        CatalogAggregate product, 
-        CalculateBatchPlanRequest request, 
+        CatalogAggregate product,
+        CalculateBatchPlanRequest request,
         string? productName = null)
     {
         var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate, request.SalesMultiplier ?? 1.0);
@@ -245,13 +245,13 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private (double targetProduction, double availableVolume) CalculateTargetProductionAndVolume(
-        CatalogAggregate product, 
-        CalculateBatchPlanRequest request, 
+        CatalogAggregate product,
+        CalculateBatchPlanRequest request,
         double dailySalesRate)
     {
         double targetProduction = 0;
         double availableVolume = 0;
-        
+
         switch (request.ControlMode)
         {
             case BatchPlanControlMode.MmqMultiplier:
@@ -272,13 +272,13 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private (double targetProductionUnits, double totalWeight) CalculateSinglePhaseTargetProduction(
-        CatalogAggregate product, 
-        CalculateBatchPlanRequest request, 
+        CatalogAggregate product,
+        CalculateBatchPlanRequest request,
         double dailySalesRate)
     {
         double targetProductionUnits = 0;
         double totalWeight = 0;
-        
+
         switch (request.ControlMode)
         {
             case BatchPlanControlMode.MmqMultiplier:
@@ -301,7 +301,7 @@ public class BatchPlanningService : IBatchPlanningService
         return (targetProductionUnits, totalWeight);
     }
 
-    
+
 
     private async Task<CalculateBatchPlanResponse> CalculateSinglePhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {

@@ -1,57 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
+import {
+  ClassificationRuleDto,
+  ClassificationRuleTypeDto,
+  AccountingTemplateDto,
+  ClassificationHistoryDto,
+  CreateClassificationRuleRequest,
+  UpdateClassificationRuleRequest,
+  ClassifyInvoicesRequest,
+  ClassifyInvoicesResponse,
+  ReorderClassificationRulesRequest,
+  GetInvoiceDetailsResponse,
+  GetClassificationHistoryResponse
+} from '../generated/api-client';
 
-// Types based on backend DTOs
-export interface ClassificationRule {
-  id: string;
-  name: string;
-  ruleTypeIdentifier: string;
-  pattern: string;
-  accountingPrescription: string;
-  order: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  updatedBy: string;
-}
+// Re-export types from generated client for easier usage
+export type ClassificationRule = ClassificationRuleDto;
+export type ClassificationRuleType = ClassificationRuleTypeDto;
+export type AccountingTemplate = AccountingTemplateDto;
+export type ClassificationHistoryItem = ClassificationHistoryDto;
+export type ClassificationHistoryResponse = GetClassificationHistoryResponse;
 
-export interface ClassificationRuleType {
-  identifier: string;
-  displayName: string;
-  description: string;
-}
-
-export interface CreateClassificationRuleRequest {
-  name: string;
-  ruleTypeIdentifier: string;
-  pattern: string;
-  accountingPrescription: string;
-  isActive: boolean;
-}
-
-export interface UpdateClassificationRuleRequest {
-  id: string;
-  name: string;
-  ruleTypeIdentifier: string;
-  pattern: string;
-  accountingPrescription: string;
-  isActive: boolean;
-}
-
-export interface ClassifyInvoicesResponse {
-  totalInvoicesProcessed: number;
-  successfulClassifications: number;
-  manualReviewRequired: number;
-  errors: number;
-  errorMessages: string[];
-}
+// Keep these interfaces for compatibility
+export { CreateClassificationRuleRequest, UpdateClassificationRuleRequest, ClassifyInvoicesResponse };
 
 const CLASSIFICATION_QUERY_KEYS = {
   rules: ['invoice-classification', 'rules'] as const,
   ruleTypes: ['invoice-classification', 'rule-types'] as const,
-  statistics: ['invoice-classification', 'statistics'] as const,
+  accountingTemplates: ['invoice-classification', 'accounting-templates'] as const,
   history: ['invoice-classification', 'history'] as const,
+  statistics: ['invoice-classification', 'statistics'] as const,
 } as const;
 
 export function useClassificationRules(includeInactive = false) {
@@ -59,21 +37,8 @@ export function useClassificationRules(includeInactive = false) {
     queryKey: [...CLASSIFICATION_QUERY_KEYS.rules, includeInactive],
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = `/api/invoiceclassification/rules?includeInactive=${includeInactive}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch classification rules: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data.rules as ClassificationRule[];
+      const response = await apiClient.invoiceClassification_GetRules(includeInactive);
+      return response.rules || [];
     },
   });
 }
@@ -84,22 +49,8 @@ export function useCreateClassificationRule() {
   return useMutation({
     mutationFn: async (request: CreateClassificationRuleRequest) => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = '/api/invoiceclassification/rules';
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create classification rule: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data.rule as ClassificationRule;
+      const response = await apiClient.invoiceClassification_CreateRule(request);
+      return response.rule!;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.rules });
@@ -113,22 +64,8 @@ export function useUpdateClassificationRule() {
   return useMutation({
     mutationFn: async (request: UpdateClassificationRuleRequest) => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = `/api/invoiceclassification/rules/${request.id}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update classification rule: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data.rule as ClassificationRule;
+      const response = await apiClient.invoiceClassification_UpdateRule(request.id!, request);
+      return response.rule!;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.rules });
@@ -142,20 +79,7 @@ export function useDeleteClassificationRule() {
   return useMutation({
     mutationFn: async (ruleId: string) => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = `/api/invoiceclassification/rules/${ruleId}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to delete classification rule: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return await apiClient.invoiceClassification_DeleteRule(ruleId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.rules });
@@ -169,21 +93,8 @@ export function useReorderClassificationRules() {
   return useMutation({
     mutationFn: async (ruleIds: string[]) => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = '/api/invoiceclassification/rules/reorder';
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ruleIds }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to reorder classification rules: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      const request = new ReorderClassificationRulesRequest({ ruleIds });
+      return await apiClient.invoiceClassification_ReorderRules(request);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.rules });
@@ -196,20 +107,18 @@ export function useClassificationRuleTypes() {
     queryKey: CLASSIFICATION_QUERY_KEYS.ruleTypes,
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = '/api/invoiceclassification/rule-types';
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch classification rule types: ${response.statusText}`);
-      }
-      
-      return await response.json() as ClassificationRuleType[];
+      return await apiClient.invoiceClassification_GetAvailableRuleTypes();
+    },
+  });
+}
+
+export function useAccountingTemplates() {
+  return useQuery({
+    queryKey: CLASSIFICATION_QUERY_KEYS.accountingTemplates,
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      const response = await apiClient.invoiceClassification_GetAccountingTemplates();
+      return response.templates || [];
     },
   });
 }
@@ -218,21 +127,61 @@ export function useClassifyInvoices() {
   return useMutation({
     mutationFn: async (manualTrigger: boolean = true) => {
       const apiClient = await getAuthenticatedApiClient();
-      const url = '/api/invoiceclassification/classify';
-      const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ manualTrigger }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to classify invoices: ${response.statusText}`);
-      }
-      
-      return await response.json() as ClassifyInvoicesResponse;
+      const request = new ClassifyInvoicesRequest({ manualTrigger });
+      return await apiClient.invoiceClassification_ClassifyInvoices(request);
     },
+  });
+}
+
+export function useClassificationHistory(
+  page: number = 1,
+  pageSize: number = 20,
+  fromDate?: Date,
+  toDate?: Date,
+  invoiceNumber?: string,
+  companyName?: string
+) {
+  return useQuery({
+    queryKey: [...CLASSIFICATION_QUERY_KEYS.history, page, pageSize, fromDate, toDate, invoiceNumber, companyName],
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      return await apiClient.invoiceClassification_GetClassificationHistory(
+        page,
+        pageSize,
+        fromDate || null,
+        toDate || null,
+        invoiceNumber || null,
+        companyName || null
+      );
+    },
+  });
+}
+
+// Re-export types from generated client
+export { GetInvoiceDetailsResponse };
+
+export function useClassifySingleInvoice() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const apiClient = await getAuthenticatedApiClient();
+      return await apiClient.invoiceClassification_ClassifySingleInvoice(invoiceId);
+    },
+    onSuccess: () => {
+      // Invalidate history to refresh the list
+      queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.history });
+    },
+  });
+}
+
+export function useInvoiceDetails(invoiceId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: [...CLASSIFICATION_QUERY_KEYS.history, 'invoice', invoiceId],
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      return await apiClient.invoiceClassification_GetInvoiceDetails(invoiceId);
+    },
+    enabled: enabled && !!invoiceId,
   });
 }

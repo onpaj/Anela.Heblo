@@ -30,12 +30,12 @@ public class UpdateClassificationRuleHandler : IRequestHandler<UpdateClassificat
         }
 
         var currentUser = _currentUserService.GetCurrentUser();
-        
+
         existingRule.Update(
             request.Name,
             request.RuleTypeIdentifier,
             request.Pattern,
-            request.AccountingPrescription,
+            request.AccountingTemplateCode,
             request.IsActive,
             currentUser.Name
         );

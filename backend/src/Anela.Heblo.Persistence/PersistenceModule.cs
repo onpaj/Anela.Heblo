@@ -45,7 +45,7 @@ public static class PersistenceModule
 
         // Register repositories
         services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
-        
+
         // Invoice Classification repositories
         services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
         services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();

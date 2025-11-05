@@ -24,7 +24,7 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
 
     // Product size constraints
     public List<ProductSizeConstraint> ProductConstraints { get; set; } = new();
-    
+
     // Manufacturing type - set internally by handler
     public ManufactureType? ManufactureType { get; set; }
 }

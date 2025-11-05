@@ -6,6 +6,7 @@ import {
   CreateClassificationRuleRequest,
   UpdateClassificationRuleRequest,
   useClassificationRuleTypes,
+  useAccountingTemplates,
 } from '../../../api/hooks/useInvoiceClassification';
 
 interface RuleFormProps {
@@ -13,38 +14,44 @@ interface RuleFormProps {
   onSubmit: (data: CreateClassificationRuleRequest | UpdateClassificationRuleRequest) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
+  prefillCompanyName?: string;
 }
 
-const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading }) => {
+const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading, prefillCompanyName }) => {
   const { t } = useTranslation();
   const { data: ruleTypes = [], isLoading: ruleTypesLoading } = useClassificationRuleTypes();
+  const { data: accountingTemplates = [], isLoading: accountingTemplatesLoading } = useAccountingTemplates();
   const [formData, setFormData] = useState({
     name: '',
     ruleTypeIdentifier: '',
     pattern: '',
-    accountingPrescription: '',
+    accountingTemplateCode: '',
     isActive: true,
   });
 
   useEffect(() => {
     if (rule) {
       setFormData({
-        name: rule.name,
-        ruleTypeIdentifier: rule.ruleTypeIdentifier,
-        pattern: rule.pattern,
-        accountingPrescription: rule.accountingPrescription,
-        isActive: rule.isActive,
+        name: rule.name || '',
+        ruleTypeIdentifier: rule.ruleTypeIdentifier || '',
+        pattern: rule.pattern || '',
+        accountingTemplateCode: rule.accountingTemplateCode || '',
+        isActive: rule.isActive || false,
       });
     } else if (ruleTypes.length > 0) {
+      // Find COMPANY_NAME rule type if it exists, otherwise use first one
+      const companyNameRule = ruleTypes.find(rt => rt.identifier === 'COMPANY_NAME');
+      const selectedRuleType = companyNameRule || ruleTypes[0];
+      
       setFormData({
-        name: '',
-        ruleTypeIdentifier: ruleTypes[0]?.identifier || '',
-        pattern: '',
-        accountingPrescription: '',
+        name: prefillCompanyName ? `Rule for ${prefillCompanyName}` : '',
+        ruleTypeIdentifier: selectedRuleType?.identifier || '',
+        pattern: prefillCompanyName ? prefillCompanyName : '',
+        accountingTemplateCode: '',
         isActive: true,
       });
     }
-  }, [rule, ruleTypes]);
+  }, [rule, ruleTypes, prefillCompanyName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,20 +188,39 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
         </div>
 
         <div>
-          <label htmlFor="accountingPrescription" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="accountingTemplateCode" className="block text-sm font-medium text-gray-700 mb-1">
             {t('invoiceClassification.form.prescription', 'Accounting Prescription')} <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            id="accountingPrescription"
-            value={formData.accountingPrescription}
-            onChange={(e) => handleInputChange('accountingPrescription', e.target.value)}
+          <select
+            id="accountingTemplateCode"
+            value={formData.accountingTemplateCode}
+            onChange={(e) => handleInputChange('accountingTemplateCode', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder={t('invoiceClassification.form.prescriptionPlaceholder', 'e.g., 501/001')}
             required
-          />
+            disabled={accountingTemplatesLoading}
+          >
+            <option value="">
+              {accountingTemplatesLoading 
+                ? t('common.loading', 'Loading...') 
+                : t('invoiceClassification.form.selectPrescription', 'Select accounting prescription...')
+              }
+            </option>
+            {accountingTemplates.map(template => (
+              <option key={template.code} value={template.code}>
+                {template.code} - {template.name}
+              </option>
+            ))}
+          </select>
           <p className="mt-1 text-sm text-gray-500">
-            {t('invoiceClassification.form.prescriptionHelp', 'Enter the accounting code that should be applied to matching invoices')}
+            {formData.accountingTemplateCode && !accountingTemplatesLoading && accountingTemplates.length > 0 && (
+              (() => {
+                const selectedTemplate = accountingTemplates.find(t => t.code === formData.accountingTemplateCode);
+                return selectedTemplate ? `${selectedTemplate.description} (${selectedTemplate.accountCode})` : '';
+              })()
+            )}
+            {!formData.accountingTemplateCode && !accountingTemplatesLoading && (
+              t('invoiceClassification.form.prescriptionHelp', 'Select the accounting code that should be applied to matching invoices')
+            )}
           </p>
         </div>
 

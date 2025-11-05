@@ -38,6 +38,42 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
             .ToListAsync();
     }
 
+    public async Task<(List<ClassificationHistory> Items, int TotalCount)> GetPagedHistoryAsync(
+        int page = 1,
+        int pageSize = 20,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? invoiceNumber = null,
+        string? companyName = null)
+    {
+        var query = _context.ClassificationHistory
+            .Include(h => h.ClassificationRule)
+            .AsQueryable();
+
+        // Apply filters
+        if (fromDate.HasValue)
+            query = query.Where(h => h.Timestamp >= fromDate.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(h => h.Timestamp <= toDate.Value);
+
+        if (!string.IsNullOrEmpty(invoiceNumber))
+            query = query.Where(h => h.AbraInvoiceId.Contains(invoiceNumber));
+
+        if (!string.IsNullOrEmpty(companyName))
+            query = query.Where(h => h.CompanyName.Contains(companyName));
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(h => h.Timestamp)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<ClassificationStatistics> GetStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null)
     {
         var query = _context.ClassificationHistory.AsQueryable();

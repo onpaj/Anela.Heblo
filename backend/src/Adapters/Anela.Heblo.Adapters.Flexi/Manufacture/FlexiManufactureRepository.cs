@@ -44,7 +44,7 @@ public class FlexiManufactureRepository : IManufactureRepository
                     ProductCode = s.IngredientCode.RemoveCodePrefix(),
                     ProductName = s.IngredientFullName,
                     Amount = s.Amount,
-                    ProductType = ResolveProductType(s) 
+                    ProductType = ResolveProductType(s)
                 };
             }).ToList(),
         };
@@ -62,19 +62,19 @@ public class FlexiManufactureRepository : IManufactureRepository
         try
         {
             var productTypeId = boMItemFlexiDto.Ingredient?.FirstOrDefault()?.ProductTypeId;
-            
+
             // Return UNDEFINED if no ProductTypeId is available
             if (!productTypeId.HasValue)
             {
                 return ProductType.UNDEFINED;
             }
-            
+
             // Check if the value is a valid ProductType enum value
             if (Enum.IsDefined(typeof(ProductType), productTypeId.Value))
             {
                 return (ProductType)productTypeId.Value;
             }
-            
+
             // Return UNDEFINED for unknown enum values
             return ProductType.UNDEFINED;
         }
