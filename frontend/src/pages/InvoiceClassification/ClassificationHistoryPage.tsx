@@ -36,21 +36,21 @@ const ClassificationHistoryPage: React.FC = () => {
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            {t('invoiceClassification.history.success', 'Success')}
+            Úspěch
           </span>
         );
       case 'ManualReviewRequired':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-3 h-3 mr-1" />
-            {t('invoiceClassification.history.manualReview', 'Manual Review')}
+            Ruční kontrola
           </span>
         );
       case 'Error':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <AlertCircle className="w-3 h-3 mr-1" />
-            {t('invoiceClassification.history.error', 'Error')}
+            Chyba
           </span>
         );
       default:
@@ -144,7 +144,7 @@ const ClassificationHistoryPage: React.FC = () => {
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">
-                {t('invoiceClassification.history.error', 'Error loading classification history')}
+                Chyba při načítání historie klasifikace
               </h3>
               <div className="mt-2 text-sm text-red-700">
                 {error instanceof Error ? error.message : 'Unknown error occurred'}
@@ -249,11 +249,11 @@ const ClassificationHistoryPage: React.FC = () => {
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
+            <p className="mt-2 text-sm text-gray-500">Načítání...</p>
           </div>
         ) : historyData?.items?.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-gray-500">{t('invoiceClassification.history.noResults', 'No classification records found')}</p>
+            <p className="text-gray-500">Nebyly nalezeny žádné záznamy klasifikace</p>
           </div>
         ) : (
           <>
@@ -263,28 +263,28 @@ const ClassificationHistoryPage: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.invoice', 'Invoice')}
+                      Faktura
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.company', 'Company')}
+                      Firma
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.description', 'Description')}
+                      Popis
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.rule', 'Rule')}
+                      Pravidlo
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.prescription', 'Prescription')}
+                      Předpis
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.result', 'Result')}
+                      Výsledek
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.timestamp', 'Classified At')}
+                      Klasifikováno
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('invoiceClassification.history.actions', 'Actions')}
+                      Akce
                     </th>
                   </tr>
                 </thead>
@@ -325,23 +325,23 @@ const ClassificationHistoryPage: React.FC = () => {
                             onClick={() => item.invoiceId && handleClassifyInvoice(item.invoiceId)}
                             disabled={classifyingInvoiceId === item.invoiceId}
                             className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('invoiceClassification.history.actions.classify', 'Classify this invoice')}
+                            title="Klasifikovat tuto fakturu"
                           >
                             {classifyingInvoiceId === item.invoiceId ? (
                               <div className="w-3 h-3 mr-1 animate-spin rounded-full border border-indigo-700 border-t-transparent"></div>
                             ) : (
                               <Play className="w-3 h-3 mr-1" />
                             )}
-                            {t('invoiceClassification.history.actions.classify', 'Klasifikovat')}
+                            Klasifikovat
                           </button>
                           <button
                             onClick={() => item.companyName ? handleCreateRule(item.companyName) : undefined}
                             disabled={!item.companyName}
                             className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('invoiceClassification.history.actions.createRule', 'Create rule for this company')}
+                            title="Vytvořit pravidlo pro tuto firmu"
                           >
                             <Plus className="w-3 h-3 mr-1" />
-                            {t('invoiceClassification.history.actions.createRule', 'Vytvor pravidlo')}
+                            Vytvořit pravidlo
                           </button>
                         </div>
                       </td>
@@ -360,14 +360,14 @@ const ClassificationHistoryPage: React.FC = () => {
                     disabled={page === 1}
                     className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {t('common.previous', 'Previous')}
+                    Předchozí
                   </button>
                   <button
                     onClick={() => setPage(Math.min(historyData.totalPages || 1, page + 1))}
                     disabled={page === (historyData.totalPages || 1)}
                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {t('common.next', 'Next')}
+                    Další
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">

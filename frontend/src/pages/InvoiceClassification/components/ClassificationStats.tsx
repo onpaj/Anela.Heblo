@@ -16,28 +16,28 @@ const ClassificationStats: React.FC = () => {
 
   const stats = [
     {
-      name: t('invoiceClassification.stats.total', 'Total Processed'),
+      name: 'Celkem zpracováno',
       value: mockStats.totalInvoicesProcessed,
       icon: BarChart3,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      name: t('invoiceClassification.stats.successful', 'Successful'),
+      name: 'Úspěšné',
       value: mockStats.successfulClassifications,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
-      name: t('invoiceClassification.stats.manual', 'Manual Review'),
+      name: 'Ruční kontrola',
       value: mockStats.manualReviewRequired,
       icon: AlertCircle,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100',
     },
     {
-      name: t('invoiceClassification.stats.errors', 'Errors'),
+      name: 'Chyby',
       value: mockStats.errors,
       icon: XCircle,
       color: 'text-red-600',
@@ -48,7 +48,7 @@ const ClassificationStats: React.FC = () => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
       <h3 className="text-lg font-medium text-gray-900 mb-6">
-        {t('invoiceClassification.stats.title', 'Classification Statistics')}
+        Statistiky klasifikace
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -73,7 +73,7 @@ const ClassificationStats: React.FC = () => {
       <div className="border-t border-gray-200 pt-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">
-            {t('invoiceClassification.stats.successRate', 'Success Rate')}
+            Úspěšnost
           </span>
           <span className="text-sm font-bold text-gray-900">
             {mockStats.successRate}%

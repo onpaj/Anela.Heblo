@@ -80,15 +80,15 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
   const getPatternPlaceholder = () => {
     switch (formData.ruleTypeIdentifier) {
       case 'ICO':
-        return t('invoiceClassification.placeholders.ico', 'e.g., 12345678');
+        return 'např. 12345678';
       case 'COMPANY_NAME':
-        return t('invoiceClassification.placeholders.companyName', 'e.g., Company.*s.r.o.');
+        return 'např. Firma.*s.r.o.';
       case 'DESCRIPTION':
-        return t('invoiceClassification.placeholders.description', 'e.g., software.*development');
+        return 'např. software.*vývoj';
       case 'ITEM_DESCRIPTION':
-        return t('invoiceClassification.placeholders.itemDescription', 'e.g., consulting.*services');
+        return 'např. poradenské.*služby';
       case 'AMOUNT':
-        return t('invoiceClassification.placeholders.amount', 'e.g., >=1000 or <500');
+        return 'např. >=1000 nebo <500';
       default:
         return '';
     }
@@ -102,15 +102,15 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
     
     switch (formData.ruleTypeIdentifier) {
       case 'ICO':
-        return t('invoiceClassification.help.ico', 'Enter exact ICO number for matching');
+        return 'Zadejte přesné číslo IČO pro vyhledávání';
       case 'COMPANY_NAME':
-        return t('invoiceClassification.help.companyName', 'Use regex patterns. .* matches any text');
+        return 'Použijte regex vzory. .* odpovídá libovolnému textu';
       case 'DESCRIPTION':
-        return t('invoiceClassification.help.description', 'Use regex patterns to match invoice description');
+        return 'Použijte regex vzory pro vyhledávání v popisu faktury';
       case 'ITEM_DESCRIPTION':
-        return t('invoiceClassification.help.itemDescription', 'Matches against any invoice line item description');
+        return 'Hledá shodu v popisu jakéhokoli řádku faktury';
       case 'AMOUNT':
-        return t('invoiceClassification.help.amount', 'Use operators: >=, <=, >, <, = followed by amount');
+        return 'Použijte operátory: >=, <=, >, <, = následované částkou';
       default:
         return '';
     }
@@ -121,8 +121,8 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-900">
           {rule 
-            ? t('invoiceClassification.editRule', 'Edit Classification Rule')
-            : t('invoiceClassification.createRule', 'Create Classification Rule')
+            ? 'Upravit pravidlo klasifikace'
+            : 'Vytvořit pravidlo klasifikace'
           }
         </h2>
       </div>
@@ -131,7 +131,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.form.name', 'Rule Name')} <span className="text-red-500">*</span>
+              Název pravidla <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -139,14 +139,14 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder={t('invoiceClassification.form.namePlaceholder', 'Enter a descriptive name for this rule')}
+              placeholder="Zadejte popisný název pro toto pravidlo"
               required
             />
           </div>
 
           <div>
             <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invoiceClassification.form.type', 'Rule Type')} <span className="text-red-500">*</span>
+              Typ pravidla <span className="text-red-500">*</span>
             </label>
             <select
               id="type"
@@ -157,7 +157,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
               disabled={ruleTypesLoading}
             >
               {ruleTypesLoading ? (
-                <option value="">{t('common.loading', 'Loading...')}</option>
+                <option value="">Načítání...</option>
               ) : (
                 ruleTypes.map(ruleType => (
                   <option key={ruleType.identifier} value={ruleType.identifier}>
@@ -171,7 +171,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
 
         <div>
           <label htmlFor="pattern" className="block text-sm font-medium text-gray-700 mb-1">
-            {t('invoiceClassification.form.pattern', 'Pattern')} <span className="text-red-500">*</span>
+            Vzor <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -189,7 +189,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
 
         <div>
           <label htmlFor="accountingTemplateCode" className="block text-sm font-medium text-gray-700 mb-1">
-            {t('invoiceClassification.form.prescription', 'Accounting Prescription')} <span className="text-red-500">*</span>
+            Účetní předpis <span className="text-red-500">*</span>
           </label>
           <select
             id="accountingTemplateCode"
@@ -201,8 +201,8 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
           >
             <option value="">
               {accountingTemplatesLoading 
-                ? t('common.loading', 'Loading...') 
-                : t('invoiceClassification.form.selectPrescription', 'Select accounting prescription...')
+                ? 'Načítání...' 
+                : 'Vyberte účetní předpis...'
               }
             </option>
             {accountingTemplates.map(template => (
@@ -219,7 +219,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
               })()
             )}
             {!formData.accountingTemplateCode && !accountingTemplatesLoading && (
-              t('invoiceClassification.form.prescriptionHelp', 'Select the accounting code that should be applied to matching invoices')
+              'Vyberte účetní kód, který se má použít pro odpovídající faktury'
             )}
           </p>
         </div>
@@ -233,7 +233,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
           />
           <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-            {t('invoiceClassification.form.active', 'Rule is active')}
+            Pravidlo je aktivní
           </label>
         </div>
 
@@ -244,7 +244,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <X className="w-4 h-4 mr-2 inline" />
-            {t('common.cancel', 'Cancel')}
+            Zrušit
           </button>
           <button
             type="submit"
@@ -253,8 +253,8 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
           >
             <Save className="w-4 h-4 mr-2" />
             {isLoading 
-              ? t('common.saving', 'Saving...') 
-              : (rule ? t('common.update', 'Update') : t('common.create', 'Create'))
+              ? 'Ukládání...' 
+              : (rule ? 'Aktualizovat' : 'Vytvořit')
             }
           </button>
         </div>
