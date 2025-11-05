@@ -48,7 +48,7 @@ const InvoiceClassificationPage: React.FC = () => {
   };
 
   const handleDeleteRule = async (ruleId: string) => {
-    if (window.confirm(t('invoiceClassification.confirmDelete', 'Are you sure you want to delete this rule?'))) {
+    if (window.confirm('Opravdu chcete smazat toto pravidlo?')) {
       try {
         await deleteMutation.mutateAsync(ruleId);
       } catch (error) {
@@ -114,10 +114,10 @@ const InvoiceClassificationPage: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t('invoiceClassification.title', 'Invoice Classification')}
+              Klasifikace faktur
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              {t('invoiceClassification.description', 'View classification history and manage rules')}
+              Prohlížení historie klasifikace a správa pravidel
             </p>
           </div>
           
@@ -129,8 +129,8 @@ const InvoiceClassificationPage: React.FC = () => {
             >
               <Play className="w-4 h-4 mr-2" />
               {classifyMutation.isPending 
-                ? t('invoiceClassification.classifying', 'Classifying...') 
-                : t('invoiceClassification.runClassification', 'Run Classification')
+                ? 'Klasifikuji...' 
+                : 'Spustit klasifikaci'
               }
             </button>
             
@@ -139,7 +139,7 @@ const InvoiceClassificationPage: React.FC = () => {
               className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
               <BarChart className="w-4 h-4 mr-2" />
-              {t('invoiceClassification.statistics', 'Statistics')}
+              Statistiky
             </button>
           </div>
         </div>
@@ -158,7 +158,7 @@ const InvoiceClassificationPage: React.FC = () => {
           >
             <div className="flex items-center">
               <FileText className="w-4 h-4 mr-2" />
-              {t('invoiceClassification.tabs.invoices', 'Faktury')}
+              Faktury
             </div>
           </button>
           <button
@@ -171,7 +171,7 @@ const InvoiceClassificationPage: React.FC = () => {
           >
             <div className="flex items-center">
               <Settings className="w-4 h-4 mr-2" />
-              {t('invoiceClassification.tabs.rules', 'Pravidla')}
+              Pravidla
             </div>
           </button>
         </nav>
@@ -189,10 +189,10 @@ const InvoiceClassificationPage: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {t('invoiceClassification.rulesManagement', 'Classification Rules Management')}
+                  Správa pravidel klasifikace
                 </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  {t('invoiceClassification.rulesDescription', 'Manage and configure invoice classification rules')}
+                  Správa a konfigurace pravidel pro klasifikaci faktur
                 </p>
               </div>
               
@@ -202,7 +202,7 @@ const InvoiceClassificationPage: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {t('invoiceClassification.addRule', 'Add Rule')}
+                Přidat pravidlo
               </button>
             </div>
 
@@ -223,7 +223,7 @@ const InvoiceClassificationPage: React.FC = () => {
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500">{t('common.loading', 'Loading...')}</p>
+                  <p className="mt-2 text-sm text-gray-500">Načítání...</p>
                 </div>
               ) : error ? (
                 <div className="p-8 text-center text-red-600">
@@ -256,7 +256,7 @@ const InvoiceClassificationPage: React.FC = () => {
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {t('invoiceClassification.statisticsTitle', 'Classification Statistics')}
+                    Statistiky klasifikace
                   </h3>
                   <button
                     onClick={() => setShowStatsModal(false)}

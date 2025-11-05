@@ -87,8 +87,8 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
                 : 'bg-gray-100 text-gray-800'
             }`}>
               {rule.isActive 
-                ? t('invoiceClassification.active', 'Active') 
-                : t('invoiceClassification.inactive', 'Inactive')
+                ? 'Aktivní' 
+                : 'Neaktivní'
               }
             </span>
           </div>
@@ -96,13 +96,13 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
             <div>
               <span className="font-medium">
-                {t('invoiceClassification.ruleType', 'Type')}:
+                Typ:
               </span>{' '}
               {getRuleTypeLabel(rule.ruleTypeIdentifier || '')}
             </div>
             <div>
               <span className="font-medium">
-                {t('invoiceClassification.pattern', 'Pattern')}:
+                Vzor:
               </span>{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
                 {rule.pattern}
@@ -110,7 +110,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             </div>
             <div>
               <span className="font-medium">
-                {t('invoiceClassification.prescription', 'Template')}:
+                Předpis:
               </span>{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
                 {rule.accountingTemplateCode}
@@ -123,7 +123,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
           <button
             onClick={() => onEdit(rule)}
             className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-50"
-            title={t('invoiceClassification.edit', 'Edit')}
+            title="Upravit"
           >
             <Edit className="w-4 h-4" />
           </button>
@@ -131,7 +131,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             onClick={() => rule.id && onDelete(rule.id)}
             disabled={isDeleting}
             className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            title={t('invoiceClassification.delete', 'Delete')}
+            title="Smazat"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -174,7 +174,7 @@ const RulesList: React.FC<RulesListProps> = ({
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">
-          {t('invoiceClassification.noRules', 'No classification rules found. Create your first rule to get started.')}
+          Nebyla nalezena žádná pravidla klasifikace. Vytvořte své první pravidlo pro začátek.
         </p>
       </div>
     );
@@ -184,13 +184,10 @@ const RulesList: React.FC<RulesListProps> = ({
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900">
-          {t('invoiceClassification.rules', 'Classification Rules')}
+          Pravidla klasifikace
         </h2>
         <span className="text-sm text-gray-500">
-          {t('invoiceClassification.rulesCount', { 
-            defaultValue: '{{count}} rules', 
-            count: rules.length 
-          })}
+          {rules.length} pravidel
         </span>
       </div>
 
