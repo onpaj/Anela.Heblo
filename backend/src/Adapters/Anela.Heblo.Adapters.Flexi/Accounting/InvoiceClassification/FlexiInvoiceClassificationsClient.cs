@@ -55,8 +55,11 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
 
     public async Task<bool> MarkInvoiceForManualReviewAsync(string invoiceId, string reason, CancellationToken? cancellationToken = default)
     {
-        var result =
+        var resultAdd =
             await _receivedInvoiceClient.AddTagAsync(invoiceId, _options.Value.InvoiceClassificationManualReviewLabel, cancellationToken ?? CancellationToken.None);
-        return result.IsSuccess;
+        var resultRemove =
+            await _receivedInvoiceClient.RemoveTagAsync(invoiceId, _options.Value.InvoiceClassificationTriggerLabel, cancellationToken ?? CancellationToken.None);
+
+        return resultAdd.IsSuccess && resultRemove.IsSuccess;
     }
 }
