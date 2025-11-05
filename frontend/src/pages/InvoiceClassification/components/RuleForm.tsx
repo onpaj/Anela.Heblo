@@ -78,42 +78,17 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
   };
 
   const getPatternPlaceholder = () => {
-    switch (formData.ruleTypeIdentifier) {
-      case 'ICO':
-        return 'např. 12345678';
-      case 'COMPANY_NAME':
-        return 'např. Firma.*s.r.o.';
-      case 'DESCRIPTION':
-        return 'např. software.*vývoj';
-      case 'ITEM_DESCRIPTION':
-        return 'např. poradenské.*služby';
-      case 'AMOUNT':
-        return 'např. >=1000 nebo <500';
-      default:
-        return '';
-    }
+    const currentRuleType = getCurrentRuleType();
+    // Použijeme description z rule typu nebo generický placeholder
+    return currentRuleType?.description 
+      ? `např. ${currentRuleType.description}` 
+      : 'Zadejte vzor pro vyhledávání';
   };
 
   const getPatternHelp = () => {
     const currentRuleType = getCurrentRuleType();
-    if (currentRuleType) {
-      return currentRuleType.description;
-    }
-    
-    switch (formData.ruleTypeIdentifier) {
-      case 'ICO':
-        return 'Zadejte přesné číslo IČO pro vyhledávání';
-      case 'COMPANY_NAME':
-        return 'Použijte regex vzory. .* odpovídá libovolnému textu';
-      case 'DESCRIPTION':
-        return 'Použijte regex vzory pro vyhledávání v popisu faktury';
-      case 'ITEM_DESCRIPTION':
-        return 'Hledá shodu v popisu jakéhokoli řádku faktury';
-      case 'AMOUNT':
-        return 'Použijte operátory: >=, <=, >, <, = následované částkou';
-      default:
-        return '';
-    }
+    // Použijeme pouze description z rule typu - odstraníme hardcoded switch
+    return currentRuleType?.description || 'Zadejte vzor podle typu pravidla';
   };
 
   return (
