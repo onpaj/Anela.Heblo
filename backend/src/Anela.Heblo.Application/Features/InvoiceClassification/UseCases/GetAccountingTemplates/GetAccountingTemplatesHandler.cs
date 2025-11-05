@@ -14,7 +14,7 @@ public class GetAccountingTemplatesHandler : IRequestHandler<GetAccountingTempla
 
     public async Task<GetAccountingTemplatesResponse> Handle(GetAccountingTemplatesRequest request, CancellationToken cancellationToken)
     {
-        var templates = await _invoiceClassificationsClient.GetValidAccountingTemplatesAsync();
+        var templates = await _invoiceClassificationsClient.GetValidAccountingTemplatesAsync(cancellationToken);
 
         return new GetAccountingTemplatesResponse
         {

@@ -26,7 +26,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
         _logger = logger;
     }
 
-    public async Task<List<AccountingTemplateDto>> GetValidAccountingTemplatesAsync()
+    public async Task<List<AccountingTemplateDto>> GetValidAccountingTemplatesAsync(CancellationToken? cancellationToken = default)
     {
         var templates = await _accountingTemplateClient.GetAsync();
         return templates
@@ -42,21 +42,21 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
             .ToList();
     }
 
-    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode)
+    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode, CancellationToken? cancellationToken = default)
     {
         var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingTemplateCode, null);
         if (result.IsSuccess)
         {
-            await _receivedInvoiceClient.RemoveTagAsync(invoiceId, _options.Value.InvoiceClassificationTriggerLabel);
+            await _receivedInvoiceClient.RemoveTagAsync(invoiceId, [_options.Value.InvoiceClassificationTriggerLabel, _options.Value.InvoiceClassificationManualReviewLabel], cancellationToken ?? CancellationToken.None);
         }
         
         return result.IsSuccess;
     }
 
-    public async Task<bool> MarkInvoiceForManualReviewAsync(string invoiceId, string reason)
+    public async Task<bool> MarkInvoiceForManualReviewAsync(string invoiceId, string reason, CancellationToken? cancellationToken = default)
     {
         var result =
-            await _receivedInvoiceClient.AddTagAsync(invoiceId, _options.Value.InvoiceClassificationManualReviewLabel);
+            await _receivedInvoiceClient.AddTagAsync(invoiceId, _options.Value.InvoiceClassificationManualReviewLabel, cancellationToken ?? CancellationToken.None);
         return result.IsSuccess;
     }
 }
