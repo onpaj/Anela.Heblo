@@ -1,7 +1,6 @@
 import React from "react";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication, InteractionRequiredAuthError } from "@azure/msal-browser";
 import { getAuthenticatedApiClient, setGlobalTokenProvider, setGlobalAuthRedirectHandler } from "../api/client";
 import { useAuth } from "../auth/useAuth";

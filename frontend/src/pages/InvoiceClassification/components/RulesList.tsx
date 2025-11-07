@@ -40,7 +40,6 @@ interface SortableRuleItemProps {
 }
 
 const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDelete, isDeleting }) => {
-  const { t } = useTranslation();
   const { data: ruleTypes = [] } = useClassificationRuleTypes();
   const { data: departments = [] } = useDepartments();
   const {

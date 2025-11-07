@@ -4,7 +4,6 @@ import {
   screen,
   fireEvent,
   waitFor,
-  act,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import LocationSelectionModal from "../LocationSelectionModal";
@@ -696,7 +695,7 @@ describe("LocationSelectionModal", () => {
         { wrapper: createWrapper },
       );
 
-      const select = screen.getByLabelText("Vyberte lokaci pro rezervu:");
+      screen.getByLabelText("Vyberte lokaci pro rezervu:");
 
       expect(screen.getByRole("option", { name: /kumbal/i })).toHaveValue(
         "Kumbal",
