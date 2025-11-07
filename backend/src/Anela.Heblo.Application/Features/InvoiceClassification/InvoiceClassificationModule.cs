@@ -11,7 +11,6 @@ public static class InvoiceClassificationModule
     {
         services.AddScoped<IInvoiceClassificationService, InvoiceClassificationService>();
         services.AddScoped<IRuleEvaluationEngine, RuleEvaluationEngine>();
-        services.AddScoped<IDepartmentClient, FixedDepartmentClient>();
 
         // Register all classification rule implementations
         services.AddScoped<IClassificationRule, VatClassificationRule>();
