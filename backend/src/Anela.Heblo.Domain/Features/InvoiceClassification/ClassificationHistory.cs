@@ -22,6 +22,8 @@ public class ClassificationHistory
 
     public string? AccountingTemplateCode { get; private set; }
 
+    public string? Department { get; private set; }
+
     public string? ErrorMessage { get; private set; }
 
     public DateTime Timestamp { get; private set; }
@@ -42,6 +44,7 @@ public class ClassificationHistory
         string processedBy,
         Guid? classificationRuleId = null,
         string? accountingTemplateCode = null,
+        string? department = null,
         string? errorMessage = null)
     {
         Id = Guid.NewGuid();
@@ -53,6 +56,7 @@ public class ClassificationHistory
         ClassificationRuleId = classificationRuleId;
         Result = result;
         AccountingTemplateCode = accountingTemplateCode;
+        Department = department;
         ErrorMessage = errorMessage;
         ProcessedBy = processedBy ?? throw new ArgumentNullException(nameof(processedBy));
         Timestamp = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);

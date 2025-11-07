@@ -10,5 +10,7 @@ public class InvoiceClassificationResult
 
     public string? AccountingTemplateCode { get; set; }
 
+    public string? Department { get; set; }
+
     public string? ErrorMessage { get; set; }
 }

@@ -12,6 +12,8 @@ public class ClassificationRule
 
     public string AccountingTemplateCode { get; private set; } = string.Empty;
 
+    public string? Department { get; private set; }
+
     public int Order { get; private set; }
 
     public bool IsActive { get; private set; } = true;
@@ -33,6 +35,7 @@ public class ClassificationRule
         string ruleTypeIdentifier,
         string pattern,
         string accountingTemplateCode,
+        string? department,
         string createdBy)
     {
         Id = Guid.NewGuid();
@@ -40,6 +43,7 @@ public class ClassificationRule
         RuleTypeIdentifier = ruleTypeIdentifier ?? throw new ArgumentNullException(nameof(ruleTypeIdentifier));
         Pattern = pattern ?? throw new ArgumentNullException(nameof(pattern));
         AccountingTemplateCode = accountingTemplateCode ?? throw new ArgumentNullException(nameof(accountingTemplateCode));
+        Department = department;
         Order = 0; // Will be set when adding to collection
         IsActive = true;
         CreatedBy = createdBy ?? throw new ArgumentNullException(nameof(createdBy));
@@ -53,6 +57,7 @@ public class ClassificationRule
         string ruleTypeIdentifier,
         string pattern,
         string accountingTemplateCode,
+        string? department,
         bool isActive,
         string updatedBy)
     {
@@ -60,6 +65,7 @@ public class ClassificationRule
         RuleTypeIdentifier = ruleTypeIdentifier ?? throw new ArgumentNullException(nameof(ruleTypeIdentifier));
         Pattern = pattern ?? throw new ArgumentNullException(nameof(pattern));
         AccountingTemplateCode = accountingTemplateCode ?? throw new ArgumentNullException(nameof(accountingTemplateCode));
+        Department = department;
         IsActive = isActive;
         UpdatedBy = updatedBy ?? throw new ArgumentNullException(nameof(updatedBy));
         UpdatedAt = DateTime.UtcNow;

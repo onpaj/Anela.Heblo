@@ -44,6 +44,10 @@ public class ClassificationHistoryConfiguration : IEntityTypeConfiguration<Class
             .IsRequired(false)
             .HasColumnName("AccountingTemplateCode");
 
+        builder.Property(x => x.Department)
+            .HasMaxLength(255)
+            .IsRequired(false);
+
         builder.Property(x => x.ErrorMessage)
             .HasMaxLength(1000)
             .IsRequired(false);

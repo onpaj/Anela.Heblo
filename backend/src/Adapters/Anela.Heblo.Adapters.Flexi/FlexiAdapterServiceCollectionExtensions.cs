@@ -1,4 +1,5 @@
-﻿using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
+﻿using Anela.Heblo.Adapters.Flexi.Accounting.Departments;
+using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
@@ -67,6 +68,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
         services.AddScoped<ILotsClient, FlexiLotsClient>();
+        services.AddScoped<IDepartmentClient, FlexiDepartmentClient>();
 
         // Invoice Classification clients
         services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();

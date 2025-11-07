@@ -42,7 +42,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             if (matchedRule == null)
             {
                 await RecordClassificationHistory(invoice, null, ClassificationResult.ManualReviewRequired,
-                    null, "No matching rule found", currentUser.Name);
+                    null, null, "No matching rule found", currentUser.Name);
 
                 await _classificationsClient.MarkInvoiceForManualReviewAsync(invoice.InvoiceNumber, "No matching classification rule");
 
@@ -53,30 +53,32 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             }
 
             var success = await _classificationsClient.UpdateInvoiceClassificationAsync(
-                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode);
+                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode, matchedRule.Department);
 
             if (success)
             {
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Success,
-                    matchedRule.AccountingTemplateCode, null, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, matchedRule.Department, null, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.Success,
                     RuleId = matchedRule.Id,
-                    AccountingTemplateCode = matchedRule.AccountingTemplateCode
+                    AccountingTemplateCode = matchedRule.AccountingTemplateCode,
+                    Department = matchedRule.Department
                 };
             }
             else
             {
                 var errorMessage = "Failed to update invoice classification in ABRA";
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Error,
-                    matchedRule.AccountingTemplateCode, errorMessage, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, matchedRule.Department, errorMessage, currentUser.Name);
 
                 return new InvoiceClassificationResult
                 {
                     Result = ClassificationResult.Error,
                     RuleId = matchedRule.Id,
+                    Department = matchedRule.Department,
                     ErrorMessage = errorMessage
                 };
             }
@@ -85,7 +87,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         {
             var errorMessage = $"Exception during classification: {ex.Message}";
             await RecordClassificationHistory(invoice, null, ClassificationResult.Error,
-                null, errorMessage, currentUser.Name);
+                null, null, errorMessage, currentUser.Name);
 
             _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.InvoiceNumber);
 
@@ -98,7 +100,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
     }
 
     private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId,
-        ClassificationResult result, string? accountingTemplateCode, string? errorMessage, string processedBy)
+        ClassificationResult result, string? accountingTemplateCode, string? department, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(
             invoice.InvoiceNumber, // AbraInvoiceId
@@ -110,6 +112,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             processedBy,
             ruleId,
             accountingTemplateCode,
+            department,
             errorMessage
         );
 
