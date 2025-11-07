@@ -53,7 +53,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             }
 
             var success = await _classificationsClient.UpdateInvoiceClassificationAsync(
-                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode);
+                invoice.InvoiceNumber, matchedRule.AccountingTemplateCode, matchedRule.Department);
 
             if (success)
             {

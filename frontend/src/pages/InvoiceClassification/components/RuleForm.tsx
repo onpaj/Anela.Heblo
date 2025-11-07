@@ -8,6 +8,7 @@ import {
   useClassificationRuleTypes,
   useAccountingTemplates,
 } from '../../../api/hooks/useInvoiceClassification';
+import { useDepartments } from '../../../api/hooks/useDepartments';
 
 interface RuleFormProps {
   rule?: ClassificationRule | null;
@@ -21,6 +22,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
   const { t } = useTranslation();
   const { data: ruleTypes = [], isLoading: ruleTypesLoading } = useClassificationRuleTypes();
   const { data: accountingTemplates = [], isLoading: accountingTemplatesLoading } = useAccountingTemplates();
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments();
   const [formData, setFormData] = useState({
     name: '',
     ruleTypeIdentifier: '',
@@ -206,16 +208,26 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
           <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
             Oddělení
           </label>
-          <input
-            type="text"
+          <select
             id="department"
             value={formData.department}
             onChange={(e) => handleInputChange('department', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Vyberte nebo zadejte oddělení (volitelné)"
-          />
+            disabled={departmentsLoading}
+          >
+            <option value="">Vyberte oddělení (volitelné)</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
           <p className="mt-1 text-sm text-gray-500">
-            Volitelné oddělení, ke kterému se má faktura přiřadit
+            {departmentsLoading ? (
+              'Načítání oddělení...'
+            ) : (
+              'Volitelné oddělení, ke kterému se má faktura přiřadit'
+            )}
           </p>
         </div>
 

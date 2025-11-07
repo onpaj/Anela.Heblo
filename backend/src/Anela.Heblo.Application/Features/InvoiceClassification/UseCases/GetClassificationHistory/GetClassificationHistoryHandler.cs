@@ -38,6 +38,7 @@ public class GetClassificationHistoryHandler : IRequestHandler<GetClassification
             Description = history.Description,
             ClassificationRuleId = history.ClassificationRuleId,
             RuleName = history.ClassificationRule?.Name,
+            Department =  history.Department,
             Result = history.Result,
             AccountingTemplateCode = history.AccountingTemplateCode,
             ErrorMessage = history.ErrorMessage,

@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ClassificationRule, useClassificationRuleTypes } from '../../../api/hooks/useInvoiceClassification';
+import { useDepartments } from '../../../api/hooks/useDepartments';
 
 interface RulesListProps {
   rules: ClassificationRule[];
@@ -41,6 +42,7 @@ interface SortableRuleItemProps {
 const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDelete, isDeleting }) => {
   const { t } = useTranslation();
   const { data: ruleTypes = [] } = useClassificationRuleTypes();
+  const { data: departments = [] } = useDepartments();
   const {
     attributes,
     listeners,
@@ -59,6 +61,12 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
   const getRuleTypeLabel = (ruleTypeIdentifier: string): string => {
     const ruleType = ruleTypes.find(rt => rt.identifier === ruleTypeIdentifier);
     return ruleType ? (ruleType.displayName || ruleTypeIdentifier) : ruleTypeIdentifier;
+  };
+
+  const getDepartmentName = (departmentId: string | null | undefined): string | null => {
+    if (!departmentId) return null;
+    const department = departments.find(d => d.id === departmentId);
+    return department?.name || departmentId;
   };
 
   return (
@@ -93,7 +101,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
             <div>
               <span className="font-medium">
                 Typ:
@@ -115,6 +123,14 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
               <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
                 {rule.accountingTemplateCode}
               </code>
+            </div>
+            <div>
+              <span className="font-medium">
+                Oddělení:
+              </span>{' '}
+              {getDepartmentName(rule.department) || (
+                <span className="italic text-gray-400">Nenastaveno</span>
+              )}
             </div>
           </div>
         </div>

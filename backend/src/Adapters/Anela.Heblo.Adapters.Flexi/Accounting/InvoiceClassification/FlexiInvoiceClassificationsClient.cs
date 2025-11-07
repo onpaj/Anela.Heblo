@@ -42,9 +42,10 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
             .ToList();
     }
 
-    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode, CancellationToken? cancellationToken = default)
+    public async Task<bool> UpdateInvoiceClassificationAsync(string invoiceId, string accountingTemplateCode,
+        string? departmentCode, CancellationToken? cancellationToken = default)
     {
-        var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingTemplateCode, null);
+        var result = await _accountingTemplateClient.UpdateInvoiceAsync(invoiceId, accountingTemplateCode, departmentCode);
         if (result.IsSuccess)
         {
             await _receivedInvoiceClient.RemoveTagAsync(invoiceId, [_options.Value.InvoiceClassificationTriggerLabel, _options.Value.InvoiceClassificationManualReviewLabel], cancellationToken ?? CancellationToken.None);
