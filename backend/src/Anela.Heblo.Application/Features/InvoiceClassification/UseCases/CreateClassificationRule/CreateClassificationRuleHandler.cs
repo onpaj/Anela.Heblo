@@ -34,6 +34,7 @@ public class CreateClassificationRuleHandler : IRequestHandler<CreateClassificat
             request.RuleTypeIdentifier,
             request.Pattern,
             request.AccountingTemplateCode,
+            request.Department,
             currentUser.Name
         );
 

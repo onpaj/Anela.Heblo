@@ -12,5 +12,7 @@ public class CreateClassificationRuleRequest : IRequest<CreateClassificationRule
 
     public string AccountingTemplateCode { get; set; } = string.Empty;
 
+    public string? Department { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

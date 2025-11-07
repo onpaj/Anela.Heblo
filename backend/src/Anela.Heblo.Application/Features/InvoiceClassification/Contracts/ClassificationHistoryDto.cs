@@ -24,6 +24,8 @@ public class ClassificationHistoryDto
 
     public string? AccountingTemplateCode { get; set; }
 
+    public string? Department { get; set; }
+
     public string? ErrorMessage { get; set; }
 
     public DateTime Timestamp { get; set; }

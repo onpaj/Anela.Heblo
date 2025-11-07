@@ -8712,6 +8712,7 @@ export class ClassificationRuleDto implements IClassificationRuleDto {
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     order?: number;
     isActive?: boolean;
     createdAt?: Date;
@@ -8735,6 +8736,7 @@ export class ClassificationRuleDto implements IClassificationRuleDto {
             this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
             this.pattern = _data["pattern"];
             this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.department = _data["department"];
             this.order = _data["order"];
             this.isActive = _data["isActive"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
@@ -8758,6 +8760,7 @@ export class ClassificationRuleDto implements IClassificationRuleDto {
         data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
         data["pattern"] = this.pattern;
         data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["department"] = this.department;
         data["order"] = this.order;
         data["isActive"] = this.isActive;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
@@ -8774,6 +8777,7 @@ export interface IClassificationRuleDto {
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     order?: number;
     isActive?: boolean;
     createdAt?: Date;
@@ -8820,6 +8824,7 @@ export class CreateClassificationRuleRequest implements ICreateClassificationRul
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     isActive?: boolean;
 
     constructor(data?: ICreateClassificationRuleRequest) {
@@ -8837,6 +8842,7 @@ export class CreateClassificationRuleRequest implements ICreateClassificationRul
             this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
             this.pattern = _data["pattern"];
             this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.department = _data["department"];
             this.isActive = _data["isActive"];
         }
     }
@@ -8854,6 +8860,7 @@ export class CreateClassificationRuleRequest implements ICreateClassificationRul
         data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
         data["pattern"] = this.pattern;
         data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["department"] = this.department;
         data["isActive"] = this.isActive;
         return data;
     }
@@ -8864,6 +8871,7 @@ export interface ICreateClassificationRuleRequest {
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     isActive?: boolean;
 }
 
@@ -8977,6 +8985,7 @@ export class UpdateClassificationRuleRequest implements IUpdateClassificationRul
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     isActive?: boolean;
 
     constructor(data?: IUpdateClassificationRuleRequest) {
@@ -8995,6 +9004,7 @@ export class UpdateClassificationRuleRequest implements IUpdateClassificationRul
             this.ruleTypeIdentifier = _data["ruleTypeIdentifier"];
             this.pattern = _data["pattern"];
             this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.department = _data["department"];
             this.isActive = _data["isActive"];
         }
     }
@@ -9013,6 +9023,7 @@ export class UpdateClassificationRuleRequest implements IUpdateClassificationRul
         data["ruleTypeIdentifier"] = this.ruleTypeIdentifier;
         data["pattern"] = this.pattern;
         data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["department"] = this.department;
         data["isActive"] = this.isActive;
         return data;
     }
@@ -9024,6 +9035,7 @@ export interface IUpdateClassificationRuleRequest {
     ruleTypeIdentifier?: string;
     pattern?: string;
     accountingTemplateCode?: string;
+    department?: string | undefined;
     isActive?: boolean;
 }
 
@@ -9360,6 +9372,7 @@ export class ClassificationHistoryDto implements IClassificationHistoryDto {
     ruleName?: string | undefined;
     result?: ClassificationResult;
     accountingTemplateCode?: string | undefined;
+    department?: string | undefined;
     errorMessage?: string | undefined;
     timestamp?: Date;
     processedBy?: string;
@@ -9385,6 +9398,7 @@ export class ClassificationHistoryDto implements IClassificationHistoryDto {
             this.ruleName = _data["ruleName"];
             this.result = _data["result"];
             this.accountingTemplateCode = _data["accountingTemplateCode"];
+            this.department = _data["department"];
             this.errorMessage = _data["errorMessage"];
             this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
             this.processedBy = _data["processedBy"];
@@ -9410,6 +9424,7 @@ export class ClassificationHistoryDto implements IClassificationHistoryDto {
         data["ruleName"] = this.ruleName;
         data["result"] = this.result;
         data["accountingTemplateCode"] = this.accountingTemplateCode;
+        data["department"] = this.department;
         data["errorMessage"] = this.errorMessage;
         data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
         data["processedBy"] = this.processedBy;
@@ -9428,6 +9443,7 @@ export interface IClassificationHistoryDto {
     ruleName?: string | undefined;
     result?: ClassificationResult;
     accountingTemplateCode?: string | undefined;
+    department?: string | undefined;
     errorMessage?: string | undefined;
     timestamp?: Date;
     processedBy?: string;

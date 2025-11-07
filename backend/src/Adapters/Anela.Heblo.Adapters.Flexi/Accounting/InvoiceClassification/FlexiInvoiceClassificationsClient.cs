@@ -49,7 +49,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
         {
             await _receivedInvoiceClient.RemoveTagAsync(invoiceId, [_options.Value.InvoiceClassificationTriggerLabel, _options.Value.InvoiceClassificationManualReviewLabel], cancellationToken ?? CancellationToken.None);
         }
-        
+
         return result.IsSuccess;
     }
 

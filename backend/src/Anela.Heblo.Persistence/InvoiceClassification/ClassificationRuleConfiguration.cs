@@ -29,6 +29,10 @@ public class ClassificationRuleConfiguration : IEntityTypeConfiguration<Classifi
             .IsRequired()
             .HasColumnName("AccountingTemplateCode");
 
+        builder.Property(x => x.Department)
+            .HasMaxLength(255)
+            .IsRequired(false);
+
         builder.Property(x => x.Order)
             .IsRequired();
 
