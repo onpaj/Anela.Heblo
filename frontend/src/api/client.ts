@@ -386,6 +386,7 @@ export const QUERY_KEYS = {
   backgroundRefresh: ["background-refresh"] as const,
   dashboard: ["dashboard"] as const,
   orgChart: ["orgChart"] as const,
+  departments: ["departments"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

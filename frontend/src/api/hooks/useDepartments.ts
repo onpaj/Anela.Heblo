@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface Department {
   id: string;
@@ -8,7 +8,7 @@ export interface Department {
 
 export const useDepartments = () => {
   return useQuery({
-    queryKey: ['departments'],
+    queryKey: QUERY_KEYS.departments,
     queryFn: async (): Promise<Department[]> => {
       const apiClient = getAuthenticatedApiClient();
       const relativeUrl = '/api/departments';
