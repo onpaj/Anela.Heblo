@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import RunningJobIndicator from '../RunningJobIndicator';
-import * as useGiftPackageManufacturingHooks from '../../../../api/hooks/useGiftPackageManufacturing';
 
 // Mock the hook
 const mockUseRunningJobsForGiftPackage = jest.fn();

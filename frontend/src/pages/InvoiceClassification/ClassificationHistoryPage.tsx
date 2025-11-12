@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Search, Calendar, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock, Play, Plus, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -7,7 +6,6 @@ import { useClassificationHistory, ClassificationHistoryItem, useClassifySingleI
 import RuleForm from './components/RuleForm';
 
 const ClassificationHistoryPage: React.FC = () => {
-  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [fromDate, setFromDate] = useState<Date | undefined>();

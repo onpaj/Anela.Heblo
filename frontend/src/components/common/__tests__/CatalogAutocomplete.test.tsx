@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CatalogAutocomplete } from "../CatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
@@ -22,19 +22,6 @@ const mockCatalogItemWithPrice = new CatalogItemDto({
   price: {
     currentPurchasePrice: 25.1234,
     currentSellingPrice: 35.0000,
-  },
-});
-
-const mockCatalogItemWithoutPrice = new CatalogItemDto({
-  productCode: "TEST002",
-  productName: "Test Material 2",
-  type: ProductType.Material,
-  location: "A1-B3",
-  stock: { available: 50 },
-  minimalOrderQuantity: "5",
-  price: {
-    currentPurchasePrice: undefined,
-    currentSellingPrice: undefined,
   },
 });
 

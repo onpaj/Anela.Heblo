@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Save, X } from 'lucide-react';
 import {
   ClassificationRule,
@@ -19,7 +18,6 @@ interface RuleFormProps {
 }
 
 const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading, prefillCompanyName }) => {
-  const { t } = useTranslation();
   const { data: ruleTypes = [], isLoading: ruleTypesLoading } = useClassificationRuleTypes();
   const { data: accountingTemplates = [], isLoading: accountingTemplatesLoading } = useAccountingTemplates();
   const { data: departments = [], isLoading: departmentsLoading } = useDepartments();

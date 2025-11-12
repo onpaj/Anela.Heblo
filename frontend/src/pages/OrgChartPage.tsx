@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useOrgChart } from '../api/hooks/useOrgChart';
-import { OrgChartResponse, PositionDto, EmployeeDto } from '../api/generated/api-client';
+import { PositionDto } from '../api/generated/api-client';
 
 // Type aliases for better readability
-type Employee = EmployeeDto;
 type Position = PositionDto;
 
 interface OrganizationData {

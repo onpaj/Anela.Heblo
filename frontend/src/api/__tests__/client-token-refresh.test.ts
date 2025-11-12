@@ -310,8 +310,9 @@ describe("API Client - Token Refresh & 401 Interceptor", () => {
       const enhancedTokenProvider = jest.fn().mockResolvedValue("refreshed-token");
       setGlobalTokenProvider(enhancedTokenProvider);
 
-      const apiClient = getAuthenticatedApiClient();
-      
+      // Get client to ensure it's initialized with the token provider
+      getAuthenticatedApiClient();
+
       // This would require a way to trigger force refresh through the API client
       // For now, we test that the token provider supports the parameter
       await enhancedTokenProvider(true);
