@@ -165,7 +165,7 @@ public class TransportBox : Entity<int>
     public void ToPick(DateTime date, string userName)
     {
         // According to specification: ToPick (to Stocked) is allowed only from Received state
-        ChangeState(TransportBoxState.Stocked, date, userName, TransportBoxState.Received);
+        ChangeState(TransportBoxState.Stocked, date, userName, TransportBoxState.Received, TransportBoxState.Error);
     }
 
     public void Close(DateTime date, string userName)
@@ -266,8 +266,8 @@ public class TransportBox : Entity<int>
         // Closed → No outbound transitions according to specification
         _transitions.Add(TransportBoxState.Closed, new TransportBoxStateNode());
 
-        // Error → No outbound transitions according to specification
-        _transitions.Add(TransportBoxState.Error, new TransportBoxStateNode());
+        var errorNode = new TransportBoxStateNode();
+        errorNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked,  TransitionType.EdgeCase, (box, time, userName) => box.ToPick(time, userName)));
+        _transitions.Add(TransportBoxState.Error, errorNode);
     }
-
 }
