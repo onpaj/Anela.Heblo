@@ -30,6 +30,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
         {
             Code = catalogItem.ProductCode,
             Name = catalogItem.ProductName,
+            NameNormalized = catalogItem.ProductNameNormalized,
             CurrentStock = (double)catalogItem.Stock.Available,
             ErpStock = (double)catalogItem.Stock.Erp,
             EshopStock = (double)catalogItem.Stock.Eshop,

@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Xcc;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -57,9 +58,10 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.ToLower();
+            var normalizedSearchTerm = request.SearchTerm.Trim().NormalizeForSearch();
             analysisItems = analysisItems
                 .Where(i => i.ProductCode.ToLower().Contains(searchTerm) ||
-                           i.ProductName.ToLower().Contains(searchTerm) ||
+                           i.ProductNameNormalized.Contains(normalizedSearchTerm) ||
                            (i.Supplier != null && i.Supplier.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)) ||
                            (i.LastPurchase?.SupplierName?.ToLower().Contains(searchTerm) ?? false))
                 .ToList();
@@ -128,6 +130,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         {
             ProductCode = item.ProductCode,
             ProductName = item.ProductName,
+            ProductNameNormalized = item.ProductNameNormalized,
             ProductType = item.Type.ToString(),
             AvailableStock = (double)item.Stock.Available,
             MinStockLevel = (double)minStock,

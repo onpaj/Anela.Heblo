@@ -80,8 +80,8 @@ public class StringExtensionsTests
     }
 
     [Theory]
-    [InlineData("áéíóúůý", "aeiouu")]
-    [InlineData("ÁÉÍÓÚŮÝ", "aeiouu")]
+    [InlineData("áéíóúůý", "aeiouuy")]
+    [InlineData("ÁÉÍÓÚŮÝ", "aeiouuy")]
     [InlineData("čďěňřšťž", "cdenrstz")]
     [InlineData("ČĎĚŇŘŠŤŽ", "cdenrstz")]
     public void NormalizeForSearch_Should_Handle_All_Czech_Diacritics(string input, string expected)

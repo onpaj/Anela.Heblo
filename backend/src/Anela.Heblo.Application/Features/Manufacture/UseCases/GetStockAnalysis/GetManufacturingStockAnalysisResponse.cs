@@ -21,6 +21,8 @@ public class ManufacturingStockItemDto
 
     public string Name { get; set; } = string.Empty;
 
+    public string NameNormalized { get; set; } = string.Empty;
+
     public double CurrentStock { get; set; }
 
     public double ErpStock { get; set; }
