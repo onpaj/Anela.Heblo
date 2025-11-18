@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
+using Anela.Heblo.Xcc;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
@@ -15,9 +16,10 @@ public class ItemFilterService : IItemFilterService
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.ToLower();
+            var normalizedSearchTerm = request.SearchTerm.Trim().NormalizeForSearch();
             filteredItems = filteredItems
                 .Where(i => i.Code.ToLower().Contains(searchTerm) ||
-                           i.Name.ToLower().Contains(searchTerm) ||
+                           i.NameNormalized.Contains(normalizedSearchTerm) ||
                            (!string.IsNullOrEmpty(i.ProductFamily) && i.ProductFamily.ToLower().Contains(searchTerm)))
                 .ToList();
         }
