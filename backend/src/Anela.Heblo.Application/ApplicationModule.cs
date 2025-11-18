@@ -13,6 +13,7 @@ using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
+using Anela.Heblo.Application.Features.PackingMaterials;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
@@ -58,6 +59,7 @@ public static class ApplicationModule
         services.AddUserManagement(configuration);
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
+        services.AddPackingMaterialsModule();
         // services.AddOrdersModule();
         // services.AddInvoicesModule();
 
