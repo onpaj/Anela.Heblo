@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
 
@@ -11,7 +12,7 @@ public class UpdatePackingMaterialRequest : IRequest<UpdatePackingMaterialRespon
     public ConsumptionType ConsumptionType { get; set; }
 }
 
-public class UpdatePackingMaterialResponse
+public class UpdatePackingMaterialResponse : BaseResponse
 {
     public PackingMaterialDto Material { get; set; } = null!;
 }

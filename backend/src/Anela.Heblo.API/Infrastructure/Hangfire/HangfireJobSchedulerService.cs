@@ -1,6 +1,7 @@
 using Hangfire;
 using Microsoft.Extensions.Options;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.Application.Features.PackingMaterials.Infrastructure.Jobs;
 
 namespace Anela.Heblo.API.Services;
 
@@ -70,6 +71,15 @@ public class HangfireJobSchedulerService : IHostedService
                 "invoice-classification",
                 service => service.ClassifyInvoicesAsync(),
                 "0 * * * *", // Hourly at the top of each hour
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
+            // Packing material daily consumption calculation at 3:00 AM UTC
+            RecurringJob.AddOrUpdate<DailyConsumptionJob>(
+                "daily-consumption-calculation",
+                job => job.ProcessDailyConsumption(),
+                "0 3 * * *", // Daily at 3:00 AM UTC
                 timeZone: TimeZoneInfo.Utc,
                 queue: QueueName
             );
