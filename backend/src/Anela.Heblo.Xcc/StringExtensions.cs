@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace Anela.Heblo.Xcc;
 
 public static class StringExtensions
@@ -25,5 +28,32 @@ public static class StringExtensions
         if (str.Length < len)
             throw new ArgumentException("len argument can not be bigger than given string's length!");
         return str.Substring(str.Length - len, len);
+    }
+
+    /// <summary>
+    /// Normalizes a string for search by removing diacritics and converting to lowercase.
+    /// This method removes Czech diacritics like č→c, š→s, ž→z, ř→r, etc.
+    /// </summary>
+    /// <param name="text">The text to normalize</param>
+    /// <returns>Normalized text without diacritics in lowercase, or empty string if input is null/whitespace</returns>
+    public static string NormalizeForSearch(this string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        // Odstranit diakritiku pomocí Unicode normalizace
+        var normalizedString = text.Normalize(NormalizationForm.FormD);
+        var stringBuilder = new StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
     }
 }

@@ -33,16 +33,17 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
+            var normalizedSearchTerm = request.SearchTerm.Trim().NormalizeForSearch();
             filter = filter.And(x =>
-                x.ProductName.ToLowerInvariant().Contains(searchTerm) ||
+                x.ProductNameNormalized.Contains(normalizedSearchTerm) ||
                 x.ProductCode.ToLowerInvariant().Contains(searchTerm));
         }
 
         // Individual filters (for other use cases)
         if (!string.IsNullOrWhiteSpace(request.ProductName))
         {
-            var productName = request.ProductName.Trim();
-            filter = filter.And(x => x.ProductName.ToLowerInvariant().Contains(productName.ToLowerInvariant()));
+            var normalizedProductName = request.ProductName.Trim().NormalizeForSearch();
+            filter = filter.And(x => x.ProductNameNormalized.Contains(normalizedProductName));
         }
 
         if (!string.IsNullOrWhiteSpace(request.ProductCode))
