@@ -279,11 +279,34 @@ public class TransportBoxStateTransitionTests
     }
 
     [Theory]
+    [InlineData(TransportBoxState.Stocked)]
+    [InlineData(TransportBoxState.Reserve)]
+    public void ValidTransitionsFromError_ShouldSucceed(TransportBoxState toState)
+    {
+        // Arrange
+        var box = CreateBoxInStateUsingReflection(TransportBoxState.Error);
+        SetBoxCode(box, "B001");
+
+        // Act & Assert
+        if (toState == TransportBoxState.Stocked)
+        {
+            var act = () => box.ToPick(_testDate, TestUser);
+            act.Should().NotThrow();
+            box.State.Should().Be(TransportBoxState.Stocked);
+        }
+        else if (toState == TransportBoxState.Reserve)
+        {
+            var act = () => box.ToReserve(_testDate, TestUser, TransportBoxLocation.Kumbal);
+            act.Should().NotThrow();
+            box.State.Should().Be(TransportBoxState.Reserve);
+        }
+    }
+
+    [Theory]
     [InlineData(TransportBoxState.New)]
     [InlineData(TransportBoxState.Opened)]
     [InlineData(TransportBoxState.InTransit)]
     [InlineData(TransportBoxState.Received)]
-    [InlineData(TransportBoxState.Stocked)]
     [InlineData(TransportBoxState.Closed)]
     public void InvalidTransitionsFromError_ShouldThrow(TransportBoxState toState)
     {
