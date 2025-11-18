@@ -381,25 +381,10 @@ public class CatalogRepository : ICatalogRepository
                 product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
             }
 
-            if (CachedInTransportData.TryGetValue(product.ProductCode, out var inTransport))
-            {
-                product.Stock.Transport = inTransport;
-            }
-
-            if (CachedInReserveData.TryGetValue(product.ProductCode, out var inReserve))
-            {
-                product.Stock.Reserve = inReserve;
-            }
-
-            if (CachedOrderedData.TryGetValue(product.ProductCode, out var ordered))
-            {
-                product.Stock.Ordered = ordered;
-            }
-
-            if (CachedPlannedData.TryGetValue(product.ProductCode, out var planned))
-            {
-                product.Stock.Planned = planned;
-            }
+            product.Stock.Transport = CachedInTransportData.ContainsKey(product.ProductCode) ? CachedInTransportData[product.ProductCode] : 0;
+            product.Stock.Reserve = CachedInReserveData.ContainsKey(product.ProductCode) ? CachedInReserveData[product.ProductCode] : 0;
+            product.Stock.Ordered = CachedOrderedData.ContainsKey(product.ProductCode) ? CachedOrderedData[product.ProductCode] : 0;
+            product.Stock.Planned = CachedPlannedData.ContainsKey(product.ProductCode) ? CachedPlannedData[product.ProductCode] : 0;
 
             if (eshopProductsMap.TryGetValue(product.ProductCode, out var eshopProduct))
             {
