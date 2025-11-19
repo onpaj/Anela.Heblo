@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceDetail;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoicesList;
+using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceSyncStats;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -116,6 +117,41 @@ public class IssuedInvoicesController : ControllerBase
         {
             _logger.LogError(ex, "Error getting issued invoice detail for ID: {InvoiceId}", id);
             return StatusCode(500, new { message = "Nastala chyba při načítání detailu faktury" });
+        }
+    }
+
+    /// <summary>
+    /// Get synchronization statistics for issued invoices
+    /// </summary>
+    /// <param name="fromDate">Start date for statistics (default: 30 days ago)</param>
+    /// <param name="toDate">End date for statistics (default: today)</param>
+    /// <returns>Synchronization statistics</returns>
+    [HttpGet("sync-stats")]
+    public async Task<ActionResult<GetIssuedInvoiceSyncStatsResponse>> GetSyncStats(
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
+    {
+        try
+        {
+            var request = new GetIssuedInvoiceSyncStatsRequest
+            {
+                FromDate = fromDate,
+                ToDate = toDate
+            };
+
+            var response = await _mediator.Send(request);
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting issued invoice sync stats");
+            return StatusCode(500, new { message = "Nastala chyba při načítání statistik synchronizace" });
         }
     }
 }
