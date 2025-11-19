@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface IssuedInvoicesFilters {
   pageNumber?: number;
@@ -70,7 +70,7 @@ export interface IssuedInvoiceDetailResponse {
 // Hook for fetching paginated list of issued invoices
 export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
   return useQuery({
-    queryKey: ['issued-invoices', filters],
+    queryKey: [...QUERY_KEYS.issuedInvoices, filters],
     queryFn: async (): Promise<IssuedInvoicesListResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       
@@ -135,7 +135,7 @@ export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
 // Hook for fetching detailed information about a specific issued invoice
 export const useIssuedInvoiceDetail = (invoiceId: string) => {
   return useQuery({
-    queryKey: ['issued-invoice-detail', invoiceId],
+    queryKey: [...QUERY_KEYS.issuedInvoices, 'detail', invoiceId],
     queryFn: async (): Promise<IssuedInvoiceDetailResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       

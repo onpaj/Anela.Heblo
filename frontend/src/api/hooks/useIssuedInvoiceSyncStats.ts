@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface IssuedInvoiceSyncStats {
   totalInvoices: number;
@@ -22,7 +22,7 @@ export function useIssuedInvoiceSyncStats(params?: UseIssuedInvoiceSyncStatsPara
   const toDateString = params?.toDate ? params.toDate.toDateString() : undefined;
   
   return useQuery({
-    queryKey: ['issued-invoices', 'sync-stats', fromDateString, toDateString],
+    queryKey: [...QUERY_KEYS.issuedInvoices, 'sync-stats', fromDateString, toDateString],
     queryFn: async (): Promise<IssuedInvoiceSyncStats> => {
       const apiClient = await getAuthenticatedApiClient();
       
