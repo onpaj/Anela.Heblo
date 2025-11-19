@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Dashboard;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.InvoiceClassification;
+using Anela.Heblo.Application.Features.Invoices;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
@@ -60,8 +61,8 @@ public static class ApplicationModule
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
         services.AddPackingMaterialsModule();
+        services.AddInvoicesModule();
         // services.AddOrdersModule();
-        // services.AddInvoicesModule();
 
         return services;
     }

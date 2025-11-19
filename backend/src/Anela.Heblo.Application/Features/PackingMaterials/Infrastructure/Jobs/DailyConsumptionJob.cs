@@ -30,7 +30,7 @@ public class DailyConsumptionJob
 
         try
         {
-            // TODO: Get actual order count and product count from real data sources
+            
             // For now, using placeholder values
             var orderCount = await GetOrderCountForDateAsync(processingDate);
             var productCount = await GetProductCountForDateAsync(processingDate);

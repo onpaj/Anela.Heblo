@@ -35,6 +35,7 @@ import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
+import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
@@ -393,6 +394,10 @@ function App() {
                         <Route
                           path="/automation/background-tasks"
                           element={<BackgroundTasks />}
+                        />
+                        <Route
+                          path="/customer/issued-invoices"
+                          element={<IssuedInvoicesPage />}
                         />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                       </Routes>

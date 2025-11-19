@@ -16,6 +16,7 @@ import {
   Newspaper,
   Users,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -207,6 +208,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
+        },
+      ],
+    },
+    {
+      id: "zakaznicke",
+      name: "Zákaznické",
+      icon: FileText,
+      type: "section" as const,
+      items: [
+        {
+          id: "vydane-faktury",
+          name: "Vydané faktury",
+          href: "/customer/issued-invoices",
         },
       ],
     },
