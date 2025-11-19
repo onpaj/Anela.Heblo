@@ -16,6 +16,7 @@ import {
   Newspaper,
   Users,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -100,6 +101,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           },
         ]
       : []),
+    {
+      id: "zakaznicke",
+      name: "Zákaznické",
+      icon: FileText,
+      type: "section" as const,
+      items: [
+        {
+          id: "vydane-faktury",
+          name: "Vydané faktury",
+          href: "/customer/issued-invoices",
+        },
+      ],
+    },
     {
       id: "produkty",
       name: "Produkty",
@@ -203,8 +217,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Statistiky skladu",
           href: "/logistics/warehouse-statistics",
         },
+        {
+          id: "sledovani-materialu",
+          name: "Sledování materiálů",
+          href: "/logistics/packing-materials",
+        },
       ],
     },
+    
     {
       id: "personalni",
       name: "Personální",
@@ -236,11 +256,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        },
-        {
-          id: "import-vydanych-faktur",
-          name: "Import vydaných faktur",
-          href: "/automation/invoice-import-statistics",
         },
         {
           id: "import-banky",

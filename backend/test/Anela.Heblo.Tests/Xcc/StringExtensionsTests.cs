@@ -23,11 +23,11 @@ public class StringExtensionsTests
     {
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().Be(expected);
     }
-    
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
@@ -38,7 +38,7 @@ public class StringExtensionsTests
     {
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().BeEmpty();
     }
@@ -48,20 +48,20 @@ public class StringExtensionsTests
     {
         // Act
         var result = ((string)null!).NormalizeForSearch();
-        
+
         // Assert
         result.Should().BeEmpty();
     }
-    
+
     [Fact]
     public void NormalizeForSearch_Should_Preserve_Numbers_And_Special_Characters()
     {
         // Arrange
         var input = "Krém 123 - speciální edice!";
-        
+
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().Be("krem 123 - specialni edice!");
     }
@@ -74,7 +74,7 @@ public class StringExtensionsTests
     {
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -88,7 +88,7 @@ public class StringExtensionsTests
     {
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -99,10 +99,10 @@ public class StringExtensionsTests
         // Arrange
         var input = "Český text s diakritikou a bez ní také";
         var expected = "cesky text s diakritikou a bez ni take";
-        
+
         // Act
         var result = input.NormalizeForSearch();
-        
+
         // Assert
         result.Should().Be(expected);
     }

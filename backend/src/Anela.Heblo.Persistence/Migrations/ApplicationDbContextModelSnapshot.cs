@@ -939,6 +939,86 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ManufactureOrderSemiProducts", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ConsumptionRate")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int>("ConsumptionType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal>("CurrentQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_PackingMaterial_Name");
+
+                    b.ToTable("PackingMaterial", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LogType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NewQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("OldQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int>("PackingMaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LogType")
+                        .HasDatabaseName("IX_PackingMaterialLog_LogType");
+
+                    b.HasIndex("PackingMaterialId")
+                        .HasDatabaseName("IX_PackingMaterialLog_PackingMaterialId");
+
+                    b.HasIndex("PackingMaterialId", "Date")
+                        .HasDatabaseName("IX_PackingMaterialLog_MaterialId_Date");
+
+                    b.ToTable("PackingMaterialLog", "dbo");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -1246,6 +1326,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("ManufactureOrder");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
+                        .WithMany("Logs")
+                        .HasForeignKey("PackingMaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", null)
@@ -1307,6 +1396,11 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("SemiProduct");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>
+                {
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

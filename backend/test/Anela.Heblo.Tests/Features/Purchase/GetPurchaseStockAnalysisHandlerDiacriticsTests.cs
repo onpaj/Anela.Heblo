@@ -38,8 +38,8 @@ public class GetPurchaseStockAnalysisHandlerDiacriticsTests
     [InlineData("prirodni", "Přírodní mýdlo", true)] // prirodni should find Přírodní
     [InlineData("xyz", "Krém na ruce", false)] // no match
     public async Task Handle_Should_Find_Materials_Using_Diacritic_Insensitive_Search(
-        string searchTerm, 
-        string productName, 
+        string searchTerm,
+        string productName,
         bool shouldBeFound)
     {
         // Arrange
@@ -55,7 +55,7 @@ public class GetPurchaseStockAnalysisHandlerDiacriticsTests
             .ReturnsAsync(catalogItems);
 
         _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
-                It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), 
+                It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(),
                 It.IsAny<bool>(), It.IsAny<bool>()))
             .Returns(StockSeverity.Optimal);
 

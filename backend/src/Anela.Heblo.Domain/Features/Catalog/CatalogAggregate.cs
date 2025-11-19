@@ -14,20 +14,20 @@ namespace Anela.Heblo.Domain.Features.Catalog;
 public class CatalogAggregate : Entity<string>
 {
     public string ProductCode { get => Id; set => Id = value; }
-    
+
     private string _productName = string.Empty;
     private string _productNameNormalized = string.Empty;
-    
-    public string ProductName 
-    { 
-        get => _productName; 
-        set 
+
+    public string ProductName
+    {
+        get => _productName;
+        set
         {
             _productName = value ?? string.Empty;
             _productNameNormalized = value?.NormalizeForSearch() ?? string.Empty;
         }
     }
-    
+
     public string ProductNameNormalized => _productNameNormalized;
 
     public int ErpId { get; set; }

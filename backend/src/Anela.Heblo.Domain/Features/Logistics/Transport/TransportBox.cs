@@ -267,7 +267,7 @@ public class TransportBox : Entity<int>
         _transitions.Add(TransportBoxState.Closed, new TransportBoxStateNode());
 
         var errorNode = new TransportBoxStateNode();
-        errorNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked,  TransitionType.EdgeCase, (box, time, userName) => box.ToPick(time, userName)));
+        errorNode.AddTransition(new TransportBoxTransition(TransportBoxState.Stocked, TransitionType.EdgeCase, (box, time, userName) => box.ToPick(time, userName)));
         _transitions.Add(TransportBoxState.Error, errorNode);
     }
 }

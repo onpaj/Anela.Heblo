@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public class ApplicationDbContext : DbContext
 
     //public DbSet<ScheduledTask> Tasks { get; set; }
     public DbSet<IssuedInvoice> IssuedInvoices { get; set; } = null!;
+    public DbSet<IssuedInvoiceSyncData> IssuedInvoiceSyncData { get; set; } = null!;
     public DbSet<BankStatementImport> BankStatements { get; set; } = null!;
     //public DbSet<RecurringJob> Jobs { get; set; }
     public DbSet<TransportBox> TransportBoxes { get; set; }
@@ -60,6 +62,10 @@ public class ApplicationDbContext : DbContext
     // Invoice Classification module
     public DbSet<ClassificationRule> ClassificationRules { get; set; } = null!;
     public DbSet<ClassificationHistory> ClassificationHistory { get; set; } = null!;
+
+    // Packing Materials module
+    public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
+    public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

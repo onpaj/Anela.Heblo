@@ -1442,6 +1442,47 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    departments_GetDepartments(): Promise<Department[]> {
+        let url_ = this.baseUrl + "/api/Departments";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDepartments_GetDepartments(_response);
+        });
+    }
+
+    protected processDepartments_GetDepartments(response: Response): Promise<Department[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(Department.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<Department[]>(null as any);
+    }
+
     diagnostics_TestLogging(): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/Diagnostics/test-logging";
         url_ = url_.replace(/[?&]$/, "");
@@ -2258,6 +2299,147 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetInvoiceDetailsResponse>(null as any);
+    }
+
+    issuedInvoices_GetList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, invoiceId: string | null | undefined, customerName: string | null | undefined, invoiceDateFrom: Date | null | undefined, invoiceDateTo: Date | null | undefined, isSynced: boolean | null | undefined, showOnlyUnsynced: boolean | undefined, showOnlyWithErrors: boolean | undefined): Promise<GetIssuedInvoicesListResponse> {
+        let url_ = this.baseUrl + "/api/IssuedInvoices?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (invoiceId !== undefined && invoiceId !== null)
+            url_ += "invoiceId=" + encodeURIComponent("" + invoiceId) + "&";
+        if (customerName !== undefined && customerName !== null)
+            url_ += "customerName=" + encodeURIComponent("" + customerName) + "&";
+        if (invoiceDateFrom !== undefined && invoiceDateFrom !== null)
+            url_ += "invoiceDateFrom=" + encodeURIComponent(invoiceDateFrom ? "" + invoiceDateFrom.toISOString() : "") + "&";
+        if (invoiceDateTo !== undefined && invoiceDateTo !== null)
+            url_ += "invoiceDateTo=" + encodeURIComponent(invoiceDateTo ? "" + invoiceDateTo.toISOString() : "") + "&";
+        if (isSynced !== undefined && isSynced !== null)
+            url_ += "isSynced=" + encodeURIComponent("" + isSynced) + "&";
+        if (showOnlyUnsynced === null)
+            throw new Error("The parameter 'showOnlyUnsynced' cannot be null.");
+        else if (showOnlyUnsynced !== undefined)
+            url_ += "showOnlyUnsynced=" + encodeURIComponent("" + showOnlyUnsynced) + "&";
+        if (showOnlyWithErrors === null)
+            throw new Error("The parameter 'showOnlyWithErrors' cannot be null.");
+        else if (showOnlyWithErrors !== undefined)
+            url_ += "showOnlyWithErrors=" + encodeURIComponent("" + showOnlyWithErrors) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processIssuedInvoices_GetList(_response);
+        });
+    }
+
+    protected processIssuedInvoices_GetList(response: Response): Promise<GetIssuedInvoicesListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoicesListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoicesListResponse>(null as any);
+    }
+
+    issuedInvoices_GetDetail(id: string): Promise<GetIssuedInvoiceDetailResponse> {
+        let url_ = this.baseUrl + "/api/IssuedInvoices/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processIssuedInvoices_GetDetail(_response);
+        });
+    }
+
+    protected processIssuedInvoices_GetDetail(response: Response): Promise<GetIssuedInvoiceDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoiceDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoiceDetailResponse>(null as any);
+    }
+
+    issuedInvoices_GetSyncStats(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetIssuedInvoiceSyncStatsResponse> {
+        let url_ = this.baseUrl + "/api/IssuedInvoices/sync-stats?";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processIssuedInvoices_GetSyncStats(_response);
+        });
+    }
+
+    protected processIssuedInvoices_GetSyncStats(response: Response): Promise<GetIssuedInvoiceSyncStatsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoiceSyncStatsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoiceSyncStatsResponse>(null as any);
     }
 
     journal_GetJournalEntries(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<GetJournalEntriesResponse> {
@@ -3805,6 +3987,239 @@ export class ApiClient {
             });
         }
         return Promise.resolve<OrgChartResponse>(null as any);
+    }
+
+    packingMaterials_GetPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetPackingMaterials(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetPackingMaterials(response: Response): Promise<GetPackingMaterialsListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingMaterialsListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingMaterialsListResponse>(null as any);
+    }
+
+    packingMaterials_CreatePackingMaterial(request: CreatePackingMaterialRequest): Promise<CreatePackingMaterialResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_CreatePackingMaterial(_response);
+        });
+    }
+
+    protected processPackingMaterials_CreatePackingMaterial(response: Response): Promise<CreatePackingMaterialResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreatePackingMaterialResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreatePackingMaterialResponse>(null as any);
+    }
+
+    packingMaterials_UpdatePackingMaterial(id: number, request: UpdatePackingMaterialRequest): Promise<UpdatePackingMaterialResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_UpdatePackingMaterial(_response);
+        });
+    }
+
+    protected processPackingMaterials_UpdatePackingMaterial(response: Response): Promise<UpdatePackingMaterialResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdatePackingMaterialResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdatePackingMaterialResponse>(null as any);
+    }
+
+    packingMaterials_DeletePackingMaterial(id: number): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_DeletePackingMaterial(_response);
+        });
+    }
+
+    protected processPackingMaterials_DeletePackingMaterial(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    packingMaterials_UpdatePackingMaterialQuantity(id: number, request: UpdateQuantityRequest): Promise<UpdatePackingMaterialQuantityResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/quantity";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_UpdatePackingMaterialQuantity(_response);
+        });
+    }
+
+    protected processPackingMaterials_UpdatePackingMaterialQuantity(response: Response): Promise<UpdatePackingMaterialQuantityResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdatePackingMaterialQuantityResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdatePackingMaterialQuantityResponse>(null as any);
+    }
+
+    packingMaterials_ProcessDailyConsumption(request: ProcessDailyConsumptionRequest): Promise<ProcessDailyConsumptionResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/process-daily-consumption";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_ProcessDailyConsumption(_response);
+        });
+    }
+
+    protected processPackingMaterials_ProcessDailyConsumption(response: Response): Promise<ProcessDailyConsumptionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProcessDailyConsumptionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
@@ -8307,6 +8722,46 @@ export interface ISaveUserSettingsRequest {
     tiles?: UserDashboardTileDto[];
 }
 
+export class Department implements IDepartment {
+    id?: string;
+    name?: string;
+
+    constructor(data?: IDepartment) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+        }
+    }
+
+    static fromJS(data: any): Department {
+        data = typeof data === 'object' ? data : {};
+        let result = new Department();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        return data;
+    }
+}
+
+export interface IDepartment {
+    id?: string;
+    name?: string;
+}
+
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
     blobUrl?: string;
     blobName?: string;
@@ -9626,6 +10081,437 @@ export interface IReceivedInvoiceItemDto {
     code?: string;
     name?: string;
     amount?: number;
+}
+
+export class GetIssuedInvoicesListResponse extends BaseResponse implements IGetIssuedInvoicesListResponse {
+    items?: IssuedInvoiceDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetIssuedInvoicesListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(IssuedInvoiceDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetIssuedInvoicesListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetIssuedInvoicesListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetIssuedInvoicesListResponse extends IBaseResponse {
+    items?: IssuedInvoiceDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class IssuedInvoiceDto implements IIssuedInvoiceDto {
+    id?: string;
+    invoiceDate?: Date;
+    dueDate?: Date;
+    taxDate?: Date;
+    varSymbol?: number | undefined;
+    billingMethod?: BillingMethod;
+    shippingMethod?: ShippingMethod;
+    vatPayer?: boolean | undefined;
+    itemsCount?: number;
+    price?: number;
+    priceC?: number;
+    currency?: string;
+    customerName?: string | undefined;
+    isSynced?: boolean;
+    lastSyncTime?: Date | undefined;
+    errorMessage?: string | undefined;
+    errorType?: IssuedInvoiceErrorType | undefined;
+    syncHistoryCount?: number;
+    isCriticalError?: boolean;
+    creationTime?: Date;
+
+    constructor(data?: IIssuedInvoiceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.invoiceDate = _data["invoiceDate"] ? new Date(_data["invoiceDate"].toString()) : <any>undefined;
+            this.dueDate = _data["dueDate"] ? new Date(_data["dueDate"].toString()) : <any>undefined;
+            this.taxDate = _data["taxDate"] ? new Date(_data["taxDate"].toString()) : <any>undefined;
+            this.varSymbol = _data["varSymbol"];
+            this.billingMethod = _data["billingMethod"];
+            this.shippingMethod = _data["shippingMethod"];
+            this.vatPayer = _data["vatPayer"];
+            this.itemsCount = _data["itemsCount"];
+            this.price = _data["price"];
+            this.priceC = _data["priceC"];
+            this.currency = _data["currency"];
+            this.customerName = _data["customerName"];
+            this.isSynced = _data["isSynced"];
+            this.lastSyncTime = _data["lastSyncTime"] ? new Date(_data["lastSyncTime"].toString()) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+            this.errorType = _data["errorType"];
+            this.syncHistoryCount = _data["syncHistoryCount"];
+            this.isCriticalError = _data["isCriticalError"];
+            this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): IssuedInvoiceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IssuedInvoiceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["invoiceDate"] = this.invoiceDate ? this.invoiceDate.toISOString() : <any>undefined;
+        data["dueDate"] = this.dueDate ? this.dueDate.toISOString() : <any>undefined;
+        data["taxDate"] = this.taxDate ? this.taxDate.toISOString() : <any>undefined;
+        data["varSymbol"] = this.varSymbol;
+        data["billingMethod"] = this.billingMethod;
+        data["shippingMethod"] = this.shippingMethod;
+        data["vatPayer"] = this.vatPayer;
+        data["itemsCount"] = this.itemsCount;
+        data["price"] = this.price;
+        data["priceC"] = this.priceC;
+        data["currency"] = this.currency;
+        data["customerName"] = this.customerName;
+        data["isSynced"] = this.isSynced;
+        data["lastSyncTime"] = this.lastSyncTime ? this.lastSyncTime.toISOString() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        data["errorType"] = this.errorType;
+        data["syncHistoryCount"] = this.syncHistoryCount;
+        data["isCriticalError"] = this.isCriticalError;
+        data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IIssuedInvoiceDto {
+    id?: string;
+    invoiceDate?: Date;
+    dueDate?: Date;
+    taxDate?: Date;
+    varSymbol?: number | undefined;
+    billingMethod?: BillingMethod;
+    shippingMethod?: ShippingMethod;
+    vatPayer?: boolean | undefined;
+    itemsCount?: number;
+    price?: number;
+    priceC?: number;
+    currency?: string;
+    customerName?: string | undefined;
+    isSynced?: boolean;
+    lastSyncTime?: Date | undefined;
+    errorMessage?: string | undefined;
+    errorType?: IssuedInvoiceErrorType | undefined;
+    syncHistoryCount?: number;
+    isCriticalError?: boolean;
+    creationTime?: Date;
+}
+
+export enum BillingMethod {
+    BankTransfer = "BankTransfer",
+    Cash = "Cash",
+    CoD = "CoD",
+    Comgate = "Comgate",
+    CreditCard = "CreditCard",
+}
+
+export enum ShippingMethod {
+    PickUp = "PickUp",
+    PPL = "PPL",
+    PPLParcelShop = "PPLParcelShop",
+    ZasilkovnaDoRuky = "ZasilkovnaDoRuky",
+    Zasilkovna = "Zasilkovna",
+    GLS = "GLS",
+}
+
+export enum IssuedInvoiceErrorType {
+    General = "General",
+    InvoicePaired = "InvoicePaired",
+    ProductNotFound = "ProductNotFound",
+}
+
+export class GetIssuedInvoiceDetailResponse extends BaseResponse implements IGetIssuedInvoiceDetailResponse {
+    invoice?: IssuedInvoiceDetailDto | undefined;
+
+    constructor(data?: IGetIssuedInvoiceDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.invoice = _data["invoice"] ? IssuedInvoiceDetailDto.fromJS(_data["invoice"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetIssuedInvoiceDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetIssuedInvoiceDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["invoice"] = this.invoice ? this.invoice.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetIssuedInvoiceDetailResponse extends IBaseResponse {
+    invoice?: IssuedInvoiceDetailDto | undefined;
+}
+
+export class IssuedInvoiceDetailDto extends IssuedInvoiceDto implements IIssuedInvoiceDetailDto {
+    syncHistory?: IssuedInvoiceSyncDataDto[];
+    concurrencyStamp?: string | undefined;
+    lastModificationTime?: Date | undefined;
+    creatorId?: string | undefined;
+    lastModifierId?: string | undefined;
+
+    constructor(data?: IIssuedInvoiceDetailDto) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["syncHistory"])) {
+                this.syncHistory = [] as any;
+                for (let item of _data["syncHistory"])
+                    this.syncHistory!.push(IssuedInvoiceSyncDataDto.fromJS(item));
+            }
+            this.concurrencyStamp = _data["concurrencyStamp"];
+            this.lastModificationTime = _data["lastModificationTime"] ? new Date(_data["lastModificationTime"].toString()) : <any>undefined;
+            this.creatorId = _data["creatorId"];
+            this.lastModifierId = _data["lastModifierId"];
+        }
+    }
+
+    static override fromJS(data: any): IssuedInvoiceDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IssuedInvoiceDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.syncHistory)) {
+            data["syncHistory"] = [];
+            for (let item of this.syncHistory)
+                data["syncHistory"].push(item.toJSON());
+        }
+        data["concurrencyStamp"] = this.concurrencyStamp;
+        data["lastModificationTime"] = this.lastModificationTime ? this.lastModificationTime.toISOString() : <any>undefined;
+        data["creatorId"] = this.creatorId;
+        data["lastModifierId"] = this.lastModifierId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IIssuedInvoiceDetailDto extends IIssuedInvoiceDto {
+    syncHistory?: IssuedInvoiceSyncDataDto[];
+    concurrencyStamp?: string | undefined;
+    lastModificationTime?: Date | undefined;
+    creatorId?: string | undefined;
+    lastModifierId?: string | undefined;
+}
+
+export class IssuedInvoiceSyncDataDto implements IIssuedInvoiceSyncDataDto {
+    id?: number;
+    data?: string | undefined;
+    isSuccess?: boolean;
+    syncTime?: Date;
+    error?: IssuedInvoiceErrorDto | undefined;
+
+    constructor(data?: IIssuedInvoiceSyncDataDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.data = _data["data"];
+            this.isSuccess = _data["isSuccess"];
+            this.syncTime = _data["syncTime"] ? new Date(_data["syncTime"].toString()) : <any>undefined;
+            this.error = _data["error"] ? IssuedInvoiceErrorDto.fromJS(_data["error"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): IssuedInvoiceSyncDataDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IssuedInvoiceSyncDataDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["data"] = this.data;
+        data["isSuccess"] = this.isSuccess;
+        data["syncTime"] = this.syncTime ? this.syncTime.toISOString() : <any>undefined;
+        data["error"] = this.error ? this.error.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IIssuedInvoiceSyncDataDto {
+    id?: number;
+    data?: string | undefined;
+    isSuccess?: boolean;
+    syncTime?: Date;
+    error?: IssuedInvoiceErrorDto | undefined;
+}
+
+export class IssuedInvoiceErrorDto implements IIssuedInvoiceErrorDto {
+    errorType?: string;
+    message?: string;
+
+    constructor(data?: IIssuedInvoiceErrorDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.errorType = _data["errorType"];
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): IssuedInvoiceErrorDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IssuedInvoiceErrorDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["errorType"] = this.errorType;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IIssuedInvoiceErrorDto {
+    errorType?: string;
+    message?: string;
+}
+
+export class GetIssuedInvoiceSyncStatsResponse extends BaseResponse implements IGetIssuedInvoiceSyncStatsResponse {
+    totalInvoices?: number;
+    syncedInvoices?: number;
+    unsyncedInvoices?: number;
+    invoicesWithErrors?: number;
+    criticalErrors?: number;
+    lastSyncTime?: Date | undefined;
+    syncSuccessRate?: number;
+
+    constructor(data?: IGetIssuedInvoiceSyncStatsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.totalInvoices = _data["totalInvoices"];
+            this.syncedInvoices = _data["syncedInvoices"];
+            this.unsyncedInvoices = _data["unsyncedInvoices"];
+            this.invoicesWithErrors = _data["invoicesWithErrors"];
+            this.criticalErrors = _data["criticalErrors"];
+            this.lastSyncTime = _data["lastSyncTime"] ? new Date(_data["lastSyncTime"].toString()) : <any>undefined;
+            this.syncSuccessRate = _data["syncSuccessRate"];
+        }
+    }
+
+    static override fromJS(data: any): GetIssuedInvoiceSyncStatsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetIssuedInvoiceSyncStatsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalInvoices"] = this.totalInvoices;
+        data["syncedInvoices"] = this.syncedInvoices;
+        data["unsyncedInvoices"] = this.unsyncedInvoices;
+        data["invoicesWithErrors"] = this.invoicesWithErrors;
+        data["criticalErrors"] = this.criticalErrors;
+        data["lastSyncTime"] = this.lastSyncTime ? this.lastSyncTime.toISOString() : <any>undefined;
+        data["syncSuccessRate"] = this.syncSuccessRate;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetIssuedInvoiceSyncStatsResponse extends IBaseResponse {
+    totalInvoices?: number;
+    syncedInvoices?: number;
+    unsyncedInvoices?: number;
+    invoicesWithErrors?: number;
+    criticalErrors?: number;
+    lastSyncTime?: Date | undefined;
+    syncSuccessRate?: number;
 }
 
 export class GetJournalEntriesResponse extends BaseResponse implements IGetJournalEntriesResponse {
@@ -14114,6 +15000,7 @@ export interface IGetManufacturingStockAnalysisResponse extends IBaseResponse {
 export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     code?: string;
     name?: string;
+    nameNormalized?: string;
     currentStock?: number;
     erpStock?: number;
     eshopStock?: number;
@@ -14145,6 +15032,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         if (_data) {
             this.code = _data["code"];
             this.name = _data["name"];
+            this.nameNormalized = _data["nameNormalized"];
             this.currentStock = _data["currentStock"];
             this.erpStock = _data["erpStock"];
             this.eshopStock = _data["eshopStock"];
@@ -14176,6 +15064,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data = typeof data === 'object' ? data : {};
         data["code"] = this.code;
         data["name"] = this.name;
+        data["nameNormalized"] = this.nameNormalized;
         data["currentStock"] = this.currentStock;
         data["erpStock"] = this.erpStock;
         data["eshopStock"] = this.eshopStock;
@@ -14200,6 +15089,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
 export interface IManufacturingStockItemDto {
     code?: string;
     name?: string;
+    nameNormalized?: string;
     currentStock?: number;
     erpStock?: number;
     eshopStock?: number;
@@ -14533,6 +15423,437 @@ export interface IEmployeeDto {
     startDate?: string;
     isPrimary?: boolean;
     url?: string | undefined;
+}
+
+export class GetPackingMaterialsListResponse extends BaseResponse implements IGetPackingMaterialsListResponse {
+    materials?: PackingMaterialDto[];
+
+    constructor(data?: IGetPackingMaterialsListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["materials"])) {
+                this.materials = [] as any;
+                for (let item of _data["materials"])
+                    this.materials!.push(PackingMaterialDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPackingMaterialsListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingMaterialsListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.materials)) {
+            data["materials"] = [];
+            for (let item of this.materials)
+                data["materials"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackingMaterialsListResponse extends IBaseResponse {
+    materials?: PackingMaterialDto[];
+}
+
+export class PackingMaterialDto implements IPackingMaterialDto {
+    id?: number;
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+    consumptionTypeText?: string;
+    currentQuantity?: number;
+    forecastedDays?: number | undefined;
+    createdAt?: Date;
+    updatedAt?: Date | undefined;
+
+    constructor(data?: IPackingMaterialDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.consumptionRate = _data["consumptionRate"];
+            this.consumptionType = _data["consumptionType"];
+            this.consumptionTypeText = _data["consumptionTypeText"];
+            this.currentQuantity = _data["currentQuantity"];
+            this.forecastedDays = _data["forecastedDays"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PackingMaterialDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingMaterialDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["consumptionRate"] = this.consumptionRate;
+        data["consumptionType"] = this.consumptionType;
+        data["consumptionTypeText"] = this.consumptionTypeText;
+        data["currentQuantity"] = this.currentQuantity;
+        data["forecastedDays"] = this.forecastedDays;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPackingMaterialDto {
+    id?: number;
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+    consumptionTypeText?: string;
+    currentQuantity?: number;
+    forecastedDays?: number | undefined;
+    createdAt?: Date;
+    updatedAt?: Date | undefined;
+}
+
+export enum ConsumptionType {
+    PerOrder = "PerOrder",
+    PerProduct = "PerProduct",
+    PerDay = "PerDay",
+}
+
+export class CreatePackingMaterialResponse extends BaseResponse implements ICreatePackingMaterialResponse {
+    id?: number;
+    material?: PackingMaterialDto;
+
+    constructor(data?: ICreatePackingMaterialResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreatePackingMaterialResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreatePackingMaterialResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreatePackingMaterialResponse extends IBaseResponse {
+    id?: number;
+    material?: PackingMaterialDto;
+}
+
+export class CreatePackingMaterialRequest implements ICreatePackingMaterialRequest {
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+    currentQuantity?: number;
+
+    constructor(data?: ICreatePackingMaterialRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.consumptionRate = _data["consumptionRate"];
+            this.consumptionType = _data["consumptionType"];
+            this.currentQuantity = _data["currentQuantity"];
+        }
+    }
+
+    static fromJS(data: any): CreatePackingMaterialRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreatePackingMaterialRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["consumptionRate"] = this.consumptionRate;
+        data["consumptionType"] = this.consumptionType;
+        data["currentQuantity"] = this.currentQuantity;
+        return data;
+    }
+}
+
+export interface ICreatePackingMaterialRequest {
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+    currentQuantity?: number;
+}
+
+export class UpdatePackingMaterialResponse extends BaseResponse implements IUpdatePackingMaterialResponse {
+    material?: PackingMaterialDto;
+
+    constructor(data?: IUpdatePackingMaterialResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdatePackingMaterialResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePackingMaterialResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdatePackingMaterialResponse extends IBaseResponse {
+    material?: PackingMaterialDto;
+}
+
+export class UpdatePackingMaterialRequest implements IUpdatePackingMaterialRequest {
+    id?: number;
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+
+    constructor(data?: IUpdatePackingMaterialRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.consumptionRate = _data["consumptionRate"];
+            this.consumptionType = _data["consumptionType"];
+        }
+    }
+
+    static fromJS(data: any): UpdatePackingMaterialRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePackingMaterialRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["consumptionRate"] = this.consumptionRate;
+        data["consumptionType"] = this.consumptionType;
+        return data;
+    }
+}
+
+export interface IUpdatePackingMaterialRequest {
+    id?: number;
+    name?: string;
+    consumptionRate?: number;
+    consumptionType?: ConsumptionType;
+}
+
+export class UpdatePackingMaterialQuantityResponse extends BaseResponse implements IUpdatePackingMaterialQuantityResponse {
+    material?: PackingMaterialDto;
+
+    constructor(data?: IUpdatePackingMaterialQuantityResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdatePackingMaterialQuantityResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdatePackingMaterialQuantityResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdatePackingMaterialQuantityResponse extends IBaseResponse {
+    material?: PackingMaterialDto;
+}
+
+export class UpdateQuantityRequest implements IUpdateQuantityRequest {
+    newQuantity?: number;
+    date?: Date;
+
+    constructor(data?: IUpdateQuantityRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.newQuantity = _data["newQuantity"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateQuantityRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateQuantityRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["newQuantity"] = this.newQuantity;
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateQuantityRequest {
+    newQuantity?: number;
+    date?: Date;
+}
+
+export class ProcessDailyConsumptionResponse extends BaseResponse implements IProcessDailyConsumptionResponse {
+    processedDate?: Date;
+    materialsProcessed?: number;
+    message?: string;
+
+    constructor(data?: IProcessDailyConsumptionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.processedDate = _data["processedDate"] ? new Date(_data["processedDate"].toString()) : <any>undefined;
+            this.materialsProcessed = _data["materialsProcessed"];
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): ProcessDailyConsumptionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProcessDailyConsumptionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processedDate"] = this.processedDate ? formatDate(this.processedDate) : <any>undefined;
+        data["materialsProcessed"] = this.materialsProcessed;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IProcessDailyConsumptionResponse extends IBaseResponse {
+    processedDate?: Date;
+    materialsProcessed?: number;
+    message?: string;
+}
+
+export class ProcessDailyConsumptionRequest implements IProcessDailyConsumptionRequest {
+    processingDate?: Date;
+
+    constructor(data?: IProcessDailyConsumptionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.processingDate = _data["processingDate"] ? new Date(_data["processingDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ProcessDailyConsumptionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProcessDailyConsumptionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processingDate"] = this.processingDate ? formatDate(this.processingDate) : <any>undefined;
+        return data;
+    }
+}
+
+export interface IProcessDailyConsumptionRequest {
+    processingDate?: Date;
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
@@ -15981,6 +17302,7 @@ export interface IGetPurchaseStockAnalysisResponse extends IBaseResponse {
 export class StockAnalysisItemDto implements IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
+    productNameNormalized?: string;
     productType?: string;
     availableStock?: number;
     minStockLevel?: number;
@@ -16009,6 +17331,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameNormalized = _data["productNameNormalized"];
             this.productType = _data["productType"];
             this.availableStock = _data["availableStock"];
             this.minStockLevel = _data["minStockLevel"];
@@ -16037,6 +17360,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameNormalized"] = this.productNameNormalized;
         data["productType"] = this.productType;
         data["availableStock"] = this.availableStock;
         data["minStockLevel"] = this.minStockLevel;
@@ -16058,6 +17382,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
 export interface IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
+    productNameNormalized?: string;
     productType?: string;
     availableStock?: number;
     minStockLevel?: number;

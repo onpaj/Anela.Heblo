@@ -26,8 +26,8 @@ public class ItemFilterServiceDiacriticsTests
     [InlineData("prirodni", "Přírodní mýdlo", true)] // prirodni should find Přírodní
     [InlineData("xyz", "Krém na ruce", false)] // no match
     public void FilterItems_Should_Find_Products_Using_Diacritic_Insensitive_Search(
-        string searchTerm, 
-        string productName, 
+        string searchTerm,
+        string productName,
         bool shouldBeFound)
     {
         // Arrange
