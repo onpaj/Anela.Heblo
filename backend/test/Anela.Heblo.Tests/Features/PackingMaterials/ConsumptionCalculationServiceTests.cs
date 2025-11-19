@@ -20,10 +20,10 @@ public class ConsumptionCalculationServiceTests
     [InlineData(ConsumptionType.PerProduct, 1.2, 10, 20, 24.0)] // 1.2 per product * 20 products = 24
     [InlineData(ConsumptionType.PerDay, 5.0, 100, 200, 5.0)] // 5.0 per day (fixed)
     public async Task CalculateConsumptionAsync_ShouldCalculateCorrectly(
-        ConsumptionType type, 
-        decimal rate, 
-        int orderCount, 
-        int productCount, 
+        ConsumptionType type,
+        decimal rate,
+        int orderCount,
+        int productCount,
         decimal expectedConsumption)
     {
         // Arrange
@@ -45,7 +45,7 @@ public class ConsumptionCalculationServiceTests
         var mockRepository = new MockPackingMaterialRepository();
         var service = new ConsumptionCalculationService(mockRepository, _mockLogger);
         var date = DateOnly.FromDateTime(DateTime.Today);
-        
+
         mockRepository.SetHasDailyProcessingBeenRun(date, true);
 
         // Act
