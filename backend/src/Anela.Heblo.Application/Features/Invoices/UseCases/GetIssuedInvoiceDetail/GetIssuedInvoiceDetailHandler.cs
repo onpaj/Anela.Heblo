@@ -59,7 +59,7 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
             // Map to detailed DTO
             var invoiceDto = _mapper.Map<IssuedInvoiceDetailDto>(invoice);
 
-            _logger.LogInformation("Retrieved detailed information for issued invoice: {InvoiceId} with {SyncHistoryCount} sync records", 
+            _logger.LogInformation("Retrieved detailed information for issued invoice: {InvoiceId} with {SyncHistoryCount} sync records",
                 request.Id, invoice.SyncHistoryCount);
 
             return new GetIssuedInvoiceDetailResponse

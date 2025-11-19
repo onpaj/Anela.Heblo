@@ -4184,6 +4184,44 @@ export class ApiClient {
         return Promise.resolve<UpdatePackingMaterialQuantityResponse>(null as any);
     }
 
+    packingMaterials_ProcessDailyConsumption(request: ProcessDailyConsumptionRequest): Promise<ProcessDailyConsumptionResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/process-daily-consumption";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_ProcessDailyConsumption(_response);
+        });
+    }
+
+    protected processPackingMaterials_ProcessDailyConsumption(response: Response): Promise<ProcessDailyConsumptionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProcessDailyConsumptionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -15739,6 +15777,83 @@ export class UpdateQuantityRequest implements IUpdateQuantityRequest {
 export interface IUpdateQuantityRequest {
     newQuantity?: number;
     date?: Date;
+}
+
+export class ProcessDailyConsumptionResponse extends BaseResponse implements IProcessDailyConsumptionResponse {
+    processedDate?: Date;
+    materialsProcessed?: number;
+    message?: string;
+
+    constructor(data?: IProcessDailyConsumptionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.processedDate = _data["processedDate"] ? new Date(_data["processedDate"].toString()) : <any>undefined;
+            this.materialsProcessed = _data["materialsProcessed"];
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): ProcessDailyConsumptionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProcessDailyConsumptionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processedDate"] = this.processedDate ? formatDate(this.processedDate) : <any>undefined;
+        data["materialsProcessed"] = this.materialsProcessed;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IProcessDailyConsumptionResponse extends IBaseResponse {
+    processedDate?: Date;
+    materialsProcessed?: number;
+    message?: string;
+}
+
+export class ProcessDailyConsumptionRequest implements IProcessDailyConsumptionRequest {
+    processingDate?: Date;
+
+    constructor(data?: IProcessDailyConsumptionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.processingDate = _data["processingDate"] ? new Date(_data["processingDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ProcessDailyConsumptionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProcessDailyConsumptionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["processingDate"] = this.processingDate ? formatDate(this.processingDate) : <any>undefined;
+        return data;
+    }
+}
+
+export interface IProcessDailyConsumptionRequest {
+    processingDate?: Date;
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {

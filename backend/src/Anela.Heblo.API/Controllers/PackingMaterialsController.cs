@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -95,5 +96,19 @@ public class PackingMaterialsController : BaseApiController
         var request = new DeletePackingMaterialRequest { Id = id };
         await _mediator.Send(request, cancellationToken);
         return NoContent();
+    }
+
+    [HttpPost("process-daily-consumption")]
+    public async Task<ActionResult<ProcessDailyConsumptionResponse>> ProcessDailyConsumption(
+        [FromBody] ProcessDailyConsumptionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var response = await _mediator.Send(request, cancellationToken);
+        return Ok(response);
     }
 }

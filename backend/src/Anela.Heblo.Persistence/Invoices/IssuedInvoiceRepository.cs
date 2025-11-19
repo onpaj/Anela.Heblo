@@ -93,7 +93,7 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         var unsyncedInvoices = totalInvoices - syncedInvoices;
         var invoicesWithErrors = await query.CountAsync(x => x.ErrorType.HasValue, cancellationToken);
         var criticalErrors = await query.CountAsync(x => x.ErrorType.HasValue && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired, cancellationToken);
-        
+
         var lastSyncTime = await query
             .Where(x => x.LastSyncTime.HasValue)
             .MaxAsync(x => (DateTime?)x.LastSyncTime, cancellationToken);
@@ -175,13 +175,23 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         var totalCount = await query.CountAsync(cancellationToken);
 
         // Apply pagination
-        var items = await query
-            .Skip((filters.PageNumber - 1) * filters.PageSize)
-            .Take(filters.PageSize)
-            .ToListAsync(cancellationToken);
+        List<IssuedInvoice> items;
+        if (filters.PageSize == 0)
+        {
+            // PageSize = 0 means return all items without pagination
+            items = await query.ToListAsync(cancellationToken);
+        }
+        else
+        {
+            items = await query
+                .Skip((filters.PageNumber - 1) * filters.PageSize)
+                .Take(filters.PageSize)
+                .ToListAsync(cancellationToken);
+        }
 
-        _logger.LogInformation("Retrieved {Count} issued invoices (page {PageNumber}/{TotalPages}, total: {TotalCount})", 
-            items.Count, filters.PageNumber, Math.Ceiling((double)totalCount / filters.PageSize), totalCount);
+        var totalPages = filters.PageSize > 0 ? Math.Ceiling((double)totalCount / filters.PageSize) : 1;
+        _logger.LogInformation("Retrieved {Count} issued invoices (page {PageNumber}/{TotalPages}, total: {TotalCount})",
+            items.Count, filters.PageNumber, totalPages, totalCount);
 
         return new PaginatedResult<IssuedInvoice>
         {

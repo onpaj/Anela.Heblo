@@ -102,6 +102,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         ]
       : []),
     {
+      id: "zakaznicke",
+      name: "Zákaznické",
+      icon: FileText,
+      type: "section" as const,
+      items: [
+        {
+          id: "vydane-faktury",
+          name: "Vydané faktury",
+          href: "/customer/issued-invoices",
+        },
+      ],
+    },
+    {
       id: "produkty",
       name: "Produkty",
       icon: Package,
@@ -211,19 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    {
-      id: "zakaznicke",
-      name: "Zákaznické",
-      icon: FileText,
-      type: "section" as const,
-      items: [
-        {
-          id: "vydane-faktury",
-          name: "Vydané faktury",
-          href: "/customer/issued-invoices",
-        },
-      ],
-    },
+    
     {
       id: "personalni",
       name: "Personální",
@@ -255,11 +256,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        },
-        {
-          id: "import-vydanych-faktur",
-          name: "Import vydaných faktur",
-          href: "/automation/invoice-import-statistics",
         },
         {
           id: "import-banky",

@@ -32,7 +32,7 @@ public class GetIssuedInvoiceSyncStatsHandler : IRequestHandler<GetIssuedInvoice
 
             var stats = await _repository.GetSyncStatsAsync(fromDate, toDate, cancellationToken);
 
-            _logger.LogInformation("Retrieved sync stats: {TotalInvoices} total, {SyncedInvoices} synced, {UnsyncedInvoices} unsynced", 
+            _logger.LogInformation("Retrieved sync stats: {TotalInvoices} total, {SyncedInvoices} synced, {UnsyncedInvoices} unsynced",
                 stats.TotalInvoices, stats.SyncedInvoices, stats.UnsyncedInvoices);
 
             return new GetIssuedInvoiceSyncStatsResponse

@@ -87,7 +87,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
                     material.Id, material.Name, processingDate);
             }
         }
-
+        await _repository.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
             processingDate, processedCount);
 

@@ -1,7 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
-using Anela.Heblo.Persistence;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.PackingMaterials.Infrastructure.Jobs;
@@ -10,16 +8,13 @@ public class DailyConsumptionJob
 {
     private readonly IMediator _mediator;
     private readonly ILogger<DailyConsumptionJob> _logger;
-    private readonly ApplicationDbContext _dbContext;
 
     public DailyConsumptionJob(
         IMediator mediator,
-        ILogger<DailyConsumptionJob> logger,
-        ApplicationDbContext dbContext)
+        ILogger<DailyConsumptionJob> logger)
     {
         _mediator = mediator;
         _logger = logger;
-        _dbContext = dbContext;
     }
 
     public async Task ProcessDailyConsumption()
@@ -30,16 +25,9 @@ public class DailyConsumptionJob
 
         try
         {
-            
-            // For now, using placeholder values
-            var orderCount = await GetOrderCountForDateAsync(processingDate);
-            var productCount = await GetProductCountForDateAsync(processingDate);
-
             var request = new ProcessDailyConsumptionRequest
             {
-                ProcessingDate = processingDate,
-                OrderCount = orderCount,
-                ProductCount = productCount
+                ProcessingDate = processingDate
             };
 
             var result = await _mediator.Send(request);
@@ -62,21 +50,4 @@ public class DailyConsumptionJob
         }
     }
 
-    private async Task<int> GetOrderCountForDateAsync(DateOnly date)
-    {
-        // TODO: Implement actual order count retrieval from database
-        // This is a placeholder implementation
-        _logger.LogDebug("Getting order count for {Date} (placeholder implementation)", date);
-        await Task.Delay(1); // Simulate async operation
-        return 0; // Placeholder value
-    }
-
-    private async Task<int> GetProductCountForDateAsync(DateOnly date)
-    {
-        // TODO: Implement actual product count retrieval from database
-        // This is a placeholder implementation
-        _logger.LogDebug("Getting product count for {Date} (placeholder implementation)", date);
-        await Task.Delay(1); // Simulate async operation
-        return 0; // Placeholder value
-    }
 }

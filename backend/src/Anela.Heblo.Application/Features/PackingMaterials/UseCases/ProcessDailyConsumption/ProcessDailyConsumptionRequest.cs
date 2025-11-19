@@ -5,6 +5,4 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDail
 public class ProcessDailyConsumptionRequest : IRequest<ProcessDailyConsumptionResponse>
 {
     public DateOnly ProcessingDate { get; set; }
-    public int OrderCount { get; set; }
-    public int ProductCount { get; set; }
 }

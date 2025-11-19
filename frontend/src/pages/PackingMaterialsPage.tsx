@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Package, Trash2, Calculator } from 'lucide-react';
+import { Plus, Edit, Package, Trash2, Calculator, TrendingDown } from 'lucide-react';
 import { usePackingMaterials, useDeletePackingMaterial, PackingMaterialDto, ConsumptionType } from '../api/hooks/usePackingMaterials';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
 import AddMaterialModal from '../components/packing-materials/modals/AddMaterialModal';
 import EditMaterialModal from '../components/packing-materials/modals/EditMaterialModal';
 import UpdateQuantityModal from '../components/packing-materials/modals/UpdateQuantityModal';
+import ProcessDailyConsumptionModal from '../components/packing-materials/modals/ProcessDailyConsumptionModal';
 
 interface PackingMaterialsPageProps {}
 
@@ -15,6 +16,7 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
+  const [isProcessConsumptionModalOpen, setIsProcessConsumptionModalOpen] = useState(false);
 
   const formatForecastDays = (days?: number) => {
     if (days === undefined || days === null) return 'N/A';
@@ -85,13 +87,22 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
           </div>
         </div>
         
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Přidat materiál
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setIsProcessConsumptionModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
+          >
+            <TrendingDown className="h-4 w-4 mr-2" />
+            Odečíst spotřebu
+          </button>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Přidat materiál
+          </button>
+        </div>
       </div>
 
       {/* Materials Table */}
@@ -218,6 +229,14 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
         material={selectedMaterial}
         onSuccess={() => {
           setSelectedMaterial(null);
+        }}
+      />
+
+      <ProcessDailyConsumptionModal
+        isOpen={isProcessConsumptionModalOpen}
+        onClose={() => setIsProcessConsumptionModalOpen(false)}
+        onSuccess={() => {
+          // Refresh data happens automatically via react-query invalidation
         }}
       />
     </div>

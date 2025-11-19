@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import { 
+  ProcessDailyConsumptionRequest as GeneratedProcessDailyConsumptionRequest,
+  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse 
+} from "../generated/api-client";
 
 // Define types based on our backend DTOs
 export interface PackingMaterialDto {
@@ -55,6 +59,10 @@ export interface UpdateQuantityRequest {
 export interface UpdatePackingMaterialQuantityResponse {
   material: PackingMaterialDto;
 }
+
+// Use the generated types for ProcessDailyConsumption
+export type ProcessDailyConsumptionRequest = GeneratedProcessDailyConsumptionRequest;
+export type ProcessDailyConsumptionResponse = GeneratedProcessDailyConsumptionResponse;
 
 // API client class
 class PackingMaterialsApiClient {
@@ -114,6 +122,11 @@ class PackingMaterialsApiClient {
     return this.makeRequest<void>(`/api/packing-materials/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async processDailyConsumption(request: ProcessDailyConsumptionRequest): Promise<ProcessDailyConsumptionResponse> {
+    const apiClient = getAuthenticatedApiClient();
+    return apiClient.packingMaterials_ProcessDailyConsumption(request);
   }
 }
 
@@ -188,6 +201,20 @@ export const useDeletePackingMaterial = () => {
     mutationFn: async (id: number) => {
       const client = createApiClient();
       return client.deletePackingMaterial(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
+    },
+  });
+};
+
+export const useProcessDailyConsumption = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: ProcessDailyConsumptionRequest) => {
+      const client = createApiClient();
+      return client.processDailyConsumption(request);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });

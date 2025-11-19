@@ -30,7 +30,7 @@ public class GetIssuedInvoicesListHandler : IRequestHandler<GetIssuedInvoicesLis
     {
         try
         {
-            _logger.LogInformation("Getting issued invoices list, Page: {PageNumber}, Size: {PageSize}", 
+            _logger.LogInformation("Getting issued invoices list, Page: {PageNumber}, Size: {PageSize}",
                 request.PageNumber, request.PageSize);
 
             // Create filters object
@@ -55,7 +55,7 @@ public class GetIssuedInvoicesListHandler : IRequestHandler<GetIssuedInvoicesLis
             // Map to DTOs
             var dtos = _mapper.Map<List<IssuedInvoiceDto>>(paginatedResult.Items);
 
-            _logger.LogInformation("Retrieved {Count} issued invoices out of {Total}", 
+            _logger.LogInformation("Retrieved {Count} issued invoices out of {Total}",
                 dtos.Count, paginatedResult.TotalCount);
 
             return new GetIssuedInvoicesListResponse
