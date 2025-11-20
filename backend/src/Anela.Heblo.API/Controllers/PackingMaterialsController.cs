@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
@@ -107,6 +108,22 @@ public class PackingMaterialsController : BaseApiController
         {
             return BadRequest(ModelState);
         }
+
+        var response = await _mediator.Send(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{id}/logs")]
+    public async Task<ActionResult<GetPackingMaterialLogsResponse>> GetPackingMaterialLogs(
+        int id,
+        [FromQuery] int days = 60,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetPackingMaterialLogsRequest
+        {
+            PackingMaterialId = id,
+            Days = days
+        };
 
         var response = await _mediator.Send(request, cancellationToken);
         return Ok(response);

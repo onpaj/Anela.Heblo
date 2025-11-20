@@ -24,8 +24,31 @@ export enum ConsumptionType {
   PerDay = 3
 }
 
+export enum LogEntryType {
+  Manual = 1,
+  AutomaticConsumption = 2
+}
+
+export interface PackingMaterialLogDto {
+  id: number;
+  packingMaterialId: number;
+  date: string; // DateOnly as ISO string
+  oldQuantity: number;
+  newQuantity: number;
+  changeAmount: number;
+  logType: LogEntryType;
+  logTypeText: string;
+  userId?: string;
+  createdAt: string;
+}
+
 export interface GetPackingMaterialsListResponse {
   materials: PackingMaterialDto[];
+}
+
+export interface GetPackingMaterialLogsResponse {
+  material: PackingMaterialDto;
+  logs: PackingMaterialLogDto[];
 }
 
 export interface CreatePackingMaterialRequest {
@@ -128,6 +151,10 @@ class PackingMaterialsApiClient {
     const apiClient = getAuthenticatedApiClient();
     return apiClient.packingMaterials_ProcessDailyConsumption(request);
   }
+
+  async getPackingMaterialLogs(id: number, days: number = 60): Promise<GetPackingMaterialLogsResponse> {
+    return this.makeRequest<GetPackingMaterialLogsResponse>(`/api/packing-materials/${id}/logs?days=${days}`);
+  }
 }
 
 // Create API client instance
@@ -139,6 +166,7 @@ const createApiClient = (): PackingMaterialsApiClient => {
 // Query keys
 const QUERY_KEYS = {
   packingMaterials: ['packingMaterials'] as const,
+  packingMaterialLogs: (id: number, days: number) => ['packingMaterials', id, 'logs', days] as const,
 };
 
 // Hooks
@@ -219,5 +247,16 @@ export const useProcessDailyConsumption = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
     },
+  });
+};
+
+export const usePackingMaterialLogs = (id: number, days: number = 60) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.packingMaterialLogs(id, days),
+    queryFn: async () => {
+      const client = createApiClient();
+      return client.getPackingMaterialLogs(id, days);
+    },
+    enabled: !!id,
   });
 };

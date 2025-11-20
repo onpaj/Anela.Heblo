@@ -6,6 +6,7 @@ import AddMaterialModal from '../components/packing-materials/modals/AddMaterial
 import EditMaterialModal from '../components/packing-materials/modals/EditMaterialModal';
 import UpdateQuantityModal from '../components/packing-materials/modals/UpdateQuantityModal';
 import ProcessDailyConsumptionModal from '../components/packing-materials/modals/ProcessDailyConsumptionModal';
+import PackingMaterialDetailModal from '../components/packing-materials/modals/PackingMaterialDetailModal';
 
 interface PackingMaterialsPageProps {}
 
@@ -17,6 +18,7 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isProcessConsumptionModalOpen, setIsProcessConsumptionModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const formatForecastDays = (days?: number) => {
     if (days === undefined || days === null) return 'N/A';
@@ -53,6 +55,11 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
         // Error is handled by the mutation and displayed via react-query
       }
     }
+  };
+
+  const handleRowClick = (material: PackingMaterialDto) => {
+    setSelectedMaterial(material);
+    setIsDetailModalOpen(true);
   };
 
   if (isLoading) {
@@ -147,7 +154,7 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
                 </tr>
               ) : (
                 materials.map((material) => (
-                  <tr key={material.id} className="hover:bg-gray-50">
+                  <tr key={material.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(material)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{material.name}</div>
                     </td>
@@ -168,7 +175,8 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedMaterial(material);
                             setIsQuantityModalOpen(true);
                           }}
@@ -178,7 +186,8 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
                           <Calculator className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedMaterial(material);
                             setIsEditModalOpen(true);
                           }}
@@ -188,7 +197,10 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteMaterial(material)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteMaterial(material);
+                          }}
                           className="text-red-600 hover:text-red-900 p-1 rounded"
                           title="Smazat materiál"
                           disabled={deletePackingMaterialMutation.isPending}
@@ -238,6 +250,15 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
         onSuccess={() => {
           // Refresh data happens automatically via react-query invalidation
         }}
+      />
+
+      <PackingMaterialDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedMaterial(null);
+        }}
+        material={selectedMaterial}
       />
     </div>
   );

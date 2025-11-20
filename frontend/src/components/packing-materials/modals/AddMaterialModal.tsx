@@ -140,7 +140,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
             <input
               id="consumptionRate"
               type="number"
-              step="0.01"
+              step="0.0001"
               min="0"
               value={formData.consumptionRate}
               onChange={(e) => setFormData({ ...formData, consumptionRate: e.target.value })}

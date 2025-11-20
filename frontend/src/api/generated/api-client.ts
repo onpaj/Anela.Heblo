@@ -4222,6 +4222,47 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
+    packingMaterials_GetPackingMaterialLogs(id: number, days: number | undefined): Promise<GetPackingMaterialLogsResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/logs?";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (days === null)
+            throw new Error("The parameter 'days' cannot be null.");
+        else if (days !== undefined)
+            url_ += "days=" + encodeURIComponent("" + days) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetPackingMaterialLogs(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetPackingMaterialLogs(response: Response): Promise<GetPackingMaterialLogsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingMaterialLogsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingMaterialLogsResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -15854,6 +15895,131 @@ export class ProcessDailyConsumptionRequest implements IProcessDailyConsumptionR
 
 export interface IProcessDailyConsumptionRequest {
     processingDate?: Date;
+}
+
+export class GetPackingMaterialLogsResponse implements IGetPackingMaterialLogsResponse {
+    material?: PackingMaterialDto;
+    logs?: PackingMaterialLogDto[];
+
+    constructor(data?: IGetPackingMaterialLogsResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+            if (Array.isArray(_data["logs"])) {
+                this.logs = [] as any;
+                for (let item of _data["logs"])
+                    this.logs!.push(PackingMaterialLogDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GetPackingMaterialLogsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingMaterialLogsResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        if (Array.isArray(this.logs)) {
+            data["logs"] = [];
+            for (let item of this.logs)
+                data["logs"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGetPackingMaterialLogsResponse {
+    material?: PackingMaterialDto;
+    logs?: PackingMaterialLogDto[];
+}
+
+export class PackingMaterialLogDto implements IPackingMaterialLogDto {
+    id?: number;
+    packingMaterialId?: number;
+    date?: Date;
+    oldQuantity?: number;
+    newQuantity?: number;
+    changeAmount?: number;
+    logType?: LogEntryType;
+    logTypeText?: string;
+    userId?: string | undefined;
+    createdAt?: Date;
+
+    constructor(data?: IPackingMaterialLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.packingMaterialId = _data["packingMaterialId"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.oldQuantity = _data["oldQuantity"];
+            this.newQuantity = _data["newQuantity"];
+            this.changeAmount = _data["changeAmount"];
+            this.logType = _data["logType"];
+            this.logTypeText = _data["logTypeText"];
+            this.userId = _data["userId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PackingMaterialLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingMaterialLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["packingMaterialId"] = this.packingMaterialId;
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        data["oldQuantity"] = this.oldQuantity;
+        data["newQuantity"] = this.newQuantity;
+        data["changeAmount"] = this.changeAmount;
+        data["logType"] = this.logType;
+        data["logTypeText"] = this.logTypeText;
+        data["userId"] = this.userId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPackingMaterialLogDto {
+    id?: number;
+    packingMaterialId?: number;
+    date?: Date;
+    oldQuantity?: number;
+    newQuantity?: number;
+    changeAmount?: number;
+    logType?: LogEntryType;
+    logTypeText?: string;
+    userId?: string | undefined;
+    createdAt?: Date;
+}
+
+export enum LogEntryType {
+    Manual = "Manual",
+    AutomaticConsumption = "AutomaticConsumption",
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
