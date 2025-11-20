@@ -11,15 +11,18 @@ public class EnqueueStockTakingHandler : IRequestHandler<EnqueueStockTakingReque
     private readonly IBackgroundWorker _backgroundWorker;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<EnqueueStockTakingHandler> _logger;
+    private readonly IMediator _mediator;
 
     public EnqueueStockTakingHandler(
         IBackgroundWorker backgroundWorker,
         ICatalogRepository catalogRepository,
-        ILogger<EnqueueStockTakingHandler> logger)
+        ILogger<EnqueueStockTakingHandler> logger,
+        IMediator mediator)
     {
         _backgroundWorker = backgroundWorker;
         _catalogRepository = catalogRepository;
         _logger = logger;
+        _mediator = mediator;
     }
 
     public async Task<EnqueueStockTakingResponse> Handle(EnqueueStockTakingRequest request, CancellationToken cancellationToken)
@@ -53,19 +56,39 @@ public class EnqueueStockTakingHandler : IRequestHandler<EnqueueStockTakingReque
             }
         }
 
-        // Enqueue the background job using the new MediatR handler
-        var jobId = _backgroundWorker.Enqueue<IMediator>(
-            mediator => mediator.Send(new ProcessStockTakingRequest
-            {
-                ProductCode = request.ProductCode,
-                TargetAmount = request.TargetAmount,
-                SoftStockTaking = request.SoftStockTaking
-            }, cancellationToken));
+        // Enqueue the background job using the new MediatR handler with error checking
+        var jobId = _backgroundWorker.Enqueue<EnqueueStockTakingHandler>(
+            handler => handler.ExecuteStockTakingJobAsync(request.ProductCode, request.TargetAmount, request.SoftStockTaking));
 
         return new EnqueueStockTakingResponse
         {
             JobId = jobId,
             Message = $"Stock taking for {request.ProductCode} with target amount {request.TargetAmount} has been queued. Job ID: {jobId}"
         };
+    }
+
+    /// <summary>
+    /// Background job method that executes stock taking and throws exception on error for Hangfire retry
+    /// </summary>
+    public async Task ExecuteStockTakingJobAsync(string productCode, decimal targetAmount, bool softStockTaking)
+    {
+        var response = await _mediator.Send(new ProcessStockTakingRequest
+        {
+            ProductCode = productCode,
+            TargetAmount = targetAmount,
+            SoftStockTaking = softStockTaking
+        }, CancellationToken.None);
+        
+        // Check if the response contains an error
+        if (!string.IsNullOrEmpty(response.Result?.Error))
+        {
+            throw new InvalidOperationException($"Stock taking failed: {response.Result.Error}");
+        }
+        
+        // Also check the Success flag from BaseResponse
+        if (!response.Success)
+        {
+            throw new InvalidOperationException($"Stock taking failed with error code: {response.ErrorCode}");
+        }
     }
 }
