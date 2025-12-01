@@ -30,7 +30,7 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.Id))
+            if (string.IsNullOrWhiteSpace(request.InvoiceId))
             {
                 return new GetIssuedInvoiceDetailResponse
                 {
@@ -40,14 +40,16 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
                 };
             }
 
-            _logger.LogInformation("Getting detailed information for issued invoice: {InvoiceId}", request.Id);
+            _logger.LogInformation("Getting detailed information for issued invoice: {InvoiceId}", request.InvoiceId);
 
-            // Get invoice with sync history
-            var invoice = await _repository.GetByIdWithSyncHistoryAsync(request.Id, cancellationToken);
+            // Get invoice with sync history if requested
+            var invoice = request.WithDetails 
+                ? await _repository.GetByIdWithSyncHistoryAsync(request.InvoiceId, cancellationToken)
+                : await _repository.GetByIdAsync(request.InvoiceId, cancellationToken);
 
             if (invoice == null)
             {
-                _logger.LogWarning("Issued invoice not found: {InvoiceId}", request.Id);
+                _logger.LogWarning("Issued invoice not found: {InvoiceId}", request.InvoiceId);
                 return new GetIssuedInvoiceDetailResponse
                 {
                     Success = false,
@@ -60,7 +62,7 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
             var invoiceDto = _mapper.Map<IssuedInvoiceDetailDto>(invoice);
 
             _logger.LogInformation("Retrieved detailed information for issued invoice: {InvoiceId} with {SyncHistoryCount} sync records",
-                request.Id, invoice.SyncHistoryCount);
+                request.InvoiceId, invoice.SyncHistoryCount);
 
             return new GetIssuedInvoiceDetailResponse
             {
@@ -70,7 +72,7 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while getting issued invoice detail for ID: {InvoiceId}", request.Id);
+            _logger.LogError(ex, "Error occurred while getting issued invoice detail for ID: {InvoiceId}", request.InvoiceId);
             return new GetIssuedInvoiceDetailResponse
             {
                 Success = false,
