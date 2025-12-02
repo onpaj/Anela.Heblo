@@ -84,6 +84,16 @@ public class HangfireJobSchedulerService : IHostedService
                 queue: QueueName
             );
 
+            //TODO Uncomment to support daily import job
+            // // Invoice import daily at 4:00 AM UTC
+            // RecurringJob.AddOrUpdate<IssuedInvoiceDailyImportJob>(
+            //     "daily-invoice-import",
+            //     job => job.ImportYesterday(),
+            //     "0 4 * * *", // Daily at 4:00 AM UTC
+            //     timeZone: TimeZoneInfo.Utc,
+            //     queue: QueueName
+            // );
+
             _logger.LogInformation("Hangfire recurring jobs registered successfully in {Environment} environment", _environment.EnvironmentName);
         }
         catch (Exception ex)

@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
-using Rem.FlexiBeeSDK.Model.Invoices;
+using Anela.Heblo.Domain.Features.Invoices;
 
 namespace Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 
@@ -7,23 +7,12 @@ public class GiftWithoutVATIssuedInvoiceImportTransformation : IIssuedInvoiceImp
 {
     private const string ProductCode = "GOODYDO0001";
     
-    public Task<IssuedInvoiceDetailFlexiDto> TransformAsync(IssuedInvoiceDetailFlexiDto invoiceDetail, CancellationToken cancellationToken)
+    public Task<IssuedInvoiceDetail> TransformAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
-        foreach(var item in invoiceDetail.Items)
-        {
-            if (item.Code == ProductCode)
-            {
-                item.Store = null;
-                item.Amount = "1";
-                item.PricePerUnit = item.SumBase ?? item.SumBaseC ?? 0;
-                item.AccountBaseDal = "code:325002"; // 325002 - Dary a sponzoring
-                item.CategoryVatReport = "code:0.0.";
-                item.CategoryVat = "code:000U";
-                item.CopyCategoryVatReport = false;
-                item.CopyCategoryVat = false;
-            }
-        }
-
+        // TODO: Implement gift transformation logic once domain model is properly defined
+        // This transformation should modify invoiceDetail items for gift products
+        // Setting VAT category, store, and accounting classification
+        
         return Task.FromResult(invoiceDetail);
     }
 }

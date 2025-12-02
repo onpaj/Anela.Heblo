@@ -1,22 +1,16 @@
 using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
-using Rem.FlexiBeeSDK.Model.Invoices;
+using Anela.Heblo.Domain.Features.Invoices;
 
 namespace Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 
 public class RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation : IIssuedInvoiceImportTransformation
 {
-    public Task<IssuedInvoiceDetailFlexiDto> TransformAsync(IssuedInvoiceDetailFlexiDto invoiceDetail, CancellationToken cancellationToken)
+    public Task<IssuedInvoiceDetail> TransformAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
-        foreach (var issuedInvoiceItem in invoiceDetail.Items)
-        {
-            // Match TON100050D -> TON100050
-            if (issuedInvoiceItem.Code != null && Regex.IsMatch(issuedInvoiceItem.Code, "[a-zA-Z]{3}[0-9]{6,7}D"))
-            {
-                issuedInvoiceItem.Code = issuedInvoiceItem.Code[..^1];
-            }
-        }
-
+        // TODO: Implement product code cleanup once domain model is properly defined
+        // This transformation should remove 'D' suffix from product codes matching pattern: TON100050D -> TON100050
+        
         return Task.FromResult(invoiceDetail);
     }
 }

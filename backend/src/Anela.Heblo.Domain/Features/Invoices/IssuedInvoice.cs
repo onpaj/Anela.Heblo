@@ -116,6 +116,8 @@ public record IssuedInvoiceError
 {
     public IssuedInvoiceErrorType ErrorType { get; set; } = IssuedInvoiceErrorType.General;
     public string Message { get; set; } = "?";
+    public string Code { get; set; }
+    public string? Field { get; set; }
 }
 
 public enum IssuedInvoiceErrorType

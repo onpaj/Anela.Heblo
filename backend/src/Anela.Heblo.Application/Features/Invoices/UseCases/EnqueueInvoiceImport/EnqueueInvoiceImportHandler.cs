@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Domain.Features.Invoices;
-using Anela.Heblo.Xcc.BackgroundJobs;
+using Anela.Heblo.Xcc.Services;
 using AutoMapper;
 using MediatR;
 
@@ -8,35 +8,38 @@ namespace Anela.Heblo.Application.Features.Invoices.UseCases.EnqueueInvoiceImpor
 
 public class EnqueueInvoiceImportHandler : IRequestHandler<EnqueueInvoiceImportRequest, List<string>>
 {
-    private readonly IBackgroundJobManager _jobManager;
+    private readonly IBackgroundWorker _backgroundWorker;
     private readonly IMapper _mapper;
 
     public EnqueueInvoiceImportHandler(
-        IBackgroundJobManager jobManager,
+        IBackgroundWorker backgroundWorker,
         IMapper mapper)
     {
-        _jobManager = jobManager;
+        _backgroundWorker = backgroundWorker;
         _mapper = mapper;
     }
 
-    public async Task<List<string>> Handle(EnqueueInvoiceImportRequest request, CancellationToken cancellationToken)
+    public Task<List<string>> Handle(EnqueueInvoiceImportRequest request, CancellationToken cancellationToken)
     {
         if (!request.ImportRequest.InvoiceIds.Any())
         {
             var query = _mapper.Map<ImportInvoiceRequestDto, IssuedInvoiceSourceQuery>(request.ImportRequest);
-            return await EnqueueImportByDate(request.ImportRequest, query);
+            return Task.FromResult(EnqueueImportByDate(request.ImportRequest, query));
         }
 
         var jobIds = new List<string>();
         foreach(var invoiceId in request.ImportRequest.InvoiceIds)
         {
-            jobIds.Add(await _jobManager.EnqueueAsync(new IssuedInvoiceSingleImportArgs(invoiceId, request.ImportRequest.Currency ?? "CZK")));
+            var currency = request.ImportRequest.Currency ?? "CZK";
+            
+            //TODO Enqueue job
+            //jobIds.Add(_backgroundWorker.Enqueue<Infrastructure.Jobs.IssuedInvoiceSingleImportJob>(job => job.ExecuteAsync(invoiceId, currency)));
         }
 
-        return jobIds;
+        return Task.FromResult(jobIds);
     }
 
-    private async Task<List<string>> EnqueueImportByDate(ImportInvoiceRequestDto request, IssuedInvoiceSourceQuery query)
+    private List<string> EnqueueImportByDate(ImportInvoiceRequestDto request, IssuedInvoiceSourceQuery query)
     {
         var taskIds = new List<string>();
         if (!request.DateFrom.HasValue)
@@ -50,7 +53,9 @@ public class EnqueueInvoiceImportHandler : IRequestHandler<EnqueueInvoiceImportR
 
         for (var day = request.DateFrom.Value.Date; day < request.DateTo.Value.Date; day = day.AddDays(1))
         {
-            taskIds.Add(await _jobManager.EnqueueAsync(new IssuedInvoiceDailyImportArgs(day, query.Currency ?? "CZK")));
+            var currency = query.Currency ?? "CZK";
+            // TODO Enqueue job
+            //taskIds.Add(_backgroundWorker.Enqueue<Infrastructure.Jobs.IssuedInvoiceDailyImportJob>(job => job.ImportForDate(day, currency)));
         }
 
         return taskIds;

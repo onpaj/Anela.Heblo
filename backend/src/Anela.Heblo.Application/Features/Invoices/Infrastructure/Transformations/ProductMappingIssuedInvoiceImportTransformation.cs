@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
-using Rem.FlexiBeeSDK.Model.Invoices;
+using Anela.Heblo.Domain.Features.Invoices;
 
 namespace Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 
@@ -14,16 +14,11 @@ public class ProductMappingIssuedInvoiceImportTransformation : IIssuedInvoiceImp
         _newProductCode = newProductCode;
     }
     
-    public Task<IssuedInvoiceDetailFlexiDto> TransformAsync(IssuedInvoiceDetailFlexiDto invoiceDetail, CancellationToken cancellationToken)
+    public Task<IssuedInvoiceDetail> TransformAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
-        foreach (var issuedInvoiceItem in invoiceDetail.Items)
-        {
-            if (!string.IsNullOrEmpty(issuedInvoiceItem.Code) && _originalProductCode == issuedInvoiceItem.Code)
-            {
-                issuedInvoiceItem.Code = _newProductCode;
-            }
-        }
-
+        // TODO: Implement product code mapping once domain model is properly defined
+        // This transformation should replace product codes in invoice items
+        
         return Task.FromResult(invoiceDetail);
     }
 }

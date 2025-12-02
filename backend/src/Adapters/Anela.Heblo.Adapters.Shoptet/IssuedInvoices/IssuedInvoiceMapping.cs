@@ -109,18 +109,42 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
             CreateMap<HomeCurrency, InvoicePrice>()
                 .AfterMap((hc, p) =>
                     {
-                        p.WithVat = hc.PriceVAT + hc.Price;
-                        p.WithoutVat = hc.Price;
-                        p.Vat = hc.PriceVAT;
+                        // Use UnitPrice as base (per unit price without VAT)
+                        p.WithoutVat = Math.Round(hc.UnitPrice, 2);
+                        
+                        // Calculate VAT per unit safely
+                        if (hc.Price > 0 && hc.UnitPrice > 0)
+                        {
+                            decimal quantity = hc.Price / hc.UnitPrice;
+                            p.Vat = quantity > 0 ? Math.Round(hc.PriceVAT / quantity, 2) : 0;
+                        }
+                        else
+                        {
+                            p.Vat = 0;
+                        }
+                        
+                        p.WithVat = Math.Round(p.WithoutVat + p.Vat, 2);
                     })
                 ;
 
             CreateMap<ForeignCurrency, InvoicePrice>()
                 .AfterMap((hc, p) =>
                 {
-                    p.WithVat = hc.PriceVAT + hc.Price;
-                    p.WithoutVat = hc.Price;
-                    p.Vat = hc.PriceVAT;
+                    // Use UnitPrice as base (per unit price without VAT)
+                    p.WithoutVat = Math.Round(hc.UnitPrice, 2);
+                    
+                    // Calculate VAT per unit safely
+                    if (hc.Price > 0 && hc.UnitPrice > 0)
+                    {
+                        decimal quantity = hc.Price / hc.UnitPrice;
+                        p.Vat = quantity > 0 ? Math.Round(hc.PriceVAT / quantity, 2) : 0;
+                    }
+                    else
+                    {
+                        p.Vat = 0;
+                    }
+                    
+                    p.WithVat = Math.Round(p.WithoutVat + p.Vat, 2);
                 })
                 ;
 

@@ -2,13 +2,9 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
-using Anela.Heblo.Xcc.Uow;
-using Anela.Heblo.Xcc.Application.Dtos;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Rem.FlexiBeeSDK.Client;
-using Rem.FlexiBeeSDK.Model;
 
 namespace Anela.Heblo.Application.Features.Invoices.UseCases.ImportInvoices;
 
@@ -18,7 +14,6 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
     private readonly IIssuedInvoiceClient _issuedInvoiceClient;
     private readonly IIssuedInvoiceRepository _repository;
     private readonly IEnumerable<IIssuedInvoiceImportTransformation> _importTransformations;
-    private readonly IUnitOfWorkManager _uowManager;
     private readonly IMapper _mapper;
     private readonly ILogger<ImportInvoicesHandler> _logger;
 
@@ -27,7 +22,6 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
         IIssuedInvoiceClient issuedInvoiceClient,
         IIssuedInvoiceRepository repository,
         IEnumerable<IIssuedInvoiceImportTransformation> importTransformations,
-        IUnitOfWorkManager uowManager,
         IMapper mapper,
         ILogger<ImportInvoicesHandler> logger)
     {
@@ -35,7 +29,6 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
         _issuedInvoiceClient = issuedInvoiceClient;
         _repository = repository;
         _importTransformations = importTransformations;
-        _uowManager = uowManager;
         _mapper = mapper;
         _logger = logger;
     }
@@ -56,16 +49,15 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
             _logger.LogInformation("Importing batch: {BatchId}", batch.BatchId);
             foreach (var invoiceDetail in batch.Invoices)
             {
-                var result = await ExecuteImportInvoice(invoiceDetail, cancellationToken);
-
-                if (!result.IsSuccess)
+                try
+                {
+                    await ExecuteImportInvoice(invoiceDetail, cancellationToken);
+                    resultDto.Succeeded.Add(invoiceDetail.Code);
+                }
+                catch (Exception ex)
                 {
                     error = true;
                     resultDto.Failed.Add(invoiceDetail.Code);
-                }
-                else
-                {
-                    resultDto.Succeeded.Add(invoiceDetail.Code);
                 }
             }
 
@@ -78,62 +70,55 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
         return resultDto;
     }
 
-    private async Task<OperationResult<OperationResultDetail>> ExecuteImportInvoice(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
+    private async Task<IssuedInvoice> ExecuteImportInvoice(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
-        using (var uow = _uowManager.Begin(requiresNew: true, isTransactional: false))
+        try
         {
+            _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
+
+            var invoice = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
+
+            // Apply transformations to domain model
+            var transformedInvoice = invoiceDetail;
+            foreach (var transformation in _importTransformations)
+            {
+                transformedInvoice = await transformation.TransformAsync(transformedInvoice, cancellationToken);
+            }
+
             try
             {
-                _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
-
-                var invoice = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
-
-                var flexiInvoice = _mapper.Map<IssuedInvoiceDetail, Rem.FlexiBeeSDK.Model.Invoices.IssuedInvoiceDetailFlexiDto>(invoiceDetail);
-                foreach (var transformation in _importTransformations)
-                {
-                    flexiInvoice = await transformation.TransformAsync(flexiInvoice, cancellationToken);
-                }
-                var result = await _issuedInvoiceClient.SaveAsync(flexiInvoice, cancellationToken);
-
-                if (result.IsSuccess)
-                {
-                    invoice.SyncSucceeded(flexiInvoice);
-                    _logger.LogInformation(
-                        "Successfully imported invoice: {InvoiceNumber}: {InvoiceValue} ({Currency})",
-                        invoiceDetail.Code, invoiceDetail.Price.WithVat, invoiceDetail.Price.CurrencyCode);
-                }
-                else
-                {
-                    var flexiError = result.Result?.Results?.FirstOrDefault()?.Errors?.FirstOrDefault();
-                    if (flexiError != null)
-                    {
-                        var invoiceError = _mapper.Map<Rem.FlexiBeeSDK.Model.Error, IssuedInvoiceError>(flexiError);
-                        invoice.SyncFailed(flexiInvoice, invoiceError);
-                    }
-                    else
-                    {
-                        invoice.SyncFailed(flexiInvoice, "Error not specified");
-                    }
-                    _logger.LogError("Failed to import invoice: {InvoiceNumber}: {Error}", invoiceDetail.Code, result.ErrorMessage);
-                }
-
-                await _repository.UpdateAsync(invoice, true, cancellationToken);
-                return result;
+                // Send to external system via abstraction
+                await _issuedInvoiceClient.SaveAsync(transformedInvoice, cancellationToken);
+                invoice.SyncSucceeded(transformedInvoice);
+                _logger.LogInformation(
+                    "Successfully imported invoice: {InvoiceNumber}: {InvoiceValue} ({Currency})",
+                    invoiceDetail.Code, invoiceDetail.Price.WithVat, invoiceDetail.Price.CurrencyCode);
             }
-            finally
+            catch (Exception ex)
             {
-                await uow.CompleteAsync(cancellationToken);
+                invoice.SyncFailed(transformedInvoice, ex.Message);
             }
+
+            await _repository.UpdateAsync(invoice, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            return invoice;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while importing invoice: {InvoiceNumber}", invoiceDetail.Code);
+            throw;
         }
     }
 
     private async Task<IssuedInvoice> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
     {
-        var found = await _repository.FindAsync(key, true, cancellationToken);
+        var found = await _repository.GetByIdAsync(key, cancellationToken);
         if (found == null)
         {
             found = factory();
-            await _repository.InsertAsync(found, true, cancellationToken);
+            await _repository.AddAsync(found, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
         }
 
         return found;
