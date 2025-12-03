@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
-import { formatDate, formatCurrency } from "../../utils/formatters";
+import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
@@ -39,8 +39,8 @@ const IssuedInvoicesPage: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Sorting states
-  const [sortBy, setSortBy] = useState("InvoiceDate");
+  // Sorting states - default to LastSyncTime descending
+  const [sortBy, setSortBy] = useState("LastSyncTime");
   const [sortDescending, setSortDescending] = useState(true);
 
   // Modal states
