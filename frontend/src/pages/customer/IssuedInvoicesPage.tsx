@@ -647,7 +647,7 @@ const IssuedInvoicesPage: React.FC = () => {
                             {getSyncStatusIcon(invoice)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {invoice.lastSyncTime ? formatDate(invoice.lastSyncTime) : "-"}
+                            {invoice.lastSyncTime ? formatDateTime(invoice.lastSyncTime) : "-"}
                           </td>
                         </tr>
                       ))}
