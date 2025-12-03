@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
+using Anela.Heblo.Adapters.Shoptet.IssuedInvoices.ValueResolvers;
 using Anela.Heblo.Adapters.Shoptet.Price;
 using Anela.Heblo.Adapters.Shoptet.Stock;
 using Anela.Heblo.Domain.Features.CashRegister;
@@ -31,6 +32,17 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddHttpClient();
         services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();
         services.AddSingleton<IIssuedInvoiceSource, ShoptetPlaywrightInvoiceSource>();
+        
+        // Register invoice mapping resolvers
+        services.AddSingleton<IPaymentMethodResolver, PaymentMethodResolver>();
+        services.AddSingleton<IShippingMethodResolver, ShippingMethodResolver>();
+        services.AddSingleton<IInvoicePriceCalculator, InvoicePriceCalculator>();
+        
+        // Register AutoMapper value resolvers as singletons (required by AutoMapper)
+        services.AddSingleton<PaymentMethodValueResolver>();
+        services.AddSingleton<ShippingMethodValueResolver>();
+        services.AddSingleton<HomeCurrencyPriceValueResolver>();
+        services.AddSingleton<ForeignCurrencyPriceValueResolver>();
 
         services.AddSingleton<IssuedInvoiceExportScenario>();
 

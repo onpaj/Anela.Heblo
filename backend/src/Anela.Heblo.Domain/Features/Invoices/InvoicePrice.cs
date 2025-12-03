@@ -13,6 +13,7 @@
         public decimal? ExchangeRate { get; set; }
 
         public string? VatRate { get; set; }
-
+        public decimal TotalWithoutVat { get; set; }
+        public decimal TotalWithVat { get; set; }
     }
 }
