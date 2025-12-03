@@ -80,10 +80,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         // Issued Invoice client (for invoice import)
         services.AddScoped<IIssuedInvoiceClient, FlexiIssuedInvoiceClient>();
 
-        services.Replace(new ServiceDescriptor(
-            typeof(Rem.FlexiBeeSDK.Client.Clients.IssuedInvoices.IIssuedInvoiceClient), typeof(XmlIssuedInvoiceClient),
-            ServiceLifetime.Singleton));
-        
         return services;
     }
 }

@@ -1,5 +1,5 @@
-import React from "react";
-import { X, AlertCircle, CheckCircle, Clock, FileText, User, Mail, Phone, MapPin } from "lucide-react";
+import React, { useState } from "react";
+import { X, AlertCircle, CheckCircle, Clock, FileText, User, Mail, Phone, MapPin, Download, Loader2 } from "lucide-react";
 import { useIssuedInvoiceDetail } from "../../api/hooks/useIssuedInvoices";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 
@@ -7,16 +7,74 @@ interface IssuedInvoiceDetailModalProps {
   invoiceId: string;
   isOpen: boolean;
   onClose: () => void;
+  onInvoiceUpdated?: () => Promise<void>;
 }
 
 const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
   invoiceId,
   isOpen,
   onClose,
+  onInvoiceUpdated,
 }) => {
-  const { data, isLoading, error } = useIssuedInvoiceDetail(invoiceId);
+  const { data, isLoading, error, refetch } = useIssuedInvoiceDetail(invoiceId);
+  const [reimporting, setReimporting] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleReimport = async (currency?: 'CZK' | 'EUR') => {
+    // Use invoice's existing currency as default if not specified
+    const targetCurrency = currency || (data?.invoice as any)?.currency || 'CZK';
+    if (reimporting) return;
+
+    try {
+      setReimporting(true);
+
+      const requestBody = {
+        query: {
+          requestId: `reimport-${invoiceId}-${Date.now()}`,
+          invoiceId: invoiceId,
+          currency: targetCurrency
+        }
+      };
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/invoices/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      const successCount = result.succeeded?.length || 0;
+      const failedCount = result.failed?.length || 0;
+
+      if (successCount > 0) {
+        alert(`Faktura ${invoiceId} byla úspěšně znovu naimportována (${targetCurrency}).`);
+      } else if (failedCount > 0) {
+        alert(`Chyba při opětovném importu faktury ${invoiceId} (${targetCurrency}).`);
+      } else {
+        alert(`Faktura ${invoiceId} nebyla nalezena (${targetCurrency}).`);
+      }
+
+      // Refresh the invoice detail and notify parent component
+      await Promise.all([
+        refetch(),
+        onInvoiceUpdated ? onInvoiceUpdated() : Promise.resolve()
+      ]);
+
+    } catch (error) {
+      console.error('Reimport error:', error);
+      alert(`Chyba při opětovném importu: ${error instanceof Error ? error.message : 'Neočekávaná chyba'}`);
+    } finally {
+      setReimporting(false);
+    }
+  };
 
   const getSyncStatusBadge = (isSynced: boolean, errorType?: string | null) => {
     if (errorType) {
@@ -122,7 +180,16 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                     
                     <div>
                       <label className="text-sm font-medium text-gray-500">Celková částka</label>
-                      <p className="text-sm text-gray-900 font-semibold">{formatCurrency(data.invoice.price)}</p>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {formatCurrency(data.invoice.price)}
+                        <span className={`ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                          (data.invoice as any).currency === 'EUR' 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {(data.invoice as any).currency || 'CZK'}
+                        </span>
+                      </p>
                     </div>
                     
                     <div>
@@ -297,7 +364,28 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
 
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              {data && data.invoice && (
+                <button
+                  onClick={() => handleReimport()}
+                  disabled={reimporting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {reimporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Importuje...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Znovu naimportovat
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

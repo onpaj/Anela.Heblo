@@ -12,6 +12,7 @@ import {
   ChevronRight,
   BarChart3,
   List,
+  Download,
 } from "lucide-react";
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
@@ -44,6 +45,15 @@ const IssuedInvoicesPage: React.FC = () => {
 
   // Modal states
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  // Import states
+  const [importType, setImportType] = useState<'date' | 'invoice'>('date');
+  const [importInvoiceId, setImportInvoiceId] = useState('');
+  const [importDateFrom, setImportDateFrom] = useState('');
+  const [importDateTo, setImportDateTo] = useState('');
+  const [importCurrency, setImportCurrency] = useState<'CZK' | 'EUR'>('CZK');
+  const [importLoading, setImportLoading] = useState(false);
 
   // Use the actual API call for grid data
   const {
@@ -68,7 +78,8 @@ const IssuedInvoicesPage: React.FC = () => {
   const {
     data: syncStats,
     isLoading: syncStatsLoading,
-    error: syncStatsError
+    error: syncStatsError,
+    refetch: refetchSyncStats
   } = useIssuedInvoiceSyncStats({
     fromDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     toDate: new Date()
@@ -143,6 +154,93 @@ const IssuedInvoicesPage: React.FC = () => {
 
   const handleCloseDetail = () => {
     setSelectedInvoiceId(null);
+  };
+
+  const handleInvoiceUpdated = async () => {
+    // Refresh both the invoices list and sync stats after detail modal update
+    await Promise.all([
+      refetch(),
+      refetchSyncStats()
+    ]);
+  };
+
+  // Import handlers
+  const handleImportInvoices = async () => {
+    if (importLoading) return;
+
+    try {
+      setImportLoading(true);
+
+      // Validate input
+      if (importType === 'invoice' && !importInvoiceId.trim()) {
+        alert('Zadejte číslo faktury');
+        return;
+      }
+      if (importType === 'date' && (!importDateFrom || !importDateTo)) {
+        alert('Zadejte rozsah datumů');
+        return;
+      }
+
+      // Build request body
+      const requestBody = {
+        query: {
+          requestId: `import-${Date.now()}`,
+          currency: importCurrency,
+          ...(importType === 'invoice' 
+            ? { invoiceId: importInvoiceId.trim() }
+            : { 
+                dateFrom: new Date(importDateFrom).toISOString(),
+                dateTo: new Date(importDateTo).toISOString()
+              })
+        }
+      };
+
+      // Make API call using proper baseUrl
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/invoices/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // Show results
+      const successCount = result.succeeded?.length || 0;
+      const failedCount = result.failed?.length || 0;
+      const totalCount = successCount + failedCount;
+
+      if (totalCount === 0) {
+        alert('Žádné faktury nebyly nalezeny pro import.');
+      } else {
+        alert(`Import dokončen:\n✓ Úspěšně: ${successCount}\n✗ Chyba: ${failedCount}`);
+      }
+
+      // Reset form and close modal
+      setShowImportModal(false);
+      setImportInvoiceId('');
+      setImportDateFrom('');
+      setImportDateTo('');
+      setImportType('date');
+      setImportCurrency('CZK');
+
+      // Refresh both the invoices list and sync stats
+      await Promise.all([
+        refetch(),
+        refetchSyncStats()
+      ]);
+
+    } catch (error) {
+      console.error('Import error:', error);
+      alert(`Chyba při importu: ${error instanceof Error ? error.message : 'Neočekávaná chyba'}`);
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   // Sortable header component
@@ -336,7 +434,7 @@ const IssuedInvoicesPage: React.FC = () => {
         <StatisticsTab />
       ) : (
         <>
-          {/* Filters - Fixed (only for grid tab) */}
+          {/* Filters and Import - Fixed (only for grid tab) */}
           <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -432,12 +530,29 @@ const IssuedInvoicesPage: React.FC = () => {
                 >
                   Vymazat
                 </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  disabled={importLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {importLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Importuje...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Import
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
 
           {/* Data Grid - Scrollable */}
-          <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0 relative">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="flex items-center space-x-2">
@@ -454,6 +569,16 @@ const IssuedInvoicesPage: React.FC = () => {
               </div>
             ) : (
               <>
+                {/* Import loading overlay */}
+                {importLoading && (
+                  <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                      <div className="text-emerald-700 font-medium">Probíhá import faktur...</div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex-1 overflow-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-10">
@@ -470,6 +595,12 @@ const IssuedInvoicesPage: React.FC = () => {
                         <SortableHeader column="Price">
                           Částka
                         </SortableHeader>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Měna
+                        </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -501,6 +632,15 @@ const IssuedInvoicesPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">
                               {formatCurrency(invoice.price)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                              (invoice as any).currency === 'EUR' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {(invoice as any).currency || 'CZK'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
@@ -625,11 +765,153 @@ const IssuedInvoicesPage: React.FC = () => {
         </>
       )}
 
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                Import faktur
+              </h2>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Import Type Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-900 mb-3 block">
+                  Typ importu
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="importType"
+                      value="date"
+                      checked={importType === 'date'}
+                      onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
+                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Rozsah datumů</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="importType"
+                      value="invoice"
+                      checked={importType === 'invoice'}
+                      onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
+                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Konkrétní faktura</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Currency Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-900 mb-2 block">
+                  Měna
+                </label>
+                <select
+                  value={importCurrency}
+                  onChange={(e) => setImportCurrency(e.target.value as 'CZK' | 'EUR')}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="CZK">CZK</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              {/* Conditional Input Fields */}
+              {importType === 'date' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                      Datum od
+                    </label>
+                    <input
+                      type="date"
+                      value={importDateFrom}
+                      onChange={(e) => setImportDateFrom(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                      Datum do
+                    </label>
+                    <input
+                      type="date"
+                      value={importDateTo}
+                      onChange={(e) => setImportDateTo(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium text-gray-900 mb-2 block">
+                    Číslo faktury
+                  </label>
+                  <input
+                    type="text"
+                    value={importInvoiceId}
+                    onChange={(e) => setImportInvoiceId(e.target.value)}
+                    placeholder="Zadejte číslo faktury"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-lg">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  disabled={importLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+                >
+                  Zrušit
+                </button>
+                <button
+                  onClick={handleImportInvoices}
+                  disabled={importLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {importLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Importuje...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Importovat
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal for Invoice Detail */}
       <IssuedInvoiceDetailModal
         invoiceId={selectedInvoiceId || ""}
         isOpen={!!selectedInvoiceId}
         onClose={handleCloseDetail}
+        onInvoiceUpdated={handleInvoiceUpdated}
       />
     </div>
   );
