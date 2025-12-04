@@ -53,11 +53,16 @@ export interface IssuedInvoiceItemDto {
 }
 
 export interface IssuedInvoiceSyncHistoryDto {
-  id: string;
+  id: number;
   syncTime: string;
-  syncStatus: string;
-  errorMessage: string | null;
-  responseData: string | null;
+  isSuccess: boolean;
+  data: string | null;
+  error: {
+    message: string;
+    code?: string;
+    field?: string;
+    errorType: number;
+  } | null;
 }
 
 export interface IssuedInvoiceDetailResponse {

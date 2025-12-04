@@ -23,7 +23,23 @@ public class InvoicesMappingProfile : Profile
         CreateMap<IssuedInvoiceSyncData, IssuedInvoiceSyncDataDto>();
 
         // IssuedInvoiceError mappings
-        CreateMap<IssuedInvoiceError, IssuedInvoiceErrorDto>()
-            .ForMember(dest => dest.ErrorType, opt => opt.MapFrom(src => src.ErrorType.ToString()));
+        CreateMap<IssuedInvoiceError, IssuedInvoiceErrorDto>();
+
+        // Domain entity mappings
+        CreateMap<IssuedInvoiceDetail, IssuedInvoice>()
+            .ForMember(m => m.Id, e => e.MapFrom(f => f.Code))
+            .ForMember(m => m.Price, e => e.MapFrom(f => f.Price.WithVat))
+            .ForMember(m => m.Currency, e => e.MapFrom(f => f.Price.CurrencyCode))
+            .ForMember(m => m.InvoiceDate, e => e.MapFrom(f => f.CreationTime))
+            .ForMember(m => m.CustomerName, e => e.MapFrom(f => f.Customer.DisplayName));
+
+        // DTO mappings for compatibility - remove duplicate mapping as it's already defined above
+        // CreateMap<IssuedInvoice, IssuedInvoiceDto>()
+        //     .ForMember(m => m.SyncHistoryCount, e => e.MapFrom(f => f.SyncHistoryCount))
+        //     .ForMember(m => m.BillingMethod, e => e.MapFrom(f => f.BillingMethod.ToString()))
+        //     .ForMember(m => m.ShippingMethod, e => e.MapFrom(f => f.ShippingMethod.ToString()))
+        //     .ForMember(m => m.SyncDate, e => e.MapFrom(f => f.LastSyncTime));
+
+        CreateMap<ImportInvoiceRequestDto, IssuedInvoiceSourceQuery>();
     }
 }

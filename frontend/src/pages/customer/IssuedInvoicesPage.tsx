@@ -12,12 +12,16 @@ import {
   ChevronRight,
   BarChart3,
   List,
+  Download,
 } from "lucide-react";
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
-import { formatDate, formatCurrency } from "../../utils/formatters";
+import { useEnqueueInvoiceImport, useRunningInvoiceImportJobs } from "../../api/hooks/useAsyncInvoiceImport";
+import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
+import InvoiceImportJobTracker from "../../components/invoices/InvoiceImportJobTracker";
+import InvoiceImportRunningIndicator from "../../components/invoices/InvoiceImportRunningIndicator";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 const IssuedInvoicesPage: React.FC = () => {
@@ -38,12 +42,24 @@ const IssuedInvoicesPage: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Sorting states
-  const [sortBy, setSortBy] = useState("InvoiceDate");
+  // Sorting states - default to LastSyncTime descending
+  const [sortBy, setSortBy] = useState("LastSyncTime");
   const [sortDescending, setSortDescending] = useState(true);
 
   // Modal states
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  // Import states
+  const [importType, setImportType] = useState<'date' | 'invoice'>('date');
+  const [importInvoiceId, setImportInvoiceId] = useState('');
+  const [importDateFrom, setImportDateFrom] = useState('');
+  const [importDateTo, setImportDateTo] = useState('');
+  const [importCurrency, setImportCurrency] = useState<'CZK' | 'EUR'>('CZK');
+  const [importLoading, setImportLoading] = useState(false);
+
+  // Async import states
+  const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
 
   // Use the actual API call for grid data
   const {
@@ -68,11 +84,16 @@ const IssuedInvoicesPage: React.FC = () => {
   const {
     data: syncStats,
     isLoading: syncStatsLoading,
-    error: syncStatsError
+    error: syncStatsError,
+    refetch: refetchSyncStats
   } = useIssuedInvoiceSyncStats({
     fromDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     toDate: new Date()
   });
+
+  // Async import hooks
+  const enqueueImportMutation = useEnqueueInvoiceImport();
+  const { data: runningJobs, refetch: refetchRunningJobs } = useRunningInvoiceImportJobs();
 
   const filteredItems = data?.items || [];
   const totalCount = data?.totalCount || 0; // Total count from API
@@ -143,6 +164,92 @@ const IssuedInvoicesPage: React.FC = () => {
 
   const handleCloseDetail = () => {
     setSelectedInvoiceId(null);
+  };
+
+  const handleInvoiceUpdated = async () => {
+    // Refresh both the invoices list and sync stats after detail modal update
+    await Promise.all([
+      refetch(),
+      refetchSyncStats()
+    ]);
+  };
+
+  // Job completion handler
+  const handleJobCompleted = React.useCallback((jobId: string) => {
+    setActiveJobIds(prev => prev.filter(id => id !== jobId));
+  }, []);
+
+  // Job started handler (from modal re-import)
+  const handleJobStarted = React.useCallback((jobId: string) => {
+    setActiveJobIds(prev => [...prev, jobId]);
+  }, []);
+
+  // Refetch running jobs when switching to grid tab
+  React.useEffect(() => {
+    if (activeTab === 'grid') {
+      refetchRunningJobs();
+    }
+  }, [activeTab, refetchRunningJobs]);
+
+  // Load running jobs on page load and keep in sync
+  React.useEffect(() => {
+    if (runningJobs) {
+      const jobIds = runningJobs.map(job => job.id).filter(Boolean);
+      setActiveJobIds(jobIds);
+    }
+  }, [runningJobs]);
+
+  // Import handlers
+  const handleImportInvoices = async () => {
+    if (importLoading) return;
+
+    try {
+      setImportLoading(true);
+
+      // Validate input
+      if (importType === 'invoice' && !importInvoiceId.trim()) {
+        return;
+      }
+      if (importType === 'date' && (!importDateFrom || !importDateTo)) {
+        return;
+      }
+
+      // Build request body
+      const requestBody = {
+        query: {
+          requestId: `import-${Date.now()}`,
+          ...(importType === 'invoice' 
+            ? { invoiceId: importInvoiceId.trim() }
+            : { 
+                fromDate: importDateFrom,
+                toDate: importDateTo,
+                limit: 100
+              })
+        }
+      };
+
+      // Async import
+      const result = await enqueueImportMutation.mutateAsync(requestBody);
+      
+      if (result.jobId) {
+        setActiveJobIds(prev => [...prev, result.jobId!]);
+      }
+
+      // Reset form and close modal
+      setShowImportModal(false);
+      setImportInvoiceId('');
+      setImportDateFrom('');
+      setImportDateTo('');
+      setImportType('date');
+      setImportCurrency('CZK');
+
+      // Jobs will refresh data automatically when completed
+
+    } catch (error) {
+      console.error('Import error:', error);
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   // Sortable header component
@@ -296,6 +403,24 @@ const IssuedInvoicesPage: React.FC = () => {
       className="flex flex-col w-full"
       style={{ height: PAGE_CONTAINER_HEIGHT }}
     >
+      {/* Job Tracking Section - At Top Like Gift Packages */}
+      {activeJobIds.length > 0 && (
+        <div className="flex-shrink-0 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-medium text-blue-900">Běžící importy:</h3>
+            <div className="space-y-1">
+              {activeJobIds.map((jobId) => (
+                <InvoiceImportJobTracker
+                  key={jobId}
+                  jobId={jobId}
+                  onJobCompleted={() => handleJobCompleted(jobId)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Tabs - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center justify-between">
@@ -336,7 +461,7 @@ const IssuedInvoicesPage: React.FC = () => {
         <StatisticsTab />
       ) : (
         <>
-          {/* Filters - Fixed (only for grid tab) */}
+          {/* Filters and Import - Fixed (only for grid tab) */}
           <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -432,12 +557,33 @@ const IssuedInvoicesPage: React.FC = () => {
                 >
                   Vymazat
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    disabled={importLoading}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {importLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Importuje...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Import
+                      </>
+                    )}
+                  </button>
+                  <InvoiceImportRunningIndicator className="absolute -top-1 -right-1" />
+                </div>
               </div>
             </div>
           </div>
 
+
           {/* Data Grid - Scrollable */}
-          <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0 relative">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="flex items-center space-x-2">
@@ -454,6 +600,16 @@ const IssuedInvoicesPage: React.FC = () => {
               </div>
             ) : (
               <>
+                {/* Import loading overlay */}
+                {importLoading && (
+                  <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                      <div className="text-emerald-700 font-medium">Probíhá import faktur...</div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex-1 overflow-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-10">
@@ -470,6 +626,12 @@ const IssuedInvoicesPage: React.FC = () => {
                         <SortableHeader column="Price">
                           Částka
                         </SortableHeader>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Měna
+                        </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -503,11 +665,20 @@ const IssuedInvoicesPage: React.FC = () => {
                               {formatCurrency(invoice.price)}
                             </span>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                              (invoice as any).currency === 'EUR' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {(invoice as any).currency || 'CZK'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                             {getSyncStatusIcon(invoice)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {invoice.lastSyncTime ? formatDate(invoice.lastSyncTime) : "-"}
+                            {invoice.lastSyncTime ? formatDateTime(invoice.lastSyncTime) : "-"}
                           </td>
                         </tr>
                       ))}
@@ -625,11 +796,155 @@ const IssuedInvoicesPage: React.FC = () => {
         </>
       )}
 
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                Import faktur
+              </h2>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Import Type Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-900 mb-3 block">
+                  Typ importu
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="importType"
+                      value="date"
+                      checked={importType === 'date'}
+                      onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
+                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Rozsah datumů</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="importType"
+                      value="invoice"
+                      checked={importType === 'invoice'}
+                      onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
+                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Konkrétní faktura</span>
+                  </label>
+                </div>
+              </div>
+
+
+              {/* Currency Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-900 mb-2 block">
+                  Měna
+                </label>
+                <select
+                  value={importCurrency}
+                  onChange={(e) => setImportCurrency(e.target.value as 'CZK' | 'EUR')}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="CZK">CZK</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              {/* Conditional Input Fields */}
+              {importType === 'date' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                      Datum od
+                    </label>
+                    <input
+                      type="date"
+                      value={importDateFrom}
+                      onChange={(e) => setImportDateFrom(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                      Datum do
+                    </label>
+                    <input
+                      type="date"
+                      value={importDateTo}
+                      onChange={(e) => setImportDateTo(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium text-gray-900 mb-2 block">
+                    Číslo faktury
+                  </label>
+                  <input
+                    type="text"
+                    value={importInvoiceId}
+                    onChange={(e) => setImportInvoiceId(e.target.value)}
+                    placeholder="Zadejte číslo faktury"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-lg">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  disabled={importLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+                >
+                  Zrušit
+                </button>
+                <button
+                  onClick={handleImportInvoices}
+                  disabled={importLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {importLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Importuje...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Importovat
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal for Invoice Detail */}
       <IssuedInvoiceDetailModal
         invoiceId={selectedInvoiceId || ""}
         isOpen={!!selectedInvoiceId}
         onClose={handleCloseDetail}
+        onInvoiceUpdated={handleInvoiceUpdated}
+        onJobStarted={handleJobStarted}
       />
     </div>
   );

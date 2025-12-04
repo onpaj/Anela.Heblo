@@ -315,32 +315,108 @@ namespace Anela.Heblo.Persistence.Migrations
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoice", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("Id");
 
-                    b.Property<string>("Code")
+                    b.Property<int>("BillingMethod")
+                        .HasColumnType("integer")
+                        .HasColumnName("BillingMethod");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("Currency")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text")
+                        .HasColumnName("Currency");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<string>("CustomerName")
+                        .HasColumnType("text")
+                        .HasColumnName("CustomerName");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("DueDate");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("ErrorMessage");
+
+                    b.Property<int?>("ErrorType")
+                        .HasColumnType("integer")
+                        .HasColumnName("ErrorType");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
 
                     b.Property<DateTime>("InvoiceDate")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("InvoiceDate");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("boolean")
+                        .HasColumnName("IsSynced");
+
+                    b.Property<int>("ItemsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("ItemsCount");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<DateTime?>("LastSyncTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastSyncTime");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("Price");
+
+                    b.Property<decimal>("PriceC")
+                        .HasColumnType("numeric")
+                        .HasColumnName("PriceC");
+
+                    b.Property<int>("ShippingMethod")
+                        .HasColumnType("integer")
+                        .HasColumnName("ShippingMethod");
+
+                    b.Property<int>("SyncHistoryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("SyncHistoryCount");
+
+                    b.Property<DateTime>("TaxDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("TaxDate");
+
+                    b.Property<long?>("VarSymbol")
+                        .HasColumnType("bigint")
+                        .HasColumnName("VarSymbol");
+
+                    b.Property<bool?>("VatPayer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("VatPayer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasDatabaseName("IX_IssuedInvoice_Code_Unique");
 
                     b.HasIndex("InvoiceDate")
                         .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
@@ -349,6 +425,39 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
 
                     b.ToTable("IssuedInvoice", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Data")
+                        .HasColumnType("text")
+                        .HasColumnName("Data");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean")
+                        .HasColumnName("IsSuccess");
+
+                    b.Property<string>("IssuedInvoiceId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("IssuedInvoiceId");
+
+                    b.Property<DateTime>("SyncTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("SyncTime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssuedInvoiceId");
+
+                    b.ToTable("IssuedInvoiceSyncData", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>
@@ -1237,6 +1346,48 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("ClassificationRule");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoice", null)
+                        .WithMany("SyncHistory")
+                        .HasForeignKey("IssuedInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
+                        {
+                            b1.Property<int>("IssuedInvoiceSyncDataId")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Code")
+                                .IsRequired()
+                                .HasColumnType("text")
+                                .HasColumnName("Error_Code");
+
+                            b1.Property<int>("ErrorType")
+                                .HasColumnType("integer")
+                                .HasColumnName("Error_ErrorType");
+
+                            b1.Property<string>("Field")
+                                .HasColumnType("text")
+                                .HasColumnName("Error_Field");
+
+                            b1.Property<string>("Message")
+                                .IsRequired()
+                                .HasColumnType("text")
+                                .HasColumnName("Error_Message");
+
+                            b1.HasKey("IssuedInvoiceSyncDataId");
+
+                            b1.ToTable("IssuedInvoiceSyncData", "dbo");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IssuedInvoiceSyncDataId");
+                        });
+
+                    b.Navigation("Error");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntryProduct", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Journal.JournalEntry", "JournalEntry")
@@ -1363,6 +1514,11 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("DashboardSettings");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoice", b =>
+                {
+                    b.Navigation("SyncHistory");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>

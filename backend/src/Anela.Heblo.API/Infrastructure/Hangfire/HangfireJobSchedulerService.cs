@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.Extensions.Options;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application.Features.PackingMaterials.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Invoices.Infrastructure.Jobs;
 
 namespace Anela.Heblo.API.Services;
 
@@ -80,6 +81,24 @@ public class HangfireJobSchedulerService : IHostedService
                 "daily-consumption-calculation",
                 job => job.ProcessDailyConsumption(),
                 "0 3 * * *", // Daily at 3:00 AM UTC
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
+            // EUR Invoice import daily at 4:00 AM UTC (EUR invoices first - fewer in quantity)
+            RecurringJob.AddOrUpdate<IssuedInvoiceDailyImportJob>(
+                "daily-invoice-import-eur",
+                job => job.ImportYesterdayEur(),
+                "0 4 * * *", // Daily at 4:00 AM UTC
+                timeZone: TimeZoneInfo.Utc,
+                queue: QueueName
+            );
+
+            // CZK Invoice import daily at 4:15 AM UTC (CZK invoices second - more in quantity)
+            RecurringJob.AddOrUpdate<IssuedInvoiceDailyImportJob>(
+                "daily-invoice-import-czk",
+                job => job.ImportYesterdayCzk(),
+                "15 4 * * *", // Daily at 4:15 AM UTC
                 timeZone: TimeZoneInfo.Utc,
                 queue: QueueName
             );

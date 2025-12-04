@@ -1,4 +1,5 @@
 ﻿using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Adapters.Shoptet.IssuedInvoices.ValueResolvers;
 using AutoMapper;
 
 namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
@@ -8,43 +9,8 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
         public IssuedInvoiceMapping()
         {
             CreateMap<Invoice, IssuedInvoiceDetail>()
-                .ForMember(m => m.BillingMethod, u => u.MapFrom((si, ai, sbm) =>
-                {
-                    if (si.InvoiceHeader?.PaymentType?.PaymentType == "creditcard")
-                        return BillingMethod.CreditCard;
-                    if (si.InvoiceHeader?.PaymentType?.PaymentType == "cash")
-                        return BillingMethod.Cash;
-
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Převodem"))
-                        return BillingMethod.BankTransfer;
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Hotově"))
-                        return BillingMethod.Cash;
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("kart", StringComparison.InvariantCultureIgnoreCase)))
-                        return BillingMethod.Comgate;
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "Dobírkou"))
-                        return BillingMethod.CoD;
-
-                    return BillingMethod.BankTransfer;
-                }))
-                .ForMember(m => m.ShippingMethod, u => u.MapFrom((si, ai, sbm) =>
-                {
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text == "PPL - ParcelShop"))
-                        return ShippingMethod.PPLParcelShop;
-
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("PPL", StringComparison.InvariantCultureIgnoreCase)))
-                        return ShippingMethod.PPL;
-
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("Osobn", StringComparison.InvariantCultureIgnoreCase)))
-                        return ShippingMethod.PickUp;
-
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("GLS", StringComparison.InvariantCultureIgnoreCase)))
-                        return ShippingMethod.GLS;
-
-                    if (si.InvoiceDetail.InvoiceItems.Any(a => a.Text.Contains("zásilk", StringComparison.InvariantCultureIgnoreCase)))
-                        return ShippingMethod.Zasilkovna;
-
-                    return ShippingMethod.PickUp;
-                }))
+                .ForMember(m => m.BillingMethod, opt => opt.MapFrom<PaymentMethodValueResolver>())
+                .ForMember(m => m.ShippingMethod, opt => opt.MapFrom<ShippingMethodValueResolver>())
                 .ForMember(m => m.Customer, u => u.MapFrom(f => f.InvoiceHeader.PartnerIdentity.Address))
                 .ForMember(m => m.Items, u => u.MapFrom(f => f.InvoiceDetail.InvoiceItems))
                 .ForMember(m => m.BillingAddress, u => u.MapFrom(f => f.InvoiceHeader.PartnerIdentity.Address))
@@ -107,22 +73,10 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
 
 
             CreateMap<HomeCurrency, InvoicePrice>()
-                .AfterMap((hc, p) =>
-                    {
-                        p.WithVat = hc.PriceVAT + hc.Price;
-                        p.WithoutVat = hc.Price;
-                        p.Vat = hc.PriceVAT;
-                    })
-                ;
+                .ConvertUsing<HomeCurrencyPriceValueResolver>();
 
             CreateMap<ForeignCurrency, InvoicePrice>()
-                .AfterMap((hc, p) =>
-                {
-                    p.WithVat = hc.PriceVAT + hc.Price;
-                    p.WithoutVat = hc.Price;
-                    p.Vat = hc.PriceVAT;
-                })
-                ;
+                .ConvertUsing<ForeignCurrencyPriceValueResolver>();
 
             CreateMap<PartnerIdentity, InvoiceCustomer>()
                 .ForMember(m => m.Company, c => c.MapFrom(f => f.Address.Company))

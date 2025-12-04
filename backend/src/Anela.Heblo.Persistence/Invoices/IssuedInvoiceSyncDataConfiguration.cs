@@ -46,6 +46,12 @@ public class IssuedInvoiceSyncDataConfiguration : IEntityTypeConfiguration<Issue
 
             errorBuilder.Property(e => e.Message)
                 .HasColumnName("Error_Message");
+
+            errorBuilder.Property(e => e.Code)
+                .HasColumnName("Error_Code");
+
+            errorBuilder.Property(e => e.Field)
+                .HasColumnName("Error_Field");
         });
     }
 }

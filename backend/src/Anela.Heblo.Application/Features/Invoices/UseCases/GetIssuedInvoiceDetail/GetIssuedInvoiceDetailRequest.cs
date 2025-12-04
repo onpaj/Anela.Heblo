@@ -7,5 +7,6 @@ namespace Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceDet
 /// </summary>
 public class GetIssuedInvoiceDetailRequest : IRequest<GetIssuedInvoiceDetailResponse>
 {
-    public string Id { get; set; } = string.Empty;
+    public string InvoiceId { get; set; } = string.Empty;
+    public bool WithDetails { get; set; } = false;
 }
