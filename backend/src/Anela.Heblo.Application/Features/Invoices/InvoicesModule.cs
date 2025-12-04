@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Persistence.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
+using Anela.Heblo.Application.Features.Invoices.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
 
@@ -20,6 +21,9 @@ public static class InvoicesModule
 
         // Register services
         services.AddScoped<IInvoiceImportService, InvoiceImportService>();
+
+        // Register Hangfire jobs
+        services.AddScoped<IssuedInvoiceDailyImportJob>();
 
         // Register FlexiBee client (from SDK)
         // Note: IIssuedInvoiceClient registration should be done in Flexi adapter module
