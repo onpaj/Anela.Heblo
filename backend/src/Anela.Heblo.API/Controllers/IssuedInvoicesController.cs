@@ -99,7 +99,11 @@ public class IssuedInvoicesController : ControllerBase
                 return BadRequest(new { message = "ID faktury je povinné" });
             }
 
-            var request = new GetIssuedInvoiceDetailRequest { InvoiceId = id };
+            var request = new GetIssuedInvoiceDetailRequest 
+            { 
+                InvoiceId = id,
+                WithDetails = true 
+            };
             var response = await _mediator.Send(request);
 
             if (!response.Success)

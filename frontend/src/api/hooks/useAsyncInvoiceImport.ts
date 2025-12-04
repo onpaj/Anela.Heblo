@@ -132,6 +132,8 @@ export const useRunningInvoiceImportJobs = () => {
     refetchInterval: 5000, // Poll every 5 seconds to check for running jobs
     staleTime: 0, // Always fetch fresh data
     gcTime: 10 * 1000, // Keep in cache for 10 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Refetch when component mounts
   });
 };
 

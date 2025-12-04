@@ -93,7 +93,7 @@ const IssuedInvoicesPage: React.FC = () => {
 
   // Async import hooks
   const enqueueImportMutation = useEnqueueInvoiceImport();
-  const { data: runningJobs } = useRunningInvoiceImportJobs();
+  const { data: runningJobs, refetch: refetchRunningJobs } = useRunningInvoiceImportJobs();
 
   const filteredItems = data?.items || [];
   const totalCount = data?.totalCount || 0; // Total count from API
@@ -183,6 +183,13 @@ const IssuedInvoicesPage: React.FC = () => {
   const handleJobStarted = React.useCallback((jobId: string) => {
     setActiveJobIds(prev => [...prev, jobId]);
   }, []);
+
+  // Refetch running jobs when switching to grid tab
+  React.useEffect(() => {
+    if (activeTab === 'grid') {
+      refetchRunningJobs();
+    }
+  }, [activeTab, refetchRunningJobs]);
 
   // Load running jobs on page load and keep in sync
   React.useEffect(() => {
