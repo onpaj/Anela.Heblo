@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -14,20 +15,20 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
     private readonly ILogger<ProcessReceivedBoxesHandler> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IEshopStockDomainService _eshopStockDomainService;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IBackgroundRefreshTaskRegistry _backgroundRefreshTaskRegistry;
     private readonly ICurrentUserService _currentUserService;
 
     public ProcessReceivedBoxesHandler(
         ILogger<ProcessReceivedBoxesHandler> logger,
         ITransportBoxRepository transportBoxRepository,
         IEshopStockDomainService eshopStockDomainService,
-        ICatalogRepository catalogRepository,
+        IBackgroundRefreshTaskRegistry backgroundRefreshTaskRegistry,
         ICurrentUserService currentUserService)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
         _eshopStockDomainService = eshopStockDomainService;
-        _catalogRepository = catalogRepository;
+        _backgroundRefreshTaskRegistry = backgroundRefreshTaskRegistry;
         _currentUserService = currentUserService;
     }
 
@@ -108,21 +109,17 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
                              "Processed: {ProcessedCount}, Successful: {SuccessfulCount}, Failed: {FailedCount}", 
             batchId, response.ProcessedBoxesCount, response.SuccessfulBoxesCount, response.FailedBoxesCount);
 
-        // Refresh catalog data asynchronously in background - don't wait for completion
-        _ = Task.Run(async () =>
+        try
         {
-            try
-            {
-                await _catalogRepository.RefreshEshopStockData(CancellationToken.None);
-                await _catalogRepository.RefreshTransportData(CancellationToken.None);
-                
-                _logger.LogDebug("Successfully refreshed catalog data after transport box processing - Batch ID: {BatchId}", batchId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to refresh catalog data after transport box processing - Batch ID: {BatchId}", batchId);
-            }
-        }, CancellationToken.None);
+            await _backgroundRefreshTaskRegistry.ForceRefreshAsync(nameof(ICatalogRepository.RefreshEshopStockData), CancellationToken.None);
+            await _backgroundRefreshTaskRegistry.ForceRefreshAsync(nameof(ICatalogRepository.RefreshTransportData), CancellationToken.None);
+            
+            _logger.LogDebug("Successfully invalidated catalog data after transport box processing - Batch ID: {BatchId}", batchId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to invalidate catalog data after transport box processing - Batch ID: {BatchId}", batchId);
+        }
 
         return response;
     }

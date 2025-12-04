@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,7 +15,7 @@ public class ProcessReceivedBoxesHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IEshopStockDomainService> _eshopStockDomainServiceMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IBackgroundRefreshTaskRegistry> _backgroundRefreshTaskRegistryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ProcessReceivedBoxesHandler>> _loggerMock;
     private readonly ProcessReceivedBoxesHandler _handler;
@@ -23,7 +24,7 @@ public class ProcessReceivedBoxesHandlerTests
     {
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _eshopStockDomainServiceMock = new Mock<IEshopStockDomainService>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _backgroundRefreshTaskRegistryMock = new Mock<IBackgroundRefreshTaskRegistry>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ProcessReceivedBoxesHandler>>();
 
@@ -31,7 +32,7 @@ public class ProcessReceivedBoxesHandlerTests
             _loggerMock.Object,
             _transportBoxRepositoryMock.Object,
             _eshopStockDomainServiceMock.Object,
-            _catalogRepositoryMock.Object,
+            _backgroundRefreshTaskRegistryMock.Object,
             _currentUserServiceMock.Object);
 
         // Setup default current user
@@ -88,14 +89,6 @@ public class ProcessReceivedBoxesHandlerTests
         _transportBoxRepositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
-
-        _catalogRepositoryMock
-            .Setup(x => x.RefreshEshopStockData(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        _catalogRepositoryMock
-            .Setup(x => x.RefreshTransportData(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
