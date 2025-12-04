@@ -1,21 +1,24 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.Invoices.UseCases.EnqueueImportInvoices;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Tests.Common;
+using Anela.Heblo.Xcc.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Invoices;
 
-public class InvoiceImportIntegrationTests : IClassFixture<HebloWebApplicationFactory>
+public class InvoiceImportIntegrationTests : IClassFixture<InvoiceImportTestFactory>
 {
-    private readonly HebloWebApplicationFactory _factory;
+    private readonly InvoiceImportTestFactory _factory;
     private readonly HttpClient _client;
 
-    public InvoiceImportIntegrationTests(HebloWebApplicationFactory factory)
+    public InvoiceImportIntegrationTests(InvoiceImportTestFactory factory)
     {
         _factory = factory;
         _client = factory.CreateClient();
@@ -164,5 +167,65 @@ public class InvoiceImportIntegrationTests : IClassFixture<HebloWebApplicationFa
         // Depending on validation, this might return BadRequest or process with default values
         // We mainly want to ensure the endpoint handles malformed requests gracefully
         Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest);
+    }
+}
+
+/// <summary>
+/// Custom test factory that mocks IBackgroundWorker and IInvoiceImportService for invoice import integration tests
+/// </summary>
+public class InvoiceImportTestFactory : HebloWebApplicationFactory
+{
+    private readonly Mock<IBackgroundWorker> _backgroundWorkerMock;
+    private readonly Mock<IInvoiceImportService> _invoiceImportServiceMock;
+
+    public InvoiceImportTestFactory()
+    {
+        _backgroundWorkerMock = new Mock<IBackgroundWorker>();
+        _invoiceImportServiceMock = new Mock<IInvoiceImportService>();
+        
+        // Configure mock to return a test job ID
+        _backgroundWorkerMock.Setup(x => x.Enqueue<IInvoiceImportService>(It.IsAny<System.Linq.Expressions.Expression<Func<IInvoiceImportService, Task>>>()))
+                            .Returns("test-job-id-12345");
+
+        // Configure mock to return empty jobs lists
+        _backgroundWorkerMock.Setup(x => x.GetRunningJobs()).Returns(new List<BackgroundJobInfo>());
+        _backgroundWorkerMock.Setup(x => x.GetPendingJobs()).Returns(new List<BackgroundJobInfo>());
+        
+        // Configure mock to return null for non-existent job IDs (returns null for not found)
+        _backgroundWorkerMock.Setup(x => x.GetJobById(It.IsAny<string>()))
+                            .Returns((string jobId) => jobId == "test-job-id-12345" ? 
+                                new BackgroundJobInfo 
+                                { 
+                                    Id = jobId, 
+                                    State = "Succeeded", 
+                                    JobName = "ImportInvoicesAsync",
+                                    CreatedAt = DateTime.UtcNow.AddMinutes(-1)
+                                } : null);
+    }
+
+    public Mock<IBackgroundWorker> BackgroundWorkerMock => _backgroundWorkerMock;
+    public Mock<IInvoiceImportService> InvoiceImportServiceMock => _invoiceImportServiceMock;
+
+    protected override void ConfigureTestServices(IServiceCollection services)
+    {
+        // Remove existing background worker registration if any
+        var backgroundWorkerDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IBackgroundWorker));
+        if (backgroundWorkerDescriptor != null)
+        {
+            services.Remove(backgroundWorkerDescriptor);
+        }
+
+        // Remove existing invoice import service registration if any
+        var invoiceImportServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IInvoiceImportService));
+        if (invoiceImportServiceDescriptor != null)
+        {
+            services.Remove(invoiceImportServiceDescriptor);
+        }
+
+        // Register mocks
+        services.AddSingleton(_backgroundWorkerMock.Object);
+        services.AddSingleton(_invoiceImportServiceMock.Object);
+
+        base.ConfigureTestServices(services);
     }
 }

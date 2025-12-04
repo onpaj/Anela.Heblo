@@ -94,12 +94,16 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
 
     public async Task<Dictionary<string, decimal>> GetOrderedQuantitiesAsync(CancellationToken cancellationToken = default)
     {
-        return await DbSet
+        // First get all lines, then group in memory to support InMemory database
+        var lines = await DbSet
             .Where(order => order.Status == PurchaseOrderStatus.Draft || order.Status == PurchaseOrderStatus.InTransit || !order.InvoiceAcquired)
             .Include(order => order.Lines)
             .SelectMany(order => order.Lines)
+            .ToListAsync(cancellationToken);
+
+        return lines
             .GroupBy(line => line.MaterialId)
-            .ToDictionaryAsync(group => group.Key, group => group.Sum(line => line.Quantity), cancellationToken);
+            .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
     }
 
     public async Task<IEnumerable<PurchaseOrder>> GetByStatusAsync(PurchaseOrderStatus status, CancellationToken cancellationToken = default)
