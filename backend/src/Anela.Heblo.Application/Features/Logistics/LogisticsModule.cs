@@ -1,8 +1,11 @@
 using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
+using Anela.Heblo.Application.Features.Logistics.UseCases.ProcessReceivedBoxes;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +28,16 @@ public static class LogisticsModule
         services.RegisterTile<ReceivedBoxesTile>();
         services.RegisterTile<ErrorBoxesTile>();
         services.RegisterTile<CriticalGiftPackagesTile>();
+
+        // Register background task for automatic processing of received transport boxes
+        services.RegisterRefreshTask<ITransportBoxRepository>(
+            "ProcessReceivedBoxes",
+            async (serviceProvider, cancellationToken) => 
+            {
+                var mediator = serviceProvider.GetRequiredService<IMediator>();
+                await mediator.Send(new ProcessReceivedBoxesRequest(), cancellationToken);
+            }
+        );
 
         return services;
     }
