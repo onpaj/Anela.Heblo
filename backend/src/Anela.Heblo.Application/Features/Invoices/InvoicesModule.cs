@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Persistence.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
+using Anela.Heblo.Application.Features.Invoices.Services;
 
 namespace Anela.Heblo.Application.Features.Invoices;
 
@@ -16,6 +17,9 @@ public static class InvoicesModule
     {
         // Register repositories
         services.AddScoped<IIssuedInvoiceRepository, IssuedInvoiceRepository>();
+
+        // Register services
+        services.AddScoped<IInvoiceImportService, InvoiceImportService>();
 
         // Register FlexiBee client (from SDK)
         // Note: IIssuedInvoiceClient registration should be done in Flexi adapter module

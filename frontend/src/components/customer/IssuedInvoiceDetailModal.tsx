@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, AlertCircle, CheckCircle, Clock, FileText, User, Mail, Phone, MapPin, Download, Loader2 } from "lucide-react";
 import { useIssuedInvoiceDetail } from "../../api/hooks/useIssuedInvoices";
+import { useEnqueueInvoiceImport } from "../../api/hooks/useAsyncInvoiceImport";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 
 interface IssuedInvoiceDetailModalProps {
@@ -8,6 +9,7 @@ interface IssuedInvoiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onInvoiceUpdated?: () => Promise<void>;
+  onJobStarted?: (jobId: string) => void;
 }
 
 const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
@@ -15,9 +17,11 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
   isOpen,
   onClose,
   onInvoiceUpdated,
+  onJobStarted,
 }) => {
-  const { data, isLoading, error, refetch } = useIssuedInvoiceDetail(invoiceId);
+  const { data, isLoading, error } = useIssuedInvoiceDetail(invoiceId);
   const [reimporting, setReimporting] = useState(false);
+  const enqueueImportMutation = useEnqueueInvoiceImport();
 
   if (!isOpen) return null;
 
@@ -37,40 +41,24 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
         }
       };
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/invoices/import`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      // Use async import
+      const result = await enqueueImportMutation.mutateAsync(requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Pass jobId to parent and close modal
+      if (result.jobId && onJobStarted) {
+        onJobStarted(result.jobId);
       }
-
-      const result = await response.json();
       
-      const successCount = result.succeeded?.length || 0;
-      const failedCount = result.failed?.length || 0;
+      // Close modal immediately
+      onClose();
 
-      if (successCount > 0) {
-        alert(`Faktura ${invoiceId} byla úspěšně znovu naimportována (${targetCurrency}).`);
-      } else if (failedCount > 0) {
-        alert(`Chyba při opětovném importu faktury ${invoiceId} (${targetCurrency}).`);
-      } else {
-        alert(`Faktura ${invoiceId} nebyla nalezena (${targetCurrency}).`);
+      // Refresh data in background
+      if (onInvoiceUpdated) {
+        onInvoiceUpdated();
       }
-
-      // Refresh the invoice detail and notify parent component
-      await Promise.all([
-        refetch(),
-        onInvoiceUpdated ? onInvoiceUpdated() : Promise.resolve()
-      ]);
 
     } catch (error) {
       console.error('Reimport error:', error);
-      alert(`Chyba při opětovném importu: ${error instanceof Error ? error.message : 'Neočekávaná chyba'}`);
     } finally {
       setReimporting(false);
     }

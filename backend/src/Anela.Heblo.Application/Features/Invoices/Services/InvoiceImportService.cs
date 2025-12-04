@@ -1,29 +1,29 @@
+using System.ComponentModel;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using AutoMapper;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.Invoices.UseCases.ImportInvoices;
+namespace Anela.Heblo.Application.Features.Invoices.Services;
 
-public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, ImportResultDto>
+public class InvoiceImportService : IInvoiceImportService
 {
     private readonly IIssuedInvoiceSource _issuedInvoiceSource;
     private readonly IIssuedInvoiceClient _issuedInvoiceClient;
     private readonly IIssuedInvoiceRepository _repository;
     private readonly IEnumerable<IIssuedInvoiceImportTransformation> _importTransformations;
     private readonly IMapper _mapper;
-    private readonly ILogger<ImportInvoicesHandler> _logger;
+    private readonly ILogger<InvoiceImportService> _logger;
 
-    public ImportInvoicesHandler(
+    public InvoiceImportService(
         IIssuedInvoiceSource issuedInvoiceSource,
         IIssuedInvoiceClient issuedInvoiceClient,
         IIssuedInvoiceRepository repository,
         IEnumerable<IIssuedInvoiceImportTransformation> importTransformations,
         IMapper mapper,
-        ILogger<ImportInvoicesHandler> logger)
+        ILogger<InvoiceImportService> logger)
     {
         _issuedInvoiceSource = issuedInvoiceSource;
         _issuedInvoiceClient = issuedInvoiceClient;
@@ -33,13 +33,16 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
         _logger = logger;
     }
 
-    public async Task<ImportResultDto> Handle(ImportInvoicesRequest request, CancellationToken cancellationToken)
+    [DisplayName("Import faktur: {0}")]
+    public async Task<ImportResultDto> ImportInvoicesAsync(string description, IssuedInvoiceSourceQuery query, CancellationToken cancellationToken = default)
     {
-        var batches = await _issuedInvoiceSource.GetAllAsync(request.Query);
+        _logger.LogInformation("Starting async invoice import with query: {Query}", JsonSerializer.Serialize(query));
+
+        var batches = await _issuedInvoiceSource.GetAllAsync(query);
 
         var resultDto = new ImportResultDto()
         {
-            RequestId = request.Query.RequestId,
+            RequestId = query.RequestId,
         };
         
         foreach (var batch in batches)
@@ -58,6 +61,7 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
                 {
                     error = true;
                     resultDto.Failed.Add(invoiceDetail.Code);
+                    _logger.LogError(ex, "Failed to import invoice: {InvoiceCode}", invoiceDetail.Code);
                 }
             }
 
@@ -66,6 +70,9 @@ public class ImportInvoicesHandler : IRequestHandler<ImportInvoicesRequest, Impo
             else
                 await _issuedInvoiceSource.CommitAsync(batch);
         }
+
+        _logger.LogInformation("Completed async invoice import. Succeeded: {SucceededCount}, Failed: {FailedCount}", 
+            resultDto.Succeeded.Count, resultDto.Failed.Count);
 
         return resultDto;
     }

@@ -16,9 +16,12 @@ import {
 } from "lucide-react";
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
+import { useEnqueueInvoiceImport, useRunningInvoiceImportJobs } from "../../api/hooks/useAsyncInvoiceImport";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
+import InvoiceImportJobTracker from "../../components/invoices/InvoiceImportJobTracker";
+import InvoiceImportRunningIndicator from "../../components/invoices/InvoiceImportRunningIndicator";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 const IssuedInvoicesPage: React.FC = () => {
@@ -55,6 +58,9 @@ const IssuedInvoicesPage: React.FC = () => {
   const [importCurrency, setImportCurrency] = useState<'CZK' | 'EUR'>('CZK');
   const [importLoading, setImportLoading] = useState(false);
 
+  // Async import states
+  const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
+
   // Use the actual API call for grid data
   const {
     data,
@@ -84,6 +90,10 @@ const IssuedInvoicesPage: React.FC = () => {
     fromDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     toDate: new Date()
   });
+
+  // Async import hooks
+  const enqueueImportMutation = useEnqueueInvoiceImport();
+  const { data: runningJobs } = useRunningInvoiceImportJobs();
 
   const filteredItems = data?.items || [];
   const totalCount = data?.totalCount || 0; // Total count from API
@@ -164,6 +174,24 @@ const IssuedInvoicesPage: React.FC = () => {
     ]);
   };
 
+  // Job completion handler
+  const handleJobCompleted = React.useCallback((jobId: string) => {
+    setActiveJobIds(prev => prev.filter(id => id !== jobId));
+  }, []);
+
+  // Job started handler (from modal re-import)
+  const handleJobStarted = React.useCallback((jobId: string) => {
+    setActiveJobIds(prev => [...prev, jobId]);
+  }, []);
+
+  // Load running jobs on page load and keep in sync
+  React.useEffect(() => {
+    if (runningJobs) {
+      const jobIds = runningJobs.map(job => job.id).filter(Boolean);
+      setActiveJobIds(jobIds);
+    }
+  }, [runningJobs]);
+
   // Import handlers
   const handleImportInvoices = async () => {
     if (importLoading) return;
@@ -173,11 +201,9 @@ const IssuedInvoicesPage: React.FC = () => {
 
       // Validate input
       if (importType === 'invoice' && !importInvoiceId.trim()) {
-        alert('Zadejte číslo faktury');
         return;
       }
       if (importType === 'date' && (!importDateFrom || !importDateTo)) {
-        alert('Zadejte rozsah datumů');
         return;
       }
 
@@ -185,40 +211,21 @@ const IssuedInvoicesPage: React.FC = () => {
       const requestBody = {
         query: {
           requestId: `import-${Date.now()}`,
-          currency: importCurrency,
           ...(importType === 'invoice' 
             ? { invoiceId: importInvoiceId.trim() }
             : { 
-                dateFrom: new Date(importDateFrom).toISOString(),
-                dateTo: new Date(importDateTo).toISOString()
+                fromDate: importDateFrom,
+                toDate: importDateTo,
+                limit: 100
               })
         }
       };
 
-      // Make API call using proper baseUrl
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/invoices/import`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      // Async import
+      const result = await enqueueImportMutation.mutateAsync(requestBody);
       
-      // Show results
-      const successCount = result.succeeded?.length || 0;
-      const failedCount = result.failed?.length || 0;
-      const totalCount = successCount + failedCount;
-
-      if (totalCount === 0) {
-        alert('Žádné faktury nebyly nalezeny pro import.');
-      } else {
-        alert(`Import dokončen:\n✓ Úspěšně: ${successCount}\n✗ Chyba: ${failedCount}`);
+      if (result.jobId) {
+        setActiveJobIds(prev => [...prev, result.jobId!]);
       }
 
       // Reset form and close modal
@@ -229,15 +236,10 @@ const IssuedInvoicesPage: React.FC = () => {
       setImportType('date');
       setImportCurrency('CZK');
 
-      // Refresh both the invoices list and sync stats
-      await Promise.all([
-        refetch(),
-        refetchSyncStats()
-      ]);
+      // Jobs will refresh data automatically when completed
 
     } catch (error) {
       console.error('Import error:', error);
-      alert(`Chyba při importu: ${error instanceof Error ? error.message : 'Neočekávaná chyba'}`);
     } finally {
       setImportLoading(false);
     }
@@ -394,6 +396,24 @@ const IssuedInvoicesPage: React.FC = () => {
       className="flex flex-col w-full"
       style={{ height: PAGE_CONTAINER_HEIGHT }}
     >
+      {/* Job Tracking Section - At Top Like Gift Packages */}
+      {activeJobIds.length > 0 && (
+        <div className="flex-shrink-0 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-medium text-blue-900">Běžící importy:</h3>
+            <div className="space-y-1">
+              {activeJobIds.map((jobId) => (
+                <InvoiceImportJobTracker
+                  key={jobId}
+                  jobId={jobId}
+                  onJobCompleted={() => handleJobCompleted(jobId)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Tabs - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center justify-between">
@@ -530,26 +550,30 @@ const IssuedInvoicesPage: React.FC = () => {
                 >
                   Vymazat
                 </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  disabled={importLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  {importLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Importuje...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Import
-                    </>
-                  )}
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    disabled={importLoading}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {importLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Importuje...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Import
+                      </>
+                    )}
+                  </button>
+                  <InvoiceImportRunningIndicator className="absolute -top-1 -right-1" />
+                </div>
               </div>
             </div>
           </div>
+
 
           {/* Data Grid - Scrollable */}
           <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0 relative">
@@ -816,6 +840,7 @@ const IssuedInvoicesPage: React.FC = () => {
                 </div>
               </div>
 
+
               {/* Currency Selection */}
               <div>
                 <label className="text-sm font-medium text-gray-900 mb-2 block">
@@ -912,6 +937,7 @@ const IssuedInvoicesPage: React.FC = () => {
         isOpen={!!selectedInvoiceId}
         onClose={handleCloseDetail}
         onInvoiceUpdated={handleInvoiceUpdated}
+        onJobStarted={handleJobStarted}
       />
     </div>
   );

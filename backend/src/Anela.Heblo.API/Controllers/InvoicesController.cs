@@ -1,9 +1,11 @@
 using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Application.Features.Invoices.UseCases.EnqueueInvoiceImport;
+using Anela.Heblo.Application.Features.Invoices.UseCases.EnqueueImportInvoices;
+using Anela.Heblo.Application.Features.Invoices.UseCases.GetInvoiceImportJobStatus;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceDetail;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoicesList;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceSyncStats;
-using Anela.Heblo.Application.Features.Invoices.UseCases.ImportInvoices;
+using Anela.Heblo.Application.Features.Invoices.UseCases.GetRunningInvoiceImportJobs;
+using Anela.Heblo.Xcc.Services;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,28 +55,38 @@ public class InvoicesController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost("import")]
-    public async Task<ActionResult<ImportResultDto>> ImportInvoices(
-        [FromBody] ImportInvoicesRequest request,
+    [HttpPost("import/enqueue-async")]
+    public async Task<ActionResult<EnqueueImportInvoicesResponse>> EnqueueImportInvoicesAsync(
+        [FromBody] EnqueueImportInvoicesRequest request,
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 
-    [HttpPost("import/enqueue")]
-    public async Task<ActionResult<List<string>>> EnqueueInvoiceImport(
-        [FromBody] EnqueueInvoiceImportRequest request,
+    [HttpGet("import/job-status/{jobId}")]
+    public async Task<ActionResult<BackgroundJobInfo?>> GetInvoiceImportJobStatus(
+        string jobId,
         CancellationToken cancellationToken = default)
     {
-        var jobIds = await _mediator.Send(request, cancellationToken);
-        return Ok(jobIds);
+        var request = new GetInvoiceImportJobStatusRequest { JobId = jobId };
+        var result = await _mediator.Send(request, cancellationToken);
+        
+        if (result == null)
+        {
+            return NotFound(new { message = "Job not found" });
+        }
+        
+        return Ok(result);
     }
 
-    [HttpGet("cash-register")]
-    public Task<ActionResult> GetCashRegisterOrders()
+    [HttpGet("import/running-jobs")]
+    public async Task<ActionResult<IList<BackgroundJobInfo>>> GetRunningInvoiceImportJobs(
+        CancellationToken cancellationToken = default)
     {
-        // TODO: CashRegister functionality removed - out of scope
-        throw new NotImplementedException("CashRegister functionality is out of scope for this implementation");
+        var request = new GetRunningInvoiceImportJobsRequest();
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
     }
+
 }
