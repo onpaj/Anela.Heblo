@@ -221,8 +221,8 @@ const IssuedInvoicesPage: React.FC = () => {
           ...(importType === 'invoice' 
             ? { invoiceId: importInvoiceId.trim() }
             : { 
-                fromDate: importDateFrom,
-                toDate: importDateTo,
+                dateFrom: importDateFrom,
+                dateTo: importDateTo,
                 limit: 100
               })
         }

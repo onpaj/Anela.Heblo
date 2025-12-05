@@ -23,6 +23,11 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
 
     public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
     {
+        if (!query.QueryByInvoice && !query.QueryByDate)
+        {
+            throw new ArgumentException("Either invoice number or date range must be specified", nameof(query));
+        }
+
         var content = await ScenarioRetryHelper.ExecuteWithRetryAsync(
             async () => await _exportScenario.RunAsync(query),
             _logger,

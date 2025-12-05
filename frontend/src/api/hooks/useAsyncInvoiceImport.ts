@@ -5,8 +5,8 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 export interface EnqueueImportInvoicesRequest {
   query: {
     requestId: string;
-    fromDate?: string;
-    toDate?: string;
+    dateFrom?: string;
+    dateTo?: string;
     limit?: number;
   };
 }
