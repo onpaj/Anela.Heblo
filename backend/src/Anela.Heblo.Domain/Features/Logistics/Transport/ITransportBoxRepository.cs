@@ -24,4 +24,6 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
         System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
         bool includeDetails = false,
         CancellationToken cancellationToken = default);
+
+    Task<IList<TransportBox>> GetReceivedBoxesAsync(CancellationToken cancellationToken = default);
 }
