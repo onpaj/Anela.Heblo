@@ -29,5 +29,10 @@ public static class AuthorizationConstants
         /// Role for administrative functions
         /// </summary>
         public const string Administrator = "administrator";
+
+        /// <summary>
+        /// Base role required for application access
+        /// </summary>
+        public const string HebloUser = "heblo_user";
     }
 }
