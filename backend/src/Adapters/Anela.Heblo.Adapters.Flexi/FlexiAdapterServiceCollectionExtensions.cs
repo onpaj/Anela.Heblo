@@ -1,6 +1,7 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Accounting.Departments;
 using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.Bank;
 using Anela.Heblo.Adapters.Flexi.Invoices;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
@@ -21,6 +22,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -79,6 +81,10 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         // Issued Invoice client (for invoice import)
         services.AddScoped<IIssuedInvoiceClient, FlexiIssuedInvoiceClient>();
+
+        // Bank statement import services
+        services.AddScoped<FlexiBankAccountClient>();
+        services.AddScoped<IBankStatementImportService, FlexiBankStatementImportService>();
 
         return services;
     }

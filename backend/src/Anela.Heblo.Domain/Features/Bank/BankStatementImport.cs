@@ -5,55 +5,41 @@ namespace Anela.Heblo.Domain.Features.Bank;
 public class BankStatementImport : IEntity<int>
 {
     public int Id { get; private set; }
+    public string TransferId { get; private set; } = null!;
     public DateTime StatementDate { get; private set; }
     public DateTime ImportDate { get; private set; }
     public string Account { get; private set; } = null!;
-    public string Currency { get; private set; } = null!;
+    public int Currency { get; private set; }
     public int ItemCount { get; private set; }
     public string ImportResult { get; private set; } = null!;
-    public string? ExtraProperties { get; private set; }
-    public string? ConcurrencyStamp { get; private set; }
-    public DateTime CreationTime { get; private set; }
-    public string? CreatorId { get; private set; }
-    public DateTime? LastModificationTime { get; private set; }
-    public string? LastModifierId { get; private set; }
 
     protected BankStatementImport()
     {
     }
 
-    public BankStatementImport(
-        DateTime statementDate,
-        string account,
-        string currency,
-        int itemCount,
-        string importResult,
-        string? creatorId = null)
+    public BankStatementImport(string transferId, DateTime statementDate)
     {
+        TransferId = transferId ?? throw new ArgumentNullException(nameof(transferId));
         StatementDate = statementDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(statementDate, DateTimeKind.Utc) : statementDate.ToUniversalTime();
         ImportDate = DateTime.UtcNow;
-        Account = account ?? throw new ArgumentNullException(nameof(account));
-        Currency = currency ?? throw new ArgumentNullException(nameof(currency));
-        ItemCount = itemCount;
-        ImportResult = importResult ?? throw new ArgumentNullException(nameof(importResult));
-        CreationTime = DateTime.UtcNow;
-        CreatorId = creatorId;
-        ConcurrencyStamp = Guid.NewGuid().ToString();
+        Account = string.Empty;
+        Currency = 0;
+        ItemCount = 0;
+        ImportResult = string.Empty;
     }
 
-    public void UpdateImportResult(string importResult, string? modifierId = null)
+    public void Update(string? account = null, int? currency = null, int? itemCount = null, string? importResult = null)
     {
-        ImportResult = importResult ?? throw new ArgumentNullException(nameof(importResult));
-        LastModificationTime = DateTime.UtcNow;
-        LastModifierId = modifierId;
-        ConcurrencyStamp = Guid.NewGuid().ToString();
-    }
-
-    public void UpdateItemCount(int itemCount, string? modifierId = null)
-    {
-        ItemCount = itemCount;
-        LastModificationTime = DateTime.UtcNow;
-        LastModifierId = modifierId;
-        ConcurrencyStamp = Guid.NewGuid().ToString();
+        if (account != null)
+            Account = account;
+        
+        if (currency.HasValue)
+            Currency = currency.Value;
+        
+        if (itemCount.HasValue)
+            ItemCount = itemCount.Value;
+        
+        if (importResult != null)
+            ImportResult = importResult;
     }
 }

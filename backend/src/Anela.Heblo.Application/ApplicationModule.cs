@@ -47,7 +47,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAnalyticsModule();
-        services.AddBankModule();
+        services.AddBankServices();
         services.AddCatalogModule(configuration);
         services.AddDashboardModule();
         services.AddFileStorageModule(configuration);

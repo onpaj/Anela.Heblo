@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251208184900_AddTransferIdColumnWithDataHandling")]
+    partial class AddTransferIdColumnWithDataHandling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1341,7 +1344,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData.Error#Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
+                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
                         {
                             b1.Property<int>("IssuedInvoiceSyncDataId")
                                 .HasColumnType("integer");

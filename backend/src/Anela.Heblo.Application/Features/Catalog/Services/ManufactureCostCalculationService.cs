@@ -169,7 +169,7 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
             }
         }
 
-        _logger.LogInformation("Calculated manufacture cost history for {ProductCount} products", result.Count);
+        _logger.LogDebug("Calculated manufacture cost history for {ProductCount} products", result.Count);
         return result;
     }
 

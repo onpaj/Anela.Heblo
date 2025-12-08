@@ -245,7 +245,7 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 }
             }
 
-            _logger.LogInformation("Calculated sales costs for {ProductCount} products", result.Count);
+            _logger.LogDebug("Calculated sales costs for {ProductCount} products", result.Count);
 
             return result;
         }

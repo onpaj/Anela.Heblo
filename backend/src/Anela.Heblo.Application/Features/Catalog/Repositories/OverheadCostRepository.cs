@@ -63,7 +63,7 @@ public class OverheadCostRepository : IOverheadCostRepository
                 }
             }
 
-            _logger.LogInformation("Calculated total costs for {ProductCount} products over {MonthCount} months",
+            _logger.LogDebug("Calculated total costs for {ProductCount} products over {MonthCount} months",
                 result.Count, result.Values.FirstOrDefault()?.Count ?? 0);
 
             return result;
