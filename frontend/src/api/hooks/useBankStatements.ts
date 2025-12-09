@@ -9,6 +9,9 @@ export interface BankStatementImportStatisticsDto {
 
 export interface GetBankStatementImportStatisticsResponse {
   statistics: BankStatementImportStatisticsDto[];
+  success: boolean;
+  errorCode?: string;
+  params?: any;
 }
 
 export interface GetBankStatementImportStatisticsRequest {
