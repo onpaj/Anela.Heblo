@@ -112,6 +112,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Vydané faktury",
           href: "/customer/issued-invoices",
         },
+        {
+          id: "prehled-bankovnich-vypisu",
+          name: "Bankovní výpisy",
+          href: "/customer/bank-statements-overview",
+        },
       ],
     },
     {
