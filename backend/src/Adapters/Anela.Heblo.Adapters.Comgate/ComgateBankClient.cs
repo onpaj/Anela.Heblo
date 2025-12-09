@@ -22,9 +22,8 @@ public class ComgateBankClient : IBankClient
     }
     public async Task<BankStatementData> GetStatementAsync(string transferId)
     {
-        var client = new HttpClient();
         var url = string.Format(GetStatementUrlTemplate, _settings.MerchantId, _settings.Secret, transferId);
-        var response = await client.GetStreamAsync(url);
+        var response = await _httpClient.GetStreamAsync(url);
 
         using var sr = new StreamReader(response);
         var data = await sr.ReadToEndAsync();

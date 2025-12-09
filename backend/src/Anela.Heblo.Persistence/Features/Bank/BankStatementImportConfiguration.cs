@@ -44,7 +44,8 @@ public class BankStatementImportConfiguration : IEntityTypeConfiguration<BankSta
         builder.Property(e => e.Currency)
             .IsRequired()
             .HasColumnName("Currency")
-            .HasColumnType("integer");
+            .HasColumnType("integer")
+            .HasConversion<int>();
 
         builder.Property(e => e.ItemCount)
             .IsRequired()

@@ -79,16 +79,6 @@ public class BankStatementsController : BaseApiController
     {
         try
         {
-            // Validate take parameter
-            if (take > 100)
-            {
-                take = 100;
-            }
-            if (take <= 0)
-            {
-                take = 10;
-            }
-
             _logger.LogInformation("Getting bank statements with Skip={Skip}, Take={Take}", skip, take);
 
             var request = new GetBankStatementListRequest

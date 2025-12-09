@@ -532,7 +532,7 @@ public class CatalogMaterialCostRepositoryTests
         // Assert
         _mockLogger.Verify(
             x => x.Log(
-                LogLevel.Information,
+                LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Calculated material costs for")),
                 It.IsAny<Exception>(),

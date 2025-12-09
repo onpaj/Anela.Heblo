@@ -64,13 +64,11 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 // Import statement to accounting system
                 var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
                 
-                // Update all properties at once
-                import.Update(
-                    account: accountSetting.AccountNumber,
-                    currency: request.AccountName.EndsWith("EUR") ? (int)CurrencyCode.EUR : (int)CurrencyCode.CZK,
-                    itemCount: aboData.ItemCount,
-                    importResult: importResult.IsSuccess ? ImportStatus.Success : importResult.ErrorMessage ?? ImportStatus.UnknownError
-                );
+                // Set properties directly
+                import.Account = accountSetting.AccountNumber;
+                import.Currency = request.AccountName.EndsWith("EUR") ? CurrencyCode.EUR : CurrencyCode.CZK;
+                import.ItemCount = aboData.ItemCount;
+                import.ImportResult = importResult.IsSuccess ? ImportStatus.Success : importResult.ErrorMessage ?? ImportStatus.UnknownError;
 
                 // Save to database
                 var savedImport = await _repository.AddAsync(import);
@@ -85,11 +83,9 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 
                 // Create failed import record
                 var failedImport = new BankStatementImport(statement.StatementId, request.StatementDate);
-                failedImport.Update(
-                    account: accountSetting.AccountNumber,
-                    currency: request.AccountName.EndsWith("EUR") ? (int)CurrencyCode.EUR : (int)CurrencyCode.CZK,
-                    importResult: $"{ImportStatus.ProcessingError}: {ex.Message}"
-                );
+                failedImport.Account = accountSetting.AccountNumber;
+                failedImport.Currency = request.AccountName.EndsWith("EUR") ? CurrencyCode.EUR : CurrencyCode.CZK;
+                failedImport.ImportResult = $"{ImportStatus.ProcessingError}: {ex.Message}";
 
                 var savedFailedImport = await _repository.AddAsync(failedImport);
                 imports.Add(_mapper.Map<BankStatementImportDto>(savedFailedImport));
