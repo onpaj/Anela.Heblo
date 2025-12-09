@@ -103,7 +103,7 @@ public class PurchasePriceOnlyMaterialCostRepository : IMaterialCostRepository
                 }
             }
 
-            _logger.LogInformation("Calculated material costs for {ProductCount} products over {MonthCount} months",
+            _logger.LogDebug("Calculated material costs for {ProductCount} products over {MonthCount} months",
                 result.Count, result.Values.FirstOrDefault()?.Count ?? 0);
 
             return result;

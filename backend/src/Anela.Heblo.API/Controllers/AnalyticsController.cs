@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatis
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
-using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -71,14 +70,4 @@ public class AnalyticsController : BaseApiController
         return HandleResponse(response);
     }
 
-    [HttpGet("bank-statement-import-statistics")]
-    [ProducesResponseType(typeof(GetBankStatementImportStatisticsResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<GetBankStatementImportStatisticsResponse>> GetBankStatementImportStatistics([FromQuery] GetBankStatementImportStatisticsRequest request)
-    {
-        var response = await _mediator.Send(request);
-        return HandleResponse(response);
-    }
 }
