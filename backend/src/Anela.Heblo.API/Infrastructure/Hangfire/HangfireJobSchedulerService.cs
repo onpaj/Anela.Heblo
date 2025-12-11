@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application.Features.PackingMaterials.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Bank.Infrastructure;
 
 namespace Anela.Heblo.API.Services;
 
@@ -40,66 +41,84 @@ public class HangfireJobSchedulerService : IHostedService
         {
             // Register recurring jobs
 
-            // Purchase price recalculation daily at 2:00 AM UTC
+            // Purchase price recalculation daily at 2:00 AM Czech time
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "purchase-price-recalculation",
                 service => service.RecalculatePurchasePricesAsync(),
-                "0 2 * * *", // Daily at 2:00 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "0 2 * * *", // Daily at 2:00 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // Product export download daily at 2:00 AM UTC
+            // Product export download daily at 2:00 AM Czech time
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "product-export-download",
                 service => service.DownloadProductExportAsync(),
-                "0 2 * * *", // Daily at 2:00 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "0 2 * * *", // Daily at 2:00 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // Product weight recalculation daily at 2:00 AM UTC
+            // Product weight recalculation daily at 2:00 AM Czech time
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "product-weight-recalculation",
                 service => service.RecalculateProductWeightsAsync(),
-                "0 2 * * *", // Daily at 2:00 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "0 2 * * *", // Daily at 2:00 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // Invoice classification hourly
+            // Invoice classification hourly in Czech time
             RecurringJob.AddOrUpdate<HangfireBackgroundJobService>(
                 "invoice-classification",
                 service => service.ClassifyInvoicesAsync(),
-                "0 * * * *", // Hourly at the top of each hour
-                timeZone: TimeZoneInfo.Utc,
+                "0 * * * *", // Hourly at the top of each hour Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // Packing material daily consumption calculation at 3:00 AM UTC
+            // Packing material daily consumption calculation at 3:00 AM Czech time
             RecurringJob.AddOrUpdate<DailyConsumptionJob>(
                 "daily-consumption-calculation",
                 job => job.ProcessDailyConsumption(),
-                "0 3 * * *", // Daily at 3:00 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "0 3 * * *", // Daily at 3:00 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // EUR Invoice import daily at 4:00 AM UTC (EUR invoices first - fewer in quantity)
+            // EUR Invoice import daily at 4:00 AM Czech time (EUR invoices first - fewer in quantity)
             RecurringJob.AddOrUpdate<IssuedInvoiceDailyImportJob>(
                 "daily-invoice-import-eur",
                 job => job.ImportYesterdayEur(),
-                "0 4 * * *", // Daily at 4:00 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "0 4 * * *", // Daily at 4:00 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 
-            // CZK Invoice import daily at 4:15 AM UTC (CZK invoices second - more in quantity)
+            // CZK Invoice import daily at 4:15 AM Czech time (CZK invoices second - more in quantity)
             RecurringJob.AddOrUpdate<IssuedInvoiceDailyImportJob>(
                 "daily-invoice-import-czk",
                 job => job.ImportYesterdayCzk(),
-                "15 4 * * *", // Daily at 4:15 AM UTC
-                timeZone: TimeZoneInfo.Utc,
+                "15 4 * * *", // Daily at 4:15 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
+                queue: QueueName
+            );
+
+            // ComgateCZK payment import daily at 4:30 AM Czech time (previous day) - automatically handles DST
+            RecurringJob.AddOrUpdate<ComgateDailyImportJob>(
+                "daily-comgate-czk-import",
+                job => job.ImportComgateCzkStatementsAsync(),
+                "30 4 * * *", // Daily at 4:30 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
+                queue: QueueName
+            );
+
+            // ComgateEUR payment import daily at 4:40 AM Czech time (previous day) - automatically handles DST
+            RecurringJob.AddOrUpdate<ComgateDailyImportJob>(
+                "daily-comgate-eur-import",
+                job => job.ImportComgateEurStatementsAsync(),
+                "40 4 * * *", // Daily at 4:40 AM Czech time
+                timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"),
                 queue: QueueName
             );
 

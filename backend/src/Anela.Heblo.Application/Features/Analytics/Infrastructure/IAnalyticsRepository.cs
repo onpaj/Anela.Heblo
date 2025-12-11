@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 
@@ -46,5 +47,14 @@ public interface IAnalyticsRepository
         DateTime startDate,
         DateTime endDate,
         ImportDateType dateType,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets daily bank statement import statistics for monitoring purposes
+    /// </summary>
+    Task<List<DailyBankStatementStatistics>> GetBankStatementImportStatisticsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        BankStatementDateType dateType,
         CancellationToken cancellationToken = default);
 }
