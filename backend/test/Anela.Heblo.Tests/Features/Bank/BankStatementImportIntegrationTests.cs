@@ -54,7 +54,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             .ReturnsAsync(Result<bool>.Success(true));
 
         // Act
-        var response = await _client.PostAsync("/api/bank/import-statement", content);
+        var response = await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -105,7 +105,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             .ReturnsAsync(Result<bool>.Success(true));
 
         // Act
-        var response = await _client.PostAsync("/api/bank/import-statement", content);
+        var response = await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -164,7 +164,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             .ReturnsAsync(Result<bool>.Success(true));
 
         // Act
-        var response = await _client.PostAsync("/api/bank/import-statement", content);
+        var response = await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -205,7 +205,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             .ReturnsAsync(Result<bool>.Success(true));
 
         // Act
-        var response = await _client.PostAsync("/api/bank/import-statement", content);
+        var response = await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -235,7 +235,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         var content = new StringContent(invalidJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PostAsync("/api/bank/import-statement", content);
+        var response = await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -272,7 +272,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             .ReturnsAsync(Result<bool>.Success(true));
 
         // Act
-        await _client.PostAsync("/api/bank/import-statement", content);
+        await _client.PostAsync("/api/bank-statements/import", content);
 
         // Assert - Verify record was saved to database
         using (var scope = _factory.Services.CreateScope())
