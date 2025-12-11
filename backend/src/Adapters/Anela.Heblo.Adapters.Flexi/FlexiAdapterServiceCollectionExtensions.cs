@@ -72,7 +72,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ILedgerService, LedgerService>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
-        services.AddScoped<ILotsClient, FlexiLotsClient>();
         services.AddScoped<IDepartmentClient, FlexiDepartmentClient>();
 
         // Invoice Classification clients

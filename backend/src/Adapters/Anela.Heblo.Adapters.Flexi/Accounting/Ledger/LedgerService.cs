@@ -18,7 +18,7 @@ public class LedgerService : ILedgerService
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IList<LedgerItem>> GetLedgerItems(DateTime dateFrom, DateTime dateTo, IEnumerable<string>? debitAccountPrefix = null, IEnumerable<string>? creditAccountPrefix = null, string? department = null, CancellationToken cancellationToken = default)
+    public async Task<IList<LedgerItem>> GetLedgerItems(DateOnly dateFrom, DateOnly dateTo, IEnumerable<string>? debitAccountPrefix = null, IEnumerable<string>? creditAccountPrefix = null, string? department = null, CancellationToken cancellationToken = default)
     {
         var debitPrefixes = debitAccountPrefix?.ToList() ?? new List<string>();
         var creditPrefixes = creditAccountPrefix?.ToList() ?? new List<string>();
@@ -32,8 +32,8 @@ public class LedgerService : ILedgerService
 
         // Získání dat z FlexiBee pomocí ILedgerClient s filtry
         var flexiData = await _ledgerClient.GetAsync(
-            dateFrom,
-            dateTo,
+            dateFrom.ToDateTime(TimeOnly.MinValue),
+            dateTo.ToDateTime(TimeOnly.MinValue),
             debitPrefixes,
             creditPrefixes,
             department,
@@ -51,13 +51,13 @@ public class LedgerService : ILedgerService
         return result;
     }
 
-    public Task<IList<CostStatistics>> GetPersonalCosts(DateTime dateFrom, DateTime dateTo, string? department = null, CancellationToken cancellationToken = default) =>
+    public Task<IList<CostStatistics>> GetPersonalCosts(DateOnly dateFrom, DateOnly dateTo, string? department = null, CancellationToken cancellationToken = default) =>
         GetCosts(dateFrom, dateTo, ["52"], department, cancellationToken);
 
-    public Task<IList<CostStatistics>> GetDirectCosts(DateTime dateFrom, DateTime dateTo, string? department = null, CancellationToken cancellationToken = default) =>
+    public Task<IList<CostStatistics>> GetDirectCosts(DateOnly dateFrom, DateOnly dateTo, string? department = null, CancellationToken cancellationToken = default) =>
         GetCosts(dateFrom, dateTo, ["51", "52"], department, cancellationToken);
 
-    public async Task<IList<CostStatistics>> GetCosts(DateTime dateFrom, DateTime dateTo, IEnumerable<string> debitAccountPrefixes, string? department = null, CancellationToken cancellationToken = default)
+    public async Task<IList<CostStatistics>> GetCosts(DateOnly dateFrom, DateOnly dateTo, IEnumerable<string> debitAccountPrefixes, string? department = null, CancellationToken cancellationToken = default)
     {
         // Přímé náklady na účtech začínajících 50, 51, 52 (náklady na prodané zboží, služby, osobní náklady)
         var ledgerItems = await GetLedgerItems(dateFrom, dateTo, debitAccountPrefixes, null, department, cancellationToken);

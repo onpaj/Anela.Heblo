@@ -62,8 +62,8 @@ public class FinancialOverviewTests : IClassFixture<FinancialOverviewTestFactory
 
         _mockLedgerService
             .Setup(x => x.GetLedgerItems(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
+                It.IsAny<DateOnly>(),
+                It.IsAny<DateOnly>(),
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<string>(),

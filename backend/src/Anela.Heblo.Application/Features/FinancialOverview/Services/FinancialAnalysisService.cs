@@ -157,14 +157,14 @@ public class FinancialAnalysisService : IFinancialAnalysisService
 
             // Fetch ledger data for this month in parallel
             var debitItemsTask = _ledgerService.GetLedgerItems(
-                monthStart,
-                monthEnd,
+                DateOnly.FromDateTime(monthStart),
+                DateOnly.FromDateTime(monthEnd),
                 debitAccountPrefix: new[] { "5", "6" },
                 cancellationToken: cancellationToken);
 
             var creditItemsTask = _ledgerService.GetLedgerItems(
-                monthStart,
-                monthEnd,
+                DateOnly.FromDateTime(monthStart),
+                DateOnly.FromDateTime(monthEnd),
                 creditAccountPrefix: new[] { "5", "6" },
                 cancellationToken: cancellationToken);
 
@@ -313,14 +313,14 @@ public class FinancialAnalysisService : IFinancialAnalysisService
 
         // Fetch financial data and stock data in parallel if needed
         var debitItemsTask = _ledgerService.GetLedgerItems(
-            startDate,
-            endDate,
+            DateOnly.FromDateTime(startDate),
+            DateOnly.FromDateTime(endDate),
             debitAccountPrefix: new[] { "5", "6" },
             cancellationToken: cancellationToken);
 
         var creditItemsTask = _ledgerService.GetLedgerItems(
-            startDate,
-            endDate,
+            DateOnly.FromDateTime(startDate),
+            DateOnly.FromDateTime(endDate),
             creditAccountPrefix: new[] { "5", "6" },
             cancellationToken: cancellationToken);
 

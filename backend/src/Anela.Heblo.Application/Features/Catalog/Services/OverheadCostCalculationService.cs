@@ -7,24 +7,24 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Catalog.Services;
 
-public class SalesCostCalculationService : ISalesCostCalculationService
+public class OverheadCostCalculationService : IOverheadCostCalculationService
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILedgerService _ledgerService;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<DataSourceOptions> _dataSourceOptions;
-    private readonly ILogger<SalesCostCalculationService> _logger;
+    private readonly ILogger<OverheadCostCalculationService> _logger;
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
-    private Dictionary<string, List<SalesCost>>? _cachedData;
+    private Dictionary<string, List<OverheadCost>>? _cachedData;
     private bool _isLoaded;
 
-    public SalesCostCalculationService(
+    public OverheadCostCalculationService(
         ICatalogRepository catalogRepository,
         ILedgerService ledgerService,
         TimeProvider timeProvider,
         IOptions<DataSourceOptions> dataSourceOptions,
-        ILogger<SalesCostCalculationService> logger)
+        ILogger<OverheadCostCalculationService> logger)
     {
         _catalogRepository = catalogRepository;
         _ledgerService = ledgerService;
@@ -33,54 +33,51 @@ public class SalesCostCalculationService : ISalesCostCalculationService
         _logger = logger;
     }
 
-    private async Task<Dictionary<string, List<SalesCost>>> CalculateSalesCostHistoryAsync(CancellationToken cancellationToken = default)
+    private async Task<Dictionary<string, List<OverheadCost>>> CalculateOverheadCostHistoryAsync(CancellationToken cancellationToken = default)
     {
         // Return cached data if available
         if (_isLoaded && _cachedData != null)
         {
-            _logger.LogDebug("Returning cached manufacture cost history data");
+            _logger.LogDebug("Returning cached overhead cost history data");
             return _cachedData;
         }
 
         try
         {
-            return await CalculateSalesCostHistoryInternalAsync(cancellationToken);
+            return await CalculateOverheadCostHistoryInternalAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating sales cost history");
-            return new Dictionary<string, List<SalesCost>>();
+            _logger.LogError(ex, "Error calculating overhead cost history");
+            return new Dictionary<string, List<OverheadCost>>();
         }
     }
 
-    private async Task<Dictionary<string, List<SalesCost>>> CalculateSalesCostHistoryInternalAsync(CancellationToken cancellationToken = default)
+    private async Task<Dictionary<string, List<OverheadCost>>> CalculateOverheadCostHistoryInternalAsync(CancellationToken cancellationToken = default)
     {
-        var result = new Dictionary<string, List<SalesCost>>();
+        var result = new Dictionary<string, List<OverheadCost>>();
 
         // Get date range for last 13 months, values from last months are not accurate yet
         var endDate = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
         var startDate = endDate.AddDays(-1 * _dataSourceOptions.Value.ManufactureCostHistoryDays);
 
-        _logger.LogDebug("Calculating manufacture cost history from {StartDate} to {EndDate}", startDate, endDate);
+        _logger.LogDebug("Calculating overhead cost history from {StartDate} to {EndDate}", startDate, endDate);
 
-        // Get direct costs from SKLAD and MARKETING department
-        var warehouseCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "SKLAD", cancellationToken) ?? new List<CostStatistics>();
-        var marketingCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "MARKETING", cancellationToken) ?? new List<CostStatistics>();
-
-        var totalCosts = warehouseCosts.Concat(marketingCosts);
+        // Get direct costs from C department
+        var overheadCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "C", cancellationToken) ?? new List<CostStatistics>();
 
         // Group direct costs by month
-        var monthlyCosts = totalCosts
+        var monthlyCosts = overheadCosts
             .GroupBy(c => new { c.Date.Year, c.Date.Month })
             .ToDictionary(
                 g => $"{g.Key.Year:D4}-{g.Key.Month:D2}",
                 g => g.Sum(c => c.Cost)
             );
 
-        
+
         var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
         var endDateTime = endDate.ToDateTime(TimeOnly.MinValue);
-        _logger.LogDebug("Found costs for {MonthCount} months", monthlyCosts.Count);
+        _logger.LogDebug("Found overhead costs for {MonthCount} months", monthlyCosts.Count);
         var products = await _catalogRepository.GetAllAsync(cancellationToken);
         // Get all sale history from products and group by month
         var allSalesHistory = products
@@ -98,7 +95,7 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 g => g.ToList()
             );
 
-        _logger.LogDebug("Found manufacture history for {MonthCount} months with {TotalRecords} records",
+        _logger.LogDebug("Found sales history for {MonthCount} months with {TotalRecords} records",
             monthlySaleData.Count, allSalesHistory.Count);
 
         // For each month, calculate weighted costs
@@ -118,10 +115,10 @@ public class SalesCostCalculationService : ISalesCostCalculationService
             // Calculate cost per unit for this month
             var costPerUnit = monthTotalCost / (decimal)totalUnitsSoldThisMonth;
 
-            _logger.LogDebug("Month {Month}: Total cost {TotalCost}, Total units {TotalUnits}, Cost per unit {CostPerUnit}",
+            _logger.LogDebug("Month {Month}: Total overhead cost {TotalCost}, Total units {TotalUnits}, Cost per unit {CostPerUnit}",
                 monthKey, monthTotalCost, totalUnitsSoldThisMonth, costPerUnit);
 
-            // Parse month date for the SalesCost record
+            // Parse month date for the OverheadCost record
             var dateParts = monthKey.Split('-');
             var monthDate = new DateTime(int.Parse(dateParts[0]), int.Parse(dateParts[1]), 1);
 
@@ -130,37 +127,37 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 .GroupBy(x => x.Product.ProductCode)
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.SaleRecord.AmountTotal));
 
-            // Calculate sales cost for each product based on their share of total sales
+            // Calculate overhead cost for each product based on their share of total sales
             foreach (var productSale in productSalesThisMonth)
             {
                 var productCode = productSale.Key;
                 var productUnitsSold = productSale.Value;
 
                 // Calculate this product's share of total costs (cost per unit * units sold)
-                var productSalesCost = costPerUnit * (decimal)productUnitsSold;
+                var productOverheadCost = costPerUnit * (decimal)productUnitsSold;
 
                 // Initialize product list if needed
                 if (!result.ContainsKey(productCode))
                 {
-                    result[productCode] = new List<SalesCost>();
+                    result[productCode] = new List<OverheadCost>();
                 }
 
-                var salesCost = new SalesCost
+                var overheadCost = new OverheadCost
                 {
                     Date = monthDate,
-                    TotalCost = productSalesCost,
+                    TotalCost = productOverheadCost,
                     AmountSold = productUnitsSold,
                     UnitCost = costPerUnit
                 };
 
-                result[productCode].Add(salesCost);
+                result[productCode].Add(overheadCost);
 
-                _logger.LogDebug("Product {ProductCode}: {UnitsSold} units sold, allocated cost {Cost}",
-                    productCode, productUnitsSold, productSalesCost);
+                _logger.LogDebug("Product {ProductCode}: {UnitsSold} units sold, allocated overhead cost {Cost}",
+                    productCode, productUnitsSold, productOverheadCost);
             }
         }
 
-        _logger.LogInformation("Calculated manufacture cost history for {ProductCount} products", result.Count);
+        _logger.LogInformation("Calculated overhead cost history for {ProductCount} products", result.Count);
         return result;
     }
 
@@ -171,24 +168,24 @@ public class SalesCostCalculationService : ISalesCostCalculationService
         await _cacheLock.WaitAsync();
         try
         {
-            _logger.LogInformation("Reloading manufacture cost calculation cache");
+            _logger.LogInformation("Reloading overhead cost calculation cache");
 
             // Calculate new data
-            var newData = await CalculateSalesCostHistoryInternalAsync();
+            var newData = await CalculateOverheadCostHistoryInternalAsync();
             if (!newData.Any())
             {
-                _logger.LogInformation("Manufacture cost calculation data not ready yet");
+                _logger.LogInformation("Overhead cost calculation data not ready yet");
                 return;
             }
             // Update cache atomically
             _cachedData = newData;
             _isLoaded = true;
 
-            _logger.LogInformation("Manufacture cost calculation cache reloaded with {ProductCount} products", newData.Count);
+            _logger.LogInformation("Overhead cost calculation cache reloaded with {ProductCount} products", newData.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to reload manufacture cost calculation cache");
+            _logger.LogError(ex, "Failed to reload overhead cost calculation cache");
             throw;
         }
         finally
@@ -209,16 +206,16 @@ public class SalesCostCalculationService : ISalesCostCalculationService
             var endDate = dateTo ?? now;
             var startDate = dateFrom ?? endDate.AddMonths(-12);
 
-            // Get sales cost history using existing service
-            var salesCostHistory = await CalculateSalesCostHistoryAsync(cancellationToken);
+            // Get overhead cost history using existing service
+            var overheadCostHistory = await CalculateOverheadCostHistoryAsync(cancellationToken);
 
             var result = new Dictionary<string, List<MonthlyCost>>();
 
-            foreach (var product in products ?? salesCostHistory.Keys.ToList())
+            foreach (var product in products ?? overheadCostHistory.Keys.ToList())
             {
                 var monthlyCosts = new List<MonthlyCost>();
 
-                if (salesCostHistory.TryGetValue(product, out var costHistory))
+                if (overheadCostHistory.TryGetValue(product, out var costHistory))
                 {
                     // Filter by date range, group by month and sum costs
                     var monthlyGroups = costHistory
@@ -248,13 +245,13 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 }
             }
 
-            _logger.LogDebug("Calculated sales costs for {ProductCount} products", result.Count);
+            _logger.LogDebug("Calculated overhead costs for {ProductCount} products", result.Count);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating sales costs");
+            _logger.LogError(ex, "Error calculating overhead costs");
             throw;
         }
     }

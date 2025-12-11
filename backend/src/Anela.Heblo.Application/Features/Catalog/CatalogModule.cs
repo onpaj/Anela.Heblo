@@ -41,12 +41,12 @@ public static class CatalogModule
         //services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
         services.AddTransient<IMaterialCostRepository, PurchasePriceOnlyMaterialCostRepository>(); // Use purchase priceonly, till stock price is correct
         services.AddTransient<IManufactureCostRepository, ManufactureCostRepository>();
-        services.AddTransient<IOverheadCostRepository, OverheadCostRepository>();
 
         // Register catalog-specific services
-        services.AddSingleton<IManufactureCostCalculationService, ManufactureCostCalculationService>();
-        services.AddTransient<ISalesCostCalculationService, SalesCostCalculationService>();
-        services.AddTransient<IMarginCalculationService, MarginCalculationService>();
+        services.AddScoped<IManufactureCostCalculationService, ManufactureCostCalculationService>();
+        services.AddScoped<ISalesCostCalculationService, SalesCostCalculationService>();
+        services.AddScoped<IOverheadCostCalculationService, OverheadCostCalculationService>();
+        services.AddScoped<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
         services.AddTransient<SafeMarginCalculator>();
@@ -197,6 +197,18 @@ public static class CatalogModule
             {
                 var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
                 var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
+
+                await catalogRepository.WaitForCurrentMergeAsync(ct);
+                await costService.Reload();
+            }
+        );
+
+        services.RegisterRefreshTask<IOverheadCostCalculationService>(
+            nameof(IOverheadCostCalculationService.Reload),
+            async (serviceProvider, ct) =>
+            {
+                var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
+                var costService = serviceProvider.GetRequiredService<IOverheadCostCalculationService>();
 
                 await catalogRepository.WaitForCurrentMergeAsync(ct);
                 await costService.Reload();

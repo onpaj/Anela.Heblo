@@ -12,20 +12,20 @@ public class MarginCalculationService : IMarginCalculationService
     private readonly IMaterialCostRepository _materialCostRepository;
     private readonly IManufactureCostRepository _manufactureCostRepository;
     private readonly ISalesCostCalculationService _salesCostCalculationService;
-    private readonly IOverheadCostRepository _overheadCostRepository;
+    private readonly IOverheadCostCalculationService _overheadCostCalculationService;
     private readonly ILogger<MarginCalculationService> _logger;
 
     public MarginCalculationService(
         IMaterialCostRepository materialCostRepository,
         IManufactureCostRepository manufactureCostRepository,
         ISalesCostCalculationService salesCostCalculationService,
-        IOverheadCostRepository overheadCostRepository,
+        IOverheadCostCalculationService overheadCostCalculationService,
         ILogger<MarginCalculationService> logger)
     {
         _materialCostRepository = materialCostRepository;
         _manufactureCostRepository = manufactureCostRepository;
         _salesCostCalculationService = salesCostCalculationService;
-        _overheadCostRepository = overheadCostRepository;
+        _overheadCostCalculationService = overheadCostCalculationService;
         _logger = logger;
     }
 
@@ -72,7 +72,7 @@ public class MarginCalculationService : IMarginCalculationService
         var materialCosts = await _materialCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         var manufactureCosts = await _manufactureCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         var salesCosts = await _salesCostCalculationService.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var overheadCosts = await _overheadCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var overheadCosts = await _overheadCostCalculationService.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
 
         return new CostData
         {

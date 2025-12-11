@@ -50,24 +50,16 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
         var result = new Dictionary<string, List<ManufactureCost>>();
 
         // Get date range for last 13 months, values from last months are not accurate yet
-        var endDate = _timeProvider.GetUtcNow().Date;
+        var endDate = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
         var startDate = endDate.AddDays(-1 * _dataSourceOptions.Value.ManufactureCostHistoryDays);
 
         _logger.LogDebug("Calculating manufacture cost history from {StartDate} to {EndDate}", startDate, endDate);
 
         // Get direct costs from VYROBA department
         var directCosts = await _ledgerService.GetDirectCosts(startDate, endDate, "VYROBA", cancellationToken);
-        var personalCosts = await _ledgerService.GetPersonalCosts(startDate, endDate, cancellationToken: cancellationToken);
-
-        var totalCosts = directCosts.Concat(personalCosts.Select(s => new CostStatistics()
-        {
-            Date = s.Date,
-            Cost = s.Cost / 2,
-            Department = s.Department
-        }));
 
         // Group direct costs by month
-        var monthlyCosts = totalCosts
+        var monthlyCosts = directCosts
             .GroupBy(c => new { c.Date.Year, c.Date.Month })
             .ToDictionary(
                 g => $"{g.Key.Year:D4}-{g.Key.Month:D2}",
@@ -76,11 +68,13 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
 
         _logger.LogDebug("Found costs for {MonthCount} months", monthlyCosts.Count);
 
+        var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
+        var endDateTime = endDate.ToDateTime(TimeOnly.MinValue);
         // Get all manufacture history from products and group by month
         var allManufactureHistory = products
             .Where(p => p.ManufactureDifficulty > 0) // Only products with difficulty
             .SelectMany(p => p.ManufactureHistory.Select(m => new { Product = p, ManufactureRecord = m }))
-            .Where(x => x.ManufactureRecord.Date >= startDate && x.ManufactureRecord.Date <= endDate)
+            .Where(x => x.ManufactureRecord.Date >= startDateTime && x.ManufactureRecord.Date <= endDateTime)
             .ToList();
 
         if (!allManufactureHistory.Any())

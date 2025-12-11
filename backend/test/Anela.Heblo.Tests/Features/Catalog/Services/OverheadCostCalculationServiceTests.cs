@@ -18,25 +18,25 @@ using Xunit;
 namespace Anela.Heblo.Tests.Features.Catalog.Services;
 
 /// <summary>
-/// Unit tests for SalesCostCalculationService with comprehensive cost calculation scenarios
+/// Unit tests for OverheadCostCalculationService with comprehensive cost calculation scenarios
 /// </summary>
-public class SalesCostCalculationServiceTests
+public class OverheadCostCalculationServiceTests
 {
     private readonly Mock<ILedgerService> _ledgerServiceMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<DataSourceOptions>> _dataSourceOptionsMock;
-    private readonly Mock<ILogger<SalesCostCalculationService>> _loggerMock;
-    private readonly SalesCostCalculationService _service;
+    private readonly Mock<ILogger<OverheadCostCalculationService>> _loggerMock;
+    private readonly OverheadCostCalculationService _service;
     private readonly DateTime _fixedCurrentTime = new DateTime(2024, 6, 15, 10, 0, 0, DateTimeKind.Utc);
 
-    public SalesCostCalculationServiceTests()
+    public OverheadCostCalculationServiceTests()
     {
         _ledgerServiceMock = new Mock<ILedgerService>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _timeProviderMock = new Mock<TimeProvider>();
         _dataSourceOptionsMock = new Mock<IOptions<DataSourceOptions>>();
-        _loggerMock = new Mock<ILogger<SalesCostCalculationService>>();
+        _loggerMock = new Mock<ILogger<OverheadCostCalculationService>>();
 
         // Setup default options
         var dataSourceOptions = new DataSourceOptions
@@ -54,7 +54,7 @@ public class SalesCostCalculationServiceTests
             .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(defaultProducts);
 
-        _service = new SalesCostCalculationService(
+        _service = new OverheadCostCalculationService(
             _catalogRepositoryMock.Object,
             _ledgerServiceMock.Object,
             _timeProviderMock.Object,
@@ -223,7 +223,7 @@ public class SalesCostCalculationServiceTests
         // Arrange
         var exception = new Exception("Reload error");
         _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetDirectCosts(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), "C", It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
         // Act & Assert
@@ -277,22 +277,14 @@ public class SalesCostCalculationServiceTests
     {
         return new List<CostStatistics>
         {
-            new CostStatistics { Date = new DateTime(2024, 1, 15), Cost = 500m, Department = "SKLAD" },
-            new CostStatistics { Date = new DateTime(2024, 1, 20), Cost = 500m, Department = "MARKETING" }
+            new CostStatistics { Date = new DateTime(2024, 1, 15), Cost = 1000m, Department = "C" }
         };
     }
 
     private void SetupLedgerServiceMocks(List<CostStatistics> costs)
     {
-        var warehouseCosts = costs.Where(c => c.Department == "SKLAD").ToList();
-        var marketingCosts = costs.Where(c => c.Department == "MARKETING").ToList();
-
         _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), "SKLAD", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(warehouseCosts);
-
-        _ledgerServiceMock
-            .Setup(x => x.GetDirectCosts(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), "MARKETING", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(marketingCosts);
+            .Setup(x => x.GetDirectCosts(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), "C", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(costs);
     }
 }
