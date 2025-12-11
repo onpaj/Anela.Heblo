@@ -577,7 +577,7 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                   ) : (
                     <>
                       <Download className="h-4 w-4" />
-                      Znovu naimportovat
+                      Znovu importovat
                     </>
                   )}
                 </button>

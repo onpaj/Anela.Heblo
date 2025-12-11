@@ -37,13 +37,17 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         // Get total count before pagination
         var totalCount = await query.CountAsync();
 
-        // Apply sorting
+        // Apply sorting with secondary sort by Id (always ascending) for deterministic ordering
         query = orderBy.ToLowerInvariant() switch
         {
             "id" => ascending ? query.OrderBy(x => x.Id) : query.OrderByDescending(x => x.Id),
-            "statementdate" => ascending ? query.OrderBy(x => x.StatementDate) : query.OrderByDescending(x => x.StatementDate),
-            "importdate" => ascending ? query.OrderBy(x => x.ImportDate) : query.OrderByDescending(x => x.ImportDate),
-            _ => query.OrderByDescending(x => x.ImportDate)
+            "statementdate" => ascending
+                ? query.OrderBy(x => x.StatementDate).ThenBy(x => x.Id)
+                : query.OrderByDescending(x => x.StatementDate).ThenBy(x => x.Id),
+            "importdate" => ascending
+                ? query.OrderBy(x => x.ImportDate).ThenBy(x => x.Id)
+                : query.OrderByDescending(x => x.ImportDate).ThenBy(x => x.Id),
+            _ => query.OrderByDescending(x => x.ImportDate).ThenBy(x => x.Id)
         };
 
         // Apply pagination

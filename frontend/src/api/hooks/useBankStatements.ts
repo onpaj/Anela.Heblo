@@ -53,7 +53,7 @@ export const useBankStatementImportStatistics = (
   return useQuery({
     queryKey: [...QUERY_KEYS.bankStatements, 'import-statistics', request],
     queryFn: async (): Promise<GetBankStatementImportStatisticsResponse> => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       
       const params = new URLSearchParams();
       if (request.startDate) {
@@ -92,7 +92,7 @@ export const useBankStatementsList = (
   return useQuery({
     queryKey: [...QUERY_KEYS.bankStatements, 'list', request],
     queryFn: async (): Promise<GetBankStatementListResponse> => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       
       const params = new URLSearchParams();
       if (request.id !== undefined) {
@@ -153,7 +153,7 @@ export interface BankImportResponse {
 export const useBankStatementImport = () => {
   return useMutation({
     mutationFn: async (request: BankImportRequest): Promise<BankImportResponse> => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       
       const relativeUrl = `/api/bank-statements/import`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
@@ -206,7 +206,7 @@ export const useBankStatementAccounts = () => {
   return useQuery({
     queryKey: [...QUERY_KEYS.bankStatements, 'accounts'],
     queryFn: async (): Promise<AccountOption[]> => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       
       // Get all bank statements to extract unique account names
       const relativeUrl = `/api/bank-statements?take=1000`; // Get a large number to capture all accounts
