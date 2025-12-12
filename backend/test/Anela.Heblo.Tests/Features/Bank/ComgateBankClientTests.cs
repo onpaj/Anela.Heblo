@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Comgate;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -9,6 +10,7 @@ public class ComgateBankClientTests
 {
     private readonly ComgateSettings _settings;
     private readonly Mock<IOptions<ComgateSettings>> _optionsMock;
+    private readonly Mock<ILogger<ComgateBankClient>> _loggerMock;
     private readonly HttpClient _httpClient;
 
     public ComgateBankClientTests()
@@ -21,6 +23,7 @@ public class ComgateBankClientTests
 
         _optionsMock = new Mock<IOptions<ComgateSettings>>();
         _optionsMock.Setup(x => x.Value).Returns(_settings);
+        _loggerMock = new Mock<ILogger<ComgateBankClient>>();
         _httpClient = new HttpClient();
     }
 
@@ -28,7 +31,7 @@ public class ComgateBankClientTests
     public void Constructor_WithValidParameters_CreatesInstance()
     {
         // Act
-        var client = new ComgateBankClient(_httpClient, _optionsMock.Object);
+        var client = new ComgateBankClient(_httpClient, _optionsMock.Object, _loggerMock.Object);
 
         // Assert
         Assert.NotNull(client);
