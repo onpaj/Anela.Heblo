@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
@@ -35,18 +36,38 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
 
     public async Task<ImportBankStatementResponse> Handle(ImportBankStatementRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting bank statement import for account {AccountName} on {StatementDate}", 
+        var totalSw = Stopwatch.StartNew();
+
+        _logger.LogInformation(
+            "Bank import START - Account: {AccountName}, Date: {StatementDate}",
             request.AccountName, request.StatementDate);
 
         // Validate account configuration
         var accountSetting = _bankSettings.Accounts?.SingleOrDefault(a => a.Name == request.AccountName);
         if (accountSetting == null)
         {
-            throw new ArgumentException($"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration");
+            var availableAccounts = _bankSettings.Accounts != null
+                ? string.Join(", ", _bankSettings.Accounts.Select(a => a.Name))
+                : "None";
+
+            _logger.LogError(
+                "Bank import FAILED - Account not found: {AccountName}. Available accounts: {AvailableAccounts}",
+                request.AccountName, availableAccounts);
+
+            throw new ArgumentException($"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration. Available accounts: {availableAccounts}");
         }
+
+        _logger.LogInformation(
+            "Account config resolved - Account: {AccountName}, FlexiBeeId: {FlexiBeeId}, AccountNumber: {AccountNumber}",
+            request.AccountName, accountSetting.FlexiBeeId, accountSetting.AccountNumber);
 
         // Get statements from Comgate
         var statements = await _comgateClient.GetStatementsAsync(accountSetting.AccountNumber, request.StatementDate);
+
+        _logger.LogInformation(
+            "Comgate returned {StatementCount} statements for processing - Account: {AccountName}",
+            statements.Count, request.AccountName);
+
         var imports = new List<BankStatementImportDto>();
 
         foreach (var statement in statements)
@@ -92,8 +113,14 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             }
         }
 
-        _logger.LogInformation("Completed bank statement import for account {AccountName}. Processed {Count} statements", 
-            request.AccountName, imports.Count);
+        totalSw.Stop();
+
+        var successCount = imports.Count(i => i.ImportResult == ImportStatus.Success);
+        var errorCount = imports.Count - successCount;
+
+        _logger.LogInformation(
+            "Bank import COMPLETED - Account: {AccountName}, Total: {TotalCount}, Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}ms",
+            request.AccountName, imports.Count, successCount, errorCount, totalSw.ElapsedMilliseconds);
 
         return new ImportBankStatementResponse { Statements = imports };
     }
