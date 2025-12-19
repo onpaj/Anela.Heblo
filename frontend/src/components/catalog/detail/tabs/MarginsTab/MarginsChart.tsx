@@ -64,6 +64,10 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     const m2CostLevelMap = new Map<string, number>();
     const m3CostLevelMap = new Map<string, number>();
 
+    // M1_B maps for actual monthly costs (nullable)
+    const m1_BPercentageMap = new Map<string, number | null>();
+    const m1_BCostLevelMap = new Map<string, number | null>();
+
     marginHistory.forEach((record) => {
       if (record.date) {
         const recordDate = new Date(record.date);
@@ -83,11 +87,23 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
         m2PercentageMap.set(key, record.m2?.percentage || 0);
         m3PercentageMap.set(key, record.m3?.percentage || 0);
 
+        // M1_B is nullable - preserve null for months without production
+        m1_BPercentageMap.set(
+          key,
+          record.m1_B?.percentage !== undefined ? record.m1_B.percentage : null
+        );
+
         // M0-M3 CostLevel properties
         m0CostLevelMap.set(key, record.m0?.costLevel || 0);
         m1_ACostLevelMap.set(key, record.m1_A?.costLevel || 0);
         m2CostLevelMap.set(key, record.m2?.costLevel || 0);
         m3CostLevelMap.set(key, record.m3?.costLevel || 0);
+
+        // M1_B cost level (nullable)
+        m1_BCostLevelMap.set(
+          key,
+          record.m1_B?.costLevel !== undefined ? record.m1_B.costLevel : null
+        );
       }
     });
 
