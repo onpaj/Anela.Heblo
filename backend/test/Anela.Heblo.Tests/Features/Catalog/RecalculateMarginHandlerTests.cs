@@ -68,7 +68,8 @@ public class RecalculateMarginHandlerTests
                 {
                     Month = new DateTime(2025, 12, 1),
                     M0 = MarginLevel.Create(100, 30, 30),
-                    M1 = MarginLevel.Create(100, 40, 10),
+                    M1_A = MarginLevel.Create(100, 40, 10),
+                    M1_B = MarginLevel.Create(100, 40, 10),
                     M2 = MarginLevel.Create(100, 50, 10),
                     M3 = MarginLevel.Create(100, 60, 10)
                 },
@@ -76,7 +77,8 @@ public class RecalculateMarginHandlerTests
                 {
                     Month = new DateTime(2025, 11, 1),
                     M0 = MarginLevel.Create(100, 32, 32),
-                    M1 = MarginLevel.Create(100, 42, 10),
+                    M1_A = MarginLevel.Create(100, 42, 10),
+                    M1_B = MarginLevel.Create(100, 42, 10),
                     M2 = MarginLevel.Create(100, 52, 10),
                     M3 = MarginLevel.Create(100, 62, 10)
                 }
@@ -90,6 +92,7 @@ public class RecalculateMarginHandlerTests
             .ReturnsAsync(catalogItem);
         _marginCalculationServiceMock.Setup(s => s.GetMarginAsync(
             catalogItem,
+            It.IsAny<IEnumerable<CatalogAggregate>>(),
             It.IsAny<DateOnly>(),
             It.IsAny<DateOnly>(),
             It.IsAny<CancellationToken>()))
@@ -107,7 +110,7 @@ public class RecalculateMarginHandlerTests
 
         // Verify margin levels are correctly mapped
         Assert.Equal(70m, result.MarginHistory[0].M0.Percentage); // (100-30)/100 * 100 = 70%
-        Assert.Equal(60m, result.MarginHistory[0].M1.Percentage); // (100-40)/100 * 100 = 60%
+        Assert.Equal(60m, result.MarginHistory[0].M1_A.Percentage); // (100-40)/100 * 100 = 60%
         Assert.Equal(50m, result.MarginHistory[0].M2.Percentage); // (100-50)/100 * 100 = 50%
         Assert.Equal(40m, result.MarginHistory[0].M3.Percentage); // (100-60)/100 * 100 = 40%
     }
@@ -168,6 +171,7 @@ public class RecalculateMarginHandlerTests
             .ReturnsAsync(catalogItem);
         _marginCalculationServiceMock.Setup(s => s.GetMarginAsync(
             It.IsAny<CatalogAggregate>(),
+            It.IsAny<IEnumerable<CatalogAggregate>>(),
             It.IsAny<DateOnly>(),
             It.IsAny<DateOnly>(),
             It.IsAny<CancellationToken>()))
@@ -216,6 +220,7 @@ public class RecalculateMarginHandlerTests
             .ReturnsAsync(catalogItem);
         _marginCalculationServiceMock.Setup(s => s.GetMarginAsync(
             It.IsAny<CatalogAggregate>(),
+            It.IsAny<IEnumerable<CatalogAggregate>>(),
             It.IsAny<DateOnly>(),
             It.IsAny<DateOnly>(),
             It.IsAny<CancellationToken>()))
@@ -228,6 +233,7 @@ public class RecalculateMarginHandlerTests
         _marginCalculationServiceMock.Verify(
             s => s.GetMarginAsync(
                 catalogItem,
+                It.IsAny<IEnumerable<CatalogAggregate>>(),
                 expectedDateFrom,
                 expectedDateTo,
                 It.IsAny<CancellationToken>()),
@@ -268,6 +274,7 @@ public class RecalculateMarginHandlerTests
             .ReturnsAsync(catalogItem);
         _marginCalculationServiceMock.Setup(s => s.GetMarginAsync(
             It.IsAny<CatalogAggregate>(),
+            It.IsAny<IEnumerable<CatalogAggregate>>(),
             It.IsAny<DateOnly>(),
             It.IsAny<DateOnly>(),
             It.IsAny<CancellationToken>()))
@@ -280,6 +287,7 @@ public class RecalculateMarginHandlerTests
         _marginCalculationServiceMock.Verify(
             s => s.GetMarginAsync(
                 catalogItem,
+                It.IsAny<IEnumerable<CatalogAggregate>>(),
                 expectedDateFrom,
                 expectedDateTo,
                 It.IsAny<CancellationToken>()),
