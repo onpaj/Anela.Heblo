@@ -50,6 +50,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     const m1_ACostLevelData = new Array(12).fill(0);
     const m2CostLevelData = new Array(12).fill(0);
     const m3CostLevelData = new Array(12).fill(0);
+
+    // M1_B data arrays (nullable for months without production)
+    const m1_BPercentageData = new Array(12).fill(null);
+    const m1_BCostLevelData = new Array(12).fill(null);
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
@@ -128,6 +133,10 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       m1_ACostLevelData[i] = m1_ACostLevelMap.get(key) || 0;
       m2CostLevelData[i] = m2CostLevelMap.get(key) || 0;
       m3CostLevelData[i] = m3CostLevelMap.get(key) || 0;
+
+      // M1_B data (preserve null for no production)
+      m1_BPercentageData[i] = m1_BPercentageMap.get(key) ?? null;
+      m1_BCostLevelData[i] = m1_BCostLevelMap.get(key) ?? null;
     }
 
     return {
@@ -138,7 +147,9 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       m0CostLevelData,
       m1_ACostLevelData,
       m2CostLevelData,
-      m3CostLevelData
+      m3CostLevelData,
+      m1_BPercentageData,
+      m1_BCostLevelData,
     };
   };
 
@@ -150,7 +161,9 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     m0CostLevelData,
     m1_ACostLevelData,
     m2CostLevelData,
-    m3CostLevelData
+    m3CostLevelData,
+    m1_BPercentageData,
+    m1_BCostLevelData,
   } = mapMarginDataToMonthlyArrays();
 
   // Check if we have M0-M3 data
