@@ -43,11 +43,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
   // Map margin history data to monthly arrays (excluding current month)
   const mapMarginDataToMonthlyArrays = () => {
     const m0PercentageData = new Array(12).fill(0);
-    const m1PercentageData = new Array(12).fill(0);
+    const m1_APercentageData = new Array(12).fill(0);
     const m2PercentageData = new Array(12).fill(0);
     const m3PercentageData = new Array(12).fill(0);
     const m0CostLevelData = new Array(12).fill(0);
-    const m1CostLevelData = new Array(12).fill(0);
+    const m1_ACostLevelData = new Array(12).fill(0);
     const m2CostLevelData = new Array(12).fill(0);
     const m3CostLevelData = new Array(12).fill(0);
     const now = new Date();
@@ -56,11 +56,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
 
     // Create maps for quick lookup of margin data by year-month key
     const m0PercentageMap = new Map<string, number>();
-    const m1PercentageMap = new Map<string, number>();
+    const m1_APercentageMap = new Map<string, number>();
     const m2PercentageMap = new Map<string, number>();
     const m3PercentageMap = new Map<string, number>();
     const m0CostLevelMap = new Map<string, number>();
-    const m1CostLevelMap = new Map<string, number>();
+    const m1_ACostLevelMap = new Map<string, number>();
     const m2CostLevelMap = new Map<string, number>();
     const m3CostLevelMap = new Map<string, number>();
 
