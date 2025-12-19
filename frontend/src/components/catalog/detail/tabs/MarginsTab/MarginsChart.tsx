@@ -79,13 +79,13 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
 
         // M0-M3 percentage properties
         m0PercentageMap.set(key, record.m0?.percentage || 0);
-        m1PercentageMap.set(key, record.m1?.percentage || 0);
+        m1_APercentageMap.set(key, record.m1_A?.percentage || 0);
         m2PercentageMap.set(key, record.m2?.percentage || 0);
         m3PercentageMap.set(key, record.m3?.percentage || 0);
 
         // M0-M3 CostLevel properties
         m0CostLevelMap.set(key, record.m0?.costLevel || 0);
-        m1CostLevelMap.set(key, record.m1?.costLevel || 0);
+        m1_ACostLevelMap.set(key, record.m1_A?.costLevel || 0);
         m2CostLevelMap.set(key, record.m2?.costLevel || 0);
         m3CostLevelMap.set(key, record.m3?.costLevel || 0);
       }
@@ -105,22 +105,22 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
 
       const key = `${adjustedYear}-${adjustedMonth}`;
       m0PercentageData[i] = m0PercentageMap.get(key) || 0;
-      m1PercentageData[i] = m1PercentageMap.get(key) || 0;
+      m1_APercentageData[i] = m1_APercentageMap.get(key) || 0;
       m2PercentageData[i] = m2PercentageMap.get(key) || 0;
       m3PercentageData[i] = m3PercentageMap.get(key) || 0;
       m0CostLevelData[i] = m0CostLevelMap.get(key) || 0;
-      m1CostLevelData[i] = m1CostLevelMap.get(key) || 0;
+      m1_ACostLevelData[i] = m1_ACostLevelMap.get(key) || 0;
       m2CostLevelData[i] = m2CostLevelMap.get(key) || 0;
       m3CostLevelData[i] = m3CostLevelMap.get(key) || 0;
     }
 
     return {
       m0PercentageData,
-      m1PercentageData,
+      m1_APercentageData,
       m2PercentageData,
       m3PercentageData,
       m0CostLevelData,
-      m1CostLevelData,
+      m1_ACostLevelData,
       m2CostLevelData,
       m3CostLevelData
     };
