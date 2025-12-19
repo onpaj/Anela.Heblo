@@ -145,6 +145,52 @@ public class MarginCalculationService : IMarginCalculationService
         return closestPrevious?.Cost ?? 0;
     }
 
+    private async Task<Dictionary<DateTime, decimal>> CalculateCompanyWideProducedCPAsync(
+        IEnumerable<CatalogAggregate> allProducts,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken cancellationToken)
+    {
+        var producedCPByMonth = new Dictionary<DateTime, decimal>();
+
+        foreach (var product in allProducts)
+        {
+            if (product.ManufactureHistory == null || !product.ManufactureHistory.Any())
+                continue;
+
+            // Get production records in date range
+            var productionRecords = product.ManufactureHistory
+                .Where(h => h.Date >= dateFrom.ToDateTime(TimeOnly.MinValue)
+                         && h.Date <= dateTo.ToDateTime(TimeOnly.MinValue))
+                .ToList();
+
+            foreach (var record in productionRecords)
+            {
+                // Get CP valid at production date
+                var complexityPoints = product.ManufactureDifficulty;
+                if (!complexityPoints.HasValue)
+                {
+                    _logger.LogWarning(
+                        "Product {ProductCode} has no ManufactureDifficulty, skipping production record from {Date}",
+                        product.ProductCode, record.Date);
+                    continue;
+                }
+
+                // Calculate produced CP for this record
+                var producedCP = record.Amount * (decimal)complexityPoints.Value;
+
+                // Aggregate by month (first day of month as key)
+                var monthKey = new DateTime(record.Date.Year, record.Date.Month, 1);
+                if (!producedCPByMonth.ContainsKey(monthKey))
+                    producedCPByMonth[monthKey] = 0;
+
+                producedCPByMonth[monthKey] += producedCP;
+            }
+        }
+
+        return producedCPByMonth;
+    }
+
     private MarginData CalculateMarginAverages(List<MonthlyMarginData> monthlyData)
     {
         var validData = monthlyData.Where(m => m.M0.Percentage > 0).ToList();
