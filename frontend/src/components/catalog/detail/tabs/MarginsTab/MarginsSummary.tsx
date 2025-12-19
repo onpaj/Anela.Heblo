@@ -43,7 +43,7 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
     ? safeMarginHistory.reduce((sum, m) => sum + (m.m0?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
   const averageM1Percentage = safeMarginHistory.length > 0
-    ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.percentage || 0), 0) / safeMarginHistory.length
+    ? safeMarginHistory.reduce((sum, m) => sum + (m.m1_a?.percentage || 0), 0) / safeMarginHistory.length
     : 0;
   const averageM2Percentage = safeMarginHistory.length > 0
     ? safeMarginHistory.reduce((sum, m) => sum + (m.m2?.percentage || 0), 0) / safeMarginHistory.length
@@ -139,13 +139,13 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   <td className="px-4 py-3">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                      <span className="font-medium text-yellow-900">M1</span>
+                      <span className="font-medium text-yellow-900">M1 (baseline)</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-yellow-900">
                       {(safeMarginHistory.length > 0
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.costLevel || 0), 0) / safeMarginHistory.length
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1_a?.costLevel || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -155,7 +155,7 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   <td className="px-4 py-3 text-center">
                     <span className="text-lg font-bold text-yellow-900">
                       {(safeMarginHistory.length > 0
-                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1?.costTotal || 0), 0) / safeMarginHistory.length
+                        ? safeMarginHistory.reduce((sum, m) => sum + (m.m1_a?.costTotal || 0), 0) / safeMarginHistory.length
                         : 0).toLocaleString("cs-CZ", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,

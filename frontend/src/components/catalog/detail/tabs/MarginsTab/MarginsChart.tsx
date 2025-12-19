@@ -88,26 +88,26 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
 
         // M0-M3 percentage properties
         m0PercentageMap.set(key, record.m0?.percentage || 0);
-        m1_APercentageMap.set(key, record.m1_A?.percentage || 0);
+        m1_APercentageMap.set(key, record.m1_a?.percentage || 0);
         m2PercentageMap.set(key, record.m2?.percentage || 0);
         m3PercentageMap.set(key, record.m3?.percentage || 0);
 
         // M1_B is nullable - preserve null for months without production
         m1_BPercentageMap.set(
           key,
-          record.m1_B?.percentage !== undefined ? record.m1_B.percentage : null
+          record.m1_b?.percentage !== undefined ? record.m1_b.percentage : null
         );
 
         // M0-M3 CostLevel properties
         m0CostLevelMap.set(key, record.m0?.costLevel || 0);
-        m1_ACostLevelMap.set(key, record.m1_A?.costLevel || 0);
+        m1_ACostLevelMap.set(key, record.m1_a?.costLevel || 0);
         m2CostLevelMap.set(key, record.m2?.costLevel || 0);
         m3CostLevelMap.set(key, record.m3?.costLevel || 0);
 
         // M1_B cost level (nullable)
         m1_BCostLevelMap.set(
           key,
-          record.m1_B?.costLevel !== undefined ? record.m1_B.costLevel : null
+          record.m1_b?.costLevel !== undefined ? record.m1_b.costLevel : null
         );
       }
     });
@@ -286,9 +286,27 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
   ] : [];
 
+  // M1_B scatter dataset (conditional based on toggle)
+  const m1_BDataset = showM1B && hasM0M3Data ? {
+    type: 'scatter' as const,
+    label: "M1_B - Skutečné náklady výroby (%)",
+    data: m1_BPercentageData
+      .map((value, index) => value !== null ? { x: index, y: value } : null)
+      .filter((point): point is { x: number; y: number } => point !== null),
+    backgroundColor: "rgba(245, 158, 11, 1)", // Amber
+    borderColor: "rgba(245, 158, 11, 1)",
+    pointRadius: 6,
+    pointHoverRadius: 8,
+    yAxisID: "y1",
+  } : null;
+
   const chartData = {
     labels: monthLabels,
-    datasets: [...costLevelDatasets, ...percentageDatasets],
+    datasets: [
+      ...costLevelDatasets,
+      ...percentageDatasets,
+      ...(m1_BDataset ? [m1_BDataset] : []),  // Add M1_B conditionally
+    ],
   };
 
   const chartOptions = {
