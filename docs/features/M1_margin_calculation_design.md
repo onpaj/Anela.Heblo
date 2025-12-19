@@ -1,7 +1,8 @@
 # M1 Margin Calculation Implementation Design
 
 **Date:** 2025-12-19
-**Status:** Approved for Implementation
+**Status:** ✅ Implemented (2025-12-19)
+**Implementation Commit Range:** e50574c0..901c1a2c
 **Related Spec:** [M1 Production Costs Specification](./M1_production_costs_specification.md)
 
 ## Overview
