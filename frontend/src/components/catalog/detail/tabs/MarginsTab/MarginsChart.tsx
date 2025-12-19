@@ -373,6 +373,15 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
         <>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Vývoj nákladů a marží</h3>
+            <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showM1B}
+                onChange={(e) => setShowM1B(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span>Zobrazit M1_B (skutečné měsíční náklady)</span>
+            </label>
           </div>
           <div className="h-96">
             <Chart type="bar" data={chartData} options={chartOptions} />
