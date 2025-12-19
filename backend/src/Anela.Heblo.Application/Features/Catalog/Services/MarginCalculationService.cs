@@ -177,7 +177,7 @@ public class MarginCalculationService : IMarginCalculationService
                 }
 
                 // Calculate produced CP for this record
-                var producedCP = record.Amount * (decimal)complexityPoints.Value;
+                var producedCP = record.Amount * Convert.ToDecimal(complexityPoints.Value);
 
                 // Aggregate by month (first day of month as key)
                 var monthKey = new DateTime(record.Date.Year, record.Date.Month, 1);
@@ -189,6 +189,103 @@ public class MarginCalculationService : IMarginCalculationService
         }
 
         return producedCPByMonth;
+    }
+
+    private Dictionary<DateTime, decimal> CalculateM1_A_PerMonth(
+        double productComplexityPoints,
+        Dictionary<DateTime, decimal> companyWideProducedCP,
+        List<MonthlyCost> m1Costs,
+        DateOnly dateFrom,
+        DateOnly dateTo)
+    {
+        var m1_A_ByMonth = new Dictionary<DateTime, decimal>();
+
+        // Generate list of months in the date range
+        var currentDate = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var endDateTime = new DateTime(dateTo.Year, dateTo.Month, 1);
+
+        while (currentDate <= endDateTime)
+        {
+            // Define 12-month reference period ending at current month
+            var referenceStart = currentDate.AddMonths(-11);
+            var referenceEnd = currentDate;
+
+            // Sum M1 costs in reference period
+            var totalM1Costs = m1Costs
+                .Where(c => c.Month >= referenceStart && c.Month <= referenceEnd)
+                .Sum(c => c.Cost);
+
+            // Sum produced CP in reference period
+            var totalProducedCP = companyWideProducedCP
+                .Where(kvp => kvp.Key >= referenceStart && kvp.Key <= referenceEnd)
+                .Sum(kvp => kvp.Value);
+
+            // Calculate M1_A
+            decimal m1_A;
+            if (totalProducedCP > 0)
+            {
+                var costPerCP = totalM1Costs / totalProducedCP;
+                m1_A = (decimal)productComplexityPoints * costPerCP;
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "No production data in reference period ending {Month}, M1_A set to 0",
+                    currentDate);
+                m1_A = 0;
+            }
+
+            m1_A_ByMonth[currentDate] = m1_A;
+            currentDate = currentDate.AddMonths(1);
+        }
+
+        return m1_A_ByMonth;
+    }
+
+    private Dictionary<DateTime, decimal?> CalculateM1_B_PerMonth(
+        CatalogAggregate product,
+        double productComplexityPoints,
+        Dictionary<DateTime, decimal> companyWideProducedCP,
+        List<MonthlyCost> m1Costs)
+    {
+        var m1_B_ByMonth = new Dictionary<DateTime, decimal?>();
+
+        // Check which months this product was produced
+        var productionMonths = product.ManufactureHistory
+            ?.GroupBy(h => new DateTime(h.Date.Year, h.Date.Month, 1))
+            .Select(g => g.Key)
+            .ToHashSet() ?? new HashSet<DateTime>();
+
+        // For each month in company-wide data
+        foreach (var monthKey in companyWideProducedCP.Keys)
+        {
+            // Check if this product was produced in this month
+            if (!productionMonths.Contains(monthKey))
+            {
+                m1_B_ByMonth[monthKey] = null; // Not produced
+                continue;
+            }
+
+            // Get M1 costs for this month
+            var m1CostForMonth = m1Costs.FirstOrDefault(c => c.Month == monthKey)?.Cost ?? 0;
+
+            // Get total produced CP for this month
+            var totalProducedCP = companyWideProducedCP[monthKey];
+
+            // Calculate M1_B
+            if (totalProducedCP > 0)
+            {
+                var m1_B_per_CP = m1CostForMonth / totalProducedCP;
+                var m1_B = (decimal)productComplexityPoints * m1_B_per_CP;
+                m1_B_ByMonth[monthKey] = m1_B;
+            }
+            else
+            {
+                m1_B_ByMonth[monthKey] = null; // No production company-wide
+            }
+        }
+
+        return m1_B_ByMonth;
     }
 
     private MarginData CalculateMarginAverages(List<MonthlyMarginData> monthlyData)
