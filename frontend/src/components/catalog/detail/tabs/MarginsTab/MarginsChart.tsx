@@ -163,8 +163,8 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'bar' as const,
-      label: "M1 - Náklady výroby (Kč/ks)",
-      data: m1CostLevelData,
+      label: "M1_A - Náklady výroby baseline (Kč/ks)",
+      data: m1_ACostLevelData,
       backgroundColor: "rgba(234, 179, 8, 0.7)", // Yellow
       borderColor: "rgba(234, 179, 8, 1)",
       borderWidth: 1,
