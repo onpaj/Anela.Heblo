@@ -128,24 +128,24 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
 
   const {
     m0PercentageData,
-    m1PercentageData,
+    m1_APercentageData,
     m2PercentageData,
     m3PercentageData,
     m0CostLevelData,
-    m1CostLevelData,
+    m1_ACostLevelData,
     m2CostLevelData,
     m3CostLevelData
   } = mapMarginDataToMonthlyArrays();
 
   // Check if we have M0-M3 data
   const hasM0M3Data = m0PercentageData.some(value => value > 0) ||
-                      m1PercentageData.some(value => value > 0) ||
+                      m1_APercentageData.some(value => value > 0) ||
                       m2PercentageData.some(value => value > 0) ||
                       m3PercentageData.some(value => value > 0);
 
   // Generate point styling for percentage line charts (12 months without current)
   const m0Styling = generatePointStyling(12, journalEntries, "rgba(34, 197, 94, 1)"); // Green
-  const m1Styling = generatePointStyling(12, journalEntries, "rgba(234, 179, 8, 1)"); // Yellow
+  const m1_AStyling = generatePointStyling(12, journalEntries, "rgba(234, 179, 8, 1)"); // Yellow
   const m2Styling = generatePointStyling(12, journalEntries, "rgba(249, 115, 22, 1)"); // Orange
   const m3Styling = generatePointStyling(12, journalEntries, "rgba(239, 68, 68, 1)"); // Red
 
