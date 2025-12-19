@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   CatalogItemDto,
@@ -168,5 +168,33 @@ export const useCatalogDetail = (
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     enabled: !!productCode, // Only run query if productCode is provided
+  });
+};
+
+// Hook for recalculating margins
+export const useRecalculateMargin = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      productCode,
+      monthsBack = 13,
+    }: {
+      productCode: string;
+      monthsBack?: number;
+    }) => {
+      const apiClient = await getAuthenticatedApiClient();
+      const response = await apiClient.catalog_RecalculateMargin(
+        productCode,
+        monthsBack,
+      );
+      return response;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate the catalog detail query to trigger a refetch
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.catalog, "detail", variables.productCode],
+      });
+    },
   });
 };

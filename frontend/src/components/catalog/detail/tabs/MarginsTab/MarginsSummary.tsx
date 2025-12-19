@@ -1,6 +1,6 @@
-import React from "react";
-import { BarChart3 } from "lucide-react";
-import { CatalogItemDto } from "../../../../../api/hooks/useCatalog";
+import React, { useState } from "react";
+import { BarChart3, RefreshCw } from "lucide-react";
+import { CatalogItemDto, useRecalculateMargin } from "../../../../../api/hooks/useCatalog";
 import { ManufactureCostDto, MarginHistoryDto } from "../../../../../api/generated/api-client";
 
 interface MarginsSummaryProps {
@@ -14,8 +14,27 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
   manufactureCostHistory,
   marginHistory,
 }) => {
+  const recalculateMargin = useRecalculateMargin();
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
   // Ensure marginHistory is always an array
   const safeMarginHistory = marginHistory || [];
+
+  const handleRecalculate = async () => {
+    if (!item?.productCode) return;
+
+    setIsRecalculating(true);
+    try {
+      await recalculateMargin.mutateAsync({
+        productCode: item.productCode,
+        monthsBack: 13,
+      });
+    } catch (error) {
+      console.error("Failed to recalculate margins:", error);
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
 
   // Calculate average M0-M3 data from margin history
   const hasM0M3Data = safeMarginHistory.length > 0 && safeMarginHistory.some(m => (m.m0?.percentage || 0) > 0);
@@ -44,10 +63,23 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
-        <BarChart3 className="h-4 w-4 mr-2 text-gray-500" />
-        Přehled nákladů a marže
-      </h4>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-md font-medium text-gray-900 flex items-center">
+          <BarChart3 className="h-4 w-4 mr-2 text-gray-500" />
+          Přehled nákladů a marže
+        </h4>
+        <button
+          onClick={handleRecalculate}
+          disabled={isRecalculating}
+          className="flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Přepočítat marže za posledních 13 měsíců"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${isRecalculating ? "animate-spin" : ""}`}
+          />
+          <span>{isRecalculating ? "Přepočítávám..." : "Přepočítat"}</span>
+        </button>
+      </div>
 
 
       {/* Table Layout: M0-M3 rows with Absolute, Percentage, and Cost columns */}

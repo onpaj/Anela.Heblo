@@ -10,6 +10,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.EnqueueStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingJobStatus;
+using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateMargin;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -46,6 +47,23 @@ public class CatalogController : BaseApiController
         return HandleResponse(response);
     }
 
+    [HttpPost("{productCode}/margins/recalculate")]
+    [ProducesResponseType(typeof(RecalculateMarginResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<RecalculateMarginResponse>> RecalculateMargin(
+        string productCode,
+        [FromQuery] int monthsBack = 13)
+    {
+        var request = new RecalculateMarginRequest
+        {
+            ProductCode = productCode,
+            MonthsBack = monthsBack
+        };
+
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
 
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)

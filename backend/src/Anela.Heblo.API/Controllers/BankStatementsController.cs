@@ -31,7 +31,7 @@ public class BankStatementsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Importing bank statements for account {AccountName} on {StatementDate}", 
+            _logger.LogInformation("Importing bank statements for account {AccountName} on {StatementDate}",
                 request.AccountName, request.StatementDate);
 
             var importRequest = new ImportBankStatementRequest(request.AccountName, request.StatementDate);
