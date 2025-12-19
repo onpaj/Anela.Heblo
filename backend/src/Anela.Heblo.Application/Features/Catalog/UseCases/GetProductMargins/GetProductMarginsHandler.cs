@@ -156,8 +156,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M0.Amount),
             "m1amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M1.Amount),
+                ? products.OrderByDescending(x => x.Margins.Averages.M1_A.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M1_A.Amount),
             "m2amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M2.Amount),
@@ -169,8 +169,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
             "m1percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M1.Percentage),
+                ? products.OrderByDescending(x => x.Margins.Averages.M1_A.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M1_A.Percentage),
             "m2percentage" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
@@ -211,12 +211,19 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                     CostLevel = marginHistory.Averages.M0.CostLevel,
                     CostTotal = marginHistory.Averages.M0.CostTotal
                 },
-                M1 = new MarginLevelDto
+                M1_A = new MarginLevelDto
                 {
-                    Percentage = marginHistory.Averages.M1.Percentage,
-                    Amount = marginHistory.Averages.M1.Amount,
-                    CostLevel = marginHistory.Averages.M1.CostLevel,
-                    CostTotal = marginHistory.Averages.M1.CostTotal
+                    Percentage = marginHistory.Averages.M1_A.Percentage,
+                    Amount = marginHistory.Averages.M1_A.Amount,
+                    CostLevel = marginHistory.Averages.M1_A.CostLevel,
+                    CostTotal = marginHistory.Averages.M1_A.CostTotal
+                },
+                M1_B = new MarginLevelDto
+                {
+                    Percentage = marginHistory.Averages.M1_B.Percentage,
+                    Amount = marginHistory.Averages.M1_B.Amount,
+                    CostLevel = marginHistory.Averages.M1_B.CostLevel,
+                    CostTotal = marginHistory.Averages.M1_B.CostTotal
                 },
                 M2 = new MarginLevelDto
                 {
@@ -244,13 +251,20 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                         CostLevel = m.M0.CostLevel,
                         CostTotal = m.M0.CostTotal
                     },
-                    M1 = new MarginLevelDto
+                    M1_A = new MarginLevelDto
                     {
-                        Percentage = m.M1.Percentage,
-                        Amount = m.M1.Amount,
-                        CostLevel = m.M1.CostLevel,
-                        CostTotal = m.M1.CostTotal
+                        Percentage = m.M1_A.Percentage,
+                        Amount = m.M1_A.Amount,
+                        CostLevel = m.M1_A.CostLevel,
+                        CostTotal = m.M1_A.CostTotal
                     },
+                    M1_B = m.M1_B != null ? new MarginLevelDto
+                    {
+                        Percentage = m.M1_B.Percentage,
+                        Amount = m.M1_B.Amount,
+                        CostLevel = m.M1_B.CostLevel,
+                        CostTotal = m.M1_B.CostTotal
+                    } : null,
                     M2 = new MarginLevelDto
                     {
                         Percentage = m.M2.Percentage,

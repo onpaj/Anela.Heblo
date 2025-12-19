@@ -13,7 +13,8 @@ public class ProductMarginDto
 
     // Margin levels - structured breakdown
     public MarginLevelDto M0 { get; set; } = new();  // Direct material margin
-    public MarginLevelDto M1 { get; set; } = new();  // Manufacturing margin
+    public MarginLevelDto M1_A { get; set; } = new();  // Manufacturing margin (economic baseline)
+    public MarginLevelDto M1_B { get; set; } = new();  // Manufacturing margin (actual monthly cost)
     public MarginLevelDto M2 { get; set; } = new();  // Sales & marketing margin
     public MarginLevelDto M3 { get; set; } = new();  // Net profitability
 

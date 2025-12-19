@@ -77,13 +77,13 @@ public class AnalyticsRepository : IAnalyticsRepository
 
                     // M0-M3 margin amounts
                     M0Amount = latestMargin?.M0.Amount ?? 0,
-                    M1Amount = latestMargin?.M1.Amount ?? 0,
+                    M1Amount = latestMargin?.M1_A.Amount ?? 0,
                     M2Amount = latestMargin?.M2.Amount ?? 0,
                     M3Amount = latestMargin?.M3.Amount ?? 0,
 
                     // M0-M3 margin percentages
                     M0Percentage = latestMargin?.M0.Percentage ?? 0,
-                    M1Percentage = latestMargin?.M1.Percentage ?? 0,
+                    M1Percentage = latestMargin?.M1_A.Percentage ?? 0,
                     M2Percentage = latestMargin?.M2.Percentage ?? 0,
                     M3Percentage = latestMargin?.M3.Percentage ?? 0,
 
@@ -184,13 +184,13 @@ public class AnalyticsRepository : IAnalyticsRepository
 
             // M0-M3 margin amounts
             M0Amount = latestMargin?.M0.Amount ?? 0,
-            M1Amount = latestMargin?.M1.Amount ?? 0,
+            M1Amount = latestMargin?.M1_A.Amount ?? 0,
             M2Amount = latestMargin?.M2.Amount ?? 0,
             M3Amount = latestMargin?.M3.Amount ?? 0,
 
             // M0-M3 margin percentages
             M0Percentage = latestMargin?.M0.Percentage ?? 0,
-            M1Percentage = latestMargin?.M1.Percentage ?? 0,
+            M1Percentage = latestMargin?.M1_A.Percentage ?? 0,
             M2Percentage = latestMargin?.M2.Percentage ?? 0,
             M3Percentage = latestMargin?.M3.Percentage ?? 0,
 

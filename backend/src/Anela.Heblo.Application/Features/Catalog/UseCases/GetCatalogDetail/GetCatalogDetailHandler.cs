@@ -280,14 +280,23 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                     CostTotal = m.M0.CostTotal
                 },
 
-                // M1 - M0 + Manufacturing costs (if different)
-                M1 = new MarginLevelDto
+                // M1_A - M0 + Manufacturing costs (economic baseline)
+                M1_A = new MarginLevelDto
                 {
-                    Percentage = m.M1.Percentage,
-                    Amount = m.M1.Amount,
-                    CostLevel = m.M1.CostLevel,
-                    CostTotal = m.M1.CostTotal
+                    Percentage = m.M1_A.Percentage,
+                    Amount = m.M1_A.Amount,
+                    CostLevel = m.M1_A.CostLevel,
+                    CostTotal = m.M1_A.CostTotal
                 },
+
+                // M1_B - M0 + Manufacturing costs (actual monthly cost, nullable)
+                M1_B = m.M1_B != null ? new MarginLevelDto
+                {
+                    Percentage = m.M1_B.Percentage,
+                    Amount = m.M1_B.Amount,
+                    CostLevel = m.M1_B.CostLevel,
+                    CostTotal = m.M1_B.CostTotal
+                } : null,
 
                 // M2 - M1 + Sales costs
                 M2 = new MarginLevelDto

@@ -247,7 +247,7 @@ public static class CatalogModule
 
                 foreach (var product in products)
                 {
-                    product.Margins = await marginService.GetMarginAsync(product, dateFrom, dateTo, ct);
+                    product.Margins = await marginService.GetMarginAsync(product, products, dateFrom, dateTo, ct);
                 }
             });
     }
