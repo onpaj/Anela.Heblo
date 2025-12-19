@@ -31,6 +31,7 @@ public class MarginCalculationService : IMarginCalculationService
 
     public async Task<MonthlyMarginHistory> GetMarginAsync(
         CatalogAggregate product,
+        IEnumerable<CatalogAggregate> allProducts,
         DateOnly dateFrom,
         DateOnly dateTo,
         CancellationToken cancellationToken = default)
@@ -44,11 +45,16 @@ public class MarginCalculationService : IMarginCalculationService
                 return new MonthlyMarginHistory();
             }
 
+            // Calculate company-wide produced CP
+            var companyWideProducedCP = await CalculateCompanyWideProducedCPAsync(
+                allProducts, dateFrom, dateTo, cancellationToken);
+
             // Load cost data for the specified period
             var costData = await LoadCostDataAsync(product, dateFrom, dateTo, cancellationToken);
 
             // Calculate monthly margin history using the loaded data
-            var monthlyHistory = CalculateMarginHistoryFromData(sellingPrice, costData, dateFrom, dateTo);
+            var monthlyHistory = CalculateMarginHistoryFromData(
+                product, sellingPrice, costData, companyWideProducedCP, dateFrom, dateTo);
 
             return monthlyHistory;
         }
@@ -84,9 +90,25 @@ public class MarginCalculationService : IMarginCalculationService
     }
 
 
-    private MonthlyMarginHistory CalculateMarginHistoryFromData(decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
+    private MonthlyMarginHistory CalculateMarginHistoryFromData(
+        CatalogAggregate product,
+        decimal sellingPrice,
+        CostData costData,
+        Dictionary<DateTime, decimal> companyWideProducedCP,
+        DateOnly dateFrom,
+        DateOnly dateTo)
     {
         var monthlyData = new List<MonthlyMarginData>();
+
+        // Get product complexity points
+        var productCP = product.ManufactureDifficulty ?? 0;
+
+        // Calculate M1_A and M1_B for all months
+        var m1_A_ByMonth = CalculateM1_A_PerMonth(
+            productCP, companyWideProducedCP, costData.ManufactureCosts, dateFrom, dateTo);
+
+        var m1_B_ByMonth = CalculateM1_B_PerMonth(
+            product, productCP, companyWideProducedCP, costData.ManufactureCosts);
 
         // Generate list of months in the date range
         var currentDate = new DateTime(dateFrom.Year, dateFrom.Month, 1);
@@ -94,7 +116,8 @@ public class MarginCalculationService : IMarginCalculationService
 
         while (currentDate <= endDateTime)
         {
-            var monthlyMargin = CalculateMarginForMonth(currentDate, sellingPrice, costData);
+            var monthlyMargin = CalculateMarginForMonth(
+                currentDate, sellingPrice, costData, m1_A_ByMonth, m1_B_ByMonth);
             monthlyData.Add(monthlyMargin);
             currentDate = currentDate.AddMonths(1);
         }
@@ -108,21 +131,33 @@ public class MarginCalculationService : IMarginCalculationService
         };
     }
 
-    private MonthlyMarginData CalculateMarginForMonth(DateTime month, decimal sellingPrice, CostData costData)
+    private MonthlyMarginData CalculateMarginForMonth(
+        DateTime month,
+        decimal sellingPrice,
+        CostData costData,
+        Dictionary<DateTime, decimal> m1_A_ByMonth,
+        Dictionary<DateTime, decimal?> m1_B_ByMonth)
     {
         // Get costs for specific month or closest available month
         var materialCost = GetCostForMonth(month, costData.MaterialCosts);
-        var manufacturingCost = GetCostForMonth(month, costData.ManufactureCosts);
         var salesCost = GetCostForMonth(month, costData.SalesCosts);
         var overheadCost = GetCostForMonth(month, costData.OverheadCosts);
 
-        var costBreakdown = new CostBreakdown(materialCost, manufacturingCost, salesCost, overheadCost);
+        // Get M1_A and M1_B for this month
+        var m1_A_Cost = m1_A_ByMonth.GetValueOrDefault(month, 0);
+        var m1_B_Cost = m1_B_ByMonth.GetValueOrDefault(month, null);
+
+        // Use M1_A for cost breakdown (cumulative totals)
+        var costBreakdown = new CostBreakdown(materialCost, m1_A_Cost, salesCost, overheadCost);
 
         return new MonthlyMarginData
         {
             Month = month,
             M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0CostTotal, materialCost),
-            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1CostTotal, manufacturingCost),
+            M1_A = MarginLevel.Create(sellingPrice, costBreakdown.M1CostTotal, m1_A_Cost),
+            M1_B = m1_B_Cost.HasValue
+                ? MarginLevel.Create(sellingPrice, costBreakdown.M0CostTotal + m1_B_Cost.Value, m1_B_Cost.Value)
+                : null,
             M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2CostTotal, salesCost),
             M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3CostTotal, overheadCost),
             CostsForMonth = costBreakdown
@@ -177,7 +212,7 @@ public class MarginCalculationService : IMarginCalculationService
                 }
 
                 // Calculate produced CP for this record
-                var producedCP = record.Amount * Convert.ToDecimal(complexityPoints.Value);
+                var producedCP = Convert.ToDecimal(record.Amount) * Convert.ToDecimal(complexityPoints.Value);
 
                 // Aggregate by month (first day of month as key)
                 var monthKey = new DateTime(record.Date.Year, record.Date.Month, 1);
@@ -297,6 +332,9 @@ public class MarginCalculationService : IMarginCalculationService
             return new MarginData();
         }
 
+        // For M1_B, only average months where it's not null (product was produced)
+        var validM1_B_Data = validData.Where(m => m.M1_B != null).ToList();
+
         return new MarginData
         {
             M0 = new MarginLevel(
@@ -305,12 +343,20 @@ public class MarginCalculationService : IMarginCalculationService
                 validData.Average(m => m.M0.CostTotal),
                 validData.Average(m => m.M0.CostLevel)
             ),
-            M1 = new MarginLevel(
-                validData.Average(m => m.M1.Percentage),
-                validData.Average(m => m.M1.Amount),
-                validData.Average(m => m.M1.CostTotal),
-                validData.Average(m => m.M1.CostLevel)
+            M1_A = new MarginLevel(
+                validData.Average(m => m.M1_A.Percentage),
+                validData.Average(m => m.M1_A.Amount),
+                validData.Average(m => m.M1_A.CostTotal),
+                validData.Average(m => m.M1_A.CostLevel)
             ),
+            M1_B = validM1_B_Data.Any()
+                ? new MarginLevel(
+                    validM1_B_Data.Average(m => m.M1_B!.Percentage),
+                    validM1_B_Data.Average(m => m.M1_B!.Amount),
+                    validM1_B_Data.Average(m => m.M1_B!.CostTotal),
+                    validM1_B_Data.Average(m => m.M1_B!.CostLevel)
+                )
+                : new MarginLevel(0, 0, 0, 0),
             M2 = new MarginLevel(
                 validData.Average(m => m.M2.Percentage),
                 validData.Average(m => m.M2.Amount),
