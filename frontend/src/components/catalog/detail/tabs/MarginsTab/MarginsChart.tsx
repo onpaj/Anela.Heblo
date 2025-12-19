@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { Chart } from "react-chartjs-2";
 import {
@@ -19,6 +19,9 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
   marginHistory,
   journalEntries,
 }) => {
+  // Toggle for showing M1_B actual monthly costs
+  const [showM1B, setShowM1B] = useState(false);
+
   // Generate month labels excluding current month (last 12 months)
   const generateMonthLabelsExcludingCurrent = (): string[] => {
     const months = [];
