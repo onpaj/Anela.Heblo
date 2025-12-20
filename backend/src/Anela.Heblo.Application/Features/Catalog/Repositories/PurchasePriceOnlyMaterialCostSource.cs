@@ -10,12 +10,12 @@ public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
-    private readonly ILogger<CatalogMaterialCostRepository> _logger;
+    private readonly ILogger<PurchasePriceOnlyMaterialCostSource> _logger;
 
     public PurchasePriceOnlyMaterialCostSource(
         ICatalogRepository catalogRepository,
         TimeProvider timeProvider,
-        ILogger<CatalogMaterialCostRepository> logger)
+        ILogger<PurchasePriceOnlyMaterialCostSource> logger)
     {
         _catalogRepository = catalogRepository;
         _timeProvider = timeProvider;
@@ -57,6 +57,45 @@ public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
         DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
-        // TODO implement loading material costs from purchase price history
+        var result = new Dictionary<string, List<MonthlyCost>>();
+
+        // Default to last 12 months if not specified
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var effectiveDateFrom = dateFrom ?? DateOnly.FromDateTime(now.AddMonths(-12));
+        var effectiveDateTo = dateTo ?? DateOnly.FromDateTime(now);
+
+        // Generate list of months in range
+        var months = GenerateMonths(effectiveDateFrom, effectiveDateTo);
+
+        foreach (var product in products)
+        {
+            if (string.IsNullOrEmpty(product.ProductCode))
+                continue;
+
+            // Get current purchase price
+            var purchasePrice = product.CurrentPurchasePrice ?? 0m;
+
+            // Generate monthly costs with constant purchase price
+            var monthlyCosts = months.Select(month => new MonthlyCost(month, purchasePrice)).ToList();
+
+            result[product.ProductCode] = monthlyCosts;
+        }
+
+        return await Task.FromResult(result);
+    }
+
+    private static List<DateTime> GenerateMonths(DateOnly dateFrom, DateOnly dateTo)
+    {
+        var months = new List<DateTime>();
+        var current = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var end = new DateTime(dateTo.Year, dateTo.Month, 1);
+
+        while (current <= end)
+        {
+            months.Add(current);
+            current = current.AddMonths(1);
+        }
+
+        return months;
     }
 }

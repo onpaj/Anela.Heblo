@@ -194,7 +194,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             // Filter monthly history to last 13 months
             var dateFrom = DateTime.Now.AddMonths(-13);
             var filteredMonthlyData = marginHistory.MonthlyData
-                .Where(m => m.Month >= dateFrom)
+                .Where(m => m.Key >= dateFrom)
                 .ToList();
 
             var dto = new ProductMarginDto
@@ -236,34 +236,34 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 // Monthly history for charts (filtered to last 13 months)
                 MonthlyHistory = filteredMonthlyData.Select(m => new MonthlyMarginDto
                 {
-                    Month = m.Month,
+                    Month = m.Key,
                     M0 = new MarginLevelDto
                     {
-                        Percentage = m.M0.Percentage,
-                        Amount = m.M0.Amount,
-                        CostLevel = m.M0.CostLevel,
-                        CostTotal = m.M0.CostTotal
+                        Percentage = m.Value.M0.Percentage,
+                        Amount = m.Value.M0.Amount,
+                        CostLevel = m.Value.M0.CostLevel,
+                        CostTotal = m.Value.M0.CostTotal
                     },
                     M1 = new MarginLevelDto
                     {
-                        Percentage = m.M1.Percentage,
-                        Amount = m.M1.Amount,
-                        CostLevel = m.M1.CostLevel,
-                        CostTotal = m.M1.CostTotal
+                        Percentage = m.Value.M1.Percentage,
+                        Amount = m.Value.M1.Amount,
+                        CostLevel = m.Value.M1.CostLevel,
+                        CostTotal = m.Value.M1.CostTotal
                     },
                     M2 = new MarginLevelDto
                     {
-                        Percentage = m.M2.Percentage,
-                        Amount = m.M2.Amount,
-                        CostLevel = m.M2.CostLevel,
-                        CostTotal = m.M2.CostTotal
+                        Percentage = m.Value.M2.Percentage,
+                        Amount = m.Value.M2.Amount,
+                        CostLevel = m.Value.M2.CostLevel,
+                        CostTotal = m.Value.M2.CostTotal
                     },
                     M3 = new MarginLevelDto
                     {
-                        Percentage = m.M3.Percentage,
-                        Amount = m.M3.Amount,
-                        CostLevel = m.M3.CostLevel,
-                        CostTotal = m.M3.CostTotal
+                        Percentage = m.Value.M3.Percentage,
+                        Amount = m.Value.M3.Amount,
+                        CostLevel = m.Value.M3.CostLevel,
+                        CostTotal = m.Value.M3.CostTotal
                     }
                 }).ToList()
             };

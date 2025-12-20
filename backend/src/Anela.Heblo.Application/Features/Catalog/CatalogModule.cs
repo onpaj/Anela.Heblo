@@ -39,8 +39,10 @@ public static class CatalogModule
 
         // Register cost repositories
         //services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
-        services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>(); // Use purchase priceonly, till stock price is correct
-        services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>();
+        services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>(); // Use purchase price only, till stock price is correct
+        services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>(); // STUB - returns constant 15
+        services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>(); // STUB - returns constant 15
+        services.AddTransient<ISalesCostSource, SalesCostSource>(); // STUB - returns constant 15
 
         // Register catalog-specific services
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
@@ -188,31 +190,32 @@ public static class CatalogModule
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
 
-        services.RegisterRefreshTask<ISalesCostCalculationService>(
-            nameof(ISalesCostCalculationService.Reload),
-            async (serviceProvider, ct) =>
-            {
-                var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-                var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
+        // COMMENTED OUT - Old services replaced by new cost source architecture
+        // services.RegisterRefreshTask<ISalesCostCalculationService>(
+        //     nameof(ISalesCostCalculationService.Reload),
+        //     async (serviceProvider, ct) =>
+        //     {
+        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
+        //         var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
+        //
+        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
+        //         await costService.Reload();
+        //     }
+        // );
 
-                await catalogRepository.WaitForCurrentMergeAsync(ct);
-                await costService.Reload();
-            }
-        );
-
-        // Manufacture cost calculation task (requires special logic)
-        services.RegisterRefreshTask<IManufactureCostCalculationService>(
-            nameof(IManufactureCostCalculationService.Reload),
-            async (serviceProvider, ct) =>
-            {
-                var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-                var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
-
-                await catalogRepository.WaitForCurrentMergeAsync(ct);
-                var catalogData = await catalogRepository.GetAllAsync(ct);
-                await manufactureCostService.Reload(catalogData.ToList());
-            }
-        );
+        // COMMENTED OUT - Old services replaced by new cost source architecture
+        // services.RegisterRefreshTask<IManufactureCostCalculationService>(
+        //     nameof(IManufactureCostCalculationService.Reload),
+        //     async (serviceProvider, ct) =>
+        //     {
+        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
+        //         var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
+        //
+        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
+        //         var catalogData = await catalogRepository.GetAllAsync(ct);
+        //         await manufactureCostService.Reload(catalogData.ToList());
+        //     }
+        // );
 
         // Margin calculation task
         services.RegisterRefreshTask(

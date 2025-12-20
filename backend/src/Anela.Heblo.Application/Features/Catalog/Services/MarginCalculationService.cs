@@ -86,7 +86,57 @@ public class MarginCalculationService : IMarginCalculationService
 
     private MonthlyMarginHistory CalculateMarginHistoryFromData(decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
     {
-        
+        var result = new MonthlyMarginHistory
+        {
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Generate all months in range
+        var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var endMonth = new DateTime(dateTo.Year, dateTo.Month, 1);
+
+        while (currentMonth <= endMonth)
+        {
+            // Find costs for this month
+            var m0Cost = GetCostForMonth(costData.MaterialCosts, currentMonth);
+            var m1ACost = GetCostForMonth(costData.FlatManufactureCosts, currentMonth);
+            var m1BCost = GetCostForMonth(costData.DirectManufactureCosts, currentMonth);
+            var m2Cost = GetCostForMonth(costData.SalesCosts, currentMonth);
+
+            // Calculate margin levels
+            // M0: Material only
+            var m0 = MarginLevel.Create(sellingPrice, m0Cost, m0Cost);
+
+            // M1_A: Material + Flat manufacturing (independent from M1_B)
+            var m1A = MarginLevel.Create(sellingPrice, m0Cost + m1ACost, m1ACost);
+
+            // M1_B: Material + Direct manufacturing (independent from M1_A)
+            var m1B = MarginLevel.Create(sellingPrice, m0Cost + m1BCost, m1BCost);
+
+            // M2: All costs combined (Material + Flat + Direct + Sales/Marketing)
+            var m2 = MarginLevel.Create(sellingPrice, m0Cost + m1ACost + m1BCost + m2Cost, m2Cost);
+
+            // Create margin data for this month
+            var marginData = new MarginData
+            {
+                M0 = m0,
+                M1_A = m1A,
+                M1_B = m1B,
+                M2 = m2
+            };
+
+            result.MonthlyData[currentMonth] = marginData;
+
+            currentMonth = currentMonth.AddMonths(1);
+        }
+
+        return result;
+    }
+
+    private static decimal GetCostForMonth(List<MonthlyCost> costs, DateTime month)
+    {
+        var monthlyCost = costs.FirstOrDefault(c => c.Month.Year == month.Year && c.Month.Month == month.Month);
+        return monthlyCost?.Cost ?? 0m;
     }
 
     

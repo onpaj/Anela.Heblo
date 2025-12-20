@@ -1,33 +1,33 @@
-using Anela.Heblo.Application.Features.Catalog.Services;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Catalog.Repositories;
 
-public class ManufactureCostSource : IFlatManufactureCostSource
+public class DirectManufactureCostSource : IDirectManufactureCostSource
 {
     private readonly TimeProvider _timeProvider;
-    private readonly ILogger<ManufactureCostSource> _logger;
+    private readonly ILogger<DirectManufactureCostSource> _logger;
 
-    public ManufactureCostSource(
+    public DirectManufactureCostSource(
         TimeProvider timeProvider,
-        ILogger<ManufactureCostSource> logger)
+        ILogger<DirectManufactureCostSource> logger)
     {
         _timeProvider = timeProvider;
         _logger = logger;
     }
 
-
-    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
+    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
+        List<string>? productCodes = null,
+        DateOnly? dateFrom = null,
+        DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
         // STUB IMPLEMENTATION - Returns constant value of 15
-        // TODO: Implement actual flat manufacturing cost calculation based on:
-        //  - ILedgerService.GetDirectCosts(department: "VYROBA") for 12-month window
-        //  - ManufactureHistory with historical ManufactureDifficulty
-        //  - Cost per manufacturing point calculation
+        // TODO: Implement actual direct manufacturing cost calculation based on:
+        //  - ILedgerService.GetDirectCosts(department: "VYROBA") per month
+        //  - ManufactureHistory per month with historical ManufactureDifficulty
+        //  - Monthly cost allocation proportional to weighted production
 
         var result = new Dictionary<string, List<MonthlyCost>>();
 
