@@ -27,11 +27,11 @@ public static class InvoicesModule
 
         // Register FlexiBee client (from SDK)
         // Note: IIssuedInvoiceClient registration should be done in Flexi adapter module
-        
+
         // Register transformations
         services.AddTransient<IIssuedInvoiceImportTransformation, GiftWithoutVATIssuedInvoiceImportTransformation>();
         services.AddTransient<IIssuedInvoiceImportTransformation, RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation>();
-        
+
         // Product mapping transformations can be registered based on configuration
         // services.AddTransient<IIssuedInvoiceImportTransformation>(provider => 
         //     new ProductMappingIssuedInvoiceImportTransformation("OLD_CODE", "NEW_CODE"));

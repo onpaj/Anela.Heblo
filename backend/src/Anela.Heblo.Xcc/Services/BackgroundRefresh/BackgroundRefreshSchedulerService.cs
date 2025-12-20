@@ -29,11 +29,18 @@ public class BackgroundRefreshSchedulerService : BackgroundService
         try
         {
             await _hydrationOrchestrator.WaitForHydrationCompletionAsync();
-            _logger.LogInformation("Hydration completed - starting periodic task scheduling");
+            _logger.LogInformation("✅ Hydration completed - starting periodic task scheduling");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Hydration was cancelled - aborting periodic task scheduling");
+            return;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Hydration failed - aborting periodic task scheduling");
+            // This should not happen anymore with resilient hydration pattern
+            // but keeping it as a safety net
+            _logger.LogError(ex, "❌ Unexpected hydration failure - aborting periodic task scheduling");
             return;
         }
 

@@ -44,7 +44,7 @@ public class InvoiceImportService : IInvoiceImportService
         {
             RequestId = query.RequestId,
         };
-        
+
         foreach (var batch in batches)
         {
             bool error = false;
@@ -71,7 +71,7 @@ public class InvoiceImportService : IInvoiceImportService
                 await _issuedInvoiceSource.CommitAsync(batch);
         }
 
-        _logger.LogInformation("Completed async invoice import. Succeeded: {SucceededCount}, Failed: {FailedCount}", 
+        _logger.LogInformation("Completed async invoice import. Succeeded: {SucceededCount}, Failed: {FailedCount}",
             resultDto.Succeeded.Count, resultDto.Failed.Count);
 
         return resultDto;

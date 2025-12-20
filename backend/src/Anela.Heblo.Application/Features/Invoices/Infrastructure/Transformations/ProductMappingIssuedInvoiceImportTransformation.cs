@@ -13,12 +13,12 @@ public class ProductMappingIssuedInvoiceImportTransformation : IIssuedInvoiceImp
         _originalProductCode = originalProductCode;
         _newProductCode = newProductCode;
     }
-    
+
     public Task<IssuedInvoiceDetail> TransformAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
         // TODO: Implement product code mapping once domain model is properly defined
         // This transformation should replace product codes in invoice items
-        
+
         return Task.FromResult(invoiceDetail);
     }
 }

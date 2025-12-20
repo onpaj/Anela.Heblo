@@ -354,7 +354,7 @@ const ProductMarginsList: React.FC = () => {
                   M0 %
                 </SortableHeader>
                 <SortableHeader column="m1_aPercentage" align="right">
-                  M1 %
+                  M1 (baseline) %
                 </SortableHeader>
                 <SortableHeader column="m2Percentage" align="right">
                   M2 %

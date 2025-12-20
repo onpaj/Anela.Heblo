@@ -381,7 +381,7 @@ const ProductMarginSummary: React.FC = () => {
               className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value="M0">M0 (Materiál)</option>
-              <option value="M1">M1 (+ Výroba)</option>
+              <option value="M1">M1 (+ Výroba - baseline)</option>
               <option value="M2">M2 (+ Prodej)</option>
               <option value="M3">M3 (Čistá marže)</option>
             </select>
@@ -509,10 +509,10 @@ const ProductMarginSummary: React.FC = () => {
                     M0 (%)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    M1 (Kč)
+                    M1 (baseline) (Kč)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    M1 (%)
+                    M1 (baseline) (%)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     M2 (Kč)

@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -8,25 +9,28 @@ namespace Anela.Heblo.Application.Features.Catalog.Services;
 
 public class ManufactureCostCalculationService : IManufactureCostCalculationService
 {
+    private const string CacheKeyData = "ManufactureCostCalculationService_Data";
+    private const string CacheKeyIsLoaded = "ManufactureCostCalculationService_IsLoaded";
+
     private readonly ILedgerService _ledgerService;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<DataSourceOptions> _dataSourceOptions;
     private readonly ILogger<ManufactureCostCalculationService> _logger;
+    private readonly IMemoryCache _memoryCache;
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
-
-    private Dictionary<string, List<ManufactureCost>>? _cachedData;
-    private bool _isLoaded;
 
     public ManufactureCostCalculationService(
         ILedgerService ledgerService,
         TimeProvider timeProvider,
         IOptions<DataSourceOptions> dataSourceOptions,
-        ILogger<ManufactureCostCalculationService> logger)
+        ILogger<ManufactureCostCalculationService> logger,
+        IMemoryCache memoryCache)
     {
         _ledgerService = ledgerService;
         _timeProvider = timeProvider;
         _dataSourceOptions = dataSourceOptions;
         _logger = logger;
+        _memoryCache = memoryCache;
     }
 
     public async Task<Dictionary<string, List<ManufactureCost>>> CalculateManufactureCostHistoryAsync(
@@ -34,10 +38,10 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
         CancellationToken cancellationToken = default)
     {
         // Return cached data if available
-        if (_isLoaded && _cachedData != null)
+        if (_memoryCache.TryGetValue(CacheKeyData, out Dictionary<string, List<ManufactureCost>>? cachedData) && cachedData != null)
         {
             _logger.LogDebug("Returning cached manufacture cost history data");
-            return _cachedData;
+            return cachedData;
         }
 
         return new Dictionary<string, List<ManufactureCost>>();
@@ -167,7 +171,7 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
         return result;
     }
 
-    public bool IsLoaded => _isLoaded;
+    public bool IsLoaded => _memoryCache.TryGetValue(CacheKeyIsLoaded, out bool isLoaded) && isLoaded;
 
     public async Task Reload(List<CatalogAggregate> products)
     {
@@ -184,8 +188,8 @@ public class ManufactureCostCalculationService : IManufactureCostCalculationServ
                 return;
             }
             // Update cache atomically
-            _cachedData = newData;
-            _isLoaded = true;
+            _memoryCache.Set(CacheKeyData, newData);
+            _memoryCache.Set(CacheKeyIsLoaded, true);
 
             _logger.LogInformation("Manufacture cost calculation cache reloaded with {ProductCount} products", newData.Count);
         }

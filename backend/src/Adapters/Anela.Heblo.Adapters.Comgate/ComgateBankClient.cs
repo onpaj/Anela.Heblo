@@ -174,7 +174,7 @@ public class AboFile
     private static List<AboLine> GetLines(string data)
     {
         var lines = data.Split(new[] { Environment.NewLine, "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-        
+
         // Skip header line and process transaction lines
         return lines.Skip(1)
             .Where(line => !string.IsNullOrWhiteSpace(line))
@@ -186,7 +186,7 @@ public class AboFile
     {
         var lines = data.Split(new[] { Environment.NewLine, "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
         var firstLine = lines.FirstOrDefault() ?? string.Empty;
-        
+
         return new AboHeader(firstLine);
     }
 }

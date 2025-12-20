@@ -1819,6 +1819,44 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    diagnostics_GetCacheStatus(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/Diagnostics/cache-status";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDiagnostics_GetCacheStatus(_response);
+        });
+    }
+
+    protected processDiagnostics_GetCacheStatus(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     e2ETest_GetEnvironmentInfo(): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/E2ETest/env-info";
         url_ = url_.replace(/[?&]$/, "");
@@ -8114,7 +8152,8 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     sellingPrice?: number;
     totalCost?: number;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_a?: MarginLevelDto;
+    m1_b?: MarginLevelDto | undefined;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
 
@@ -8133,7 +8172,8 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.sellingPrice = _data["sellingPrice"];
             this.totalCost = _data["totalCost"];
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
-            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m1_a = _data["m1_a"] ? MarginLevelDto.fromJS(_data["m1_a"]) : <any>undefined;
+            this.m1_b = _data["m1_b"] ? MarginLevelDto.fromJS(_data["m1_b"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
             this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
@@ -8152,7 +8192,8 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["sellingPrice"] = this.sellingPrice;
         data["totalCost"] = this.totalCost;
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
-        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m1_a"] = this.m1_a ? this.m1_a.toJSON() : <any>undefined;
+        data["m1_b"] = this.m1_b ? this.m1_b.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
         data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
@@ -8164,7 +8205,8 @@ export interface IMarginHistoryDto {
     sellingPrice?: number;
     totalCost?: number;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_a?: MarginLevelDto;
+    m1_b?: MarginLevelDto | undefined;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
 }
@@ -16965,7 +17007,8 @@ export class ProductMarginDto implements IProductMarginDto {
     manufactureDifficulty?: number;
     priceWithoutVatIsFromEshop?: boolean;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_A?: MarginLevelDto;
+    m1_B?: MarginLevelDto;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
@@ -16988,7 +17031,8 @@ export class ProductMarginDto implements IProductMarginDto {
             this.manufactureDifficulty = _data["manufactureDifficulty"];
             this.priceWithoutVatIsFromEshop = _data["priceWithoutVatIsFromEshop"];
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
-            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m1_A = _data["m1_A"] ? MarginLevelDto.fromJS(_data["m1_A"]) : <any>undefined;
+            this.m1_B = _data["m1_B"] ? MarginLevelDto.fromJS(_data["m1_B"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
             this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
@@ -17015,7 +17059,8 @@ export class ProductMarginDto implements IProductMarginDto {
         data["manufactureDifficulty"] = this.manufactureDifficulty;
         data["priceWithoutVatIsFromEshop"] = this.priceWithoutVatIsFromEshop;
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
-        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m1_A"] = this.m1_A ? this.m1_A.toJSON() : <any>undefined;
+        data["m1_B"] = this.m1_B ? this.m1_B.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
         data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
@@ -17035,7 +17080,8 @@ export interface IProductMarginDto {
     manufactureDifficulty?: number;
     priceWithoutVatIsFromEshop?: boolean;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_A?: MarginLevelDto;
+    m1_B?: MarginLevelDto;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
@@ -17044,7 +17090,8 @@ export interface IProductMarginDto {
 export class MonthlyMarginDto implements IMonthlyMarginDto {
     month?: Date;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_A?: MarginLevelDto;
+    m1_B?: MarginLevelDto | undefined;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
 
@@ -17061,7 +17108,8 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         if (_data) {
             this.month = _data["month"] ? new Date(_data["month"].toString()) : <any>undefined;
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
-            this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
+            this.m1_A = _data["m1_A"] ? MarginLevelDto.fromJS(_data["m1_A"]) : <any>undefined;
+            this.m1_B = _data["m1_B"] ? MarginLevelDto.fromJS(_data["m1_B"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
             this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
@@ -17078,7 +17126,8 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         data = typeof data === 'object' ? data : {};
         data["month"] = this.month ? this.month.toISOString() : <any>undefined;
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
-        data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
+        data["m1_A"] = this.m1_A ? this.m1_A.toJSON() : <any>undefined;
+        data["m1_B"] = this.m1_B ? this.m1_B.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
         data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
@@ -17088,7 +17137,8 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
 export interface IMonthlyMarginDto {
     month?: Date;
     m0?: MarginLevelDto;
-    m1?: MarginLevelDto;
+    m1_A?: MarginLevelDto;
+    m1_B?: MarginLevelDto | undefined;
     m2?: MarginLevelDto;
     m3?: MarginLevelDto;
 }

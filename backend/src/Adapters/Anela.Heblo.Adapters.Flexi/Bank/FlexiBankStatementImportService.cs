@@ -32,7 +32,7 @@ public class FlexiBankStatementImportService : IBankStatementImportService
             }
             else
             {
-                _logger.LogWarning("Bank statement import failed for account {AccountId}: {ErrorMessage}", 
+                _logger.LogWarning("Bank statement import failed for account {AccountId}: {ErrorMessage}",
                     accountId, flexiResult.ErrorMessage);
                 return Result.Failure<bool>(flexiResult.ErrorMessage ?? "Unknown import error");
             }

@@ -77,7 +77,7 @@ public class SalesCostCalculationService : ISalesCostCalculationService
                 g => g.Sum(c => c.Cost)
             );
 
-        
+
         var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
         var endDateTime = endDate.ToDateTime(TimeOnly.MinValue);
         _logger.LogDebug("Found costs for {MonthCount} months", monthlyCosts.Count);

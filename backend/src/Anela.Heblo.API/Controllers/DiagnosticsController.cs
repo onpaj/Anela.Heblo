@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ApplicationInsights;
+using Anela.Heblo.Application.Features.Catalog.Services;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -9,11 +10,22 @@ public class DiagnosticsController : ControllerBase
 {
     private readonly ILogger<DiagnosticsController> _logger;
     private readonly TelemetryClient _telemetryClient;
+    private readonly IManufactureCostCalculationService _manufactureCostService;
+    private readonly ISalesCostCalculationService _salesCostService;
+    private readonly IOverheadCostCalculationService _overheadCostService;
 
-    public DiagnosticsController(ILogger<DiagnosticsController> logger, TelemetryClient telemetryClient)
+    public DiagnosticsController(
+        ILogger<DiagnosticsController> logger,
+        TelemetryClient telemetryClient,
+        IManufactureCostCalculationService manufactureCostService,
+        ISalesCostCalculationService salesCostService,
+        IOverheadCostCalculationService overheadCostService)
     {
         _logger = logger;
         _telemetryClient = telemetryClient;
+        _manufactureCostService = manufactureCostService;
+        _salesCostService = salesCostService;
+        _overheadCostService = overheadCostService;
     }
 
     [HttpGet("test-logging")]
@@ -110,5 +122,101 @@ public class DiagnosticsController : ControllerBase
             CloudRole = _telemetryClient.Context.Cloud.RoleName,
             CloudRoleInstance = _telemetryClient.Context.Cloud.RoleInstance
         });
+    }
+
+    [HttpGet("cache-status")]
+    public IActionResult GetCacheStatus()
+    {
+        _logger.LogInformation("Cache status check requested");
+
+        var manufactureCostLoaded = _manufactureCostService.IsLoaded;
+        var salesCostLoaded = _salesCostService.IsLoaded;
+        var overheadCostLoaded = _overheadCostService.IsLoaded;
+
+        var allLoaded = manufactureCostLoaded && salesCostLoaded && overheadCostLoaded;
+        var noneLoaded = !manufactureCostLoaded && !salesCostLoaded && !overheadCostLoaded;
+
+        string overallStatus;
+        if (allLoaded)
+        {
+            overallStatus = "Healthy - All caches loaded";
+        }
+        else if (noneLoaded)
+        {
+            overallStatus = "Unhealthy - No caches loaded";
+        }
+        else
+        {
+            overallStatus = "Degraded - Some caches not loaded";
+        }
+
+        _logger.LogInformation("Cache status: {OverallStatus} - M1: {M1Loaded}, M2: {M2Loaded}, M3: {M3Loaded}",
+            overallStatus, manufactureCostLoaded, salesCostLoaded, overheadCostLoaded);
+
+        return Ok(new
+        {
+            OverallStatus = overallStatus,
+            AllCachesLoaded = allLoaded,
+            Timestamp = DateTimeOffset.UtcNow,
+            Caches = new
+            {
+                ManufactureCost = new
+                {
+                    ServiceName = "IManufactureCostCalculationService",
+                    IsLoaded = manufactureCostLoaded,
+                    Status = manufactureCostLoaded ? "Loaded" : "Not Loaded",
+                    Description = "M1 - Production capacity costs (baseline M1_A and actual M1_B)"
+                },
+                SalesCost = new
+                {
+                    ServiceName = "ISalesCostCalculationService",
+                    IsLoaded = salesCostLoaded,
+                    Status = salesCostLoaded ? "Loaded" : "Not Loaded",
+                    Description = "M2 - Sales and marketing costs"
+                },
+                OverheadCost = new
+                {
+                    ServiceName = "IOverheadCostCalculationService",
+                    IsLoaded = overheadCostLoaded,
+                    Status = overheadCostLoaded ? "Loaded" : "Not Loaded",
+                    Description = "M3 - Overhead and administrative costs"
+                }
+            },
+            Recommendations = GetCacheRecommendations(manufactureCostLoaded, salesCostLoaded, overheadCostLoaded)
+        });
+    }
+
+    private static List<string> GetCacheRecommendations(bool m1Loaded, bool m2Loaded, bool m3Loaded)
+    {
+        var recommendations = new List<string>();
+
+        if (!m1Loaded)
+        {
+            recommendations.Add("M1 (ManufactureCost) cache not loaded - check if department 'VYROBA' has cost data in accounting system");
+            recommendations.Add("M1 (ManufactureCost) cache not loaded - verify products have ManufactureDifficulty (Complexity Points) configured");
+            recommendations.Add("M1 (ManufactureCost) cache not loaded - check if products have ManufactureHistory records");
+        }
+
+        if (!m2Loaded)
+        {
+            recommendations.Add("M2 (SalesCost) cache not loaded - verify sales department cost data exists in accounting system");
+        }
+
+        if (!m3Loaded)
+        {
+            recommendations.Add("M3 (OverheadCost) cache not loaded - verify overhead cost data exists in accounting system");
+        }
+
+        if (m1Loaded && m2Loaded && m3Loaded)
+        {
+            recommendations.Add("All caches are loaded successfully - margin calculations will use cached data");
+        }
+        else if (!m1Loaded || !m2Loaded || !m3Loaded)
+        {
+            recommendations.Add("Some caches not loaded - affected margins (M0-M3) will show as 0 until periodic refresh succeeds");
+            recommendations.Add("Check application logs for hydration task failures and periodic refresh attempts");
+        }
+
+        return recommendations;
     }
 }

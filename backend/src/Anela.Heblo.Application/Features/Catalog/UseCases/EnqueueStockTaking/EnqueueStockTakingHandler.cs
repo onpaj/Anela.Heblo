@@ -78,13 +78,13 @@ public class EnqueueStockTakingHandler : IRequestHandler<EnqueueStockTakingReque
             TargetAmount = targetAmount,
             SoftStockTaking = softStockTaking
         }, CancellationToken.None);
-        
+
         // Check if the response contains an error
         if (!string.IsNullOrEmpty(response.Result?.Error))
         {
             throw new InvalidOperationException($"Stock taking failed: {response.Result.Error}");
         }
-        
+
         // Also check the Success flag from BaseResponse
         if (!response.Success)
         {
