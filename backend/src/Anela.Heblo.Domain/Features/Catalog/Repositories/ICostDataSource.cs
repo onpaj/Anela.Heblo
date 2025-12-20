@@ -2,7 +2,7 @@ using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 
 namespace Anela.Heblo.Domain.Features.Catalog.Repositories;
 
-public interface ICostRepository
+public interface ICostDataSource
 {
     Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
         List<string>? productCodes = null,

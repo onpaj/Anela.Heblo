@@ -39,13 +39,10 @@ public static class CatalogModule
 
         // Register cost repositories
         //services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
-        services.AddTransient<IMaterialCostRepository, PurchasePriceOnlyMaterialCostRepository>(); // Use purchase priceonly, till stock price is correct
-        services.AddTransient<IManufactureCostRepository, ManufactureCostRepository>();
-        services.AddTransient<IOverheadCostRepository, OverheadCostRepository>();
+        services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>(); // Use purchase priceonly, till stock price is correct
+        services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>();
 
         // Register catalog-specific services
-        services.AddSingleton<IManufactureCostCalculationService, ManufactureCostCalculationService>();
-        services.AddTransient<ISalesCostCalculationService, SalesCostCalculationService>();
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();

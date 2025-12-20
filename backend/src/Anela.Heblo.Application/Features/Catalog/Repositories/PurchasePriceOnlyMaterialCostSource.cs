@@ -6,13 +6,13 @@ using Microsoft.Extensions.Logging;
 namespace Anela.Heblo.Application.Features.Catalog.Repositories;
 
 // Loads material cost from manufacture history or purchase price directly
-public class PurchasePriceOnlyMaterialCostRepository : IMaterialCostRepository
+public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
 {
     private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<CatalogMaterialCostRepository> _logger;
 
-    public PurchasePriceOnlyMaterialCostRepository(
+    public PurchasePriceOnlyMaterialCostSource(
         ICatalogRepository catalogRepository,
         TimeProvider timeProvider,
         ILogger<CatalogMaterialCostRepository> logger)
@@ -57,61 +57,6 @@ public class PurchasePriceOnlyMaterialCostRepository : IMaterialCostRepository
         DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-
-
-            var result = new Dictionary<string, List<MonthlyCost>>();
-            var now = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
-
-            // Default date range: last 13 months
-            var endDate = dateTo ?? now;
-            var startDate = dateFrom ?? endDate.AddMonths(-12);
-
-            _logger.LogDebug("Calculating material costs from {StartDate} to {EndDate} for {ProductCount} products",
-                startDate, endDate, products.Count());
-
-            foreach (var product in products)
-            {
-                if (string.IsNullOrEmpty(product.ProductCode))
-                    continue;
-
-                var monthlyCosts = new List<MonthlyCost>();
-
-                // Calculate monthly costs from ManufactureHistory with ERP price as fallback
-                for (var date = startDate; date <= endDate; date = date.AddMonths(1))
-                {
-                    var monthStart = new DateTime(date.Year, date.Month, 1);
-
-                    decimal materialCost;
-
-
-                    materialCost = product.ErpPrice?.PurchasePrice ?? 0;
-
-                    if (materialCost > 0)
-                    {
-                        _logger.LogTrace("Using ERP price fallback for {ProductCode} in {Month}: {Cost:F2}",
-                            product.ProductCode, monthStart.ToString("yyyy-MM"), materialCost);
-                    }
-
-                    monthlyCosts.Add(new MonthlyCost(monthStart, materialCost));
-                }
-
-                if (monthlyCosts.Count > 0)
-                {
-                    result[product.ProductCode] = monthlyCosts;
-                }
-            }
-
-            _logger.LogDebug("Calculated material costs for {ProductCount} products over {MonthCount} months",
-                result.Count, result.Values.FirstOrDefault()?.Count ?? 0);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calculating material costs");
-            throw;
-        }
+        // TODO implement loading material costs from purchase price history
     }
 }

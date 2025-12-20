@@ -20,8 +20,8 @@ namespace Anela.Heblo.Tests.Features.Catalog.Services;
 /// </summary>
 public class MarginCalculationServiceTests
 {
-    private readonly Mock<IMaterialCostRepository> _materialCostRepositoryMock;
-    private readonly Mock<IManufactureCostRepository> _manufactureCostRepositoryMock;
+    private readonly Mock<IMaterialCostSource> _materialCostRepositoryMock;
+    private readonly Mock<IFlatManufactureCostSource> _manufactureCostRepositoryMock;
     private readonly Mock<ISalesCostCalculationService> _salesCostCalculationServiceMock;
     private readonly Mock<IOverheadCostRepository> _overheadCostRepositoryMock;
     private readonly Mock<ILogger<MarginCalculationService>> _loggerMock;
@@ -29,8 +29,8 @@ public class MarginCalculationServiceTests
 
     public MarginCalculationServiceTests()
     {
-        _materialCostRepositoryMock = new Mock<IMaterialCostRepository>();
-        _manufactureCostRepositoryMock = new Mock<IManufactureCostRepository>();
+        _materialCostRepositoryMock = new Mock<IMaterialCostSource>();
+        _manufactureCostRepositoryMock = new Mock<IFlatManufactureCostSource>();
         _salesCostCalculationServiceMock = new Mock<ISalesCostCalculationService>();
         _overheadCostRepositoryMock = new Mock<IOverheadCostRepository>();
         _loggerMock = new Mock<ILogger<MarginCalculationService>>();
