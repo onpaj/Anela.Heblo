@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Catalog.Cache;
 using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -13,6 +14,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -44,6 +46,13 @@ public static class CatalogModule
         services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>(); // STUB - returns constant 15
         services.AddTransient<ISalesCostSource, SalesCostSource>(); // STUB - returns constant 15
 
+        // Register cache services (singleton - in-memory cache)
+        services.AddMemoryCache(); // Required for IMemoryCache injection
+        services.AddSingleton<IMaterialCostCache, MaterialCostCache>();
+        services.AddSingleton<IFlatManufactureCostCache, FlatManufactureCostCache>();
+        services.AddSingleton<IDirectManufactureCostCache, DirectManufactureCostCache>();
+        services.AddSingleton<ISalesCostCache, SalesCostCache>();
+
         // Register catalog-specific services
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
@@ -73,6 +82,12 @@ public static class CatalogModule
         services.Configure<CatalogCacheOptions>(options =>
         {
             configuration.GetSection(CatalogCacheOptions.SectionName).Bind(options);
+        });
+
+        // Configure cost cache options
+        services.Configure<CostCacheOptions>(options =>
+        {
+            configuration.GetSection(CostCacheOptions.SectionName).Bind(options);
         });
 
         // Register AutoMapper for catalog mappings
@@ -216,6 +231,27 @@ public static class CatalogModule
         //         await manufactureCostService.Reload(catalogData.ToList());
         //     }
         // );
+
+        // Cost cache refresh tasks (Tier 2 - after catalog refresh)
+        services.RegisterRefreshTask<IMaterialCostCache>(
+            "RefreshCache",
+            (cache, ct) => cache.RefreshAsync(ct)
+        );
+
+        services.RegisterRefreshTask<IFlatManufactureCostCache>(
+            "RefreshCache",
+            (cache, ct) => cache.RefreshAsync(ct)
+        );
+
+        services.RegisterRefreshTask<IDirectManufactureCostCache>(
+            "RefreshCache",
+            (cache, ct) => cache.RefreshAsync(ct)
+        );
+
+        services.RegisterRefreshTask<ISalesCostCache>(
+            "RefreshCache",
+            (cache, ct) => cache.RefreshAsync(ct)
+        );
 
         // Margin calculation task
         services.RegisterRefreshTask(
