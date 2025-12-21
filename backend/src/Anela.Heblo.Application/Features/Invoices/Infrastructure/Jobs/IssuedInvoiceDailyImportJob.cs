@@ -30,7 +30,7 @@ public class IssuedInvoiceDailyImportJob
     private async Task ImportYesterdayForCurrency(string currency)
     {
         var yesterday = DateTime.Today.AddDays(-1);
-        
+
         _logger.LogInformation("Starting daily {Currency} invoice import job for {Date:yyyy-MM-dd}", currency, yesterday);
 
         try
@@ -44,8 +44,8 @@ public class IssuedInvoiceDailyImportJob
             };
 
             var result = await _invoiceImportService.ImportInvoicesAsync(
-                $"denní import {currency} za {yesterday:dd.MM.yyyy}", 
-                query, 
+                $"denní import {currency} za {yesterday:dd.MM.yyyy}",
+                query,
                 CancellationToken.None);
 
             _logger.LogInformation(
@@ -54,7 +54,7 @@ public class IssuedInvoiceDailyImportJob
 
             if (result.Failed.Count > 0)
             {
-                _logger.LogWarning("Some {Currency} invoices failed to import on {Date:yyyy-MM-dd}: {FailedInvoices}", 
+                _logger.LogWarning("Some {Currency} invoices failed to import on {Date:yyyy-MM-dd}: {FailedInvoices}",
                     currency, yesterday, string.Join(", ", result.Failed));
             }
         }

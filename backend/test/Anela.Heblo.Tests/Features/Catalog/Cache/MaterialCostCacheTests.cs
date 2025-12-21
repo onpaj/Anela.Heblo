@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Cache;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -16,11 +17,7 @@ public class MaterialCostCacheTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var catalogRepoMock = new Mock<ICatalogRepository>();
-        var loggerMock = new Mock<ILogger<MaterialCostCache>>();
-        var options = Options.Create(new CostCacheOptions());
-
-        var cache = new MaterialCostCache(memoryCache, catalogRepoMock.Object, loggerMock.Object, options);
+        var cache = new MaterialCostCache(memoryCache);
 
         // Act
         var result = await cache.GetCachedDataAsync();
@@ -31,12 +28,13 @@ public class MaterialCostCacheTests
     }
 
     [Fact]
-    public async Task RefreshAsync_StoresDataInCache()
+    public async Task RefreshCacheAsync_StoresDataInCache()
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var cache = new MaterialCostCache(memoryCache);
         var catalogRepoMock = new Mock<ICatalogRepository>();
-        var loggerMock = new Mock<ILogger<MaterialCostCache>>();
+        var loggerMock = new Mock<ILogger<PurchasePriceOnlyMaterialCostSource>>();
         var options = Options.Create(new CostCacheOptions());
 
         catalogRepoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
@@ -44,10 +42,10 @@ public class MaterialCostCacheTests
         catalogRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CatalogAggregate>());
 
-        var cache = new MaterialCostCache(memoryCache, catalogRepoMock.Object, loggerMock.Object, options);
+        var source = new PurchasePriceOnlyMaterialCostSource(cache, catalogRepoMock.Object, loggerMock.Object, options);
 
         // Act
-        await cache.RefreshAsync();
+        await source.RefreshCacheAsync();
         var result = await cache.GetCachedDataAsync();
 
         // Assert

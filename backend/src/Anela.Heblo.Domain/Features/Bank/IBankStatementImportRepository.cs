@@ -10,7 +10,7 @@ public interface IBankStatementImportRepository
         int take = 50,
         string orderBy = "ImportDate",
         bool ascending = false);
-    
+
     Task<BankStatementImport?> GetByIdAsync(int id);
     Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
 }

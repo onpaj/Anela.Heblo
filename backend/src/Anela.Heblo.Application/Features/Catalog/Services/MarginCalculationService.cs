@@ -139,7 +139,7 @@ public class MarginCalculationService : IMarginCalculationService
         return monthlyCost?.Cost ?? 0m;
     }
 
-    
+
 
     private class CostData
     {

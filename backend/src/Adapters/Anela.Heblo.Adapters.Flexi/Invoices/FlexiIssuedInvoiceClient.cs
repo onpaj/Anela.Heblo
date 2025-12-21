@@ -31,14 +31,14 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
         try
         {
             _logger.LogDebug("Converting domain invoice to FlexiBee format: {InvoiceCode}", invoiceDetail.Code);
-            
+
             // Map domain model to FlexiBee SDK model
             var flexiInvoice = _mapper.Map<IssuedInvoiceDetail, IssuedInvoiceDetailFlexiDto>(invoiceDetail);
-            
+
             // Call FlexiBee SDK
             var flexiResult = await _flexiClient.SaveAsync(flexiInvoice, cancellationToken);
-            
-            _logger.LogDebug("FlexiBee save result: {Success} for invoice {InvoiceCode}", 
+
+            _logger.LogDebug("FlexiBee save result: {Success} for invoice {InvoiceCode}",
                 flexiResult.IsSuccess, invoiceDetail.Code);
 
             if (!flexiResult.IsSuccess)
@@ -58,7 +58,7 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
         try
         {
             _logger.LogDebug("Getting invoice from FlexiBee: {InvoiceId}", invoiceId);
-            
+
             var flexiResult = await _flexiClient.GetAsync(invoiceId, cancellationToken);
             _logger.LogDebug("FlexiBee get result: {Success} for invoice {InvoiceId}", flexiResult.Id, invoiceId);
 
@@ -82,7 +82,7 @@ public class XmlIssuedInvoiceClient : Rem.FlexiBeeSDK.Client.Clients.IssuedInvoi
     public XmlIssuedInvoiceClient(ILogger<XmlIssuedInvoiceClient> logger)
     {
         _logger = logger;
-        
+
         if (!Directory.Exists(InvoicesFolder))
         {
             Directory.CreateDirectory(InvoicesFolder);
@@ -93,7 +93,7 @@ public class XmlIssuedInvoiceClient : Rem.FlexiBeeSDK.Client.Clients.IssuedInvoi
     public Task<IssuedInvoiceDetailFlexiDto> GetAsync(string invoiceCode, CancellationToken cancellationToken = default)
     {
         var filePath = Path.Combine(InvoicesFolder, $"{invoiceCode}.xml");
-        
+
         if (!File.Exists(filePath))
         {
             _logger.LogWarning("Invoice file not found: {FilePath}", filePath);
@@ -104,13 +104,13 @@ public class XmlIssuedInvoiceClient : Rem.FlexiBeeSDK.Client.Clients.IssuedInvoi
         {
             var xmlContent = File.ReadAllText(filePath);
             var doc = XDocument.Parse(xmlContent);
-            
+
             var invoice = new IssuedInvoiceDetailFlexiDto
             {
                 Code = invoiceCode,
                 Id = doc.Root?.Element("Id")?.Value,
             };
-            
+
             _logger.LogInformation("Retrieved invoice from XML: {InvoiceCode}", invoiceCode);
             return Task.FromResult(invoice);
         }
@@ -133,14 +133,14 @@ public class XmlIssuedInvoiceClient : Rem.FlexiBeeSDK.Client.Clients.IssuedInvoi
                     new XElement("Id", invoice.Id),
                     new XElement("Code", invoice.Code),
                     new XElement("DateCreated", DateTime.UtcNow.ToString("O")),
-                    new XElement("InvoiceData", 
+                    new XElement("InvoiceData",
                         System.Text.Json.JsonSerializer.Serialize(invoice, new JsonSerializerOptions { WriteIndented = true })
                     )
                 )
             );
 
             xmlDoc.Save(filePath);
-            
+
             _logger.LogInformation("Saved invoice to XML: {InvoiceCode} -> {FilePath}", invoiceId, filePath);
 
             return Task.FromResult(new OperationResult<OperationResultDetail>(System.Net.HttpStatusCode.OK));

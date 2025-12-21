@@ -232,25 +232,26 @@ public static class CatalogModule
         //     }
         // );
 
-        // Cost cache refresh tasks (Tier 2 - after catalog refresh)
-        services.RegisterRefreshTask<IMaterialCostCache>(
+        // Cost source refresh tasks (Tier 2 - after catalog refresh)
+        // Sources compute costs and populate cache
+        services.RegisterRefreshTask<IMaterialCostSource>(
             "RefreshCache",
-            (cache, ct) => cache.RefreshAsync(ct)
+            (source, ct) => source.RefreshCacheAsync(ct)
         );
 
-        services.RegisterRefreshTask<IFlatManufactureCostCache>(
+        services.RegisterRefreshTask<IFlatManufactureCostSource>(
             "RefreshCache",
-            (cache, ct) => cache.RefreshAsync(ct)
+            (source, ct) => source.RefreshCacheAsync(ct)
         );
 
-        services.RegisterRefreshTask<IDirectManufactureCostCache>(
+        services.RegisterRefreshTask<IDirectManufactureCostSource>(
             "RefreshCache",
-            (cache, ct) => cache.RefreshAsync(ct)
+            (source, ct) => source.RefreshCacheAsync(ct)
         );
 
-        services.RegisterRefreshTask<ISalesCostCache>(
+        services.RegisterRefreshTask<ISalesCostSource>(
             "RefreshCache",
-            (cache, ct) => cache.RefreshAsync(ct)
+            (source, ct) => source.RefreshCacheAsync(ct)
         );
 
         // Margin calculation task

@@ -1,18 +1,23 @@
 namespace Anela.Heblo.Domain.Features.Catalog.Cache;
 
 /// <summary>
-/// Base interface for cost cache services providing cached cost data.
+/// Base interface for cost cache services providing thin wrapper over IMemoryCache.
+/// This is a pure storage layer - business logic resides in cost sources.
 /// </summary>
 public interface ICostCache
 {
     /// <summary>
-    /// Get cached cost data. Returns empty data during initial hydration.
+    /// Get cached cost data. Returns empty data if not hydrated.
     /// </summary>
     Task<CostCacheData> GetCachedDataAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Refresh cached data from source repositories.
-    /// Uses stale-while-revalidate pattern - keeps old data during refresh.
+    /// Set cached cost data.
     /// </summary>
-    Task RefreshAsync(CancellationToken ct = default);
+    Task SetCachedDataAsync(CostCacheData data, CancellationToken ct = default);
+
+    /// <summary>
+    /// Indicates whether the cache has been hydrated with data.
+    /// </summary>
+    bool IsHydrated { get; }
 }

@@ -9,4 +9,6 @@ public interface ICostDataSource
         DateOnly? dateFrom = null,
         DateOnly? dateTo = null,
         CancellationToken cancellationToken = default);
+
+    Task RefreshCacheAsync(CancellationToken ct = default);
 }
