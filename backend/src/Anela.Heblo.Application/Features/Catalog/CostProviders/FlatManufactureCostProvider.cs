@@ -185,4 +185,19 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             .Where(kvp => productCodes.Contains(kvp.Key))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
+
+    /// <summary>
+    /// Default difficulty value when no setting exists for a product.
+    /// </summary>
+    private const int DefaultDifficultyValue = 1;
+
+    /// <summary>
+    /// Gets the historical manufacturing difficulty for a product at a specific date.
+    /// Returns DefaultDifficultyValue if no setting exists.
+    /// </summary>
+    public async Task<int> GetHistoricalDifficultyAsync(string productCode, DateTime referenceDate, CancellationToken ct = default)
+    {
+        var setting = await _difficultyRepository.FindAsync(productCode, referenceDate, ct);
+        return setting?.DifficultyValue ?? DefaultDifficultyValue;
+    }
 }
