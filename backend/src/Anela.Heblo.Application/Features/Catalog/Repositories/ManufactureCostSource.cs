@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.Services;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -8,61 +7,47 @@ namespace Anela.Heblo.Application.Features.Catalog.Repositories;
 
 public class ManufactureCostSource : IFlatManufactureCostSource
 {
-    private readonly TimeProvider _timeProvider;
+    private readonly IFlatManufactureCostCache _cache;
     private readonly ILogger<ManufactureCostSource> _logger;
 
     public ManufactureCostSource(
-        TimeProvider timeProvider,
+        IFlatManufactureCostCache cache,
         ILogger<ManufactureCostSource> logger)
     {
-        _timeProvider = timeProvider;
+        _cache = cache;
         _logger = logger;
     }
 
-
-    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(List<string>? productCodes = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
+    public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
+        List<string>? productCodes = null,
+        DateOnly? dateFrom = null,
+        DateOnly? dateTo = null,
         CancellationToken cancellationToken = default)
     {
-        // STUB IMPLEMENTATION - Returns constant value of 15
-        // TODO: Implement actual flat manufacturing cost calculation based on:
-        //  - ILedgerService.GetDirectCosts(department: "VYROBA") for 12-month window
-        //  - ManufactureHistory with historical ManufactureDifficulty
-        //  - Cost per manufacturing point calculation
-
-        var result = new Dictionary<string, List<MonthlyCost>>();
-
-        if (productCodes == null || productCodes.Count == 0)
-            return result;
-
-        // Default to last 12 months if not specified
-        var now = _timeProvider.GetUtcNow().DateTime;
-        var effectiveDateFrom = dateFrom ?? DateOnly.FromDateTime(now.AddMonths(-12));
-        var effectiveDateTo = dateTo ?? DateOnly.FromDateTime(now);
-
-        // Generate months
-        var months = GenerateMonths(effectiveDateFrom, effectiveDateTo);
-
-        // Generate stub costs (constant 15)
-        foreach (var productCode in productCodes)
+        try
         {
-            result[productCode] = months.Select(month => new MonthlyCost(month, 15m)).ToList();
+            var cacheData = await _cache.GetCachedDataAsync(cancellationToken);
+
+            if (!cacheData.IsHydrated)
+            {
+                _logger.LogWarning("FlatManufactureCostCache not hydrated, returning empty costs");
+                return new Dictionary<string, List<MonthlyCost>>();
+            }
+
+            // Filter by productCodes if specified
+            if (productCodes == null || !productCodes.Any())
+            {
+                return cacheData.ProductCosts;
+            }
+
+            return cacheData.ProductCosts
+                .Where(kvp => productCodes.Contains(kvp.Key))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
-
-        return await Task.FromResult(result);
-    }
-
-    private static List<DateTime> GenerateMonths(DateOnly dateFrom, DateOnly dateTo)
-    {
-        var months = new List<DateTime>();
-        var current = new DateTime(dateFrom.Year, dateFrom.Month, 1);
-        var end = new DateTime(dateTo.Year, dateTo.Month, 1);
-
-        while (current <= end)
+        catch (Exception ex)
         {
-            months.Add(current);
-            current = current.AddMonths(1);
+            _logger.LogError(ex, "Error getting flat manufacture costs from cache");
+            throw;
         }
-
-        return months;
     }
 }
