@@ -12,15 +12,14 @@ namespace Anela.Heblo.Application.Features.Catalog.Cache;
 /// In-memory cache for M1_A (Flat Manufacturing) cost data.
 /// Pre-computes flat manufacturing costs based on ledger data and manufacture history.
 /// </summary>
-public class FlatManufactureCostCache : IFlatManufactureCostCache, IDisposable
+public class FlatManufactureCostCache : IFlatManufactureCostCache
 {
     private const string CacheKey = "FlatManufactureCostCache_Data";
+    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly IMemoryCache _memoryCache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<FlatManufactureCostCache> _logger;
     private readonly CostCacheOptions _options;
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private bool _disposed;
 
     public FlatManufactureCostCache(
         IMemoryCache memoryCache,
@@ -122,23 +121,5 @@ public class FlatManufactureCostCache : IFlatManufactureCostCache, IDisposable
         }
 
         return costs;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                _refreshLock?.Dispose();
-            }
-            _disposed = true;
-        }
     }
 }

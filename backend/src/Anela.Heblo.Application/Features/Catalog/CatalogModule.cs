@@ -46,12 +46,12 @@ public static class CatalogModule
         services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>(); // STUB - returns constant 15
         services.AddTransient<ISalesCostSource, SalesCostSource>(); // STUB - returns constant 15
 
-        // Register cache services (singleton - in-memory cache)
+        // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
-        services.AddSingleton<IMaterialCostCache, MaterialCostCache>();
-        services.AddSingleton<IFlatManufactureCostCache, FlatManufactureCostCache>();
-        services.AddSingleton<IDirectManufactureCostCache, DirectManufactureCostCache>();
-        services.AddSingleton<ISalesCostCache, SalesCostCache>();
+        services.AddScoped<IMaterialCostCache, MaterialCostCache>();
+        services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
+        services.AddScoped<IDirectManufactureCostCache, DirectManufactureCostCache>();
+        services.AddScoped<ISalesCostCache, SalesCostCache>();
 
         // Register catalog-specific services
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();

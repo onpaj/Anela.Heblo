@@ -12,15 +12,14 @@ namespace Anela.Heblo.Application.Features.Catalog.Cache;
 /// In-memory cache for M0 (Material) cost data.
 /// Pre-computes material costs from purchase history/BoM.
 /// </summary>
-public class MaterialCostCache : IMaterialCostCache, IDisposable
+public class MaterialCostCache : IMaterialCostCache
 {
     private const string CacheKey = "MaterialCostCache_Data";
+    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly IMemoryCache _memoryCache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<MaterialCostCache> _logger;
     private readonly CostCacheOptions _options;
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private bool _disposed;
 
     public MaterialCostCache(
         IMemoryCache memoryCache,
@@ -135,23 +134,5 @@ public class MaterialCostCache : IMaterialCostCache, IDisposable
         }
 
         return costs;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                _refreshLock?.Dispose();
-            }
-            _disposed = true;
-        }
     }
 }

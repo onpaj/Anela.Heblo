@@ -12,15 +12,14 @@ namespace Anela.Heblo.Application.Features.Catalog.Cache;
 /// In-memory cache for M1_B (Direct Manufacturing) cost data.
 /// Pre-computes direct manufacturing costs based on monthly ledger data and manufacture history.
 /// </summary>
-public class DirectManufactureCostCache : IDirectManufactureCostCache, IDisposable
+public class DirectManufactureCostCache : IDirectManufactureCostCache
 {
     private const string CacheKey = "DirectManufactureCostCache_Data";
+    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly IMemoryCache _memoryCache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<DirectManufactureCostCache> _logger;
     private readonly CostCacheOptions _options;
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private bool _disposed;
 
     public DirectManufactureCostCache(
         IMemoryCache memoryCache,
@@ -122,23 +121,5 @@ public class DirectManufactureCostCache : IDirectManufactureCostCache, IDisposab
         }
 
         return costs;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                _refreshLock?.Dispose();
-            }
-            _disposed = true;
-        }
     }
 }

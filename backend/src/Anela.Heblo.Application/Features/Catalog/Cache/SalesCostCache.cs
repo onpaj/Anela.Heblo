@@ -12,15 +12,14 @@ namespace Anela.Heblo.Application.Features.Catalog.Cache;
 /// In-memory cache for M2 (Sales/Marketing) cost data.
 /// Pre-computes sales/storage/marketing costs based on ledger data.
 /// </summary>
-public class SalesCostCache : ISalesCostCache, IDisposable
+public class SalesCostCache : ISalesCostCache
 {
     private const string CacheKey = "SalesCostCache_Data";
+    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly IMemoryCache _memoryCache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<SalesCostCache> _logger;
     private readonly CostCacheOptions _options;
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private bool _disposed;
 
     public SalesCostCache(
         IMemoryCache memoryCache,
@@ -122,23 +121,5 @@ public class SalesCostCache : ISalesCostCache, IDisposable
         }
 
         return costs;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                _refreshLock?.Dispose();
-            }
-            _disposed = true;
-        }
     }
 }
