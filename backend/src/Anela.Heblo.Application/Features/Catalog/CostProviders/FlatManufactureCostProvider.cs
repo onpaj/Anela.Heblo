@@ -114,7 +114,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateFlatManufacturingCosts(product, dateFrom, dateTo);
+            var monthlyCosts = await CalculateFlatManufacturingCostsAsync(product, dateFrom, dateTo, ct);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
@@ -150,28 +150,113 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             if (productCodes != null && !productCodes.Contains(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateFlatManufacturingCosts(product, from, to);
+            var monthlyCosts = await CalculateFlatManufacturingCostsAsync(product, from, to, ct);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
         return productCosts;
     }
 
-    private List<MonthlyCost> CalculateFlatManufacturingCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
+    /// <summary>
+    /// Calculates flat manufacturing costs (M1_A) for a product over a date range.
+    /// Uses rolling window approach with ManufactureDifficulty weighting.
+    /// </summary>
+    public async Task<List<MonthlyCost>> CalculateFlatManufacturingCostsAsync(
+        CatalogAggregate product,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken ct = default)
     {
-        // STUB: Returns constant value of 15 (per spec section 2.2)
-        var costs = new List<MonthlyCost>();
+        if (string.IsNullOrEmpty(product.ProductCode))
+        {
+            return new List<MonthlyCost>();
+        }
 
+        // Step 1: Get total manufacturing costs for the period (VYROBA department)
+        var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var costsTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month), 23, 59, 59);
+
+        var manufacturingCosts = await _ledgerService.GetDirectCosts(
+            costsFrom,
+            costsTo,
+            "VYROBA",
+            ct);
+
+        // Step 2: Get manufacture history for ALL products in the period
+        var allManufactureHistory = await _manufactureHistoryClient.GetHistoryAsync(
+            costsFrom,
+            costsTo,
+            null, // null = all products
+            ct);
+
+        if (!allManufactureHistory.Any())
+        {
+            _logger.LogWarning(
+                "No manufacture history found for period {DateFrom} to {DateTo}",
+                dateFrom,
+                dateTo);
+            return new List<MonthlyCost>();
+        }
+
+        // Step 3: Group costs and history by month
+        var costsByMonth = manufacturingCosts
+            .GroupBy(c => new DateTime(c.Date.Year, c.Date.Month, 1))
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.Cost));
+
+        var historyByMonth = allManufactureHistory
+            .GroupBy(h => new DateTime(h.Date.Year, h.Date.Month, 1))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Step 4: Calculate cost per manufacturing point for each month
+        var monthlyCosts = new List<MonthlyCost>();
         var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var endMonth = new DateTime(dateTo.Year, dateTo.Month, 1);
 
         while (currentMonth <= endMonth)
         {
-            costs.Add(new MonthlyCost(currentMonth, 15m));
+            if (!costsByMonth.TryGetValue(currentMonth, out var monthCosts) || monthCosts == 0)
+            {
+                // No costs for this month - zero cost
+                monthlyCosts.Add(new MonthlyCost(currentMonth, 0m));
+                currentMonth = currentMonth.AddMonths(1);
+                continue;
+            }
+
+            if (!historyByMonth.TryGetValue(currentMonth, out var monthHistory) || !monthHistory.Any())
+            {
+                // No production in this month - zero cost
+                monthlyCosts.Add(new MonthlyCost(currentMonth, 0m));
+                currentMonth = currentMonth.AddMonths(1);
+                continue;
+            }
+
+            // Calculate total weighted manufacturing points for this month (all products)
+            var totalWeightedPoints = 0.0;
+            foreach (var record in monthHistory)
+            {
+                var difficulty = await GetHistoricalDifficultyAsync(record.ProductCode, record.Date, ct);
+                totalWeightedPoints += record.Amount * difficulty;
+            }
+
+            if (totalWeightedPoints == 0)
+            {
+                monthlyCosts.Add(new MonthlyCost(currentMonth, 0m));
+                currentMonth = currentMonth.AddMonths(1);
+                continue;
+            }
+
+            // Calculate cost per point for this month
+            var costPerPoint = monthCosts / (decimal)totalWeightedPoints;
+
+            // Calculate cost for this specific product
+            var productDifficulty = await GetHistoricalDifficultyAsync(product.ProductCode, currentMonth, ct);
+            var productCost = costPerPoint * productDifficulty;
+
+            monthlyCosts.Add(new MonthlyCost(currentMonth, productCost));
             currentMonth = currentMonth.AddMonths(1);
         }
 
-        return costs;
+        return monthlyCosts;
     }
 
     private static Dictionary<string, List<MonthlyCost>> FilterByProductCodes(
