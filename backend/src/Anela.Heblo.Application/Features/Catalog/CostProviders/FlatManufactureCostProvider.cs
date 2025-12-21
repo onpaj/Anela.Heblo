@@ -12,18 +12,18 @@ namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 /// Flat manufacture cost source (M1_A) - STUB implementation returning constant.
 /// Business logic layer with cache fallback.
 /// </summary>
-public class ManufactureCostProvider : IFlatManufactureCostProvider
+public class FlatManufactureCostProvider : IFlatManufactureCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
     private readonly IFlatManufactureCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILogger<ManufactureCostProvider> _logger;
+    private readonly ILogger<FlatManufactureCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
-    public ManufactureCostProvider(
+    public FlatManufactureCostProvider(
         IFlatManufactureCostCache cache,
         ICatalogRepository catalogRepository,
-        ILogger<ManufactureCostProvider> logger,
+        ILogger<FlatManufactureCostProvider> logger,
         IOptions<CostCacheOptions> options)
     {
         _cache = cache;
@@ -48,8 +48,8 @@ public class ManufactureCostProvider : IFlatManufactureCostProvider
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("FlatManufactureCostCache not hydrated, computing costs directly");
-            return await ComputeCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+            _logger.LogWarning("FlatManufactureCostCache not hydrated yet");
+            return new  Dictionary<string, List<MonthlyCost>>();
         }
         catch (Exception ex)
         {

@@ -48,8 +48,8 @@ public class SalesCostProvider : ISalesCostProvider
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("SalesCostCache not hydrated, computing costs directly");
-            return await ComputeCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+            _logger.LogWarning("SalesCostCache not hydrated yet");
+            return new  Dictionary<string, List<MonthlyCost>>();
         }
         catch (Exception ex)
         {

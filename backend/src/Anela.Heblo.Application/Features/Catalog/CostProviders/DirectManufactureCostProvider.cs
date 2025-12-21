@@ -48,8 +48,8 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("DirectManufactureCostCache not hydrated, computing costs directly");
-            return await ComputeCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+            _logger.LogWarning("DirectManufactureCostCache not hydrated yet");
+            return new  Dictionary<string, List<MonthlyCost>>();
         }
         catch (Exception ex)
         {

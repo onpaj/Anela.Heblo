@@ -41,7 +41,7 @@ public static class CatalogModule
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
-        services.AddTransient<IFlatManufactureCostProvider, ManufactureCostProvider>(); // STUB - returns constant 15
+        services.AddTransient<IFlatManufactureCostProvider, FlatManufactureCostProvider>(); // STUB - returns constant 15
         services.AddTransient<IDirectManufactureCostProvider, DirectManufactureCostProvider>(); // STUB - returns constant 15
         services.AddTransient<ISalesCostProvider, SalesCostProvider>(); // STUB - returns constant 15
 
