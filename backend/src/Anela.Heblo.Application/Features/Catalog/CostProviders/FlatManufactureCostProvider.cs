@@ -60,7 +60,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
 
             // Fallback - compute directly (cache not hydrated yet)
             _logger.LogWarning("FlatManufactureCostCache not hydrated yet");
-            return new  Dictionary<string, List<MonthlyCost>>();
+            return new Dictionary<string, List<MonthlyCost>>();
         }
         catch (Exception ex)
         {
