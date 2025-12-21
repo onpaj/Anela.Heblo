@@ -25,9 +25,9 @@ public class CatalogAggregateMarginTests
         var catalog = new CatalogAggregate();
         var margins = new MonthlyMarginHistory
         {
-            MonthlyData = new List<MonthlyMarginData>
+            MonthlyData = new Dictionary<DateTime, MarginData>
             {
-                new MonthlyMarginData { Month = DateTime.Now.AddMonths(-1) }
+                { DateTime.Now.AddMonths(-1), new MarginData() }
             }
         };
 

@@ -21,12 +21,14 @@ Systém sleduje vícenákladové úrovně pro každý produkt s odpovídajícím
 
 ### 1.2 Datové zdroje
 
-| Úroveň | Interface | Implementace | Zdroj dat |
-|--------|-----------|--------------|-----------|
-| M0 | `IMaterialCostSource` | `PurchasePriceOnlyMaterialCostSource` | Purchase history / BoM |
-| M1_A | `IFlatManufactureCostSource` | `ManufactureCostSource` | `ILedgerService` (VYROBA) |
-| M1_B | `IDirectManufactureCostSource` | `DirectManufactureCostSource` | `ILedgerService` (VYROBA) |
-| M2 | `ISalesCostSource` | `SalesCostSource` | `ILedgerService` (SKLAD + MARKETING) |
+| Úroveň | Interface | Implementace | Cache Service | Zdroj dat |
+|--------|-----------|--------------|---------------|-----------|
+| M0 | `IMaterialCostSource` | `PurchasePriceOnlyMaterialCostSource` | `IMaterialCostCache` | Purchase history / BoM |
+| M1_A | `IFlatManufactureCostSource` | `ManufactureCostSource` | `IFlatManufactureCostCache` | `ILedgerService` (VYROBA) |
+| M1_B | `IDirectManufactureCostSource` | `DirectManufactureCostSource` | `IDirectManufactureCostCache` | `ILedgerService` (VYROBA) |
+| M2 | `ISalesCostSource` | `SalesCostSource` | `ISalesCostCache` | `ILedgerService` (SKLAD + MARKETING) |
+
+**Poznámka:** Všechny cost sources využívají cache vrstvu pro optimalizaci náročných dotazů na ledger data.
 
 ---
 
@@ -338,15 +340,198 @@ public class MarginCalculationService : IMarginCalculationService
 }
 ```
 
-### 5.3 Dependency Injection
+### 5.3 Cache Architecture
+
+**Účel:** Optimalizace náročných dotazů na `ILedgerService` a související datové zdroje prostřednictvím in-memory cache vrstvy.
+
+**Klíčové charakteristiky:**
+- **Storage:** IMemoryCache (in-memory, bez expiration)
+- **Hydration:** Tier-based hydration při startu + periodic refresh
+- **Staleness policy:** Stale-while-revalidate (vrátit stará data během refresh)
+- **Cold start:** Cache vrací prázdná data dokud není hydration dokončena
+- **Thread-safety:** IMemoryCache thread-safety + immutable cache objects
+- **Error handling:** Keep old data při refresh failure
+
+#### 5.3.1 Cache Services
+
+Každý cost source má dedikovanou cache service:
+
+```csharp
+public interface ICostCache
+{
+    Task<CostCacheData> GetCachedDataAsync(CancellationToken ct = default);
+    Task RefreshAsync(CancellationToken ct = default);
+}
+
+public class CostCacheData
+{
+    public Dictionary<string, List<MonthlyCost>> ProductCosts { get; init; } = new();
+    public DateTime LastUpdated { get; init; }
+    public DateOnly DataFrom { get; init; }
+    public DateOnly DataTo { get; init; }
+}
+```
+
+**Implementace:**
+- `MaterialCostCache` : `IMaterialCostCache`
+- `FlatManufactureCostCache` : `IFlatManufactureCostCache`
+- `DirectManufactureCostCache` : `IDirectManufactureCostCache`
+- `SalesCostCache` : `ISalesCostCache`
+
+#### 5.3.2 Cache Lifecycle
+
+**Startup Hydration:**
+1. `TierBasedHydrationOrchestrator` spustí hydrataci při startu aplikace
+2. Tier 1: Catalog refresh (základní data - manufacture/sales history)
+3. Tier 2: Všechny cost cache services paralelně (M0, M1_A, M1_B, M2)
+4. Každý cache service volá `catalogRepository.WaitForCurrentMergeAsync()` před výpočtem
+
+**Periodic Refresh:**
+- Background task registrován přes `BackgroundRefreshTaskRegistry`
+- Interval konfigurovatelný v appsettings (default: 6 hodin)
+- Task volá `cache.RefreshAsync()` pro update dat
+
+**Request Handling:**
+- Cost source deleguje na cache service: `await _cache.GetCachedDataAsync()`
+- Během hydratace: vrací prázdná data (`CostCacheData` s prázdným `ProductCosts`)
+- Po hydrataci: vrací cached pre-computed data
+- Během refresh: vrací stará data (stale-while-revalidate)
+
+#### 5.3.3 Cache Configuration
+
+```csharp
+public class CostCacheOptions
+{
+    public const string SectionName = "CostCache";
+
+    /// <summary>
+    /// Interval pro periodic refresh (default: 6 hodin)
+    /// </summary>
+    public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// Časové okno pro M1_A (rolling window, default: 12 měsíců)
+    /// </summary>
+    public int M1A_RollingWindowMonths { get; set; } = 12;
+
+    /// <summary>
+    /// HydrationTier pro cost cache services (po catalog refresh)
+    /// </summary>
+    public int HydrationTier { get; set; } = 2;
+}
+```
+
+**Konfigurace v appsettings.json:**
+```json
+{
+  "CostCache": {
+    "RefreshInterval": "06:00:00",
+    "M1A_RollingWindowMonths": 12,
+    "HydrationTier": 2
+  },
+  "BackgroundRefresh": {
+    "IMaterialCostCache": {
+      "RefreshCache": {
+        "InitialDelay": "00:00:00",
+        "RefreshInterval": "06:00:00",
+        "Enabled": true,
+        "HydrationTier": 2
+      }
+    },
+    "IFlatManufactureCostCache": {
+      "RefreshCache": {
+        "InitialDelay": "00:00:00",
+        "RefreshInterval": "06:00:00",
+        "Enabled": true,
+        "HydrationTier": 2
+      }
+    },
+    "IDirectManufactureCostCache": {
+      "RefreshCache": {
+        "InitialDelay": "00:00:00",
+        "RefreshInterval": "06:00:00",
+        "Enabled": true,
+        "HydrationTier": 2
+      }
+    },
+    "ISalesCostCache": {
+      "RefreshCache": {
+        "InitialDelay": "00:00:00",
+        "RefreshInterval": "06:00:00",
+        "Enabled": true,
+        "HydrationTier": 2
+      }
+    }
+  }
+}
+```
+
+#### 5.3.4 Cache Invalidation & Monitoring
+
+**Invalidation:**
+- Automatic refresh přes background task (periodic)
+- Manual trigger přes `IBackgroundRefreshTaskRegistry.ForceRefreshAsync(taskId)`
+- Při chybě: keep old data, log error do `RefreshTaskExecutionLog`
+
+**Monitoring:**
+- Execution history přes `IBackgroundRefreshTaskRegistry.GetExecutionHistory(taskId)`
+- Metadata: `LastUpdated`, `Status`, `Duration`, `ErrorMessage`
+- Health checks můžou kontrolovat staleness cache (např. > 24h = warning)
+
+### 5.4 Dependency Injection
 
 ```csharp
 // CatalogModule.cs
+
+// Register cache services (singleton - in-memory cache)
+services.AddSingleton<IMaterialCostCache, MaterialCostCache>();
+services.AddSingleton<IFlatManufactureCostCache, FlatManufactureCostCache>();
+services.AddSingleton<IDirectManufactureCostCache, DirectManufactureCostCache>();
+services.AddSingleton<ISalesCostCache, SalesCostCache>();
+
+// Register cost sources (transient - inject cache service)
 services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>();
 services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>();
 services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>();
 services.AddTransient<ISalesCostSource, SalesCostSource>();
+
+// Register margin calculation service
 services.AddTransient<IMarginCalculationService, MarginCalculationService>();
+
+// Configure cache options
+services.Configure<CostCacheOptions>(options =>
+{
+    configuration.GetSection(CostCacheOptions.SectionName).Bind(options);
+});
+
+// Register background refresh tasks
+RegisterCostCacheRefreshTasks(services);
+```
+
+**Background refresh task registration:**
+```csharp
+private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
+{
+    services.RegisterRefreshTask<IMaterialCostCache>(
+        nameof(IMaterialCostCache.RefreshCache),
+        (cache, ct) => cache.RefreshAsync(ct)
+    );
+
+    services.RegisterRefreshTask<IFlatManufactureCostCache>(
+        nameof(IFlatManufactureCostCache.RefreshCache),
+        (cache, ct) => cache.RefreshAsync(ct)
+    );
+
+    services.RegisterRefreshTask<IDirectManufactureCostCache>(
+        nameof(IDirectManufactureCostCache.RefreshCache),
+        (cache, ct) => cache.RefreshAsync(ct)
+    );
+
+    services.RegisterRefreshTask<ISalesCostCache>(
+        nameof(ISalesCostCache.RefreshCache),
+        (cache, ct) => cache.RefreshAsync(ct)
+    );
+}
 ```
 
 ---
@@ -362,24 +547,49 @@ services.AddTransient<IMarginCalculationService, MarginCalculationService>();
 | ManufactureDifficulty | Použít historickou hodnotu platnou v měsíci výroby |
 | M1_A okno | 12 měsíců (klouzavé) |
 | M1_B granularita | Po měsících |
+| **Cache storage** | **IMemoryCache (in-memory, bez expiration)** |
+| **Cache granularita** | **Pre-computed per-product costs (Dictionary<string, List<MonthlyCost>>)** |
+| **Cache organizace** | **Samostatná cache per cost source (M0, M1_A, M1_B, M2)** |
+| **Hydration strategy** | **Tier-based: Tier 1 (catalog) → Tier 2 (cost caches paralelně)** |
+| **Refresh frequency** | **Konfigurovatelný interval (default: 6 hodin)** |
+| **Staleness policy** | **Stale-while-revalidate (vrátit stará data během refresh)** |
+| **Cold start behavior** | **Prázdná data dokud není hydration dokončena** |
+| **Error handling** | **Keep old data při refresh failure** |
+| **Thread-safety** | **IMemoryCache thread-safety + immutable cache objects** |
+| **Monitoring** | **BackgroundRefreshTaskRegistry execution history** |
 
 ### 6.2 Soubory k vytvoření/úpravě
 
 **Domain Layer:**
 - `MarginData.cs` - rozšířit strukturu
 - `MonthlyMarginHistory.cs` - implementovat
+- `ICostCache.cs` - **nový interface** pro cache services
+- `CostCacheData.cs` - **nová třída** pro cached data wrapper
 
 **Application Layer - Cost Sources:**
-- `ManufactureCostSource.cs` - doimplementovat M1_A
-- `DirectManufactureCostSource.cs` - **nový soubor** pro M1_B
-- `SalesCostSource.cs` - **nový soubor** pro M2
-- `PurchasePriceOnlyMaterialCostSource.cs` - ověřit/doplnit
+- `ManufactureCostSource.cs` - doimplementovat M1_A (inject cache)
+- `DirectManufactureCostSource.cs` - **nový soubor** pro M1_B (inject cache)
+- `SalesCostSource.cs` - **nový soubor** pro M2 (inject cache)
+- `PurchasePriceOnlyMaterialCostSource.cs` - ověřit/doplnit (inject cache)
+
+**Application Layer - Cache Services:**
+- `MaterialCostCache.cs` - **nový soubor** pro M0 cache
+- `FlatManufactureCostCache.cs` - **nový soubor** pro M1_A cache
+- `DirectManufactureCostCache.cs` - **nový soubor** pro M1_B cache
+- `SalesCostCache.cs` - **nový soubor** pro M2 cache
+- `IMaterialCostCache.cs` - **nový interface** pro M0 cache
+- `IFlatManufactureCostCache.cs` - **nový interface** pro M1_A cache
+- `IDirectManufactureCostCache.cs` - **nový interface** pro M1_B cache
+- `ISalesCostCache.cs` - **nový interface** pro M2 cache
+
+**Application Layer - Configuration:**
+- `CostCacheOptions.cs` - **nový soubor** pro cache configuration
 
 **Application Layer - Services:**
 - `MarginCalculationService.cs` - implementovat `CalculateMarginHistoryFromData`
 
 **DI:**
-- `CatalogModule.cs` - registrace nových cost sources
+- `CatalogModule.cs` - registrace cache services, cost sources, background tasks
 
 ### 6.3 Závislosti
 
@@ -394,11 +604,20 @@ services.AddTransient<IMarginCalculationService, MarginCalculationService>();
 
 ### 7.1 Unit testy
 
+**Cost Cache Services:**
+- Test `RefreshAsync()` - ověření že cache se naplní daty
+- Test `GetCachedDataAsync()` - ověření že vrací cached data
+- Test cold start behavior - prázdná data při prvním čtení
+- Test error handling - keep old data při refresh failure
+- Test thread-safety - concurrent reads během refresh
+- Test immutability - cache objects jsou immutable
+
 **Cost Sources:**
 - Test výpočtu M1_A při známých vstupních datech
 - Test výpočtu M1_B pro měsíce s/bez výroby
 - Test M2 alokace podle prodejů
 - Test okrajových případů (nulové náklady, žádná výroba, žádný prodej)
+- Test delegace na cache service
 
 **MarginCalculationService:**
 - Test kombinování dat ze všech sources
@@ -407,9 +626,17 @@ services.AddTransient<IMarginCalculationService, MarginCalculationService>();
 
 ### 7.2 Integrační testy
 
+**Cache Integration:**
+- Test tier-based hydration - správné pořadí tier 1 → tier 2
+- Test periodic refresh - ověření že background task aktualizuje cache
+- Test stale-while-revalidate - čtení starých dat během refresh
+- Test execution history tracking - monitoring přes BackgroundRefreshTaskRegistry
+
+**Data Integration:**
 - Test s reálnými daty z `ILedgerService`
 - Test s historickou `ManufactureDifficulty`
 - Test konzistence výpočtů napříč měsíci
+- Test cache refresh při změně source dat
 
 ---
 
@@ -422,6 +649,13 @@ backend/src/Anela.Heblo.Domain/Features/Catalog/
 ├── MarginData.cs
 ├── MarginLevel.cs
 ├── MonthlyMarginHistory.cs
+├── Cache/
+│   ├── ICostCache.cs (base interface)
+│   ├── CostCacheData.cs
+│   ├── IMaterialCostCache.cs
+│   ├── IFlatManufactureCostCache.cs
+│   ├── IDirectManufactureCostCache.cs
+│   └── ISalesCostCache.cs
 ├── Repositories/
 │   ├── ICostDataSource.cs
 │   ├── IMaterialCostSource.cs
@@ -432,14 +666,21 @@ backend/src/Anela.Heblo.Domain/Features/Catalog/
     └── IMarginCalculationService.cs
 
 backend/src/Anela.Heblo.Application/Features/Catalog/
+├── Cache/
+│   ├── MaterialCostCache.cs (nový)
+│   ├── FlatManufactureCostCache.cs (nový)
+│   ├── DirectManufactureCostCache.cs (nový)
+│   └── SalesCostCache.cs (nový)
+├── Infrastructure/
+│   └── CostCacheOptions.cs (nový)
 ├── Repositories/
-│   ├── PurchasePriceOnlyMaterialCostSource.cs
-│   ├── ManufactureCostSource.cs
+│   ├── PurchasePriceOnlyMaterialCostSource.cs (upravit - inject cache)
+│   ├── ManufactureCostSource.cs (upravit - inject cache)
 │   ├── DirectManufactureCostSource.cs (nový)
 │   └── SalesCostSource.cs (nový)
 ├── Services/
 │   └── MarginCalculationService.cs
-└── CatalogModule.cs
+└── CatalogModule.cs (rozšířit - cache DI + background tasks)
 ```
 
 ### 8.2 Další služby

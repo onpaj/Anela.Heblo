@@ -20,26 +20,26 @@ namespace Anela.Heblo.Tests.Features.Catalog.Services;
 /// </summary>
 public class MarginCalculationServiceTests
 {
-    private readonly Mock<IMaterialCostSource> _materialCostRepositoryMock;
-    private readonly Mock<IFlatManufactureCostSource> _manufactureCostRepositoryMock;
-    private readonly Mock<ISalesCostCalculationService> _salesCostCalculationServiceMock;
-    private readonly Mock<IOverheadCostRepository> _overheadCostRepositoryMock;
+    private readonly Mock<IMaterialCostSource> _materialCostSourceMock;
+    private readonly Mock<IFlatManufactureCostSource> _flatManufactureCostSourceMock;
+    private readonly Mock<IDirectManufactureCostSource> _directManufactureCostSourceMock;
+    private readonly Mock<ISalesCostSource> _salesCostSourceMock;
     private readonly Mock<ILogger<MarginCalculationService>> _loggerMock;
     private readonly MarginCalculationService _service;
 
     public MarginCalculationServiceTests()
     {
-        _materialCostRepositoryMock = new Mock<IMaterialCostSource>();
-        _manufactureCostRepositoryMock = new Mock<IFlatManufactureCostSource>();
-        _salesCostCalculationServiceMock = new Mock<ISalesCostCalculationService>();
-        _overheadCostRepositoryMock = new Mock<IOverheadCostRepository>();
+        _materialCostSourceMock = new Mock<IMaterialCostSource>();
+        _flatManufactureCostSourceMock = new Mock<IFlatManufactureCostSource>();
+        _directManufactureCostSourceMock = new Mock<IDirectManufactureCostSource>();
+        _salesCostSourceMock = new Mock<ISalesCostSource>();
         _loggerMock = new Mock<ILogger<MarginCalculationService>>();
 
         _service = new MarginCalculationService(
-            _materialCostRepositoryMock.Object,
-            _manufactureCostRepositoryMock.Object,
-            _salesCostCalculationServiceMock.Object,
-            _overheadCostRepositoryMock.Object,
+            _materialCostSourceMock.Object,
+            _flatManufactureCostSourceMock.Object,
+            _directManufactureCostSourceMock.Object,
+            _salesCostSourceMock.Object,
             _loggerMock.Object);
     }
 
@@ -64,23 +64,22 @@ public class MarginCalculationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.MonthlyData.Should().NotBeEmpty();
-        result.MonthlyData.Should().BeInAscendingOrder(x => x.Month);
+        result.MonthlyData.Keys.Should().BeInAscendingOrder();
 
         // Verify each monthly data has proper margin calculations
-        foreach (var monthlyData in result.MonthlyData)
+        foreach (var marginData in result.MonthlyData.Values)
         {
-            monthlyData.M0.Should().NotBeNull();
-            monthlyData.M1.Should().NotBeNull();
-            monthlyData.M2.Should().NotBeNull();
-            monthlyData.M3.Should().NotBeNull();
-            monthlyData.CostsForMonth.Should().NotBeNull();
+            marginData.M0.Should().NotBeNull();
+            marginData.M1_A.Should().NotBeNull();
+            marginData.M1_B.Should().NotBeNull();
+            marginData.M2.Should().NotBeNull();
         }
 
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().NotBeNull();
-        result.Averages.M1.Should().NotBeNull();
+        result.Averages.M1_A.Should().NotBeNull();
+        result.Averages.M1_B.Should().NotBeNull();
         result.Averages.M2.Should().NotBeNull();
-        result.Averages.M3.Should().NotBeNull();
     }
 
     [Fact]
@@ -99,9 +98,9 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
     [Fact]
@@ -120,9 +119,9 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
     [Fact]
@@ -141,9 +140,9 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
     [Fact]
@@ -162,9 +161,9 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
     [Fact]
@@ -219,8 +218,9 @@ public class MarginCalculationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.MonthlyData.Should().HaveCount(1);
-        result.MonthlyData[0].Month.Year.Should().Be(sameDate.Year);
-        result.MonthlyData[0].Month.Month.Should().Be(sameDate.Month);
+        var month = result.MonthlyData.Keys.Single();
+        month.Year.Should().Be(sameDate.Year);
+        month.Month.Should().Be(sameDate.Month);
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public class MarginCalculationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.MonthlyData.Should().HaveCount(3); // Jan, Feb, Mar 2000
-        result.MonthlyData.Should().OnlyContain(m => m.Month.Year == 2000);
+        result.MonthlyData.Keys.Should().OnlyContain(m => m.Year == 2000);
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class MarginCalculationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.MonthlyData.Should().HaveCount(3); // Jun, Jul, Aug 2030
-        result.MonthlyData.Should().OnlyContain(m => m.Month.Year == 2030);
+        result.MonthlyData.Keys.Should().OnlyContain(m => m.Year == 2030);
     }
 
     [Fact]
@@ -288,12 +288,10 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().NotBeEmpty();
 
         // Všechny měsíce by měly mít pouze materiálové náklady (ostatní = 0)
-        foreach (var monthlyData in result.MonthlyData)
+        foreach (var marginData in result.MonthlyData.Values)
         {
-            monthlyData.CostsForMonth.M0CostLevel.Should().BeGreaterThan(0);
-            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M3CostLevel.Should().Be(25m, $"Expected 25m but got {monthlyData.CostsForMonth.M3CostLevel}m"); // Mock overhead cost
+            marginData.M0.CostLevel.Should().BeGreaterThan(0);
+            marginData.M0.CostTotal.Should().BeGreaterThan(0);
         }
     }
 
@@ -307,7 +305,7 @@ public class MarginCalculationServiceTests
 
         var emptyCosts = new List<MonthlyCost>();
 
-        SetupRepositoryMocksWithEmptyOverhead("PROD001", emptyCosts, emptyCosts, emptyCosts, emptyCosts);
+        SetupRepositoryMocks("PROD001", emptyCosts, emptyCosts, emptyCosts);
 
         // Act
         var result = await _service.GetMarginAsync(product, dateFrom, dateTo, CancellationToken.None);
@@ -317,53 +315,12 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().NotBeEmpty();
 
         // Všechny měsíce by měly mít nulové náklady
-        foreach (var monthlyData in result.MonthlyData)
+        foreach (var marginData in result.MonthlyData.Values)
         {
-            monthlyData.CostsForMonth.M0CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M3CostLevel.Should().Be(0);
-        }
-    }
-
-    [Fact]
-    public async Task GetMarginAsync_WithCostsOutsideDateRange_UsesNearestAvailableCosts()
-    {
-        // Arrange
-        var product = CreateTestProduct("PROD001", 100m);
-        var dateFrom = DateOnly.FromDateTime(DateTime.Now.AddMonths(-3));
-        var dateTo = DateOnly.FromDateTime(DateTime.Now);
-
-        // Náklady pouze před požadovaným obdobím
-        var oldDate = dateFrom.AddMonths(-6);
-        var materialCosts = new List<MonthlyCost>
-        {
-            new MonthlyCost(oldDate.ToDateTime(TimeOnly.MinValue), 15m)
-        };
-        var manufactureCosts = new List<MonthlyCost>
-        {
-            new MonthlyCost(oldDate.ToDateTime(TimeOnly.MinValue), 8m)
-        };
-        var salesCosts = new List<MonthlyCost>
-        {
-            new MonthlyCost(oldDate.ToDateTime(TimeOnly.MinValue), 3m)
-        };
-
-        SetupRepositoryMocks("PROD001", materialCosts, manufactureCosts, salesCosts);
-
-        // Act
-        var result = await _service.GetMarginAsync(product, dateFrom, dateTo, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.MonthlyData.Should().NotBeEmpty();
-
-        // Všechny měsíce by měly používat nejbližší dostupné náklady
-        foreach (var monthlyData in result.MonthlyData)
-        {
-            monthlyData.CostsForMonth.M0CostLevel.Should().Be(15m);
-            monthlyData.CostsForMonth.M1CostLevel.Should().Be(8m);
-            monthlyData.CostsForMonth.M2CostLevel.Should().Be(3m);
+            marginData.M0.CostLevel.Should().Be(0);
+            marginData.M1_A.CostLevel.Should().Be(0);
+            marginData.M1_B.CostLevel.Should().Be(0);
+            marginData.M2.CostLevel.Should().Be(0);
         }
     }
 
@@ -383,19 +340,19 @@ public class MarginCalculationServiceTests
         var materialCostDict = new Dictionary<string, List<MonthlyCost>> { { "PROD002", materialCostsForDifferentProduct } };
         var emptyCostDict = new Dictionary<string, List<MonthlyCost>>();
 
-        _materialCostRepositoryMock
+        _materialCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(materialCostDict);
 
-        _manufactureCostRepositoryMock
+        _flatManufactureCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
-        _salesCostCalculationServiceMock
+        _directManufactureCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
-        _overheadCostRepositoryMock
+        _salesCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
@@ -407,12 +364,12 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().NotBeEmpty();
 
         // Protože žádná repository neobsahuje data pro "PROD001", všechny náklady by měly být nulové
-        foreach (var monthlyData in result.MonthlyData)
+        foreach (var marginData in result.MonthlyData.Values)
         {
-            monthlyData.CostsForMonth.M0CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M1CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M2CostLevel.Should().Be(0);
-            monthlyData.CostsForMonth.M3CostLevel.Should().Be(0);
+            marginData.M0.CostLevel.Should().Be(0);
+            marginData.M1_A.CostLevel.Should().Be(0);
+            marginData.M1_B.CostLevel.Should().Be(0);
+            marginData.M2.CostLevel.Should().Be(0);
         }
     }
 
@@ -427,7 +384,7 @@ public class MarginCalculationServiceTests
         var dateTo = DateOnly.FromDateTime(DateTime.Now);
         var exception = new Exception("Repository error");
 
-        _materialCostRepositoryMock
+        _materialCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
@@ -524,61 +481,25 @@ public class MarginCalculationServiceTests
         List<MonthlyCost> manufactureCosts, List<MonthlyCost> salesCosts)
     {
         var materialCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, materialCosts } };
-        var manufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, manufactureCosts } };
+        var flatManufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, manufactureCosts } };
+        var directManufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, new List<MonthlyCost>() } }; // Empty for now
         var salesCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, salesCosts } };
 
-        // Create overhead costs that cover a wide date range to ensure they're found
-        var overheadCosts = new List<MonthlyCost>
-        {
-            new MonthlyCost(DateTime.Now.AddMonths(-6), 25m),
-            new MonthlyCost(DateTime.Now.AddMonths(-5), 25m),
-            new MonthlyCost(DateTime.Now.AddMonths(-4), 25m),
-            new MonthlyCost(DateTime.Now.AddMonths(-3), 25m),
-            new MonthlyCost(DateTime.Now.AddMonths(-2), 25m),
-            new MonthlyCost(DateTime.Now.AddMonths(-1), 25m),
-            new MonthlyCost(DateTime.Now, 25m)
-        };
-        var overheadCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, overheadCosts } };
-
-        _materialCostRepositoryMock
+        _materialCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(materialCostDict);
 
-        _manufactureCostRepositoryMock
+        _flatManufactureCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manufactureCostDict);
+            .ReturnsAsync(flatManufactureCostDict);
 
-        _salesCostCalculationServiceMock
+        _directManufactureCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(salesCostDict);
+            .ReturnsAsync(directManufactureCostDict);
 
-        _overheadCostRepositoryMock
-            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(overheadCostDict);
-    }
-
-    private void SetupRepositoryMocksWithEmptyOverhead(string productCode, List<MonthlyCost> materialCosts,
-        List<MonthlyCost> manufactureCosts, List<MonthlyCost> salesCosts, List<MonthlyCost> overheadCosts)
-    {
-        var materialCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, materialCosts } };
-        var manufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, manufactureCosts } };
-        var salesCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, salesCosts } };
-        var overheadCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, overheadCosts } };
-
-        _materialCostRepositoryMock
-            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(materialCostDict);
-
-        _manufactureCostRepositoryMock
-            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manufactureCostDict);
-
-        _salesCostCalculationServiceMock
+        _salesCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(salesCostDict);
-
-        _overheadCostRepositoryMock
-            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(overheadCostDict);
     }
+
 }

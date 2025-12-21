@@ -39,7 +39,6 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
     private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
-    private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
@@ -70,7 +69,6 @@ public class CatalogRepositoryCacheOptimizationTests
         _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
         _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
-        _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
@@ -133,7 +131,6 @@ public class CatalogRepositoryCacheOptimizationTests
             _purchaseOrderRepositoryMock.Object,
             _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
-            _manufactureCostCalculationServiceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _mergeSchedulerMock.Object,
@@ -187,9 +184,6 @@ public class CatalogRepositoryCacheOptimizationTests
 
         _manufactureHistoryClientMock.Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureHistoryRecord>());
-
-        _manufactureCostCalculationServiceMock.Setup(x => x.CalculateManufactureCostHistoryAsync(It.IsAny<List<CatalogAggregate>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, List<ManufactureCost>>());
 
         _transportBoxRepositoryMock.Setup(x => x.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<TransportBox, bool>>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TransportBox>());
