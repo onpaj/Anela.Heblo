@@ -1,15 +1,17 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Flat manufacture cost source (M1_A) - STUB implementation returning constant.
+/// Flat manufacture cost provider (M1_A) - Distributes manufacturing costs across products using ManufactureDifficulty.
 /// Business logic layer with cache fallback.
 /// </summary>
 public class FlatManufactureCostProvider : IFlatManufactureCostProvider
@@ -17,17 +19,26 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
     private readonly IFlatManufactureCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
+    private readonly ILedgerService _ledgerService;
+    private readonly IManufactureHistoryClient _manufactureHistoryClient;
+    private readonly IManufactureDifficultyRepository _difficultyRepository;
     private readonly ILogger<FlatManufactureCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
     public FlatManufactureCostProvider(
         IFlatManufactureCostCache cache,
         ICatalogRepository catalogRepository,
+        ILedgerService ledgerService,
+        IManufactureHistoryClient manufactureHistoryClient,
+        IManufactureDifficultyRepository difficultyRepository,
         ILogger<FlatManufactureCostProvider> logger,
         IOptions<CostCacheOptions> options)
     {
         _cache = cache;
         _catalogRepository = catalogRepository;
+        _ledgerService = ledgerService;
+        _manufactureHistoryClient = manufactureHistoryClient;
+        _difficultyRepository = difficultyRepository;
         _logger = logger;
         _options = options.Value;
     }
