@@ -161,7 +161,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     /// Calculates flat manufacturing costs (M1_A) for a product over a date range.
     /// Uses rolling window approach with ManufactureDifficulty weighting.
     /// </summary>
-    public async Task<List<MonthlyCost>> CalculateFlatManufacturingCostsAsync(
+    internal async Task<List<MonthlyCost>> CalculateFlatManufacturingCostsAsync(
         CatalogAggregate product,
         DateOnly dateFrom,
         DateOnly dateTo,
@@ -280,7 +280,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     /// Gets the historical manufacturing difficulty for a product at a specific date.
     /// Returns DefaultDifficultyValue if no setting exists.
     /// </summary>
-    public async Task<int> GetHistoricalDifficultyAsync(string productCode, DateTime referenceDate, CancellationToken ct = default)
+    internal async Task<int> GetHistoricalDifficultyAsync(string productCode, DateTime referenceDate, CancellationToken ct = default)
     {
         var setting = await _difficultyRepository.FindAsync(productCode, referenceDate, ct);
         return setting?.DifficultyValue ?? DefaultDifficultyValue;
