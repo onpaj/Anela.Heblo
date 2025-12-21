@@ -9,23 +9,23 @@ namespace Anela.Heblo.Application.Features.Catalog.Services;
 
 public class MarginCalculationService : IMarginCalculationService
 {
-    private readonly IMaterialCostProvider _materialCostSource;
-    private readonly IFlatManufactureCostProvider _flatManufactureCostSource;
-    private readonly IDirectManufactureCostProvider _directManufactureCostSource;
-    private readonly ISalesCostProvider _salesCostSource;
+    private readonly IMaterialCostProvider _materialCostProvider;
+    private readonly IFlatManufactureCostProvider _flatManufactureCostProvider;
+    private readonly IDirectManufactureCostProvider _directManufactureCostProvider;
+    private readonly ISalesCostProvider _salesCostProvider;
     private readonly ILogger<MarginCalculationService> _logger;
 
     public MarginCalculationService(
-        IMaterialCostProvider materialCostSource,
-        IFlatManufactureCostProvider flatManufactureCostSource,
-        IDirectManufactureCostProvider directManufactureCostSource,
-        ISalesCostProvider salesCostSource,
+        IMaterialCostProvider materialCostProvider,
+        IFlatManufactureCostProvider flatManufactureCostProvider,
+        IDirectManufactureCostProvider directManufactureCostProvider,
+        ISalesCostProvider salesCostProvider,
         ILogger<MarginCalculationService> logger)
     {
-        _materialCostSource = materialCostSource;
-        _flatManufactureCostSource = flatManufactureCostSource;
-        _directManufactureCostSource = directManufactureCostSource;
-        _salesCostSource = salesCostSource;
+        _materialCostProvider = materialCostProvider;
+        _flatManufactureCostProvider = flatManufactureCostProvider;
+        _directManufactureCostProvider = directManufactureCostProvider;
+        _salesCostProvider = salesCostProvider;
         _logger = logger;
     }
 
@@ -69,10 +69,10 @@ public class MarginCalculationService : IMarginCalculationService
         var productCodes = new List<string> { product.ProductCode };
 
         // Load all cost data once from repositories
-        var materialCosts = await _materialCostSource.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var flatManufactureCosts = await _flatManufactureCostSource.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var directManufactureCosts = await _directManufactureCostSource.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var salesCosts = await _salesCostSource.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var materialCosts = await _materialCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var flatManufactureCosts = await _flatManufactureCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var directManufactureCosts = await _directManufactureCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var salesCosts = await _salesCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
 
         return new CostData
         {
