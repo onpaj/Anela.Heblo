@@ -1,10 +1,10 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Cache;
+using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
-using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -15,7 +15,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficu
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -40,11 +40,10 @@ public static class CatalogModule
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
 
         // Register cost repositories
-        //services.AddTransient<IMaterialCostRepository, CatalogMaterialCostRepository>();
-        services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>(); // Use purchase price only, till stock price is correct
-        services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>(); // STUB - returns constant 15
-        services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>(); // STUB - returns constant 15
-        services.AddTransient<ISalesCostSource, SalesCostSource>(); // STUB - returns constant 15
+        services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
+        services.AddTransient<IFlatManufactureCostProvider, ManufactureCostProvider>(); // STUB - returns constant 15
+        services.AddTransient<IDirectManufactureCostProvider, DirectManufactureCostProvider>(); // STUB - returns constant 15
+        services.AddTransient<ISalesCostProvider, SalesCostProvider>(); // STUB - returns constant 15
 
         // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
@@ -234,24 +233,24 @@ public static class CatalogModule
 
         // Cost source refresh tasks (Tier 2 - after catalog refresh)
         // Sources compute costs and populate cache
-        services.RegisterRefreshTask<IMaterialCostSource>(
+        services.RegisterRefreshTask<IMaterialCostProvider>(
             "RefreshCache",
-            (source, ct) => source.RefreshCacheAsync(ct)
+            (source, ct) => source.RefreshAsync(ct)
         );
 
-        services.RegisterRefreshTask<IFlatManufactureCostSource>(
+        services.RegisterRefreshTask<IFlatManufactureCostProvider>(
             "RefreshCache",
-            (source, ct) => source.RefreshCacheAsync(ct)
+            (source, ct) => source.RefreshAsync(ct)
         );
 
-        services.RegisterRefreshTask<IDirectManufactureCostSource>(
+        services.RegisterRefreshTask<IDirectManufactureCostProvider>(
             "RefreshCache",
-            (source, ct) => source.RefreshCacheAsync(ct)
+            (source, ct) => source.RefreshAsync(ct)
         );
 
-        services.RegisterRefreshTask<ISalesCostSource>(
+        services.RegisterRefreshTask<ISalesCostProvider>(
             "RefreshCache",
-            (source, ct) => source.RefreshCacheAsync(ct)
+            (source, ct) => source.RefreshAsync(ct)
         );
 
         // Margin calculation task

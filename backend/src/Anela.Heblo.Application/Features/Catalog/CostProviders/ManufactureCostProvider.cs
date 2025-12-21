@@ -1,29 +1,29 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.Catalog.Repositories;
+namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Sales/Marketing cost source (M2) - STUB implementation returning constant.
+/// Flat manufacture cost source (M1_A) - STUB implementation returning constant.
 /// Business logic layer with cache fallback.
 /// </summary>
-public class SalesCostSource : ISalesCostSource
+public class ManufactureCostProvider : IFlatManufactureCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
-    private readonly ISalesCostCache _cache;
+    private readonly IFlatManufactureCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILogger<SalesCostSource> _logger;
+    private readonly ILogger<ManufactureCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
-    public SalesCostSource(
-        ISalesCostCache cache,
+    public ManufactureCostProvider(
+        IFlatManufactureCostCache cache,
         ICatalogRepository catalogRepository,
-        ILogger<SalesCostSource> logger,
+        ILogger<ManufactureCostProvider> logger,
         IOptions<CostCacheOptions> options)
     {
         _cache = cache;
@@ -48,38 +48,38 @@ public class SalesCostSource : ISalesCostSource
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("SalesCostCache not hydrated, computing costs directly");
+            _logger.LogWarning("FlatManufactureCostCache not hydrated, computing costs directly");
             return await ComputeCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting sales costs");
+            _logger.LogError(ex, "Error getting flat manufacture costs");
             throw;
         }
     }
 
-    public async Task RefreshCacheAsync(CancellationToken ct = default)
+    public async Task RefreshAsync(CancellationToken ct = default)
     {
         if (!await RefreshLock.WaitAsync(0, ct))
         {
-            _logger.LogInformation("SalesCostCache refresh already in progress, skipping");
+            _logger.LogInformation("FlatManufactureCostCache refresh already in progress, skipping");
             return;
         }
 
         try
         {
-            _logger.LogInformation("Starting SalesCostCache refresh");
+            _logger.LogInformation("Starting FlatManufactureCostCache refresh");
 
             var data = await ComputeAllCostsAsync(ct);
             await _cache.SetCachedDataAsync(data, ct);
 
             _logger.LogInformation(
-                "SalesCostCache refreshed successfully: {ProductCount} products",
+                "FlatManufactureCostCache refreshed successfully: {ProductCount} products",
                 data.ProductCosts.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to refresh SalesCostCache");
+            _logger.LogError(ex, "Failed to refresh FlatManufactureCostCache");
             throw;
         }
         finally
@@ -103,7 +103,7 @@ public class SalesCostSource : ISalesCostSource
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateSalesCosts(product, dateFrom, dateTo);
+            var monthlyCosts = CalculateFlatManufacturingCosts(product, dateFrom, dateTo);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
@@ -139,16 +139,16 @@ public class SalesCostSource : ISalesCostSource
             if (productCodes != null && !productCodes.Contains(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateSalesCosts(product, from, to);
+            var monthlyCosts = CalculateFlatManufacturingCosts(product, from, to);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
         return productCosts;
     }
 
-    private List<MonthlyCost> CalculateSalesCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
+    private List<MonthlyCost> CalculateFlatManufacturingCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
     {
-        // STUB: Returns constant value of 15 (per spec section 2.4)
+        // STUB: Returns constant value of 15 (per spec section 2.2)
         var costs = new List<MonthlyCost>();
 
         var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);

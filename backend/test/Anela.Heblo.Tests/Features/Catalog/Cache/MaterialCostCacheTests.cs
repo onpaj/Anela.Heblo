@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Cache;
+using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
-using Anela.Heblo.Application.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -34,7 +34,7 @@ public class MaterialCostCacheTests
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
         var cache = new MaterialCostCache(memoryCache);
         var catalogRepoMock = new Mock<ICatalogRepository>();
-        var loggerMock = new Mock<ILogger<PurchasePriceOnlyMaterialCostSource>>();
+        var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
         var options = Options.Create(new CostCacheOptions());
 
         catalogRepoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
@@ -42,10 +42,10 @@ public class MaterialCostCacheTests
         catalogRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CatalogAggregate>());
 
-        var source = new PurchasePriceOnlyMaterialCostSource(cache, catalogRepoMock.Object, loggerMock.Object, options);
+        var source = new ManufactureBasedMaterialCostProvider(cache, catalogRepoMock.Object, loggerMock.Object, options);
 
         // Act
-        await source.RefreshCacheAsync();
+        await source.RefreshAsync();
         var result = await cache.GetCachedDataAsync();
 
         // Assert

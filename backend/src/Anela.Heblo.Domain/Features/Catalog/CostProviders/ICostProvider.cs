@@ -1,8 +1,8 @@
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 
-namespace Anela.Heblo.Domain.Features.Catalog.Repositories;
+namespace Anela.Heblo.Domain.Features.Catalog.CostProviders;
 
-public interface ICostDataSource
+public interface ICostProvider
 {
     Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
         List<string>? productCodes = null,
@@ -10,5 +10,5 @@ public interface ICostDataSource
         DateOnly? dateTo = null,
         CancellationToken cancellationToken = default);
 
-    Task RefreshCacheAsync(CancellationToken ct = default);
+    Task RefreshAsync(CancellationToken ct = default);
 }

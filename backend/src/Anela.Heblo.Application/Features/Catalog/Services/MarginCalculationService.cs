@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -9,17 +9,17 @@ namespace Anela.Heblo.Application.Features.Catalog.Services;
 
 public class MarginCalculationService : IMarginCalculationService
 {
-    private readonly IMaterialCostSource _materialCostSource;
-    private readonly IFlatManufactureCostSource _flatManufactureCostSource;
-    private readonly IDirectManufactureCostSource _directManufactureCostSource;
-    private readonly ISalesCostSource _salesCostSource;
+    private readonly IMaterialCostProvider _materialCostSource;
+    private readonly IFlatManufactureCostProvider _flatManufactureCostSource;
+    private readonly IDirectManufactureCostProvider _directManufactureCostSource;
+    private readonly ISalesCostProvider _salesCostSource;
     private readonly ILogger<MarginCalculationService> _logger;
 
     public MarginCalculationService(
-        IMaterialCostSource materialCostSource,
-        IFlatManufactureCostSource flatManufactureCostSource,
-        IDirectManufactureCostSource directManufactureCostSource,
-        ISalesCostSource salesCostSource,
+        IMaterialCostProvider materialCostSource,
+        IFlatManufactureCostProvider flatManufactureCostSource,
+        IDirectManufactureCostProvider directManufactureCostSource,
+        ISalesCostProvider salesCostSource,
         ILogger<MarginCalculationService> logger)
     {
         _materialCostSource = materialCostSource;

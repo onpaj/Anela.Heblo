@@ -1,29 +1,29 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.Catalog.Repositories;
+namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
 /// Direct manufacture cost source (M1_B) - STUB implementation returning constant.
 /// Business logic layer with cache fallback.
 /// </summary>
-public class DirectManufactureCostSource : IDirectManufactureCostSource
+public class DirectManufactureCostProvider : IDirectManufactureCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
     private readonly IDirectManufactureCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILogger<DirectManufactureCostSource> _logger;
+    private readonly ILogger<DirectManufactureCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
-    public DirectManufactureCostSource(
+    public DirectManufactureCostProvider(
         IDirectManufactureCostCache cache,
         ICatalogRepository catalogRepository,
-        ILogger<DirectManufactureCostSource> logger,
+        ILogger<DirectManufactureCostProvider> logger,
         IOptions<CostCacheOptions> options)
     {
         _cache = cache;
@@ -58,7 +58,7 @@ public class DirectManufactureCostSource : IDirectManufactureCostSource
         }
     }
 
-    public async Task RefreshCacheAsync(CancellationToken ct = default)
+    public async Task RefreshAsync(CancellationToken ct = default)
     {
         if (!await RefreshLock.WaitAsync(0, ct))
         {

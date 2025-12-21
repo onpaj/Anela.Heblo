@@ -1,29 +1,29 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.Catalog.Repositories;
+namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Material cost source (M0) - calculates costs from purchase history or manufacturing BoM.
+/// Sales/Marketing cost source (M2) - STUB implementation returning constant.
 /// Business logic layer with cache fallback.
 /// </summary>
-public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
+public class SalesCostProvider : ISalesCostProvider
 {
-    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private readonly IMaterialCostCache _cache;
+    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
+    private readonly ISalesCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILogger<PurchasePriceOnlyMaterialCostSource> _logger;
+    private readonly ILogger<SalesCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
-    public PurchasePriceOnlyMaterialCostSource(
-        IMaterialCostCache cache,
+    public SalesCostProvider(
+        ISalesCostCache cache,
         ICatalogRepository catalogRepository,
-        ILogger<PurchasePriceOnlyMaterialCostSource> logger,
+        ILogger<SalesCostProvider> logger,
         IOptions<CostCacheOptions> options)
     {
         _cache = cache;
@@ -48,44 +48,43 @@ public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("MaterialCostCache not hydrated, computing costs directly");
+            _logger.LogWarning("SalesCostCache not hydrated, computing costs directly");
             return await ComputeCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting material costs");
+            _logger.LogError(ex, "Error getting sales costs");
             throw;
         }
     }
 
-    public async Task RefreshCacheAsync(CancellationToken ct = default)
+    public async Task RefreshAsync(CancellationToken ct = default)
     {
-        if (!await _refreshLock.WaitAsync(0, ct))
+        if (!await RefreshLock.WaitAsync(0, ct))
         {
-            _logger.LogInformation("MaterialCostCache refresh already in progress, skipping");
+            _logger.LogInformation("SalesCostCache refresh already in progress, skipping");
             return;
         }
 
         try
         {
-            _logger.LogInformation("Starting MaterialCostCache refresh");
+            _logger.LogInformation("Starting SalesCostCache refresh");
 
             var data = await ComputeAllCostsAsync(ct);
             await _cache.SetCachedDataAsync(data, ct);
 
             _logger.LogInformation(
-                "MaterialCostCache refreshed successfully: {ProductCount} products, {DateRange}",
-                data.ProductCosts.Count,
-                $"{data.DataFrom} to {data.DataTo}");
+                "SalesCostCache refreshed successfully: {ProductCount} products",
+                data.ProductCosts.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to refresh MaterialCostCache");
+            _logger.LogError(ex, "Failed to refresh SalesCostCache");
             throw;
         }
         finally
         {
-            _refreshLock.Release();
+            RefreshLock.Release();
         }
     }
 
@@ -104,7 +103,7 @@ public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateMaterialCosts(product, dateFrom, dateTo);
+            var monthlyCosts = CalculateSalesCosts(product, dateFrom, dateTo);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
@@ -140,37 +139,24 @@ public class PurchasePriceOnlyMaterialCostSource : IMaterialCostSource
             if (productCodes != null && !productCodes.Contains(product.ProductCode))
                 continue;
 
-            var monthlyCosts = CalculateMaterialCosts(product, from, to);
+            var monthlyCosts = CalculateSalesCosts(product, from, to);
             productCosts[product.ProductCode] = monthlyCosts;
         }
 
         return productCosts;
     }
 
-    private List<MonthlyCost> CalculateMaterialCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
+    private List<MonthlyCost> CalculateSalesCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
     {
-        // Returns purchase price only (per spec section 2.1)
+        // STUB: Returns constant value of 15 (per spec section 2.4)
         var costs = new List<MonthlyCost>();
 
-        if (product.PurchaseHistory == null || !product.PurchaseHistory.Any())
-            return costs;
-
-        // Calculate average purchase price per month
         var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var endMonth = new DateTime(dateTo.Year, dateTo.Month, 1);
 
         while (currentMonth <= endMonth)
         {
-            var monthPurchases = product.PurchaseHistory
-                .Where(p => p.Date.Year == currentMonth.Year && p.Date.Month == currentMonth.Month)
-                .ToList();
-
-            if (monthPurchases.Any())
-            {
-                var avgPrice = monthPurchases.Average(p => p.PricePerPiece);
-                costs.Add(new MonthlyCost(currentMonth, avgPrice));
-            }
-
+            costs.Add(new MonthlyCost(currentMonth, 15m));
             currentMonth = currentMonth.AddMonths(1);
         }
 

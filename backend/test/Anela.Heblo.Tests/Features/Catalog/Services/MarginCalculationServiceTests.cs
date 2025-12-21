@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -20,19 +20,19 @@ namespace Anela.Heblo.Tests.Features.Catalog.Services;
 /// </summary>
 public class MarginCalculationServiceTests
 {
-    private readonly Mock<IMaterialCostSource> _materialCostSourceMock;
-    private readonly Mock<IFlatManufactureCostSource> _flatManufactureCostSourceMock;
-    private readonly Mock<IDirectManufactureCostSource> _directManufactureCostSourceMock;
-    private readonly Mock<ISalesCostSource> _salesCostSourceMock;
+    private readonly Mock<IMaterialCostProvider> _materialCostSourceMock;
+    private readonly Mock<IFlatManufactureCostProvider> _flatManufactureCostSourceMock;
+    private readonly Mock<IDirectManufactureCostProvider> _directManufactureCostSourceMock;
+    private readonly Mock<ISalesCostProvider> _salesCostSourceMock;
     private readonly Mock<ILogger<MarginCalculationService>> _loggerMock;
     private readonly MarginCalculationService _service;
 
     public MarginCalculationServiceTests()
     {
-        _materialCostSourceMock = new Mock<IMaterialCostSource>();
-        _flatManufactureCostSourceMock = new Mock<IFlatManufactureCostSource>();
-        _directManufactureCostSourceMock = new Mock<IDirectManufactureCostSource>();
-        _salesCostSourceMock = new Mock<ISalesCostSource>();
+        _materialCostSourceMock = new Mock<IMaterialCostProvider>();
+        _flatManufactureCostSourceMock = new Mock<IFlatManufactureCostProvider>();
+        _directManufactureCostSourceMock = new Mock<IDirectManufactureCostProvider>();
+        _salesCostSourceMock = new Mock<ISalesCostProvider>();
         _loggerMock = new Mock<ILogger<MarginCalculationService>>();
 
         _service = new MarginCalculationService(
