@@ -117,35 +117,6 @@ public class SalesCostProvider : ISalesCostProvider
         };
     }
 
-    private async Task<Dictionary<string, List<MonthlyCost>>> ComputeCostsAsync(
-        List<string>? productCodes,
-        DateOnly? dateFrom,
-        DateOnly? dateTo,
-        CancellationToken ct)
-    {
-        await _catalogRepository.WaitForCurrentMergeAsync(ct);
-        var products = await _catalogRepository.GetAllAsync(ct);
-
-        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
-        var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
-
-        foreach (var product in products)
-        {
-            if (string.IsNullOrEmpty(product.ProductCode))
-                continue;
-
-            if (productCodes != null && !productCodes.Contains(product.ProductCode))
-                continue;
-
-            var monthlyCosts = CalculateSalesCosts(product, from, to);
-            productCosts[product.ProductCode] = monthlyCosts;
-        }
-
-        return productCosts;
-    }
-
     private List<MonthlyCost> CalculateSalesCosts(CatalogAggregate product, DateOnly dateFrom, DateOnly dateTo)
     {
         // STUB: Returns constant value of 15 (per spec section 2.4)

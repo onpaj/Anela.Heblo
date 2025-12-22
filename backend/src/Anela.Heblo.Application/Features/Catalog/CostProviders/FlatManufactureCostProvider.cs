@@ -23,6 +23,8 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     private readonly ILogger<FlatManufactureCostProvider> _logger;
     private readonly CostCacheOptions _options;
 
+    private const string ManufacturingCostCenter = "VYROBA";
+
     public FlatManufactureCostProvider(
         IFlatManufactureCostCache cache,
         ICatalogRepository catalogRepository,
@@ -98,102 +100,141 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
 
         var products = (await _catalogRepository.GetAllAsync(ct)).ToList();
+        var (dateFrom, dateTo, costsFrom, costsTo) = GetDateRange();
+        var months = GenerateMonthRange(costsFrom, costsTo);
+
+        var manufacturingCosts = await _ledgerService.GetDirectCosts(
+            costsFrom,
+            costsTo,
+            ManufacturingCostCenter,
+            ct);
+        var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
+
+        var weightedTotals = CalculateWeightedManufactureTotals(products, costsFrom, costsTo);
+        var totalWeightedPoints = weightedTotals.Values.Sum(s => s.WeightedManufactured);
+
+        if (totalWeightedPoints == 0)
+        {
+            _logger.LogWarning("No manufacture history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
+            return CreateCostCacheData(CreateEmptyProductCosts(products, months), dateFrom, dateTo);
+        }
+
+        var costPerPoint = totalCost / totalWeightedPoints;
+        var productCosts = CalculateProductCosts(products, weightedTotals, costPerPoint, months);
+
+        return CreateCostCacheData(productCosts, dateFrom, dateTo);
+    }
+
+    private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
+    {
         var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var costsTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month), 23, 59, 59);
 
+        return (dateFrom, dateTo, costsFrom, costsTo);
+    }
+
+    private static List<DateTime> GenerateMonthRange(DateTime from, DateTime to)
+    {
         var months = new List<DateTime>();
-        var newDate = costsFrom;
-        while (newDate <= costsTo)
+        var current = from;
+        while (current <= to)
         {
-            months.Add(newDate);
-            newDate = newDate.AddMonths(1);
+            months.Add(current);
+            current = current.AddMonths(1);
         }
+        return months;
+    }
 
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
+    private static Dictionary<CatalogAggregate, ManufactureSummary> CalculateWeightedManufactureTotals(
+        List<CatalogAggregate> products,
+        DateTime from,
+        DateTime to)
+    {
+        var weightedTotals = new Dictionary<CatalogAggregate, ManufactureSummary>();
 
-        var manufacturingCosts = await _ledgerService.GetDirectCosts(
-            costsFrom,
-            costsTo,
-            "VYROBA",
-            ct);
-
-        var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
-
-        // Calculate weighted manufacture points for each product (amount × difficulty)
-        var manufacturedWeightedTotals = new Dictionary<CatalogAggregate, ManufactureSummary>();
         foreach (var product in products)
         {
             var history = product.ManufactureHistory
-                .Where(w => w.Date >= costsFrom && w.Date <= costsTo)
+                .Where(w => w.Date >= from && w.Date <= to)
                 .ToList(); // Materialize to avoid multiple enumeration
 
             var weightedPoints = history.Sum(s =>
-                {
-                    var difficulty = product.ManufactureDifficultySettings.GetDifficultyForDate(s.Date)?.DifficultyValue ?? 1;
-                    return (decimal)(s.Amount * difficulty);
-                });
+            {
+                var difficulty = product.ManufactureDifficultySettings.GetDifficultyForDate(s.Date)?.DifficultyValue ?? 1;
+                return (decimal)(s.Amount * difficulty);
+            });
+
             var manufactured = history.Sum(s => s.Amount);
 
-            manufacturedWeightedTotals[product] = new ManufactureSummary()
+            weightedTotals[product] = new ManufactureSummary
             {
                 WeightedManufactured = (double)weightedPoints,
                 Manufactured = manufactured
             };
         }
-        
-        var totalWeightedPoints = manufacturedWeightedTotals.Values.Sum(s => s.WeightedManufactured);
 
-        // Handle division by zero - if no manufacture history, return zero costs
-        if (totalWeightedPoints == 0)
-        {
-            _logger.LogWarning("No manufacture history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
+        return weightedTotals;
+    }
 
-            foreach (var product in products)
-            {
-                if (string.IsNullOrEmpty(product.ProductCode))
-                    continue;
-
-                productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, 0m)).ToList();
-            }
-
-            return new CostCacheData
-            {
-                ProductCosts = productCosts,
-                LastUpdated = DateTime.UtcNow,
-                DataFrom = dateFrom,
-                DataTo = dateTo,
-                IsHydrated = true
-            };
-        }
-
-        var costPerPoint = totalCost / totalWeightedPoints;
+    private static Dictionary<string, List<MonthlyCost>> CreateEmptyProductCosts(
+        IEnumerable<CatalogAggregate> products,
+        List<DateTime> months)
+    {
+        var productCosts = new Dictionary<string, List<MonthlyCost>>();
 
         foreach (var product in products)
         {
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
-            
-            var productWeightedPoints = manufacturedWeightedTotals[product];
+
+            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, 0m)).ToList();
+        }
+
+        return productCosts;
+    }
+
+    private static Dictionary<string, List<MonthlyCost>> CalculateProductCosts(
+        List<CatalogAggregate> products,
+        Dictionary<CatalogAggregate, ManufactureSummary> weightedTotals,
+        double costPerPoint,
+        List<DateTime> months)
+    {
+        var productCosts = new Dictionary<string, List<MonthlyCost>>();
+
+        foreach (var product in products)
+        {
+            if (string.IsNullOrEmpty(product.ProductCode))
+                continue;
+
+            var productWeightedPoints = weightedTotals[product];
 
             decimal productCostPerPiece = 0;
-            if(productWeightedPoints.Manufactured > 0)
+            if (productWeightedPoints.Manufactured > 0)
                 productCostPerPiece = (decimal)(productWeightedPoints.WeightedManufactured * costPerPoint / productWeightedPoints.Manufactured);
+
             productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerPiece)).ToList();
         }
 
+        return productCosts;
+    }
+
+    private static CostCacheData CreateCostCacheData(
+        Dictionary<string, List<MonthlyCost>> productCosts,
+        DateOnly dataFrom,
+        DateOnly dataTo)
+    {
         return new CostCacheData
         {
             ProductCosts = productCosts,
             LastUpdated = DateTime.UtcNow,
-            DataFrom = dateFrom,
-            DataTo = dateTo,
+            DataFrom = dataFrom,
+            DataTo = dataTo,
             IsHydrated = true
         };
     }
-
 
     private static Dictionary<string, List<MonthlyCost>> FilterByProductCodes(
         Dictionary<string, List<MonthlyCost>> allCosts,
