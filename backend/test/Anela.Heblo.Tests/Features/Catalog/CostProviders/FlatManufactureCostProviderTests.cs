@@ -154,11 +154,11 @@ public class FlatManufactureCostProviderTests
         // Assert
         // Total weighted points = 20 + 80 = 100
         // Cost per point = 9000 / 100 = 90
-        // PROD001 cost = 20 * 90 = 1800
+        // PROD001 cost per piece = (20 * 90) / 10 = 180
         Assert.True(result.ContainsKey(product1Code));
         var costs = result[product1Code];
         Assert.True(costs.Count >= 1);
-        Assert.Equal(1800m, costs[0].Cost);
+        Assert.Equal(180m, costs[0].Cost);
     }
 
     [Fact]

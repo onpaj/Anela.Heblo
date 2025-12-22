@@ -120,23 +120,31 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             "VYROBA",
             ct);
 
-        var totalCost = manufacturingCosts.Sum(c => c.Cost);
+        var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
 
         // Calculate weighted manufacture points for each product (amount × difficulty)
-        var manufacturedWeightedTotals = new Dictionary<CatalogAggregate, decimal>();
+        var manufacturedWeightedTotals = new Dictionary<CatalogAggregate, ManufactureSummary>();
         foreach (var product in products)
         {
-            var weightedPoints = product.ManufactureHistory
+            var history = product.ManufactureHistory
                 .Where(w => w.Date >= costsFrom && w.Date <= costsTo)
-                .Sum(s =>
+                .ToList(); // Materialize to avoid multiple enumeration
+
+            var weightedPoints = history.Sum(s =>
                 {
                     var difficulty = product.ManufactureDifficultySettings.GetDifficultyForDate(s.Date)?.DifficultyValue ?? 1;
                     return (decimal)(s.Amount * difficulty);
                 });
-            manufacturedWeightedTotals[product] = weightedPoints;
-        }
+            var manufactured = history.Sum(s => s.Amount);
 
-        var totalWeightedPoints = manufacturedWeightedTotals.Values.Sum();
+            manufacturedWeightedTotals[product] = new ManufactureSummary()
+            {
+                WeightedManufactured = (double)weightedPoints,
+                Manufactured = manufactured
+            };
+        }
+        
+        var totalWeightedPoints = manufacturedWeightedTotals.Values.Sum(s => s.WeightedManufactured);
 
         // Handle division by zero - if no manufacture history, return zero costs
         if (totalWeightedPoints == 0)
@@ -167,11 +175,13 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         {
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
-
+            
             var productWeightedPoints = manufacturedWeightedTotals[product];
-            var productCostPerMonth = productWeightedPoints * costPerPoint / months.Count;
 
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerMonth)).ToList();
+            decimal productCostPerPiece = 0;
+            if(productWeightedPoints.Manufactured > 0)
+                productCostPerPiece = (decimal)(productWeightedPoints.WeightedManufactured * costPerPoint / productWeightedPoints.Manufactured);
+            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerPiece)).ToList();
         }
 
         return new CostCacheData
@@ -196,4 +206,10 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             .Where(kvp => productCodes.Contains(kvp.Key))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
+}
+
+internal class ManufactureSummary
+{
+    public double WeightedManufactured { get; set; }
+    public double Manufactured { get; set; }
 }
