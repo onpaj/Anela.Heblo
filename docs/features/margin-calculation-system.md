@@ -2,7 +2,7 @@
 
 ## 📊 Přehled
 
-Anela Heblo implementuje čtyřúrovňový systém výpočtu marží (M0-M3) s detailním sledováním nákladů. Každá úroveň postupně přidává další nákladové kategorie pro komplexní analýzu ziskovosti produktů.
+Anela Heblo implementuje tříúrovňový systém výpočtu marží (M0-M2) s detailním sledováním nákladů. Každá úroveň postupně přidává další nákladové kategorie pro komplexní analýzu ziskovosti produktů.
 
 ## 🏗️ Architektura systému
 
@@ -34,17 +34,11 @@ M1 = Prodejní cena - (Materiál + Výroba)
 ```
 **Účel**: Marže po odečtení materiálu + zpracování při výrobě
 
-### M2 - Obchodní marže
+### M2 - Obchodní marže (finální)
 ```
 M2 = Prodejní cena - (Materiál + Výroba + Prodej/Marketing)
 ```
-**Účel**: Marže po odečtení všech nákladů včetně marketingu a skladu
-
-### M3 - Čistá marže
-```
-M3 = Prodejní cena - (Materiál + Výroba + Prodej + Režie)
-```
-**Účel**: Finální zisk po odečtení všech nákladů včetně administrativy
+**Účel**: Finální marže po odečtení všech nákladů včetně marketingu a skladu
 
 ## 🆕 Nová struktura MarginLevel
 
@@ -62,26 +56,22 @@ M3 = Prodejní cena - (Materiál + Výroba + Prodej + Režie)
 **Nákladové komponenty:**
 - Materiál: 50 Kč
 - Výroba: 30 Kč
-- Prodej/Marketing: 40 Kč  
-- Režie: 20 Kč
+- Prodej/Marketing: 40 Kč
 
 **CostTotal (kumulativní náklady):**
 - **M0.CostTotal = 50 Kč** (jen materiál)
 - **M1.CostTotal = 80 Kč** (materiál + výroba)
-- **M2.CostTotal = 120 Kč** (materiál + výroba + prodej)
-- **M3.CostTotal = 140 Kč** (všechny náklady)
+- **M2.CostTotal = 120 Kč** (materiál + výroba + prodej) - finální náklady
 
 **CostLevel (náklady jen pro úroveň):**
 - **M0.CostLevel = 50 Kč** (materiálové náklady)
 - **M1.CostLevel = 30 Kč** (výrobní náklady)
 - **M2.CostLevel = 40 Kč** (prodejní náklady)
-- **M3.CostLevel = 20 Kč** (režijní náklady)
 
 **Výsledné marže:**
 - **M0**: 200 - 50 = 150 Kč (75%)
 - **M1**: 200 - 80 = 120 Kč (60%)
-- **M2**: 200 - 120 = 80 Kč (40%)
-- **M3**: 200 - 140 = 60 Kč (30%)
+- **M2**: 200 - 120 = 80 Kč (40%) - finální marže
 
 ## 💻 Technická implementace
 
@@ -104,7 +94,6 @@ return new MonthlyMarginData
     M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0Cost, materialCost),
     M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1Cost, manufacturingCost),
     M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2Cost, salesCost),
-    M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3Cost, overheadCost),
     CostsForMonth = costBreakdown
 };
 ```
@@ -129,12 +118,18 @@ return new MonthlyMarginData
         "CostTotal": 80.0,
         "CostLevel": 30.0
       },
-      // ... M2, M3
+      "M2": {
+        "Percentage": 40.0,
+        "Amount": 80.0,
+        "CostTotal": 120.0,
+        "CostLevel": 40.0
+      }
     }
   ],
   "Averages": {
     "M0": { "Percentage": 72.5, "Amount": 145.0, "CostTotal": 52.5, "CostLevel": 52.5 },
-    // ... M1, M2, M3 průměry
+    "M1": { "Percentage": 60.0, "Amount": 120.0, "CostTotal": 80.0, "CostLevel": 30.0 },
+    "M2": { "Percentage": 40.0, "Amount": 80.0, "CostTotal": 120.0, "CostLevel": 40.0 }
   }
 }
 ```
@@ -193,18 +188,17 @@ return new MonthlyMarginData
 const costLevels = [
   { name: 'Materiál', value: marginData.M0.CostLevel },
   { name: 'Výroba', value: marginData.M1.CostLevel },
-  { name: 'Prodej', value: marginData.M2.CostLevel },
-  { name: 'Režie', value: marginData.M3.CostLevel }
+  { name: 'Prodej', value: marginData.M2.CostLevel }
 ];
 ```
 
 ### Srovnání celkových vs. přírůstkových nákladů
 ```typescript
-// Celkové náklady (kumulativní)
-const totalCosts = marginData.M3.CostTotal;
+// Celkové náklady (kumulativní) - finální
+const totalCosts = marginData.M2.CostTotal;
 
-// Náklady této úrovně (pouze režie)
-const overheadCosts = marginData.M3.CostLevel;
+// Náklady této úrovně (pouze prodej/marketing)
+const salesCosts = marginData.M2.CostLevel;
 ```
 
 ## 🏷️ Verze a změny

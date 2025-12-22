@@ -267,7 +267,7 @@ public class MarginData
 }
 ```
 
-**Změna oproti v1:** Struktura se mění z `M0, M1, M2, M3` na `M0, M1_A, M1_B, M2`.
+**Změna oproti v1:** Struktura používá `M0, M1_A, M1_B, M2` s M2 jako finální úrovní marže.
 
 ### 4.2 MonthlyMarginHistory
 
