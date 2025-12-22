@@ -202,17 +202,15 @@ public class AnalyticsRepository : IAnalyticsRepository
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,
 
-            // M0-M3 margin amounts
+            // M0-M2 margin amounts
             M0Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Amount,
             M1Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Amount,
             M2Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Amount,
-            M3Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M3.Amount,
 
-            // M0-M3 margin percentages
+            // M0-M2 margin percentages
             M0Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Percentage,
             M1Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Percentage,
             M2Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Percentage,
-            M3Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M3.Percentage,
 
             // Pricing
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
