@@ -164,7 +164,7 @@ const ProductMarginSummary: React.FC = () => {
     return { labels, datasets };
   }, [data]);
 
-  // Prepare table data using topProducts which already contain all M0-M3 data
+  // Prepare table data using topProducts which already contain all M0-M2 data
   const tableData = useMemo(() => {
     if (!data?.topProducts) return [];
 
