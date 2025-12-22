@@ -268,7 +268,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
             .Select(m => new MarginHistoryDto
             {
                 Date = m.Key,
-                SellingPrice = m.Value.M3.CostBase + m.Value.M3.Amount, // Reconstructed selling price from highest level
+                SellingPrice = m.Value.M2.CostTotal + m.Value.M2.Amount, // Reconstructed selling price from M2 (highest level now)
                 TotalCost = m.Value.M0.CostBase, // Base cost (material + manufacturing)
 
                 // M0 - Material + Manufacturing costs
@@ -289,22 +289,13 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                     CostTotal = m.Value.M1.CostTotal
                 },
 
-                // M2 - M1 + Sales costs
+                // M2 - M1 + Sales costs (final margin level now)
                 M2 = new MarginLevelDto
                 {
                     Percentage = m.Value.M2.Percentage,
                     Amount = m.Value.M2.Amount,
                     CostLevel = m.Value.M2.CostLevel,
                     CostTotal = m.Value.M2.CostTotal
-                },
-
-                // M3 - M2 + Overhead costs (final margin)
-                M3 = new MarginLevelDto
-                {
-                    Percentage = m.Value.M3.Percentage,
-                    Amount = m.Value.M3.Amount,
-                    CostLevel = m.Value.M3.CostLevel,
-                    CostTotal = m.Value.M3.CostTotal
                 }
             }).ToList();
     }

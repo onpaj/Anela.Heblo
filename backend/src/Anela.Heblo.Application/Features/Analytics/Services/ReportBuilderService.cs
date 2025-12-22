@@ -86,17 +86,17 @@ public class ReportBuilderService : IReportBuilderService
             Category = product.ProductCategory ?? AnalyticsConstants.DEFAULT_CATEGORY,
             MarginAmount = marginData.Margin,
 
-            // M0-M3 margin levels - amounts
+            // M0-M2 margin levels - amounts
             M0Amount = product.M0Amount,
             M1Amount = product.M1Amount,
             M2Amount = product.M2Amount,
-            M3Amount = product.M3Amount,
+            M3Amount = product.M2Amount, // M3 is now semantically M2
 
-            // M0-M3 margin levels - percentages
+            // M0-M2 margin levels - percentages
             M0Percentage = product.M0Percentage,
             M1Percentage = product.M1Percentage,
             M2Percentage = product.M2Percentage,
-            M3Percentage = product.M3Percentage,
+            M3Percentage = product.M2Percentage, // M3 is now semantically M2
 
             // Pricing
             SellingPrice = product.SellingPrice,

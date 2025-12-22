@@ -137,8 +137,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             overallTotals.Add(marginData);
         }
 
-        // Sort products by M3 margin percentage (net profitability percentage, descending)
-        productSummaries = productSummaries.OrderByDescending(p => p.M3Percentage).ToList();
+        // Sort products by M2 margin percentage (net profitability percentage, descending)
+        productSummaries = productSummaries.OrderByDescending(p => p.M2Percentage).ToList();
 
         // Build category summaries
         var categorySummaries = _reportBuilderService.BuildCategorySummaries(categoryTotals);

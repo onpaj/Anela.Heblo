@@ -90,13 +90,13 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                     M0Amount = groupData.M0Amount,
                     M1Amount = groupData.M1Amount,
                     M2Amount = groupData.M2Amount,
-                    M3Amount = groupData.M3Amount,
+                    M3Amount = groupData.M2Amount, // M3 is now semantically M2
 
-                    // M0-M3 margin levels - percentages (averaged)
+                    // M0-M2 margin levels - percentages (averaged)
                     M0Percentage = groupData.M0Percentage,
                     M1Percentage = groupData.M1Percentage,
                     M2Percentage = groupData.M2Percentage,
-                    M3Percentage = groupData.M3Percentage,
+                    M3Percentage = groupData.M2Percentage, // M3 is now semantically M2
 
                     // Pricing (averaged)
                     SellingPrice = groupData.SellingPrice,
@@ -136,11 +136,9 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 M0Amount = products.Average(p => p.M0Amount),
                 M1Amount = products.Average(p => p.M1Amount),
                 M2Amount = products.Average(p => p.M2Amount),
-                M3Amount = products.Average(p => p.M3Amount),
                 M0Percentage = products.Average(p => p.M0Percentage),
                 M1Percentage = products.Average(p => p.M1Percentage),
                 M2Percentage = products.Average(p => p.M2Percentage),
-                M3Percentage = products.Average(p => p.M3Percentage),
                 SellingPrice = products.Average(p => p.SellingPrice),
                 PurchasePrice = products.Average(p => p.PurchasePrice)
             };
@@ -152,11 +150,9 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             M0Amount = products.Sum(p => p.M0Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             M1Amount = products.Sum(p => p.M1Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             M2Amount = products.Sum(p => p.M2Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M3Amount = products.Sum(p => p.M3Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             M0Percentage = products.Sum(p => p.M0Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             M1Percentage = products.Sum(p => p.M1Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             M2Percentage = products.Sum(p => p.M2Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M3Percentage = products.Sum(p => p.M3Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             SellingPrice = products.Sum(p => p.SellingPrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
             PurchasePrice = products.Sum(p => p.PurchasePrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales
         };
@@ -196,10 +192,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             "m2amount" => sortDescending
                 ? products.OrderByDescending(p => p.M2Amount).ToList()
                 : products.OrderBy(p => p.M2Amount).ToList(),
-            "m3amount" => sortDescending
-                ? products.OrderByDescending(p => p.M3Amount).ToList()
-                : products.OrderBy(p => p.M3Amount).ToList(),
-            // M0-M3 margin levels - percentages
+            // M0-M2 margin levels - percentages
             "m0percentage" => sortDescending
                 ? products.OrderByDescending(p => p.M0Percentage).ToList()
                 : products.OrderBy(p => p.M0Percentage).ToList(),
@@ -209,9 +202,6 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             "m2percentage" => sortDescending
                 ? products.OrderByDescending(p => p.M2Percentage).ToList()
                 : products.OrderBy(p => p.M2Percentage).ToList(),
-            "m3percentage" => sortDescending
-                ? products.OrderByDescending(p => p.M3Percentage).ToList()
-                : products.OrderBy(p => p.M3Percentage).ToList(),
             // Pricing
             "sellingprice" => sortDescending
                 ? products.OrderByDescending(p => p.SellingPrice).ToList()
@@ -241,8 +231,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 "M0" => product.M0Amount,
                 "M1" => product.M1Amount,
                 "M2" => product.M2Amount,
-                "M3" => product.M3Amount,
-                _ => product.M3Amount // Default to M3
+                _ => product.M2Amount // Default to M2 (highest level now)
             };
 
             totalMargin += (decimal)totalSales * marginPerUnit;
@@ -261,11 +250,9 @@ internal class GroupMarginData
     public decimal M0Amount { get; set; }
     public decimal M1Amount { get; set; }
     public decimal M2Amount { get; set; }
-    public decimal M3Amount { get; set; }
     public decimal M0Percentage { get; set; }
     public decimal M1Percentage { get; set; }
     public decimal M2Percentage { get; set; }
-    public decimal M3Percentage { get; set; }
     public decimal SellingPrice { get; set; }
     public decimal PurchasePrice { get; set; }
 }
