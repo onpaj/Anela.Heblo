@@ -22,17 +22,15 @@ public class GetMarginReportResponse : BaseResponse
         public string Category { get; set; } = string.Empty;
         public decimal MarginAmount { get; set; }
 
-        // M0-M3 margin levels - amounts (for sorting)
+        // M0-M2 margin levels - amounts (for sorting)
         public decimal M0Amount { get; set; }
         public decimal M1Amount { get; set; }
         public decimal M2Amount { get; set; }
-        public decimal M3Amount { get; set; }
 
-        // M0-M3 margin levels - percentages (for sorting)
+        // M0-M2 margin levels - percentages (for sorting)
         public decimal M0Percentage { get; set; }
         public decimal M1Percentage { get; set; }
         public decimal M2Percentage { get; set; }
-        public decimal M3Percentage { get; set; }
 
         // Pricing (for sorting)
         public decimal SellingPrice { get; set; }

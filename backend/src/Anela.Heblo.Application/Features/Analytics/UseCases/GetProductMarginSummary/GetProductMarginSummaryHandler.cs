@@ -86,17 +86,15 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                     TotalMargin = totalMarginForLevel,
                     ColorCode = "", // Color will be assigned on frontend
 
-                    // M0-M3 margin levels - amounts (averaged)
+                    // M0-M2 margin levels - amounts (averaged)
                     M0Amount = groupData.M0Amount,
                     M1Amount = groupData.M1Amount,
                     M2Amount = groupData.M2Amount,
-                    M3Amount = groupData.M2Amount, // M3 is now semantically M2
 
                     // M0-M2 margin levels - percentages (averaged)
                     M0Percentage = groupData.M0Percentage,
                     M1Percentage = groupData.M1Percentage,
                     M2Percentage = groupData.M2Percentage,
-                    M3Percentage = groupData.M2Percentage, // M3 is now semantically M2
 
                     // Pricing (averaged)
                     SellingPrice = groupData.SellingPrice,
