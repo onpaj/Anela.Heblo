@@ -261,7 +261,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         // Use pre-calculated margin data from CatalogAggregate.Margins
         var marginHistory = catalogItem.Margins;
 
-        // Filter and convert to DTOs with all M0-M3 margin levels
+        // Filter and convert to DTOs with all M0-M2 margin levels
         return marginHistory.MonthlyData
             .Where(m => m.Key >= fromDate)
             .OrderByDescending(m => m.Key)

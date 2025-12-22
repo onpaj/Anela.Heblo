@@ -116,7 +116,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             var margin = revenue - cost;
             var marginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0;
 
-            // Create margin data using the product's already calculated M0-M3 data
+            // Create margin data using the product's already calculated M0-M2 data
             var marginData = new AnalysisMarginData
             {
                 Margin = margin,

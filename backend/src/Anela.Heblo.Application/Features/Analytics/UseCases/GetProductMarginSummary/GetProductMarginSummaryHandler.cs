@@ -180,7 +180,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             "totalmargin" => sortDescending
                 ? products.OrderByDescending(p => p.TotalMargin).ToList()
                 : products.OrderBy(p => p.TotalMargin).ToList(),
-            // M0-M3 margin levels - amounts
+            // M0-M2 margin levels - amounts
             "m0amount" => sortDescending
                 ? products.OrderByDescending(p => p.M0Amount).ToList()
                 : products.OrderBy(p => p.M0Amount).ToList(),

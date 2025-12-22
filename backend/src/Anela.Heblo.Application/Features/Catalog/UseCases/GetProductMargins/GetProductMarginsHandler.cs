@@ -151,7 +151,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "manufacturedifficulty" => sortDescending
                 ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
                 : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
-            // M0-M3 margin levels - amounts (using pre-calculated data)
+            // M0-M2 margin levels - amounts (using pre-calculated data)
             "m0amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M0.Amount),
