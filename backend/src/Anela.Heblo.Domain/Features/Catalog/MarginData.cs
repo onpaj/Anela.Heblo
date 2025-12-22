@@ -10,7 +10,4 @@ public class MarginData
     // Backward compatibility - map old names to new structure
     [Obsolete("Use M1_A (flat manufacturing cost) instead. This property maps to M1_A for backward compatibility.")]
     public MarginLevel M1 => M1_A;
-
-    [Obsolete("Use M2 instead. The old M3 property has been renamed to M2.")]
-    public MarginLevel M3 => M2;
 }
