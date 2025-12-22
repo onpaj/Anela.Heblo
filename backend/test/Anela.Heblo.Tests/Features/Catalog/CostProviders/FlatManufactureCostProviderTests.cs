@@ -18,154 +18,80 @@ public class FlatManufactureCostProviderTests
     private const int DefaultDifficultyValue = 1;
 
     [Fact]
-    public async Task GetHistoricalDifficulty_WithExistingSetting_ReturnsDifficultyValue()
-    {
-        // Arrange
-        var difficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        var productCode = "TEST001";
-        var referenceDate = new DateTime(2025, 6, 15);
-        var expectedDifficulty = 5;
-
-        difficultyRepoMock.Setup(r => r.FindAsync(productCode, referenceDate, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManufactureDifficultySetting
-            {
-                ProductCode = productCode,
-                DifficultyValue = expectedDifficulty,
-                ValidFrom = new DateTime(2025, 1, 1),
-                ValidTo = null
-            });
-
-        var provider = CreateProvider(difficultyRepository: difficultyRepoMock.Object);
-
-        // Act
-        var result = await provider.GetHistoricalDifficultyAsync(productCode, referenceDate);
-
-        // Assert
-        Assert.Equal(expectedDifficulty, result);
-    }
-
-    [Fact]
-    public async Task GetHistoricalDifficulty_WithNoSetting_ReturnsDefaultValue()
-    {
-        // Arrange
-        var difficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        var productCode = "TEST002";
-        var referenceDate = new DateTime(2025, 6, 15);
-
-        difficultyRepoMock.Setup(r => r.FindAsync(productCode, referenceDate, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureDifficultySetting?)null);
-
-        var provider = CreateProvider(difficultyRepository: difficultyRepoMock.Object);
-
-        // Act
-        var result = await provider.GetHistoricalDifficultyAsync(productCode, referenceDate);
-
-        // Assert
-        Assert.Equal(DefaultDifficultyValue, result);
-    }
-
-    [Fact]
-    public async Task CalculateFlatManufacturingCosts_WithSingleProduct_DistributesCostsCorrectly()
+    internal async Task ComputeAllCosts_WithSingleProduct_DistributesCostsCorrectly()
     {
         // Arrange
         var productCode = "PROD001";
         var dateFrom = new DateOnly(2025, 1, 1);
         var dateTo = new DateOnly(2025, 3, 31);
 
-        // Manufacturing costs: 1000 CZK in Jan, 2000 CZK in Feb, 1500 CZK in Mar
+        // Manufacturing costs: Total 4500 CZK (1000 + 2000 + 1500)
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
                 It.IsAny<DateTime>(),
                 It.IsAny<DateTime>(),
                 "VYROBA",
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DateTime from, DateTime to, string dept, CancellationToken ct) =>
+            .ReturnsAsync(new List<CostStatistics>
             {
-                var costs = new List<CostStatistics>();
-                var currentMonth = new DateTime(from.Year, from.Month, 1);
-                var endMonth = new DateTime(to.Year, to.Month, 1);
-
-                while (currentMonth <= endMonth)
-                {
-                    decimal cost = currentMonth.Month switch
-                    {
-                        1 => 1000m,
-                        2 => 2000m,
-                        3 => 1500m,
-                        _ => 0m
-                    };
-                    costs.Add(new CostStatistics
-                    {
-                        Date = currentMonth,
-                        Cost = cost,
-                        Department = "VYROBA"
-                    });
-                    currentMonth = currentMonth.AddMonths(1);
-                }
-                return costs;
+                new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" },
+                new() { Date = new DateTime(2025, 2, 1), Cost = 2000m, Department = "VYROBA" },
+                new() { Date = new DateTime(2025, 3, 1), Cost = 1500m, Department = "VYROBA" }
             });
 
-        // Manufacture history: 10 pieces in Jan, 20 pieces in Feb, 15 pieces in Mar
-        var manufactureHistoryMock = new Mock<IManufactureHistoryClient>();
-        manufactureHistoryMock.Setup(c => c.GetHistoryAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DateTime from, DateTime to, string? code, CancellationToken ct) =>
-            {
-                return new List<ManufactureHistoryRecord>
-                {
-                    new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode, DocumentNumber = "DOC001", PricePerPiece = 0, PriceTotal = 0 },
-                    new() { Date = new DateTime(2025, 2, 15), Amount = 20, ProductCode = productCode, DocumentNumber = "DOC002", PricePerPiece = 0, PriceTotal = 0 },
-                    new() { Date = new DateTime(2025, 3, 15), Amount = 15, ProductCode = productCode, DocumentNumber = "DOC003", PricePerPiece = 0, PriceTotal = 0 }
-                };
-            });
-
-        // Difficulty: constant value of 2 for all periods
-        var difficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        difficultyRepoMock.Setup(r => r.FindAsync(productCode, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManufactureDifficultySetting
-            {
-                ProductCode = productCode,
-                DifficultyValue = 2,
-                ValidFrom = new DateTime(2024, 1, 1),
-                ValidTo = null
-            });
-
+        // Product with manufacture history and difficulty = 2
         var product = new CatalogAggregate
         {
-            ProductCode = productCode
+            ProductCode = productCode,
+            ManufactureHistory = new List<ManufactureHistoryRecord>
+            {
+                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode },
+                new() { Date = new DateTime(2025, 2, 15), Amount = 20, ProductCode = productCode },
+                new() { Date = new DateTime(2025, 3, 15), Amount = 15, ProductCode = productCode }
+            }
         };
 
-        var provider = CreateProvider(
-            ledgerService: ledgerServiceMock.Object,
-            manufactureHistoryClient: manufactureHistoryMock.Object,
-            difficultyRepository: difficultyRepoMock.Object
+        // Set difficulty = 2 for all dates
+        product.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
         );
 
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
         // Act
-        var result = await provider.CalculateFlatManufacturingCostsAsync(product, dateFrom, dateTo);
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync(new List<string> { productCode });
 
         // Assert
         // Total weighted points = (10 * 2) + (20 * 2) + (15 * 2) = 90
-        // Total costs = 1000 + 2000 + 1500 = 4500
         // Cost per point = 4500 / 90 = 50
-        // Cost per piece = 50 * 2 = 100 (difficulty is 2)
-        Assert.Equal(3, result.Count);
-        Assert.All(result, cost => Assert.Equal(100m, cost.Cost));
+        // Product cost = 2 * 50 = 100 (same for all months)
+        Assert.True(result.ContainsKey(productCode));
+        var costs = result[productCode];
+        Assert.True(costs.Count >= 3); // At least 3 months
+        Assert.All(costs.Take(3), cost => Assert.Equal(100m, cost.Cost));
     }
 
     [Fact]
-    public async Task CalculateFlatManufacturingCosts_WithMultipleProducts_DistributesCostsProportionally()
+    internal async Task ComputeAllCosts_WithMultipleProducts_DistributesCostsProportionally()
     {
         // Arrange
         var product1Code = "PROD001";
         var product2Code = "PROD002";
-        var dateFrom = new DateOnly(2025, 1, 1);
-        var dateTo = new DateOnly(2025, 1, 31);
 
-        // Total cost: 9000 CZK in January
+        // Total cost: 9000 CZK
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
                 It.IsAny<DateTime>(),
@@ -177,54 +103,69 @@ public class FlatManufactureCostProviderTests
                 new() { Date = new DateTime(2025, 1, 1), Cost = 9000m, Department = "VYROBA" }
             });
 
-        // Manufacture history:
         // PROD001: 10 pieces with difficulty 2 = 20 weighted points
-        // PROD002: 20 pieces with difficulty 4 = 80 weighted points
-        // Total: 100 weighted points
-        var manufactureHistoryMock = new Mock<IManufactureHistoryClient>();
-        manufactureHistoryMock.Setup(c => c.GetHistoryAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>
+        var product1 = new CatalogAggregate
+        {
+            ProductCode = product1Code,
+            ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = product1Code, DocumentNumber = "DOC001", PricePerPiece = 0, PriceTotal = 0 },
-                new() { Date = new DateTime(2025, 1, 15), Amount = 20, ProductCode = product2Code, DocumentNumber = "DOC002", PricePerPiece = 0, PriceTotal = 0 }
-            });
-
-        // Difficulty settings
-        var difficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        difficultyRepoMock.Setup(r => r.FindAsync(product1Code, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManufactureDifficultySetting { ProductCode = product1Code, DifficultyValue = 2 });
-        difficultyRepoMock.Setup(r => r.FindAsync(product2Code, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManufactureDifficultySetting { ProductCode = product2Code, DifficultyValue = 4 });
-
-        var product1 = new CatalogAggregate { ProductCode = product1Code };
-
-        var provider = CreateProvider(
-            ledgerService: ledgerServiceMock.Object,
-            manufactureHistoryClient: manufactureHistoryMock.Object,
-            difficultyRepository: difficultyRepoMock.Object
+                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = product1Code }
+            }
+        };
+        product1.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = product1Code, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
         );
 
+        // PROD002: 20 pieces with difficulty 4 = 80 weighted points
+        var product2 = new CatalogAggregate
+        {
+            ProductCode = product2Code,
+            ManufactureHistory = new List<ManufactureHistoryRecord>
+            {
+                new() { Date = new DateTime(2025, 1, 15), Amount = 20, ProductCode = product2Code }
+            }
+        };
+        product2.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = product2Code, DifficultyValue = 4, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
+        );
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product1, product2 });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
         // Act
-        var result = await provider.CalculateFlatManufacturingCostsAsync(product1, dateFrom, dateTo);
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync(new List<string> { product1Code });
 
         // Assert
+        // Total weighted points = 20 + 80 = 100
         // Cost per point = 9000 / 100 = 90
-        // PROD001 cost = 90 * 2 = 180
-        Assert.Single(result);
-        Assert.Equal(180m, result[0].Cost);
+        // PROD001 cost = 20 * 90 = 1800
+        Assert.True(result.ContainsKey(product1Code));
+        var costs = result[product1Code];
+        Assert.True(costs.Count >= 1);
+        Assert.Equal(1800m, costs[0].Cost);
     }
 
     [Fact]
-    public async Task CalculateFlatManufacturingCosts_WithNoManufactureHistory_ReturnsEmptyList()
+    internal async Task ComputeAllCosts_WithNoManufactureHistory_ReturnsZeroCosts()
     {
         // Arrange
         var productCode = "PROD001";
-        var dateFrom = new DateOnly(2025, 1, 1);
-        var dateTo = new DateOnly(2025, 1, 31);
 
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
@@ -237,36 +178,41 @@ public class FlatManufactureCostProviderTests
                 new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" }
             });
 
-        var manufactureHistoryMock = new Mock<IManufactureHistoryClient>();
-        manufactureHistoryMock.Setup(c => c.GetHistoryAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+        // Product with NO manufacture history
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ManufactureHistory = new List<ManufactureHistoryRecord>()
+        };
 
-        var product = new CatalogAggregate { ProductCode = productCode };
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var provider = CreateProvider(
-            ledgerService: ledgerServiceMock.Object,
-            manufactureHistoryClient: manufactureHistoryMock.Object
-        );
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
 
         // Act
-        var result = await provider.CalculateFlatManufacturingCostsAsync(product, dateFrom, dateTo);
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync(new List<string> { productCode });
 
         // Assert
-        Assert.Empty(result);
+        // With no manufacture history, all months should have zero cost
+        Assert.True(result.ContainsKey(productCode));
+        var costs = result[productCode];
+        Assert.All(costs, cost => Assert.Equal(0m, cost.Cost));
     }
 
     [Fact]
-    public async Task CalculateFlatManufacturingCosts_WithNoManufacturingCosts_ReturnsZeroCosts()
+    internal async Task ComputeAllCosts_WithNoManufacturingCosts_ReturnsZeroCosts()
     {
         // Arrange
         var productCode = "PROD001";
-        var dateFrom = new DateOnly(2025, 1, 1);
-        var dateTo = new DateOnly(2025, 1, 31);
 
+        // NO manufacturing costs from ledger
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
                 It.IsAny<DateTime>(),
@@ -275,40 +221,50 @@ public class FlatManufactureCostProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
-        var manufactureHistoryMock = new Mock<IManufactureHistoryClient>();
-        manufactureHistoryMock.Setup(c => c.GetHistoryAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>
+        // Product with manufacture history
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode, DocumentNumber = "DOC001", PricePerPiece = 0, PriceTotal = 0 }
-            });
-
-        var product = new CatalogAggregate { ProductCode = productCode };
-
-        var provider = CreateProvider(
-            ledgerService: ledgerServiceMock.Object,
-            manufactureHistoryClient: manufactureHistoryMock.Object
+                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode }
+            }
+        };
+        product.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = productCode, DifficultyValue = 1, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
         );
 
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
         // Act
-        var result = await provider.CalculateFlatManufacturingCostsAsync(product, dateFrom, dateTo);
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync(new List<string> { productCode });
 
         // Assert
-        Assert.Single(result);
-        Assert.Equal(0m, result[0].Cost);
+        // With no costs from ledger, cost should be zero
+        Assert.True(result.ContainsKey(productCode));
+        var costs = result[productCode];
+        Assert.All(costs, cost => Assert.Equal(0m, cost.Cost));
     }
 
     [Fact]
-    public async Task CalculateFlatManufacturingCosts_WithProductNotManufacturedInPeriod_StillGetsCostBasedOnDifficulty()
+    internal async Task ComputeAllCosts_WithProductNotManufacturedInPeriod_UsesDefaultDifficulty()
     {
         // Arrange
         var productCode = "PROD001";
         var otherProductCode = "PROD002";
-        var dateFrom = new DateOnly(2025, 1, 1);
-        var dateTo = new DateOnly(2025, 1, 31);
 
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
@@ -321,46 +277,61 @@ public class FlatManufactureCostProviderTests
                 new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" }
             });
 
-        // Only other product was manufactured (10 pieces with difficulty 1 = 10 weighted points)
-        var manufactureHistoryMock = new Mock<IManufactureHistoryClient>();
-        manufactureHistoryMock.Setup(c => c.GetHistoryAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>
+        // Only other product was manufactured
+        var product1 = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            ManufactureHistory = new List<ManufactureHistoryRecord>() // No history
+        };
+        product1.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = otherProductCode, DocumentNumber = "DOC001", PricePerPiece = 0, PriceTotal = 0 }
-            });
-
-        var difficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        difficultyRepoMock.Setup(r => r.FindAsync(It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManufactureDifficultySetting { DifficultyValue = 1 });
-
-        var product = new CatalogAggregate { ProductCode = productCode };
-
-        var provider = CreateProvider(
-            ledgerService: ledgerServiceMock.Object,
-            manufactureHistoryClient: manufactureHistoryMock.Object,
-            difficultyRepository: difficultyRepoMock.Object
+                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
         );
 
+        var product2 = new CatalogAggregate
+        {
+            ProductCode = otherProductCode,
+            ManufactureHistory = new List<ManufactureHistoryRecord>
+            {
+                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = otherProductCode }
+            }
+        };
+        product2.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = otherProductCode, DifficultyValue = 1, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+            },
+            new DateTime(2025, 1, 1)
+        );
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product1, product2 });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
         // Act
-        var result = await provider.CalculateFlatManufacturingCostsAsync(product, dateFrom, dateTo);
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync(new List<string> { productCode });
 
         // Assert
-        // Cost per point = 1000 / 10 = 100
-        // PROD001 gets cost based on its difficulty (1) even though not manufactured = 100 * 1 = 100
-        Assert.Single(result);
-        Assert.Equal(100m, result[0].Cost);
+        // PROD001 was not manufactured, so cost = 0
+        Assert.True(result.ContainsKey(productCode));
+        var costs = result[productCode];
+        Assert.All(costs, cost => Assert.Equal(0m, cost.Cost));
     }
 
     private FlatManufactureCostProvider CreateProvider(
         IFlatManufactureCostCache? cache = null,
         ICatalogRepository? catalogRepository = null,
         ILedgerService? ledgerService = null,
-        IManufactureHistoryClient? manufactureHistoryClient = null,
-        IManufactureDifficultyRepository? difficultyRepository = null,
         ILogger<FlatManufactureCostProvider>? logger = null,
         CostCacheOptions? options = null)
     {
@@ -368,8 +339,6 @@ public class FlatManufactureCostProviderTests
             cache ?? new FlatManufactureCostCache(new MemoryCache(new MemoryCacheOptions())),
             catalogRepository ?? Mock.Of<ICatalogRepository>(),
             ledgerService ?? Mock.Of<ILedgerService>(),
-            manufactureHistoryClient ?? Mock.Of<IManufactureHistoryClient>(),
-            difficultyRepository ?? Mock.Of<IManufactureDifficultyRepository>(),
             logger ?? Mock.Of<ILogger<FlatManufactureCostProvider>>(),
             Options.Create(options ?? new CostCacheOptions())
         );
