@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -19,13 +20,13 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
     private readonly IMaterialCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<ManufactureBasedMaterialCostProvider> _logger;
-    private readonly CostCacheOptions _options;
+    private readonly DataSourceOptions _options;
 
     public ManufactureBasedMaterialCostProvider(
         IMaterialCostCache cache,
         ICatalogRepository catalogRepository,
         ILogger<ManufactureBasedMaterialCostProvider> logger,
-        IOptions<CostCacheOptions> options)
+        IOptions<DataSourceOptions> options)
     {
         _cache = cache;
         _catalogRepository = catalogRepository;
@@ -95,7 +96,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
 
         var products = await _catalogRepository.GetAllAsync(ct);
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
@@ -128,7 +129,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
         var products = await _catalogRepository.GetAllAsync(ct);
 
-        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
         var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Cache;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -35,7 +36,7 @@ public class MaterialCostCacheTests
         var cache = new MaterialCostCache(memoryCache);
         var catalogRepoMock = new Mock<ICatalogRepository>();
         var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
-        var options = Options.Create(new CostCacheOptions());
+        var options = Options.Create(new DataSourceOptions());
 
         catalogRepoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

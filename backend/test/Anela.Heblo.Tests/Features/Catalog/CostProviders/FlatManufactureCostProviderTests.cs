@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Cache;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -333,14 +334,14 @@ public class FlatManufactureCostProviderTests
         ICatalogRepository? catalogRepository = null,
         ILedgerService? ledgerService = null,
         ILogger<FlatManufactureCostProvider>? logger = null,
-        CostCacheOptions? options = null)
+        DataSourceOptions? options = null)
     {
         return new FlatManufactureCostProvider(
             cache ?? new FlatManufactureCostCache(new MemoryCache(new MemoryCacheOptions())),
             catalogRepository ?? Mock.Of<ICatalogRepository>(),
             ledgerService ?? Mock.Of<ILedgerService>(),
             logger ?? Mock.Of<ILogger<FlatManufactureCostProvider>>(),
-            Options.Create(options ?? new CostCacheOptions())
+            Options.Create(options ?? new DataSourceOptions())
         );
     }
 }

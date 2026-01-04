@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -20,7 +21,7 @@ public class SalesCostProvider : ISalesCostProvider
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<SalesCostProvider> _logger;
-    private readonly CostCacheOptions _options;
+    private readonly DataSourceOptions _options;
 
     private const string WarehouseCostCenter = "SKLAD";
     private const string MarketingCostCenter = "MARKETING";
@@ -30,7 +31,7 @@ public class SalesCostProvider : ISalesCostProvider
         ICatalogRepository catalogRepository,
         ILedgerService ledgerService,
         ILogger<SalesCostProvider> logger,
-        IOptions<CostCacheOptions> options)
+        IOptions<DataSourceOptions> options)
     {
         _cache = cache;
         _catalogRepository = catalogRepository;
@@ -137,7 +138,7 @@ public class SalesCostProvider : ISalesCostProvider
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -21,7 +22,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<FlatManufactureCostProvider> _logger;
-    private readonly CostCacheOptions _options;
+    private readonly DataSourceOptions _options;
 
     private const string ManufacturingCostCenter = "VYROBA";
 
@@ -30,7 +31,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         ICatalogRepository catalogRepository,
         ILedgerService ledgerService,
         ILogger<FlatManufactureCostProvider> logger,
-        IOptions<CostCacheOptions> options)
+        IOptions<DataSourceOptions> options)
     {
         _cache = cache;
         _catalogRepository = catalogRepository;
@@ -127,7 +128,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);

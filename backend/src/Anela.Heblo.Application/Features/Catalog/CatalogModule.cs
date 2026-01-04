@@ -83,12 +83,6 @@ public static class CatalogModule
             configuration.GetSection(CatalogCacheOptions.SectionName).Bind(options);
         });
 
-        // Configure cost cache options
-        services.Configure<CostCacheOptions>(options =>
-        {
-            configuration.GetSection(CostCacheOptions.SectionName).Bind(options);
-        });
-
         // Register AutoMapper for catalog mappings
         services.AddAutoMapper(typeof(CatalogModule));
 

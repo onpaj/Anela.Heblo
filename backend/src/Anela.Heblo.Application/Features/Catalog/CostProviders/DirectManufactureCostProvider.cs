@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -18,18 +19,18 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
     private readonly IDirectManufactureCostCache _cache;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ILogger<DirectManufactureCostProvider> _logger;
-    private readonly CostCacheOptions _options;
+    private readonly IOptions<DataSourceOptions> _options;
 
     public DirectManufactureCostProvider(
         IDirectManufactureCostCache cache,
         ICatalogRepository catalogRepository,
         ILogger<DirectManufactureCostProvider> logger,
-        IOptions<CostCacheOptions> options)
+        IOptions<DataSourceOptions> options)
     {
         _cache = cache;
         _catalogRepository = catalogRepository;
         _logger = logger;
-        _options = options.Value;
+        _options = options;
     }
 
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
@@ -93,7 +94,7 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
 
         var products = await _catalogRepository.GetAllAsync(ct);
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.Value.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
@@ -126,7 +127,7 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
         var products = await _catalogRepository.GetAllAsync(ct);
 
-        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.HistoricalDataYears));
+        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.Value.ManufactureCostHistoryDays));
         var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
