@@ -14,6 +14,11 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 
+/// <summary>
+/// Tests for FlatManufactureCostProvider.
+/// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
+/// </summary>
+[Collection("FlatManufactureCostProviderTests")]
 public class FlatManufactureCostProviderTests
 {
     private const int DefaultDifficultyValue = 1;
@@ -23,8 +28,11 @@ public class FlatManufactureCostProviderTests
     {
         // Arrange
         var productCode = "PROD001";
-        var dateFrom = new DateOnly(2025, 1, 1);
-        var dateTo = new DateOnly(2025, 3, 31);
+        // Use relative dates to ensure test data falls within the dynamic date range
+        var now = DateTime.UtcNow;
+        var month1 = new DateTime(now.Year, now.Month, 1).AddMonths(-2);
+        var month2 = month1.AddMonths(1);
+        var month3 = month2.AddMonths(1);
 
         // Manufacturing costs: Total 4500 CZK (1000 + 2000 + 1500)
         var ledgerServiceMock = new Mock<ILedgerService>();
@@ -35,9 +43,9 @@ public class FlatManufactureCostProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
-                new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" },
-                new() { Date = new DateTime(2025, 2, 1), Cost = 2000m, Department = "VYROBA" },
-                new() { Date = new DateTime(2025, 3, 1), Cost = 1500m, Department = "VYROBA" }
+                new() { Date = month1, Cost = 1000m, Department = "VYROBA" },
+                new() { Date = month2, Cost = 2000m, Department = "VYROBA" },
+                new() { Date = month3, Cost = 1500m, Department = "VYROBA" }
             });
 
         // Product with manufacture history and difficulty = 2
@@ -46,9 +54,9 @@ public class FlatManufactureCostProviderTests
             ProductCode = productCode,
             ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode },
-                new() { Date = new DateTime(2025, 2, 15), Amount = 20, ProductCode = productCode },
-                new() { Date = new DateTime(2025, 3, 15), Amount = 15, ProductCode = productCode }
+                new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode },
+                new() { Date = month2.AddDays(14), Amount = 20, ProductCode = productCode },
+                new() { Date = month3.AddDays(14), Amount = 15, ProductCode = productCode }
             }
         };
 
@@ -56,9 +64,9 @@ public class FlatManufactureCostProviderTests
         product.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -91,6 +99,9 @@ public class FlatManufactureCostProviderTests
         // Arrange
         var product1Code = "PROD001";
         var product2Code = "PROD002";
+        // Use relative dates to ensure test data falls within the dynamic date range
+        var now = DateTime.UtcNow;
+        var month1 = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
 
         // Total cost: 9000 CZK
         var ledgerServiceMock = new Mock<ILedgerService>();
@@ -101,7 +112,7 @@ public class FlatManufactureCostProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
-                new() { Date = new DateTime(2025, 1, 1), Cost = 9000m, Department = "VYROBA" }
+                new() { Date = month1, Cost = 9000m, Department = "VYROBA" }
             });
 
         // PROD001: 10 pieces with difficulty 2 = 20 weighted points
@@ -110,15 +121,15 @@ public class FlatManufactureCostProviderTests
             ProductCode = product1Code,
             ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = product1Code }
+                new() { Date = month1.AddDays(14), Amount = 10, ProductCode = product1Code }
             }
         };
         product1.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = product1Code, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = product1Code, DifficultyValue = 2, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         // PROD002: 20 pieces with difficulty 4 = 80 weighted points
@@ -127,15 +138,15 @@ public class FlatManufactureCostProviderTests
             ProductCode = product2Code,
             ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 20, ProductCode = product2Code }
+                new() { Date = month1.AddDays(14), Amount = 20, ProductCode = product2Code }
             }
         };
         product2.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = product2Code, DifficultyValue = 4, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = product2Code, DifficultyValue = 4, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -167,6 +178,9 @@ public class FlatManufactureCostProviderTests
     {
         // Arrange
         var productCode = "PROD001";
+        // Use relative dates to ensure test data falls within the dynamic date range
+        var now = DateTime.UtcNow;
+        var month1 = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
 
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
@@ -176,7 +190,7 @@ public class FlatManufactureCostProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
-                new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" }
+                new() { Date = month1, Cost = 1000m, Department = "VYROBA" }
             });
 
         // Product with NO manufacture history
@@ -212,6 +226,9 @@ public class FlatManufactureCostProviderTests
     {
         // Arrange
         var productCode = "PROD001";
+        // Use relative dates to ensure test data falls within the dynamic date range
+        var now = DateTime.UtcNow;
+        var month1 = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
 
         // NO manufacturing costs from ledger
         var ledgerServiceMock = new Mock<ILedgerService>();
@@ -228,15 +245,15 @@ public class FlatManufactureCostProviderTests
             ProductCode = productCode,
             ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = productCode }
+                new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode }
             }
         };
         product.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = productCode, DifficultyValue = 1, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = productCode, DifficultyValue = 1, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -266,6 +283,9 @@ public class FlatManufactureCostProviderTests
         // Arrange
         var productCode = "PROD001";
         var otherProductCode = "PROD002";
+        // Use relative dates to ensure test data falls within the dynamic date range
+        var now = DateTime.UtcNow;
+        var month1 = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
 
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock.Setup(s => s.GetDirectCosts(
@@ -275,7 +295,7 @@ public class FlatManufactureCostProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
-                new() { Date = new DateTime(2025, 1, 1), Cost = 1000m, Department = "VYROBA" }
+                new() { Date = month1, Cost = 1000m, Department = "VYROBA" }
             });
 
         // Only other product was manufactured
@@ -287,9 +307,9 @@ public class FlatManufactureCostProviderTests
         product1.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = productCode, DifficultyValue = 2, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         var product2 = new CatalogAggregate
@@ -297,15 +317,15 @@ public class FlatManufactureCostProviderTests
             ProductCode = otherProductCode,
             ManufactureHistory = new List<ManufactureHistoryRecord>
             {
-                new() { Date = new DateTime(2025, 1, 15), Amount = 10, ProductCode = otherProductCode }
+                new() { Date = month1.AddDays(14), Amount = 10, ProductCode = otherProductCode }
             }
         };
         product2.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
             {
-                new() { ProductCode = otherProductCode, DifficultyValue = 1, ValidFrom = new DateTime(2024, 1, 1), ValidTo = null }
+                new() { ProductCode = otherProductCode, DifficultyValue = 1, ValidFrom = month1.AddYears(-1), ValidTo = null }
             },
-            new DateTime(2025, 1, 1)
+            month1
         );
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();

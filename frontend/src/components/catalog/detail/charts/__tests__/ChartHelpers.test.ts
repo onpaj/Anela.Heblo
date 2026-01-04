@@ -16,11 +16,16 @@ describe("ChartHelpers", () => {
       const currentYear = currentDate.getFullYear();
       const currentMonth = currentDate.getMonth() + 1;
 
+      // Calculate previous month's year and month correctly
+      const previousMonth = currentMonth - 1;
+      const previousYear = previousMonth > 0 ? currentYear : currentYear - 1;
+      const previousMonthValue = previousMonth > 0 ? previousMonth : 12;
+
       const mockData = [
         { year: currentYear, month: currentMonth, amount: 100 },
         {
-          year: currentYear,
-          month: currentMonth - 1 > 0 ? currentMonth - 1 : 12,
+          year: previousYear,
+          month: previousMonthValue,
           amount: 50,
         },
       ];
