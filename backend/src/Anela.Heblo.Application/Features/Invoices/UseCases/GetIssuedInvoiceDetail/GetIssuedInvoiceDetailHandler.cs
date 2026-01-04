@@ -43,7 +43,7 @@ public class GetIssuedInvoiceDetailHandler : IRequestHandler<GetIssuedInvoiceDet
             _logger.LogInformation("Getting detailed information for issued invoice: {InvoiceId}", request.InvoiceId);
 
             // Get invoice with sync history if requested
-            var invoice = request.WithDetails 
+            var invoice = request.WithDetails
                 ? await _repository.GetByIdWithSyncHistoryAsync(request.InvoiceId, cancellationToken)
                 : await _repository.GetByIdAsync(request.InvoiceId, cancellationToken);
 

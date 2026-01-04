@@ -9,26 +9,26 @@ public class BankStatementImport : IEntity<int>
     public string TransferId { get; private set; } = null!;
     public DateTime StatementDate { get; private set; }
     public DateTime ImportDate { get; private set; }
-    public string Account 
-    { 
+    public string Account
+    {
         get => _account;
         set => _account = value ?? throw new ArgumentNullException(nameof(Account));
     }
-    
-    public CurrencyCode Currency 
-    { 
+
+    public CurrencyCode Currency
+    {
         get => _currency;
         set => _currency = Enum.IsDefined(typeof(CurrencyCode), value) ? value : throw new ArgumentException($"Invalid currency value: {value}", nameof(Currency));
     }
-    
-    public int ItemCount 
-    { 
+
+    public int ItemCount
+    {
         get => _itemCount;
         set => _itemCount = value >= 0 ? value : throw new ArgumentException("ItemCount must be non-negative", nameof(ItemCount));
     }
-    
-    public string ImportResult 
-    { 
+
+    public string ImportResult
+    {
         get => _importResult;
         set => _importResult = value ?? throw new ArgumentNullException(nameof(ImportResult));
     }

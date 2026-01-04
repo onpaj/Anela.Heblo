@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Repositories;
+using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -9,23 +9,23 @@ namespace Anela.Heblo.Application.Features.Catalog.Services;
 
 public class MarginCalculationService : IMarginCalculationService
 {
-    private readonly IMaterialCostRepository _materialCostRepository;
-    private readonly IManufactureCostRepository _manufactureCostRepository;
-    private readonly ISalesCostCalculationService _salesCostCalculationService;
-    private readonly IOverheadCostRepository _overheadCostRepository;
+    private readonly IMaterialCostProvider _materialCostProvider;
+    private readonly IFlatManufactureCostProvider _flatManufactureCostProvider;
+    private readonly IDirectManufactureCostProvider _directManufactureCostProvider;
+    private readonly ISalesCostProvider _salesCostProvider;
     private readonly ILogger<MarginCalculationService> _logger;
 
     public MarginCalculationService(
-        IMaterialCostRepository materialCostRepository,
-        IManufactureCostRepository manufactureCostRepository,
-        ISalesCostCalculationService salesCostCalculationService,
-        IOverheadCostRepository overheadCostRepository,
+        IMaterialCostProvider materialCostProvider,
+        IFlatManufactureCostProvider flatManufactureCostProvider,
+        IDirectManufactureCostProvider directManufactureCostProvider,
+        ISalesCostProvider salesCostProvider,
         ILogger<MarginCalculationService> logger)
     {
-        _materialCostRepository = materialCostRepository;
-        _manufactureCostRepository = manufactureCostRepository;
-        _salesCostCalculationService = salesCostCalculationService;
-        _overheadCostRepository = overheadCostRepository;
+        _materialCostProvider = materialCostProvider;
+        _flatManufactureCostProvider = flatManufactureCostProvider;
+        _directManufactureCostProvider = directManufactureCostProvider;
+        _salesCostProvider = salesCostProvider;
         _logger = logger;
     }
 
@@ -69,125 +69,83 @@ public class MarginCalculationService : IMarginCalculationService
         var productCodes = new List<string> { product.ProductCode };
 
         // Load all cost data once from repositories
-        var materialCosts = await _materialCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var manufactureCosts = await _manufactureCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var salesCosts = await _salesCostCalculationService.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
-        var overheadCosts = await _overheadCostRepository.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var materialCosts = await _materialCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var flatManufactureCosts = await _flatManufactureCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var directManufactureCosts = await _directManufactureCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
+        var salesCosts = await _salesCostProvider.GetCostsAsync(productCodes, dateFrom, dateTo, cancellationToken);
 
         return new CostData
         {
             MaterialCosts = materialCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>()),
-            ManufactureCosts = manufactureCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>()),
+            FlatManufactureCosts = flatManufactureCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>()),
+            DirectManufactureCosts = directManufactureCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>()),
             SalesCosts = salesCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>()),
-            OverheadCosts = overheadCosts.GetValueOrDefault(product.ProductCode, new List<MonthlyCost>())
         };
     }
 
 
     private MonthlyMarginHistory CalculateMarginHistoryFromData(decimal sellingPrice, CostData costData, DateOnly dateFrom, DateOnly dateTo)
     {
-        var monthlyData = new List<MonthlyMarginData>();
-
-        // Generate list of months in the date range
-        var currentDate = new DateTime(dateFrom.Year, dateFrom.Month, 1);
-        var endDateTime = new DateTime(dateTo.Year, dateTo.Month, 1);
-
-        while (currentDate <= endDateTime)
+        var result = new MonthlyMarginHistory
         {
-            var monthlyMargin = CalculateMarginForMonth(currentDate, sellingPrice, costData);
-            monthlyData.Add(monthlyMargin);
-            currentDate = currentDate.AddMonths(1);
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Generate all months in range
+        var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var endMonth = new DateTime(dateTo.Year, dateTo.Month, 1);
+
+        while (currentMonth <= endMonth)
+        {
+            // Find costs for this month
+            var m0Cost = GetCostForMonth(costData.MaterialCosts, currentMonth);
+            var m1ACost = GetCostForMonth(costData.FlatManufactureCosts, currentMonth);
+            var m1BCost = GetCostForMonth(costData.DirectManufactureCosts, currentMonth);
+            var m2Cost = GetCostForMonth(costData.SalesCosts, currentMonth);
+
+            // Calculate margin levels
+            // M0: Material only
+            var m0 = MarginLevel.Create(sellingPrice, m0Cost, m0Cost);
+
+            // M1_A: Material + Flat manufacturing (independent from M1_B)
+            var m1A = MarginLevel.Create(sellingPrice, m0Cost + m1ACost, m1ACost);
+
+            // M1_B: Material + Direct manufacturing (independent from M1_A)
+            var m1B = MarginLevel.Create(sellingPrice, m0Cost + m1BCost, m1BCost);
+
+            // M2: All costs combined (Material + Flat + Direct + Sales/Marketing)
+            var m2 = MarginLevel.Create(sellingPrice, m0Cost + m1ACost + m1BCost + m2Cost, m2Cost);
+
+            // Create margin data for this month
+            var marginData = new MarginData
+            {
+                M0 = m0,
+                M1_A = m1A,
+                M1_B = m1B,
+                M2 = m2
+            };
+
+            result.MonthlyData[currentMonth] = marginData;
+
+            currentMonth = currentMonth.AddMonths(1);
         }
 
-        var averages = CalculateMarginAverages(monthlyData);
-
-        return new MonthlyMarginHistory
-        {
-            MonthlyData = monthlyData,
-            Averages = averages
-        };
+        return result;
     }
 
-    private MonthlyMarginData CalculateMarginForMonth(DateTime month, decimal sellingPrice, CostData costData)
+    private static decimal GetCostForMonth(List<MonthlyCost> costs, DateTime month)
     {
-        // Get costs for specific month or closest available month
-        var materialCost = GetCostForMonth(month, costData.MaterialCosts);
-        var manufacturingCost = GetCostForMonth(month, costData.ManufactureCosts);
-        var salesCost = GetCostForMonth(month, costData.SalesCosts);
-        var overheadCost = GetCostForMonth(month, costData.OverheadCosts);
-
-        var costBreakdown = new CostBreakdown(materialCost, manufacturingCost, salesCost, overheadCost);
-
-        return new MonthlyMarginData
-        {
-            Month = month,
-            M0 = MarginLevel.Create(sellingPrice, costBreakdown.M0CostTotal, materialCost),
-            M1 = MarginLevel.Create(sellingPrice, costBreakdown.M1CostTotal, manufacturingCost),
-            M2 = MarginLevel.Create(sellingPrice, costBreakdown.M2CostTotal, salesCost),
-            M3 = MarginLevel.Create(sellingPrice, costBreakdown.M3CostTotal, overheadCost),
-            CostsForMonth = costBreakdown
-        };
+        var monthlyCost = costs.FirstOrDefault(c => c.Month.Year == month.Year && c.Month.Month == month.Month);
+        return monthlyCost?.Cost ?? 0m;
     }
 
-    private decimal GetCostForMonth(DateTime month, List<MonthlyCost> monthlyCosts)
-    {
-        // Find exact month match first
-        var exactMatch = monthlyCosts.FirstOrDefault(c => c.Month.Year == month.Year && c.Month.Month == month.Month);
-        if (exactMatch != null)
-            return exactMatch.Cost;
 
-        // Find closest previous month
-        var closestPrevious = monthlyCosts
-            .Where(c => c.Month <= month)
-            .OrderByDescending(c => c.Month)
-            .FirstOrDefault();
-
-        return closestPrevious?.Cost ?? 0;
-    }
-
-    private MarginData CalculateMarginAverages(List<MonthlyMarginData> monthlyData)
-    {
-        var validData = monthlyData.Where(m => m.M0.Percentage > 0).ToList();
-
-        if (!validData.Any())
-        {
-            return new MarginData();
-        }
-
-        return new MarginData
-        {
-            M0 = new MarginLevel(
-                validData.Average(m => m.M0.Percentage),
-                validData.Average(m => m.M0.Amount),
-                validData.Average(m => m.M0.CostTotal),
-                validData.Average(m => m.M0.CostLevel)
-            ),
-            M1 = new MarginLevel(
-                validData.Average(m => m.M1.Percentage),
-                validData.Average(m => m.M1.Amount),
-                validData.Average(m => m.M1.CostTotal),
-                validData.Average(m => m.M1.CostLevel)
-            ),
-            M2 = new MarginLevel(
-                validData.Average(m => m.M2.Percentage),
-                validData.Average(m => m.M2.Amount),
-                validData.Average(m => m.M2.CostTotal),
-                validData.Average(m => m.M2.CostLevel)
-            ),
-            M3 = new MarginLevel(
-                validData.Average(m => m.M3.Percentage),
-                validData.Average(m => m.M3.Amount),
-                validData.Average(m => m.M3.CostTotal),
-                validData.Average(m => m.M3.CostLevel)
-            )
-        };
-    }
 
     private class CostData
     {
         public List<MonthlyCost> MaterialCosts { get; set; } = new();
-        public List<MonthlyCost> ManufactureCosts { get; set; } = new();
+        public List<MonthlyCost> FlatManufactureCosts { get; set; } = new();
+        public List<MonthlyCost> DirectManufactureCosts { get; set; } = new();
         public List<MonthlyCost> SalesCosts { get; set; } = new();
-        public List<MonthlyCost> OverheadCosts { get; set; } = new();
     }
 }

@@ -62,7 +62,7 @@ public class ProcessReceivedBoxesHandlerTests
 
         // Verify no stock operations were attempted
         _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.IsAny<StockUpRequest>()), 
+            x => x.StockUpAsync(It.IsAny<StockUpRequest>()),
             Times.Never);
     }
 
@@ -103,7 +103,7 @@ public class ProcessReceivedBoxesHandlerTests
 
         // Verify stock up was called for the item
         _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.Is<StockUpRequest>(r => 
+            x => x.StockUpAsync(It.Is<StockUpRequest>(r =>
                 r.Products.Any(p => p.ProductCode == "PROD001" && p.Amount == 5))),
             Times.Once);
 
@@ -296,7 +296,7 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.SuccessfulBoxesCount.Should().Be(1);
-        
+
         // Box should still be processed successfully with "System" as user
         transportBox.State.Should().Be(TransportBoxState.Stocked);
     }
@@ -335,37 +335,37 @@ public class ProcessReceivedBoxesHandlerTests
 
         // No stock operations should be performed
         _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.IsAny<StockUpRequest>()), 
+            x => x.StockUpAsync(It.IsAny<StockUpRequest>()),
             Times.Never);
     }
 
     private static TransportBox CreateTestTransportBox(int id, string code, TransportBoxState state)
     {
         var box = new TransportBox();
-        
+
         // Set properties using reflection following the existing test pattern
         var idProperty = typeof(TransportBox).GetProperty("Id");
         idProperty?.SetValue(box, id);
-        
+
         // Set Code using the backing field
-        var codeField = typeof(TransportBox).GetField("<Code>k__BackingField", 
+        var codeField = typeof(TransportBox).GetField("<Code>k__BackingField",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         codeField?.SetValue(box, code);
 
         // Set State using property
         var stateProperty = typeof(TransportBox).GetProperty("State");
         stateProperty?.SetValue(box, state);
-        
+
         // Set LastStateChanged
         var lastStateChangedProperty = typeof(TransportBox).GetProperty("LastStateChanged");
         lastStateChangedProperty?.SetValue(box, DateTime.UtcNow);
 
         // Initialize the private collections using reflection
-        var itemsField = typeof(TransportBox).GetField("_items", 
+        var itemsField = typeof(TransportBox).GetField("_items",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         itemsField?.SetValue(box, new List<TransportBoxItem>());
-        
-        var stateLogField = typeof(TransportBox).GetField("_stateLog", 
+
+        var stateLogField = typeof(TransportBox).GetField("_stateLog",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         stateLogField?.SetValue(box, new List<TransportBoxStateLog>());
 
@@ -374,10 +374,10 @@ public class ProcessReceivedBoxesHandlerTests
 
     private static void AddItemToBox(TransportBox box, string productCode, string productName, int amount)
     {
-        var itemsField = typeof(TransportBox).GetField("_items", 
+        var itemsField = typeof(TransportBox).GetField("_items",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var items = (List<TransportBoxItem>)itemsField?.GetValue(box);
-        
+
         var item = new TransportBoxItem(productCode, productName, amount, DateTime.UtcNow, "TestUser");
         items?.Add(item);
     }

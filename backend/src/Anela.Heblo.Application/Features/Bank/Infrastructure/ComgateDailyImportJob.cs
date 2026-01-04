@@ -23,9 +23,9 @@ public class ComgateDailyImportJob
 
             var yesterdayDate = DateTime.Today.AddDays(-1);
             var request = new ImportBankStatementRequest("ComgateCZK", yesterdayDate);
-            
+
             var response = await _mediator.Send(request);
-            
+
             _logger.LogInformation("Daily CZK bank statement import completed. Imported {Count} statements", response.Statements.Count);
         }
         catch (Exception ex)
@@ -43,9 +43,9 @@ public class ComgateDailyImportJob
 
             var yesterdayDate = DateTime.Today.AddDays(-1);
             var request = new ImportBankStatementRequest("ComgateEUR", yesterdayDate);
-            
+
             var response = await _mediator.Send(request);
-            
+
             _logger.LogInformation("Daily EUR bank statement import completed. Imported {Count} statements", response.Statements.Count);
         }
         catch (Exception ex)

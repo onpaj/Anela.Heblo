@@ -11,7 +11,7 @@ export { GetProductMarginSummaryResponse, ProductGroupingMode };
 export const useProductMarginSummaryQuery = (
   timeWindow: string = "current-year",
   groupingMode: ProductGroupingMode = ProductGroupingMode.Products,
-  marginLevel: string = "M3",
+  marginLevel: string = "M2",
 ) => {
   return useQuery<GetProductMarginSummaryResponse, Error>({
     queryKey: [...QUERY_KEYS.productMarginSummary, timeWindow, groupingMode, marginLevel],

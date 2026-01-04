@@ -32,10 +32,10 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
             {
                 // Calculate unit price without VAT from total base price (totalPrice - totalVatPrice) / quantity
                 price.WithoutVat = Math.Round(totalPriceWithoutVat / quantity, 4);
-                
+
                 // Calculate VAT per unit from totalVatPrice / quantity
                 price.Vat = Math.Round(totalVatPrice / quantity, 4);
-                
+
                 // Total price per unit - should match (totalPrice / quantity) when multiplied back
                 price.WithVat = Math.Round((totalPriceWithoutVat + totalVatPrice) / quantity, 2);
                 price.TotalWithoutVat = totalPriceWithoutVat;

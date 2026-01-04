@@ -14,7 +14,7 @@ public class Result<T>
     }
 
     public static Result<T> Success(T value) => new(true, value);
-    
+
     public static Result<T> Failure(string errorMessage) => new(false, default, errorMessage);
 
     public static implicit operator bool(Result<T> result) => result.IsSuccess;
@@ -23,6 +23,6 @@ public class Result<T>
 public static class Result
 {
     public static Result<T> Success<T>(T value) => Result<T>.Success(value);
-    
+
     public static Result<T> Failure<T>(string errorMessage) => Result<T>.Failure(errorMessage);
 }

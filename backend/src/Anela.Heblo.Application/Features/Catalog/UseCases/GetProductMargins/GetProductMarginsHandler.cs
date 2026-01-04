@@ -151,7 +151,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "manufacturedifficulty" => sortDescending
                 ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
                 : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
-            // M0-M3 margin levels - amounts (using pre-calculated data)
+            // M0-M2 margin levels - amounts (using pre-calculated data)
             "m0amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M0.Amount),
@@ -161,10 +161,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "m2amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M2.Amount),
-            "m3amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M3.Amount),
-            // M0-M3 margin levels - percentages (using pre-calculated data)
+            // M0-M2 margin levels - percentages (using pre-calculated data)
             "m0percentage" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
@@ -174,9 +171,6 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "m2percentage" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
-            "m3percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M3.Percentage),
             _ => sortDescending
                 ? products.OrderByDescending(x => x.ProductCode)
                 : products.OrderBy(x => x.ProductCode)
@@ -194,7 +188,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             // Filter monthly history to last 13 months
             var dateFrom = DateTime.Now.AddMonths(-13);
             var filteredMonthlyData = marginHistory.MonthlyData
-                .Where(m => m.Month >= dateFrom)
+                .Where(m => m.Key >= dateFrom)
                 .ToList();
 
             var dto = new ProductMarginDto
@@ -225,45 +219,31 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                     CostLevel = marginHistory.Averages.M2.CostLevel,
                     CostTotal = marginHistory.Averages.M2.CostTotal
                 },
-                M3 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M3.Percentage,
-                    Amount = marginHistory.Averages.M3.Amount,
-                    CostLevel = marginHistory.Averages.M3.CostLevel,
-                    CostTotal = marginHistory.Averages.M3.CostTotal
-                },
 
                 // Monthly history for charts (filtered to last 13 months)
                 MonthlyHistory = filteredMonthlyData.Select(m => new MonthlyMarginDto
                 {
-                    Month = m.Month,
+                    Month = m.Key,
                     M0 = new MarginLevelDto
                     {
-                        Percentage = m.M0.Percentage,
-                        Amount = m.M0.Amount,
-                        CostLevel = m.M0.CostLevel,
-                        CostTotal = m.M0.CostTotal
+                        Percentage = m.Value.M0.Percentage,
+                        Amount = m.Value.M0.Amount,
+                        CostLevel = m.Value.M0.CostLevel,
+                        CostTotal = m.Value.M0.CostTotal
                     },
                     M1 = new MarginLevelDto
                     {
-                        Percentage = m.M1.Percentage,
-                        Amount = m.M1.Amount,
-                        CostLevel = m.M1.CostLevel,
-                        CostTotal = m.M1.CostTotal
+                        Percentage = m.Value.M1.Percentage,
+                        Amount = m.Value.M1.Amount,
+                        CostLevel = m.Value.M1.CostLevel,
+                        CostTotal = m.Value.M1.CostTotal
                     },
                     M2 = new MarginLevelDto
                     {
-                        Percentage = m.M2.Percentage,
-                        Amount = m.M2.Amount,
-                        CostLevel = m.M2.CostLevel,
-                        CostTotal = m.M2.CostTotal
-                    },
-                    M3 = new MarginLevelDto
-                    {
-                        Percentage = m.M3.Percentage,
-                        Amount = m.M3.Amount,
-                        CostLevel = m.M3.CostLevel,
-                        CostTotal = m.M3.CostTotal
+                        Percentage = m.Value.M2.Percentage,
+                        Amount = m.Value.M2.Amount,
+                        CostLevel = m.Value.M2.CostLevel,
+                        CostTotal = m.Value.M2.CostTotal
                     }
                 }).ToList()
             };

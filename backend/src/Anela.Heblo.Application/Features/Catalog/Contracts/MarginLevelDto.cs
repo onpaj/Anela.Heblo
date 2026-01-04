@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Anela.Heblo.Application.Features.Catalog.Contracts;
 
 /// <summary>
-/// Represents margin data for a specific margin level (M0, M1, M2, or M3)
+/// Represents margin data for a specific margin level (M0, M1, or M2)
 /// </summary>
 public class MarginLevelDto
 {

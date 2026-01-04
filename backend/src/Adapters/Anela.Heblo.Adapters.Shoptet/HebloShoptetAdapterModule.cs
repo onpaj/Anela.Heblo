@@ -32,12 +32,12 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddHttpClient();
         services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();
         services.AddSingleton<IIssuedInvoiceSource, ShoptetPlaywrightInvoiceSource>();
-        
+
         // Register invoice mapping resolvers
         services.AddSingleton<IPaymentMethodResolver, PaymentMethodResolver>();
         services.AddSingleton<IShippingMethodResolver, ShippingMethodResolver>();
         services.AddSingleton<IInvoicePriceCalculator, InvoicePriceCalculator>();
-        
+
         // Register AutoMapper value resolvers as singletons (required by AutoMapper)
         services.AddSingleton<PaymentMethodValueResolver>();
         services.AddSingleton<ShippingMethodValueResolver>();

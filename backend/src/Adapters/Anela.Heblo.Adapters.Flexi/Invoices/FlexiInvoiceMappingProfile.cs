@@ -10,7 +10,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
 {
     public FlexiInvoiceMappingProfile()
     {
-        
+
 
         // Map domain IssuedInvoiceDetail to FlexiBee IssuedInvoiceDetailFlexiDto
         CreateMap<IssuedInvoiceDetail, IssuedInvoiceDetailFlexiDto>()
@@ -34,7 +34,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.RoundingTotalC, opt => opt.MapFrom(src => "zaokrNa.zadne"))
             .ForMember(dest => dest.RoundingTaxC, opt => opt.MapFrom(src => "zaokrNa.zadne"))
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items))
-            
+
             .AfterMap((ii, fv) =>
             {
                 fv.Items.ForEach((f =>
@@ -46,8 +46,8 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
                         f.SumBase = null;
                     }
                 }));
-                    
-                fv.Validate(); 
+
+                fv.Validate();
             })
             ;
 
@@ -101,7 +101,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
     {
         if (string.IsNullOrEmpty(vatRate))
             return "typSzbDph.dphZakl"; // Default to standard rate 21%
-            
+
         // Map VAT rates to FlexiBee VAT rate types
         return vatRate switch
         {

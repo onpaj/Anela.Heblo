@@ -53,14 +53,25 @@ public class AnalyticsRepository : IAnalyticsRepository
 
                 // Filter monthly data by date range
                 var relevantMargins = marginData.MonthlyData
-                    .Where(m => m.Month >= fromDate && m.Month <= toDate)
+                    .Where(m => m.Key >= fromDate && m.Key <= toDate)
                     .ToList();
 
                 // Use latest margin data or fallback to averages
-                var latestMargin = relevantMargins.LastOrDefault() ?? marginData.MonthlyData.LastOrDefault();
-                var marginAmount = latestMargin?.M0.Amount ?? marginData.Averages.M0.Amount;
-                var materialCost = latestMargin?.CostsForMonth.M0CostLevel ?? 0;
-                var handlingCost = latestMargin?.CostsForMonth.M1CostLevel ?? 0;
+                var latestMarginEntry = relevantMargins.LastOrDefault();
+                if (latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)))
+                {
+                    latestMarginEntry = marginData.MonthlyData.LastOrDefault();
+                }
+
+                var marginAmount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+                    ? marginData.Averages.M0.Amount
+                    : latestMarginEntry.Value.M0.Amount;
+                var materialCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+                    ? 0
+                    : latestMarginEntry.Value.M0.CostLevel;
+                var handlingCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+                    ? 0
+                    : latestMarginEntry.Value.M1_A.CostLevel;
 
                 // Get latest purchase price from purchase history
                 var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
@@ -75,17 +86,15 @@ public class AnalyticsRepository : IAnalyticsRepository
                     ProductCategory = product.ProductCategory,
                     MarginAmount = marginAmount,
 
-                    // M0-M3 margin amounts
-                    M0Amount = latestMargin?.M0.Amount ?? 0,
-                    M1Amount = latestMargin?.M1.Amount ?? 0,
-                    M2Amount = latestMargin?.M2.Amount ?? 0,
-                    M3Amount = latestMargin?.M3.Amount ?? 0,
+                    // M0-M2 margin amounts
+                    M0Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Amount,
+                    M1Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Amount,
+                    M2Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Amount,
 
-                    // M0-M3 margin percentages
-                    M0Percentage = latestMargin?.M0.Percentage ?? 0,
-                    M1Percentage = latestMargin?.M1.Percentage ?? 0,
-                    M2Percentage = latestMargin?.M2.Percentage ?? 0,
-                    M3Percentage = latestMargin?.M3.Percentage ?? 0,
+                    // M0-M2 margin percentages
+                    M0Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Percentage,
+                    M1Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Percentage,
+                    M2Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Percentage,
 
                     // Pricing
                     SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
@@ -160,14 +169,25 @@ public class AnalyticsRepository : IAnalyticsRepository
 
         // Filter monthly data by date range
         var relevantMargins = marginData.MonthlyData
-            .Where(m => m.Month >= fromDate && m.Month <= toDate)
+            .Where(m => m.Key >= fromDate && m.Key <= toDate)
             .ToList();
 
         // Use latest margin data or fallback to averages
-        var latestMargin = relevantMargins.LastOrDefault() ?? marginData.MonthlyData.LastOrDefault();
-        var marginAmount = latestMargin?.M0.Amount ?? marginData.Averages.M0.Amount;
-        var materialCost = latestMargin?.CostsForMonth.M0CostLevel ?? 0;
-        var handlingCost = latestMargin?.CostsForMonth.M1CostLevel ?? 0;
+        var latestMarginEntry = relevantMargins.LastOrDefault();
+        if (latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)))
+        {
+            latestMarginEntry = marginData.MonthlyData.LastOrDefault();
+        }
+
+        var marginAmount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+            ? marginData.Averages.M0.Amount
+            : latestMarginEntry.Value.M0.Amount;
+        var materialCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+            ? 0
+            : latestMarginEntry.Value.M0.CostLevel;
+        var handlingCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
+            ? 0
+            : latestMarginEntry.Value.M1_A.CostLevel;
 
         // Get latest purchase price from purchase history
         var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
@@ -182,17 +202,15 @@ public class AnalyticsRepository : IAnalyticsRepository
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,
 
-            // M0-M3 margin amounts
-            M0Amount = latestMargin?.M0.Amount ?? 0,
-            M1Amount = latestMargin?.M1.Amount ?? 0,
-            M2Amount = latestMargin?.M2.Amount ?? 0,
-            M3Amount = latestMargin?.M3.Amount ?? 0,
+            // M0-M2 margin amounts
+            M0Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Amount,
+            M1Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Amount,
+            M2Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Amount,
 
-            // M0-M3 margin percentages
-            M0Percentage = latestMargin?.M0.Percentage ?? 0,
-            M1Percentage = latestMargin?.M1.Percentage ?? 0,
-            M2Percentage = latestMargin?.M2.Percentage ?? 0,
-            M3Percentage = latestMargin?.M3.Percentage ?? 0,
+            // M0-M2 margin percentages
+            M0Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Percentage,
+            M1Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Percentage,
+            M2Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Percentage,
 
             // Pricing
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,

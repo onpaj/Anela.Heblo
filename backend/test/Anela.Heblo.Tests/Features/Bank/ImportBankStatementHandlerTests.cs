@@ -26,7 +26,7 @@ public class ImportBankStatementHandlerTests
         _mockRepository = new Mock<IBankStatementImportRepository>();
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<ImportBankStatementHandler>>();
-        
+
         _bankSettings = new BankAccountSettings
         {
             Accounts = new List<BankAccountConfiguration>
@@ -122,7 +122,7 @@ public class ImportBankStatementHandlerTests
     {
         // Arrange
         var request = new ImportBankStatementRequest("CZK", DateTime.Today);
-        
+
         _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", DateTime.Today))
             .ReturnsAsync(new List<BankStatementHeader>());
 
@@ -138,7 +138,7 @@ public class ImportBankStatementHandlerTests
     {
         // Arrange
         var request = new ImportBankStatementRequest("EUR", DateTime.Today);
-        
+
         _mockBankClient.Setup(x => x.GetStatementsAsync("987654321", DateTime.Today))
             .ReturnsAsync(new List<BankStatementHeader>());
 

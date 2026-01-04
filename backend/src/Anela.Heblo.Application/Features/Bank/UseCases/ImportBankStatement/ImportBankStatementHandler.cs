@@ -84,7 +84,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
 
                 // Import statement to accounting system
                 var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
-                
+
                 // Set properties directly
                 import.Account = accountSetting.AccountNumber;
                 import.Currency = request.AccountName.EndsWith("EUR") ? CurrencyCode.EUR : CurrencyCode.CZK;
@@ -95,13 +95,13 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 var savedImport = await _repository.AddAsync(import);
                 imports.Add(_mapper.Map<BankStatementImportDto>(savedImport));
 
-                _logger.LogInformation("Successfully processed statement {StatementId} with result: {Result}", 
+                _logger.LogInformation("Successfully processed statement {StatementId} with result: {Result}",
                     statement.StatementId, import.ImportResult);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
-                
+
                 // Create failed import record
                 var failedImport = new BankStatementImport(statement.StatementId, request.StatementDate);
                 failedImport.Account = accountSetting.AccountNumber;

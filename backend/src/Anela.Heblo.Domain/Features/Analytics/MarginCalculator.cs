@@ -13,7 +13,7 @@ public class MarginCalculator
         IAsyncEnumerable<AnalyticsProduct> products,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M3",
+        string marginLevel = "M2",
         CancellationToken cancellationToken = default)
     {
         var groupTotals = new Dictionary<string, decimal>();
@@ -89,8 +89,7 @@ public class MarginCalculator
             "M0" => product.M0Amount,
             "M1" => product.M1Amount,
             "M2" => product.M2Amount,
-            "M3" => product.M3Amount,
-            _ => product.M3Amount // Default to M3
+            _ => product.M2Amount // Default to M2
         };
     }
 }
