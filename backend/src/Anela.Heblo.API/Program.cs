@@ -51,6 +51,7 @@ public partial class Program
 
         // Hangfire background jobs
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);
+        builder.Services.AddRecurringJobs(); // Register all IRecurringJob implementations and discovery service
 
         // Controllers and API documentation
         builder.Services.AddControllers(options =>
@@ -70,7 +71,7 @@ public partial class Program
         // Initialize tile registry with all registered tiles
         TileRegistryExtensions.InitializeTileRegistry(app.Services);
 
-        // Seed default recurring job configurations
+        // Seed default recurring job configurations from discovered IRecurringJob implementations
         // Note: Database creation and migrations are handled automatically by EF Core during first connection
         // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
         // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
@@ -81,8 +82,12 @@ public partial class Program
                 var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                 var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
 
-                await repository.SeedDefaultConfigurationsAsync();
-                seedLogger.LogInformation("Successfully seeded default recurring job configurations");
+                // Get all discovered IRecurringJob implementations
+                var discoveredJobs = scope.ServiceProvider.GetServices<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJob>();
+
+                await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
+                seedLogger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
+                    discoveredJobs.Count());
             }
         }
         catch (Exception ex)

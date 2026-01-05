@@ -31,83 +31,23 @@ public class RecurringJobConfigurationRepository : IRecurringJobConfigurationRep
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task SeedDefaultConfigurationsAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Seeds database with configurations from discovered IRecurringJob implementations.
+    /// Only creates configurations for jobs that don't already exist in the database.
+    /// </summary>
+    /// <param name="jobs">Collection of discovered recurring jobs</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    public async Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
     {
-        // NOTE: Job names MUST match exactly with HangfireJobSchedulerService.cs registration
-        var defaultConfigurations = new[]
-        {
-            new RecurringJobConfiguration(
-                "purchase-price-recalculation",
-                "Purchase Price Recalculation",
-                "Recalculates purchase prices for all materials and products",
-                "0 2 * * *", // Daily at 2:00 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "product-export-download",
-                "Product Export Download",
-                "Downloads product export data from external systems",
-                "0 2 * * *", // Daily at 2:00 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "product-weight-recalculation",
-                "Product Weight Recalculation",
-                "Recalculates product weights based on current material composition",
-                "0 2 * * *", // Daily at 2:00 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "invoice-classification",
-                "Invoice Classification",
-                "Classifies and categorizes incoming invoices",
-                "0 * * * *", // Hourly at the top of each hour Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "daily-consumption-calculation",
-                "Daily Consumption Calculation",
-                "Calculates daily consumption of packing materials",
-                "0 3 * * *", // Daily at 3:00 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "daily-invoice-import-eur",
-                "Daily Invoice Import (EUR)",
-                "Imports EUR invoices from Shoptet to ABRA Flexi",
-                "0 4 * * *", // Daily at 4:00 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "daily-invoice-import-czk",
-                "Daily Invoice Import (CZK)",
-                "Imports CZK invoices from Shoptet to ABRA Flexi",
-                "15 4 * * *", // Daily at 4:15 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "daily-comgate-czk-import",
-                "Daily Comgate CZK Import",
-                "Imports Comgate CZK payment statements from previous day",
-                "30 4 * * *", // Daily at 4:30 AM Czech time
-                true,
-                "System"),
-
-            new RecurringJobConfiguration(
-                "daily-comgate-eur-import",
-                "Daily Comgate EUR Import",
-                "Imports Comgate EUR payment statements from previous day",
-                "40 4 * * *", // Daily at 4:40 AM Czech time
-                true,
-                "System")
-        };
+        // Create configurations from discovered job metadata
+        var defaultConfigurations = jobs.Select(job => new RecurringJobConfiguration(
+            job.Metadata.JobName,
+            job.Metadata.DisplayName,
+            job.Metadata.Description,
+            job.Metadata.CronExpression,
+            job.Metadata.DefaultIsEnabled,
+            "System"
+        )).ToArray();
 
         foreach (var config in defaultConfigurations)
         {

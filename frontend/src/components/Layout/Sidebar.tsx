@@ -262,6 +262,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/stock-operations",
         },
         {
+          id: "recurring-jobs",
+          name: "Recurring Jobs",
+          href: "/recurring-jobs",
+        },
+        {
           id: "hangfire",
           name: "Hangfire",
           href: "#",

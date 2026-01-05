@@ -1,11 +1,7 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.API.Infrastructure.Hangfire;
-
-public interface IRecurringJobStatusChecker
-{
-    Task<bool> IsJobEnabledAsync(string jobName, CancellationToken cancellationToken = default);
-}
+namespace Anela.Heblo.Application.Features.BackgroundJobs;
 
 public class RecurringJobStatusChecker : IRecurringJobStatusChecker
 {
