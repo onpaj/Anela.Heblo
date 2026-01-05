@@ -299,6 +299,9 @@ public static class ServiceCollectionExtensions
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
+        // Register job status checker
+        services.AddScoped<IRecurringJobStatusChecker, RecurringJobStatusChecker>();
+
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
         services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));

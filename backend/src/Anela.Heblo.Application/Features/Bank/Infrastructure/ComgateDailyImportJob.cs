@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,15 +9,29 @@ public class ComgateDailyImportJob
 {
     private readonly IMediator _mediator;
     private readonly ILogger<ComgateDailyImportJob> _logger;
+    private readonly IRecurringJobConfigurationRepository _jobConfigRepository;
 
-    public ComgateDailyImportJob(IMediator mediator, ILogger<ComgateDailyImportJob> logger)
+    public ComgateDailyImportJob(
+        IMediator mediator,
+        ILogger<ComgateDailyImportJob> logger,
+        IRecurringJobConfigurationRepository jobConfigRepository)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _jobConfigRepository = jobConfigRepository ?? throw new ArgumentNullException(nameof(jobConfigRepository));
     }
 
     public async Task ImportComgateCzkStatementsAsync()
     {
+        const string jobName = "daily-comgate-czk-import";
+
+        var configuration = await _jobConfigRepository.GetByJobNameAsync(jobName);
+        if (configuration != null && !configuration.IsEnabled)
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             _logger.LogInformation("Starting daily CZK bank statement import from Comgate");
@@ -37,6 +52,15 @@ public class ComgateDailyImportJob
 
     public async Task ImportComgateEurStatementsAsync()
     {
+        const string jobName = "daily-comgate-eur-import";
+
+        var configuration = await _jobConfigRepository.GetByJobNameAsync(jobName);
+        if (configuration != null && !configuration.IsEnabled)
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             _logger.LogInformation("Starting daily EUR bank statement import from Comgate");

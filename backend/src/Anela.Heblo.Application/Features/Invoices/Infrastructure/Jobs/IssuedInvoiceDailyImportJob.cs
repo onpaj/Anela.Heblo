@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Invoices.Services;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Invoices;
 using Microsoft.Extensions.Logging;
 
@@ -8,22 +9,43 @@ public class IssuedInvoiceDailyImportJob
 {
     private readonly IInvoiceImportService _invoiceImportService;
     private readonly ILogger<IssuedInvoiceDailyImportJob> _logger;
+    private readonly IRecurringJobConfigurationRepository _jobConfigRepository;
 
     public IssuedInvoiceDailyImportJob(
         IInvoiceImportService invoiceImportService,
-        ILogger<IssuedInvoiceDailyImportJob> logger)
+        ILogger<IssuedInvoiceDailyImportJob> logger,
+        IRecurringJobConfigurationRepository jobConfigRepository)
     {
         _invoiceImportService = invoiceImportService;
         _logger = logger;
+        _jobConfigRepository = jobConfigRepository;
     }
 
     public async Task ImportYesterdayEur()
     {
+        const string jobName = "daily-invoice-import-eur";
+
+        var configuration = await _jobConfigRepository.GetByJobNameAsync(jobName);
+        if (configuration != null && !configuration.IsEnabled)
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         await ImportYesterdayForCurrency("EUR");
     }
 
     public async Task ImportYesterdayCzk()
     {
+        const string jobName = "daily-invoice-import-czk";
+
+        var configuration = await _jobConfigRepository.GetByJobNameAsync(jobName);
+        if (configuration != null && !configuration.IsEnabled)
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         await ImportYesterdayForCurrency("CZK");
     }
 
