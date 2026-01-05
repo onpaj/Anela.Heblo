@@ -1,70 +1,50 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  UpdateJobStatusRequestBody,
+  type RecurringJobDto,
+  type UpdateRecurringJobStatusResponse
+} from '../generated/api-client';
 
-export interface RecurringJobDto {
-  jobName: string;
-  displayName: string;
-  description: string;
-  cronExpression: string;
-  isEnabled: boolean;
-  lastModified?: string;
-  modifiedBy?: string;
-}
-
-export interface UpdateRecurringJobStatusRequest {
-  isEnabled: boolean;
-}
-
-// Query key factory for recurring jobs
-export const recurringJobsKeys = {
-  all: ['recurringJobs'] as const,
-  lists: () => [...recurringJobsKeys.all, 'list'] as const,
-  list: () => [...recurringJobsKeys.lists()] as const,
+// Query key factory for recurring jobs using centralized QUERY_KEYS
+const recurringJobsKeys = {
+  all: [...QUERY_KEYS.recurringJobs] as const,
+  list: () => [...recurringJobsKeys.all, 'list'] as const,
 };
 
-// Hook to fetch list of all recurring jobs
-export const useRecurringJobs = () => {
+/**
+ * Hook to fetch list of all recurring jobs
+ * Uses generated API client method: recurringJobs_GetRecurringJobs
+ */
+export const useRecurringJobsQuery = () => {
   return useQuery({
     queryKey: recurringJobsKeys.list(),
     queryFn: async () => {
-      const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/recurringjobs`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch recurring jobs: ${response.statusText}`);
-      }
-
-      return (await response.json()) as RecurringJobDto[];
+      const client = getAuthenticatedApiClient();
+      const response = await client.recurringJobs_GetRecurringJobs();
+      return response.jobs || [];
     },
   });
 };
 
-// Hook to update recurring job status (enable/disable)
-export const useUpdateRecurringJobStatus = () => {
+/**
+ * Hook to update recurring job status (enable/disable)
+ * Uses generated API client method: recurringJobs_UpdateJobStatus
+ */
+export const useUpdateRecurringJobStatusMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ jobName, isEnabled }: { jobName: string; isEnabled: boolean }) => {
-      const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/recurringjobs/${encodeURIComponent(jobName)}/status`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isEnabled }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update job status: ${errorText}`);
-      }
+    mutationFn: async ({
+      jobName,
+      isEnabled
+    }: {
+      jobName: string;
+      isEnabled: boolean;
+    }): Promise<UpdateRecurringJobStatusResponse> => {
+      const client = getAuthenticatedApiClient();
+      const request = new UpdateJobStatusRequestBody({ isEnabled });
+      return await client.recurringJobs_UpdateJobStatus(jobName, request);
     },
     onSuccess: () => {
       // Invalidate and refetch recurring jobs list after successful update
@@ -72,3 +52,6 @@ export const useUpdateRecurringJobStatus = () => {
     },
   });
 };
+
+// Re-export types for convenience
+export type { RecurringJobDto, UpdateRecurringJobStatusResponse };
