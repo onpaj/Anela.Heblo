@@ -83,18 +83,10 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
 
   // Format number with Czech locale
   const formatNumber = (num: number, decimals: number = 0): string => {
-    return new Intl.NumberFormat('cs-CZ', { 
+    return new Intl.NumberFormat('cs-CZ', {
       minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals 
+      maximumFractionDigits: decimals
     }).format(num);
-  };
-
-  // Format days remaining with special handling for very high values
-  const formatDaysRemaining = (days: number): string => {
-    if (days === Number.MAX_VALUE || days > 9999) {
-      return '∞';
-    }
-    return formatNumber(days);
   };
 
   return (
