@@ -12,6 +12,7 @@ using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Xcc.Services;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -322,4 +323,36 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Seeds default recurring job configurations from discovered IRecurringJob implementations
+    /// Must be called after app.Build() to ensure DI container is ready
+    /// </summary>
+    public static async Task SeedRecurringJobConfigurationsAsync(this WebApplication app)
+    {
+        try
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
+
+                // Get all discovered IRecurringJob implementations
+                var discoveredJobs = scope.ServiceProvider.GetServices<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJob>();
+
+                await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
+                logger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
+                    discoveredJobs.Count());
+            }
+        }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Failed to seed recurring job configurations during startup");
+            throw; // Fail application startup if seeding fails to ensure database is properly configured
+        }
+    }
+    
+    
+
 }
