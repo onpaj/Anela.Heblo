@@ -3,7 +3,8 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import {
   UpdateJobStatusRequestBody,
   type RecurringJobDto,
-  type UpdateRecurringJobStatusResponse
+  type UpdateRecurringJobStatusResponse,
+  type TriggerRecurringJobResponse
 } from '../generated/api-client';
 
 // Query key factory for recurring jobs using centralized QUERY_KEYS
@@ -53,5 +54,24 @@ export const useUpdateRecurringJobStatusMutation = () => {
   });
 };
 
+/**
+ * Hook to trigger a recurring job manually
+ * Uses generated API client method: recurringJobs_TriggerJob
+ */
+export const useTriggerRecurringJobMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (jobName: string): Promise<TriggerRecurringJobResponse> => {
+      const client = getAuthenticatedApiClient();
+      return await client.recurringJobs_TriggerJob(jobName);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch recurring jobs list after successful trigger
+      queryClient.invalidateQueries({ queryKey: recurringJobsKeys.list() });
+    },
+  });
+};
+
 // Re-export types for convenience
-export type { RecurringJobDto, UpdateRecurringJobStatusResponse };
+export type { RecurringJobDto, UpdateRecurringJobStatusResponse, TriggerRecurringJobResponse };
