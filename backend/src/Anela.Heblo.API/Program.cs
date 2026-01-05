@@ -71,6 +71,9 @@ public partial class Program
         TileRegistryExtensions.InitializeTileRegistry(app.Services);
 
         // Seed default recurring job configurations
+        // Note: Database creation and migrations are handled automatically by EF Core during first connection
+        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
+        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
         using (var scope = app.Services.CreateScope())
         {
             var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
