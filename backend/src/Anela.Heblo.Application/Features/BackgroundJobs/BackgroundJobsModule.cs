@@ -13,6 +13,9 @@ public static class BackgroundJobsModule
         // Register recurring job status checker
         services.AddScoped<IRecurringJobStatusChecker, RecurringJobStatusChecker>();
 
+        // Register recurring job trigger service
+        services.AddScoped<IRecurringJobTriggerService, RecurringJobTriggerService>();
+
         return services;
     }
 }
