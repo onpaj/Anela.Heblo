@@ -257,6 +257,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/automation/background-tasks",
         },
         {
+          id: "stock-operations",
+          name: "Stock-up operace",
+          href: "/stock-operations",
+        },
+        {
           id: "hangfire",
           name: "Hangfire",
           href: "#",

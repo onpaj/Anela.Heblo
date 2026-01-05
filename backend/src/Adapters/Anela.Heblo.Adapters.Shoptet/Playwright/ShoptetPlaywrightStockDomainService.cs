@@ -7,6 +7,7 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 {
     private readonly StockUpScenario _stockUpScenario;
+    private readonly VerifyStockUpScenario _verifyStockUpScenario;
     private readonly StockTakingScenario _inventoryAlignScenario;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
@@ -14,12 +15,14 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 
     public ShoptetPlaywrightStockDomainService(
         StockUpScenario stockUpScenario,
+        VerifyStockUpScenario verifyStockUpScenario,
         StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
         TimeProvider timeProvider)
     {
         _stockUpScenario = stockUpScenario;
+        _verifyStockUpScenario = verifyStockUpScenario;
         _inventoryAlignScenario = inventoryAlignScenario;
         _stockTakingRepository = stockTakingRepository;
         _currentUser = currentUser;
@@ -31,6 +34,10 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
         var result = await _stockUpScenario.RunAsync(stockUpOrder);
     }
 
+    public async Task<bool> VerifyStockUpExistsAsync(string documentNumber)
+    {
+        return await _verifyStockUpScenario.RunAsync(documentNumber);
+    }
 
     public async Task<StockTakingRecord> SubmitStockTakingAsync(EshopStockTakingRequest order)
     {

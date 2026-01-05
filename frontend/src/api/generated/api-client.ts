@@ -5200,6 +5200,83 @@ export class ApiClient {
         return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
     }
 
+    stockUpOperations_GetOperations(state: StockUpOperationState | null | undefined, pageSize: number | null | undefined, page: number | null | undefined): Promise<GetStockUpOperationsResponse> {
+        let url_ = this.baseUrl + "/api/StockUpOperations?";
+        if (state !== undefined && state !== null)
+            url_ += "state=" + encodeURIComponent("" + state) + "&";
+        if (pageSize !== undefined && pageSize !== null)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (page !== undefined && page !== null)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStockUpOperations_GetOperations(_response);
+        });
+    }
+
+    protected processStockUpOperations_GetOperations(response: Response): Promise<GetStockUpOperationsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetStockUpOperationsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetStockUpOperationsResponse>(null as any);
+    }
+
+    stockUpOperations_RetryOperation(id: number): Promise<RetryStockUpOperationResponse> {
+        let url_ = this.baseUrl + "/api/StockUpOperations/{id}/retry";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStockUpOperations_RetryOperation(_response);
+        });
+    }
+
+    protected processStockUpOperations_RetryOperation(response: Response): Promise<RetryStockUpOperationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RetryStockUpOperationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RetryStockUpOperationResponse>(null as any);
+    }
+
     suppliers_SearchSuppliers(searchTerm: string | undefined, limit: number | undefined): Promise<SearchSuppliersResponse> {
         let url_ = this.baseUrl + "/api/suppliers/search?";
         if (searchTerm === null)
@@ -18560,6 +18637,194 @@ export interface ISubmitStockTakingRequest {
     productCode: string;
     targetAmount: number;
     softStockTaking?: boolean;
+}
+
+export class GetStockUpOperationsResponse extends BaseResponse implements IGetStockUpOperationsResponse {
+    operations?: StockUpOperationDto[];
+    totalCount?: number;
+
+    constructor(data?: IGetStockUpOperationsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["operations"])) {
+                this.operations = [] as any;
+                for (let item of _data["operations"])
+                    this.operations!.push(StockUpOperationDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): GetStockUpOperationsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetStockUpOperationsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.operations)) {
+            data["operations"] = [];
+            for (let item of this.operations)
+                data["operations"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetStockUpOperationsResponse extends IBaseResponse {
+    operations?: StockUpOperationDto[];
+    totalCount?: number;
+}
+
+export class StockUpOperationDto implements IStockUpOperationDto {
+    id?: number;
+    documentNumber?: string;
+    productCode?: string;
+    amount?: number;
+    state?: StockUpOperationState;
+    sourceType?: StockUpSourceType;
+    sourceId?: number;
+    createdAt?: Date;
+    submittedAt?: Date | undefined;
+    verifiedAt?: Date | undefined;
+    completedAt?: Date | undefined;
+    failedAt?: Date | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IStockUpOperationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.documentNumber = _data["documentNumber"];
+            this.productCode = _data["productCode"];
+            this.amount = _data["amount"];
+            this.state = _data["state"];
+            this.sourceType = _data["sourceType"];
+            this.sourceId = _data["sourceId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.submittedAt = _data["submittedAt"] ? new Date(_data["submittedAt"].toString()) : <any>undefined;
+            this.verifiedAt = _data["verifiedAt"] ? new Date(_data["verifiedAt"].toString()) : <any>undefined;
+            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+            this.failedAt = _data["failedAt"] ? new Date(_data["failedAt"].toString()) : <any>undefined;
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): StockUpOperationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockUpOperationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["documentNumber"] = this.documentNumber;
+        data["productCode"] = this.productCode;
+        data["amount"] = this.amount;
+        data["state"] = this.state;
+        data["sourceType"] = this.sourceType;
+        data["sourceId"] = this.sourceId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["submittedAt"] = this.submittedAt ? this.submittedAt.toISOString() : <any>undefined;
+        data["verifiedAt"] = this.verifiedAt ? this.verifiedAt.toISOString() : <any>undefined;
+        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        data["failedAt"] = this.failedAt ? this.failedAt.toISOString() : <any>undefined;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IStockUpOperationDto {
+    id?: number;
+    documentNumber?: string;
+    productCode?: string;
+    amount?: number;
+    state?: StockUpOperationState;
+    sourceType?: StockUpSourceType;
+    sourceId?: number;
+    createdAt?: Date;
+    submittedAt?: Date | undefined;
+    verifiedAt?: Date | undefined;
+    completedAt?: Date | undefined;
+    failedAt?: Date | undefined;
+    errorMessage?: string | undefined;
+}
+
+export enum StockUpOperationState {
+    Pending = "Pending",
+    Submitted = "Submitted",
+    Verified = "Verified",
+    Completed = "Completed",
+    Failed = "Failed",
+}
+
+export enum StockUpSourceType {
+    TransportBox = "TransportBox",
+    GiftPackageManufacture = "GiftPackageManufacture",
+}
+
+export class RetryStockUpOperationResponse extends BaseResponse implements IRetryStockUpOperationResponse {
+    status?: StockUpResultStatus;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IRetryStockUpOperationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.status = _data["status"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static override fromJS(data: any): RetryStockUpOperationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RetryStockUpOperationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
+        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRetryStockUpOperationResponse extends IBaseResponse {
+    status?: StockUpResultStatus;
+    errorMessage?: string | undefined;
+}
+
+export enum StockUpResultStatus {
+    Success = "Success",
+    AlreadyCompleted = "AlreadyCompleted",
+    AlreadyInShoptet = "AlreadyInShoptet",
+    InProgress = "InProgress",
+    PreviouslyFailed = "PreviouslyFailed",
+    Failed = "Failed",
 }
 
 export class SearchSuppliersResponse extends BaseResponse implements ISearchSuppliersResponse {
