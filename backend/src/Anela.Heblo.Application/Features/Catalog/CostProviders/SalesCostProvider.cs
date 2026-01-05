@@ -138,7 +138,7 @@ public class SalesCostProvider : ISalesCostProvider
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);

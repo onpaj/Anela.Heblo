@@ -127,7 +127,7 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
         var products = await _catalogRepository.GetAllAsync(ct);
 
-        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.Value.ManufactureCostHistoryDays));
+        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.Value.ManufactureCostHistoryDays));
         var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
