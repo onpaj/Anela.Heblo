@@ -11,7 +11,7 @@ namespace Anela.Heblo.API;
 
 public partial class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +69,13 @@ public partial class Program
 
         // Initialize tile registry with all registered tiles
         TileRegistryExtensions.InitializeTileRegistry(app.Services);
+
+        // Seed default recurring job configurations
+        using (var scope = app.Services.CreateScope())
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
+            await repository.SeedDefaultConfigurationsAsync();
+        }
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();
