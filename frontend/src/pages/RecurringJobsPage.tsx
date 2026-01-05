@@ -1,12 +1,17 @@
 import React, { useState, useCallback } from 'react';
-import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
-import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
+import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Play } from 'lucide-react';
+import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
+import ConfirmTriggerJobDialog from '../components/dialogs/ConfirmTriggerJobDialog';
 
 const RecurringJobsPage: React.FC = () => {
   const { data: jobs, isLoading, error, refetch } = useRecurringJobsQuery();
   const updateJobStatus = useUpdateRecurringJobStatusMutation();
+  const triggerJob = useTriggerRecurringJobMutation();
   const [updatingJobName, setUpdatingJobName] = useState<string | null>(null);
+  const [triggeringJobName, setTriggeringJobName] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<RecurringJobDto | null>(null);
 
   const handleToggle = async (job: RecurringJobDto) => {
     if (!job.jobName) return;
@@ -22,6 +27,32 @@ const RecurringJobsPage: React.FC = () => {
     } finally {
       setUpdatingJobName(null);
     }
+  };
+
+  const handleTriggerClick = (job: RecurringJobDto) => {
+    setSelectedJob(job);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmTrigger = async () => {
+    if (!selectedJob?.jobName) return;
+
+    setConfirmDialogOpen(false);
+    setTriggeringJobName(selectedJob.jobName);
+
+    try {
+      await triggerJob.mutateAsync(selectedJob.jobName);
+    } catch (error) {
+      console.error('Chyba při spouštění jobu:', error);
+    } finally {
+      setTriggeringJobName(null);
+      setSelectedJob(null);
+    }
+  };
+
+  const handleCancelTrigger = () => {
+    setConfirmDialogOpen(false);
+    setSelectedJob(null);
   };
 
   const formatDate = useCallback((date?: string | Date | null) => {
@@ -139,6 +170,9 @@ const RecurringJobsPage: React.FC = () => {
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -190,12 +224,42 @@ const RecurringJobsPage: React.FC = () => {
                       {job.isEnabled ? 'Zapnuto' : 'Vypnuto'}
                     </button>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => handleTriggerClick(job)}
+                      disabled={triggeringJobName === job.jobName}
+                      aria-label={`Spustit úlohu ${job.displayName || job.jobName} nyní`}
+                      className={`
+                        inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                        bg-indigo-100 text-indigo-800 hover:bg-indigo-200
+                        ${triggeringJobName === job.jobName ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                      title="Spustit úlohu nyní"
+                    >
+                      {triggeringJobName === job.jobName ? (
+                        <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Run Now
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Confirm Trigger Dialog */}
+      <ConfirmTriggerJobDialog
+        isOpen={confirmDialogOpen}
+        jobName={selectedJob?.jobName || ''}
+        jobDisplayName={selectedJob?.displayName || selectedJob?.jobName || ''}
+        isJobDisabled={!selectedJob?.isEnabled}
+        onConfirm={handleConfirmTrigger}
+        onCancel={handleCancelTrigger}
+      />
     </div>
   );
 };
