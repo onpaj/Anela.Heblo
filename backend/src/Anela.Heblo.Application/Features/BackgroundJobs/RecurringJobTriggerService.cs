@@ -21,7 +21,7 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<string?> TriggerJobAsync(string jobName, bool forceDisabled = false)
+    public async Task<string?> TriggerJobAsync(string jobName, bool forceDisabled = false, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Attempting to trigger job {JobName} (forceDisabled={ForceDisabled})",
             jobName, forceDisabled);
@@ -40,7 +40,7 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
         // Check if job is enabled (unless forced)
         if (!forceDisabled)
         {
-            var isEnabled = await _statusChecker.IsJobEnabledAsync(jobName);
+            var isEnabled = await _statusChecker.IsJobEnabledAsync(jobName, cancellationToken);
             if (!isEnabled)
             {
                 _logger.LogWarning("Job {JobName} is disabled. Use forceDisabled=true to trigger anyway.", jobName);

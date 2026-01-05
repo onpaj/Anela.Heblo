@@ -21,7 +21,7 @@ public class TriggerRecurringJobHandlerTests
     {
         // Arrange
         _mockTriggerService
-            .Setup(x => x.TriggerJobAsync("test-job", false))
+            .Setup(x => x.TriggerJobAsync("test-job", false, It.IsAny<CancellationToken>()))
             .ReturnsAsync("job-id-123");
 
         var request = new TriggerRecurringJobRequest
@@ -44,7 +44,7 @@ public class TriggerRecurringJobHandlerTests
     {
         // Arrange
         _mockTriggerService
-            .Setup(x => x.TriggerJobAsync("nonexistent-job", false))
+            .Setup(x => x.TriggerJobAsync("nonexistent-job", false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
         var request = new TriggerRecurringJobRequest
@@ -68,7 +68,7 @@ public class TriggerRecurringJobHandlerTests
     {
         // Arrange
         _mockTriggerService
-            .Setup(x => x.TriggerJobAsync("disabled-job", false))
+            .Setup(x => x.TriggerJobAsync("disabled-job", false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
         var request = new TriggerRecurringJobRequest
@@ -91,7 +91,7 @@ public class TriggerRecurringJobHandlerTests
     {
         // Arrange
         _mockTriggerService
-            .Setup(x => x.TriggerJobAsync("disabled-job", true))
+            .Setup(x => x.TriggerJobAsync("disabled-job", true, It.IsAny<CancellationToken>()))
             .ReturnsAsync("job-id-456");
 
         var request = new TriggerRecurringJobRequest

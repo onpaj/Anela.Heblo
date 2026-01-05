@@ -10,6 +10,7 @@ public interface IRecurringJobTriggerService
     /// </summary>
     /// <param name="jobName">The job name to trigger</param>
     /// <param name="forceDisabled">If true, triggers even if job is disabled</param>
+    /// <param name="cancellationToken">Cancellation token for async operations</param>
     /// <returns>Job ID from Hangfire, or null if job not found</returns>
-    Task<string?> TriggerJobAsync(string jobName, bool forceDisabled = false);
+    Task<string?> TriggerJobAsync(string jobName, bool forceDisabled = false, CancellationToken cancellationToken = default);
 }

@@ -14,7 +14,7 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 
     public async Task<TriggerRecurringJobResponse> Handle(TriggerRecurringJobRequest request, CancellationToken cancellationToken)
     {
-        var jobId = await _triggerService.TriggerJobAsync(request.JobName, request.ForceDisabled);
+        var jobId = await _triggerService.TriggerJobAsync(request.JobName, request.ForceDisabled, cancellationToken);
 
         if (jobId == null)
         {
