@@ -5110,6 +5110,109 @@ export class ApiClient {
         return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
     }
 
+    recurringJobs_GetRecurringJobs(): Promise<GetRecurringJobsListResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_GetRecurringJobs(_response);
+        });
+    }
+
+    protected processRecurringJobs_GetRecurringJobs(response: Response): Promise<GetRecurringJobsListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRecurringJobsListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRecurringJobsListResponse>(null as any);
+    }
+
+    recurringJobs_UpdateJobStatus(jobName: string, request: UpdateJobStatusRequestBody): Promise<UpdateRecurringJobStatusResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/status";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_UpdateJobStatus(_response);
+        });
+    }
+
+    protected processRecurringJobs_UpdateJobStatus(response: Response): Promise<UpdateRecurringJobStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateRecurringJobStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateRecurringJobStatusResponse>(null as any);
+    }
+
     stockTaking_SubmitStockTaking(request: SubmitStockTakingRequest): Promise<SubmitStockTakingResponse> {
         let url_ = this.baseUrl + "/api/StockTaking/submit";
         url_ = url_.replace(/[?&]$/, "");
@@ -6126,6 +6229,8 @@ export enum ErrorCodes {
     BlobNotFound = "BlobNotFound",
     FileTooLarge = "FileTooLarge",
     UnsupportedFileType = "UnsupportedFileType",
+    RecurringJobNotFound = "RecurringJobNotFound",
+    RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -18455,6 +18560,188 @@ export enum StockAnalysisSortBy {
     Consumption = "Consumption",
     StockEfficiency = "StockEfficiency",
     LastPurchaseDate = "LastPurchaseDate",
+}
+
+export class GetRecurringJobsListResponse extends BaseResponse implements IGetRecurringJobsListResponse {
+    jobs?: RecurringJobDto[];
+
+    constructor(data?: IGetRecurringJobsListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["jobs"])) {
+                this.jobs = [] as any;
+                for (let item of _data["jobs"])
+                    this.jobs!.push(RecurringJobDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetRecurringJobsListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRecurringJobsListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.jobs)) {
+            data["jobs"] = [];
+            for (let item of this.jobs)
+                data["jobs"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRecurringJobsListResponse extends IBaseResponse {
+    jobs?: RecurringJobDto[];
+}
+
+export class RecurringJobDto implements IRecurringJobDto {
+    jobName?: string;
+    displayName?: string;
+    description?: string;
+    cronExpression?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+
+    constructor(data?: IRecurringJobDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.jobName = _data["jobName"];
+            this.displayName = _data["displayName"];
+            this.description = _data["description"];
+            this.cronExpression = _data["cronExpression"];
+            this.isEnabled = _data["isEnabled"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+        }
+    }
+
+    static fromJS(data: any): RecurringJobDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecurringJobDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobName"] = this.jobName;
+        data["displayName"] = this.displayName;
+        data["description"] = this.description;
+        data["cronExpression"] = this.cronExpression;
+        data["isEnabled"] = this.isEnabled;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        return data;
+    }
+}
+
+export interface IRecurringJobDto {
+    jobName?: string;
+    displayName?: string;
+    description?: string;
+    cronExpression?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+}
+
+export class UpdateRecurringJobStatusResponse extends BaseResponse implements IUpdateRecurringJobStatusResponse {
+    jobName?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+
+    constructor(data?: IUpdateRecurringJobStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobName = _data["jobName"];
+            this.isEnabled = _data["isEnabled"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateRecurringJobStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateRecurringJobStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobName"] = this.jobName;
+        data["isEnabled"] = this.isEnabled;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateRecurringJobStatusResponse extends IBaseResponse {
+    jobName?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+}
+
+export class UpdateJobStatusRequestBody implements IUpdateJobStatusRequestBody {
+    isEnabled?: boolean;
+
+    constructor(data?: IUpdateJobStatusRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.isEnabled = _data["isEnabled"];
+        }
+    }
+
+    static fromJS(data: any): UpdateJobStatusRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateJobStatusRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isEnabled"] = this.isEnabled;
+        return data;
+    }
+}
+
+export interface IUpdateJobStatusRequestBody {
+    isEnabled?: boolean;
 }
 
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {

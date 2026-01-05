@@ -183,6 +183,10 @@ const resources = {
         FileTooLarge: "Soubor je příliš velký",
         UnsupportedFileType: "Nepodporovaný typ souboru",
 
+        // BackgroundJobs module errors
+        RecurringJobNotFound: "Opakovaná úloha nenalezena",
+        RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

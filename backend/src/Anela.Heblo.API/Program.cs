@@ -11,7 +11,7 @@ namespace Anela.Heblo.API;
 
 public partial class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +51,7 @@ public partial class Program
 
         // Hangfire background jobs
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);
+        builder.Services.AddRecurringJobs(); // Register all IRecurringJob implementations and discovery service
 
         // Controllers and API documentation
         builder.Services.AddControllers(options =>
@@ -68,7 +69,13 @@ public partial class Program
         var app = builder.Build();
 
         // Initialize tile registry with all registered tiles
-        TileRegistryExtensions.InitializeTileRegistry(app.Services);
+        app.InitializeTileRegistry();
+
+        // Seed default recurring job configurations from discovered IRecurringJob implementations
+        // Note: Database creation and migrations are handled automatically by EF Core during first connection
+        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
+        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
+        await app.SeedRecurringJobConfigurationsAsync();
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();

@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -66,6 +67,9 @@ public class ApplicationDbContext : DbContext
     // Packing Materials module
     public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
     public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
+
+    // Background Jobs module
+    public DbSet<RecurringJobConfiguration> RecurringJobConfigurations { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
