@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Analytics;
+using Anela.Heblo.Application.Features.BackgroundJobs;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Dashboard;
@@ -47,6 +48,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAnalyticsModule();
+        services.AddBackgroundJobsModule();
         services.AddBankModule();
         services.AddCatalogModule(configuration);
         services.AddDashboardModule();
