@@ -60,6 +60,7 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
 
         // Use BackgroundJob static class to enqueue
         // Find the generic Enqueue<T> method that takes Expression<Func<T, Task>>
+        // IMPORTANT: We need the async overload, not the sync Action<T> overload
         var enqueueMethod = typeof(BackgroundJob)
             .GetMethods()
             .Where(m => m.Name == "Enqueue" && m.IsGenericMethodDefinition)
@@ -71,8 +72,24 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
                 var paramType = parameters[0].ParameterType;
                 if (!paramType.IsGenericType) return false;
 
+                // Check if parameter is Expression<...>
                 var genericTypeDef = paramType.GetGenericTypeDefinition();
-                return genericTypeDef == typeof(System.Linq.Expressions.Expression<>);
+                if (genericTypeDef != typeof(System.Linq.Expressions.Expression<>)) return false;
+
+                // Get the inner type (should be Func<T, Task> or Action<T>)
+                var innerType = paramType.GetGenericArguments()[0];
+                if (!innerType.IsGenericType) return false;
+
+                // We want Func<T, Task>, not Action<T>
+                var innerGenericDef = innerType.GetGenericTypeDefinition();
+                if (innerGenericDef != typeof(Func<,>)) return false;
+
+                // Verify the Func has 2 generic arguments (T and TResult)
+                var funcArgs = innerType.GetGenericArguments();
+                if (funcArgs.Length != 2) return false;
+
+                // Second argument should be Task
+                return funcArgs[1] == typeof(Task);
             });
 
         if (enqueueMethod == null)
