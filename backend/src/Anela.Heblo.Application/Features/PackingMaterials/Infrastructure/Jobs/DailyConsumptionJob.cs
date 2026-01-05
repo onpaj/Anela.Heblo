@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,17 +9,29 @@ public class DailyConsumptionJob
 {
     private readonly IMediator _mediator;
     private readonly ILogger<DailyConsumptionJob> _logger;
+    private readonly IRecurringJobConfigurationRepository _jobConfigRepository;
 
     public DailyConsumptionJob(
         IMediator mediator,
-        ILogger<DailyConsumptionJob> logger)
+        ILogger<DailyConsumptionJob> logger,
+        IRecurringJobConfigurationRepository jobConfigRepository)
     {
         _mediator = mediator;
         _logger = logger;
+        _jobConfigRepository = jobConfigRepository;
     }
 
     public async Task ProcessDailyConsumption()
     {
+        const string jobName = "daily-consumption-calculation";
+
+        var configuration = await _jobConfigRepository.GetByJobNameAsync(jobName);
+        if (configuration != null && !configuration.IsEnabled)
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         var processingDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)); // Process previous day
 
         _logger.LogInformation("Starting daily consumption job for {Date}", processingDate);

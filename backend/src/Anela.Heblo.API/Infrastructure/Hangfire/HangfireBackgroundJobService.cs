@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Hangfire;
 using Anela.Heblo.Xcc.Telemetry;
 using MediatR;
@@ -18,19 +19,22 @@ public class HangfireBackgroundJobService
     private readonly IMediator _mediator;
     private readonly IOptions<ProductExportOptions> _productExportOptions;
     private readonly IProductWeightRecalculationService _productWeightRecalculationService;
+    private readonly IRecurringJobStatusChecker _jobStatusChecker;
 
     public HangfireBackgroundJobService(
         ILogger<HangfireBackgroundJobService> logger,
         ITelemetryService telemetryService,
         IMediator mediator,
         IOptions<ProductExportOptions> productExportOptions,
-        IProductWeightRecalculationService productWeightRecalculationService)
+        IProductWeightRecalculationService productWeightRecalculationService,
+        IRecurringJobStatusChecker jobStatusChecker)
     {
         _logger = logger;
         _telemetryService = telemetryService;
         _mediator = mediator;
         _productExportOptions = productExportOptions;
         _productWeightRecalculationService = productWeightRecalculationService;
+        _jobStatusChecker = jobStatusChecker;
     }
 
     /// <summary>
@@ -39,6 +43,14 @@ public class HangfireBackgroundJobService
     [Queue("heblo")]
     public async Task RecalculatePurchasePricesAsync()
     {
+        const string jobName = "purchase-price-recalculation";
+
+        if (!await _jobStatusChecker.IsJobEnabledAsync(jobName))
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             _logger.LogInformation("Starting daily purchase price recalculation job at {Timestamp}", DateTime.UtcNow);
@@ -80,6 +92,14 @@ public class HangfireBackgroundJobService
     [Queue("heblo")]
     public async Task DownloadProductExportAsync()
     {
+        const string jobName = "product-export-download";
+
+        if (!await _jobStatusChecker.IsJobEnabledAsync(jobName))
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             var exportUrl = _productExportOptions.Value.Url;
@@ -133,6 +153,14 @@ public class HangfireBackgroundJobService
     [Queue("heblo")]
     public async Task RecalculateProductWeightsAsync()
     {
+        const string jobName = "product-weight-recalculation";
+
+        if (!await _jobStatusChecker.IsJobEnabledAsync(jobName))
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             _logger.LogInformation("Starting daily product weight recalculation job at {Timestamp}", DateTime.UtcNow);
@@ -180,6 +208,14 @@ public class HangfireBackgroundJobService
     [Queue("heblo")]
     public async Task ClassifyInvoicesAsync()
     {
+        const string jobName = "invoice-classification";
+
+        if (!await _jobStatusChecker.IsJobEnabledAsync(jobName))
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", jobName);
+            return;
+        }
+
         try
         {
             _logger.LogInformation("Starting hourly invoice classification job at {Timestamp}", DateTime.UtcNow);
