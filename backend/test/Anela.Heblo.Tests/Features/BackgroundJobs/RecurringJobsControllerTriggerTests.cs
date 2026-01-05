@@ -90,11 +90,7 @@ public class RecurringJobsControllerTriggerTests
     {
         // Arrange
         var jobName = "non-existent-job";
-        var errorResponse = new TriggerRecurringJobResponse
-        {
-            Success = false,
-            ErrorMessage = $"Job '{jobName}' not found or is disabled (use forceDisabled to override)"
-        };
+        var errorResponse = new TriggerRecurringJobResponse(ErrorCodes.RecurringJobNotFound);
 
         _mediatorMock
             .Setup(x => x.Send(
@@ -109,7 +105,7 @@ public class RecurringJobsControllerTriggerTests
         var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var returnedResponse = notFoundResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
         returnedResponse.Success.Should().BeFalse();
-        returnedResponse.ErrorMessage.Should().Contain(jobName);
+        returnedResponse.ErrorCode.Should().Be(ErrorCodes.RecurringJobNotFound);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),
@@ -121,11 +117,7 @@ public class RecurringJobsControllerTriggerTests
     {
         // Arrange
         var jobName = "test-job";
-        var errorResponse = new TriggerRecurringJobResponse
-        {
-            Success = false,
-            ErrorMessage = "Hangfire service error"
-        };
+        var errorResponse = new TriggerRecurringJobResponse(ErrorCodes.RecurringJobUpdateFailed);
 
         _mediatorMock
             .Setup(x => x.Send(
@@ -140,7 +132,7 @@ public class RecurringJobsControllerTriggerTests
         var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var returnedResponse = notFoundResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
         returnedResponse.Success.Should().BeFalse();
-        returnedResponse.ErrorMessage.Should().Be("Hangfire service error");
+        returnedResponse.ErrorCode.Should().Be(ErrorCodes.RecurringJobUpdateFailed);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),

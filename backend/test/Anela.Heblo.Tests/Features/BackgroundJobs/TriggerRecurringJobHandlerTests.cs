@@ -36,7 +36,7 @@ public class TriggerRecurringJobHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("job-id-123", result.JobId);
-        Assert.Null(result.ErrorMessage);
+        Assert.Null(result.ErrorCode);
     }
 
     [Fact]
@@ -59,8 +59,7 @@ public class TriggerRecurringJobHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Null(result.JobId);
-        Assert.NotNull(result.ErrorMessage);
-        Assert.Contains("not found", result.ErrorMessage);
+        Assert.NotNull(result.ErrorCode);
     }
 
     [Fact]
@@ -83,7 +82,7 @@ public class TriggerRecurringJobHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Null(result.JobId);
-        Assert.NotNull(result.ErrorMessage);
+        Assert.NotNull(result.ErrorCode);
     }
 
     [Fact]
