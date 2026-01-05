@@ -58,27 +58,32 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
             return null;
         }
 
-        // Use Hangfire's Enqueue method with reflection
-        var enqueueMethod = typeof(IBackgroundJobClient)
+        // Use BackgroundJob static class to enqueue
+        // Find the generic Enqueue<T> method that takes Expression<Func<T, Task>>
+        var enqueueMethod = typeof(BackgroundJob)
             .GetMethods()
             .Where(m => m.Name == "Enqueue" && m.IsGenericMethodDefinition)
             .FirstOrDefault(m =>
             {
                 var parameters = m.GetParameters();
-                return parameters.Length == 1 &&
-                       parameters[0].ParameterType.IsGenericType &&
-                       parameters[0].ParameterType.GetGenericTypeDefinition() == typeof(System.Linq.Expressions.Expression<>);
+                if (parameters.Length != 1) return false;
+
+                var paramType = parameters[0].ParameterType;
+                if (!paramType.IsGenericType) return false;
+
+                var genericTypeDef = paramType.GetGenericTypeDefinition();
+                return genericTypeDef == typeof(System.Linq.Expressions.Expression<>);
             });
 
         if (enqueueMethod == null)
         {
-            _logger.LogError("Could not find suitable Enqueue method on IBackgroundJobClient");
+            _logger.LogError("Could not find suitable Enqueue method on BackgroundJob static class");
             return null;
         }
 
         var genericMethod = enqueueMethod.MakeGenericMethod(jobType);
 
-        // Create lambda: job => job.ExecuteAsync(default)
+        // Create lambda: (TJob job) => job.ExecuteAsync(default(CancellationToken))
         var parameter = System.Linq.Expressions.Expression.Parameter(jobType, "job");
         var methodCall = System.Linq.Expressions.Expression.Call(
             parameter,
@@ -87,9 +92,8 @@ public class RecurringJobTriggerService : IRecurringJobTriggerService
         );
         var lambda = System.Linq.Expressions.Expression.Lambda(methodCall, parameter);
 
-        // Enqueue the job
-        var backgroundJobClient = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
-        var jobId = (string?)genericMethod.Invoke(backgroundJobClient, new object[] { lambda });
+        // Enqueue the job using reflection on BackgroundJob.Enqueue<T>
+        var jobId = (string?)genericMethod.Invoke(null, new object[] { lambda });
 
         _logger.LogInformation("Job {JobName} enqueued with Hangfire job ID: {JobId}", jobName, jobId);
 

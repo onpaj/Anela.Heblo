@@ -1,8 +1,13 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 
-public class TriggerRecurringJobResponse
+public class TriggerRecurringJobResponse : BaseResponse
 {
-    public bool Success { get; set; }
     public string? JobId { get; set; }
-    public string? ErrorMessage { get; set; }
+
+    public TriggerRecurringJobResponse() : base() { }
+
+    public TriggerRecurringJobResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
+        : base(errorCode, parameters) { }
 }

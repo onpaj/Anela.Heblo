@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using MediatR;
 
@@ -18,16 +19,18 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 
         if (jobId == null)
         {
-            return new TriggerRecurringJobResponse
-            {
-                Success = false,
-                ErrorMessage = $"Job '{request.JobName}' not found or is disabled (use forceDisabled to override)"
-            };
+            return new TriggerRecurringJobResponse(
+                ErrorCodes.RecurringJobNotFound,
+                new Dictionary<string, string>
+                {
+                    { "jobName", request.JobName },
+                    { "forceDisabled", request.ForceDisabled.ToString() }
+                }
+            );
         }
 
         return new TriggerRecurringJobResponse
         {
-            Success = true,
             JobId = jobId
         };
     }
