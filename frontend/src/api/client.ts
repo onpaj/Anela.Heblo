@@ -389,7 +389,6 @@ export const QUERY_KEYS = {
   dashboard: ["dashboard"] as const,
   orgChart: ["orgChart"] as const,
   departments: ["departments"] as const,
-  stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,

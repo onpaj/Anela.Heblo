@@ -335,10 +335,10 @@ public static class ServiceCollectionExtensions
             using (var scope = app.Services.CreateScope())
             {
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
+                var repository = scope.ServiceProvider.GetRequiredService<IRecurringJobConfigurationRepository>();
 
                 // Get all discovered IRecurringJob implementations
-                var discoveredJobs = scope.ServiceProvider.GetServices<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJob>();
+                var discoveredJobs = scope.ServiceProvider.GetServices<IRecurringJob>();
 
                 await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
                 logger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
