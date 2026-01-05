@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260105125530_AddRecurringJobConfigurations")]
+    partial class AddRecurringJobConfigurations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -83,38 +86,42 @@ namespace Anela.Heblo.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("Id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Account")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("text")
+                        .HasColumnName("Account");
 
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("Currency");
 
                     b.Property<DateTime>("ImportDate")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("ImportDate");
 
                     b.Property<string>("ImportResult")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text")
+                        .HasColumnName("ImportResult");
 
                     b.Property<int>("ItemCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("ItemCount");
 
                     b.Property<DateTime>("StatementDate")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("StatementDate");
 
                     b.Property<string>("TransferId")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("TransferId");
 
                     b.HasKey("Id");
 
@@ -211,6 +218,70 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("StockTakingResults", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SourceType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StockUpOperations_DocumentNumber_Unique");
+
+                    b.HasIndex("State")
+                        .HasDatabaseName("IX_StockUpOperations_State");
+
+                    b.HasIndex("SourceType", "SourceId")
+                        .HasDatabaseName("IX_StockUpOperations_Source");
+
+                    b.HasIndex("State", "CreatedAt")
+                        .HasDatabaseName("IX_StockUpOperations_State_CreatedAt");
+
+                    b.ToTable("StockUpOperations", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationHistory", b =>
@@ -1398,7 +1469,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData.Error#Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
+                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
                         {
                             b1.Property<int>("IssuedInvoiceSyncDataId")
                                 .HasColumnType("integer");
