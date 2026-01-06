@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
@@ -24,7 +25,8 @@ public class TriggerRecurringJobHandlerIntegrationTest
         GlobalConfiguration.Configuration.UseMemoryStorage();
 
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
-        var mockLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
             .Setup(x => x.IsJobEnabledAsync("test-async-job", It.IsAny<CancellationToken>()))
@@ -35,10 +37,13 @@ public class TriggerRecurringJobHandlerIntegrationTest
             new TestAsyncRecurringJob("test-async-job")
         };
 
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+
         var handler = new TriggerRecurringJobHandler(
             jobs,
             mockStatusChecker.Object,
-            mockLogger.Object);
+            jobEnqueuer,
+            mockHandlerLogger.Object);
 
         var request = new TriggerRecurringJobRequest
         {
@@ -70,7 +75,8 @@ public class TriggerRecurringJobHandlerIntegrationTest
         GlobalConfiguration.Configuration.UseMemoryStorage();
 
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
-        var mockLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
             .Setup(x => x.IsJobEnabledAsync("async-test", It.IsAny<CancellationToken>()))
@@ -81,10 +87,13 @@ public class TriggerRecurringJobHandlerIntegrationTest
             new TestAsyncRecurringJob("async-test")
         };
 
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+
         var handler = new TriggerRecurringJobHandler(
             jobs,
             mockStatusChecker.Object,
-            mockLogger.Object);
+            jobEnqueuer,
+            mockHandlerLogger.Object);
 
         var request = new TriggerRecurringJobRequest
         {
@@ -119,7 +128,8 @@ public class TriggerRecurringJobHandlerIntegrationTest
         GlobalConfiguration.Configuration.UseMemoryStorage();
 
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
-        var mockLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
+        var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
             .Setup(x => x.IsJobEnabledAsync("disabled-job", It.IsAny<CancellationToken>()))
@@ -130,10 +140,13 @@ public class TriggerRecurringJobHandlerIntegrationTest
             new TestAsyncRecurringJob("disabled-job")
         };
 
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+
         var handler = new TriggerRecurringJobHandler(
             jobs,
             mockStatusChecker.Object,
-            mockLogger.Object);
+            jobEnqueuer,
+            mockHandlerLogger.Object);
 
         var request = new TriggerRecurringJobRequest
         {
