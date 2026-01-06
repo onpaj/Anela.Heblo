@@ -1,3 +1,4 @@
+using System.Reflection;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using FluentAssertions;
@@ -108,6 +109,53 @@ public class HangfireJobEnqueuerTests
         // The cancellation token is embedded in the expression tree and will be
         // passed to ExecuteAsync when the job actually runs in Hangfire
         result.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void FindEnqueueMethod_ReturnsCorrectMethod()
+    {
+        // This test verifies that the reflection logic finds the correct Hangfire method
+        // We'll use reflection to call the private FindEnqueueMethod for testing purposes
+
+        var findMethodInfo = typeof(HangfireJobEnqueuer)
+            .GetMethod("FindEnqueueMethod", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        Assert.NotNull(findMethodInfo);
+
+        // Act
+        var enqueueMethod = findMethodInfo.Invoke(_enqueuer, null) as System.Reflection.MethodInfo;
+
+        // Assert
+        Assert.NotNull(enqueueMethod);
+        Assert.Equal("Enqueue", enqueueMethod.Name);
+        Assert.True(enqueueMethod.IsGenericMethodDefinition);
+        Assert.Equal(typeof(string), enqueueMethod.ReturnType);
+    }
+
+    [Fact]
+    public void CreateExecutionExpression_CreatesValidLambda()
+    {
+        // Test that CreateExecutionExpression produces a valid lambda expression
+        var jobType = typeof(TestRecurringJob);
+        var executeMethod = typeof(IRecurringJob).GetMethod(nameof(IRecurringJob.ExecuteAsync));
+        var cancellationToken = CancellationToken.None;
+
+        Assert.NotNull(executeMethod);
+
+        var createExpressionMethod = typeof(HangfireJobEnqueuer)
+            .GetMethod("CreateExecutionExpression", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        Assert.NotNull(createExpressionMethod);
+
+        // Act
+        var lambda = createExpressionMethod.Invoke(_enqueuer, new object[] { jobType, executeMethod, cancellationToken });
+
+        // Assert
+        Assert.NotNull(lambda);
+        Assert.IsAssignableFrom<System.Linq.Expressions.LambdaExpression>(lambda);
+
+        var lambdaExpr = (System.Linq.Expressions.LambdaExpression)lambda;
+        Assert.Equal(jobType, lambdaExpr.Parameters[0].Type);
     }
 
     #endregion
