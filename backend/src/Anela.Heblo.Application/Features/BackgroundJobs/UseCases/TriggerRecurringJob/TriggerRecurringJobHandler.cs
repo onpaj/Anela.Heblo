@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Hangfire;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -10,15 +10,18 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 {
     private readonly IEnumerable<IRecurringJob> _jobs;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly IHangfireJobEnqueuer _jobEnqueuer;
     private readonly ILogger<TriggerRecurringJobHandler> _logger;
 
     public TriggerRecurringJobHandler(
         IEnumerable<IRecurringJob> jobs,
         IRecurringJobStatusChecker statusChecker,
+        IHangfireJobEnqueuer jobEnqueuer,
         ILogger<TriggerRecurringJobHandler> logger)
     {
         _jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
         _statusChecker = statusChecker ?? throw new ArgumentNullException(nameof(statusChecker));
+        _jobEnqueuer = jobEnqueuer ?? throw new ArgumentNullException(nameof(jobEnqueuer));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -62,12 +65,11 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
         }
 
         // Enqueue the job for immediate execution via Hangfire
-        var jobType = job.GetType();
-        var executeMethod = typeof(IRecurringJob).GetMethod(nameof(IRecurringJob.ExecuteAsync));
+        var jobId = _jobEnqueuer.EnqueueJob(job, cancellationToken);
 
-        if (executeMethod == null)
+        if (jobId == null)
         {
-            _logger.LogError("Could not find ExecuteAsync method on IRecurringJob");
+            _logger.LogError("Failed to enqueue job {JobName}", request.JobName);
             return new TriggerRecurringJobResponse(
                 ErrorCodes.RecurringJobNotFound,
                 new Dictionary<string, string>
@@ -77,73 +79,12 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
                 }
             );
         }
-
-        // Use BackgroundJob static class to enqueue
-        // Find the generic Enqueue<T> method that takes Expression<Func<T, Task>>
-        // IMPORTANT: We need the async overload, not the sync Action<T> overload
-        var enqueueMethod = typeof(BackgroundJob)
-            .GetMethods()
-            .Where(m => m.Name == "Enqueue" && m.IsGenericMethodDefinition)
-            .FirstOrDefault(m =>
-            {
-                var parameters = m.GetParameters();
-                if (parameters.Length != 1) return false;
-
-                var paramType = parameters[0].ParameterType;
-                if (!paramType.IsGenericType) return false;
-
-                // Check if parameter is Expression<...>
-                var genericTypeDef = paramType.GetGenericTypeDefinition();
-                if (genericTypeDef != typeof(System.Linq.Expressions.Expression<>)) return false;
-
-                // Get the inner type (should be Func<T, Task> or Action<T>)
-                var innerType = paramType.GetGenericArguments()[0];
-                if (!innerType.IsGenericType) return false;
-
-                // We want Func<T, Task>, not Action<T>
-                var innerGenericDef = innerType.GetGenericTypeDefinition();
-                if (innerGenericDef != typeof(Func<,>)) return false;
-
-                // Verify the Func has 2 generic arguments (T and TResult)
-                var funcArgs = innerType.GetGenericArguments();
-                if (funcArgs.Length != 2) return false;
-
-                // Second argument should be Task
-                return funcArgs[1] == typeof(Task);
-            });
-
-        if (enqueueMethod == null)
-        {
-            _logger.LogError("Could not find suitable Enqueue method on BackgroundJob static class");
-            return new TriggerRecurringJobResponse(
-                ErrorCodes.RecurringJobNotFound,
-                new Dictionary<string, string>
-                {
-                    { "jobName", request.JobName },
-                    { "forceDisabled", request.ForceDisabled.ToString() }
-                }
-            );
-        }
-
-        var genericMethod = enqueueMethod.MakeGenericMethod(jobType);
-
-        // Create lambda: (TJob job) => job.ExecuteAsync(default(CancellationToken))
-        var parameter = System.Linq.Expressions.Expression.Parameter(jobType, "job");
-        var methodCall = System.Linq.Expressions.Expression.Call(
-            parameter,
-            executeMethod,
-            System.Linq.Expressions.Expression.Default(typeof(CancellationToken))
-        );
-        var lambda = System.Linq.Expressions.Expression.Lambda(methodCall, parameter);
-
-        // Enqueue the job using reflection on BackgroundJob.Enqueue<T>
-        var jobId = (string?)genericMethod.Invoke(null, new object[] { lambda });
 
         _logger.LogInformation("Job {JobName} enqueued with Hangfire job ID: {JobId}", request.JobName, jobId);
 
         return new TriggerRecurringJobResponse
         {
-            JobId = jobId!
+            JobId = jobId
         };
     }
 }
