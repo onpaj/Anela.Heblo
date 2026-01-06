@@ -33,6 +33,7 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
         }
 
         var jobType = job.GetType();
+        var queueName = job.Metadata.QueueName;
         var executeMethod = typeof(IRecurringJob).GetMethod(nameof(IRecurringJob.ExecuteAsync));
 
         if (executeMethod == null)
@@ -41,64 +42,44 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
             return null;
         }
 
-        // Find the generic Enqueue<T> method that takes Expression<Func<T, Task>>
-        var enqueueMethod = FindEnqueueMethod();
+        // Find our internal generic wrapper method (provides design-time validation of Hangfire API)
+        var enqueueWrapperMethod = typeof(HangfireJobEnqueuer)
+            .GetMethod(nameof(EnqueueJobInternal), BindingFlags.NonPublic | BindingFlags.Static);
 
-        if (enqueueMethod == null)
+        if (enqueueWrapperMethod == null)
         {
-            _logger.LogError("Could not find suitable Enqueue method on BackgroundJob static class");
+            _logger.LogError("Could not find EnqueueJobInternal method");
             return null;
         }
 
-        var genericMethod = enqueueMethod.MakeGenericMethod(jobType);
+        // Make it generic for the specific job type
+        var genericMethod = enqueueWrapperMethod.MakeGenericMethod(jobType);
 
         // Create lambda: (TJob job) => job.ExecuteAsync(cancellationToken)
         var lambda = CreateExecutionExpression(jobType, executeMethod, cancellationToken);
 
-        // Enqueue the job using reflection on BackgroundJob.Enqueue<T>
-        var jobId = (string?)genericMethod.Invoke(null, new object[] { lambda });
+        // Invoke our wrapper method which calls Hangfire API
+        var jobId = (string?)genericMethod.Invoke(null, new object[] { queueName, lambda });
 
-        _logger.LogInformation("Job {JobType} enqueued with Hangfire job ID: {JobId}", jobType.Name, jobId);
+        _logger.LogInformation("Job {JobType} enqueued to queue {QueueName} with Hangfire job ID: {JobId}",
+            jobType.Name, queueName, jobId);
 
         return jobId;
     }
 
     /// <summary>
-    /// Finds the Enqueue method on the BackgroundJob static class that accepts Expression&lt;Func&lt;T, Task&gt;&gt;.
+    /// Internal generic wrapper method that calls Hangfire's BackgroundJob.Enqueue API.
+    /// This provides design-time validation that the Hangfire API exists and has correct signature.
+    /// If Hangfire API changes, we'll get a compile error instead of runtime failure.
     /// </summary>
-    /// <returns>MethodInfo for the generic Enqueue method, or null if not found</returns>
-    private MethodInfo? FindEnqueueMethod()
+    /// <typeparam name="T">The job type (must implement IRecurringJob)</typeparam>
+    /// <param name="queueName">Queue name to enqueue the job to</param>
+    /// <param name="methodCall">Expression representing the job execution</param>
+    /// <returns>Hangfire job ID</returns>
+    private static string EnqueueJobInternal<T>(string queueName, Expression<Func<T, Task>> methodCall)
+        where T : IRecurringJob
     {
-        return typeof(BackgroundJob)
-            .GetMethods()
-            .Where(m => m.Name == "Enqueue" && m.IsGenericMethodDefinition)
-            .FirstOrDefault(m =>
-            {
-                var parameters = m.GetParameters();
-                if (parameters.Length != 1) return false;
-
-                var paramType = parameters[0].ParameterType;
-                if (!paramType.IsGenericType) return false;
-
-                // Check if parameter is Expression<...>
-                var genericTypeDef = paramType.GetGenericTypeDefinition();
-                if (genericTypeDef != typeof(Expression<>)) return false;
-
-                // Get the inner type (should be Func<T, Task> or Action<T>)
-                var innerType = paramType.GetGenericArguments()[0];
-                if (!innerType.IsGenericType) return false;
-
-                // We want Func<T, Task>, not Action<T>
-                var innerGenericDef = innerType.GetGenericTypeDefinition();
-                if (innerGenericDef != typeof(Func<,>)) return false;
-
-                // Verify the Func has 2 generic arguments (T and TResult)
-                var funcArgs = innerType.GetGenericArguments();
-                if (funcArgs.Length != 2) return false;
-
-                // Second argument should be Task
-                return funcArgs[1] == typeof(Task);
-            });
+        return BackgroundJob.Enqueue(queueName, methodCall);
     }
 
     /// <summary>
