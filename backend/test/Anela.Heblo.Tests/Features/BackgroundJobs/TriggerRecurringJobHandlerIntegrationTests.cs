@@ -16,7 +16,7 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 /// This test ensures that the reflection-based job enqueueing works end-to-end
 /// with real Hangfire components.
 /// </summary>
-public class TriggerRecurringJobHandlerIntegrationTest
+public class TriggerRecurringJobHandlerIntegrationTests
 {
     [Fact]
     public async Task Handle_WithRealHangfire_SuccessfullyEnqueuesJob()
