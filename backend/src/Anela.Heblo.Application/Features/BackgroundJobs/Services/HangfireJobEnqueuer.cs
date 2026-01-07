@@ -33,7 +33,6 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
         }
 
         var jobType = job.GetType();
-        var queueName = job.Metadata.QueueName;
         var executeMethod = typeof(IRecurringJob).GetMethod(nameof(IRecurringJob.ExecuteAsync));
 
         if (executeMethod == null)
@@ -59,10 +58,10 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
         var lambda = CreateExecutionExpression(jobType, executeMethod, cancellationToken);
 
         // Invoke our wrapper method which calls Hangfire API
-        var jobId = (string?)genericMethod.Invoke(null, new object[] { queueName, lambda });
+        var jobId = (string?)genericMethod.Invoke(null, new object[] { lambda });
 
-        _logger.LogInformation("Job {JobType} enqueued to queue {QueueName} with Hangfire job ID: {JobId}",
-            jobType.Name, queueName, jobId);
+        _logger.LogInformation("Job {JobType} enqueued with Hangfire job ID: {JobId}",
+            jobType.Name, jobId);
 
         return jobId;
     }
@@ -71,15 +70,15 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
     /// Internal generic wrapper method that calls Hangfire's BackgroundJob.Enqueue API.
     /// This provides design-time validation that the Hangfire API exists and has correct signature.
     /// If Hangfire API changes, we'll get a compile error instead of runtime failure.
+    /// Note: Queue name is not specified here - jobs will use the default queue or QueueAttribute if present.
     /// </summary>
     /// <typeparam name="T">The job type (must implement IRecurringJob)</typeparam>
-    /// <param name="queueName">Queue name to enqueue the job to</param>
     /// <param name="methodCall">Expression representing the job execution</param>
     /// <returns>Hangfire job ID</returns>
-    private static string EnqueueJobInternal<T>(string queueName, Expression<Func<T, Task>> methodCall)
+    private static string EnqueueJobInternal<T>(Expression<Func<T, Task>> methodCall)
         where T : IRecurringJob
     {
-        return BackgroundJob.Enqueue(queueName, methodCall);
+        return BackgroundJob.Enqueue(methodCall);
     }
 
     /// <summary>

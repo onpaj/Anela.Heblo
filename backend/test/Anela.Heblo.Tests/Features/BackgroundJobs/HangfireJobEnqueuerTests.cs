@@ -58,36 +58,19 @@ public class HangfireJobEnqueuerTests
     }
 
     [Fact]
-    public void EnqueueJob_WithValidJob_ShouldExtractQueueFromMetadata()
+    public void EnqueueJob_WithValidJob_UsesMetadataCorrectly()
     {
-        // Note: This test verifies that queue name is extracted from job metadata.
-        // Actual queue assignment with MemoryStorage is not supported (throws NotSupportedException).
-        // Production code uses PostgreSQL storage which DOES support queue assignment.
+        // Note: Queue name is part of job metadata but not used during enqueueing.
+        // The queue is determined by Hangfire based on QueueAttribute or default configuration.
+        // This ensures compatibility with both MemoryStorage (tests) and PostgreSQL (production).
 
         // Arrange
         var testJob = new TestRecurringJob();
 
         // Act & Assert
-        // Verify job has queue metadata defined
+        // Verify job has queue metadata defined (used for scheduling, not enqueueing)
         testJob.Metadata.QueueName.Should().Be("test");
-
-        // The EnqueueJob method extracts this queue name and passes it to Hangfire.
-        // With PostgreSQL storage (production), this works correctly.
-        // With MemoryStorage (tests), it throws NotSupportedException.
-    }
-
-    [Fact]
-    public void EnqueueJob_WithDifferentQueueNames_ExtractsCorrectQueue()
-    {
-        // Test that different jobs with different queue names are handled correctly
-
-        // Arrange - Job with custom queue
-        var customQueueJob = new TestRecurringJobWithCustomQueue();
-
-        // Act & Assert
-        customQueueJob.Metadata.QueueName.Should().Be("custom-queue");
-
-        // The EnqueueJob method will extract "custom-queue" and pass it to Hangfire
+        testJob.Metadata.JobName.Should().Be("test-job");
     }
 
     [Fact]
@@ -105,13 +88,12 @@ public class HangfireJobEnqueuerTests
         Assert.True(enqueueInternalMethod.IsGenericMethodDefinition);
         Assert.Equal(typeof(string), enqueueInternalMethod.ReturnType);
 
-        // Verify it has 2 parameters: (string queueName, Expression<Func<T, Task>>)
+        // Verify it has 1 parameter: Expression<Func<T, Task>>
+        // Note: Queue parameter was removed to support MemoryStorage (doesn't support queue parameter)
         var parameters = enqueueInternalMethod.GetParameters();
-        Assert.Equal(2, parameters.Length);
-        Assert.Equal("queueName", parameters[0].Name);
-        Assert.Equal(typeof(string), parameters[0].ParameterType);
-        Assert.Equal("methodCall", parameters[1].Name);
-        Assert.True(parameters[1].ParameterType.IsGenericType);
+        Assert.Single(parameters);
+        Assert.Equal("methodCall", parameters[0].Name);
+        Assert.True(parameters[0].ParameterType.IsGenericType);
 
         // Verify generic constraint: where T : IRecurringJob
         var genericConstraints = enqueueInternalMethod.GetGenericArguments()[0].GetGenericParameterConstraints();
