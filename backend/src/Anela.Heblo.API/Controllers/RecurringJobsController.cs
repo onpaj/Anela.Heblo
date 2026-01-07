@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
+using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -61,6 +62,35 @@ public class RecurringJobsController : BaseApiController
         var response = await _mediator.Send(mediatrRequest);
 
         return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Manually trigger a recurring job to run immediately
+    /// </summary>
+    /// <param name="jobName">The name of the job to trigger</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Background job ID if triggered successfully</returns>
+    [HttpPost("{jobName}/trigger")]
+    [ProducesResponseType(typeof(TriggerRecurringJobResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TriggerRecurringJobResponse>> TriggerJob(
+        string jobName,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new TriggerRecurringJobRequest
+        {
+            JobName = jobName
+        };
+
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return NotFound(response);
+        }
+
+        return Accepted(response);
     }
 }
 

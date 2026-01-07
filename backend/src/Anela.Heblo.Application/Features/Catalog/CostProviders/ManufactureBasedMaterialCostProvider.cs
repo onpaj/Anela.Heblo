@@ -96,7 +96,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
 
         var products = await _catalogRepository.GetAllAsync(ct);
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
+        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
@@ -129,7 +129,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         await _catalogRepository.WaitForCurrentMergeAsync(ct);
         var products = await _catalogRepository.GetAllAsync(ct);
 
-        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-_options.ManufactureCostHistoryDays));
+        var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
         var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var productCosts = new Dictionary<string, List<MonthlyCost>>();

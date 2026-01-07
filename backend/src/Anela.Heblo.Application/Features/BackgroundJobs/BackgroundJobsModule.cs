@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,6 +13,9 @@ public static class BackgroundJobsModule
 
         // Register recurring job status checker
         services.AddScoped<IRecurringJobStatusChecker, RecurringJobStatusChecker>();
+
+        // Register Hangfire job enqueuer
+        services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
 
         return services;
     }
