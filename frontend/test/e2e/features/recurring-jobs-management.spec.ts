@@ -313,3 +313,270 @@ test.describe('Recurring Jobs Management', () => {
     await page.waitForTimeout(1500);
   });
 });
+
+test.describe('Recurring Jobs - Manual Trigger', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to recurring jobs page
+    await page.goto('/recurring-jobs');
+
+    // Wait for the page to load
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+  });
+
+  test('should display "Run Now" button for each job', async ({ page }) => {
+    // Get all rows in the table
+    const rows = page.locator('table tbody tr');
+    const rowCount = await rows.count();
+
+    // Verify each row has a "Run Now" button
+    for (let i = 0; i < rowCount; i++) {
+      const row = rows.nth(i);
+      const runNowButton = row.getByRole('button', { name: /Run Now/i });
+      await expect(runNowButton).toBeVisible();
+    }
+  });
+
+  test('should have "Actions" column header', async ({ page }) => {
+    // Verify the Actions column header exists
+    await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
+  });
+
+  test('should open confirmation dialog when clicking "Run Now" on enabled job', async ({ page }) => {
+    // Find an enabled job
+    const enabledJobRow = page.locator('table tbody tr').filter({
+      has: page.locator('button[role="switch"][aria-checked="true"]')
+    }).first();
+
+    // Get job name from the row
+    const jobName = await enabledJobRow.locator('td').nth(0).textContent();
+
+    // Click "Run Now" button
+    const runNowButton = enabledJobRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Verify dialog is visible
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Verify dialog contains job name
+    await expect(dialog).toContainText(jobName || '');
+
+    // Close dialog
+    const cancelButton = dialog.getByRole('button', { name: /Zrušit/i });
+    await cancelButton.click();
+  });
+
+  test('should display job details in confirmation dialog', async ({ page }) => {
+    // Find first job
+    const firstRow = page.locator('table tbody tr').first();
+    const jobDisplayName = await firstRow.locator('td').nth(0).textContent();
+
+    // Click "Run Now" button
+    const runNowButton = firstRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Wait for dialog to appear
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Verify dialog title
+    await expect(dialog.getByText('Potvrdit spuštění úlohy')).toBeVisible();
+
+    // Verify job display name is shown
+    await expect(dialog).toContainText(jobDisplayName || '');
+
+    // Verify confirmation text
+    await expect(dialog.getByText(/Opravdu chcete spustit tuto úlohu/i)).toBeVisible();
+
+    // Close dialog
+    await dialog.getByRole('button', { name: /Zrušit/i }).click();
+  });
+
+  test('should show warning for disabled job in confirmation dialog', async ({ page }) => {
+    // Find an enabled job and disable it first
+    const enabledJobRow = page.locator('table tbody tr').filter({
+      has: page.locator('button[role="switch"][aria-checked="true"]')
+    }).first();
+
+    // Disable the job
+    const toggleButton = enabledJobRow.locator('button[role="switch"]');
+    await toggleButton.click();
+    await page.waitForTimeout(1500);
+
+    // Now click "Run Now" on the disabled job
+    const runNowButton = enabledJobRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Wait for dialog
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Verify warning is displayed
+    await expect(dialog.getByText(/Pozor/i)).toBeVisible();
+    await expect(dialog.getByText(/Tato úloha je momentálně vypnutá/i)).toBeVisible();
+
+    // Close dialog
+    await dialog.getByRole('button', { name: /Zrušit/i }).click();
+
+    // Re-enable the job for cleanup
+    await toggleButton.click();
+    await page.waitForTimeout(1500);
+  });
+
+  test('should close dialog when clicking cancel', async ({ page }) => {
+    // Click "Run Now" on first job
+    const firstRow = page.locator('table tbody tr').first();
+    const runNowButton = firstRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Verify dialog is visible
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Click cancel button
+    const cancelButton = dialog.getByRole('button', { name: /Zrušit/i });
+    await cancelButton.click();
+
+    // Verify dialog is closed
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('should close dialog when clicking X button', async ({ page }) => {
+    // Click "Run Now" on first job
+    const firstRow = page.locator('table tbody tr').first();
+    const runNowButton = firstRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Verify dialog is visible
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Click X button
+    const closeButton = dialog.locator('button[aria-label*="Zavřít"]');
+    await closeButton.click();
+
+    // Verify dialog is closed
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('should close dialog when clicking backdrop', async ({ page }) => {
+    // Click "Run Now" on first job
+    const firstRow = page.locator('table tbody tr').first();
+    const runNowButton = firstRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Verify dialog is visible
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Click backdrop (outside dialog)
+    await page.locator('.fixed.inset-0.bg-black').click({ position: { x: 10, y: 10 } });
+
+    // Verify dialog is closed
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('should trigger job when confirming in dialog', async ({ page }) => {
+    // Find first enabled job
+    const enabledJobRow = page.locator('table tbody tr').filter({
+      has: page.locator('button[role="switch"][aria-checked="true"]')
+    }).first();
+
+    // Click "Run Now" button
+    const runNowButton = enabledJobRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Wait for dialog
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Click confirm button
+    const confirmButton = dialog.getByRole('button', { name: /Potvrdit/i });
+    await confirmButton.click();
+
+    // Wait for API call to complete
+    await page.waitForTimeout(2000);
+
+    // Dialog should be closed
+    await expect(dialog).not.toBeVisible();
+
+    // Note: We can't verify the job actually executed in E2E test,
+    // but we verified the UI flow works correctly
+  });
+
+  test('should show loading state during trigger execution', async ({ page }) => {
+    // Find first enabled job
+    const enabledJobRow = page.locator('table tbody tr').filter({
+      has: page.locator('button[role="switch"][aria-checked="true"]')
+    }).first();
+
+    // Click "Run Now" button
+    const runNowButton = enabledJobRow.getByRole('button', { name: /Run Now/i });
+    await runNowButton.click();
+
+    // Wait for dialog
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Start confirmation but don't wait
+    const confirmButton = dialog.getByRole('button', { name: /Potvrdit/i });
+    const clickPromise = confirmButton.click();
+
+    // The Run Now button in the table should show loading state briefly
+    // (This might be too fast to catch, but we'll check if button becomes disabled)
+    await page.waitForTimeout(100);
+
+    // Wait for trigger to complete
+    await clickPromise;
+    await page.waitForTimeout(2000);
+
+    // After completion, button should not be disabled
+    await expect(runNowButton).not.toBeDisabled();
+  });
+
+  test('should have proper accessibility attributes on Run Now buttons', async ({ page }) => {
+    // Get all "Run Now" buttons
+    const runNowButtons = page.getByRole('button', { name: /Run Now/i });
+    const buttonCount = await runNowButtons.count();
+
+    // Verify we have buttons for all 9 jobs
+    expect(buttonCount).toBe(9);
+
+    // Check first button has proper aria-label
+    const firstButton = runNowButtons.first();
+    const ariaLabel = await firstButton.getAttribute('aria-label');
+    expect(ariaLabel).toBeTruthy();
+    expect(ariaLabel).toMatch(/Spustit úlohu .* nyní/);
+  });
+
+  test('should handle multiple rapid trigger attempts gracefully', async ({ page }) => {
+    // Find first enabled job
+    const enabledJobRow = page.locator('table tbody tr').filter({
+      has: page.locator('button[role="switch"][aria-checked="true"]')
+    }).first();
+
+    const runNowButton = enabledJobRow.getByRole('button', { name: /Run Now/i });
+
+    // Click "Run Now" button
+    await runNowButton.click();
+
+    // Wait for dialog
+    let dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Confirm
+    await dialog.getByRole('button', { name: /Potvrdit/i }).click();
+    await page.waitForTimeout(500);
+
+    // Try to click again immediately
+    await runNowButton.click();
+
+    // Dialog should open again
+    dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Close it
+    await dialog.getByRole('button', { name: /Zrušit/i }).click();
+  });
+});

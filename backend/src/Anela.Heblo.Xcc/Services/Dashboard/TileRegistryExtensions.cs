@@ -19,7 +19,7 @@ public static class TileRegistryExtensions
 
         return services;
     }
-    
+
     public static void InitializeTileRegistry(this IHost app)
     {
         var registry = app.Services.GetRequiredService<ITileRegistry>();

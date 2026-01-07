@@ -352,7 +352,7 @@ public static class ServiceCollectionExtensions
             throw; // Fail application startup if seeding fails to ensure database is properly configured
         }
     }
-    
-    
+
+
 
 }
