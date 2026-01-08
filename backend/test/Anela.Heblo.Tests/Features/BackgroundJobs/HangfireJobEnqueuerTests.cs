@@ -60,15 +60,15 @@ public class HangfireJobEnqueuerTests
     [Fact]
     public void EnqueueJob_WithValidJob_UsesMetadataCorrectly()
     {
-        // Note: Queue name is part of job metadata but not used during enqueueing.
-        // The queue is determined by Hangfire based on QueueAttribute or default configuration.
-        // This ensures compatibility with both MemoryStorage (tests) and PostgreSQL (production).
+        // Queue name from metadata is passed to HangfireJobEnqueuer.
+        // For PostgreSQL (production), jobs are enqueued to the specified queue.
+        // For MemoryStorage (tests), queue parameter is ignored due to storage limitations.
 
         // Arrange
         var testJob = new TestRecurringJob();
 
         // Act & Assert
-        // Verify job has queue metadata defined (used for scheduling, not enqueueing)
+        // Verify job has queue metadata defined
         testJob.Metadata.QueueName.Should().Be("test");
         testJob.Metadata.JobName.Should().Be("test-job");
     }
@@ -88,12 +88,14 @@ public class HangfireJobEnqueuerTests
         Assert.True(enqueueInternalMethod.IsGenericMethodDefinition);
         Assert.Equal(typeof(string), enqueueInternalMethod.ReturnType);
 
-        // Verify it has 1 parameter: Expression<Func<T, Task>>
-        // Note: Queue parameter was removed to support MemoryStorage (doesn't support queue parameter)
+        // Verify it has 2 parameters: string queueName, Expression<Func<T, Task>> methodCall
+        // Queue name parameter added to support PostgreSQL storage (production) while maintaining MemoryStorage compatibility (tests)
         var parameters = enqueueInternalMethod.GetParameters();
-        Assert.Single(parameters);
-        Assert.Equal("methodCall", parameters[0].Name);
-        Assert.True(parameters[0].ParameterType.IsGenericType);
+        Assert.Equal(2, parameters.Length);
+        Assert.Equal("queueName", parameters[0].Name);
+        Assert.Equal(typeof(string), parameters[0].ParameterType);
+        Assert.Equal("methodCall", parameters[1].Name);
+        Assert.True(parameters[1].ParameterType.IsGenericType);
 
         // Verify generic constraint: where T : IRecurringJob
         var genericConstraints = enqueueInternalMethod.GetGenericArguments()[0].GetGenericParameterConstraints();
