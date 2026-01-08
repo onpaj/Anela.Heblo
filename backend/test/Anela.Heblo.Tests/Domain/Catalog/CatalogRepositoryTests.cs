@@ -39,7 +39,6 @@ public class CatalogRepositoryTests
     private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
     private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
-    private readonly Mock<IManufactureCostCalculationService> _manufactureCostCalculationServiceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
@@ -68,7 +67,6 @@ public class CatalogRepositoryTests
         _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
         _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
-        _manufactureCostCalculationServiceMock = new Mock<IManufactureCostCalculationService>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
@@ -124,7 +122,6 @@ public class CatalogRepositoryTests
             _purchaseOrderRepositoryMock.Object,
             _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
-            _manufactureCostCalculationServiceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _mergeSchedulerMock.Object,

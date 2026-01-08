@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 
@@ -36,14 +37,15 @@ public class IssuedInvoiceExportScenario
             browser = await _browserFactory.CreateAsync(playwright);
             page = await browser.NewPageAsync();
 
+            var timeout = TimeSpan.FromMinutes(5);
+            var navigationTimeout = TimeSpan.FromSeconds(30);
             // Set more reasonable timeouts
-            page.SetDefaultTimeout(60000); // 60 seconds default timeout
-            page.SetDefaultNavigationTimeout(30000); // 30 seconds for navigation
+            page.SetDefaultTimeout((float)timeout.TotalMilliseconds); // 5 minutes seconds default timeout
+            page.SetDefaultNavigationTimeout((float)navigationTimeout.TotalMilliseconds); // 30 seconds for navigation
 
             await page.GotoAsync(_options.ShopEntryUrl, new PageGotoOptions
             {
                 WaitUntil = WaitUntilState.NetworkIdle,
-                Timeout = 30000
             });
 
             // Wait for login form and fill credentials
@@ -56,27 +58,20 @@ public class IssuedInvoiceExportScenario
 
             // Wait for navigation after login
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 30000 });
-            await page.ClickAsync("text=Objednávky");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-            await page.ClickAsync("text=Daňové doklady");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.GotoAsync($"{_options.ShopEntryUrl}/danove-doklady/", new PageGotoOptions
+            {
+                WaitUntil = WaitUntilState.NetworkIdle,
+                Timeout = 60000
+            });
 
             var openMenuElement = await page.WaitForSelectorAsync(".open-menu", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
             await openMenuElement.HoverAsync();
-            await Task.Delay(500); // Small delay for menu animation
+            await Task.Delay(1000); // Small delay for menu animation
 
             await page.ClickAsync("text=Export dokladů");
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             await page.WaitForSelectorAsync("a[data-testid=buttonExport]", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
-            // try
-            // {
-            //     await page.WaitForSelectorAsync("a.btn.btn-md.btn-action.submit-js[title='Exportovat'][rel='export']",
-            //         new PageWaitForSelectorOptions() { Timeout = 2000 });
-            // }
-            // catch (Exception ex)
-            // {
-            // }
             if (query.QueryByDate)
             {
                 await page.PressAsync("body", "Tab");
@@ -113,7 +108,7 @@ public class IssuedInvoiceExportScenario
                 await page.Locator("#main-modal-form").GetByLabel("MěnaCZKEUR").SelectOptionAsync(currency);
             }
 
-            var downloadEventTask = page.WaitForDownloadAsync(new PageWaitForDownloadOptions { Timeout = 60000 });
+            var downloadEventTask = page.WaitForDownloadAsync(new PageWaitForDownloadOptions { Timeout = (float)timeout.TotalMilliseconds });
             await page.ClickAsync("role=link >> text=Exportovat");
             var downloadEvent = await downloadEventTask;
 

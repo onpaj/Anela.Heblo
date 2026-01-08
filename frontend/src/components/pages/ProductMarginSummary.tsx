@@ -14,7 +14,7 @@ type TimeWindowType =
   | "last-12-months"
   | "last-24-months";
 
-type MarginLevelType = "M0" | "M1" | "M2" | "M3";
+type MarginLevelType = "M0" | "M1" | "M2";
 
 // Color palette for products (blue/green/purple theme, highest margin to lowest)
 const PRODUCT_COLORS = [
@@ -44,7 +44,7 @@ const ProductMarginSummary: React.FC = () => {
   const [selectedGroupingMode, setSelectedGroupingMode] =
     useState<ProductGroupingMode>(ProductGroupingMode.Products);
   const [selectedMarginLevel, setSelectedMarginLevel] =
-    useState<MarginLevelType>("M3");
+    useState<MarginLevelType>("M2");
 
   const { data, isLoading, error } = useProductMarginSummaryQuery(
     selectedTimeWindow,
@@ -164,7 +164,7 @@ const ProductMarginSummary: React.FC = () => {
     return { labels, datasets };
   }, [data]);
 
-  // Prepare table data using topProducts which already contain all M0-M3 data
+  // Prepare table data using topProducts which already contain all M0-M2 data
   const tableData = useMemo(() => {
     if (!data?.topProducts) return [];
 
@@ -186,17 +186,15 @@ const ProductMarginSummary: React.FC = () => {
           totalMargin: product.totalMargin || 0,
           rank: product.rank || 0,
           
-          // M0-M3 margin levels - amounts
+          // M0-M2 margin levels - amounts
           m0Amount: product.m0Amount || 0,
           m1Amount: product.m1Amount || 0,
           m2Amount: product.m2Amount || 0,
-          m3Amount: product.m3Amount || 0,
-          
-          // M0-M3 margin levels - percentages
+
+          // M0-M2 margin levels - percentages
           m0Percentage: product.m0Percentage || 0,
           m1Percentage: product.m1Percentage || 0,
           m2Percentage: product.m2Percentage || 0,
-          m3Percentage: product.m3Percentage || 0,
           
           // Pricing
           sellingPrice: product.sellingPrice || 0,
@@ -382,8 +380,7 @@ const ProductMarginSummary: React.FC = () => {
             >
               <option value="M0">M0 (Materiál)</option>
               <option value="M1">M1 (+ Výroba)</option>
-              <option value="M2">M2 (+ Prodej)</option>
-              <option value="M3">M3 (Čistá marže)</option>
+              <option value="M2">M2 (Finální marže)</option>
             </select>
           </div>
 
@@ -461,7 +458,7 @@ const ProductMarginSummary: React.FC = () => {
             </span>
             <span>
               <strong>Celkem skupin:</strong> {data.topProducts?.length || 0}{" "}
-              (graf: top 15 + ostatní, tabulka: všechny)
+              (graf: top 15 + ostatní, tabulka: všechny M0-M2)
             </span>
           </div>
         )}
@@ -489,7 +486,7 @@ const ProductMarginSummary: React.FC = () => {
               Detailní přehled produktů
             </h3>
             <p className="mt-1 text-sm text-gray-600">
-              Kompletní přehled všech úrovní marží M0-M3 za vybrané období
+              Kompletní přehled všech úrovní marží M0-M2 za vybrané období
             </p>
           </div>
           <div className="flex-1 overflow-auto">
@@ -519,12 +516,6 @@ const ProductMarginSummary: React.FC = () => {
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     M2 (%)
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    M3 (Kč)
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    M3 (%)
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prod. cena
@@ -571,12 +562,6 @@ const ProductMarginSummary: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {row.m2Percentage.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {formatCurrency(row.m3Amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {row.m3Percentage.toFixed(1)}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {formatCurrency(row.sellingPrice)}

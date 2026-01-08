@@ -69,7 +69,7 @@ public class IssuedInvoice : IEntity<string>
 
     public void SyncFailed(object syncedInvoice, string error)
     {
-        SyncFailed(syncedInvoice, new IssuedInvoiceError() { Message = error });
+        SyncFailed(syncedInvoice, new IssuedInvoiceError() { Message = error, Code = "GENERAL_ERROR" });
     }
 
     public void SyncFailed(object syncedInvoice, IssuedInvoiceError error)
@@ -116,7 +116,7 @@ public record IssuedInvoiceError
 {
     public IssuedInvoiceErrorType ErrorType { get; set; } = IssuedInvoiceErrorType.General;
     public string Message { get; set; } = "?";
-    public string Code { get; set; }
+    public string Code { get; set; } = string.Empty;
     public string? Field { get; set; }
 }
 

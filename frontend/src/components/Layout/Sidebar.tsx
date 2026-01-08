@@ -112,6 +112,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Vydané faktury",
           href: "/customer/issued-invoices",
         },
+        {
+          id: "prehled-bankovnich-vypisu",
+          name: "Bankovní výpisy",
+          href: "/customer/bank-statements-overview",
+        },
       ],
     },
     {
@@ -250,6 +255,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "background-tasks",
           name: "Background Tasky",
           href: "/automation/background-tasks",
+        },
+        {
+          id: "recurring-jobs",
+          name: "Recurring Jobs",
+          href: "/recurring-jobs",
         },
         {
           id: "hangfire",

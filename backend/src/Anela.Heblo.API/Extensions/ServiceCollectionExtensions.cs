@@ -1,17 +1,18 @@
-using System.Configuration;
+using System.Reflection;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.Application.Features.Users;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.OpenApi.Models;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
-using Anela.Heblo.API.Services;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Xcc.Services;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -228,7 +229,7 @@ public static class ServiceCollectionExtensions
         var hangfireOptions = configuration.GetSection(HangfireOptions.ConfigurationKey).Get<HangfireOptions>();
         if (hangfireOptions == null)
         {
-            throw new ConfigurationErrorsException("Hangfire options not found");
+            throw new InvalidOperationException("Hangfire options not found in configuration");
         }
 
         // Configure Hangfire storage based on environment
@@ -284,20 +285,13 @@ public static class ServiceCollectionExtensions
             options.Queues = new[] { hangfireOptions.QueueName };
         });
 
-        // Only register job scheduler service in Production and Staging environments
-        if (hangfireOptions.SchedulerEnabled)
-        {
-            services.AddHostedService<HangfireJobSchedulerService>();
-        }
-
-        // Register background job service (always available for manual execution via dashboard)
-        services.AddTransient<HangfireBackgroundJobService>();
-
         // Register Hangfire dashboard authorization filter
         services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
 
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
+
+        // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
 
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
@@ -305,4 +299,60 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers all IRecurringJob implementations from the Application assembly and the discovery service
+    /// </summary>
+    public static IServiceCollection AddRecurringJobs(this IServiceCollection services)
+    {
+        // Auto-discover all IRecurringJob implementations in Application assembly
+        var applicationAssembly = Assembly.Load("Anela.Heblo.Application");
+        var jobTypes = applicationAssembly
+            .GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(IRecurringJob).IsAssignableFrom(t));
+
+        foreach (var jobType in jobTypes)
+        {
+            // Register each job type as both IRecurringJob (for discovery) and as itself (for Hangfire)
+            services.AddScoped(typeof(IRecurringJob), jobType);
+            services.AddScoped(jobType);
+        }
+
+        // Register the discovery service that will register jobs with Hangfire on startup
+        services.AddHostedService<RecurringJobDiscoveryService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Seeds default recurring job configurations from discovered IRecurringJob implementations
+    /// Must be called after app.Build() to ensure DI container is ready
+    /// </summary>
+    public static async Task SeedRecurringJobConfigurationsAsync(this WebApplication app)
+    {
+        try
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                var repository = scope.ServiceProvider.GetRequiredService<IRecurringJobConfigurationRepository>();
+
+                // Get all discovered IRecurringJob implementations
+                var discoveredJobs = scope.ServiceProvider.GetServices<IRecurringJob>();
+
+                await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
+                logger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
+                    discoveredJobs.Count());
+            }
+        }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Failed to seed recurring job configurations during startup");
+            throw; // Fail application startup if seeding fails to ensure database is properly configured
+        }
+    }
+
+
+
 }

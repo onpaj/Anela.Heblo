@@ -22,6 +22,63 @@ namespace Anela.Heblo.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.BackgroundJobs.RecurringJobConfiguration", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CronExpression")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("cron_expression");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("job_name");
+
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_modified_at");
+
+                    b.Property<string>("LastModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_modified_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsEnabled")
+                        .HasDatabaseName("IX_recurring_job_configurations_is_enabled");
+
+                    b.HasIndex("JobName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_recurring_job_configurations_job_name");
+
+                    b.ToTable("recurring_job_configurations", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Bank.BankStatementImport", b =>
                 {
                     b.Property<int>("Id")
@@ -35,25 +92,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("ConcurrencyStamp")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatorId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
-
-                    b.Property<string>("ExtraProperties")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
 
                     b.Property<DateTime>("ImportDate")
                         .HasColumnType("timestamp without time zone");
@@ -66,15 +108,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<int>("ItemCount")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("LastModifierId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("StatementDate")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("TransferId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -86,6 +126,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("StatementDate")
                         .HasDatabaseName("IX_BankStatements_StatementDate");
+
+                    b.HasIndex("TransferId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_BankStatements_TransferId");
 
                     b.ToTable("BankStatements", "dbo");
                 });
@@ -1354,7 +1398,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
+                    b.OwnsOne("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData.Error#Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceError", "Error", b1 =>
                         {
                             b1.Property<int>("IssuedInvoiceSyncDataId")
                                 .HasColumnType("integer");

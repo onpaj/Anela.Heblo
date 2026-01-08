@@ -1,6 +1,7 @@
 using Hangfire.Dashboard;
 using System.Security.Claims;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
@@ -41,7 +42,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
         // For mock auth, check if user is already authenticated (from middleware)
         if (httpContext.User?.Identity?.IsAuthenticated == true)
         {
-            return true;
+            return ValidateAuthenticatedUserWithHebloRole(httpContext.User);
         }
 
         // If not authenticated but we're in mock mode, try to authenticate manually
@@ -49,7 +50,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
         var mockPrincipal = CreateMockPrincipal();
         httpContext.User = mockPrincipal;
 
-        return true;
+        return ValidateAuthenticatedUserWithHebloRole(mockPrincipal);
     }
 
     private bool AuthorizeRealAuthentication(HttpContext httpContext)
@@ -59,7 +60,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
             // Check if user is already authenticated
             if (httpContext.User?.Identity?.IsAuthenticated == true)
             {
-                return ValidateAuthenticatedUser(httpContext.User);
+                return ValidateAuthenticatedUserWithHebloRole(httpContext.User);
             }
 
             // For real authentication, ALWAYS return true and let the middleware handle authentication/redirects
@@ -86,6 +87,18 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
         return hasValidClaims;
     }
 
+    private bool ValidateAuthenticatedUserWithHebloRole(ClaimsPrincipal user)
+    {
+        // First, ensure user has basic valid claims
+        if (!ValidateAuthenticatedUser(user))
+        {
+            return false;
+        }
+
+        // Then, ensure user has the HebloUser role
+        return user.IsInRole(AuthorizationConstants.Roles.HebloUser);
+    }
+
     private ClaimsPrincipal CreateMockPrincipal()
     {
         var claims = new[]
@@ -93,7 +106,8 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
             new Claim("mock_user_id", "mock_user"),
             new Claim(ClaimTypes.Name, "Mock User"),
             new Claim(ClaimTypes.Email, "mock@example.com"),
-            new Claim("name", "Mock User")
+            new Claim("name", "Mock User"),
+            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser) // Add HebloUser role for Hangfire access
         };
 
         var identity = new ClaimsIdentity(claims, ConfigurationConstants.MOCK_AUTH_SCHEME);

@@ -20,16 +20,16 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
 
             // Fallback to invoice item text analysis
             var itemTexts = invoiceItemTexts.ToList();
-            
+
             if (itemTexts.Any(text => string.Equals(text, "Převodem", StringComparison.Ordinal)))
                 return BillingMethod.BankTransfer;
-                
+
             if (itemTexts.Any(text => string.Equals(text, "Hotově", StringComparison.Ordinal)))
                 return BillingMethod.Cash;
-                
+
             if (itemTexts.Any(text => text.Contains("kart", StringComparison.InvariantCultureIgnoreCase)))
                 return BillingMethod.Comgate;
-                
+
             if (itemTexts.Any(text => string.Equals(text, "Dobírkou", StringComparison.Ordinal)))
                 return BillingMethod.CoD;
 

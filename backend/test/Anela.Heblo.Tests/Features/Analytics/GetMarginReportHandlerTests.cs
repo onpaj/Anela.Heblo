@@ -88,7 +88,6 @@ public class GetMarginReportHandlerTests
                 ProductName = product.ProductName,
                 Category = product.ProductCategory ?? "Uncategorized",
                 MarginAmount = data.Margin,
-                M3Amount = product.M3Amount,
                 MarginPercentage = data.MarginPercentage,
                 Revenue = data.Revenue,
                 Cost = data.Cost,

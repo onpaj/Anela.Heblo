@@ -22,9 +22,9 @@ public class GetInvoiceImportJobStatusHandler : IRequestHandler<GetInvoiceImport
         try
         {
             var jobInfo = _backgroundWorker.GetJobById(request.JobId);
-            _logger.LogDebug("Retrieved job status for JobId: {JobId}, Status: {Status}", 
+            _logger.LogDebug("Retrieved job status for JobId: {JobId}, Status: {Status}",
                 request.JobId, jobInfo?.State ?? "Not Found");
-            
+
             return Task.FromResult(jobInfo);
         }
         catch (Exception ex)

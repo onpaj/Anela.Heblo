@@ -10,7 +10,7 @@ public class RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation : IIs
     {
         // TODO: Implement product code cleanup once domain model is properly defined
         // This transformation should remove 'D' suffix from product codes matching pattern: TON100050D -> TON100050
-        
+
         return Task.FromResult(invoiceDetail);
     }
 }

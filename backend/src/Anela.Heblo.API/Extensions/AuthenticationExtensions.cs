@@ -1,8 +1,10 @@
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authorization;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -40,7 +42,7 @@ public static class AuthenticationExtensions
         // Mock authentication - can be used in any environment when UseMockAuth=true
         services.AddAuthentication(ConfigurationConstants.MOCK_AUTH_SCHEME)
             .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
-        services.AddAuthorization();
+        ConfigureAuthorizationPolicies(services);
 
         // Note: GraphService is now handled via MockGraphService in UserManagementModule
         // No need to register GraphServiceClient for mock authentication
@@ -64,6 +66,9 @@ public static class AuthenticationExtensions
             options.KnownNetworks.Clear();
             options.KnownProxies.Clear();
         });
+
+        // Configure authorization policies for real authentication
+        ConfigureAuthorizationPolicies(services);
 
         // Note: GraphService now uses HttpClient directly with ITokenAcquisition
         // No need for GraphServiceClient registration
@@ -91,5 +96,15 @@ public static class AuthenticationExtensions
         }
     }
 
-
+    private static void ConfigureAuthorizationPolicies(IServiceCollection services)
+    {
+        services.AddAuthorization(options =>
+        {
+            // Default policy requires HebloUser role for all endpoints with [Authorize]
+            options.DefaultPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireRole(AuthorizationConstants.Roles.HebloUser)
+                .Build();
+        });
+    }
 }

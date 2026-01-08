@@ -71,6 +71,10 @@ public static class ApplicationBuilderExtensions
         // Use CORS
         app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
 
+        // Request logging middleware - detailed logging for diagnostics
+        // Must be after CORS and before authentication to capture all request details
+        app.UseRequestLogging();
+
         if (E2ETestAuthenticationMiddleware.ShouldBeRegistered(app))
         {
             app.UseMiddleware<E2ETestAuthenticationMiddleware>();

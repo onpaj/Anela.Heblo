@@ -21,7 +21,7 @@ const mockManufactureCostHistory: ManufactureCostDto[] = [
 
 const mockMarginHistoryEmpty: MarginHistoryDto[] = [];
 
-const mockMarginHistoryWithM0M3: MarginHistoryDto[] = [
+const mockMarginHistoryWithM0M2: MarginHistoryDto[] = [
   {
     date: new Date("2024-01-01"),
     m0: {
@@ -42,16 +42,10 @@ const mockMarginHistoryWithM0M3: MarginHistoryDto[] = [
       costLevel: 25,
       costTotal: 75,
     },
-    m3: {
-      percentage: 33.33,
-      amount: 50,
-      costLevel: 25,
-      costTotal: 100,
-    },
   },
 ];
 
-const mockItemWithoutM0M3: CatalogItemDto = {
+const mockItemWithoutM0M2: CatalogItemDto = {
   productCode: "PROD001",
   productName: "Test Product",
   price: {
@@ -60,40 +54,39 @@ const mockItemWithoutM0M3: CatalogItemDto = {
       priceWithVat: 181.5,
     },
   },
-  marginPercentage: 33.33,
-  marginAmount: 50,
+  marginPercentage: 50.0,
+  marginAmount: 75,
 } as CatalogItemDto;
 
-const mockItemWithM0M3 = {
-  ...mockItemWithoutM0M3,
+const mockItemWithM0M2 = {
+  ...mockItemWithoutM0M2,
   m0Percentage: 80.0,
   m1Percentage: 66.67,
   m2Percentage: 50.0,
-  m3Percentage: 33.33,
 } as any;
 
 describe("MarginsSummary", () => {
   it("renders basic component structure correctly", () => {
     render(
       <MarginsSummary
-        item={mockItemWithoutM0M3}
+        item={mockItemWithoutM0M2}
         manufactureCostHistory={mockManufactureCostHistory}
         marginHistory={mockMarginHistoryEmpty}
       />
     );
 
     expect(screen.getByText("Přehled nákladů a marže")).toBeInTheDocument();
-    
-    // Should show legacy margin format when no M0-M3 data
+
+    // Should show legacy margin format when no M0-M2 data
     expect(screen.getByText("Marže")).toBeInTheDocument();
     expect(screen.getByText("Marže v %")).toBeInTheDocument();
     expect(screen.getByText("Marže v Kč")).toBeInTheDocument();
   });
 
-  it("displays legacy margin format when M0-M3 data is not available", () => {
+  it("displays legacy margin format when M0-M2 data is not available", () => {
     render(
       <MarginsSummary
-        item={mockItemWithoutM0M3}
+        item={mockItemWithoutM0M2}
         manufactureCostHistory={mockManufactureCostHistory}
         marginHistory={mockMarginHistoryEmpty}
       />
@@ -106,36 +99,34 @@ describe("MarginsSummary", () => {
     expect(screen.getByText("0,0%")).toBeInTheDocument();
     expect(screen.getByText("0,00 Kč")).toBeInTheDocument();
 
-    // Should not show M0-M3 table headers
+    // Should not show M0-M2 table headers
     expect(screen.queryByText("Náklady úrovně (Kč/ks)")).not.toBeInTheDocument();
     expect(screen.queryByText("Procentuální marže (%)")).not.toBeInTheDocument();
   });
 
-  it("displays M0-M3 margin levels when data is available", () => {
+  it("displays M0-M2 margin levels when data is available", () => {
     render(
       <MarginsSummary
-        item={mockItemWithM0M3}
+        item={mockItemWithM0M2}
         manufactureCostHistory={mockManufactureCostHistory}
-        marginHistory={mockMarginHistoryWithM0M3}
+        marginHistory={mockMarginHistoryWithM0M2}
       />
     );
 
-    // Should show M0-M3 table format
+    // Should show M0-M2 table format
     expect(screen.getByText("Marže")).toBeInTheDocument();
     expect(screen.getByText("Náklady úrovně (Kč/ks)")).toBeInTheDocument();
     expect(screen.getByText("Procentuální marže (%)")).toBeInTheDocument();
     expect(screen.getByText("Kumulované náklady (Kč/ks)")).toBeInTheDocument();
-    
+
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
     expect(screen.getByText("M2")).toBeInTheDocument();
-    expect(screen.getByText("M3")).toBeInTheDocument();
 
     // Check percentage values (formatted as in component)
     expect(screen.getByText("80,0%")).toBeInTheDocument(); // M0
     expect(screen.getByText("66,7%")).toBeInTheDocument(); // M1
     expect(screen.getByText("50,0%")).toBeInTheDocument(); // M2
-    expect(screen.getByText("33,3%")).toBeInTheDocument(); // M3
 
     // Should not show legacy format
     expect(screen.queryByText("Marže v %")).not.toBeInTheDocument();
@@ -145,27 +136,25 @@ describe("MarginsSummary", () => {
   it("applies correct color coding for margin levels", () => {
     render(
       <MarginsSummary
-        item={mockItemWithM0M3}
+        item={mockItemWithM0M2}
         manufactureCostHistory={mockManufactureCostHistory}
-        marginHistory={mockMarginHistoryWithM0M3}
+        marginHistory={mockMarginHistoryWithM0M2}
       />
     );
 
-    // Should show M0-M3 levels with correct percentages
+    // Should show M0-M2 levels with correct percentages
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
     expect(screen.getByText("M2")).toBeInTheDocument();
-    expect(screen.getByText("M3")).toBeInTheDocument();
-    
+
     expect(screen.getByText("80,0%")).toBeInTheDocument(); // M0
     expect(screen.getByText("66,7%")).toBeInTheDocument(); // M1
     expect(screen.getByText("50,0%")).toBeInTheDocument(); // M2
-    expect(screen.getByText("33,3%")).toBeInTheDocument(); // M3
   });
 
   it("shows warning when no selling price is available", () => {
     const itemWithoutPrice = {
-      ...mockItemWithoutM0M3,
+      ...mockItemWithoutM0M2,
       price: {
         eshopPrice: {
           priceWithoutVat: 0,
@@ -190,7 +179,7 @@ describe("MarginsSummary", () => {
   it("shows margin data even when no manufacturing cost history is available", () => {
     render(
       <MarginsSummary
-        item={mockItemWithoutM0M3}
+        item={mockItemWithoutM0M2}
         manufactureCostHistory={[]}
         marginHistory={mockMarginHistoryEmpty}
       />
@@ -240,18 +229,12 @@ describe("MarginsSummary", () => {
           costLevel: 0,
           costTotal: 100,
         },
-        m3: {
-          percentage: 85,
-          amount: 85,
-          costLevel: 0,
-          costTotal: 100,
-        },
       },
     ];
 
     render(
       <MarginsSummary
-        item={mockItemWithoutM0M3}
+        item={mockItemWithoutM0M2}
         manufactureCostHistory={mockManufactureCostHistory}
         marginHistory={edgeCaseMarginHistory}
       />
@@ -261,12 +244,10 @@ describe("MarginsSummary", () => {
     expect(screen.getByText("25,0%")).toBeInTheDocument();
     expect(screen.getByText("45,0%")).toBeInTheDocument();
     expect(screen.getByText("75,0%")).toBeInTheDocument();
-    expect(screen.getByText("85,0%")).toBeInTheDocument();
 
-    // Verify the M0-M3 structure is shown
+    // Verify the M0-M2 structure is shown
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
     expect(screen.getByText("M2")).toBeInTheDocument();
-    expect(screen.getByText("M3")).toBeInTheDocument();
   });
 });

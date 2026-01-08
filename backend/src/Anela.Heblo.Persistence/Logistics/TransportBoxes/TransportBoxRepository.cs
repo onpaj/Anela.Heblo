@@ -151,4 +151,18 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
         return result;
     }
+
+    public async Task<IList<TransportBox>> GetReceivedBoxesAsync(CancellationToken cancellationToken = default)
+    {
+        var receivedBoxes = await DbSet
+            .Include(x => x.Items)
+            .Include(x => x.StateLog)
+            .Where(x => x.State == TransportBoxState.Received)
+            .OrderBy(x => x.LastStateChanged)
+            .ToListAsync(cancellationToken);
+
+        _logger.LogDebug("Found {Count} transport boxes in Received state", receivedBoxes.Count);
+
+        return receivedBoxes;
+    }
 }

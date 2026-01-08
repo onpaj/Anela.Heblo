@@ -2,10 +2,15 @@ namespace Anela.Heblo.Domain.Features.Bank;
 
 public interface IBankStatementImportRepository
 {
-    Task<IEnumerable<BankStatementImport>> GetAllAsync();
+    Task<(IEnumerable<BankStatementImport> Items, int TotalCount)> GetFilteredAsync(
+        int? id = null,
+        DateTime? statementDate = null,
+        DateTime? importDate = null,
+        int skip = 0,
+        int take = 50,
+        string orderBy = "ImportDate",
+        bool ascending = false);
+
     Task<BankStatementImport?> GetByIdAsync(int id);
-    Task<IEnumerable<BankStatementImportStatistics>> GetImportStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null, string dateType = "ImportDate");
     Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
-    Task UpdateAsync(BankStatementImport bankStatement);
-    Task DeleteAsync(int id);
 }

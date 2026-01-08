@@ -38,7 +38,6 @@ public class CatalogRepository : ICatalogRepository
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
-    private readonly IManufactureCostCalculationService _manufactureCostCalculationService;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
     private readonly ICatalogResilienceService _resilienceService;
     private readonly ICatalogMergeScheduler _mergeScheduler;
@@ -74,7 +73,6 @@ public class CatalogRepository : ICatalogRepository
         IPurchaseOrderRepository purchaseOrderRepository,
         IManufactureOrderRepository manufactureOrderRepository,
         IManufactureHistoryClient manufactureHistoryClient,
-        IManufactureCostCalculationService manufactureCostCalculationService,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
         ICatalogResilienceService resilienceService,
         ICatalogMergeScheduler mergeScheduler,
@@ -99,7 +97,6 @@ public class CatalogRepository : ICatalogRepository
         _purchaseOrderRepository = purchaseOrderRepository;
         _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
-        _manufactureCostCalculationService = manufactureCostCalculationService;
         _manufactureDifficultyRepository = manufactureDifficultyRepository;
         _resilienceService = resilienceService;
         _mergeScheduler = mergeScheduler;
@@ -239,9 +236,6 @@ public class CatalogRepository : ICatalogRepository
                 product.ManufactureHistory = manufactures.ToList();
             }
         }
-
-        // Calculate costs
-        CachedManufactureCostData = await _manufactureCostCalculationService.CalculateManufactureCostHistoryAsync(CatalogData, ct);
     }
 
     private async Task<List<CatalogAggregate>> GetCatalogDataAsync()

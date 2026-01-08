@@ -32,10 +32,12 @@ import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import OrgChartPage from "./pages/OrgChartPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
+import RecurringJobsPage from "./pages/RecurringJobsPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
+import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
@@ -399,7 +401,15 @@ function App() {
                           path="/customer/issued-invoices"
                           element={<IssuedInvoicesPage />}
                         />
+                        <Route
+                          path="/customer/bank-statements-overview"
+                          element={<BankStatementsOverviewPage />}
+                        />
                         <Route path="/orgchart" element={<OrgChartPage />} />
+                        <Route
+                          path="/recurring-jobs"
+                          element={<RecurringJobsPage />}
+                        />
                       </Routes>
                     </Layout>
                   </AuthGuard>

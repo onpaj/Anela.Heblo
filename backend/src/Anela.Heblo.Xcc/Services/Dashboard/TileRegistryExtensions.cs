@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Xcc.Services.Dashboard;
 
@@ -19,9 +20,9 @@ public static class TileRegistryExtensions
         return services;
     }
 
-    public static void InitializeTileRegistry(IServiceProvider serviceProvider)
+    public static void InitializeTileRegistry(this IHost app)
     {
-        var registry = serviceProvider.GetRequiredService<ITileRegistry>();
+        var registry = app.Services.GetRequiredService<ITileRegistry>();
 
         foreach (var tileType in RegisteredTileTypes)
         {

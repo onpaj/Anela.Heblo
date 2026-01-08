@@ -10,7 +10,7 @@ public class EnqueueImportInvoicesResponse : BaseResponse
     {
     }
 
-    public EnqueueImportInvoicesResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) 
+    public EnqueueImportInvoicesResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters)
     {
     }

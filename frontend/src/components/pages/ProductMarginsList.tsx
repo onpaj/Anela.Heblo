@@ -27,7 +27,7 @@ const ProductMarginsList: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
 
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>("m3Percentage");
+  const [sortBy, setSortBy] = useState<string>("m2Percentage");
   const [sortDescending, setSortDescending] = useState(true); // Show highest margins first
 
   // Modal states
@@ -196,12 +196,11 @@ const ProductMarginsList: React.FC = () => {
     return "text-green-600";
   };
 
-  // Get tooltip content for margin levels using M0-M3 cost levels from backend
-  const getMarginTooltip = (level: "M0" | "M1" | "M2" | "M3", item: any): string => {
+  // Get tooltip content for margin levels using M0-M2 cost levels from backend
+  const getMarginTooltip = (level: "M0" | "M1" | "M2", item: any): string => {
     const m0CostLevel = item.m0?.costLevel || 0;
     const m1CostLevel = item.m1?.costLevel || 0;
     const m2CostLevel = item.m2?.costLevel || 0;
-    const m3CostLevel = item.m3?.costLevel || 0;
 
     switch (level) {
       case "M0":
@@ -209,9 +208,7 @@ const ProductMarginsList: React.FC = () => {
       case "M1":
         return `Průměrné náklady materiál + výroba: ${formatCurrency(m0CostLevel + m1CostLevel)}`;
       case "M2":
-        return `Průměrné náklady materiál + výroba + prodej: ${formatCurrency(m0CostLevel + m1CostLevel + m2CostLevel)}`;
-      case "M3":
-        return `Průměrné celkové náklady: ${formatCurrency(m0CostLevel + m1CostLevel + m2CostLevel + m3CostLevel)}`;
+        return `Průměrné celkové náklady: ${formatCurrency(m0CostLevel + m1CostLevel + m2CostLevel)}`;
       default:
         return "";
     }
@@ -359,9 +356,6 @@ const ProductMarginsList: React.FC = () => {
                 <SortableHeader column="m2Percentage" align="right">
                   M2 %
                 </SortableHeader>
-                <SortableHeader column="m3Percentage" align="right">
-                  M3 %
-                </SortableHeader>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -381,7 +375,7 @@ const ProductMarginsList: React.FC = () => {
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${
                     item.priceWithoutVatIsFromEshop
                       ? 'text-gray-900'
-                      : 'text-orange-600 font-semibold' 
+                      : 'text-orange-600 font-semibold'
                   }`}>
                     {formatCurrency(item.priceWithoutVat)}
                   </td>
@@ -411,12 +405,6 @@ const ProductMarginsList: React.FC = () => {
                     title={getMarginTooltip("M2", item)}
                   >
                     {formatPercentage(item.m2?.percentage)}
-                  </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${getMarginColor(item.m3?.percentage)}`}
-                    title={getMarginTooltip("M3", item)}
-                  >
-                    {formatPercentage(item.m3?.percentage)}
                   </td>
                 </tr>
               ))}
