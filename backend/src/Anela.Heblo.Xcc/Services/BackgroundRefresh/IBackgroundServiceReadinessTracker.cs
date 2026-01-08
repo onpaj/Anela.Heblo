@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Common;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public interface IBackgroundServiceReadinessTracker
 {

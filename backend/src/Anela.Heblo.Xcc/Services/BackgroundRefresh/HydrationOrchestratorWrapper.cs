@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
-namespace Anela.Heblo.Application.Common;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public class HydrationOrchestratorWrapper : BackgroundService
 {

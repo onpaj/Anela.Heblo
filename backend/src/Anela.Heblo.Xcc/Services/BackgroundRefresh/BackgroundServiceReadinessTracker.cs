@@ -1,9 +1,7 @@
 using System.Collections.Concurrent;
-using Anela.Heblo.Application.Features.Catalog.Services;
-using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Common;
+namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public class BackgroundServiceReadinessTracker : IBackgroundServiceReadinessTracker
 {

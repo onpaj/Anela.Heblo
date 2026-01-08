@@ -232,6 +232,18 @@ public class GiftPackageManufactureServiceTests
         _currentUserServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
 
+        // Setup stock up orchestration service to return success
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.Success(
+                new StockUpOperation("GPM-000001-TEST", "TEST", 1, StockUpSourceType.GiftPackageManufacture, 1)));
+
         // Act
         var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);
 
