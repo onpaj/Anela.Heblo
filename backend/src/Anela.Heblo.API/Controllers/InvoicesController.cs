@@ -33,14 +33,14 @@ public class InvoicesController : ControllerBase
 
     [HttpGet("{id}")]
     public async Task<ActionResult<GetIssuedInvoiceDetailResponse>> GetInvoiceDetail(
-        string id, 
+        string id,
         [FromQuery] bool withDetails = false,
         CancellationToken cancellationToken = default)
     {
-        var request = new GetIssuedInvoiceDetailRequest 
-        { 
+        var request = new GetIssuedInvoiceDetailRequest
+        {
             InvoiceId = id,
-            WithDetails = withDetails 
+            WithDetails = withDetails
         };
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
@@ -71,12 +71,12 @@ public class InvoicesController : ControllerBase
     {
         var request = new GetInvoiceImportJobStatusRequest { JobId = jobId };
         var result = await _mediator.Send(request, cancellationToken);
-        
+
         if (result == null)
         {
             return NotFound(new { message = "Job not found" });
         }
-        
+
         return Ok(result);
     }
 

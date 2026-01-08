@@ -148,7 +148,8 @@ public class ProductionActivityAnalyzerTests
     public void CalculateAverageProductionFrequency_WithRegularProduction_ReturnsCorrectAverage()
     {
         // Arrange
-        var baseDate = new DateTime(2025, 1, 1);
+        // Use relative dates to ensure test data falls within the analysis window
+        var baseDate = DateTime.UtcNow.AddMonths(-6); // Well within 12-month window
         var manufactureHistory = new List<ManufactureHistoryRecord>
         {
             new() { Date = baseDate, Amount = 10 },

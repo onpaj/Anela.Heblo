@@ -99,7 +99,7 @@ public class InvoiceImportServiceTests
 
         _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
-        
+
         // Setup successful invoice
         _mockRepository.Setup(x => x.GetByIdAsync("INV-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -107,7 +107,7 @@ public class InvoiceImportServiceTests
             .Returns(invoice1);
         _mockInvoiceClient.Setup(x => x.SaveAsync(successInvoice, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-            
+
         // Setup failed invoice - repository throws exception
         _mockRepository.Setup(x => x.GetByIdAsync("INV-002", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
@@ -157,10 +157,10 @@ public class InvoiceImportServiceTests
         Assert.Single(result.Succeeded); // Invoice is saved even if external sync fails
         Assert.Contains("INV-003", result.Succeeded);
         Assert.Empty(result.Failed);
-        
+
         // Verify invoice sync status was updated with failure
-        _mockRepository.Verify(x => x.UpdateAsync(It.Is<IssuedInvoice>(i => 
-            i.Id == "INV-003" && i.ErrorMessage!.Contains("ABRA Flexi API unavailable")), 
+        _mockRepository.Verify(x => x.UpdateAsync(It.Is<IssuedInvoice>(i =>
+            i.Id == "INV-003" && i.ErrorMessage!.Contains("ABRA Flexi API unavailable")),
             It.IsAny<CancellationToken>()), Times.Once);
         _mockInvoiceSource.Verify(x => x.CommitAsync(batch, It.IsAny<string>()), Times.Once); // Batch still commits
     }
@@ -175,7 +175,7 @@ public class InvoiceImportServiceTests
         var transformedInvoice2 = CreateTestInvoiceDetail("INV-004-T2");
         var batch = CreateTestBatch("batch-1", originalInvoice);
         var invoice = CreateTestIssuedInvoice("INV-004");
-        
+
         var transformation1 = new Mock<IIssuedInvoiceImportTransformation>();
         var transformation2 = new Mock<IIssuedInvoiceImportTransformation>();
         _mockTransformations.AddRange(new[] { transformation1, transformation2 });
@@ -194,12 +194,12 @@ public class InvoiceImportServiceTests
             .ReturnsAsync((IssuedInvoice?)null);
         _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(originalInvoice))
             .Returns(invoice);
-        
+
         transformation1.Setup(x => x.TransformAsync(originalInvoice, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transformedInvoice1);
         transformation2.Setup(x => x.TransformAsync(transformedInvoice1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transformedInvoice2);
-            
+
         _mockInvoiceClient.Setup(x => x.SaveAsync(transformedInvoice2, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))

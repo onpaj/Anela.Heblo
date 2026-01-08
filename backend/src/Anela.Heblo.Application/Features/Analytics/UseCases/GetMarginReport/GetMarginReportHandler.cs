@@ -116,7 +116,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             var margin = revenue - cost;
             var marginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0;
 
-            // Create margin data using the product's already calculated M0-M3 data
+            // Create margin data using the product's already calculated M0-M2 data
             var marginData = new AnalysisMarginData
             {
                 Margin = margin,
@@ -137,8 +137,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             overallTotals.Add(marginData);
         }
 
-        // Sort products by M3 margin percentage (net profitability percentage, descending)
-        productSummaries = productSummaries.OrderByDescending(p => p.M3Percentage).ToList();
+        // Sort products by M2 margin percentage (net profitability percentage, descending)
+        productSummaries = productSummaries.OrderByDescending(p => p.M2Percentage).ToList();
 
         // Build category summaries
         var categorySummaries = _reportBuilderService.BuildCategorySummaries(categoryTotals);

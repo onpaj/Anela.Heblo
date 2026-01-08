@@ -10,7 +10,7 @@ public class FlexiBankAccountClient
     private readonly ILogger<FlexiBankAccountClient> _logger;
 
     public FlexiBankAccountClient(
-        IBankAccountClient client, 
+        IBankAccountClient client,
         ILogger<FlexiBankAccountClient> logger
         )
     {

@@ -63,7 +63,6 @@ public class GetProductMarginSummaryHandlerTests
                 M0Amount = 100m,
                 M1Amount = 100m,
                 M2Amount = 100m,
-                M3Amount = 100m,
                 SalesHistory = new List<SalesDataPoint>
                 {
                     new() { Date = new DateTime(today.Year, 3, 15), AmountB2B = 10, AmountB2C = 5 }
@@ -78,7 +77,6 @@ public class GetProductMarginSummaryHandlerTests
                 M0Amount = 50m,
                 M1Amount = 50m,
                 M2Amount = 50m,
-                M3Amount = 50m,
                 SalesHistory = new List<SalesDataPoint>
                 {
                     new() { Date = new DateTime(today.Year, 4, 20), AmountB2B = 20, AmountB2C = 10 }

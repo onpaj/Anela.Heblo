@@ -1,5 +1,7 @@
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.InvoiceClassification;
@@ -54,6 +56,9 @@ public static class PersistenceModule
         // Invoice Classification repositories
         services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
         services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();
+
+        // Background Jobs repositories
+        services.AddScoped<IRecurringJobConfigurationRepository, RecurringJobConfigurationRepository>();
 
         return services;
     }

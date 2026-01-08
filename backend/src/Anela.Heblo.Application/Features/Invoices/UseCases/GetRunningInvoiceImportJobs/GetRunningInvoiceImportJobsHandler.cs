@@ -23,7 +23,7 @@ public class GetRunningInvoiceImportJobsHandler : IRequestHandler<GetRunningInvo
         {
             var runningJobs = _backgroundWorker.GetRunningJobs();
             var pendingJobs = _backgroundWorker.GetPendingJobs();
-            
+
             // Filter for invoice import jobs based on job name containing "InvoiceImport"
             var invoiceImportJobs = runningJobs
                 .Concat(pendingJobs)
@@ -31,7 +31,7 @@ public class GetRunningInvoiceImportJobsHandler : IRequestHandler<GetRunningInvo
                 .ToList();
 
             _logger.LogDebug("Found {Count} running/pending invoice import jobs", invoiceImportJobs.Count);
-            
+
             return Task.FromResult<IList<BackgroundJobInfo>>(invoiceImportJobs);
         }
         catch (Exception ex)

@@ -45,7 +45,7 @@ public class InvoiceImportIntegrationTests : IClassFixture<InvoiceImportTestFact
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
+
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<EnqueueImportInvoicesResponse>(responseContent, new JsonSerializerOptions
         {
@@ -79,7 +79,7 @@ public class InvoiceImportIntegrationTests : IClassFixture<InvoiceImportTestFact
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
+
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<EnqueueImportInvoicesResponse>(responseContent, new JsonSerializerOptions
         {
@@ -106,7 +106,7 @@ public class InvoiceImportIntegrationTests : IClassFixture<InvoiceImportTestFact
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
+
         var enqueueResponse = await _client.PostAsync("/api/invoices/import/enqueue-async", content);
         var enqueueContent = await enqueueResponse.Content.ReadAsStringAsync();
         var enqueueResult = JsonSerializer.Deserialize<EnqueueImportInvoicesResponse>(enqueueContent, new JsonSerializerOptions
@@ -145,10 +145,10 @@ public class InvoiceImportIntegrationTests : IClassFixture<InvoiceImportTestFact
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
+
         var responseContent = await response.Content.ReadAsStringAsync();
         Assert.NotNull(responseContent);
-        
+
         // Should return an array (might be empty if no jobs are running)
         var jobs = JsonSerializer.Deserialize<object[]>(responseContent);
         Assert.NotNull(jobs);
@@ -182,7 +182,7 @@ public class InvoiceImportTestFactory : HebloWebApplicationFactory
     {
         _backgroundWorkerMock = new Mock<IBackgroundWorker>();
         _invoiceImportServiceMock = new Mock<IInvoiceImportService>();
-        
+
         // Configure mock to return a test job ID
         _backgroundWorkerMock.Setup(x => x.Enqueue<IInvoiceImportService>(It.IsAny<System.Linq.Expressions.Expression<Func<IInvoiceImportService, Task>>>()))
                             .Returns("test-job-id-12345");
@@ -190,14 +190,14 @@ public class InvoiceImportTestFactory : HebloWebApplicationFactory
         // Configure mock to return empty jobs lists
         _backgroundWorkerMock.Setup(x => x.GetRunningJobs()).Returns(new List<BackgroundJobInfo>());
         _backgroundWorkerMock.Setup(x => x.GetPendingJobs()).Returns(new List<BackgroundJobInfo>());
-        
+
         // Configure mock to return null for non-existent job IDs (returns null for not found)
         _backgroundWorkerMock.Setup(x => x.GetJobById(It.IsAny<string>()))
-                            .Returns((string jobId) => jobId == "test-job-id-12345" ? 
-                                new BackgroundJobInfo 
-                                { 
-                                    Id = jobId, 
-                                    State = "Succeeded", 
+                            .Returns((string jobId) => jobId == "test-job-id-12345" ?
+                                new BackgroundJobInfo
+                                {
+                                    Id = jobId,
+                                    State = "Succeeded",
                                     JobName = "ImportInvoicesAsync",
                                     CreatedAt = DateTime.UtcNow.AddMinutes(-1)
                                 } : null);

@@ -311,7 +311,7 @@ export class ApiClient {
         return Promise.resolve<GetInvoiceImportStatisticsResponse>(null as any);
     }
 
-    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined, dateType: string | undefined): Promise<GetBankStatementImportStatisticsResponse> {
+    analytics_GetBankStatementImportStatistics(startDate: Date | null | undefined, endDate: Date | null | undefined, dateType: BankStatementDateType | undefined): Promise<GetBankStatementImportStatisticsResponse> {
         let url_ = this.baseUrl + "/api/Analytics/bank-statement-import-statistics?";
         if (startDate !== undefined && startDate !== null)
             url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
@@ -581,6 +581,135 @@ export class ApiClient {
             });
         }
         return Promise.resolve<RefreshTaskStatusDto>(null as any);
+    }
+
+    bankStatements_ImportStatements(request: BankImportRequestDto): Promise<BankStatementImportResultDto> {
+        let url_ = this.baseUrl + "/api/bank-statements/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBankStatements_ImportStatements(_response);
+        });
+    }
+
+    protected processBankStatements_ImportStatements(response: Response): Promise<BankStatementImportResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BankStatementImportResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BankStatementImportResultDto>(null as any);
+    }
+
+    bankStatements_GetBankStatements(id: number | null | undefined, statementDate: string | null | undefined, importDate: string | null | undefined, skip: number | undefined, take: number | undefined, orderBy: string | null | undefined, ascending: boolean | undefined): Promise<GetBankStatementListResponse> {
+        let url_ = this.baseUrl + "/api/bank-statements?";
+        if (id !== undefined && id !== null)
+            url_ += "id=" + encodeURIComponent("" + id) + "&";
+        if (statementDate !== undefined && statementDate !== null)
+            url_ += "statementDate=" + encodeURIComponent("" + statementDate) + "&";
+        if (importDate !== undefined && importDate !== null)
+            url_ += "importDate=" + encodeURIComponent("" + importDate) + "&";
+        if (skip === null)
+            throw new Error("The parameter 'skip' cannot be null.");
+        else if (skip !== undefined)
+            url_ += "skip=" + encodeURIComponent("" + skip) + "&";
+        if (take === null)
+            throw new Error("The parameter 'take' cannot be null.");
+        else if (take !== undefined)
+            url_ += "take=" + encodeURIComponent("" + take) + "&";
+        if (orderBy !== undefined && orderBy !== null)
+            url_ += "orderBy=" + encodeURIComponent("" + orderBy) + "&";
+        if (ascending === null)
+            throw new Error("The parameter 'ascending' cannot be null.");
+        else if (ascending !== undefined)
+            url_ += "ascending=" + encodeURIComponent("" + ascending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBankStatements_GetBankStatements(_response);
+        });
+    }
+
+    protected processBankStatements_GetBankStatements(response: Response): Promise<GetBankStatementListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetBankStatementListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetBankStatementListResponse>(null as any);
+    }
+
+    bankStatements_GetBankStatement(id: number): Promise<BankStatementImportDto> {
+        let url_ = this.baseUrl + "/api/bank-statements/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBankStatements_GetBankStatement(_response);
+        });
+    }
+
+    protected processBankStatements_GetBankStatement(response: Response): Promise<BankStatementImportDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BankStatementImportDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BankStatementImportDto>(null as any);
     }
 
     catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
@@ -2299,6 +2428,267 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetInvoiceDetailsResponse>(null as any);
+    }
+
+    invoices_GetInvoicesList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, invoiceId: string | null | undefined, customerName: string | null | undefined, invoiceDateFrom: Date | null | undefined, invoiceDateTo: Date | null | undefined, isSynced: boolean | null | undefined, showOnlyUnsynced: boolean | undefined, showOnlyWithErrors: boolean | undefined): Promise<GetIssuedInvoicesListResponse> {
+        let url_ = this.baseUrl + "/api/invoices?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (invoiceId !== undefined && invoiceId !== null)
+            url_ += "InvoiceId=" + encodeURIComponent("" + invoiceId) + "&";
+        if (customerName !== undefined && customerName !== null)
+            url_ += "CustomerName=" + encodeURIComponent("" + customerName) + "&";
+        if (invoiceDateFrom !== undefined && invoiceDateFrom !== null)
+            url_ += "InvoiceDateFrom=" + encodeURIComponent(invoiceDateFrom ? "" + invoiceDateFrom.toISOString() : "") + "&";
+        if (invoiceDateTo !== undefined && invoiceDateTo !== null)
+            url_ += "InvoiceDateTo=" + encodeURIComponent(invoiceDateTo ? "" + invoiceDateTo.toISOString() : "") + "&";
+        if (isSynced !== undefined && isSynced !== null)
+            url_ += "IsSynced=" + encodeURIComponent("" + isSynced) + "&";
+        if (showOnlyUnsynced === null)
+            throw new Error("The parameter 'showOnlyUnsynced' cannot be null.");
+        else if (showOnlyUnsynced !== undefined)
+            url_ += "ShowOnlyUnsynced=" + encodeURIComponent("" + showOnlyUnsynced) + "&";
+        if (showOnlyWithErrors === null)
+            throw new Error("The parameter 'showOnlyWithErrors' cannot be null.");
+        else if (showOnlyWithErrors !== undefined)
+            url_ += "ShowOnlyWithErrors=" + encodeURIComponent("" + showOnlyWithErrors) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_GetInvoicesList(_response);
+        });
+    }
+
+    protected processInvoices_GetInvoicesList(response: Response): Promise<GetIssuedInvoicesListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoicesListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoicesListResponse>(null as any);
+    }
+
+    invoices_GetInvoiceDetail(id: string, withDetails: boolean | undefined): Promise<GetIssuedInvoiceDetailResponse> {
+        let url_ = this.baseUrl + "/api/invoices/{id}?";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (withDetails === null)
+            throw new Error("The parameter 'withDetails' cannot be null.");
+        else if (withDetails !== undefined)
+            url_ += "withDetails=" + encodeURIComponent("" + withDetails) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_GetInvoiceDetail(_response);
+        });
+    }
+
+    protected processInvoices_GetInvoiceDetail(response: Response): Promise<GetIssuedInvoiceDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoiceDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoiceDetailResponse>(null as any);
+    }
+
+    invoices_GetSyncStats(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetIssuedInvoiceSyncStatsResponse> {
+        let url_ = this.baseUrl + "/api/invoices/stats?";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_GetSyncStats(_response);
+        });
+    }
+
+    protected processInvoices_GetSyncStats(response: Response): Promise<GetIssuedInvoiceSyncStatsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetIssuedInvoiceSyncStatsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetIssuedInvoiceSyncStatsResponse>(null as any);
+    }
+
+    invoices_EnqueueImportInvoices(request: EnqueueImportInvoicesRequest): Promise<EnqueueImportInvoicesResponse> {
+        let url_ = this.baseUrl + "/api/invoices/import/enqueue-async";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_EnqueueImportInvoices(_response);
+        });
+    }
+
+    protected processInvoices_EnqueueImportInvoices(response: Response): Promise<EnqueueImportInvoicesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EnqueueImportInvoicesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EnqueueImportInvoicesResponse>(null as any);
+    }
+
+    invoices_GetInvoiceImportJobStatus(jobId: string): Promise<BackgroundJobInfo> {
+        let url_ = this.baseUrl + "/api/invoices/import/job-status/{jobId}";
+        if (jobId === undefined || jobId === null)
+            throw new Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_GetInvoiceImportJobStatus(_response);
+        });
+    }
+
+    protected processInvoices_GetInvoiceImportJobStatus(response: Response): Promise<BackgroundJobInfo> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BackgroundJobInfo.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BackgroundJobInfo>(null as any);
+    }
+
+    invoices_GetRunningInvoiceImportJobs(): Promise<BackgroundJobInfo[]> {
+        let url_ = this.baseUrl + "/api/invoices/import/running-jobs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processInvoices_GetRunningInvoiceImportJobs(_response);
+        });
+    }
+
+    protected processInvoices_GetRunningInvoiceImportJobs(response: Response): Promise<BackgroundJobInfo[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(BackgroundJobInfo.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BackgroundJobInfo[]>(null as any);
     }
 
     issuedInvoices_GetList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, invoiceId: string | null | undefined, customerName: string | null | undefined, invoiceDateFrom: Date | null | undefined, invoiceDateTo: Date | null | undefined, isSynced: boolean | null | undefined, showOnlyUnsynced: boolean | undefined, showOnlyWithErrors: boolean | undefined): Promise<GetIssuedInvoicesListResponse> {
@@ -4720,6 +5110,160 @@ export class ApiClient {
         return Promise.resolve<GetPurchaseStockAnalysisResponse>(null as any);
     }
 
+    recurringJobs_GetRecurringJobs(): Promise<GetRecurringJobsListResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_GetRecurringJobs(_response);
+        });
+    }
+
+    protected processRecurringJobs_GetRecurringJobs(response: Response): Promise<GetRecurringJobsListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRecurringJobsListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRecurringJobsListResponse>(null as any);
+    }
+
+    recurringJobs_UpdateJobStatus(jobName: string, request: UpdateJobStatusRequestBody): Promise<UpdateRecurringJobStatusResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/status";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_UpdateJobStatus(_response);
+        });
+    }
+
+    protected processRecurringJobs_UpdateJobStatus(response: Response): Promise<UpdateRecurringJobStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateRecurringJobStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateRecurringJobStatusResponse>(null as any);
+    }
+
+    recurringJobs_TriggerJob(jobName: string): Promise<TriggerRecurringJobResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/trigger";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_TriggerJob(_response);
+        });
+    }
+
+    protected processRecurringJobs_TriggerJob(response: Response): Promise<TriggerRecurringJobResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            let result202: any = null;
+            let resultData202 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result202 = TriggerRecurringJobResponse.fromJS(resultData202);
+            return result202;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TriggerRecurringJobResponse>(null as any);
+    }
+
     stockTaking_SubmitStockTaking(request: SubmitStockTakingRequest): Promise<SubmitStockTakingResponse> {
         let url_ = this.baseUrl + "/api/StockTaking/submit";
         url_ = url_.replace(/[?&]$/, "");
@@ -5565,11 +6109,9 @@ export class TopProductDto implements ITopProductDto {
     m0Amount?: number;
     m1Amount?: number;
     m2Amount?: number;
-    m3Amount?: number;
     m0Percentage?: number;
     m1Percentage?: number;
     m2Percentage?: number;
-    m3Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
     productCode?: string;
@@ -5594,11 +6136,9 @@ export class TopProductDto implements ITopProductDto {
             this.m0Amount = _data["m0Amount"];
             this.m1Amount = _data["m1Amount"];
             this.m2Amount = _data["m2Amount"];
-            this.m3Amount = _data["m3Amount"];
             this.m0Percentage = _data["m0Percentage"];
             this.m1Percentage = _data["m1Percentage"];
             this.m2Percentage = _data["m2Percentage"];
-            this.m3Percentage = _data["m3Percentage"];
             this.sellingPrice = _data["sellingPrice"];
             this.purchasePrice = _data["purchasePrice"];
             this.productCode = _data["productCode"];
@@ -5623,11 +6163,9 @@ export class TopProductDto implements ITopProductDto {
         data["m0Amount"] = this.m0Amount;
         data["m1Amount"] = this.m1Amount;
         data["m2Amount"] = this.m2Amount;
-        data["m3Amount"] = this.m3Amount;
         data["m0Percentage"] = this.m0Percentage;
         data["m1Percentage"] = this.m1Percentage;
         data["m2Percentage"] = this.m2Percentage;
-        data["m3Percentage"] = this.m3Percentage;
         data["sellingPrice"] = this.sellingPrice;
         data["purchasePrice"] = this.purchasePrice;
         data["productCode"] = this.productCode;
@@ -5645,11 +6183,9 @@ export interface ITopProductDto {
     m0Amount?: number;
     m1Amount?: number;
     m2Amount?: number;
-    m3Amount?: number;
     m0Percentage?: number;
     m1Percentage?: number;
     m2Percentage?: number;
-    m3Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
     productCode?: string;
@@ -5744,6 +6280,8 @@ export enum ErrorCodes {
     BlobNotFound = "BlobNotFound",
     FileTooLarge = "FileTooLarge",
     UnsupportedFileType = "UnsupportedFileType",
+    RecurringJobNotFound = "RecurringJobNotFound",
+    RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -6036,11 +6574,9 @@ export class ProductMarginSummary implements IProductMarginSummary {
     m0Amount?: number;
     m1Amount?: number;
     m2Amount?: number;
-    m3Amount?: number;
     m0Percentage?: number;
     m1Percentage?: number;
     m2Percentage?: number;
-    m3Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
     marginPercentage?: number;
@@ -6066,11 +6602,9 @@ export class ProductMarginSummary implements IProductMarginSummary {
             this.m0Amount = _data["m0Amount"];
             this.m1Amount = _data["m1Amount"];
             this.m2Amount = _data["m2Amount"];
-            this.m3Amount = _data["m3Amount"];
             this.m0Percentage = _data["m0Percentage"];
             this.m1Percentage = _data["m1Percentage"];
             this.m2Percentage = _data["m2Percentage"];
-            this.m3Percentage = _data["m3Percentage"];
             this.sellingPrice = _data["sellingPrice"];
             this.purchasePrice = _data["purchasePrice"];
             this.marginPercentage = _data["marginPercentage"];
@@ -6096,11 +6630,9 @@ export class ProductMarginSummary implements IProductMarginSummary {
         data["m0Amount"] = this.m0Amount;
         data["m1Amount"] = this.m1Amount;
         data["m2Amount"] = this.m2Amount;
-        data["m3Amount"] = this.m3Amount;
         data["m0Percentage"] = this.m0Percentage;
         data["m1Percentage"] = this.m1Percentage;
         data["m2Percentage"] = this.m2Percentage;
-        data["m3Percentage"] = this.m3Percentage;
         data["sellingPrice"] = this.sellingPrice;
         data["purchasePrice"] = this.purchasePrice;
         data["marginPercentage"] = this.marginPercentage;
@@ -6119,11 +6651,9 @@ export interface IProductMarginSummary {
     m0Amount?: number;
     m1Amount?: number;
     m2Amount?: number;
-    m3Amount?: number;
     m0Percentage?: number;
     m1Percentage?: number;
     m2Percentage?: number;
-    m3Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
     marginPercentage?: number;
@@ -6283,7 +6813,7 @@ export enum ImportDateType {
 }
 
 export class GetBankStatementImportStatisticsResponse extends BaseResponse implements IGetBankStatementImportStatisticsResponse {
-    statistics?: BankStatementImportStatisticsDto[];
+    statistics?: DailyBankStatementStatistics[];
 
     constructor(data?: IGetBankStatementImportStatisticsResponse) {
         super(data);
@@ -6295,7 +6825,7 @@ export class GetBankStatementImportStatisticsResponse extends BaseResponse imple
             if (Array.isArray(_data["statistics"])) {
                 this.statistics = [] as any;
                 for (let item of _data["statistics"])
-                    this.statistics!.push(BankStatementImportStatisticsDto.fromJS(item));
+                    this.statistics!.push(DailyBankStatementStatistics.fromJS(item));
             }
         }
     }
@@ -6320,15 +6850,15 @@ export class GetBankStatementImportStatisticsResponse extends BaseResponse imple
 }
 
 export interface IGetBankStatementImportStatisticsResponse extends IBaseResponse {
-    statistics?: BankStatementImportStatisticsDto[];
+    statistics?: DailyBankStatementStatistics[];
 }
 
-export class BankStatementImportStatisticsDto implements IBankStatementImportStatisticsDto {
+export class DailyBankStatementStatistics implements IDailyBankStatementStatistics {
     date?: Date;
     importCount?: number;
     totalItemCount?: number;
 
-    constructor(data?: IBankStatementImportStatisticsDto) {
+    constructor(data?: IDailyBankStatementStatistics) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -6345,9 +6875,9 @@ export class BankStatementImportStatisticsDto implements IBankStatementImportSta
         }
     }
 
-    static fromJS(data: any): BankStatementImportStatisticsDto {
+    static fromJS(data: any): DailyBankStatementStatistics {
         data = typeof data === 'object' ? data : {};
-        let result = new BankStatementImportStatisticsDto();
+        let result = new DailyBankStatementStatistics();
         result.init(data);
         return result;
     }
@@ -6361,10 +6891,15 @@ export class BankStatementImportStatisticsDto implements IBankStatementImportSta
     }
 }
 
-export interface IBankStatementImportStatisticsDto {
+export interface IDailyBankStatementStatistics {
     date?: Date;
     importCount?: number;
     totalItemCount?: number;
+}
+
+export enum BankStatementDateType {
+    StatementDate = "StatementDate",
+    ImportDate = "ImportDate",
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {
@@ -6549,6 +7084,203 @@ export interface IRefreshTaskStatusDto {
     description?: string | undefined;
     refreshInterval?: string;
     lastExecution?: RefreshTaskExecutionLogDto | undefined;
+}
+
+export class BankStatementImportResultDto implements IBankStatementImportResultDto {
+    statements?: BankStatementImportDto[];
+
+    constructor(data?: IBankStatementImportResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["statements"])) {
+                this.statements = [] as any;
+                for (let item of _data["statements"])
+                    this.statements!.push(BankStatementImportDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): BankStatementImportResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BankStatementImportResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.statements)) {
+            data["statements"] = [];
+            for (let item of this.statements)
+                data["statements"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IBankStatementImportResultDto {
+    statements?: BankStatementImportDto[];
+}
+
+export class BankStatementImportDto implements IBankStatementImportDto {
+    id?: number;
+    transferId?: string;
+    statementDate?: Date;
+    importDate?: Date;
+    account?: string;
+    currency?: string;
+    itemCount?: number;
+    importResult?: string;
+    errorType?: string | undefined;
+
+    constructor(data?: IBankStatementImportDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.transferId = _data["transferId"];
+            this.statementDate = _data["statementDate"] ? new Date(_data["statementDate"].toString()) : <any>undefined;
+            this.importDate = _data["importDate"] ? new Date(_data["importDate"].toString()) : <any>undefined;
+            this.account = _data["account"];
+            this.currency = _data["currency"];
+            this.itemCount = _data["itemCount"];
+            this.importResult = _data["importResult"];
+            this.errorType = _data["errorType"];
+        }
+    }
+
+    static fromJS(data: any): BankStatementImportDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BankStatementImportDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["transferId"] = this.transferId;
+        data["statementDate"] = this.statementDate ? this.statementDate.toISOString() : <any>undefined;
+        data["importDate"] = this.importDate ? this.importDate.toISOString() : <any>undefined;
+        data["account"] = this.account;
+        data["currency"] = this.currency;
+        data["itemCount"] = this.itemCount;
+        data["importResult"] = this.importResult;
+        data["errorType"] = this.errorType;
+        return data;
+    }
+}
+
+export interface IBankStatementImportDto {
+    id?: number;
+    transferId?: string;
+    statementDate?: Date;
+    importDate?: Date;
+    account?: string;
+    currency?: string;
+    itemCount?: number;
+    importResult?: string;
+    errorType?: string | undefined;
+}
+
+export class BankImportRequestDto implements IBankImportRequestDto {
+    accountName!: string;
+    statementDate!: Date;
+
+    constructor(data?: IBankImportRequestDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.accountName = _data["accountName"];
+            this.statementDate = _data["statementDate"] ? new Date(_data["statementDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): BankImportRequestDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new BankImportRequestDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["accountName"] = this.accountName;
+        data["statementDate"] = this.statementDate ? this.statementDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IBankImportRequestDto {
+    accountName: string;
+    statementDate: Date;
+}
+
+export class GetBankStatementListResponse extends BaseResponse implements IGetBankStatementListResponse {
+    items?: BankStatementImportDto[];
+    totalCount?: number;
+
+    constructor(data?: IGetBankStatementListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(BankStatementImportDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): GetBankStatementListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetBankStatementListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetBankStatementListResponse extends IBaseResponse {
+    items?: BankStatementImportDto[];
+    totalCount?: number;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
@@ -7469,7 +8201,6 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
 
     constructor(data?: IMarginHistoryDto) {
         if (data) {
@@ -7488,7 +8219,6 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
-            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -7507,7 +8237,6 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
-        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -7519,7 +8248,6 @@ export interface IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
 }
 
 export class MarginLevelDto implements IMarginLevelDto {
@@ -10553,6 +11281,199 @@ export interface IGetIssuedInvoiceSyncStatsResponse extends IBaseResponse {
     criticalErrors?: number;
     lastSyncTime?: Date | undefined;
     syncSuccessRate?: number;
+}
+
+export class EnqueueImportInvoicesResponse extends BaseResponse implements IEnqueueImportInvoicesResponse {
+    jobId?: string | undefined;
+
+    constructor(data?: IEnqueueImportInvoicesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+        }
+    }
+
+    static override fromJS(data: any): EnqueueImportInvoicesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnqueueImportInvoicesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEnqueueImportInvoicesResponse extends IBaseResponse {
+    jobId?: string | undefined;
+}
+
+export class EnqueueImportInvoicesRequest implements IEnqueueImportInvoicesRequest {
+    query?: IssuedInvoiceSourceQuery;
+
+    constructor(data?: IEnqueueImportInvoicesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.query = _data["query"] ? IssuedInvoiceSourceQuery.fromJS(_data["query"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): EnqueueImportInvoicesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnqueueImportInvoicesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["query"] = this.query ? this.query.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IEnqueueImportInvoicesRequest {
+    query?: IssuedInvoiceSourceQuery;
+}
+
+export class IssuedInvoiceSourceQuery implements IIssuedInvoiceSourceQuery {
+    requestId?: string;
+    invoiceId?: string | undefined;
+    dateFrom?: Date | undefined;
+    dateTo?: Date | undefined;
+    currency?: string;
+    queryByInvoice?: boolean;
+    queryByDate?: boolean;
+    dateFromString?: string;
+    dateToString?: string;
+
+    constructor(data?: IIssuedInvoiceSourceQuery) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.requestId = _data["requestId"];
+            this.invoiceId = _data["invoiceId"];
+            this.dateFrom = _data["dateFrom"] ? new Date(_data["dateFrom"].toString()) : <any>undefined;
+            this.dateTo = _data["dateTo"] ? new Date(_data["dateTo"].toString()) : <any>undefined;
+            this.currency = _data["currency"];
+            this.queryByInvoice = _data["queryByInvoice"];
+            this.queryByDate = _data["queryByDate"];
+            this.dateFromString = _data["dateFromString"];
+            this.dateToString = _data["dateToString"];
+        }
+    }
+
+    static fromJS(data: any): IssuedInvoiceSourceQuery {
+        data = typeof data === 'object' ? data : {};
+        let result = new IssuedInvoiceSourceQuery();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["requestId"] = this.requestId;
+        data["invoiceId"] = this.invoiceId;
+        data["dateFrom"] = this.dateFrom ? this.dateFrom.toISOString() : <any>undefined;
+        data["dateTo"] = this.dateTo ? this.dateTo.toISOString() : <any>undefined;
+        data["currency"] = this.currency;
+        data["queryByInvoice"] = this.queryByInvoice;
+        data["queryByDate"] = this.queryByDate;
+        data["dateFromString"] = this.dateFromString;
+        data["dateToString"] = this.dateToString;
+        return data;
+    }
+}
+
+export interface IIssuedInvoiceSourceQuery {
+    requestId?: string;
+    invoiceId?: string | undefined;
+    dateFrom?: Date | undefined;
+    dateTo?: Date | undefined;
+    currency?: string;
+    queryByInvoice?: boolean;
+    queryByDate?: boolean;
+    dateFromString?: string;
+    dateToString?: string;
+}
+
+export class BackgroundJobInfo implements IBackgroundJobInfo {
+    id?: string;
+    jobName?: string;
+    state?: string;
+    createdAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    queue?: string;
+
+    constructor(data?: IBackgroundJobInfo) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.jobName = _data["jobName"];
+            this.state = _data["state"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.queue = _data["queue"];
+        }
+    }
+
+    static fromJS(data: any): BackgroundJobInfo {
+        data = typeof data === 'object' ? data : {};
+        let result = new BackgroundJobInfo();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["jobName"] = this.jobName;
+        data["state"] = this.state;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["queue"] = this.queue;
+        return data;
+    }
+}
+
+export interface IBackgroundJobInfo {
+    id?: string;
+    jobName?: string;
+    state?: string;
+    createdAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    queue?: string;
 }
 
 export class GetJournalEntriesResponse extends BaseResponse implements IGetJournalEntriesResponse {
@@ -15897,20 +16818,16 @@ export interface IProcessDailyConsumptionRequest {
     processingDate?: Date;
 }
 
-export class GetPackingMaterialLogsResponse implements IGetPackingMaterialLogsResponse {
+export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
 
     constructor(data?: IGetPackingMaterialLogsResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
             if (Array.isArray(_data["logs"])) {
@@ -15921,14 +16838,14 @@ export class GetPackingMaterialLogsResponse implements IGetPackingMaterialLogsRe
         }
     }
 
-    static fromJS(data: any): GetPackingMaterialLogsResponse {
+    static override fromJS(data: any): GetPackingMaterialLogsResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetPackingMaterialLogsResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["material"] = this.material ? this.material.toJSON() : <any>undefined;
         if (Array.isArray(this.logs)) {
@@ -15936,11 +16853,12 @@ export class GetPackingMaterialLogsResponse implements IGetPackingMaterialLogsRe
             for (let item of this.logs)
                 data["logs"].push(item.toJSON());
         }
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetPackingMaterialLogsResponse {
+export interface IGetPackingMaterialLogsResponse extends IBaseResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
 }
@@ -16089,7 +17007,6 @@ export class ProductMarginDto implements IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
@@ -16112,7 +17029,6 @@ export class ProductMarginDto implements IProductMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
-            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
                 this.monthlyHistory = [] as any;
                 for (let item of _data["monthlyHistory"])
@@ -16139,7 +17055,6 @@ export class ProductMarginDto implements IProductMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
-        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
             data["monthlyHistory"] = [];
             for (let item of this.monthlyHistory)
@@ -16159,7 +17074,6 @@ export interface IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 }
 
@@ -16168,7 +17082,6 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
 
     constructor(data?: IMonthlyMarginDto) {
         if (data) {
@@ -16185,7 +17098,6 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
-            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -16202,7 +17114,6 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
-        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -16212,7 +17123,6 @@ export interface IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
-    m3?: MarginLevelDto;
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {
@@ -17701,6 +18611,232 @@ export enum StockAnalysisSortBy {
     Consumption = "Consumption",
     StockEfficiency = "StockEfficiency",
     LastPurchaseDate = "LastPurchaseDate",
+}
+
+export class GetRecurringJobsListResponse extends BaseResponse implements IGetRecurringJobsListResponse {
+    jobs?: RecurringJobDto[];
+
+    constructor(data?: IGetRecurringJobsListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["jobs"])) {
+                this.jobs = [] as any;
+                for (let item of _data["jobs"])
+                    this.jobs!.push(RecurringJobDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetRecurringJobsListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRecurringJobsListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.jobs)) {
+            data["jobs"] = [];
+            for (let item of this.jobs)
+                data["jobs"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRecurringJobsListResponse extends IBaseResponse {
+    jobs?: RecurringJobDto[];
+}
+
+export class RecurringJobDto implements IRecurringJobDto {
+    jobName?: string;
+    displayName?: string;
+    description?: string;
+    cronExpression?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+
+    constructor(data?: IRecurringJobDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.jobName = _data["jobName"];
+            this.displayName = _data["displayName"];
+            this.description = _data["description"];
+            this.cronExpression = _data["cronExpression"];
+            this.isEnabled = _data["isEnabled"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+        }
+    }
+
+    static fromJS(data: any): RecurringJobDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecurringJobDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobName"] = this.jobName;
+        data["displayName"] = this.displayName;
+        data["description"] = this.description;
+        data["cronExpression"] = this.cronExpression;
+        data["isEnabled"] = this.isEnabled;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        return data;
+    }
+}
+
+export interface IRecurringJobDto {
+    jobName?: string;
+    displayName?: string;
+    description?: string;
+    cronExpression?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+}
+
+export class UpdateRecurringJobStatusResponse extends BaseResponse implements IUpdateRecurringJobStatusResponse {
+    jobName?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+
+    constructor(data?: IUpdateRecurringJobStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobName = _data["jobName"];
+            this.isEnabled = _data["isEnabled"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateRecurringJobStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateRecurringJobStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobName"] = this.jobName;
+        data["isEnabled"] = this.isEnabled;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateRecurringJobStatusResponse extends IBaseResponse {
+    jobName?: string;
+    isEnabled?: boolean;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+}
+
+export class UpdateJobStatusRequestBody implements IUpdateJobStatusRequestBody {
+    isEnabled?: boolean;
+
+    constructor(data?: IUpdateJobStatusRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.isEnabled = _data["isEnabled"];
+        }
+    }
+
+    static fromJS(data: any): UpdateJobStatusRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateJobStatusRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isEnabled"] = this.isEnabled;
+        return data;
+    }
+}
+
+export interface IUpdateJobStatusRequestBody {
+    isEnabled?: boolean;
+}
+
+export class TriggerRecurringJobResponse implements ITriggerRecurringJobResponse {
+    success?: boolean;
+    jobId?: string | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: ITriggerRecurringJobResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.success = _data["success"];
+            this.jobId = _data["jobId"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): TriggerRecurringJobResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new TriggerRecurringJobResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["success"] = this.success;
+        data["jobId"] = this.jobId;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface ITriggerRecurringJobResponse {
+    success?: boolean;
+    jobId?: string | undefined;
+    errorMessage?: string | undefined;
 }
 
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {

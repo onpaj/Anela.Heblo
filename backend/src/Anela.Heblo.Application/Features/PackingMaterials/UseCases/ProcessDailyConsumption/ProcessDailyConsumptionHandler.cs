@@ -45,7 +45,7 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
             {
                 _logger.LogError("Failed to get issued invoices for {Date}: {ErrorMessage}",
                     request.ProcessingDate, invoicesResult.Params?.GetValueOrDefault("ErrorMessage") ?? "Unknown error");
-                
+
                 return new ProcessDailyConsumptionResponse
                 {
                     Success = false,

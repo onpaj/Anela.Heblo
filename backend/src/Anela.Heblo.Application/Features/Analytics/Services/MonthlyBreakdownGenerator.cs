@@ -24,7 +24,7 @@ public class MonthlyBreakdownGenerator
         MarginCalculationResult calculationResult,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M3")
+        string marginLevel = "M2")
     {
         var monthlyData = new List<MonthlyProductMarginDto>();
 

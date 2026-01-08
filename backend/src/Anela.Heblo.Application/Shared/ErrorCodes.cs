@@ -194,6 +194,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     UnsupportedFileType = 1807,
 
+    // BackgroundJobs module errors (19XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    RecurringJobNotFound = 1901,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    RecurringJobUpdateFailed = 1902,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

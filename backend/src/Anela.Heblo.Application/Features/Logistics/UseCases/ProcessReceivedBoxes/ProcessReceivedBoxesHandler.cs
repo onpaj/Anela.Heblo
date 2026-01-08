@@ -36,12 +36,12 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
     {
         var batchId = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
         var userName = _currentUserService.GetCurrentUser()?.Name ?? "System";
-        
+
         _logger.LogInformation("Starting automatic processing of received transport boxes - Batch ID: {BatchId}", batchId);
 
         // Get all boxes in Received state
         var receivedBoxes = await _transportBoxRepository.GetReceivedBoxesAsync(cancellationToken);
-        
+
         _logger.LogInformation("Found {Count} transport boxes in Received state to process", receivedBoxes.Count);
 
         var response = new ProcessReceivedBoxesResponse
@@ -61,7 +61,7 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
         {
             try
             {
-                _logger.LogDebug("Processing transport box {BoxId} ({BoxCode}) with {ItemCount} items", 
+                _logger.LogDebug("Processing transport box {BoxId} ({BoxCode}) with {ItemCount} items",
                     box.Id, box.Code, box.Items.Count);
 
                 // Stock up all items from the box
@@ -76,7 +76,7 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
 
                 response.SuccessfulBoxesCount++;
 
-                _logger.LogInformation("Successfully processed transport box {BoxId} ({BoxCode}) with {ItemCount} items", 
+                _logger.LogInformation("Successfully processed transport box {BoxId} ({BoxCode}) with {ItemCount} items",
                     box.Id, box.Code, box.Items.Count);
             }
             catch (Exception ex)
@@ -87,18 +87,18 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
                     box.Error(DateTime.UtcNow, userName, ex.Message);
                     await _transportBoxRepository.UpdateAsync(box);
                     await _transportBoxRepository.SaveChangesAsync();
-                    
+
                     response.FailedBoxesCount++;
                     response.FailedBoxCodes.Add(box.Code ?? box.Id.ToString());
 
-                    _logger.LogError(ex, "Failed to process transport box {BoxId} ({BoxCode}). Box set to Error state", 
+                    _logger.LogError(ex, "Failed to process transport box {BoxId} ({BoxCode}). Box set to Error state",
                         box.Id, box.Code);
                 }
                 catch (Exception saveEx)
                 {
-                    _logger.LogError(saveEx, "Failed to save transport box {BoxId} ({BoxCode}) to Error state after processing failure", 
+                    _logger.LogError(saveEx, "Failed to save transport box {BoxId} ({BoxCode}) to Error state after processing failure",
                         box.Id, box.Code);
-                    
+
                     response.FailedBoxesCount++;
                     response.FailedBoxCodes.Add(box.Code ?? box.Id.ToString());
                 }
@@ -106,14 +106,14 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
         }
 
         _logger.LogInformation("Completed processing of received transport boxes - Batch ID: {BatchId}. " +
-                             "Processed: {ProcessedCount}, Successful: {SuccessfulCount}, Failed: {FailedCount}", 
+                             "Processed: {ProcessedCount}, Successful: {SuccessfulCount}, Failed: {FailedCount}",
             batchId, response.ProcessedBoxesCount, response.SuccessfulBoxesCount, response.FailedBoxesCount);
 
         try
         {
             await _backgroundRefreshTaskRegistry.ForceRefreshAsync(nameof(ICatalogRepository.RefreshEshopStockData), CancellationToken.None);
             await _backgroundRefreshTaskRegistry.ForceRefreshAsync(nameof(ICatalogRepository.RefreshTransportData), CancellationToken.None);
-            
+
             _logger.LogDebug("Successfully invalidated catalog data after transport box processing - Batch ID: {BatchId}", batchId);
         }
         catch (Exception ex)
@@ -128,13 +128,13 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
     {
         foreach (var item in box.Items)
         {
-            _logger.LogDebug("Stocking up item: {ProductCode} - {ProductName}, Amount: {Amount}", 
+            _logger.LogDebug("Stocking up item: {ProductCode} - {ProductName}, Amount: {Amount}",
                 item.ProductCode, item.ProductName, item.Amount);
 
             var stockUpRequest = new StockUpRequest(item.ProductCode, item.Amount, batchId);
             await _eshopStockDomainService.StockUpAsync(stockUpRequest);
 
-            _logger.LogDebug("Successfully stocked up item: {ProductCode}, Amount: {Amount}", 
+            _logger.LogDebug("Successfully stocked up item: {ProductCode}, Amount: {Amount}",
                 item.ProductCode, item.Amount);
         }
     }

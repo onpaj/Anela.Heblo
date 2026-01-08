@@ -11,11 +11,10 @@ public class ProductMarginDto
     public double ManufactureDifficulty { get; set; }
     public bool PriceWithoutVatIsFromEshop { get; set; } = false;
 
-    // Margin levels - structured breakdown
+    // Margin levels - structured breakdown (M0-M2)
     public MarginLevelDto M0 { get; set; } = new();  // Direct material margin
     public MarginLevelDto M1 { get; set; } = new();  // Manufacturing margin
     public MarginLevelDto M2 { get; set; } = new();  // Sales & marketing margin
-    public MarginLevelDto M3 { get; set; } = new();  // Net profitability
 
     // Current month cost components (used by CatalogDetail and other components)
     // Historical data for charts (13 months)

@@ -15,7 +15,7 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices.ValueResolvers
         public ShippingMethod Resolve(Invoice source, IssuedInvoiceDetail destination, ShippingMethod destMember, ResolutionContext context)
         {
             var invoiceItemTexts = source.InvoiceDetail?.InvoiceItems?.Select(item => item.Text ?? string.Empty) ?? Enumerable.Empty<string>();
-            
+
             return _shippingMethodResolver.ResolveShippingMethod(invoiceItemTexts);
         }
     }

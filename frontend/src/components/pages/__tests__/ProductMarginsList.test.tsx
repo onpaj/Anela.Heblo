@@ -33,7 +33,7 @@ const mockData = {
       purchasePrice: 100,
       manufactureDifficulty: 2.5,
       priceWithoutVatIsFromEshop: true,
-      // M0-M3 margin levels using MarginLevelDto structure
+      // M0-M2 margin levels using MarginLevelDto structure
       m0: {
         percentage: 80.0,
         amount: 120,
@@ -52,12 +52,6 @@ const mockData = {
         costLevel: 25,
         costTotal: 75,
       },
-      m3: {
-        percentage: 33.33,
-        amount: 50,
-        costLevel: 25,
-        costTotal: 100,
-      },
     },
     {
       productCode: "PROD002",
@@ -66,7 +60,7 @@ const mockData = {
       purchasePrice: 140,
       manufactureDifficulty: 3.0,
       priceWithoutVatIsFromEshop: false,
-      // M0-M3 margin levels using MarginLevelDto structure
+      // M0-M2 margin levels using MarginLevelDto structure
       m0: {
         percentage: 75.0,
         amount: 150,
@@ -84,12 +78,6 @@ const mockData = {
         amount: 90,
         costLevel: 30,
         costTotal: 100,
-      },
-      m3: {
-        percentage: 30.0,
-        amount: 60,
-        costLevel: 40,
-        costTotal: 140,
       },
     },
   ],
@@ -150,7 +138,7 @@ describe("ProductMarginsList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders table with M0-M3 columns", () => {
+  it("renders table with M0-M2 columns", () => {
     mockUseProductMargins.mockReturnValue({
       data: mockData,
       isLoading: false,
@@ -160,11 +148,10 @@ describe("ProductMarginsList", () => {
 
     render(<ProductMarginsList />, { wrapper: createWrapper() });
 
-    // Check that all M0-M3 headers are present
+    // Check that all M0-M2 headers are present
     expect(screen.getByText("M0 %")).toBeInTheDocument();
     expect(screen.getByText("M1 %")).toBeInTheDocument();
     expect(screen.getByText("M2 %")).toBeInTheDocument();
-    expect(screen.getByText("M3 %")).toBeInTheDocument();
 
     // Check that data is displayed
     expect(screen.getByText("Test Product 1")).toBeInTheDocument();
@@ -185,7 +172,6 @@ describe("ProductMarginsList", () => {
     expect(screen.getByText("80.00%")).toBeInTheDocument(); // M0 for first product
     expect(screen.getByText("66.67%")).toBeInTheDocument(); // M1 for first product
     expect(screen.getByText("50.00%")).toBeInTheDocument(); // M2 for first product
-    expect(screen.getByText("33.33%")).toBeInTheDocument(); // M3 for first product
   });
 
   it("shows tooltips with cost breakdown on hover", async () => {
@@ -202,20 +188,19 @@ describe("ProductMarginsList", () => {
     expect(screen.getByText("80.00%")).toBeInTheDocument();
     expect(screen.getByText("66.67%")).toBeInTheDocument();
     expect(screen.getByText("50.00%")).toBeInTheDocument();
-    expect(screen.getByText("33.33%")).toBeInTheDocument();
 
     // Verify tooltip text is in the DOM via title attributes (accessible method)
     const m0Cell = screen.getByText("80.00%");
     expect(m0Cell).toBeInTheDocument();
-    
+
     const m1Cell = screen.getByText("66.67%");
     expect(m1Cell).toBeInTheDocument();
-    
-    const m3Cell = screen.getByText("33.33%");
-    expect(m3Cell).toBeInTheDocument();
+
+    const m2Cell = screen.getByText("50.00%");
+    expect(m2Cell).toBeInTheDocument();
   });
 
-  it("handles sorting by M3 percentage by default", () => {
+  it("handles sorting by M2 percentage by default", () => {
     const mockRefetch = jest.fn();
     mockUseProductMargins.mockReturnValue({
       data: mockData,
@@ -226,14 +211,14 @@ describe("ProductMarginsList", () => {
 
     render(<ProductMarginsList />, { wrapper: createWrapper() });
 
-    // Default sorting should be by M3 percentage descending
+    // Default sorting should be by M2 percentage descending
     expect(mockUseProductMargins).toHaveBeenCalledWith(
       "", // productCodeFilter
       "", // productNameFilter
       "Product", // productTypeFilter
       1, // pageNumber
       20, // pageSize
-      "m3Percentage", // sortBy
+      "m2Percentage", // sortBy
       true, // sortDescending
     );
   });

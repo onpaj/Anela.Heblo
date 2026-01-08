@@ -36,7 +36,6 @@ public class IssuedInvoiceRepositoryTests : IDisposable
         await _repository.SaveChangesAsync();
 
         // Assert
-        Assert.NotNull(result.CreationTime);
         Assert.True(result.CreationTime > DateTime.MinValue);
         Assert.NotNull(result.ConcurrencyStamp);
         Assert.NotEmpty(result.ConcurrencyStamp);
@@ -136,7 +135,7 @@ public class IssuedInvoiceRepositoryTests : IDisposable
         // Assert
         Assert.Single(syncedResult);
         Assert.Equal("INV-SYNCED", syncedResult.First().Id);
-        
+
         Assert.Single(unsyncedResult);
         Assert.Equal("INV-UNSYNCED", unsyncedResult.First().Id);
     }
@@ -178,7 +177,7 @@ public class IssuedInvoiceRepositoryTests : IDisposable
 
         // Act
         var result = await _repository.FindByInvoiceDateRangeAsync(
-            DateTime.Today.AddDays(-5), 
+            DateTime.Today.AddDays(-5),
             DateTime.Today);
 
         // Assert

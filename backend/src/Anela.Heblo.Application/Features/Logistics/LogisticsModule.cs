@@ -32,7 +32,7 @@ public static class LogisticsModule
         // Register background task for automatic processing of received transport boxes
         services.RegisterRefreshTask<ITransportBoxRepository>(
             "ProcessReceivedBoxes",
-            async (serviceProvider, cancellationToken) => 
+            async (serviceProvider, cancellationToken) =>
             {
                 var mediator = serviceProvider.GetRequiredService<IMediator>();
                 await mediator.Send(new ProcessReceivedBoxesRequest(), cancellationToken);
