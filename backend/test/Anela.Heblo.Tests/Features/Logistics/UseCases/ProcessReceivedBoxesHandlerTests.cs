@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ProcessReceivedBoxes;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -14,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.Logistics.UseCases;
 public class ProcessReceivedBoxesHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
-    private readonly Mock<IEshopStockDomainService> _eshopStockDomainServiceMock;
+    private readonly Mock<IStockUpOrchestrationService> _stockUpOrchestrationServiceMock;
     private readonly Mock<IBackgroundRefreshTaskRegistry> _backgroundRefreshTaskRegistryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ProcessReceivedBoxesHandler>> _loggerMock;
@@ -23,7 +24,7 @@ public class ProcessReceivedBoxesHandlerTests
     public ProcessReceivedBoxesHandlerTests()
     {
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
-        _eshopStockDomainServiceMock = new Mock<IEshopStockDomainService>();
+        _stockUpOrchestrationServiceMock = new Mock<IStockUpOrchestrationService>();
         _backgroundRefreshTaskRegistryMock = new Mock<IBackgroundRefreshTaskRegistry>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ProcessReceivedBoxesHandler>>();
@@ -31,7 +32,7 @@ public class ProcessReceivedBoxesHandlerTests
         _handler = new ProcessReceivedBoxesHandler(
             _loggerMock.Object,
             _transportBoxRepositoryMock.Object,
-            _eshopStockDomainServiceMock.Object,
+            _stockUpOrchestrationServiceMock.Object,
             _backgroundRefreshTaskRegistryMock.Object,
             _currentUserServiceMock.Object);
 
@@ -61,8 +62,10 @@ public class ProcessReceivedBoxesHandlerTests
         result.BatchId.Should().NotBeNullOrEmpty();
 
         // Verify no stock operations were attempted
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.IsAny<StockUpRequest>()),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -78,9 +81,11 @@ public class ProcessReceivedBoxesHandlerTests
             .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TransportBox> { transportBox });
 
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.IsAny<StockUpRequest>()))
-            .Returns(Task.CompletedTask);
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.Success(new StockUpOperation("BOX-000001-PROD001", "PROD001", 5, StockUpSourceType.TransportBox, 1)));
 
         _transportBoxRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
@@ -102,9 +107,11 @@ public class ProcessReceivedBoxesHandlerTests
         result.BatchId.Should().NotBeNullOrEmpty();
 
         // Verify stock up was called for the item
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.Is<StockUpRequest>(r =>
-                r.Products.Any(p => p.ProductCode == "PROD001" && p.Amount == 5))),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(
+                It.Is<string>(d => d.Contains("PROD001")),
+                "PROD001", 5,
+                StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify box state changed to Stocked
@@ -131,9 +138,9 @@ public class ProcessReceivedBoxesHandlerTests
             .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TransportBox> { box1, box2 });
 
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.IsAny<StockUpRequest>()))
-            .Returns(Task.CompletedTask);
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.Success(new StockUpOperation("BOX-000001-TEST", "TEST", 1, StockUpSourceType.TransportBox, 1)));
 
         _transportBoxRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
@@ -154,14 +161,14 @@ public class ProcessReceivedBoxesHandlerTests
         result.FailedBoxCodes.Should().BeEmpty();
 
         // Verify all items were stocked up
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.Is<StockUpRequest>(r => r.Products.Any(p => p.ProductCode == "PROD001" && p.Amount == 3))),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(It.IsAny<string>(), "PROD001", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.Is<StockUpRequest>(r => r.Products.Any(p => p.ProductCode == "PROD002" && p.Amount == 7))),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(It.IsAny<string>(), "PROD002", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.Is<StockUpRequest>(r => r.Products.Any(p => p.ProductCode == "PROD003" && p.Amount == 2))),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(It.IsAny<string>(), "PROD003", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify both boxes changed to Stocked state
@@ -185,9 +192,9 @@ public class ProcessReceivedBoxesHandlerTests
             .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TransportBox> { transportBox });
 
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.IsAny<StockUpRequest>()))
-            .ThrowsAsync(new Exception("Stock service error"));
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.SubmitFailed(new StockUpOperation("BOX-000001-TEST", "TEST", 1, StockUpSourceType.TransportBox, 1), new Exception("Stock service error")));
 
         _transportBoxRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
@@ -231,13 +238,13 @@ public class ProcessReceivedBoxesHandlerTests
             .ReturnsAsync(new List<TransportBox> { successBox, failureBox });
 
         // Setup success for first box, failure for second
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.Is<StockUpRequest>(r => r.Products.Any(p => p.ProductCode == "PROD001"))))
-            .Returns(Task.CompletedTask);
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), "PROD001", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.Success(new StockUpOperation("BOX-000001-TEST", "TEST", 1, StockUpSourceType.TransportBox, 1)));
 
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.Is<StockUpRequest>(r => r.Products.Any(p => p.ProductCode == "PROD002"))))
-            .ThrowsAsync(new Exception("Failed to stock product"));
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), "PROD002", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.SubmitFailed(new StockUpOperation("BOX-000001-TEST", "TEST", 1, StockUpSourceType.TransportBox, 1), new Exception("Failed to stock product")));
 
         _transportBoxRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
@@ -278,9 +285,9 @@ public class ProcessReceivedBoxesHandlerTests
             .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TransportBox> { transportBox });
 
-        _eshopStockDomainServiceMock
-            .Setup(x => x.StockUpAsync(It.IsAny<StockUpRequest>()))
-            .Returns(Task.CompletedTask);
+        _stockUpOrchestrationServiceMock
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StockUpOperationResult.Success(new StockUpOperation("BOX-000001-TEST", "TEST", 1, StockUpSourceType.TransportBox, 1)));
 
         _transportBoxRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
@@ -334,8 +341,8 @@ public class ProcessReceivedBoxesHandlerTests
         transportBox.State.Should().Be(TransportBoxState.Stocked);
 
         // No stock operations should be performed
-        _eshopStockDomainServiceMock.Verify(
-            x => x.StockUpAsync(It.IsAny<StockUpRequest>()),
+        _stockUpOrchestrationServiceMock.Verify(
+            x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

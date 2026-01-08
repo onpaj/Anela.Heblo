@@ -37,13 +37,7 @@ public static class ApplicationModule
         // Register AutoMapper
         services.AddAutoMapper(typeof(ApplicationModule).Assembly);
 
-        // Register common services
-        services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
-
-        // Register health check integration wrapper
-        services.AddHostedService<HydrationOrchestratorWrapper>();
-
-        // Background refresh system is now handled by XCC module
+        // Background refresh system, hydration, and service readiness tracking are handled by XCC module
 
         // Register all feature modules
         services.AddConfigurationModule();

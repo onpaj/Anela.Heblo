@@ -1,19 +1,36 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 public static class BackgroundRefreshExtensions
 {
-    public static IServiceCollection AddBackgroundRefresh(this IServiceCollection services)
+    public static IServiceCollection AddBackgroundRefresh(this IServiceCollection services, IConfiguration configuration)
     {
+        // Register and bind background services options
+        services.AddOptions<BackgroundServicesOptions>()
+            .Bind(configuration.GetSection(BackgroundServicesOptions.SectionName));
+
+        // Register background service readiness tracker
+        services.AddSingleton<IBackgroundServiceReadinessTracker, BackgroundServiceReadinessTracker>();
+
         services.AddSingleton<BackgroundRefreshTaskRegistry>();
         services.AddSingleton<IBackgroundRefreshTaskRegistry>(provider =>
             provider.GetRequiredService<BackgroundRefreshTaskRegistry>());
-        services.AddSingleton<TierBasedHydrationOrchestrator>();
-        services.AddHostedService<TierBasedHydrationOrchestrator>(provider =>
-            provider.GetRequiredService<TierBasedHydrationOrchestrator>());
-        services.AddHostedService<BackgroundRefreshSchedulerService>();
+
+        // Only register hydration services if enabled in configuration
+        var enableHydrationValue = configuration[$"{BackgroundServicesOptions.SectionName}:{nameof(BackgroundServicesOptions.EnableHydration)}"];
+        var enableHydration = string.IsNullOrEmpty(enableHydrationValue) || bool.Parse(enableHydrationValue);
+
+        if (enableHydration)
+        {
+            services.AddSingleton<TierBasedHydrationOrchestrator>();
+            services.AddHostedService<TierBasedHydrationOrchestrator>(provider =>
+                provider.GetRequiredService<TierBasedHydrationOrchestrator>());
+            services.AddHostedService<HydrationOrchestratorWrapper>();
+            services.AddHostedService<BackgroundRefreshSchedulerService>();
+        }
 
         return services;
     }

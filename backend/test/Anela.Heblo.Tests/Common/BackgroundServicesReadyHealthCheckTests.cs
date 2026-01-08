@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using Xunit;
