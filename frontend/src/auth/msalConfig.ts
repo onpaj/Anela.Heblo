@@ -20,7 +20,7 @@ export const msalConfig: Configuration = {
     clientCapabilities: ["CP1"], // This lets the resource owner know that this client is capable of handling claims challenges.
   },
   cache: {
-    cacheLocation: "sessionStorage", // This configures where your cache will be stored
+    cacheLocation: "localStorage", // Use localStorage to persist tokens across browser sessions and tabs
     storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
   },
   system: {

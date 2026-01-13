@@ -26,7 +26,7 @@ export const msalConfig: Configuration = {
     redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
   },
   cache: {
-    cacheLocation: "sessionStorage",
+    cacheLocation: "localStorage", // Use localStorage to persist tokens across browser sessions and tabs
     storeAuthStateInCookie: false,
   },
 };
