@@ -26,6 +26,15 @@ const productTypeLabels: Record<ProductType, string> = {
   [ProductType.UNDEFINED]: "Nedefinováno",
 };
 
+const productTypeOptions = [
+  { value: ProductType.Product, label: "Produkt" },
+  { value: ProductType.Goods, label: "Zboží" },
+  { value: ProductType.Material, label: "Materiál" },
+  { value: ProductType.SemiProduct, label: "Polotovar" },
+  { value: ProductType.Set, label: "Dárkový balíček" },
+  { value: ProductType.UNDEFINED, label: "Nedefinováno" },
+];
+
 const CatalogList: React.FC = () => {
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");
@@ -259,9 +268,9 @@ const CatalogList: React.FC = () => {
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Všechny typy</option>
-                {Object.entries(productTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                {productTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
