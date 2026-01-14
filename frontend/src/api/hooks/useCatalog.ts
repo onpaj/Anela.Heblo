@@ -133,7 +133,7 @@ export const useCatalogQuery = (
     pageNumber,
     pageSize,
     productTypes:
-      productTypeFilter && productTypeFilter !== ""
+      productTypeFilter !== "" && productTypeFilter !== undefined
         ? [productTypeFilter]
         : undefined,
     sortBy,
