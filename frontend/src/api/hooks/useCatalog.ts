@@ -132,7 +132,10 @@ export const useCatalogQuery = (
   const params: GetCatalogListRequest = {
     pageNumber,
     pageSize,
-    productTypes: productTypeFilter !== "" ? [productTypeFilter] : undefined,
+    productTypes:
+      productTypeFilter && productTypeFilter !== ""
+        ? [productTypeFilter]
+        : undefined,
     sortBy,
     sortDescending,
     productName: productNameFilter || undefined,
