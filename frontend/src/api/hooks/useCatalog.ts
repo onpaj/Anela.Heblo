@@ -36,7 +36,7 @@ export {
 // All DTOs are now imported from generated API client - no custom interfaces needed
 
 export interface GetCatalogListRequest {
-  type?: ProductType;
+  productTypes?: ProductType[];
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -60,8 +60,10 @@ const fetchCatalogList = async (
   const apiClient = getAuthenticatedApiClient();
   const searchParams = new URLSearchParams();
 
-  if (params.type !== undefined) {
-    searchParams.append("type", params.type.toString());
+  if (params.productTypes && params.productTypes.length > 0) {
+    params.productTypes.forEach((type) => {
+      searchParams.append("productTypes", type.toString());
+    });
   }
   if (params.pageNumber !== undefined) {
     searchParams.append("pageNumber", params.pageNumber.toString());
@@ -130,7 +132,10 @@ export const useCatalogQuery = (
   const params: GetCatalogListRequest = {
     pageNumber,
     pageSize,
-    type: productTypeFilter !== "" ? productTypeFilter : undefined,
+    productTypes:
+      productTypeFilter !== "" && productTypeFilter !== undefined
+        ? [productTypeFilter]
+        : undefined,
     sortBy,
     sortDescending,
     productName: productNameFilter || undefined,

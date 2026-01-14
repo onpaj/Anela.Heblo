@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Anela.Heblo.Domain.Features.Catalog;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ProductType
 {
     Product = 8,
