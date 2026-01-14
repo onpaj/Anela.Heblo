@@ -115,9 +115,9 @@ describe("useCatalogQuery", () => {
 
   describe("Basic Functionality", () => {
     test("should fetch catalog data successfully", async () => {
-      mockApiClient.http.fetch.mockResolvedValueOnce({
+      mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockApiResponse),
+        json: async () => mockApiResponse,
       });
 
       const { result } = renderHook(() => useCatalogQuery(), {
@@ -125,7 +125,7 @@ describe("useCatalogQuery", () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data?.items).toHaveLength(3);
@@ -157,7 +157,7 @@ describe("useCatalogQuery", () => {
     beforeEach(() => {
       mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockApiResponse),
+        json: async () => mockApiResponse,
       });
     });
 
@@ -212,9 +212,9 @@ describe("useCatalogQuery", () => {
       });
 
       // This should be filtered on the server side (not client side)
-      // So we expect the API to be called with the type parameter
+      // So we expect the API to be called with the productTypes parameter (plural)
       expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(`type=${ProductType.Material}`),
+        expect.stringContaining(`productTypes=${ProductType.Material}`),
         expect.any(Object),
       );
     });
@@ -247,7 +247,7 @@ describe("useCatalogQuery", () => {
     beforeEach(() => {
       mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockApiResponse),
+        json: async () => mockApiResponse,
       });
     });
 
@@ -297,7 +297,7 @@ describe("useCatalogQuery", () => {
     beforeEach(() => {
       mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockApiResponse),
+        json: async () => mockApiResponse,
       });
     });
 
@@ -343,7 +343,7 @@ describe("useCatalogQuery", () => {
     beforeEach(() => {
       mockApiClient.http.fetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockApiResponse),
+        json: async () => mockApiResponse,
       });
     });
 
