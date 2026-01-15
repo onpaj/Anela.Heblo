@@ -56,55 +56,37 @@ public class RecurringJobDiscoveryService : IHostedService
                 var metadata = job.Metadata;
                 var jobType = job.GetType();
 
-                // Build expression using reflection to call ExecuteAsync method
-                var executeMethod = typeof(IRecurringJob).GetMethod(nameof(IRecurringJob.ExecuteAsync));
-                if (executeMethod == null)
+                try
                 {
-                    _logger.LogError("Could not find ExecuteAsync method on {JobType}", jobType.Name);
-                    continue;
-                }
+                    // Call the generic helper method using reflection
+                    var registerMethod = typeof(RecurringJobDiscoveryService)
+                        .GetMethod(nameof(RegisterRecurringJobInternal), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
-                // Use Hangfire's AddOrUpdate<T> method with reflection
-                var addOrUpdateMethod = typeof(RecurringJob)
-                    .GetMethods()
-                    .Where(m => m.Name == "AddOrUpdate" && m.IsGenericMethodDefinition)
-                    .FirstOrDefault(m =>
+                    if (registerMethod == null)
                     {
-                        var parameters = m.GetParameters();
-                        return parameters.Length == 5 &&
-                               parameters[0].ParameterType == typeof(string) &&
-                               parameters[4].ParameterType == typeof(string);
+                        _logger.LogError("Could not find RegisterRecurringJobInternal method");
+                        continue;
+                    }
+
+                    var genericRegisterMethod = registerMethod.MakeGenericMethod(jobType);
+
+                    // Invoke the helper method with properly typed parameters
+                    genericRegisterMethod.Invoke(null, new object[]
+                    {
+                        metadata.JobName,
+                        metadata.CronExpression,
+                        metadata.TimeZoneId,
+                        metadata.QueueName
                     });
 
-                if (addOrUpdateMethod == null)
-                {
-                    _logger.LogError("Could not find suitable AddOrUpdate method");
-                    continue;
+                    _logger.LogInformation("Registered recurring job: {JobName} ({JobType}) with schedule {Cron} in queue {Queue}",
+                        metadata.JobName, jobType.Name, metadata.CronExpression, metadata.QueueName);
                 }
-
-                var genericMethod = addOrUpdateMethod.MakeGenericMethod(jobType);
-
-                // Create the lambda expression: job => job.ExecuteAsync(default)
-                var parameter = System.Linq.Expressions.Expression.Parameter(jobType, "job");
-                var methodCall = System.Linq.Expressions.Expression.Call(
-                    parameter,
-                    executeMethod,
-                    System.Linq.Expressions.Expression.Default(typeof(CancellationToken))
-                );
-                var lambda = System.Linq.Expressions.Expression.Lambda(methodCall, parameter);
-
-                // Invoke AddOrUpdate<TJob>(string, Expression<Action<TJob>>, string, TimeZoneInfo, string)
-                genericMethod.Invoke(null, new object[]
+                catch (Exception ex)
                 {
-                    metadata.JobName,
-                    lambda,
-                    metadata.CronExpression,
-                    TimeZoneInfo.FindSystemTimeZoneById(metadata.TimeZoneId),
-                    metadata.QueueName
-                });
-
-                _logger.LogInformation("Registered recurring job: {JobName} ({JobType}) with schedule {Cron} in queue {Queue}",
-                    metadata.JobName, jobType.Name, metadata.CronExpression, metadata.QueueName);
+                    _logger.LogError(ex, "Failed to register recurring job {JobName} ({JobType})",
+                        metadata.JobName, jobType.Name);
+                }
             }
 
             _logger.LogInformation("Successfully registered {Count} recurring jobs in {Environment} environment",
@@ -125,5 +107,23 @@ public class RecurringJobDiscoveryService : IHostedService
     {
         _logger.LogInformation("Stopping recurring job discovery service");
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Generic helper method that calls Hangfire's AddOrUpdate with proper static typing.
+    /// This avoids complex reflection to find the correct overload method.
+    /// </summary>
+    private static void RegisterRecurringJobInternal<TJob>(
+        string jobName,
+        string cronExpression,
+        string timeZoneId,
+        string queueName) where TJob : IRecurringJob
+    {
+        RecurringJob.AddOrUpdate<TJob>(
+            jobName,
+            job => job.ExecuteAsync(default),
+            cronExpression,
+            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId),
+            queueName);
     }
 }
