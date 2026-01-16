@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -7,6 +8,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
@@ -17,29 +19,32 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IEshopStockDomainService _eshopStockDomainService;
+    private readonly IStockUpOrchestrationService _stockUpOrchestrationService;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
     private readonly IBackgroundWorker _backgroundWorker;
+    private readonly ILogger<GiftPackageManufactureService> _logger;
 
     public GiftPackageManufactureService(
         IManufactureRepository manufactureRepository,
         IGiftPackageManufactureRepository giftPackageRepository,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService,
-        IEshopStockDomainService eshopStockDomainService,
+        IStockUpOrchestrationService stockUpOrchestrationService,
         IMapper mapper,
         TimeProvider timeProvider,
-        IBackgroundWorker backgroundWorker)
+        IBackgroundWorker backgroundWorker,
+        ILogger<GiftPackageManufactureService> logger)
     {
         _manufactureRepository = manufactureRepository;
         _giftPackageRepository = giftPackageRepository;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
-        _eshopStockDomainService = eshopStockDomainService;
+        _stockUpOrchestrationService = stockUpOrchestrationService;
         _mapper = mapper;
         _timeProvider = timeProvider;
         _backgroundWorker = backgroundWorker;
+        _logger = logger;
     }
 
     public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
@@ -189,31 +194,74 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             _timeProvider.GetUtcNow().DateTime,
             _currentUserService.GetCurrentUser().Name ?? "System");
 
+        // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
+        await _giftPackageRepository.AddAsync(manufactureLog);
+        await _giftPackageRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Created GiftPackageManufactureLog {LogId} for {GiftPackageCode}, quantity: {Quantity}",
+            manufactureLog.Id, giftPackageCode, quantity);
+
         // Add consumed items - get detailed info with ingredients
         var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, cancellationToken);
 
-        var stockUpRequest = new StockUpRequest() { StockUpId = Guid.NewGuid().ToString() };
+        // Stock-up for each ingredient (negative amounts = consumption)
         foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
         {
             var consumedQuantity = (int)(ingredient.RequiredQuantity * quantity);
             manufactureLog.AddConsumedItem(ingredient.ProductCode, consumedQuantity);
-            stockUpRequest.Products.Add(new StockUpProductRequest()
+
+            // DocumentNumber format: GPM-{logId:000000}-{productCode}
+            var documentNumber = $"GPM-{manufactureLog.Id:000000}-{ingredient.ProductCode}";
+
+            _logger.LogDebug("Processing ingredient stock-down: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+                documentNumber, ingredient.ProductCode, -consumedQuantity);
+
+            var result = await _stockUpOrchestrationService.ExecuteAsync(
+                documentNumber,
+                ingredient.ProductCode,
+                -consumedQuantity,  // Negative = consumption
+                StockUpSourceType.GiftPackageManufacture,
+                manufactureLog.Id,
+                cancellationToken);
+
+            if (!result.IsSuccess)
             {
-                ProductCode = ingredient.ProductCode,
-                Amount = consumedQuantity * -1,
-            });
+                _logger.LogWarning("Stock operation {DocumentNumber} result: {Status} - {Message}",
+                    documentNumber, result.Status, result.Message);
+
+                if (result.Status == StockUpResultStatus.Failed)
+                    throw new InvalidOperationException($"Failed to process ingredient {ingredient.ProductCode}: {result.Message}");
+            }
+
+            _logger.LogDebug("Successfully processed ingredient stock operation: {DocumentNumber}, Status: {Status}",
+                documentNumber, result.Status);
         }
 
-        stockUpRequest.Products.Add(new StockUpProductRequest()
-        {
-            ProductCode = giftPackageCode,
-            Amount = quantity,
-        });
+        // Stock-up for output product (positive amount = production)
+        var outputDocNumber = $"GPM-{manufactureLog.Id:000000}-{giftPackageCode}";
 
-        await _eshopStockDomainService.StockUpAsync(stockUpRequest);
-        // Save to database
-        await _giftPackageRepository.AddAsync(manufactureLog);
-        await _giftPackageRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogDebug("Processing output product stock-up: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+            outputDocNumber, giftPackageCode, quantity);
+
+        var outputResult = await _stockUpOrchestrationService.ExecuteAsync(
+            outputDocNumber,
+            giftPackageCode,
+            quantity,  // Positive = production
+            StockUpSourceType.GiftPackageManufacture,
+            manufactureLog.Id,
+            cancellationToken);
+
+        if (!outputResult.IsSuccess)
+        {
+            _logger.LogWarning("Stock operation {DocumentNumber} result: {Status} - {Message}",
+                outputDocNumber, outputResult.Status, outputResult.Message);
+
+            if (outputResult.Status == StockUpResultStatus.Failed)
+                throw new InvalidOperationException($"Failed to process output product {giftPackageCode}: {outputResult.Message}");
+        }
+
+        _logger.LogInformation("Successfully completed GiftPackageManufacture {LogId} for {GiftPackageCode}",
+            manufactureLog.Id, giftPackageCode);
 
         return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
     }

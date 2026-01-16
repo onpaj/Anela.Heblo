@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingHistory;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperations;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
@@ -58,5 +59,8 @@ public class CatalogMappingProfile : Profile
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
             .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User ?? string.Empty))
             .ForMember(dest => dest.Error, opt => opt.MapFrom(src => src.Error ?? string.Empty));
+
+        // Stock up operation mapping
+        CreateMap<StockUpOperation, StockUpOperationDto>();
     }
 }

@@ -1,3 +1,4 @@
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Anela.Heblo.Application.Common;

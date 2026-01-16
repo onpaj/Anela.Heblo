@@ -1,6 +1,4 @@
-using Anela.Heblo.Application.Common;
-using Anela.Heblo.Application.Features.Catalog.Services;
-using Anela.Heblo.Application.Features.FinancialOverview.Services;
+using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

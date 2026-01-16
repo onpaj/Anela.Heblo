@@ -32,6 +32,7 @@ import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import OrgChartPage from "./pages/OrgChartPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
+import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
@@ -406,6 +407,10 @@ function App() {
                           element={<BankStatementsOverviewPage />}
                         />
                         <Route path="/orgchart" element={<OrgChartPage />} />
+                        <Route
+                          path="/stock-operations"
+                          element={<StockOperationsPage />}
+                        />
                         <Route
                           path="/recurring-jobs"
                           element={<RecurringJobsPage />}

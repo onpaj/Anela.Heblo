@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -14,20 +15,20 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
 {
     private readonly ILogger<ProcessReceivedBoxesHandler> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
-    private readonly IEshopStockDomainService _eshopStockDomainService;
+    private readonly IStockUpOrchestrationService _stockUpOrchestrationService;
     private readonly IBackgroundRefreshTaskRegistry _backgroundRefreshTaskRegistry;
     private readonly ICurrentUserService _currentUserService;
 
     public ProcessReceivedBoxesHandler(
         ILogger<ProcessReceivedBoxesHandler> logger,
         ITransportBoxRepository transportBoxRepository,
-        IEshopStockDomainService eshopStockDomainService,
+        IStockUpOrchestrationService stockUpOrchestrationService,
         IBackgroundRefreshTaskRegistry backgroundRefreshTaskRegistry,
         ICurrentUserService currentUserService)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
-        _eshopStockDomainService = eshopStockDomainService;
+        _stockUpOrchestrationService = stockUpOrchestrationService;
         _backgroundRefreshTaskRegistry = backgroundRefreshTaskRegistry;
         _currentUserService = currentUserService;
     }
@@ -65,14 +66,14 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
                     box.Id, box.Code, box.Items.Count);
 
                 // Stock up all items from the box
-                await StockUpBoxItemsAsync(box, batchId, cancellationToken);
+                await StockUpBoxItemsAsync(box, cancellationToken);
 
                 // Change box state to Stocked (as we're not implementing InSwap)
                 box.ToPick(DateTime.UtcNow, userName);
 
                 // Save changes
-                await _transportBoxRepository.UpdateAsync(box);
-                await _transportBoxRepository.SaveChangesAsync();
+                await _transportBoxRepository.UpdateAsync(box, cancellationToken);
+                await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 
                 response.SuccessfulBoxesCount++;
 
@@ -85,8 +86,8 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
                 try
                 {
                     box.Error(DateTime.UtcNow, userName, ex.Message);
-                    await _transportBoxRepository.UpdateAsync(box);
-                    await _transportBoxRepository.SaveChangesAsync();
+                    await _transportBoxRepository.UpdateAsync(box, cancellationToken);
+                    await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 
                     response.FailedBoxesCount++;
                     response.FailedBoxCodes.Add(box.Code ?? box.Id.ToString());
@@ -124,18 +125,36 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
         return response;
     }
 
-    private async Task StockUpBoxItemsAsync(TransportBox box, string batchId, CancellationToken cancellationToken)
+    private async Task StockUpBoxItemsAsync(TransportBox box, CancellationToken cancellationToken)
     {
         foreach (var item in box.Items)
         {
-            _logger.LogDebug("Stocking up item: {ProductCode} - {ProductName}, Amount: {Amount}",
-                item.ProductCode, item.ProductName, item.Amount);
+            // New DocumentNumber format: BOX-{boxId:000000}-{productCode}
+            var documentNumber = $"BOX-{box.Id:000000}-{item.ProductCode}";
 
-            var stockUpRequest = new StockUpRequest(item.ProductCode, item.Amount, batchId);
-            await _eshopStockDomainService.StockUpAsync(stockUpRequest);
+            _logger.LogDebug("Stocking up item: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+                documentNumber, item.ProductCode, item.Amount);
 
-            _logger.LogDebug("Successfully stocked up item: {ProductCode}, Amount: {Amount}",
-                item.ProductCode, item.Amount);
+            var result = await _stockUpOrchestrationService.ExecuteAsync(
+                documentNumber,
+                item.ProductCode,
+                (int)item.Amount,
+                StockUpSourceType.TransportBox,
+                box.Id,
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Stock up operation {DocumentNumber} result: {Status} - {Message}",
+                    documentNumber, result.Status, result.Message);
+
+                // If failed and not "already completed", throw exception
+                if (result.Status == StockUpResultStatus.Failed)
+                    throw new InvalidOperationException(result.Message);
+            }
+
+            _logger.LogDebug("Successfully processed stock up: {DocumentNumber}, Status: {Status}",
+                documentNumber, result.Status);
         }
     }
 }
