@@ -145,7 +145,7 @@ describe('InventoryModal', () => {
     expect(screen.getByText('Test Product')).toBeInTheDocument();
     expect(screen.getByText('TEST-PRODUCT')).toBeInTheDocument();
     expect(screen.getByText('A1-B2')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('25')).toBeInTheDocument(); // Available stock input
+    expect(screen.getByDisplayValue('22')).toBeInTheDocument(); // Eshop stock input
   });
 
   it('switches to Log tab when clicked', async () => {
@@ -213,15 +213,15 @@ describe('InventoryModal', () => {
     );
 
     // Initially, inventory content should be visible
-    expect(screen.getByDisplayValue('25')).toBeInTheDocument();
-    
+    expect(screen.getByDisplayValue('22')).toBeInTheDocument();
+
     // Switch to Log tab
     const logTab = screen.getByRole('button', { name: /log/i });
     fireEvent.click(logTab);
 
     await waitFor(() => {
       // Inventory input should no longer be visible
-      expect(screen.queryByDisplayValue('25')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('22')).not.toBeInTheDocument();
     });
   });
 
@@ -250,9 +250,9 @@ describe('InventoryModal', () => {
     await waitFor(() => {
       expect(inventuraTab).toHaveClass('border-indigo-500', 'text-indigo-600');
       expect(logTab).toHaveClass('border-transparent', 'text-gray-500');
-      
+
       // Verify inventory content is visible again
-      expect(screen.getByDisplayValue('25')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('22')).toBeInTheDocument();
     });
   });
 
