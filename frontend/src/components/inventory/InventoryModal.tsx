@@ -52,7 +52,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
   // Reset quantity when effective item changes (either from prop or API)
   useEffect(() => {
     if (effectiveItem) {
-      const currentStock = Math.round((effectiveItem.stock?.available || 0) * 100) / 100;
+      const currentStock = Math.round((effectiveItem.stock?.eshop || 0) * 100) / 100;
       setNewQuantity(currentStock);
     }
   }, [effectiveItem]);
@@ -83,12 +83,12 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const currentStock = Math.round((effectiveItem?.stock?.available || 0) * 100) / 100;
+  const currentStock = Math.round((effectiveItem?.stock?.eshop || 0) * 100) / 100;
 
   const handleInventorize = async () => {
     if (!effectiveItem?.productCode) return;
 
-    const currentStock = Math.round((effectiveItem?.stock?.available || 0) * 100) / 100;
+    const currentStock = Math.round((effectiveItem?.stock?.eshop || 0) * 100) / 100;
     
     // Determine if this is a soft stock taking (no change in quantity)
     const isSoftStockTaking = newQuantity === currentStock;
