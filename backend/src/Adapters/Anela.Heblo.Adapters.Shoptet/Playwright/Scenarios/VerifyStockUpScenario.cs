@@ -43,8 +43,8 @@ public class VerifyStockUpScenario
 
         _logger.LogDebug("Login successful, navigating to stock history...");
 
-        // Navigate to stock history (Historie tab in /admin/sklad)
-        await page.GotoAsync($"{_options.ShopEntryUrl}/admin/sklad");
+        // Navigate to stock history (Historie tab in /sklad)
+        await page.GotoAsync($"{_options.ShopEntryUrl}/sklad");
         await page.WaitForLoadStateAsync();
 
         // Click on "Historie" tab
@@ -59,7 +59,7 @@ public class VerifyStockUpScenario
         {
             _logger.LogWarning($"Could not find 'Historie' tab, trying alternative navigation: {ex.Message}");
             // Alternative: try direct URL if tab navigation fails
-            await page.GotoAsync($"{_options.ShopEntryUrl}/admin/sklad/historie");
+            await page.GotoAsync($"{_options.ShopEntryUrl}/sklad/historie");
             await page.WaitForLoadStateAsync();
         }
 

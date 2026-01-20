@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJ
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -37,7 +38,9 @@ public class TriggerRecurringJobHandlerIntegrationTests
             new TestAsyncRecurringJob("test-async-job")
         };
 
-        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+        // Create BackgroundJobClient using the configured storage
+        var backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object, backgroundJobClient);
 
         var handler = new TriggerRecurringJobHandler(
             jobs,
@@ -87,7 +90,9 @@ public class TriggerRecurringJobHandlerIntegrationTests
             new TestAsyncRecurringJob("async-test")
         };
 
-        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+        // Create BackgroundJobClient using the configured storage
+        var backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object, backgroundJobClient);
 
         var handler = new TriggerRecurringJobHandler(
             jobs,
@@ -140,7 +145,9 @@ public class TriggerRecurringJobHandlerIntegrationTests
             new TestAsyncRecurringJob("disabled-job")
         };
 
-        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object);
+        // Create BackgroundJobClient using the configured storage
+        var backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
+        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object, backgroundJobClient);
 
         var handler = new TriggerRecurringJobHandler(
             jobs,

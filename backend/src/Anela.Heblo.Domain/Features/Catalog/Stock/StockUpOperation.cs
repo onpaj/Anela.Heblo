@@ -95,4 +95,20 @@ public class StockUpOperation : Entity<int>
         CompletedAt = null;
         ErrorMessage = null;
     }
+
+    /// <summary>
+    /// Force reset operation from any non-Completed state.
+    /// Use this for manual intervention when operation is stuck (e.g., in Submitted state after crash).
+    /// </summary>
+    public void ForceReset()
+    {
+        if (State == StockUpOperationState.Completed)
+            throw new InvalidOperationException("Cannot force reset Completed operations");
+
+        State = StockUpOperationState.Pending;
+        SubmittedAt = null;
+        VerifiedAt = null;
+        CompletedAt = null;
+        ErrorMessage = null;
+    }
 }

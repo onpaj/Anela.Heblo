@@ -63,13 +63,13 @@ public static class ApplicationBuilderExtensions
         // Configure forwarded headers for deployment behind load balancer/proxy (HTTPS handling)
         app.UseForwardedHeaders();
 
+        // Use CORS - MUST be before UseHttpsRedirection to ensure CORS headers are included in redirect responses
+        app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
+
         app.UseHttpsRedirection();
 
         // Built-in HTTP request logging
         app.UseHttpLogging();
-
-        // Use CORS
-        app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
 
         // Request logging middleware - detailed logging for diagnostics
         // Must be after CORS and before authentication to capture all request details
