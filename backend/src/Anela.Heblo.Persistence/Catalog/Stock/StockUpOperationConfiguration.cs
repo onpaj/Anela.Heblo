@@ -41,10 +41,6 @@ public class StockUpOperationConfiguration : IEntityTypeConfiguration<StockUpOpe
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.VerifiedAt)
-            .IsRequired(false)
-            .AsUtcTimestamp();
-
         builder.Property(x => x.CompletedAt)
             .IsRequired(false)
             .AsUtcTimestamp();

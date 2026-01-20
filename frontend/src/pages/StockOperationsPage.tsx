@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { AlertCircle, RefreshCw, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle, Clock, XCircle, AlertTriangle, Play } from 'lucide-react';
+import { differenceInMinutes } from 'date-fns';
 import { useStockUpOperationsQuery, useRetryStockUpOperationMutation } from '../api/hooks/useStockUpOperations';
 import { StockUpOperationState } from '../api/generated/api-client';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
@@ -8,6 +9,40 @@ const StockOperationsPage: React.FC = () => {
   const [selectedState, setSelectedState] = useState<StockUpOperationState | undefined>(StockUpOperationState.Failed);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
+
+  // Helper to detect stuck operations
+  const isOperationStuck = (operation: any): boolean => {
+    const now = new Date();
+
+    if (operation.state === StockUpOperationState.Submitted && operation.submittedAt) {
+      const minutesSinceSubmit = differenceInMinutes(now, new Date(operation.submittedAt));
+      return minutesSinceSubmit > 5; // Submitted for more than 5 minutes
+    }
+
+    if (operation.state === StockUpOperationState.Pending) {
+      const minutesSinceCreation = differenceInMinutes(now, new Date(operation.createdAt));
+      return minutesSinceCreation > 10; // Pending for more than 10 minutes
+    }
+
+    return false;
+  };
+
+  // Helper to get stuck operation message
+  const getStuckMessage = (operation: any): string => {
+    const now = new Date();
+
+    if (operation.state === StockUpOperationState.Submitted && operation.submittedAt) {
+      const minutes = differenceInMinutes(now, new Date(operation.submittedAt));
+      return `Operace je ve stavu Submitted ${minutes} minut. Může být uvízlá.`;
+    }
+
+    if (operation.state === StockUpOperationState.Pending) {
+      const minutes = differenceInMinutes(now, new Date(operation.createdAt));
+      return `Operace je ve stavu Pending ${minutes} minut. Nebyla zpracována.`;
+    }
+
+    return '';
+  };
 
   const { data, isLoading, error, refetch } = useStockUpOperationsQuery({
     state: selectedState,
@@ -27,8 +62,6 @@ const StockOperationsPage: React.FC = () => {
         return 'bg-yellow-100 text-yellow-800';
       case StockUpOperationState.Submitted:
         return 'bg-blue-100 text-blue-800';
-      case StockUpOperationState.Verified:
-        return 'bg-indigo-100 text-indigo-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -43,17 +76,95 @@ const StockOperationsPage: React.FC = () => {
       case StockUpOperationState.Pending:
         return <Clock className="h-4 w-4" />;
       case StockUpOperationState.Submitted:
-      case StockUpOperationState.Verified:
         return <RefreshCw className="h-4 w-4" />;
       default:
         return null;
     }
   };
 
-  const handleRetry = async (operationId: number) => {
-    if (window.confirm('Opravdu chcete znovu spustit tuto operaci?')) {
+  // Check if operation can be retried
+  const canRetry = (state?: StockUpOperationState): boolean => {
+    if (!state) return false;
+    return state === StockUpOperationState.Failed ||
+           state === StockUpOperationState.Submitted ||
+           state === StockUpOperationState.Pending;
+  };
+
+  // Get retry button color based on state
+  const getRetryButtonColor = (state?: StockUpOperationState): string => {
+    switch (state) {
+      case StockUpOperationState.Failed:
+        return 'bg-red-600 hover:bg-red-700';
+      case StockUpOperationState.Submitted:
+        return 'bg-orange-500 hover:bg-orange-600';
+      case StockUpOperationState.Pending:
+        return 'bg-yellow-600 hover:bg-yellow-700';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  // Get retry button label based on state
+  const getRetryButtonLabel = (state?: StockUpOperationState): string => {
+    switch (state) {
+      case StockUpOperationState.Failed:
+        return 'Opakovat';
+      case StockUpOperationState.Submitted:
+        return 'Znovu zkusit';
+      case StockUpOperationState.Pending:
+        return 'Spustit';
+      default:
+        return 'Retry';
+    }
+  };
+
+  // Get retry button icon based on state
+  const getRetryButtonIcon = (state?: StockUpOperationState): JSX.Element => {
+    switch (state) {
+      case StockUpOperationState.Failed:
+        return <RefreshCw className="h-3 w-3" />;
+      case StockUpOperationState.Submitted:
+        return <AlertTriangle className="h-3 w-3" />;
+      case StockUpOperationState.Pending:
+        return <Play className="h-3 w-3" />;
+      default:
+        return <RefreshCw className="h-3 w-3" />;
+    }
+  };
+
+  // Get retry button tooltip
+  const getRetryButtonTooltip = (state?: StockUpOperationState): string => {
+    switch (state) {
+      case StockUpOperationState.Failed:
+        return 'Operace explicitně selhala. Klikněte pro nový pokus.';
+      case StockUpOperationState.Submitted:
+        return 'Operace může být uvízlá po selhání procesu. Klikněte pro restart.';
+      case StockUpOperationState.Pending:
+        return 'Operace nebyla nikdy zpracována. Klikněte pro spuštění.';
+      default:
+        return 'Retry operation';
+    }
+  };
+
+  // Handle retry with state-specific confirmation
+  const handleRetryWithConfirmation = async (operation: any) => {
+    const messages: Record<StockUpOperationState, string> = {
+      [StockUpOperationState.Failed]: 'Opravdu chcete znovu spustit tuto selhanou operaci?',
+      [StockUpOperationState.Submitted]:
+        'Tato operace je ve stavu Submitted. Pokud je uvízlá, retry může způsobit duplikát v Shoptet. Pokračovat?',
+      [StockUpOperationState.Pending]:
+        'Tato operace nebyla nikdy zpracována. Chcete ji spustit?',
+      [StockUpOperationState.Completed]: '', // Won't be shown
+    };
+
+    const confirmMessage = operation.state && messages[operation.state as StockUpOperationState]
+      ? messages[operation.state as StockUpOperationState]
+      : 'Opravdu chcete znovu spustit tuto operaci?';
+
+    if (window.confirm(confirmMessage)) {
       try {
-        await retryMutation.mutateAsync(operationId);
+        await retryMutation.mutateAsync(operation.id!);
+        refetch(); // Refresh the list after retry
       } catch (error) {
         console.error('Chyba při opakování operace:', error);
       }
@@ -131,7 +242,6 @@ const StockOperationsPage: React.FC = () => {
             <option value={StockUpOperationState.Failed}>Failed</option>
             <option value={StockUpOperationState.Pending}>Pending</option>
             <option value={StockUpOperationState.Submitted}>Submitted</option>
-            <option value={StockUpOperationState.Verified}>Verified</option>
             <option value={StockUpOperationState.Completed}>Completed</option>
           </select>
         </div>
@@ -194,10 +304,21 @@ const StockOperationsPage: React.FC = () => {
                     {operation.amount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStateColor(operation.state ?? StockUpOperationState.Pending)}`}>
-                      {getStateIcon(operation.state ?? StockUpOperationState.Pending)}
-                      <span className="ml-1">{StockUpOperationState[operation.state ?? StockUpOperationState.Pending]}</span>
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStateColor(operation.state ?? StockUpOperationState.Pending)}`}>
+                        {getStateIcon(operation.state ?? StockUpOperationState.Pending)}
+                        <span className="ml-1">{StockUpOperationState[operation.state ?? StockUpOperationState.Pending]}</span>
+                      </span>
+
+                      {isOperationStuck(operation) && (
+                        <span
+                          className="inline-flex items-center text-red-600"
+                          title={getStuckMessage(operation)}
+                        >
+                          <AlertTriangle className="h-4 w-4 animate-pulse" />
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(operation.createdAt)}
@@ -206,14 +327,15 @@ const StockOperationsPage: React.FC = () => {
                     {operation.errorMessage || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {(operation.state ?? StockUpOperationState.Pending) === StockUpOperationState.Failed && operation.id && (
+                    {canRetry(operation.state) && operation.id && (
                       <button
-                        onClick={() => handleRetry(operation.id!)}
+                        onClick={() => handleRetryWithConfirmation(operation)}
                         disabled={retryMutation.isPending}
-                        className="inline-flex items-center px-3 py-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white text-xs font-medium rounded transition-colors duration-200"
+                        className={`inline-flex items-center px-3 py-1 disabled:bg-gray-400 text-white text-xs font-medium rounded transition-colors duration-200 ${getRetryButtonColor(operation.state)}`}
+                        title={getRetryButtonTooltip(operation.state)}
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Opakovat
+                        {getRetryButtonIcon(operation.state)}
+                        <span className="ml-1">{getRetryButtonLabel(operation.state)}</span>
                       </button>
                     )}
                   </td>

@@ -70,7 +70,7 @@ public class StockUpOrchestrationService : IStockUpOrchestrationService
                 return StockUpOperationResult.PreviouslyFailed(existing);
             }
 
-            // In Pending, Submitted, or Verified state - another process is handling it
+            // In Pending or Submitted state - another process is handling it
             _logger.LogWarning("Operation {DocumentNumber} already in progress, state: {State}",
                 documentNumber, existing.State);
             return StockUpOperationResult.InProgress(existing);
@@ -126,7 +126,6 @@ public class StockUpOrchestrationService : IStockUpOrchestrationService
             var verified = await _eshopService.VerifyStockUpExistsAsync(documentNumber);
             if (verified)
             {
-                operation.MarkAsVerified(DateTime.UtcNow);
                 operation.MarkAsCompleted(DateTime.UtcNow);
                 await _repository.SaveChangesAsync(ct);
                 _logger.LogInformation("Operation {DocumentNumber} verified and completed successfully", documentNumber);

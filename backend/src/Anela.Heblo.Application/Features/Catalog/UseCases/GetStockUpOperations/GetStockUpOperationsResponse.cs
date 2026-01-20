@@ -20,7 +20,6 @@ public class StockUpOperationDto
     public int SourceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? SubmittedAt { get; set; }
-    public DateTime? VerifiedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime? FailedAt { get; set; }
     public string? ErrorMessage { get; set; }

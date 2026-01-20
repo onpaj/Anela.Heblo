@@ -13,7 +13,6 @@ public class StockUpOperation : Entity<int>
     public StockUpOperationState State { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? SubmittedAt { get; private set; }
-    public DateTime? VerifiedAt { get; private set; }
     public DateTime? CompletedAt { get; private set; }
     public string? ErrorMessage { get; private set; }
 
@@ -56,18 +55,10 @@ public class StockUpOperation : Entity<int>
         SubmittedAt = timestamp;
     }
 
-    public void MarkAsVerified(DateTime timestamp)
-    {
-        if (State != StockUpOperationState.Submitted)
-            throw new InvalidOperationException($"Cannot mark as Verified from {State} state");
-
-        State = StockUpOperationState.Verified;
-        VerifiedAt = timestamp;
-    }
-
     public void MarkAsCompleted(DateTime timestamp)
     {
-        if (State != StockUpOperationState.Verified && State != StockUpOperationState.Pending)
+        // Can transition from Submitted (after verification) or Pending (if already in Shoptet)
+        if (State != StockUpOperationState.Submitted && State != StockUpOperationState.Pending)
             throw new InvalidOperationException($"Cannot mark as Completed from {State} state");
 
         State = StockUpOperationState.Completed;
@@ -91,7 +82,6 @@ public class StockUpOperation : Entity<int>
 
         State = StockUpOperationState.Pending;
         SubmittedAt = null;
-        VerifiedAt = null;
         CompletedAt = null;
         ErrorMessage = null;
     }
@@ -107,7 +97,6 @@ public class StockUpOperation : Entity<int>
 
         State = StockUpOperationState.Pending;
         SubmittedAt = null;
-        VerifiedAt = null;
         CompletedAt = null;
         ErrorMessage = null;
     }

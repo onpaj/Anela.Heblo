@@ -35,7 +35,6 @@ public class StockUpOperationTests
         operation.State.Should().Be(StockUpOperationState.Pending);
         operation.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         operation.SubmittedAt.Should().BeNull();
-        operation.VerifiedAt.Should().BeNull();
         operation.CompletedAt.Should().BeNull();
         operation.ErrorMessage.Should().BeNull();
     }
@@ -115,7 +114,6 @@ public class StockUpOperationTests
 
     [Theory]
     [InlineData(StockUpOperationState.Submitted)]
-    [InlineData(StockUpOperationState.Verified)]
     [InlineData(StockUpOperationState.Completed)]
     [InlineData(StockUpOperationState.Failed)]
     public void MarkAsSubmitted_FromInvalidState_ThrowsInvalidOperationException(StockUpOperationState invalidState)
@@ -133,54 +131,15 @@ public class StockUpOperationTests
 
     #endregion
 
-    #region MarkAsVerified Tests
-
-    [Fact]
-    public void MarkAsVerified_FromSubmittedState_ChangesStateToVerified()
-    {
-        // Arrange
-        var operation = CreateDefaultOperation();
-        operation.MarkAsSubmitted(DateTime.UtcNow);
-        var verifiedAt = DateTime.UtcNow.AddSeconds(1);
-
-        // Act
-        operation.MarkAsVerified(verifiedAt);
-
-        // Assert
-        operation.State.Should().Be(StockUpOperationState.Verified);
-        operation.VerifiedAt.Should().Be(verifiedAt);
-    }
-
-    [Theory]
-    [InlineData(StockUpOperationState.Pending)]
-    [InlineData(StockUpOperationState.Verified)]
-    [InlineData(StockUpOperationState.Completed)]
-    [InlineData(StockUpOperationState.Failed)]
-    public void MarkAsVerified_FromInvalidState_ThrowsInvalidOperationException(StockUpOperationState invalidState)
-    {
-        // Arrange
-        var operation = CreateOperationInState(invalidState);
-
-        // Act
-        Action act = () => operation.MarkAsVerified(DateTime.UtcNow);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage($"Cannot mark as Verified from {invalidState} state");
-    }
-
-    #endregion
-
     #region MarkAsCompleted Tests
 
     [Fact]
-    public void MarkAsCompleted_FromVerifiedState_ChangesStateToCompleted()
+    public void MarkAsCompleted_FromSubmittedState_ChangesStateToCompleted()
     {
         // Arrange
         var operation = CreateDefaultOperation();
         operation.MarkAsSubmitted(DateTime.UtcNow);
-        operation.MarkAsVerified(DateTime.UtcNow.AddSeconds(1));
-        var completedAt = DateTime.UtcNow.AddSeconds(2);
+        var completedAt = DateTime.UtcNow.AddSeconds(1);
 
         // Act
         operation.MarkAsCompleted(completedAt);
@@ -206,7 +165,6 @@ public class StockUpOperationTests
     }
 
     [Theory]
-    [InlineData(StockUpOperationState.Submitted)]
     [InlineData(StockUpOperationState.Completed)]
     [InlineData(StockUpOperationState.Failed)]
     public void MarkAsCompleted_FromInvalidState_ThrowsInvalidOperationException(StockUpOperationState invalidState)
@@ -278,7 +236,6 @@ public class StockUpOperationTests
         // Assert
         operation.State.Should().Be(StockUpOperationState.Pending);
         operation.SubmittedAt.Should().BeNull();
-        operation.VerifiedAt.Should().BeNull();
         operation.CompletedAt.Should().BeNull();
         operation.ErrorMessage.Should().BeNull();
     }
@@ -286,7 +243,6 @@ public class StockUpOperationTests
     [Theory]
     [InlineData(StockUpOperationState.Pending)]
     [InlineData(StockUpOperationState.Submitted)]
-    [InlineData(StockUpOperationState.Verified)]
     [InlineData(StockUpOperationState.Completed)]
     public void Reset_FromNonFailedState_ThrowsInvalidOperationException(StockUpOperationState invalidState)
     {
@@ -311,17 +267,13 @@ public class StockUpOperationTests
         // Arrange
         var operation = CreateDefaultOperation();
         var submittedAt = DateTime.UtcNow;
-        var verifiedAt = submittedAt.AddSeconds(1);
-        var completedAt = verifiedAt.AddSeconds(1);
+        var completedAt = submittedAt.AddSeconds(1);
 
         // Act & Assert - Full workflow
         operation.State.Should().Be(StockUpOperationState.Pending);
 
         operation.MarkAsSubmitted(submittedAt);
         operation.State.Should().Be(StockUpOperationState.Submitted);
-
-        operation.MarkAsVerified(verifiedAt);
-        operation.State.Should().Be(StockUpOperationState.Verified);
 
         operation.MarkAsCompleted(completedAt);
         operation.State.Should().Be(StockUpOperationState.Completed);
@@ -346,8 +298,7 @@ public class StockUpOperationTests
 
         // Second attempt
         operation.MarkAsSubmitted(DateTime.UtcNow.AddSeconds(2));
-        operation.MarkAsVerified(DateTime.UtcNow.AddSeconds(3));
-        operation.MarkAsCompleted(DateTime.UtcNow.AddSeconds(4));
+        operation.MarkAsCompleted(DateTime.UtcNow.AddSeconds(3));
         operation.State.Should().Be(StockUpOperationState.Completed);
     }
 
@@ -358,7 +309,6 @@ public class StockUpOperationTests
     [Theory]
     [InlineData(StockUpOperationState.Pending)]
     [InlineData(StockUpOperationState.Submitted)]
-    [InlineData(StockUpOperationState.Verified)]
     [InlineData(StockUpOperationState.Failed)]
     public void ForceReset_FromAnyNonCompletedState_ChangesStateToPending(StockUpOperationState initialState)
     {
@@ -371,7 +321,6 @@ public class StockUpOperationTests
         // Assert
         operation.State.Should().Be(StockUpOperationState.Pending);
         operation.SubmittedAt.Should().BeNull();
-        operation.VerifiedAt.Should().BeNull();
         operation.CompletedAt.Should().BeNull();
         operation.ErrorMessage.Should().BeNull();
     }
@@ -429,7 +378,6 @@ public class StockUpOperationTests
         {
             StockUpOperationState.Pending => operation,
             StockUpOperationState.Submitted => CreateSubmittedOperation(operation),
-            StockUpOperationState.Verified => CreateVerifiedOperation(operation),
             StockUpOperationState.Completed => CreateCompletedOperation(operation),
             StockUpOperationState.Failed => CreateFailedOperation(operation),
             _ => throw new ArgumentOutOfRangeException(nameof(targetState))
@@ -442,18 +390,10 @@ public class StockUpOperationTests
         return operation;
     }
 
-    private static StockUpOperation CreateVerifiedOperation(StockUpOperation operation)
-    {
-        operation.MarkAsSubmitted(DateTime.UtcNow);
-        operation.MarkAsVerified(DateTime.UtcNow.AddSeconds(1));
-        return operation;
-    }
-
     private static StockUpOperation CreateCompletedOperation(StockUpOperation operation)
     {
         operation.MarkAsSubmitted(DateTime.UtcNow);
-        operation.MarkAsVerified(DateTime.UtcNow.AddSeconds(1));
-        operation.MarkAsCompleted(DateTime.UtcNow.AddSeconds(2));
+        operation.MarkAsCompleted(DateTime.UtcNow.AddSeconds(1));
         return operation;
     }
 

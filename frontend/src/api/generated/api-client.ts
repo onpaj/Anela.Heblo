@@ -19065,7 +19065,6 @@ export class StockUpOperationDto implements IStockUpOperationDto {
     sourceId?: number;
     createdAt?: Date;
     submittedAt?: Date | undefined;
-    verifiedAt?: Date | undefined;
     completedAt?: Date | undefined;
     failedAt?: Date | undefined;
     errorMessage?: string | undefined;
@@ -19090,7 +19089,6 @@ export class StockUpOperationDto implements IStockUpOperationDto {
             this.sourceId = _data["sourceId"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.submittedAt = _data["submittedAt"] ? new Date(_data["submittedAt"].toString()) : <any>undefined;
-            this.verifiedAt = _data["verifiedAt"] ? new Date(_data["verifiedAt"].toString()) : <any>undefined;
             this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
             this.failedAt = _data["failedAt"] ? new Date(_data["failedAt"].toString()) : <any>undefined;
             this.errorMessage = _data["errorMessage"];
@@ -19115,7 +19113,6 @@ export class StockUpOperationDto implements IStockUpOperationDto {
         data["sourceId"] = this.sourceId;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["submittedAt"] = this.submittedAt ? this.submittedAt.toISOString() : <any>undefined;
-        data["verifiedAt"] = this.verifiedAt ? this.verifiedAt.toISOString() : <any>undefined;
         data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
         data["failedAt"] = this.failedAt ? this.failedAt.toISOString() : <any>undefined;
         data["errorMessage"] = this.errorMessage;
@@ -19133,7 +19130,6 @@ export interface IStockUpOperationDto {
     sourceId?: number;
     createdAt?: Date;
     submittedAt?: Date | undefined;
-    verifiedAt?: Date | undefined;
     completedAt?: Date | undefined;
     failedAt?: Date | undefined;
     errorMessage?: string | undefined;
@@ -19142,7 +19138,6 @@ export interface IStockUpOperationDto {
 export enum StockUpOperationState {
     Pending = "Pending",
     Submitted = "Submitted",
-    Verified = "Verified",
     Completed = "Completed",
     Failed = "Failed",
 }
